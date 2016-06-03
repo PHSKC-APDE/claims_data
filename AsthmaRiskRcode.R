@@ -13,6 +13,7 @@ options(max.print = 600)
 library(RODBC) # used to connect to SQL server
 library(dplyr) # used to manipulate data
 library(reshape2) # used to reshape data
+library(car) # used to recode variables
 
 
 # DATA SETUP --------------------------------------------------------------
@@ -72,7 +73,7 @@ hospED <-
   sqlQuery(
     db.claims,
     "SELECT DISTINCT MEDICAID_RECIPIENT_ID AS 'ID2014',
-    SUM(CASE WHEN CAL_YEAR = 2014 AND CLM_TYPE_CID = 31 THEN 1 ELSE 0 END) AS 'Hosp',
+    SUM(CASE WHEN CAL_YEAR = 2014 AND CLM_TYPE_CID = 31 THEN 1 ELSE 0 END) AS 'hosp',
     SUM(CASE WHEN CAL_YEAR=2014 AND REVENUE_CODE IN ('0450','0456','0459','0981') THEN 1 ELSE 0 END) AS 'ED'
     FROM dbo.vClaims
     GROUP BY MEDICAID_RECIPIENT_ID"
@@ -97,16 +98,18 @@ asthma <-
 proc.time() - ptm03
 
 
-##### Merge all eligible children with asthma claims
+##### Merge all eligible children with asthma claims and total hospital/ED visits
 asthmachild <- merge(eligall, asthma, by = "ID2014")
+asthmachild <- merge(asthmachild, hospED, by = "ID2014") # Could maybe make this more efficient with join_all from plyr package
 
 # Count up number of baseline (2014) predictors for each child
 asthmarisk <- asthmachild %>%
   group_by(ID2014) %>%
   mutate(
+    # hospitalizations for asthma, any diagnosis
     hospcnt14 = sum(ifelse(CAL_YEAR == 2014 &
                              CLM_TYPE_CID == 31, 1, 0)),
-    # hospitalizations for asthma, any diagnosis
+    # hospitalizations for asthma, primary diagnosis
     hospcntprim14 = sum(ifelse(
       CAL_YEAR == 2014 & CLM_TYPE_CID == 31 &
         (
@@ -116,11 +119,11 @@ asthmarisk <- asthmachild %>%
       1,
       0
     )),
-    # hospitalizations for asthma, primary diagnosis
+    # ED visits for asthma, any diagnosis
     EDcnt14 = sum(ifelse(
       CAL_YEAR == 2014 & REVENUE_CODE %in% c(0450, 0456, 0459, 0981), 1, 0
     )),
-    # ED visits for asthma, any diagnosis
+    # ED visits for asthma, primary diagnosis
     EDcntprim14 = sum(ifelse(
       CAL_YEAR == 2014 & REVENUE_CODE %in% c(0450, 0456, 0459, 0981) &
         (
@@ -130,10 +133,10 @@ asthmarisk <- asthmachild %>%
       1,
       0
     )),
-    # ED visits for asthma, primary diagnosis
+    # well-child checks for asthma, any diagnosis
     wellcnt14 = sum(ifelse(CAL_YEAR == 2014 &
                              CLM_TYPE_CID == 27, 1, 0)),
-    # well-child checks for asthma, any diagnosis
+    # well-child checks for asthma, primary diagnosis
     wellcntprim14 = sum(ifelse(
       CAL_YEAR == 2014 & CLM_TYPE_CID == 27 &
         (
@@ -143,7 +146,7 @@ asthmarisk <- asthmachild %>%
       1,
       0
     )),
-    # well-child checks for asthma, primary diagnosis
+    # total number of asthma claims, primary diagnosis
     asthmacnt14 = sum(ifelse(CAL_YEAR == 2014, 1, 0)),
     asmthacntprim14 = sum(ifelse(
       CAL_YEAR == 2014 &
@@ -155,9 +158,10 @@ asthmarisk <- asthmachild %>%
       0
     )),
     # Count up number of outcome (2015) measures for each child
+    # hospitalizations for asthma, any diagnosis
     hospcnt15 = sum(ifelse(CAL_YEAR == 2015 &
                              CLM_TYPE_CID == 31, 1, 0)),
-    # hospitalizations for asthma, any diagnosis
+    # hospitalizations for asthma, primary diagnosis
     hospcntprim15 = sum(ifelse(
       CAL_YEAR == 2015 & CLM_TYPE_CID == 31 &
         (
@@ -167,11 +171,11 @@ asthmarisk <- asthmachild %>%
       1,
       0
     )),
-    # hospitalizations for asthma, primary diagnosis
+    # ED visits for asthma, any diagnosis
     EDcnt15 = sum(ifelse(
       CAL_YEAR == 2015 & REVENUE_CODE %in% c(0450, 0456, 0459, 0981), 1, 0
     )),
-    # ED visits for asthma, any diagnosis
+    # ED visits for asthma, primary diagnosis
     EDcntprim15 = sum(ifelse(
       CAL_YEAR == 2015 & REVENUE_CODE %in% c(0450, 0456, 0459, 0981) &
         (
@@ -180,14 +184,61 @@ asthmarisk <- asthmachild %>%
         ),
       1,
       0
-    )),
-    # ED visits for asthma, primary diagnosis
-    wellcnt15 = sum(ifelse(CAL_YEAR == 2015 &
-                             CLM_TYPE_CID == 27, 1, 0))
+    ))
+  ) %>%
+  ungroup()
+
+
+# Create and recode other variables for analysis
+arbwght <- 3 # sets up the arbitrary weight for hospitalizations (compared with ED visits)
+
+asthmarisk <- asthmarisk %>%
+  mutate(
+    # count of non-asthma-related hospitalizations
+    hospnonasth = hosp - hospcnt14,
+    # count of non-asthma-related ED visits
+    EDnonasth = ED - EDcnt14,
+    # weighted count of 2014 (baseline) asthma-related hospital/ED encounters, any diagnosis
+    asthmaenc14 = (hospcnt14 * arbwght) + EDcnt14,
+    # weighted count of 2015 (outcome) asthma-related hospital/ED encounters, any diagnosis
+    asthmaenc15 = (hospcnt15 * arbwght) + EDcnt15,
+    # weighted count of 2015 (outcome) asthma-related hospital/ED encounters, primary diagnosis
+    asthmaencprim15 = (hospcntprim15 * arbwght) + EDcntprim15,
+    # recoded count of 2015 (outcome) hospital-related asthma visits
+    hospcnt15.r = recode(hospcnt15, "0 = 0; 1:2 = 1; 3:hi = 2"),
+    # recode Hispanic variable
+    hisp = recode(Hispanic, "'NOT HISPANIC' = 0; 'HISPANIC' = 1", as.factor.result = FALSE), # the last part ensures the new variable codes as numeric
+    # recode gender variable
+    female = recode(Gender, "'Female' = 1; 'Male' = 0", as.factor.result = FALSE),
+    # recode race variable
+    race = recode(Race1, "c('Alaskan Native','American Indian') = 1; 'Asian' = 2; 
+                          'Black' = 3; c('Hawaiian', 'Pacific Islander') = 5; 'White' = 6; else = 7",
+                              as.factor.result = FALSE),
+    # makes Hispanic race category from those with no defined race
+    race = replace(race, which(race == 7 & hisp == 1), 4),
+    # recodes those with an Asian language and no race to Asian race
+    race = replace(race, which(race == 7 & Lang %in% c("Burmese","Chinese","Korean","Vietnamese","Tagalog")), 2),
+    # recodes those with Somali language and no race to black race
+    race = replace(race, which(race == 7 & Lang == "Somali"), 2),  
+    # recodes those with Russian language and no race to white race
+    race = replace(race, which(race == 7 & Lang == "Russian"), 2),   
+    # recodes those with Spanish language and no race to Hispanic race
+    race = replace(race, which(race == 7 & Lang == "Spanish; Castillian"), 2),
+    # extract age from birth year and recode into age groups
+    age = 2014 - as.numeric(substr(DOB,1,4)),
+    agegrp = as.numeric(cut(age, breaks = c(3, 5, 11, 18), right = FALSE, labels = c(1:3))),
+    # recode Federal poverty level into groups
+    fplgrp = as.numeric(cut(FPL, breaks = c(1, 133, 199, max(FPL[!is.na(FPL)])), right = FALSE, labels = c(1:3))),
+    fplgrp = replace(fplgrp, which(fplgrp == 1 & RACcode == 1203), 1),
+    # make outcomes binary
+    outcome = ifelse(hospcnt15 > 0 | EDcnt15 > 0, 1, 0),
+    outcomeprim = ifelse(hospcntprim15 > 0 | EDcntprim15 > 0, 1, 0)
   )
 
 
 
+
 # ANALYSIS ----------------------------------------------------------------
+
 
 
