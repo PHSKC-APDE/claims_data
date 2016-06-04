@@ -8,7 +8,7 @@
 # 2016-05-26
 ##########################################################
 
-options(max.print = 600)
+options(max.print = 400)
 
 library(RODBC) # used to connect to SQL server
 library(dplyr) # used to manipulate data
@@ -81,6 +81,93 @@ hospED <-
 proc.time() - ptm02
 
 
+# Bring in all pharmacy claims from 2014 and 2015
+
+############## TESTING AREA ###############
+# Make a temporary df to test paste options
+ID2014 <- as.data.frame(eligall$ID2014[1:10000])
+colnames(ID2014) <- "ID"
+
+# Small test (works)
+pharm <-
+  sqlQuery(
+    db.claims,
+    paste("SELECT MEDICAID_RECIPIENT_ID AS 'ID2014', * 
+          FROM dbo.vClaims 
+          WHERE CAL_YEAR IN (2014, 2015) AND CLM_TYPE_CID = 24 
+          AND MEDICAID_RECIPIENT_ID IN (","'100010091WA', '100010145WA'",") 
+          ORDER BY MEDICAID_RECIPIENT_ID", sep = "")
+      )
+
+# This works if data frame is not too long (<10,000 rows?)
+ptm.temp <- proc.time()
+pharm <-
+  sqlQuery(
+    db.claims,
+    paste(
+      "SELECT MEDICAID_RECIPIENT_ID AS 'ID2014', NDC AS 'ndc', NDC_DESC AS 'ndcdesc',
+      PRSCRPTN_FILLED_DATE AS 'rxdate', DRUG_DOSAGE AS 'dose'
+      FROM dbo.vClaims
+      WHERE CAL_YEAR IN (2014, 2015) AND CLM_TYPE_CID = 24
+      AND MEDICAID_RECIPIENT_ID IN (",
+      paste(
+        paste0("'", ID2014$ID[1:nrow(ID2014) - 1], "',", collapse = ""),
+        "'",
+        ID2014$ID[nrow(ID2014)],
+        "'",
+        sep = ""
+      ),
+      ")
+      ORDER BY MEDICAID_RECIPIENT_ID",
+      sep = ""
+      )
+  )
+proc.time() - ptm.temp
+
+
+# This doesn't work (data frame is too long)
+pharm <-
+  sqlQuery(
+    db.claims,
+    paste(
+      "SELECT MEDICAID_RECIPIENT_ID AS 'ID2014', NDC AS 'ndc', NDC_DESC AS 'ndcdesc',
+      PRSCRPTN_FILLED_DATE AS 'rxdate', DRUG_DOSAGE AS 'dose'
+      FROM dbo.vClaims
+      WHERE CAL_YEAR IN (2014, 2015) AND CLM_TYPE_CID = 24
+      AND MEDICAID_RECIPIENT_ID IN (",
+      paste(
+        paste0("'", eligall$ID2014[1:nrow(eligall) - 1], "',", collapse = ""),
+        "'",
+        eligall$ID2014[nrow(eligall)],
+        "'",
+        sep = ""
+      ),
+      ")
+      ORDER BY MEDICAID_RECIPIENT_ID",
+      sep = ""
+      )
+  )
+
+
+# Try bringing in all the pharm data instead
+ptm.temp <- proc.time() # Times how long this query takes (~250 secs)
+pharmall <-
+  sqlQuery(
+    db.claims,
+    "SELECT MEDICAID_RECIPIENT_ID AS 'ID2014', NDC AS 'ndc', NDC_DESC AS 'ndcdesc',
+    PRSCRPTN_FILLED_DATE AS 'rxdate', DRUG_DOSAGE AS 'dose'
+    FROM dbo.vClaims
+    WHERE CAL_YEAR IN (2014, 2015) AND CLM_TYPE_CID = 24
+    ORDER BY MEDICAID_RECIPIENT_ID"
+  )
+proc.time() - ptm.temp
+
+# Merge the children with asthma to the pharmacy records
+
+
+
+############################################
+
 # 2014 and 2015 claims for patients with asthma
 ptm03 <- proc.time() # Times how long this query takes (~90 secs)
 asthma <-
@@ -101,6 +188,20 @@ proc.time() - ptm03
 ##### Merge all eligible children with asthma claims and total hospital/ED visits
 asthmachild <- merge(eligall, asthma, by = "ID2014")
 asthmachild <- merge(asthmachild, hospED, by = "ID2014") # Could maybe make this more efficient with join_all from plyr package
+
+
+############################ TESTING AREA #############################
+
+temp <- pharmall %>%
+  filter(ID2014 %in% asthmachild$ID2014)
+asthmachild <- rbind_list(asthmachild, temp)
+
+head(cbind(asthmachild$ID2014, asthmachild$PRIMARY_DIAGNOSIS_CODE, asthmachild$DIAGNOSIS_CODE_2, 
+           asthmachild$NDC, asthmachild$ndc), n = 30)
+
+
+########################################################################
+
 
 # Count up number of baseline (2014) predictors for each child
 asthmarisk <- asthmachild %>%
@@ -226,9 +327,9 @@ asthmarisk <- asthmarisk %>%
     race = replace(race, which(race == 7 & Lang == "Spanish; Castillian"), 2),
     # extract age from birth year and recode into age groups
     age = 2014 - as.numeric(substr(DOB,1,4)),
-    agegrp = as.numeric(cut(age, breaks = c(3, 5, 11, 18), right = FALSE, labels = c(1:3))),
+    agegrp = cut(age, breaks = c(3, 5, 11, 18), right = FALSE, labels = c(1:3)),
     # recode Federal poverty level into groups
-    fplgrp = as.numeric(cut(FPL, breaks = c(1, 133, 199, max(FPL[!is.na(FPL)])), right = FALSE, labels = c(1:3))),
+    fplgrp = cut(FPL, breaks = c(1, 133, 199, max(FPL[!is.na(FPL)])), right = FALSE, labels = c(1:3)),
     fplgrp = replace(fplgrp, which(fplgrp == 1 & RACcode == 1203), 1),
     # make outcomes binary
     outcome = ifelse(hospcnt15 > 0 | EDcnt15 > 0, 1, 0),
