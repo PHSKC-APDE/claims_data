@@ -64,8 +64,11 @@ elig2015 <-
 # Match baseline with the following year (only include children present in both years)
 eligall <- merge(elig2014, elig2015, by.x = "ID2014", by.y = "ID2015")
 
+# Drop data frames to free up memory
+rm("elig2014", "elig2015")
 
-##### Bring in all the relevant claims data ####
+
+##### Bring in all the relevant claims data #####
 
 # Baseline (2014) hospitalizations and ED visits (any cause)
 ptm02 <- proc.time() # Times how long this query takes (~90 secs)
@@ -82,75 +85,7 @@ proc.time() - ptm02
 
 
 # Bring in all pharmacy claims from 2014 and 2015
-
-############## TESTING AREA ###############
-# Make a temporary df to test paste options
-ID2014 <- as.data.frame(eligall$ID2014[1:10000])
-colnames(ID2014) <- "ID"
-
-# Small test (works)
-pharm <-
-  sqlQuery(
-    db.claims,
-    paste("SELECT MEDICAID_RECIPIENT_ID AS 'ID2014', * 
-          FROM dbo.vClaims 
-          WHERE CAL_YEAR IN (2014, 2015) AND CLM_TYPE_CID = 24 
-          AND MEDICAID_RECIPIENT_ID IN (","'100010091WA', '100010145WA'",") 
-          ORDER BY MEDICAID_RECIPIENT_ID", sep = "")
-      )
-
-# This works if data frame is not too long (<10,000 rows?)
-ptm.temp <- proc.time()
-pharm <-
-  sqlQuery(
-    db.claims,
-    paste(
-      "SELECT MEDICAID_RECIPIENT_ID AS 'ID2014', NDC AS 'ndc', NDC_DESC AS 'ndcdesc',
-      PRSCRPTN_FILLED_DATE AS 'rxdate', DRUG_DOSAGE AS 'dose'
-      FROM dbo.vClaims
-      WHERE CAL_YEAR IN (2014, 2015) AND CLM_TYPE_CID = 24
-      AND MEDICAID_RECIPIENT_ID IN (",
-      paste(
-        paste0("'", ID2014$ID[1:nrow(ID2014) - 1], "',", collapse = ""),
-        "'",
-        ID2014$ID[nrow(ID2014)],
-        "'",
-        sep = ""
-      ),
-      ")
-      ORDER BY MEDICAID_RECIPIENT_ID",
-      sep = ""
-      )
-  )
-proc.time() - ptm.temp
-
-
-# This doesn't work (data frame is too long)
-pharm <-
-  sqlQuery(
-    db.claims,
-    paste(
-      "SELECT MEDICAID_RECIPIENT_ID AS 'ID2014', NDC AS 'ndc', NDC_DESC AS 'ndcdesc',
-      PRSCRPTN_FILLED_DATE AS 'rxdate', DRUG_DOSAGE AS 'dose'
-      FROM dbo.vClaims
-      WHERE CAL_YEAR IN (2014, 2015) AND CLM_TYPE_CID = 24
-      AND MEDICAID_RECIPIENT_ID IN (",
-      paste(
-        paste0("'", eligall$ID2014[1:nrow(eligall) - 1], "',", collapse = ""),
-        "'",
-        eligall$ID2014[nrow(eligall)],
-        "'",
-        sep = ""
-      ),
-      ")
-      ORDER BY MEDICAID_RECIPIENT_ID",
-      sep = ""
-      )
-  )
-
-
-# Try bringing in all the pharm data instead
-ptm.temp <- proc.time() # Times how long this query takes (~250 secs)
+ptm.temp <- proc.time() # Times how long this query takes (~150-250 secs)
 pharmall <-
   sqlQuery(
     db.claims,
@@ -162,11 +97,13 @@ pharmall <-
   )
 proc.time() - ptm.temp
 
-# Merge the children with asthma to the pharmacy records
 
+# Limit pharmacy records to only those included children
+pharmchild <- semi_join(pharmall, distinct(eligall, ID2014), by = "ID2014") %>%
+  mutate(ID2014 = as.factor(ID2014))
+# Remove the total pharm data to free up memory
+rm("pharmall")
 
-
-############################################
 
 # 2014 and 2015 claims for patients with asthma
 ptm03 <- proc.time() # Times how long this query takes (~90 secs)
@@ -185,22 +122,37 @@ asthma <-
 proc.time() - ptm03
 
 
-##### Merge all eligible children with asthma claims and total hospital/ED visits
-asthmachild <- merge(eligall, asthma, by = "ID2014")
+##### Bring in other relevant data #####
+# Bring in asthma med list
+meds <- read.csv("H:/my documents/Medicaid claims/Asthma/NDC493.csv")
+# Set up type of medication
+meds <- meds %>%
+  mutate(controller = ifelse(category %in% c("antiasthmatic combinations", "antibody inhibitor", "inhaled corticosteroids",
+                                             "inhaled steroid combinations", "leukotriene modifiers", "mast cell stablizers",
+                                             "methylxanthines"), 1, 0),
+         reliever = ifelse(category %in% c("short-acting inhaled beta-2 agonists"), 1, 0))
+
+
+
+##### Merge all eligible children with asthma claims and total hospital/ED visits #####
+asthmachild <- merge(eligall, asthma, by = "ID2014") %>%
+  arrange(ID2014, FROM_SRVC_DATE)
 asthmachild <- merge(asthmachild, hospED, by = "ID2014") # Could maybe make this more efficient with join_all from plyr package
 
 
-############################ TESTING AREA #############################
+# Append pharma records for children with asthma claims
+pharmasthma <- semi_join(pharmchild, distinct(asthmachild, ID2014), by = "ID2014") %>%
+  mutate(ID2014 = as.factor(ID2014)) %>%
+  arrange(ID2014, rxdate) # This keeps pharmacy records only for children with asthma claims
+asthmachild <- rbind_list(asthmachild, pharmasthma) %>%
+  mutate(ID2014 = as.factor(ID2014))
+  
 
-temp <- pharmall %>%
-  filter(ID2014 %in% asthmachild$ID2014)
-asthmachild <- rbind_list(asthmachild, temp)
-
-head(cbind(asthmachild$ID2014, asthmachild$PRIMARY_DIAGNOSIS_CODE, asthmachild$DIAGNOSIS_CODE_2, 
-           asthmachild$NDC, asthmachild$ndc), n = 30)
+# Merge with asthma meds
+asthmachild <- mutate(asthmachild, ndc = ifelse(is.na(ndc), NDC, ndc)) # fill in any blank ndc records
+asthmachild <- merge(asthmachild, meds, by = "ndc", all.x = TRUE)
 
 
-########################################################################
 
 
 # Count up number of baseline (2014) predictors for each child
@@ -258,6 +210,12 @@ asthmarisk <- asthmachild %>%
       1,
       0
     )),
+    # asthma medication ratio in 2014
+    amr14 = sum(ifelse(CAL_YEAR == 2014 & !is.na(CAL_YEAR) & controller == 1 & !is.na(controller), 1, 0))/
+      (sum(ifelse(CAL_YEAR == 2014 & !is.na(CAL_YEAR) & controller == 1 & !is.na(controller), 1, 0)) + 
+         sum(ifelse(CAL_YEAR == 2014 & !is.na(CAL_YEAR) & reliever == 1 & !is.na(reliever), 1, 0))),
+ #   amr14risk = ifelse(amr14 < 0.5, 1, ifelse(amr14 >= 0.5, 0, NA)),
+ #   amr14risk = ifelse(amr14 < 0.5 & !is.na(amr14), 1, ifelse(amr14 >= 0.5 & !is.na(amr14), 0, NA)),
     # Count up number of outcome (2015) measures for each child
     # hospitalizations for asthma, any diagnosis
     hospcnt15 = sum(ifelse(CAL_YEAR == 2015 &
