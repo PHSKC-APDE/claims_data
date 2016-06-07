@@ -89,7 +89,7 @@ ptm.temp <- proc.time() # Times how long this query takes (~150-250 secs)
 pharmall <-
   sqlQuery(
     db.claims,
-    "SELECT MEDICAID_RECIPIENT_ID AS 'ID2014', NDC AS 'ndc', NDC_DESC AS 'ndcdesc',
+    "SELECT MEDICAID_RECIPIENT_ID AS 'ID2014', CAL_YEAR, NDC AS 'ndc', NDC_DESC AS 'ndcdesc',
     PRSCRPTN_FILLED_DATE AS 'rxdate', DRUG_DOSAGE AS 'dose'
     FROM dbo.vClaims
     WHERE CAL_YEAR IN (2014, 2015) AND CLM_TYPE_CID = 24
@@ -137,14 +137,13 @@ meds <- meds %>%
 ##### Merge all eligible children with asthma claims and total hospital/ED visits #####
 asthmachild <- merge(eligall, asthma, by = "ID2014") %>%
   arrange(ID2014, FROM_SRVC_DATE)
-asthmachild <- merge(asthmachild, hospED, by = "ID2014") # Could maybe make this more efficient with join_all from plyr package
 
 
-# Append pharma records for children with asthma claims
+# Append all pharma records for children with 1+ asthma claims
 pharmasthma <- semi_join(pharmchild, distinct(asthmachild, ID2014), by = "ID2014") %>%
   mutate(ID2014 = as.factor(ID2014)) %>%
   arrange(ID2014, rxdate) # This keeps pharmacy records only for children with asthma claims
-asthmachild <- rbind_list(asthmachild, pharmasthma) %>%
+asthmachild <- bind_rows(asthmachild, pharmasthma) %>%
   mutate(ID2014 = as.factor(ID2014))
   
 
@@ -154,14 +153,37 @@ asthmachild <- merge(asthmachild, meds, by = "ndc", all.x = TRUE)
 
 
 
+################### TESTING AREA ###############################
+
+# Figure out how many children received asthma rx but had no asthma dx
+tmp.asthmamed <- merge(meds, pharmchild, by = 'ndc')
+tmp.asthmamed <- tmp.asthmamed %>%
+  distinct(ID2014) %>%
+  select(ID2014) # keeps a list of unique children who had an asthma rx
+
+tmp.noasthmadx <- anti_join(tmp.asthmamed, asthmachild, by = "ID2014") %>%
+  mutate(Id2014 = as.factor(ID2014))
+
+# Count number of unique children with asthma dx
+length(unique(asthmachild$ID2014)) # should be 10,455
+
+# Count number of children with asthma dx and asthma rx
+tmp.rx <- asthmachild %>%
+  group_by(ID2014) %>%
+  filter(!is.na(controller) | !is.na(reliever)) %>%
+  summarise(n = n(), control = sum(controller), reliever = sum(reliever))
+
+
+################## END TESTING AREA ############################
+
 
 # Count up number of baseline (2014) predictors for each child
-asthmarisk <- asthmachild %>%
+asthmachild <- asthmachild %>%
   group_by(ID2014) %>%
   mutate(
     # hospitalizations for asthma, any diagnosis
     hospcnt14 = sum(ifelse(CAL_YEAR == 2014 &
-                             CLM_TYPE_CID == 31, 1, 0)),
+                             CLM_TYPE_CID == 31, 1, 0), na.rm = TRUE),
     # hospitalizations for asthma, primary diagnosis
     hospcntprim14 = sum(ifelse(
       CAL_YEAR == 2014 & CLM_TYPE_CID == 31 &
@@ -171,11 +193,11 @@ asthmarisk <- asthmachild %>%
         ),
       1,
       0
-    )),
+    ), na.rm = TRUE),
     # ED visits for asthma, any diagnosis
     EDcnt14 = sum(ifelse(
       CAL_YEAR == 2014 & REVENUE_CODE %in% c(0450, 0456, 0459, 0981), 1, 0
-    )),
+    ), na.rm = TRUE),
     # ED visits for asthma, primary diagnosis
     EDcntprim14 = sum(ifelse(
       CAL_YEAR == 2014 & REVENUE_CODE %in% c(0450, 0456, 0459, 0981) &
@@ -185,10 +207,10 @@ asthmarisk <- asthmachild %>%
         ),
       1,
       0
-    )),
+    ), na.rm = TRUE),
     # well-child checks for asthma, any diagnosis
     wellcnt14 = sum(ifelse(CAL_YEAR == 2014 &
-                             CLM_TYPE_CID == 27, 1, 0)),
+                             CLM_TYPE_CID == 27, 1, 0), na.rm = TRUE),
     # well-child checks for asthma, primary diagnosis
     wellcntprim14 = sum(ifelse(
       CAL_YEAR == 2014 & CLM_TYPE_CID == 27 &
@@ -198,9 +220,9 @@ asthmarisk <- asthmachild %>%
         ),
       1,
       0
-    )),
+    ), na.rm = TRUE),
     # total number of asthma claims, primary diagnosis
-    asthmacnt14 = sum(ifelse(CAL_YEAR == 2014, 1, 0)),
+    asthmacnt14 = sum(ifelse(CAL_YEAR == 2014, 1, 0), na.rm = TRUE),
     asmthacntprim14 = sum(ifelse(
       CAL_YEAR == 2014 &
         (
@@ -209,17 +231,11 @@ asthmarisk <- asthmachild %>%
         ),
       1,
       0
-    )),
-    # asthma medication ratio in 2014
-    amr14 = sum(ifelse(CAL_YEAR == 2014 & !is.na(CAL_YEAR) & controller == 1 & !is.na(controller), 1, 0))/
-      (sum(ifelse(CAL_YEAR == 2014 & !is.na(CAL_YEAR) & controller == 1 & !is.na(controller), 1, 0)) + 
-         sum(ifelse(CAL_YEAR == 2014 & !is.na(CAL_YEAR) & reliever == 1 & !is.na(reliever), 1, 0))),
- #   amr14risk = ifelse(amr14 < 0.5, 1, ifelse(amr14 >= 0.5, 0, NA)),
- #   amr14risk = ifelse(amr14 < 0.5 & !is.na(amr14), 1, ifelse(amr14 >= 0.5 & !is.na(amr14), 0, NA)),
+    ), na.rm = TRUE),
     # Count up number of outcome (2015) measures for each child
     # hospitalizations for asthma, any diagnosis
     hospcnt15 = sum(ifelse(CAL_YEAR == 2015 &
-                             CLM_TYPE_CID == 31, 1, 0)),
+                             CLM_TYPE_CID == 31, 1, 0), na.rm = TRUE),
     # hospitalizations for asthma, primary diagnosis
     hospcntprim15 = sum(ifelse(
       CAL_YEAR == 2015 & CLM_TYPE_CID == 31 &
@@ -229,11 +245,11 @@ asthmarisk <- asthmachild %>%
         ),
       1,
       0
-    )),
+    ), na.rm = TRUE),
     # ED visits for asthma, any diagnosis
     EDcnt15 = sum(ifelse(
       CAL_YEAR == 2015 & REVENUE_CODE %in% c(0450, 0456, 0459, 0981), 1, 0
-    )),
+    ), na.rm = TRUE),
     # ED visits for asthma, primary diagnosis
     EDcntprim15 = sum(ifelse(
       CAL_YEAR == 2015 & REVENUE_CODE %in% c(0450, 0456, 0459, 0981) &
@@ -243,9 +259,49 @@ asthmarisk <- asthmachild %>%
         ),
       1,
       0
-    ))
+    ), na.rm = TRUE)
   ) %>%
-  ungroup()
+arrange(ID2014, CAL_YEAR)
+
+
+# Calculate asthma medication ratio
+  tmp.meds <- asthmachild %>%
+    group_by(ID2014) %>%
+    filter(CAL_YEAR == "2014" &
+             (!is.na(controller) | !is.na(reliever))) %>%
+    mutate(
+      controltot = sum(ifelse(
+        CAL_YEAR == 2014 &
+          !is.na(CAL_YEAR) & controller == 1 & !is.na(controller),
+        1,
+        0
+      ), na.rm = TRUE),
+      relievertot = sum(ifelse(
+        CAL_YEAR == 2014 &
+          !is.na(CAL_YEAR) & reliever == 1 & !is.na(reliever),
+        1,
+        0
+      ), na.rm = TRUE),
+      amr14 = controltot / (controltot + relievertot),
+      amr14risk = ifelse(amr14 < 0.5, 1, ifelse(amr14 >= 0.5, 0, NA))
+    ) %>%
+    distinct(ID2014, amr14) %>%
+    select(ID2014, controltot, relievertot, amr14, amr14risk)
+
+  
+# Collapse claims data and merge with medication data
+asthmarisk <- asthmachild %>%
+  distinct(ID2014) %>%
+  # Keep columns of interest
+  select(ID2014, hospcnt14:EDcntprim15)
+  
+
+# Merge with total hospitalizations, demogs from eligibility, and meds
+asthmarisk <- merge(asthmarisk, hospED, by = "ID2014", all.x = TRUE)
+asthmarisk <- merge(asthmarisk, eligall, by = "ID2014", all.x = TRUE)
+asthmarisk <- merge(asthmarisk, tmp.meds, by = "ID2014", all.x = TRUE)
+  
+
 
 
 # Create and recode other variables for analysis
