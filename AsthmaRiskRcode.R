@@ -14,6 +14,8 @@ library(RODBC) # used to connect to SQL server
 library(dplyr) # used to manipulate data
 library(reshape2) # used to reshape data
 library(car) # used to recode variables
+library(haven) # used to read in Stata files
+library(lmtest) # used to conduct likelihood ratio tests
 
 
 # DATA SETUP --------------------------------------------------------------
@@ -158,8 +160,9 @@ asthmachild <- merge(asthmachild, meds, by = "ndc", all.x = TRUE)
 # Figure out how many children received asthma rx but had no asthma dx
 tmp.asthmamed <- merge(meds, pharmchild, by = 'ndc')
 tmp.asthmamed <- tmp.asthmamed %>%
+  filter(!is.na(controller) | !is.na(reliever)) %>%
   distinct(ID2014) %>%
-  select(ID2014) # keeps a list of unique children who had an asthma rx
+  select(ID2014, ndc, category, controller, reliever) # keeps a list of unique children who had an asthma rx
 
 tmp.noasthmadx <- anti_join(tmp.asthmamed, asthmachild, by = "ID2014") %>%
   mutate(Id2014 = as.factor(ID2014))
@@ -351,9 +354,45 @@ asthmarisk <- asthmarisk %>%
   )
 
 
-
+# Bring in zipcode file and recode
+zipgps <- read_dta("H:/my documents/Medicaid claims/Asthma/zipgps.dta")
+zipgps <- zipgps %>%
+  mutate(region = recode(hpa, "c('Bellevue', 'Bothell/Woodinville', 'Issaquah/Sammamish', 
+                          'Kirkland', 'Mercer Isl/Point Cities', 'Redmond/Union Hill') = 1;
+                          c('Auburn', 'Burien/Des Moines', 'Federal Way', 'Kent', 'Lower Valley & Upper Sno',
+                          'Southeast King County', 'Tukwila/SeaTac', 'Vashon Island') = 2;
+                          else = 3", as.factor.result = FALSE),
+         hizip = ifelse(zipcode %in% c(98001, 98002, 98022, 98023, 98030, 98042, 98047, 98052, 98057,
+                                       98065, 98092, 98112, 98118, 98122, 98144, 98146, 98155, 98178, 98188), 1, 0))
+  
+asthmarisk <- merge(asthmarisk, zipgps, by.x = "Zip", by.y = "zipcode", all.x = TRUE)
+  
 
 # ANALYSIS ----------------------------------------------------------------
 
+# Predictive model of future asthma-related hospital and ED visits
+m1 <- glm(outcome ~ asthmacnt14 + ED + hospcnt14 + EDcnt14 + wellcnt14 + agegrp + female + race + fplgrp + hizip,
+          family = "binomial", data = asthmarisk)
 
+summary(m1)
+p1 <- predict.glm(m1, type = "response")
+
+# Predictive model including asthma medication ratio
+# Need to make version of m1 limited to where amr14risk is filled in for LR test to work
+m2 <- glm(outcome ~ asthmacnt14 + ED + hospcnt14 + EDcnt14 + wellcnt14 + agegrp + female + race + fplgrp + hizip,
+          family = "binomial", data = asthmarisk, subset = !is.na(amr14risk))
+
+m3 <- glm(outcome ~ asthmacnt14 + ED + hospcnt14 + EDcnt14 + wellcnt14 + agegrp + female + race + fplgrp + hizip + amr14risk,
+          family = "binomial", data = asthmarisk)
+
+summary(m3)
+p3 <- predict.glm(m3, type = "response")
+
+# Look at LR test
+lrtest(m2, m3)
+
+# Look at correlation coefficient
+cor(p3, subset(asthmarisk, !is.na(asthmacnt14) & !is.na(ED) & !is.na(hospcnt14) & !is.na(EDcnt14) & !is.na(wellcnt14) 
+               & !is.na(agegrp) & !is.na(female) & !is.na(race) & !is.na(fplgrp) & !is.na(hizip) & !is.na(amr14risk),
+               select = c("outcome")))
 
