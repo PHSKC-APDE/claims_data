@@ -4,7 +4,7 @@ It then brings in 2015 claims to look at risk factors for asmtha-related hospita
 
 APDE, PHSKC
 Lin Song
-2016-05-26
+2016-05-26, updated 2016-06-06
 */
 
 DROP TABLE #A_2014
