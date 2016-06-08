@@ -16,6 +16,7 @@ library(reshape2) # used to reshape data
 library(car) # used to recode variables
 library(haven) # used to read in Stata files
 library(lmtest) # used to conduct likelihood ratio tests
+library(rms) # used for other model diagnostics
 
 
 # DATA SETUP --------------------------------------------------------------
@@ -396,3 +397,8 @@ cor(p3, subset(asthmarisk, !is.na(asthmacnt14) & !is.na(ED) & !is.na(hospcnt14) 
                & !is.na(agegrp) & !is.na(female) & !is.na(race) & !is.na(fplgrp) & !is.na(hizip) & !is.na(amr14risk),
                select = c("outcome")))
 
+
+# Using rms package
+m4 <- lrm(outcome ~ asthmacnt14 + ED + hospcnt14 + EDcnt14 + wellcnt14 + agegrp + female + race + fplgrp + hizip + amr14risk,
+          data = asthmarisk, x = TRUE, y = TRUE)
+residuals
