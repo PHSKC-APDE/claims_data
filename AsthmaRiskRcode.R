@@ -8,7 +8,8 @@
 # 2016-05-26
 ##########################################################
 
-options(max.print = 400)
+options(max.print = 400, scipen = 0)
+
 
 library(RODBC) # used to connect to SQL server
 library(dplyr) # used to manipulate data
@@ -376,8 +377,19 @@ m2 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + f
           x = TRUE, y = TRUE)
 m2
 
-
 p2 <- Predict(m2)
+plot(p2, anova = anova(m2), pval = TRUE)
+
+
+# repeat using glm
+m2a <- glm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) + 
+            scored(fplgrp) + hizip + amr14risk + relieverhigh, data = asthmarisk, family = "binomial",
+          subset = hospcnt14 ==0 & EDcnt14 == 0)
+
+summary(m2a)
+p2a <- predict(m2a)
+plot(m2a, which = 1)
+glm.diag.plots(m2a)
 
 # Compare two models
 lrtest(m1, m2)
@@ -388,3 +400,26 @@ m3 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + f
 m3
 
 lrtest(m2, m3)
+
+
+# Look at children with a hosp/ED asthma event in 2014
+m4 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) +
+            hizip + amr14risk + relieverhigh, data = asthmarisk, subset = hospcnt14 > 0 & EDcnt14 > 0, x = TRUE, y = TRUE)
+m4
+
+lrtest(m2, m4)
+
+### Assess number of children with each predictor
+
+# Make temp data set to match the children in the model
+asthmarisk.tmp <- asthmarisk %>%
+  filter(hospcnt14 == 0 & EDcnt14 == 0 & !is.na(hospnonasth14) & !is.na(EDnonasth14) & !is.na(wellcnt14) & 
+           !is.na(agegrp) & !is.na(female) & !is.na(race) & !is.na(fplgrp) & !is.na(hizip) & !is.na(amr14risk) & 
+           !is.na(relieverhigh))
+
+
+table(asthmarisk.tmp$EDnonasth14, useNA = 'always')
+table(asthmarisk.tmp$female, useNA = 'always')
+table(asthmarisk.tmp$hizip, useNA = 'always')
+table(asthmarisk.tmp$amr14risk, useNA = 'always')
+table(asthmarisk.tmp$relieverhigh, useNA = 'always')
