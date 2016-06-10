@@ -1,14 +1,15 @@
 ##########################################################
 # Generate data for U01 prediction model
-# This code identifies children with an asmtha-related claim in 2014.
-# It then brings in 2015 claims to look at risk factors for asmtha-related hospital or ED visit
+# This code identifies children with an asthma-related claim in 2014.
+# It then looks at risk factors for asmtha-related hospital or ED visits in 2015
 
 # APDE, PHSKC
 # SQL code by Lin Song, edited by Alastair Matheson to work in R and include medication
 # 2016-05-26
 ##########################################################
 
-options(max.print = 400)
+options(max.print = 400, scipen = 0)
+
 
 library(RODBC) # used to connect to SQL server
 library(dplyr) # used to manipulate data
@@ -125,6 +126,14 @@ asthma <-
 proc.time() - ptm03
 
 
+# Pull out just those with 2014 claims to set population for prediction model
+asthma2014 <- asthma %>%
+  filter(CAL_YEAR == 2014) %>%
+  distinct(ID2014) %>%
+  select(ID2014)
+
+
+
 ##### Bring in other relevant data #####
 # Bring in asthma med list
 meds <- read.csv("H:/my documents/Medicaid claims/Asthma/NDC493.csv")
@@ -153,32 +162,6 @@ asthmachild <- bind_rows(asthmachild, pharmasthma) %>%
 # Merge with asthma meds
 asthmachild <- mutate(asthmachild, ndc = ifelse(is.na(ndc), NDC, ndc)) # fill in any blank ndc records
 asthmachild <- merge(asthmachild, meds, by = "ndc", all.x = TRUE)
-
-
-
-################### TESTING AREA ###############################
-
-# Figure out how many children received asthma rx but had no asthma dx
-tmp.asthmamed <- merge(meds, pharmchild, by = 'ndc')
-tmp.asthmamed <- tmp.asthmamed %>%
-  filter(!is.na(controller) | !is.na(reliever)) %>%
-  distinct(ID2014) %>%
-  select(ID2014, ndc, category, controller, reliever) # keeps a list of unique children who had an asthma rx
-
-tmp.noasthmadx <- anti_join(tmp.asthmamed, asthmachild, by = "ID2014") %>%
-  mutate(Id2014 = as.factor(ID2014))
-
-# Count number of unique children with asthma dx
-length(unique(asthmachild$ID2014)) # should be 10,455
-
-# Count number of children with asthma dx and asthma rx
-tmp.rx <- asthmachild %>%
-  group_by(ID2014) %>%
-  filter(!is.na(controller) | !is.na(reliever)) %>%
-  summarise(n = n(), control = sum(controller), reliever = sum(reliever))
-
-
-################## END TESTING AREA ############################
 
 
 # Count up number of baseline (2014) predictors for each child
@@ -225,8 +208,9 @@ asthmachild <- asthmachild %>%
       1,
       0
     ), na.rm = TRUE),
-    # total number of asthma claims, primary diagnosis
+    # total number of asthma claims, any diagnosis
     asthmacnt14 = sum(ifelse(CAL_YEAR == 2014, 1, 0), na.rm = TRUE),
+    # total number of asthma claims, primary diagnosis
     asmthacntprim14 = sum(ifelse(
       CAL_YEAR == 2014 &
         (
@@ -287,10 +271,12 @@ arrange(ID2014, CAL_YEAR)
         0
       ), na.rm = TRUE),
       amr14 = controltot / (controltot + relievertot),
-      amr14risk = ifelse(amr14 < 0.5, 1, ifelse(amr14 >= 0.5, 0, NA))
+      amr14risk = ifelse(amr14 < 0.5, 1, ifelse(amr14 >= 0.5, 0, NA)),
+      # Add in binary classifications of medications
+      relieverhigh = ifelse(relievertot >= 6, 1, 0)
     ) %>%
     distinct(ID2014, amr14) %>%
-    select(ID2014, controltot, relievertot, amr14, amr14risk)
+    select(ID2014, controltot, relievertot, amr14, amr14risk, relieverhigh)
 
   
 # Collapse claims data and merge with medication data
@@ -300,7 +286,8 @@ asthmarisk <- asthmachild %>%
   select(ID2014, hospcnt14:EDcntprim15)
   
 
-# Merge with total hospitalizations, demogs from eligibility, and meds
+# Merge with just 2014 claimants, total hospitalizations, demogs from eligibility, and meds
+asthmarisk <- merge(asthmarisk, asthma2014,  by = "ID2014")
 asthmarisk <- merge(asthmarisk, hospED, by = "ID2014", all.x = TRUE)
 asthmarisk <- merge(asthmarisk, eligall, by = "ID2014", all.x = TRUE)
 asthmarisk <- merge(asthmarisk, tmp.meds, by = "ID2014", all.x = TRUE)
@@ -313,10 +300,10 @@ arbwght <- 3 # sets up the arbitrary weight for hospitalizations (compared with 
 
 asthmarisk <- asthmarisk %>%
   mutate(
-    # count of non-asthma-related hospitalizations
-    hospnonasth = hosp - hospcnt14,
-    # count of non-asthma-related ED visits
-    EDnonasth = ED - EDcnt14,
+    # count of non-asthma-related hospitalizations in 2014
+    hospnonasth14 = hosp - hospcnt14,
+    # count of non-asthma-related ED visits in 2014
+    EDnonasth14 = ED - EDcnt14,
     # weighted count of 2014 (baseline) asthma-related hospital/ED encounters, any diagnosis
     asthmaenc14 = (hospcnt14 * arbwght) + EDcnt14,
     # weighted count of 2015 (outcome) asthma-related hospital/ED encounters, any diagnosis
@@ -371,34 +358,68 @@ asthmarisk <- merge(asthmarisk, zipgps, by.x = "Zip", by.y = "zipcode", all.x = 
 
 # ANALYSIS ----------------------------------------------------------------
 
-# Predictive model of future asthma-related hospital and ED visits
-m1 <- glm(outcome ~ asthmacnt14 + ED + hospcnt14 + EDcnt14 + wellcnt14 + agegrp + female + race + fplgrp + hizip,
-          family = "binomial", data = asthmarisk)
+## NB. It is presumed that children with an asthma-related hospitalization or ED visit are at high risk and so are excluded
+## from the prediction model
 
-summary(m1)
-p1 <- predict.glm(m1, type = "response")
+### Using rms package (cannot define as a factor variable in the model so use scored instead)
+# Make data frame for prediction comparisons
+d <- datadist(asthmarisk)
+options(datadist="d")
 
-# Predictive model including asthma medication ratio
-# Need to make version of m1 limited to where amr14risk is filled in for LR test to work
-m2 <- glm(outcome ~ asthmacnt14 + ED + hospcnt14 + EDcnt14 + wellcnt14 + agegrp + female + race + fplgrp + hizip,
-          family = "binomial", data = asthmarisk, subset = !is.na(amr14risk))
+# Simple model with prior hospitalizations/ED visits, asthma-related well child checks, and demographics
+m1 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) + 
+            scored(fplgrp) + hizip, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0, x = TRUE, y = TRUE)
+m1
 
-m3 <- glm(outcome ~ asthmacnt14 + ED + hospcnt14 + EDcnt14 + wellcnt14 + agegrp + female + race + fplgrp + hizip + amr14risk,
-          family = "binomial", data = asthmarisk)
+# Previous model but including asthma medication variables
+m2 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) + 
+            scored(fplgrp) + hizip + amr14risk + relieverhigh, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0,
+          x = TRUE, y = TRUE)
+m2
 
-summary(m3)
-p3 <- predict.glm(m3, type = "response")
+p2 <- Predict(m2)
+plot(p2, anova = anova(m2), pval = TRUE)
 
-# Look at LR test
+
+# repeat using glm
+m2a <- glm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) + 
+            scored(fplgrp) + hizip + amr14risk + relieverhigh, data = asthmarisk, family = "binomial",
+          subset = hospcnt14 ==0 & EDcnt14 == 0)
+
+summary(m2a)
+p2a <- predict(m2a)
+plot(m2a, which = 1)
+glm.diag.plots(m2a)
+
+# Compare two models
+lrtest(m1, m2)
+
+# Drop FPL due to large # of missing
+m3 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) +
+            hizip + amr14risk + relieverhigh, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0, x = TRUE, y = TRUE)
+m3
+
 lrtest(m2, m3)
 
-# Look at correlation coefficient
-cor(p3, subset(asthmarisk, !is.na(asthmacnt14) & !is.na(ED) & !is.na(hospcnt14) & !is.na(EDcnt14) & !is.na(wellcnt14) 
-               & !is.na(agegrp) & !is.na(female) & !is.na(race) & !is.na(fplgrp) & !is.na(hizip) & !is.na(amr14risk),
-               select = c("outcome")))
+
+# Look at children with a hosp/ED asthma event in 2014
+m4 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) +
+            hizip + amr14risk + relieverhigh, data = asthmarisk, subset = hospcnt14 > 0 & EDcnt14 > 0, x = TRUE, y = TRUE)
+m4
+
+lrtest(m2, m4)
+
+### Assess number of children with each predictor
+
+# Make temp data set to match the children in the model
+asthmarisk.tmp <- asthmarisk %>%
+  filter(hospcnt14 == 0 & EDcnt14 == 0 & !is.na(hospnonasth14) & !is.na(EDnonasth14) & !is.na(wellcnt14) & 
+           !is.na(agegrp) & !is.na(female) & !is.na(race) & !is.na(fplgrp) & !is.na(hizip) & !is.na(amr14risk) & 
+           !is.na(relieverhigh))
 
 
-# Using rms package
-m4 <- lrm(outcome ~ asthmacnt14 + ED + hospcnt14 + EDcnt14 + wellcnt14 + agegrp + female + race + fplgrp + hizip + amr14risk,
-          data = asthmarisk, x = TRUE, y = TRUE)
-residuals
+table(asthmarisk.tmp$EDnonasth14, useNA = 'always')
+table(asthmarisk.tmp$female, useNA = 'always')
+table(asthmarisk.tmp$hizip, useNA = 'always')
+table(asthmarisk.tmp$amr14risk, useNA = 'always')
+table(asthmarisk.tmp$relieverhigh, useNA = 'always')
