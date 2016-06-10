@@ -272,8 +272,11 @@ arrange(ID2014, CAL_YEAR)
       ), na.rm = TRUE),
       amr14 = controltot / (controltot + relievertot),
       amr14risk = ifelse(amr14 < 0.5, 1, ifelse(amr14 >= 0.5, 0, NA)),
-      # Add in binary classifications of medications
-      relieverhigh = ifelse(relievertot >= 6, 1, 0)
+      # Add in binary classifications of medication use
+      relieverhigh6 = ifelse(relievertot >= 6, 1, 0),
+      relieverhigh5 = ifelse(relievertot >= 5, 1, 0),
+      relieverhigh4 = ifelse(relievertot >= 4, 1, 0),
+      relieverhigh3 = ifelse(relievertot >= 3, 1, 0),
     ) %>%
     distinct(ID2014, amr14) %>%
     select(ID2014, controltot, relievertot, amr14, amr14risk, relieverhigh)
@@ -373,7 +376,7 @@ m1
 
 # Previous model but including asthma medication variables
 m2 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) + 
-            scored(fplgrp) + hizip + amr14risk + relieverhigh, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0,
+            scored(fplgrp) + hizip + amr14risk + relieverhigh6, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0,
           x = TRUE, y = TRUE)
 m2
 
@@ -383,7 +386,7 @@ plot(p2, anova = anova(m2), pval = TRUE)
 
 # repeat using glm
 m2a <- glm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) + 
-            scored(fplgrp) + hizip + amr14risk + relieverhigh, data = asthmarisk, family = "binomial",
+            scored(fplgrp) + hizip + amr14risk + relieverhigh6, data = asthmarisk, family = "binomial",
           subset = hospcnt14 ==0 & EDcnt14 == 0)
 
 summary(m2a)
@@ -396,7 +399,7 @@ lrtest(m1, m2)
 
 # Drop FPL due to large # of missing
 m3 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) +
-            hizip + amr14risk + relieverhigh, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0, x = TRUE, y = TRUE)
+            hizip + amr14risk + relieverhigh6, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0, x = TRUE, y = TRUE)
 m3
 
 lrtest(m2, m3)
@@ -404,7 +407,7 @@ lrtest(m2, m3)
 
 # Look at children with a hosp/ED asthma event in 2014
 m4 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) +
-            hizip + amr14risk + relieverhigh, data = asthmarisk, subset = hospcnt14 > 0 & EDcnt14 > 0, x = TRUE, y = TRUE)
+            hizip + amr14risk + relieverhigh6, data = asthmarisk, subset = hospcnt14 > 0 & EDcnt14 > 0, x = TRUE, y = TRUE)
 m4
 
 lrtest(m2, m4)
@@ -415,11 +418,11 @@ lrtest(m2, m4)
 asthmarisk.tmp <- asthmarisk %>%
   filter(hospcnt14 == 0 & EDcnt14 == 0 & !is.na(hospnonasth14) & !is.na(EDnonasth14) & !is.na(wellcnt14) & 
            !is.na(agegrp) & !is.na(female) & !is.na(race) & !is.na(fplgrp) & !is.na(hizip) & !is.na(amr14risk) & 
-           !is.na(relieverhigh))
+           !is.na(relieverhigh6))
 
 
 table(asthmarisk.tmp$EDnonasth14, useNA = 'always')
 table(asthmarisk.tmp$female, useNA = 'always')
 table(asthmarisk.tmp$hizip, useNA = 'always')
 table(asthmarisk.tmp$amr14risk, useNA = 'always')
-table(asthmarisk.tmp$relieverhigh, useNA = 'always')
+table(asthmarisk.tmp$relieverhigh6, useNA = 'always')
