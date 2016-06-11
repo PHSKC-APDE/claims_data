@@ -145,6 +145,17 @@ meds <- meds %>%
          reliever = ifelse(category %in% c("short-acting inhaled beta-2 agonists"), 1, 0))
 
 
+# Bring in zipcode file and recode
+zipgps <- read_dta("H:/my documents/Medicaid claims/Asthma/zipgps.dta")
+zipgps <- zipgps %>%
+  mutate(region = recode(hpa, "c('Bellevue', 'Bothell/Woodinville', 'Issaquah/Sammamish', 
+                         'Kirkland', 'Mercer Isl/Point Cities', 'Redmond/Union Hill') = 1;
+                         c('Auburn', 'Burien/Des Moines', 'Federal Way', 'Kent', 'Lower Valley & Upper Sno',
+                         'Southeast King County', 'Tukwila/SeaTac', 'Vashon Island') = 2;
+                         else = 3", as.factor.result = FALSE),
+         hizip = ifelse(zipcode %in% c(98001, 98002, 98022, 98023, 98030, 98042, 98047, 98052, 98057,
+                                       98065, 98092, 98112, 98118, 98122, 98144, 98146, 98155, 98178, 98188), 1, 0))
+
 
 ##### Merge all eligible children with asthma claims and total hospital/ED visits #####
 asthmachild <- merge(eligall, asthma, by = "ID2014") %>%
@@ -276,10 +287,10 @@ arrange(ID2014, CAL_YEAR)
       relieverhigh6 = ifelse(relievertot >= 6, 1, 0),
       relieverhigh5 = ifelse(relievertot >= 5, 1, 0),
       relieverhigh4 = ifelse(relievertot >= 4, 1, 0),
-      relieverhigh3 = ifelse(relievertot >= 3, 1, 0),
+      relieverhigh3 = ifelse(relievertot >= 3, 1, 0)
     ) %>%
     distinct(ID2014, amr14) %>%
-    select(ID2014, controltot, relievertot, amr14, amr14risk, relieverhigh)
+    select(ID2014, controltot:relieverhigh3)
 
   
 # Collapse claims data and merge with medication data
@@ -328,11 +339,14 @@ asthmarisk <- asthmarisk %>%
     # recodes those with an Asian language and no race to Asian race
     race = replace(race, which(race == 7 & Lang %in% c("Burmese","Chinese","Korean","Vietnamese","Tagalog")), 2),
     # recodes those with Somali language and no race to black race
-    race = replace(race, which(race == 7 & Lang == "Somali"), 2),  
+    race = replace(race, which(race == 7 & Lang == "Somali"), 3),  
     # recodes those with Russian language and no race to white race
-    race = replace(race, which(race == 7 & Lang == "Russian"), 2),   
+    race = replace(race, which(race == 7 & Lang == "Russian"), 6),   
     # recodes those with Spanish language and no race to Hispanic race
-    race = replace(race, which(race == 7 & Lang == "Spanish; Castillian"), 2),
+    race = replace(race, which(race == 7 & Lang == "Spanish; Castillian"), 4),
+    # makes race a factor variable and set white to be reference category
+    race = as.factor(race),
+    race = relevel(race, ref = 6),
     # extract age from birth year and recode into age groups
     age = 2014 - as.numeric(substr(DOB,1,4)),
     agegrp = cut(age, breaks = c(3, 5, 11, 18), right = FALSE, labels = c(1:3)),
@@ -345,16 +359,6 @@ asthmarisk <- asthmarisk %>%
   )
 
 
-# Bring in zipcode file and recode
-zipgps <- read_dta("H:/my documents/Medicaid claims/Asthma/zipgps.dta")
-zipgps <- zipgps %>%
-  mutate(region = recode(hpa, "c('Bellevue', 'Bothell/Woodinville', 'Issaquah/Sammamish', 
-                          'Kirkland', 'Mercer Isl/Point Cities', 'Redmond/Union Hill') = 1;
-                          c('Auburn', 'Burien/Des Moines', 'Federal Way', 'Kent', 'Lower Valley & Upper Sno',
-                          'Southeast King County', 'Tukwila/SeaTac', 'Vashon Island') = 2;
-                          else = 3", as.factor.result = FALSE),
-         hizip = ifelse(zipcode %in% c(98001, 98002, 98022, 98023, 98030, 98042, 98047, 98052, 98057,
-                                       98065, 98092, 98112, 98118, 98122, 98144, 98146, 98155, 98178, 98188), 1, 0))
   
 asthmarisk <- merge(asthmarisk, zipgps, by.x = "Zip", by.y = "zipcode", all.x = TRUE)
   
@@ -374,9 +378,9 @@ m1 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + f
             scored(fplgrp) + hizip, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0, x = TRUE, y = TRUE)
 m1
 
-# Previous model but including asthma medication variables
+# Previous model but including asthma medication variables (can vary relieverhigh from 3 to 6)
 m2 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) + 
-            scored(fplgrp) + hizip + amr14risk + relieverhigh6, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0,
+            scored(fplgrp) + hizip + amr14risk + relieverhigh3, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0,
           x = TRUE, y = TRUE)
 m2
 
@@ -385,8 +389,8 @@ plot(p2, anova = anova(m2), pval = TRUE)
 
 
 # repeat using glm
-m2a <- glm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) + 
-            scored(fplgrp) + hizip + amr14risk + relieverhigh6, data = asthmarisk, family = "binomial",
+m2a <- glm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + factor(agegrp) + female + factor(race) + 
+            factor(fplgrp) + hizip + amr14risk + relieverhigh3, data = asthmarisk, family = "binomial",
           subset = hospcnt14 ==0 & EDcnt14 == 0)
 
 summary(m2a)
@@ -412,17 +416,20 @@ m4
 
 lrtest(m2, m4)
 
-### Assess number of children with each predictor
 
+### Assess number of children with each predictor
 # Make temp data set to match the children in the model
 asthmarisk.tmp <- asthmarisk %>%
   filter(hospcnt14 == 0 & EDcnt14 == 0 & !is.na(hospnonasth14) & !is.na(EDnonasth14) & !is.na(wellcnt14) & 
            !is.na(agegrp) & !is.na(female) & !is.na(race) & !is.na(fplgrp) & !is.na(hizip) & !is.na(amr14risk) & 
            !is.na(relieverhigh6))
 
-
 table(asthmarisk.tmp$EDnonasth14, useNA = 'always')
 table(asthmarisk.tmp$female, useNA = 'always')
 table(asthmarisk.tmp$hizip, useNA = 'always')
 table(asthmarisk.tmp$amr14risk, useNA = 'always')
+
 table(asthmarisk.tmp$relieverhigh6, useNA = 'always')
+table(asthmarisk.tmp$relieverhigh5, useNA = 'always')
+table(asthmarisk.tmp$relieverhigh4, useNA = 'always')
+table(asthmarisk.tmp$relieverhigh3, useNA = 'always')
