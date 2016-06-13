@@ -300,12 +300,12 @@ asthmarisk <- asthmachild %>%
   select(ID2014, hospcnt14:EDcntprim15)
   
 
-# Merge with just 2014 claimants, total hospitalizations, demogs from eligibility, and meds
+# Merge with just 2014 claimants, total hospitalizations, demogs from eligibility, meds, and zip code risk
 asthmarisk <- merge(asthmarisk, asthma2014,  by = "ID2014")
 asthmarisk <- merge(asthmarisk, hospED, by = "ID2014", all.x = TRUE)
 asthmarisk <- merge(asthmarisk, eligall, by = "ID2014", all.x = TRUE)
 asthmarisk <- merge(asthmarisk, tmp.meds, by = "ID2014", all.x = TRUE)
-  
+asthmarisk <- merge(asthmarisk, zipgps, by.x = "Zip", by.y = "zipcode", all.x = TRUE)
 
 
 
@@ -344,9 +344,14 @@ asthmarisk <- asthmarisk %>%
     race = replace(race, which(race == 7 & Lang == "Russian"), 6),   
     # recodes those with Spanish language and no race to Hispanic race
     race = replace(race, which(race == 7 & Lang == "Spanish; Castillian"), 4),
-    # makes race a factor variable and set white to be reference category
+    # add in Vietnamese category based on prior experience with asthma programs
+    race2 = race,
+    race2 = replace(race2, which(Lang == "Vietnamese"), 8),
+    # makes race and race2 factor variables and sets white to be reference category
     race = as.factor(race),
     race = relevel(race, ref = 6),
+    race2 = as.factor(race2),
+    race2 = relevel(race2, ref = 6),
     # extract age from birth year and recode into age groups
     age = 2014 - as.numeric(substr(DOB,1,4)),
     agegrp = cut(age, breaks = c(3, 5, 11, 18), right = FALSE, labels = c(1:3)),
@@ -359,9 +364,7 @@ asthmarisk <- asthmarisk %>%
   )
 
 
-  
-asthmarisk <- merge(asthmarisk, zipgps, by.x = "Zip", by.y = "zipcode", all.x = TRUE)
-  
+
 
 # ANALYSIS ----------------------------------------------------------------
 
