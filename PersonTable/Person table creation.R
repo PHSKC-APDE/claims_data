@@ -75,15 +75,74 @@ table(elig$zip, useNA = 'always')
 
 ### Addresses (NB. a separate geocoding process may fill in some gaps later)
 elig <- elig %>%
-  mutate(city = replace(city, which(str_detect(city, "ATTLE"), "SEATTLE")))
+  mutate(
+    city = as.character(replace(
+      city,
+      which(
+        str_detect(city, "AUB") == TRUE |
+          str_detect(city, "AURB") == TRUE |
+          str_detect(city, "AUD") == TRUE |
+          str_detect(city, "ABUR") == TRUE
+      ),
+      "AUBURN"
+    )),
+    city = replace(
+      city,
+      which(
+        str_detect(city, "BELLE") == TRUE |
+          str_detect(city, "BELLV") == TRUE |
+          city %in% c("DELLVUE")
+      ),
+      "BELLEVUE"
+    ),
+    city = replace(
+      city,
+      which(
+        str_detect(city, "COVIN") == TRUE |
+          str_detect(city, "CONVIN") == TRUE
+      ),
+      "COVINGTON"
+    ),
+    city = replace(
+      city,
+      which(
+        str_detect(city, "MOIN") == TRUE |
+          str_detect(city, "DES M") == TRUE |
+          str_detect(city, "DESM") == TRUE |
+          city %in% c("DEMING")
+      ),
+      "DES MOINES"
+    ),
+    city = replace(city,
+                   which(
+                     str_detect(city, "MCLAW") == TRUE |
+                       str_detect(city, "ENU*C*W") == TRUE
+                   ),
+                   "ENUMCLAW"),
+    city = replace(
+      city,
+      which(
+        str_detect(city, "ATTLE") == TRUE |
+          str_detect(city, "SEATTE") == TRUE |
+          str_detect(city, "SEATTL") == TRUE |
+          city %in% c(
+            "BALLARD",
+            "BEACON HILL",
+            "SEAETTLE",
+            "SEATLE",
+            "SEATLLE",
+            "SEATLTLE",
+            "SEATT",
+            "SEATTKE",
+            "SEATTTE",
+            "SEATTTLE",
+            "SEAWTTLE",
+            "SETTLE"
+          )
+      ),
+      "SEATTLE"
+    )
+  )
                         
-                        | 
-                          which(city %in% c(".EATTLE", "06ATTLE", "4EATTLE", "6EATTLE","SEAATTLE", "SEAETTLE", 
-                                                "SEATLE", "SEATLLE", "SEATLTLE", 
-                                                "SEATT", "SEATTE", "SEATTEE", "SEATTEL", "SEATTKE", "SEATTL",
-                                                "SEATTLE          05032", "SEATTLE AM", "SEATTLE Q",
-                                                "SEATTLE WA", "SEATTLE WAY", "SEATTLE,", "SEATTLEE", "SEATTLEH",
-                                                "SEATTLENE", "SEATTLEQ", "SEATTLER", "SEATTLES", "SEATTTE", 
-                                                "SEATTTLE", "SEAWTTLE", "SETTLE", "SOUTH SEATTLE")), "SEATTLE"),
-         )
+
   
