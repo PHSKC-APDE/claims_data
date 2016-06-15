@@ -26,7 +26,7 @@ db.claims <- odbcConnect("PHClaims")
 ##### Bring in all the relevant eligibility data #####
 
 # Bring in all eligibility data
-ptm01 <- proc.time() # Times how long this query takes (~21 secs)
+ptm01 <- proc.time() # Times how long this query takes (~240 secs)
 elig <-
   sqlQuery(
     db.claims,
@@ -74,15 +74,16 @@ table(elig$zip, useNA = 'always')
 ##### Data cleaning #####
 
 ### Addresses (NB. a separate geocoding process may fill in some gaps later)
+#NB. Can probably collapse some of these using regular expressions (see Enumclaw example)
 elig <- elig %>%
   mutate(
     city = as.character(replace(
       city,
       which(
-        str_detect(city, "AUB") == TRUE |
-          str_detect(city, "AURB") == TRUE |
-          str_detect(city, "AUD") == TRUE |
-          str_detect(city, "ABUR") == TRUE
+        str_detect(city, "AUD") == TRUE |
+          str_detect(city, "ABUR") == TRUE |
+          str_detect(city, "AUB") == TRUE |
+          str_detect(city, "A[UR]*B") == TRUE
       ),
       "AUBURN"
     )),
@@ -116,9 +117,66 @@ elig <- elig %>%
     city = replace(city,
                    which(
                      str_detect(city, "MCLAW") == TRUE |
-                       str_detect(city, "ENU*C*W") == TRUE
+                       str_detect(city, "ENU[:alnum:]*C[:alnum:]*W") == TRUE
                    ),
                    "ENUMCLAW"),
+    city = replace(city,
+                   which(
+                     str_detect(city, "FED[:alnum:]*[:space:]*W") == TRUE |
+                       str_detect(city, "FER[:alnum:]*[:space:]*WAY") == TRUE |
+                       str_detect(city, "FER[:alnum:]*[:space:]*W[AY]") == TRUE |
+                       str_detect(city, "FEDERAL") == TRUE
+                   ),
+                   "FEDERAL WAY"),
+    city = replace(city,
+                   which(
+                     str_detect(city, "[AI]S[:alnum:]*AH") == TRUE |  
+                       str_detect(city, "IS[:alnum:]*QUA") == TRUE
+                   ),
+                   "ISSAQUAH"
+                   ),
+    city = replace(city,
+                   which(
+                     str_detect(city, "KE[NT][NT][:alnum:]*") == TRUE
+                   ),
+                   "KENT"
+                   ),
+    city = replace(city,
+                   which(
+                     str_detect(city, "KI[RK][:alnum:]*[LA]ND[:alnum:]*") == TRUE
+                   ),
+                   "KIRKLAND"
+                   ),
+    city = replace(city,
+                   which(
+                     str_detect(city, "L[AK][:alnum:]*FOR[:alnum:]*") == TRUE
+                   ),
+                   "LAKE FOREST PARK"),
+    city = replace(city,
+                   which(
+                     str_detect(city, "NOR[:alnum:]*PARK") == TRUE
+                   ),
+                   "NORMANDY PARK"),
+    city = replace(
+      city,
+      which(
+        str_detect(city, "NO[:alnum:]*[:space:]*B[AE][ND]*") == TRUE |
+          str_detect(city, "H BEND") == TRUE
+      ),
+      "NORTH BEND"
+    ),
+    city = replace(city,
+                   which(
+                     str_detect(city, "S[AO]M[:alnum:]*SH") == TRUE
+                   ),
+                   "SAMMAMISH"
+                   ),
+    city = replace(city,
+                   which(
+                     str_detect(city, "S[EA][:alnum:]*[:punct:]*[:space:]*TA[CPS][:alnum:]*") == TRUE |
+                       str_detect(city, "S[EA][:alnum:]*[:punct:]*[:space:]*TC") == TRUE
+                   ),
+                   "SEATAC"),
     city = replace(
       city,
       which(
@@ -141,8 +199,35 @@ elig <- elig %>%
           )
       ),
       "SEATTLE"
-    )
+    ),
+    city = replace(city,
+                   which(
+                     str_detect(city, "SHO[ER][:alnum:]*[:space:]*LI[EN]*") == TRUE
+                   ),
+                   "SHORELINE"),
+    city = replace(city,
+                   which(
+                     str_detect(city, "S[MN]O[:alnum:]*Q[:alnum:]*[IM][IM][AE][:space:]*[:alnum:]*") == TRUE
+                   ),
+                   "SNOQUALMIE"),
+    city = replace(city,
+                   which(
+                     str_detect(city, "TU[AKQRW][:alnum:]*[IL][KLW]A") == TRUE |
+                       city %in% c("PUKWILA", "TEQUILLA")
+                   ),
+                   "TUKWILA")
   )
-                        
 
-  
+################ TESTING AREA ####################
+# Test out city name and other combos here before placing them in the replace expression above  
+elig <- elig %>%
+  mutate(city = as.character(replace(
+    city,
+    which(
+        str_detect(city, "FED[:alnum:]*[:space:]*W") == TRUE |
+          str_detect(city, "FER[:alnum:]*[:space:]*WAY") == TRUE |
+          str_detect(city, "FER[:alnum:]*[:space:]*W[AY]") == TRUE |
+          str_detect(city, "FEDERAL") == TRUE
+    ),
+    "FEDERAL WAY TEST"
+  )))
