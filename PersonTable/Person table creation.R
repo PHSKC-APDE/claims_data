@@ -55,7 +55,8 @@ elig.bk <- elig
 # Number of unique variables
 count(distinct(elig, id))
 count(distinct(elig, hhid))
-count(distinct(elig, SSN))
+count(distinct(elig, id, ssn))
+count(distinct(elig, id, fname, lname, dob))
 
 # Values in different address fields (will identify spelling errors and where fields have shifted (e.g., city in zip))
 table(elig$city, useNA = 'always')
@@ -73,42 +74,100 @@ table(elig$zip, useNA = 'always')
 
 
 ##### Data cleaning #####
+# The purpose is to ensure that each ID + SSN combo only represents one person
+# Demographics can then be asribed to each ID + SSN combo
 
-### Addresses (NB. a separate geocoding process may fill in some gaps later)
 
-# House and street
+#### SSN ####
+# Find IDs with >1 SSN (~100) and count number of times each SSN appears per person
 elig <- elig %>%
-  mutate(street = ifelse(
-    str_detect(add2, "^[:digit:]") == TRUE,
-    add2,
-    ifelse(
-      str_detect(add2, "^[^:digit:]") &
-        str_detect(add1, "^[:digit:]"),
-      add1,
-      ifelse(
-        str_detect(add2, "^[^:digit:]") & str_detect(add1, "^[^:digit:]"),
-        paste(add1, add2, sep = ","),
-        NA
-      )
-    )
-  ))
+  group_by(id) %>%
+  mutate(ssn_tot = n_distinct(ssn, na.rm = TRUE)) %>%
+  group_by(id, ssn) %>%
+  mutate(ssn_cnt = n()) %>%
+  ungroup()
 
 
-# City
+# Options for dealing with multiple SSNs
+# 1) Look at names and DOB to see there is a match and take the most common SSN
+elig.tmp <- elig %>%
+  filter(!is.na(ssn)) %>%
+  distinct(id, ssn, dob, fname, lname) %>%
+  arrange(id, ssn, dob, fname, lname) %>%
+  group_by(id, dob, fname, lname) %>%
+  # where there is a tie, the first SSN is selected. This is an issue if the data are sorted differently
+  slice(which.max(ssn_cnt)) %>%
+  ungroup() %>%
+  select(id, ssn, dob, fname, lname)
+
+# 1 cont) Merge back with the primary data and update SSN
+elig <- left_join(elig, elig.tmp, by = c("id", "fname", "lname", "dob"))
+elig <- mutate(elig, ssn = ifelse(!is.na(ssn.y), ssn.y, ssn.x))
+
+
+
+################ TESTING AREA ####################
+# Create a small data set to test on
+elig.tst <- elig %>%
+  ungroup() %>%
+  filter(ssn_tot > 1) %>%
+  filter(row_number() <= 500)
+
+elig.tst %>%
+  select(id, ssn, dob, fname, lname, ssn_tot, ssn_cnt) %>%
+  distinct(id, ssn, fname, lname) %>%
+  group_by(id, dob, fname, lname) %>%
+  slice(which.max(ssn_cnt))
+
+
+# Test results from main data
+table(elig$ssn_tot, useNA = 'always')
+table(elig$ssn_cnt, elig$ssn_tot, useNA = 'always')
+
+elig %>%
+  filter(ssn_tot > 1) %>%
+  distinct(id, ssn.x) %>%
+  select(id, ssn.x, ssn.y, dob, fname, mname, lname, ssn_tot, ssn_cnt)
+
+filter(elig, is.na(ssn.y) & ssn_tot>0) %>% distinct(id) %>% select(id, ssn_tot)
+filter(elig, id == "XXXXXXXX") %>% select(id, ssn.x, ssn.y, dob, fname, lname)
+
+
+
+
+################ END TESTING AREA ####################
+
+
+
+
+
+
+
+#### City ####
 elig <- elig %>%
   mutate(
-    city = as.character(replace(
+    city = replace(
       city,
       which(
-        str_detect(city, "AU[BD][:alnum:]*N") == TRUE |
-          str_detect(city, "ABUR") == TRUE |
-          str_detect(city, "A[UR]*B") == TRUE
+        str_detect(city, "^AU[BD][:alnum:]*N") == TRUE |
+          str_detect(city, "^ABUR") == TRUE |
+          str_detect(city, "^ARB[:alnum:]*N") == TRUE |
+          str_detect(city, "^AURB[:alnum:]*N") == TRUE |
+          str_detect(city, "SOUTH AUBURN") == TRUE
       ),
       "AUBURN"
-    )),
+    ),
     city = replace(city,
                    which(str_detect(city, "[BD]ELL[EV]") == TRUE),
                    "BELLEVUE"),
+    city = replace(city,
+                   which(str_detect(city, "BOTHEL") == TRUE),
+                   "BOTHELL"),
+    city = replace(city,
+                   which(
+                     str_detect(city, "CARN[:alnum:]*ON") == TRUE
+                   ),
+                   "CARNATION"),
     city = replace(
       city,
       which(
@@ -122,7 +181,7 @@ elig <- elig %>%
       which(
         str_detect(city, "MOIN") == TRUE |
           str_detect(city, "DES[:space:]*M") == TRUE |
-          city %in% c("DEMING")
+          city %in% c("DEMING", "DE MONIES")
       ),
       "DES MOINES"
     ),
@@ -132,11 +191,16 @@ elig <- elig %>%
                        str_detect(city, "ENU[:alnum:]*C[:alnum:]*W") == TRUE
                    ),
                    "ENUMCLAW"),
-    city = replacE(city,
+    city = replace(city,
                    which(
                      str_detect(city, "EVE[:alnum:]*[TE]") == TRUE
                    ),
                    "EVERETT"),
+    city = replace(city,
+                   which(
+                     str_detect(city, "FALL[:alnum:]*[:space:]*CITY") == TRUE
+                   ),
+                   "FALL CITY"),
     city = replace(
       city,
       which(
@@ -155,7 +219,14 @@ elig <- elig %>%
                    "ISSAQUAH"),
     city = replace(city,
                    which(
-                     str_detect(city, "KE[NT][NT][:alnum:]*") == TRUE
+                     str_detect(city, "^KE[:alnum:]*ORE") == TRUE |
+                       city %in% c("AEMMORE", "KEN")
+                   ),
+                   "KENMORE"),
+    city = replace(city,
+                   which(
+                     str_detect(city, "KE[NT][NT][:alnum:]*") == TRUE |
+                       city %in% c("4ENT", "KNET", "KUNT")
                    ),
                    "KENT"),
     city = replace(city,
@@ -165,22 +236,31 @@ elig <- elig %>%
                    "KIRKLAND"),
     city = replace(city,
                    which(
-                     str_detect(city, "L[AK][:alnum:]*FOR[:alnum:]*") == TRUE
+                     str_detect(city, "L[AK][:alnum:]*[:space:]*FOR[:alnum:]*") == TRUE
                    ),
                    "LAKE FOREST PARK"),
+    city = replace(
+      city,
+      which(
+        str_detect(city, "MOU[NT][:alnum:]*[:space:]*AKE[:space:]*TERR") == TRUE |
+          str_detect(city, "MT[:alnum:]*[:space:]*AKE[:space:]*TERR") == TRUE
+      ),
+      "MOUNTLAKE TERRACE"
+    ),
     city = replace(city,
                    which(
                      str_detect(city, "NOR[:alnum:]*PARK") == TRUE
                    ),
                    "NORMANDY PARK"),
-    city = replace(
-      city,
-      which(
-        str_detect(city, "NO[:alnum:]*[:space:]*B[AE][ND]*") == TRUE |
-          str_detect(city, "H BEND") == TRUE
-      ),
-      "NORTH BEND"
-    ),
+    city = replace(city,
+                   which(
+                     str_detect(city, "NO[:alnum:]*[:space:]*B[AE][ND]*") == TRUE |
+                       (
+                         str_detect(city, "H BEND") == TRUE &
+                           str_detect(city, "SOUTH") == FALSE
+                       )
+                   ),
+                   "NORTH BEND"),
     city = replace(city,
                    which(
                      str_detect(city, "S[AO]M[:alnum:]*SH") == TRUE
@@ -234,16 +314,156 @@ elig <- elig %>%
                    "TUKWILA")
   )
 
-################ TESTING AREA ####################
-# Test out city name and other combos here before placing them in the replace expression above  
+
+#### Addresses (NB. a separate geocoding process may fill in some gaps later) ####
 elig <- elig %>%
-  mutate(city = as.character(replace(
-    city,
-    which(
-        str_detect(city, "FED[:alnum:]*[:space:]*W") == TRUE |
-          str_detect(city, "FER[:alnum:]*[:space:]*WAY") == TRUE |
-          str_detect(city, "FER[:alnum:]*[:space:]*W[AY]") == TRUE |
-          str_detect(city, "FEDERAL") == TRUE
+  # Set up homeless and PO Box variables first to avoid capturing non-permanent residential addresses (e.g., relatives and temporary shelters)
+  mutate(
+    homeless = ifelse(
+      str_detect(add1, "HOMELESS") == TRUE |
+        str_detect(add2, "HOMELESS"),
+      1,
+      0
     ),
-    "FEDERAL WAY TEST"
-  )))
+    # Need spaces to avoid falsely capturing Boxley Pl and other similarly named roads
+    pobox = ifelse(
+      str_detect(add1, "[:space:]BOX[:space:]") == TRUE |
+        str_detect(add2, "[:space:]BOX[:space:]"),
+      1,
+      0
+    ),
+    street = ifelse(
+      str_detect(add2, "^[:digit:]") == TRUE & !is.na(add2),
+      add2,
+      ifelse(
+        (str_detect(add2, "^[^:digit:]") | is.na(add2)) &
+          str_detect(add1, "^[:digit:]"),
+        add1,
+        ifelse(
+          str_detect(add2, "^[^:digit:]") & str_detect(add1, "^[^:digit:]"),
+          paste(add1, add2, sep = ","),
+          NA
+        )
+      )
+    ),
+    # Remove temporary or relative's addresses that have been erroneously assigned
+    street = replace(street, which(homeless == 1 | pobox == 1), NA),
+    # Strip out apartment numbers etc.
+    street2 = str_sub(street,
+                      1,
+                      ifelse(
+                        is.na(str_locate(
+                          street, "[:space:]*APT|#|UNIT|TRLR|STE|SUITE"
+                        )[, 1]),-1,
+                        str_locate(street, "[:space:]*APT|#|UNIT|TRLR|STE|SUITE")[, 1] - 1
+                      )),
+    # Clear white space at each end to make matches more accurate
+    street2 = str_trim(street2, side = c("both")),
+    # (Optional) Remove addresses with no apparent street number and those with blank addresses
+    street2 = replace(street2, which(str_detect(
+      street2, "^[:alpha:]"
+    ) == TRUE | street2 == ""), NA)
+  )
+
+
+#### Gender ####
+# Find IDs with >1 recorded gender
+# NB. There are 413 IDs with 2 genders when grouped by ID only, and 400 when grouped by ID + SSN
+gender.tmp <- elig %>%
+  select(id, ssn, gender) %>%
+  group_by(id, ssn) %>%
+  mutate(gender = replace(gender, which(gender == "Unknown"), NA)) %>%
+  summarise(gender_tot = n_distinct(gender, na.rm = TRUE)) %>%
+  distinct(id, ssn, gender_tot) %>%
+  ungroup()
+
+table(elig$gender_tot, useNA = 'always')
+
+# Replace multiple genders as missing
+mutate(elig, gender = replace(gender, which(gender_tot > 1), NA))
+
+
+
+
+################ TESTING AREA ####################
+# Create a small data set to test on
+elig.tst.gnd <- elig %>%
+  ungroup() %>%
+  filter(row_number() <= 50000)
+
+elig.tst.gnd %>%
+  group_by(id, ssn) %>%
+  mutate(gender_tot = n_distinct(gender, na.rm = TRUE)) %>%
+  group_by(id, ssn, gender) %>%
+  mutate(gender_cnt = n()) %>%
+  select(id, ssn, fname, mname, lname, gender, gender_tot, gender_cnt) %>%
+  filter(gender_tot > 1) %>%
+  distinct(id, ssn) %>%
+  ungroup()
+
+
+# Test results from main data
+table(elig$ssn_tot, useNA = 'always')
+table(elig$ssn_cnt, elig$ssn_tot, useNA = 'always')
+
+elig %>%
+  filter(ssn_tot > 1) %>%
+  distinct(id, ssn.x) %>%
+  select(id, ssn.x, ssn.y, dob, fname, mname, lname, ssn_tot, ssn_cnt)
+
+filter(elig, is.na(ssn.y) & ssn_tot>0) %>% distinct(id) %>% select(id, ssn_tot)
+filter(elig, id == "XXXXXXXX") %>% select(id, ssn.x, ssn.y, dob, fname, lname)
+
+
+
+
+################ END TESTING AREA ####################
+
+
+
+
+
+
+
+################ TESTING AREA ####################
+# Try to replicate Lin's results
+
+elig.test <- elig %>%
+  filter(year %in% c(2012:2015))
+
+
+# see how many unique users in the 2012–2015 time period (matches Lin's #)
+length(unique(elig.test$id))
+
+# see how many unique addresses (differs from Lin by ~150 due to city clean up)
+distinct(elig.test, add1, add2, city, zip) %>% summarize(count = n())
+
+# after cleaning
+distinct(elig.test, street2, city, zip) %>% summarize(count = n())
+
+distinct(elig.test, street2, city, zip) %>% arrange(street) %>% select(street2, city, zip)
+distinct(elig.test, street2, city, zip) %>% arrange(desc(street)) %>% select(street2, city, zip)
+
+
+#### compare with Lin's addresses ####
+# Make subset to match Lin
+elig.comp <- elig %>%
+  filter(year %in% c(2012:2015) & !is.na(street2)) %>%
+  distinct(street2, city, zip) %>% 
+  arrange(street) %>% 
+  select(street2, city, zip) %>%
+  mutate(source = "X")
+
+# Bring in Lin's data
+library(readxl)
+linadd <- read_excel("H:/My Documents/Medicaid claims/temp address file.xlsx", col_names = T)
+# take out spaces around the imported addresses
+linadd <- mutate(linadd, ADDRESS = str_trim(ADDRESS, side = c("both")),
+       source = "Y")
+
+# Merge and look at non-matches
+addcomp <- merge(elig.comp, linadd, by.x = c("street2", "city", "zip"), by.y = c("ADDRESS", "CITY", "ZIPCODE"), all = T)
+tmp <- filter(addcomp, is.na(source.x) | is.na(source.y)) %>% arrange(street2, city, zip, source.x, source.y)
+
+
+################ END TESTING AREA ####################
