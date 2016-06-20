@@ -15,6 +15,7 @@
 options(max.print = 700, scipen = 0)
 
 library(RODBC) # used to connect to SQL server
+library(car) # used to recode variables
 library(stringr) # used to manipulate string variables
 library(dplyr) # used to manipulate data
 
@@ -34,7 +35,7 @@ elig <-
     FIRST_NAME AS 'fname', MIDDLE_NAME AS 'mname', LAST_NAME AS 'lname', GENDER AS 'gender',
     RACE1  AS 'race1', RACE2 AS 'race2', RACE3 AS 'race3', RACE4 AS 'race4', HISPANIC_ORIGIN_NAME AS 'hispanic',
     BIRTH_DATE AS 'dob', CTZNSHP_STATUS_NAME AS 'citizenship', INS_STATUS_NAME AS 'immigration',
-    SPOKEN_LNG_NAME AS 'langs', WRTN_LNG_NAME AS 'langw', FPL_PRCNTG AS 'FPL', PRGNCY_DUE_DATE AS 'duedate',
+    SPOKEN_LNG_NAME AS 'langs', WRTN_LNG_NAME AS 'langw', FPL_PRCNTG AS 'fpl', PRGNCY_DUE_DATE AS 'duedate',
     RAC_CODE AS 'RACcode', RAC_NAME AS 'RACname', FROM_DATE AS 'fromdate', TO_DATE AS 'todate',
     covtime = DATEDIFF(dd,FROM_DATE, CASE WHEN TO_DATE > GETDATE() THEN GETDATE() ELSE TO_DATE END),
     END_REASON AS 'endreason', COVERAGE_TYPE_IND AS 'coverage', DUAL_ELIG AS 'dualelig',
@@ -82,7 +83,7 @@ table(elig$zip, useNA = 'always')
 # Find IDs with >1 SSN (~100) and count number of times each SSN appears per person
 elig <- elig %>%
   group_by(id) %>%
-  mutate(ssn_tot = n_distinct(ssn, na.rm = TRUE)) %>%
+  mutate(ssn_tot = n_distinct(ssn, na_rm = TRUE)) %>%
   group_by(id, ssn) %>%
   mutate(ssn_cnt = n()) %>%
   ungroup()
@@ -90,7 +91,7 @@ elig <- elig %>%
 
 # Options for dealing with multiple SSNs
 # 1) Look at names and DOB to see there is a match and take the most common SSN
-elig.tmp <- elig %>%
+ssn.tmp <- elig %>%
   filter(!is.na(ssn)) %>%
   distinct(id, ssn, dob, fname, lname) %>%
   arrange(id, ssn, dob, fname, lname) %>%
@@ -101,53 +102,20 @@ elig.tmp <- elig %>%
   select(id, ssn, dob, fname, lname)
 
 # 1 cont) Merge back with the primary data and update SSN
-elig <- left_join(elig, elig.tmp, by = c("id", "fname", "lname", "dob"))
-elig <- mutate(elig, ssn = ifelse(!is.na(ssn.y), ssn.y, ssn.x))
+elig <- left_join(elig, ssn.tmp, by = c("id", "fname", "lname", "dob"))
+rm(ssn.tmp) # remove temp data frames to save memory
 
-
-
-################ TESTING AREA ####################
-# Create a small data set to test on
-elig.tst <- elig %>%
-  ungroup() %>%
-  filter(ssn_tot > 1) %>%
-  filter(row_number() <= 500)
-
-elig.tst %>%
-  select(id, ssn, dob, fname, lname, ssn_tot, ssn_cnt) %>%
-  distinct(id, ssn, fname, lname) %>%
-  group_by(id, dob, fname, lname) %>%
-  slice(which.max(ssn_cnt))
-
-
-# Test results from main data
-table(elig$ssn_tot, useNA = 'always')
-table(elig$ssn_cnt, elig$ssn_tot, useNA = 'always')
-
-elig %>%
-  filter(ssn_tot > 1) %>%
-  distinct(id, ssn.x) %>%
-  select(id, ssn.x, ssn.y, dob, fname, mname, lname, ssn_tot, ssn_cnt)
-
-filter(elig, is.na(ssn.y) & ssn_tot>0) %>% distinct(id) %>% select(id, ssn_tot)
-filter(elig, id == "XXXXXXXX") %>% select(id, ssn.x, ssn.y, dob, fname, lname)
-
-
-
-
-################ END TESTING AREA ####################
-
-
-
-
+# Make new variable with cleaned up SSN
+elig <- mutate(elig, ssnnew = ifelse(!is.na(ssn.y), ssn.y, ssn.x))
 
 
 
 #### City ####
 elig <- elig %>%
   mutate(
-    city = replace(
-      city,
+    citynew = city,
+    citynew = replace(
+      citynew,
       which(
         str_detect(city, "^AU[BD][:alnum:]*N") == TRUE |
           str_detect(city, "^ABUR") == TRUE |
@@ -157,27 +125,27 @@ elig <- elig %>%
       ),
       "AUBURN"
     ),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(str_detect(city, "[BD]ELL[EV]") == TRUE),
                    "BELLEVUE"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(str_detect(city, "BOTHEL") == TRUE),
                    "BOTHELL"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "CARN[:alnum:]*ON") == TRUE
                    ),
                    "CARNATION"),
-    city = replace(
-      city,
+    citynew = replace(
+      citynew,
       which(
         str_detect(city, "COVIN") == TRUE |
           str_detect(city, "CONVIN") == TRUE
       ),
       "COVINGTON"
     ),
-    city = replace(
-      city,
+    citynew = replace(
+      citynew,
       which(
         str_detect(city, "MOIN") == TRUE |
           str_detect(city, "DES[:space:]*M") == TRUE |
@@ -185,24 +153,24 @@ elig <- elig %>%
       ),
       "DES MOINES"
     ),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "MCLAW") == TRUE |
                        str_detect(city, "ENU[:alnum:]*C[:alnum:]*W") == TRUE
                    ),
                    "ENUMCLAW"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "EVE[:alnum:]*[TE]") == TRUE
                    ),
                    "EVERETT"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "FALL[:alnum:]*[:space:]*CITY") == TRUE
                    ),
                    "FALL CITY"),
-    city = replace(
-      city,
+    citynew = replace(
+      citynew,
       which(
         str_detect(city, "FED[:alnum:]*[:space:]*W") == TRUE |
           str_detect(city, "FER[:alnum:]*[:space:]*WAY") == TRUE |
@@ -211,48 +179,48 @@ elig <- elig %>%
       ),
       "FEDERAL WAY"
     ),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "[AI]S[:alnum:]*AH") == TRUE |
                        str_detect(city, "IS[:alnum:]*QUA") == TRUE
                    ),
                    "ISSAQUAH"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "^KE[:alnum:]*ORE") == TRUE |
                        city %in% c("AEMMORE", "KEN")
                    ),
                    "KENMORE"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "KE[NT][NT][:alnum:]*") == TRUE |
                        city %in% c("4ENT", "KNET", "KUNT")
                    ),
                    "KENT"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "KI[RK][:alnum:]*[LA]ND[:alnum:]*") == TRUE
                    ),
                    "KIRKLAND"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "L[AK][:alnum:]*[:space:]*FOR[:alnum:]*") == TRUE
                    ),
                    "LAKE FOREST PARK"),
-    city = replace(
-      city,
+    citynew = replace(
+      citynew,
       which(
         str_detect(city, "MOU[NT][:alnum:]*[:space:]*AKE[:space:]*TERR") == TRUE |
           str_detect(city, "MT[:alnum:]*[:space:]*AKE[:space:]*TERR") == TRUE
       ),
       "MOUNTLAKE TERRACE"
     ),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "NOR[:alnum:]*PARK") == TRUE
                    ),
                    "NORMANDY PARK"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "NO[:alnum:]*[:space:]*B[AE][ND]*") == TRUE |
                        (
@@ -261,22 +229,22 @@ elig <- elig %>%
                        )
                    ),
                    "NORTH BEND"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "S[AO]M[:alnum:]*SH") == TRUE
                    ),
                    "SAMMAMISH"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(
-                       city,
+                       citynew,
                        "S[EA][:alnum:]*[:punct:]*[:space:]*TA[CPS][:alnum:]*"
                      ) == TRUE |
                        str_detect(city, "S[EA][:alnum:]*[:punct:]*[:space:]*TC") == TRUE
                    ),
                    "SEATAC"),
-    city = replace(
-      city,
+    citynew = replace(
+      citynew,
       which(
         str_detect(city, "ATTLE") == TRUE |
           str_detect(city, "[DS]EA[:alnum:]*[KLT]E") == TRUE |
@@ -293,20 +261,20 @@ elig <- elig %>%
       ),
       "SEATTLE"
     ),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "SHO[ER][:alnum:]*[:space:]*LI[EN]*") == TRUE
                    ),
                    "SHORELINE"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(
-                       city,
+                       citynew,
                        "S[MN]O[:alnum:]*Q[:alnum:]*[IM][IM][AE][:space:]*[:alnum:]*"
                      ) == TRUE
                    ),
                    "SNOQUALMIE"),
-    city = replace(city,
+    citynew = replace(citynew,
                    which(
                      str_detect(city, "TU[AKQRW][:alnum:]*[IL][KLW]A") == TRUE |
                        city %in% c("PUKWILA", "TEQUILLA")
@@ -368,31 +336,111 @@ elig <- elig %>%
 
 #### Gender ####
 # Find IDs with >1 recorded gender
-# NB. There are 413 IDs with 2 genders when grouped by ID only, and 400 when grouped by ID + SSN
-gender.tmp <- elig %>%
-  select(id, ssn, gender) %>%
+# NB. This fails if attempting to complete all operations in one command
+elig <- mutate(elig,
+               female = recode(gender, "'Female' = 1; 'Male' = 0; 'Unknown' = NA"))
+
+elig <- elig %>%
   group_by(id, ssn) %>%
-  mutate(gender = replace(gender, which(gender == "Unknown"), NA)) %>%
-  summarise(gender_tot = n_distinct(gender, na.rm = TRUE)) %>%
-  distinct(id, ssn, gender_tot) %>%
+  mutate(gender_tot = n_distinct(female, na_rm = TRUE)) %>%
   ungroup()
 
-table(elig$gender_tot, useNA = 'always')
 
 # Replace multiple genders as missing
-mutate(elig, gender = replace(gender, which(gender_tot > 1), NA))
+elig <-
+  mutate(elig, female = replace(female, which(gender_tot > 1), NA))
+
+
+
+#### Race ####
+# Rationalize discordant race entries
+
+# Collapse initial groups
+elig <- elig %>%
+  mutate(race1new = ifelse(race1 %in% c("American Indian", "Alaskan Native"), "AIAN", 
+                         ifelse(race1 %in% c("Hawaiian", "Pacific Islander"), "NHPI",
+                                race1)),
+         race2new = ifelse(race2 %in% c("American Indian", "Alaskan Native"), "AIAN", 
+                         ifelse(race2 %in% c("Hawaiian", "Pacific Islander"), "NHPI",
+                                race2)),
+         race3new = ifelse(race3 %in% c("American Indian", "Alaskan Native"), "AIAN", 
+                         ifelse(race3 %in% c("Hawaiian", "Pacific Islander"), "NHPI",
+                                race3)),
+         race4new = ifelse(race4 %in% c("American Indian", "Alaskan Native"), "AIAN", 
+                         ifelse(race4 %in% c("Hawaiian", "Pacific Islander"), "NHPI",
+                                race4))
+  )
+
+# Clean up NAs
+elig <- elig %>%
+  mutate(race1new = replace(race1new, which(race1new == "Not Provided"), NA),
+         race2new = replace(race2new, which(race2new == "Not Provided"), NA),
+         race3new = replace(race3new, which(race3new == "Not Provided"), NA),
+         race4new = replace(race4new, which(race4new == "Not Provided"), NA)
+         )
+
+# Remove duplicated race fields
+elig <- elig %>%
+  mutate(race2new = replace(race2new, which(race2new == race1new), NA),
+         race3new = replace(race3new, which(race3new == race1new), NA),
+         race3new = replace(race3new, which(race3new == race2new), NA),
+         race4new = replace(race4new, which(race4new == race1new), NA),
+         race4new = replace(race4new, which(race4new == race2new), NA),
+         race4new = replace(race4new, which(race4new == race3new), NA)
+         )
+
+# Set up single race code with Hispanic
+elig <- elig %>%
+  mutate(
+    raceh = race1new,
+    raceh = replace(raceh, which(hispanic == "HISPANIC"), "Hispanic"),
+    raceh = replace(raceh, which(
+      !is.na(race2new) | !is.na(race3new) | !is.na(race4new)
+    ), "Multiple")
+  )
+
+
+# Identify people with >1 single race codes
+# NB. This fails if attempting to complete all operations in one command
+elig <- elig %>%
+  mutate(racehnum = recode(
+    raceh,
+    c(
+      "'AIAN' = 1; 'Asian' = 2; 'Black' = 3;
+      'Hispanic' = 4; 'NHPI' = 5; 'White' = 6;
+      'Multiple' = 7; 'Other' = 8"
+    )
+    ))
+
+elig <- elig %>%
+  group_by(id, ssn) %>%
+  mutate(race_tot = n_distinct(racehnum, na_rm = TRUE)) %>%
+  ungroup()
+
+elig <- elig %>%
+  group_by(id, ssn, raceh) %>%
+  mutate(race_cnt = n()) %>%
+  ungroup()
+
+# Replace multiple races as multiple
+elig <-
+  mutate(elig, raceh = replace(raceh, which(race_tot > 1), "Multiple"),
+         racehnum = replace(racehnum, which(race_tot > 1), "7"))
 
 
 
 
 ################ TESTING AREA ####################
 # Create a small data set to test on
-elig.tst.gnd <- elig %>%
+race.tmp.tst <- race.tmp %>%
   ungroup() %>%
-  filter(row_number() <= 50000)
+  filter(row_number() <= 1000)
 
-elig.tst.gnd %>%
+race.tmp.tst %>%
   group_by(id, ssn) %>%
+  microbenchmark(length(unique(race.tmp$racehnum[!is.na(race.tmp$racehnum)])), n_distinct(race.tmp$racehnum, na_rm = TRUE))
+  
+  
   mutate(gender_tot = n_distinct(gender, na.rm = TRUE)) %>%
   group_by(id, ssn, gender) %>%
   mutate(gender_cnt = n()) %>%
@@ -402,20 +450,23 @@ elig.tst.gnd %>%
   ungroup()
 
 
-# Test results from main data
-table(elig$ssn_tot, useNA = 'always')
-table(elig$ssn_cnt, elig$ssn_tot, useNA = 'always')
+# Assess performance of different options
+library(microbenchmark)
 
-elig %>%
-  filter(ssn_tot > 1) %>%
-  distinct(id, ssn.x) %>%
-  select(id, ssn.x, ssn.y, dob, fname, mname, lname, ssn_tot, ssn_cnt)
+# Make numerical version of race groups
+race.tmp <- race.tmp %>%
+  mutate(racehnum = recode(
+    raceh,
+    c(
+      "'AIAN' = 1; 'Asian' = 2; 'Black' = 3;
+      'Hispanic' = 4; 'NHPI' = 5; 'White' = 6;
+      'Multiple' = 7; 'Other' = 8"
+    ), as.factor.result = FALSE
+    ))
 
-filter(elig, is.na(ssn.y) & ssn_tot>0) %>% distinct(id) %>% select(id, ssn_tot)
-filter(elig, id == "XXXXXXXX") %>% select(id, ssn.x, ssn.y, dob, fname, lname)
+microbenchmark(length(unique(race.tmp.tst$racehnum[!is.na(race.tmp.tst$racehnum)])), n_distinct(race.tmp.tst$racehnum, na_rm = TRUE))
 
-
-
+microbenchmark(length(unique(race.tmp.tst$raceh[!is.na(race.tmp.tst$raceh)])), n_distinct(race.tmp.tst$raceh, na_rm = TRUE))
 
 ################ END TESTING AREA ####################
 
