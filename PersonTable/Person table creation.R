@@ -80,7 +80,7 @@ table(elig$zip, useNA = 'always')
 
 
 #### SSN ####
-# Find IDs with >1 SSN (~100) and count number of times each SSN appears per person
+# Goal: Find IDs with >1 SSN and figure out if they are separate people
 elig <- elig %>%
   group_by(id) %>%
   mutate(ssn_tot = n_distinct(ssn, na_rm = TRUE)) %>%
@@ -96,7 +96,7 @@ ssn.tmp <- elig %>%
   distinct(id, ssn, dob, fname, lname) %>%
   arrange(id, ssn, dob, fname, lname) %>%
   group_by(id, dob, fname, lname) %>%
-  # where there is a tie, the first SSN is selected. This is an issue if the data are sorted differently
+  # where there is a tie, the first SSN is selected, which is an issue if the data are sorted differently
   slice(which.max(ssn_cnt)) %>%
   ungroup() %>%
   select(id, ssn, dob, fname, lname)
@@ -111,6 +111,7 @@ elig <- mutate(elig, ssnnew = ifelse(!is.na(ssn.y), ssn.y, ssn.x))
 
 
 #### City ####
+# Goal: Tidy up city name spellings
 elig <- elig %>%
   mutate(
     citynew = city,
@@ -284,6 +285,7 @@ elig <- elig %>%
 
 
 #### Addresses (NB. a separate geocoding process may fill in some gaps later) ####
+# Goal: Tidy up and standardize addresses
 elig <- elig %>%
   # Set up homeless and PO Box variables first to avoid capturing non-permanent residential addresses (e.g., relatives and temporary shelters)
   mutate(
@@ -334,14 +336,24 @@ elig <- elig %>%
   )
 
 
+#### Find most common address ####
+# When coverage periods overlap, we need to select a single address to assign to a person
+# The code below identifies the most common address for each person
+elig <- elig %>%
+  group_by(id, ssnnew, street2, city, zip) %>%
+  mutate(add_cnt = n()) %>%
+  ungroup()
+
+
+
 #### Gender ####
-# Find IDs with >1 recorded gender
+# Goal: Find IDs with >1 recorded gender
 # NB. This fails if attempting to complete all operations in one command
 elig <- mutate(elig,
                female = recode(gender, "'Female' = 1; 'Male' = 0; 'Unknown' = NA"))
 
 elig <- elig %>%
-  group_by(id, ssn) %>%
+  group_by(id, ssnnew) %>%
   mutate(gender_tot = n_distinct(female, na_rm = TRUE)) %>%
   ungroup()
 
@@ -353,7 +365,7 @@ elig <-
 
 
 #### Race ####
-# Rationalize discordant race entries
+# Goal: Rationalize discordant race entries
 
 # Collapse initial groups
 elig <- elig %>%
@@ -413,12 +425,12 @@ elig <- elig %>%
     ))
 
 elig <- elig %>%
-  group_by(id, ssn) %>%
+  group_by(id, ssnnew) %>%
   mutate(race_tot = n_distinct(racehnum, na_rm = TRUE)) %>%
   ungroup()
 
 elig <- elig %>%
-  group_by(id, ssn, raceh) %>%
+  group_by(id, ssnnew, raceh) %>%
   mutate(race_cnt = n()) %>%
   ungroup()
 
@@ -429,47 +441,117 @@ elig <-
 
 
 
+#### COVERAGE PERIOD ####
+# Goal: Make one line per person per coverage period
+
+# Order by coverage dates
+elig <- arrange(elig, id, ssnnew, fromdate, todate)
+
+
+# Make from and to dates date variables
+elig <- mutate(elig, fromdate = as.Date(fromdate),
+               todate = as.Date(todate))
+
+
+# It looks like when a coverage period spans >1 year, # a new record is created for each year that is all or partially covered.
+# Consolidate rows that are duplicated across different years
+# NB. There seem to be multiple coverage types (FFS or MC) over the same period
+#     so this is not being considered for now
+elig <- distinct(elig, id, ssnnew, fromdate, todate, street2, city, zip, RACcode)
+
+
 
 ################ TESTING AREA ####################
-# Create a small data set to test on
-race.tmp.tst <- race.tmp %>%
-  ungroup() %>%
-  filter(row_number() <= 1000)
+elig.bk2 <- elig # make a new backup once code is run up to coverage period
 
-race.tmp.tst %>%
-  group_by(id, ssn) %>%
-  microbenchmark(length(unique(race.tmp$racehnum[!is.na(race.tmp$racehnum)])), n_distinct(race.tmp$racehnum, na_rm = TRUE))
-  
-  
-  mutate(gender_tot = n_distinct(gender, na.rm = TRUE)) %>%
-  group_by(id, ssn, gender) %>%
-  mutate(gender_cnt = n()) %>%
-  select(id, ssn, fname, mname, lname, gender, gender_tot, gender_cnt) %>%
-  filter(gender_tot > 1) %>%
-  distinct(id, ssn) %>%
+# Make a test data frame
+elig.tst <- elig %>%
+  filter(row_number() <= 5000)
+
+
+# If there are identical coverage periods and RAC codes, select the most common address and drop other rows
+elig.tst <- elig.tst %>%
+  group_by(id, ssnnew, fromdate, todate, RACcode) %>%
+  arrange(add_cnt, street2, city, zip) %>%
+  # where there is a tie, the first address is selected, which is an issue if the data are sorted differently
+  slice(which.max(add_cnt)) %>%
   ungroup()
 
 
-# Assess performance of different options
-library(microbenchmark)
+# Order by address and build up single row per continuous coverage per address (ignore RACcode for now)
+elig.tst <- elig.tst %>%
+  arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
+  group_by(id, ssnnew, street2, city, zip)
+  
+repeat {
+  dfsize <-  nrow(elig.tst)
+  elig.tst <- elig.tst %>%
+    filter(!(fromdate > lag(fromdate, 1) &
+               todate <= lag(todate, 1)) |
+             is.na(lag(fromdate, 1)) | is.na(lag(todate, 1)))
+    dfsize2 <- nrow(elig.tst)
+  if (dfsize2 == dfsize) {
+    break
+  }
+}
+  
+  # Find periods that sit completely within preceding period
+  filter(!(fromdate > lag(fromdate, 1) & todate <= lag(todate, 1)) |
+             is.na(lag(fromdate, 1)) | is.na(lag(todate, 1))) %>%
+  # Run again to account for new order (should turn this into a loop that goes until the size of the data frame remains unchanged)
+  filter(!(fromdate > lag(fromdate, 1) & todate <= lag(todate, 1)) |
+         is.na(lag(fromdate, 1)) | is.na(lag(todate, 1))) %>%
+  # When there is a draw in the fromdate, take the latest todate
+  group_by(id, ssnnew, street2, city, zip, fromdate) %>%
+  filter(row_number() == n())
+  
+  
+  mutate(
+    fromdatenew = as.numeric(ifelse(
+      fromdate < lag(todate, 1),
+      lag(todate, 1) + 1,
+      fromdate
+    )),
+    fromdatenew = as.Date(fromdatenew, origin = "1970-01-01"))
 
-# Make numerical version of race groups
-race.tmp <- race.tmp %>%
-  mutate(racehnum = recode(
-    raceh,
-    c(
-      "'AIAN' = 1; 'Asian' = 2; 'Black' = 3;
-      'Hispanic' = 4; 'NHPI' = 5; 'White' = 6;
-      'Multiple' = 7; 'Other' = 8"
-    ), as.factor.result = FALSE
-    ))
 
-microbenchmark(length(unique(race.tmp.tst$racehnum[!is.na(race.tmp.tst$racehnum)])), n_distinct(race.tmp.tst$racehnum, na_rm = TRUE))
 
-microbenchmark(length(unique(race.tmp.tst$raceh[!is.na(race.tmp.tst$raceh)])), n_distinct(race.tmp.tst$raceh, na_rm = TRUE))
+# Check to see the next row's start date is immediately following the end date
+# NB. The ifelse command strips the date attribute so must be wrapped with as.numeric and reformatted
+elig.tst <- elig.tst %>%
+  select(year, id, hhid, ssnnew, fromdate, todate, street2, city, RACcode, coverage)  %>%
+  group_by(id, ssnnew) %>%
+  mutate(
+    todatenew = as.numeric(ifelse(
+      (todate + 1 == lead(fromdate, 1) |
+        todate == lead(fromdate, 1)) &
+        street2 == lead(street2, 1) &
+        city == lead(city, 1),
+      lead(todate, 1),
+      todate
+    )),
+    todatenew = as.Date(todatenew, origin = "1970-01-01")
+  )
+  
+
+
+elig.tst %>% 
+  select(year, id, hhid, ssnnew, fromdate, todate, street2, city, RACcode, coverage)  %>%
+  group_by(id, ssnnew) %>%
+  mutate(todatenew = lead(fromdate, 1) + 1,
+         todatenew2 = todate + 1)
+
+
+# View results
+elig %>% select(year, id, hhid, ssnnew, fromdate, todate, street2, city, RACcode, coverage)
+
+
+
+# Convert all far off dates (indicating continuous coverage) to today's date
+todate = replace(todate, which(todate == "2999-12-31"), Sys.Date())
+
 
 ################ END TESTING AREA ####################
-
 
 
 
