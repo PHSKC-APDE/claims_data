@@ -20,9 +20,9 @@ library(stringr) # used to manipulate string variables
 library(dplyr) # used to manipulate data
 
 
-##### Connect to the server #####
+##### Connect to the servers #####
 db.claims <- odbcConnect("PHClaims")
-
+db.apde <- odbcConnect("PH_APDESTRE51")
 
 ##### Bring in all the relevant eligibility data #####
 
@@ -83,7 +83,7 @@ table(elig$zip, useNA = 'always')
 # Goal: Find IDs with >1 SSN and figure out if they are separate people
 elig <- elig %>%
   group_by(id) %>%
-  mutate(ssn_tot = n_distinct(ssn, na_rm = TRUE)) %>%
+  mutate(ssn_tot = n_distinct(ssn, na_rm = FALSE)) %>%
   group_by(id, ssn) %>%
   mutate(ssn_cnt = n()) %>%
   ungroup()
@@ -93,8 +93,9 @@ elig <- elig %>%
 # 1) Look at names and DOB to see there is a match and take the most common SSN
 ssn.tmp <- elig %>%
   filter(!is.na(ssn)) %>%
+  select(id, ssn, ssn_tot, ssn_cnt, dob, fname, lname) %>%
   distinct(id, ssn, dob, fname, lname) %>%
-  arrange(id, ssn, dob, fname, lname) %>%
+  arrange(id, ssn_cnt, dob, fname, lname) %>%
   group_by(id, dob, fname, lname) %>%
   # where there is a tie, the first SSN is selected, which is an issue if the data are sorted differently
   slice(which.max(ssn_cnt)) %>%
@@ -442,22 +443,114 @@ elig <-
 
 
 #### COVERAGE PERIOD ####
-# Goal: Make one line per person per coverage period
+# Goal: Make one line per person per coverage period and address (ignoring RAC codes for now)
+# NB. All scenarios are looking within an id + ssn combo and ignore RAC code
+# Scenario 1: Rows with duplicate year + from/to dates + address = remove duplicates
+# Scenario 2: From/to dates and addresses are identical across years = take most recent year
+# Scenario 3: From/to dates the same but different addresses = take most common address
+# Scenario 4: Year < current year and todate is 2099-12-31 = reset todate to be <year>-12-31
+# Scenario 5: Year = current year and todate is 2099-12-31 = reset todate to be today's date
+# Scenario 6: From date and address identical but different to date = take most recent to date
+#             (NB. consider scenario 4 and 5 first)
+# Scenario 7: From/to dates within bounds of another row's from/to date, regardless of address
+#             = remove row  (NB. consider scenario 4 and 5 first) 
+# Scenario 8: Different addresses but overlapping from/to dates = Adjust *to date* of address with 
+#             earliest *from date* to be the *from date - 1* of the other row 
+#             (e.g., Address 1, from date: 2013-06-01, to date: 2015-05-30 and
+#                    Address 2, from date: 2014-02-01, to date: 2016-01-31 becomes
+#                    Address 1, from date: 2013-06-01, to date: 2014-01-31)
+#             (NB. consider scenario 4 and 5 first)
 
+
+
+# Steps:
+# 1) Arrange data and remove rows with duplicate year + from/to dates + address
+# 2) When from/to dates and addresses are identical across years, take the most recent year
+# 3) When there are identical coverage periods, pick the most common address
+# 4) Find rows with from/to dates that sit completely within preceding row and removes them
+# 5) Find adjacent rows with the same from date + address and takes the largest to date
+# 6) Redo from/to dates so that continuous coverage is on a single row
+# 7) Repeat 1), 4), and 5)
+# 8) Sort from/to dates so that addresses are intermingled
+
+
+
+
+
+### Step 1) Arrange data and remove rows with duplicate year + from/to dates + address
 # Order by coverage dates
-elig <- arrange(elig, id, ssnnew, fromdate, todate)
-
+elig <- arrange(elig, id, ssnnew, year, fromdate, todate)
 
 # Make from and to dates date variables
 elig <- mutate(elig, fromdate = as.Date(fromdate),
                todate = as.Date(todate))
 
+# Remove rows with duplicate year + from/to dates + address
+elig <- distinct(elig, id, ssnnew, year, fromdate, todate, street2, city, zip)
 
-# It looks like when a coverage period spans >1 year, # a new record is created for each year that is all or partially covered.
-# Consolidate rows that are duplicated across different years
+
+### Step 2) When from/to dates and addresses are identical across years, take the most recent year
+
+# It looks like when a coverage period spans >1 year, a new record is created for each year that is all or partially covered.
+# Consolidate rows that are duplicated within a single year at first
 # NB. There seem to be multiple coverage types (FFS or MC) over the same period
 #     so this is not being considered for now
-elig <- distinct(elig, id, ssnnew, fromdate, todate, street2, city, zip, RACcode)
+# RAC code is also being ignored for now
+elig <- elig %>%
+  group_by(id, ssnnew, fromdate, todate, street2, city, zip) %>%
+  filter(max(year))
+
+
+### Step 3) When there are identical coverage periods, pick the most common address
+# If there are identical coverage periods (can also add in RAC codes), select the most common address and drop other rows
+elig <- elig %>%
+  group_by(id, ssnnew, year, fromdate, todate) %>%
+  arrange(add_cnt, street2, city, zip) %>%
+  # where there is a tie, the first address is selected, which is an issue if the data are sorted differently
+  slice(which.max(add_cnt)) %>%
+  ungroup()
+
+
+# Order by address and build up single row per continuous coverage per address (ignore RACcode for now)
+elig <- elig %>%
+  arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
+  group_by(id, ssnnew, street2, city, zip)
+
+
+# This code find periods that sit completely within preceding period and removes them
+# The loop runs until there are no more adjacent periods like this
+# (this works on smaller test data but not here, so run each iteration manually)
+repeat {
+  dfsize <-  nrow(elig)
+  elig <- elig %>%
+    mutate(drop = ifelse((fromdate > lag(fromdate, 1) &
+                            todate <= lag(todate, 1)) &
+                           !is.na(lag(fromdate, 1)) &
+                           !is.na(lag(todate, 1)),
+                         1,
+                         0
+    )) %>%
+    filter(drop == 0)
+  dfsize2 <- nrow(elig)
+  if (dfsize2 == dfsize) {
+    break
+  }
+}
+
+# This code finds adjacent periods with the same from date and takes the largest to date
+# The loop repeats until there are no more adjacent periods like this
+# Also very slow to run
+repeat {
+  dfsize <-  nrow(elig)
+  elig <- elig %>%
+    filter(!(fromdate == lead(fromdate, 1) &
+               todate <= lead(todate, 1)) |
+             is.na(lead(fromdate, 1)) | is.na(lead(todate, 1)))
+  dfsize2 <- nrow(elig)
+  if (dfsize2 == dfsize) {
+    break
+  }
+}
 
 
 
@@ -466,7 +559,15 @@ elig.bk2 <- elig # make a new backup once code is run up to coverage period
 
 # Make a test data frame
 elig.tst <- elig %>%
+  ungroup() %>%
   filter(row_number() <= 5000)
+
+
+# When from/to dates and addresses are identical across years, take the most recent year
+elig.tst <- elig.tst %>%
+  group_by(id, ssnnew, fromdate, todate, street2, city, zip) %>%
+  slice(which.max(year)) %>%
+  ungroup()
 
 
 # If there are identical coverage periods and RAC codes, select the most common address and drop other rows
@@ -482,57 +583,143 @@ elig.tst <- elig.tst %>%
 elig.tst <- elig.tst %>%
   arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
   group_by(id, ssnnew, street2, city, zip)
-  
+
+
+# This code find periods that sit completely within preceding period and removes them
+# The loop runs until there are no more adjacent periods like this
 repeat {
   dfsize <-  nrow(elig.tst)
   elig.tst <- elig.tst %>%
     filter(!(fromdate > lag(fromdate, 1) &
                todate <= lag(todate, 1)) |
              is.na(lag(fromdate, 1)) | is.na(lag(todate, 1)))
-    dfsize2 <- nrow(elig.tst)
+  dfsize2 <- nrow(elig.tst)
   if (dfsize2 == dfsize) {
     break
   }
 }
-  
-  # Find periods that sit completely within preceding period
-  filter(!(fromdate > lag(fromdate, 1) & todate <= lag(todate, 1)) |
-             is.na(lag(fromdate, 1)) | is.na(lag(todate, 1))) %>%
-  # Run again to account for new order (should turn this into a loop that goes until the size of the data frame remains unchanged)
-  filter(!(fromdate > lag(fromdate, 1) & todate <= lag(todate, 1)) |
-         is.na(lag(fromdate, 1)) | is.na(lag(todate, 1))) %>%
-  # When there is a draw in the fromdate, take the latest todate
-  group_by(id, ssnnew, street2, city, zip, fromdate) %>%
-  filter(row_number() == n())
-  
-  
-  mutate(
-    fromdatenew = as.numeric(ifelse(
-      fromdate < lag(todate, 1),
-      lag(todate, 1) + 1,
-      fromdate
-    )),
-    fromdatenew = as.Date(fromdatenew, origin = "1970-01-01"))
+
+repeat {
+  dfsize <-  nrow(elig.tst)
+  elig.tst <- elig.tst %>%
+    mutate(drop = ifelse((fromdate > lag(fromdate, 1) &
+                            todate <= lag(todate, 1)) &
+                           !is.na(lag(fromdate, 1)) &
+                           !is.na(lag(todate, 1)),
+                         1,
+                         0
+    )) %>%
+    filter(drop == 0)
+  dfsize2 <- nrow(elig.tst)
+  if (dfsize2 == dfsize) {
+    break
+  }
+}
+
+
+# # Test speed of various options
+# library(microbenchmark)
+# microbenchmark(elig.tst %>%
+#                  filter(!(
+#                    fromdate > lag(fromdate, 1) &
+#                      todate <= lag(todate, 1)
+#                  ) |
+#                    is.na(lag(fromdate, 1)) | is.na(lag(todate, 1))),
+#                elig.tst %>%
+#                  mutate(drop = ifelse((fromdate > lag(fromdate, 1) &
+#                                          todate <= lag(todate, 1)) &
+#                                         !is.na(lag(fromdate, 1)) &
+#                                         !is.na(lag(todate, 1)), 1, 0
+#                  )))
+
+# This code finds adjacent periods with the same from date and takes the largest to date
+# The loop repeats until there are no more adjacent periods like this
+repeat {
+  dfsize <-  nrow(elig.tst)
+  elig.tst <- elig.tst %>%
+    filter(!(fromdate == lead(fromdate, 1) &
+               todate <= lead(todate, 1)) |
+             is.na(lead(fromdate, 1)) | is.na(lead(todate, 1)))
+  dfsize2 <- nrow(elig.tst)
+  if (dfsize2 == dfsize) {
+    break
+  }
+}
 
 
 
-# Check to see the next row's start date is immediately following the end date
+# Check to see the subsequent row's from date is immediately following the current to date
+# If so, set the current row's to date to match
+# Do the same in reverse by matching the from dates
 # NB. The ifelse command strips the date attribute so must be wrapped with as.numeric and reformatted
 elig.tst <- elig.tst %>%
-  select(year, id, hhid, ssnnew, fromdate, todate, street2, city, RACcode, coverage)  %>%
-  group_by(id, ssnnew) %>%
+  arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
+  group_by(id, ssnnew, street2, city, zip) %>%
   mutate(
-    todatenew = as.numeric(ifelse(
-      (todate + 1 == lead(fromdate, 1) |
-        todate == lead(fromdate, 1)) &
-        street2 == lead(street2, 1) &
-        city == lead(city, 1),
-      lead(todate, 1),
-      todate
+    todatenew = as.numeric(ifelse((todate + 1 == lead(fromdate, 1) |
+                                     todate == lead(fromdate, 1)) &
+                                    !is.na(lead(fromdate, 1)) &
+                                    !is.na(lead(todate, 1)),
+                                  lead(todate, 1),
+                                  todate
     )),
-    todatenew = as.Date(todatenew, origin = "1970-01-01")
+    todatenew = as.Date(todatenew, origin = "1970-01-01"),
+    fromdatenew = as.numeric(ifelse((lag(todate, 1) + 1 == fromdate |
+                                       lag(todate, 1) == fromdate) &
+                                      !is.na(lag(fromdate, 1)) &
+                                      !is.na(lag(todate, 1)),
+                                    lag(fromdate, 1),
+                                    fromdate
+    )),
+    fromdatenew = as.Date(fromdatenew, origin = "1970-01-01")
   )
   
+
+# Remove duplicates in the new rows
+elig.tst <- distinct(elig.tst, id, ssnnew, fromdatenew, todatenew, street2, city, zip)
+
+# Repeat above cleaning based on the new dates
+
+# This code find periods that sit completely within preceding period and removes them
+# The loop runs until there are no more adjacent periods like this
+repeat {
+  dfsize <-  nrow(elig.tst)
+  elig.tst <- elig.tst %>%
+    mutate(drop = ifelse((fromdatenew > lag(fromdatenew, 1) &
+                            todatenew <= lag(todatenew, 1)) &
+                           !is.na(lag(fromdatenew, 1)) &
+                           !is.na(lag(todatenew, 1)),
+                         1,
+                         0
+    )) %>%
+    filter(drop == 0)
+  dfsize2 <- nrow(elig.tst)
+  if (dfsize2 == dfsize) {
+    break
+  }
+}
+
+# This code finds adjacent periods with the same from datenew and takes the largest to datenew
+# The loop repeats until there are no more adjacent periods like this
+repeat {
+  dfsize <-  nrow(elig.tst)
+  elig.tst <- elig.tst %>%
+    filter(!(fromdatenew == lead(fromdatenew, 1) &
+               todatenew <= lead(todatenew, 1)) |
+             is.na(lead(fromdatenew, 1)) | is.na(lead(todatenew, 1)))
+  dfsize2 <- nrow(elig.tst)
+  if (dfsize2 == dfsize) {
+    break
+  }
+}
+
+
+
+
+
+
+
+
 
 
 elig.tst %>% 
@@ -543,8 +730,11 @@ elig.tst %>%
 
 
 # View results
-elig %>% select(year, id, hhid, ssnnew, fromdate, todate, street2, city, RACcode, coverage)
+elig %>% select(year, id, hhid, ssnnew, fromdate, todate, street2, city, add_cnt) %>%
+  filter(row_number() > 10)
 
+elig.tst %>% select(year, id, hhid, ssnnew, fromdate, todate, street2, city, RACcode, coverage) %>%
+  filter(row_number() > 4)
 
 
 # Convert all far off dates (indicating continuous coverage) to today's date
@@ -555,6 +745,17 @@ todate = replace(todate, which(todate == "2999-12-31"), Sys.Date())
 
 
 
+
+#### Save cleaned person table ####
+test <- elig.tst %>%
+  select(id, race_tot, fpl)
+
+sqlDrop(db.apde, "dbo.medicaidPerTbl")
+sqlSave(db.apde, elig, tablename = "dbo.medicaidPerTbl")
+
+sqlUpdate(db.apde, elig, tablename = "[PH\\MATHESON].medicaidPerTbl2")
+
+sqlSave(db.apde, test, tablename = "[PH\\MATHESON].medicaidPerTbl2")
 
 
 
