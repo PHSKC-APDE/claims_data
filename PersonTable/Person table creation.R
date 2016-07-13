@@ -26,15 +26,21 @@ db.apde <- odbcConnect("PH_APDESTRE51")
 
 
 ##### Bring in all the relevant eligibility data #####
-# Can use this data processed up to "the point of the "Coverage period" section
+### Start here to bring in most processed data
+# Can use this data processed up to step 6 of the "Coverage period" section
 ptm01 <- proc.time()
 elig <- sqlQuery(db.apde,
                  "SELECT * FROM
-                 dbo.medicaidPerTbl",
+                 dbo.medicaidPerTbl2",
                  stringsAsFactors = FALSE)
 proc.time() - ptm01
+# Need to reformat dates (not stored in SQL properly)
+elig <- elig %>%
+  mutate(fromdate = as.Date(fromdate),
+         todate = as.Date(todate))
 
 
+### Start here to do things from scratch
 # Bring in all eligibility data
 ptm01 <- proc.time() # Times how long this query takes (~240 secs)
 elig <-
@@ -509,9 +515,9 @@ rm(race.tmp) # remove temp data frames to save memory
 # 5)  Find rows with from/to dates that sit completely within preceding row and removes them
 # 6)  Find adjacent rows with the same from date + address and takes the largest to date
 # 7)  Rewrite from/to dates so that continuous coverage is on a single row
-# 8)  Repeat steps 1), 5), and 6)
-# 9)  Repeats steps 7) and 8)
-# 10) Sort from/to dates so that addresses are intermingled
+# 8)  Sort from/to dates so that addresses are intermingled
+# 9)  Remove rows and truncate dates so that each address occupies a single time period
+#     (this give priority to the existing address)
 
 
 
@@ -611,68 +617,80 @@ elig <- ungroup(elig)
 
 
 ### Step 7) Rewrite from/to dates so that continuous coverage is on a single row
-
-# Check to see if there are overlapping coverage periods in a single address
-# If so, rewrite second row's from date to be the previou to date + 1
+# Check to see the subsequent row's from date is <=  or immediately following the current to date
 elig <- elig %>%
   arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
   group_by(id, ssnnew, street2, city, zip) %>%
-  mutate(fromdatenew = if_else(
-    fromdate < lag(todate, 1) &
-      todate >= lag(todate, 1) &
-      !is.na(lag(todate, 1)),
-    lag(todate, 1) + 1,
-    fromdate
-  )) %>%
+  mutate(overlap = if_else(todate + 1 >= lead(fromdate, 1) &
+                             !is.na(lead(fromdate, 1)) &
+                             !is.na(lead(todate, 1)),
+                           1,
+                           0)) %>%
   ungroup()
 
 
-# Check to see the subsequent row's from date is immediately following the current to date
-# If so, set the current row's to date to match
-# Do the same in reverse by matching the from dates
+# Figure out how many overlapping rows to look down to find the new todate and
+# identify which rows to drop
+# NB. These operations do not to be done on grouped variables, which speeds things up
+
+# This function was adapted from here: 
+# http://stackoverflow.com/questions/5012516/count-how-many-consecutive-values-are-true
+cumul_ones <- function(x)  {
+  #x <- !x
+  rl <- rle(x)
+  len <- rl$lengths
+  v <- rl$values
+  cumLen <- cumsum(len)
+  z <- x
+  # replace the 0 at the end of each zero-block in z by the 
+  # negative of the length of the preceding 1-block....
+  iDrops <- c(0, diff(v)) < 0
+  z[ cumLen[ iDrops ] ] <- -len[ c(iDrops[-1],FALSE) ]
+  # ... to ensure that the cumsum below does the right thing.
+  # We zap the cumsum with x so only the cumsums for the 1-blocks survive:
+  x*cumsum(z)
+}
+
 elig <- elig %>%
-  arrange(id, ssnnew, street2, city, zip, fromdatenew, todate) %>%
-  group_by(id, ssnnew, street2, city, zip) %>%
+  arrange(id, ssnnew, street2, city, zip, desc(fromdate), desc(todate)) %>%
   mutate(
-    todatenew2 = if_else((todate + 1 == lead(fromdatenew, 1) |
-                           todate == lead(fromdatenew, 1)) &
-                          !is.na(lead(fromdatenew, 1)) &
-                          !is.na(lead(todate, 1)),
-                        lead(todate, 1),
-                        todate
-    ),
-    fromdatenew2 = if_else((lag(todate, 1) + 1 == fromdatenew |
-                             lag(todate, 1) == fromdatenew) &
-                            !is.na(lag(fromdatenew, 1)) &
-                            !is.na(lag(todate, 1)),
-                          lag(fromdatenew, 1),
-                          fromdatenew
-    )
-  ) %>%
-  ungroup()
+    overlap_num =
+      cumul_ones(overlap)) %>%
+  arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
+  mutate(selector = 1:nrow(elig) + overlap_num,
+         drop = if_else(selector == lag(selector, 1) &
+                          !is.na(lag(selector)),
+                        1,
+                        0)
+  )
 
 
-### Step 8) Repeat steps 1, 5, and 6 above based on the new dates
-
-# Arrange data so that most recent year is kept when duplicates are dropped
+# Replace the current row's todate with that of the futherest overlapping row
+# Use the row defined by the selector variable above and drop the others
 elig <- elig %>%
-  arrange(id, ssnnew, street2, city, zip, fromdatenew2, todatenew2, desc(year))
+  mutate(todatenew = todate[selector]) %>%
+  filter(drop == 0) %>%
+  select(-(selector))
 
 
-# Remove duplicates made with the new columns
-elig <- distinct(elig, id, ssnnew, fromdatenew2, todatenew2, street2, city, zip, .keep_all = TRUE)
+### Step 8) Sort from/to dates so that addresses are intermingled
+elig <- elig %>%
+  arrange(id, ssnnew, fromdate, todatenew, street2, city)
 
 
-# This code find periods that sit completely within preceding period and removes them
-# The loop runs until there are no more adjacent periods like this
+### Step 9) Remove rows with from/to dates newly enclosed within preceding rows and
+#            truncate from dates so that each address occupies a single time period
+# NB. This approach gives preference to a person's existing address
+
+# Remove addresses with dates fully contained within another addresses dates
 repeat {
   dfsize <-  nrow(elig)
   elig <- elig %>%
-    group_by(id, ssnnew, street2, city, zip) %>%
-    mutate(drop = ifelse((fromdatenew2 > lag(fromdatenew2, 1) &
-                            todatenew2 <= lag(todatenew2, 1)) &
-                           !is.na(lag(fromdatenew2, 1)) &
-                           !is.na(lag(todatenew2, 1)),
+    group_by(id, ssnnew) %>%
+    mutate(drop = ifelse((fromdate > lag(fromdate, 1) &
+                            todatenew <= lag(todatenew, 1)) &
+                           !is.na(lag(fromdate, 1)) &
+                           !is.na(lag(todatenew, 1)),
                          1,
                          0
     )) %>%
@@ -684,83 +702,16 @@ repeat {
   }
 }
 
-# This code finds adjacent periods with the same from datenew and takes the largest to datenew
-# The loop repeats until there are no more adjacent periods like this
-repeat {
-  dfsize <-  nrow(elig)
-  elig <- elig %>%
-    
-    group_by(id, ssnnew, street2, city, zip) %>%
-    filter(!(fromdatenew2 == lead(fromdatenew2, 1) &
-               todatenew2 <= lead(todatenew2, 1)) |
-             is.na(lead(fromdatenew2, 1)) | is.na(lead(todatenew2, 1))) %>%
-    ungroup()
-  dfsize2 <- nrow(elig)
-  if (dfsize2 == dfsize) {
-    break
-  }
-}
-
-
-### Step 9) Rewrite overlapping from/to dates within an address
-# The manipultation of dates above leads to overlapping coverage periods in a single address
-# Check if adjacent rows overlap. If so, adjust first row's todate to match later todate of
-# the second row
+# Truncate from dates so that each address occupies a single time period
 elig <- elig %>%
-  arrange(id, ssnnew, street2, city, zip, fromdatenew2, todatenew2) %>%
-  group_by(id, ssnnew, street2, city, zip) %>%
-  mutate(todatenew3 = if_else(
-    todatenew2 >= lead(fromdatenew2, 1) &
-      !is.na(lead(fromdatenew2, 1)) &
-      !is.na(lead(todatenew2, 1)),
-    lead(todatenew2, 1),
-    todatenew2
-  )) %>%
+  group_by(id, ssnnew) %>%
+  mutate(fromdatenew = if_else(fromdate <= lag(todatenew, 1) &
+                                 !is.na(lag(todatenew, 1)),
+                               lag(todatenew, 1) + 1,
+                               fromdate)) %>%
   ungroup()
-
-
-# Remove rows with from/to dates now contained within the previous row's dates
-elig <- elig %>%
-  arrange(id, ssnnew, street2, city, zip, fromdatenew2, todatenew3)
-
-repeat {
-  dfsize <-  nrow(elig)
-  elig <- elig %>%
-    group_by(id, ssnnew, street2, city, zip) %>%
-    mutate(drop = ifelse((fromdatenew2 > lag(fromdatenew2, 1) &
-                            todatenew3 <= lag(todatenew3, 1)) &
-                           !is.na(lag(fromdatenew2, 1)) &
-                           !is.na(lag(todatenew3, 1)),
-                         1,
-                         0
-    )) %>%
-    ungroup() %>%
-    filter(drop == 0)
-  dfsize2 <- nrow(elig)
-  if (dfsize2 == dfsize) {
-    break
-  }
-}
-
-
-### Step 10) Rewrite overlapping from/to dates within an address again
-# The manipultation of dates above leads to overlapping coverage periods in a single address
-# Check if adjacent rows overlap. If so, adjust first row's todate to match later todate of
-# the second row
-elig <- elig %>%
-  arrange(id, ssnnew, street2, city, zip, fromdatenew2, todatenew3) %>%
-  group_by(id, ssnnew, street2, city, zip) %>%
-  mutate(todatenew4 = if_else(
-    todatenew3 >= lead(fromdatenew2, 1) &
-      !is.na(lead(fromdatenew2, 1)) &
-      !is.na(lead(todatenew3, 1)),
-    lead(todatenew3, 1),
-    todatenew3
-  )) %>%
-  ungroup()
-
-
-
+  
+  
 
 
 ################ TESTING AREA ####################
@@ -785,16 +736,48 @@ elig.tst <- elig.tst %>%
   ungroup()
 
 
-# Figure out how many overlapping rows to look down to find the new todate
-elig.tst <- elig.tst %>%
-  arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
-  mutate(overlap_num = 
-           sapply(1:length(overlap), function(x) min(which(.$overlap[x:length(.$overlap)] <
-                                                              .$overlap[x])) - 1))
+# Another approach to figuring out how many overlapping rows to look down to find the new todate
+# adapted from here: 
+# http://stackoverflow.com/questions/5012516/count-how-many-consecutive-values-are-true
+cumul_ones <- function(x)  {
+  #x <- !x
+  rl <- rle(x)
+  len <- rl$lengths
+  v <- rl$values
+  cumLen <- cumsum(len)
+  z <- x
+  # replace the 0 at the end of each zero-block in z by the 
+  # negative of the length of the preceding 1-block....
+  iDrops <- c(0, diff(v)) < 0
+  z[ cumLen[ iDrops ] ] <- -len[ c(iDrops[-1],FALSE) ]
+  # ... to ensure that the cumsum below does the right thing.
+  # We zap the cumsum with x so only the cumsums for the 1-blocks survive:
+  x*cumsum(z)
+}
 
+elig.tst <- elig.tst %>%
+  arrange(id, ssnnew, street2, city, zip, desc(fromdate), desc(todate)) %>%
+  mutate(
+    overlap_num =
+      cumul_ones(overlap)) %>%
+  arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
+  mutate(selector = 1:nrow(elig.tst) + overlap_num,
+    drop = if_else(selector == lag(selector, 1) &
+                     !is.na(lag(selector)),
+                   1,
+                   0)
+  )
 
 
 # Replace the current row's todate with that of the futherest overlapping row
+# Use the row defined by the selector variable above and drop the others
+elig.tst <- elig.tst %>%
+  mutate(todatenew = todate[selector]) %>%
+  filter(drop == 0)
+
+####
+# Alternative approaches that didn't work #
+####
 # There is a bug in dplyr that prevents having expressions in lag, so need to define the 
 # function then call it
 lag_expression <- function(a, b) {
@@ -803,69 +786,57 @@ lag_expression <- function(a, b) {
       lag(a, 1) > a &
       !is.infinite(lag(a, 1)) &
       !is.na(lag(a, 1)),
-    lead(b, as.numeric(a)),
+    lead(b, a[1]),
     b
   )
 }
 
+
+lag_expression <- function(a, b) {
+  n = function(x) sapply(1:length(a), function(x) .$a[x])
+  if_else(a > 0 &
+            (lag(a, 1) > a |
+               lag(a, 1) == 0 |
+               is.na(lag(a, 1))),
+          lead(b, a[n]),
+          b)
+}
+
+
 elig.tst <- elig.tst %>%
-  group_by(id, ssnnew, street2, city, zip) %>%
-  mutate(todatenew = lag_expression(overlap_num, todate)) %>%
-  ungroup()
-
-
-elig.tst$todatenew <- ifelse(
-  !is.infinite(elig.tst$overlap_num) &
-    lag(elig.tst$overlap_num, 1) > elig.tst$overlap_num &
-    !is.infinite(lag(elig.tst$overlap_num, 1)) &
-    !is.na(lag(elig.tst$overlap_num, 1)),
-  lead(elig.tst$todate, as.numeric(elig.tst$overlap_num)),
-  elig.tst$todate
-)
+  mutate(rown = row.names(elig.tst),
+    todatenew = lag_expression(overlap_num, todate))
 
 
 
-
-# Check to see the subsequent row's from date is immediately following the current to date
-# If so, set the current row's to date to match
-# Do the same in reverse by matching the from dates
-elig.tst <- elig.tst %>%
-  arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
-  group_by(id, ssnnew, street2, city, zip) %>%
-  mutate(
-    todatenew = if_else((todate + 1 == lead(fromdate, 1) |
-                                     todate == lead(fromdate, 1)) &
-                                    !is.na(lead(fromdate, 1)) &
-                                    !is.na(lead(todate, 1)),
-                                  lead(todate, 1),
-                                  todate
+elig.tst$todatenew <- as.Date(ifelse(
+  elig.tst$overlap_num > 0 &
+    (
+      lag(elig.tst$overlap_num, 1) > elig.tst$overlap_num |
+        lag(elig.tst$overlap_num, 1) == 0 |
+        is.na(lag(elig.tst$overlap_num, 1))
     ),
-    fromdatenew = if_else((lag(todate, 1) + 1 == fromdate |
-                                       lag(todate, 1) == fromdate) &
-                                      !is.na(lag(fromdate, 1)) &
-                                      !is.na(lag(todate, 1)),
-                                    lag(fromdate, 1),
-                                    fromdate
-    )
-  ) %>%
-  ungroup()
-  
-# Remove duplicates made with the new columns
-elig.tst <- distinct(elig.tst, id, ssnnew, fromdatenew, todatenew, street2, city, zip, .keep_all = TRUE)
+  function(x) lag(.$todate, .$overlap_num[x]),
+  elig.tst$todate
+),
+origin = "1970-01-01")
+
+####
 
 
+# Order by address (ignore RACcode for now)
+elig.tst <- elig.tst %>%
+  arrange(id, ssnnew, street2, city, zip, fromdate, todatenew)
 
-# Repeat above cleaning based on the new dates
-
-# This code find periods that sit completely within preceding period and removes them
 # The loop runs until there are no more adjacent periods like this
+# (this works on smaller test data but not here, so run each iteration manually until the # of rows remains constant)
 repeat {
   dfsize <-  nrow(elig.tst)
   elig.tst <- elig.tst %>%
-    group_by(id, ssnnew, street2, city, zip) %>%
-    mutate(drop = ifelse((fromdatenew > lag(fromdatenew, 1) &
+    group_by(id, ssnnew) %>%
+    mutate(drop = ifelse((fromdate > lag(fromdate, 1) &
                             todatenew <= lag(todatenew, 1)) &
-                           !is.na(lag(fromdatenew, 1)) &
+                           !is.na(lag(fromdate, 1)) &
                            !is.na(lag(todatenew, 1)),
                          1,
                          0
@@ -878,76 +849,28 @@ repeat {
   }
 }
 
-# This code finds adjacent periods with the same from datenew and takes the largest to datenew
-# The loop repeats until there are no more adjacent periods like this
-repeat {
-  dfsize <-  nrow(elig.tst)
-  elig.tst <- elig.tst %>%
-    group_by(id, ssnnew, street2, city, zip) %>%
-    filter(!(fromdatenew == lead(fromdatenew, 1) &
-               todatenew <= lead(todatenew, 1)) |
-             is.na(lead(fromdatenew, 1)) | is.na(lead(todatenew, 1))) %>%
-    ungroup()
-  dfsize2 <- nrow(elig.tst)
-  if (dfsize2 == dfsize) {
-    break
-  }
-}
 
 
 
-# The manipultation of dates above leads to overlapping coverage periods in a single address
-# Check if adjacent rows overlap. If so, adjust first row's to date to match later to date of
-# the second row
+# Truncate from dates so that each address occupies a single time period
+# NB. This approach gives preference to a person's existing address
 elig.tst <- elig.tst %>%
-  arrange(id, ssnnew, street2, city, zip, fromdatenew, todatenew) %>%
-  group_by(id, ssnnew, street2, city, zip) %>%
-  mutate(todatenew2 = if_else(
-    todatenew >= lead(fromdatenew, 1) &
-      !is.na(lead(fromdatenew, 1)) &
-      !is.na(lead(todatenew, 1)),
-    lead(todatenew, 1),
-    todatenew
-  ),
-  check = if_else(todatenew2 == todatenew, 1, 0)) %>%
-  ungroup()
-
-
-# Remove rows with from/to dates now contained within the previous row's dates
-repeat {
-  dfsize <-  nrow(elig.tst)
-  elig.tst <- elig.tst %>%
-    group_by(id, ssnnew, street2, city, zip) %>%
-    mutate(drop = ifelse((fromdatenew > lag(fromdatenew, 1) &
-                            todatenew2 <= lag(todatenew2, 1)) &
-                           !is.na(lag(fromdatenew, 1)) &
-                           !is.na(lag(todatenew2, 1)),
-                         1,
-                         0
-    )) %>%
-    ungroup() %>%
-    filter(drop == 0)
-  dfsize2 <- nrow(elig.tst)
-  if (dfsize2 == dfsize) {
-    break
-  }
-}
-
-
-
-
-elig.tst %>% 
-  select(year, id, hhid, ssnnew, fromdate, todate, street2, city, RACcode, coverage)  %>%
   group_by(id, ssnnew) %>%
-  mutate(todatenew = lead(fromdate, 1) + 1,
-         todatenew2 = todate + 1)
+  mutate(fromdatenew = if_else(fromdate <= lag(todatenew, 1) &
+                                 !is.na(lag(todatenew, 1)),
+                               lag(todatenew, 1) + 1,
+                               fromdate)) %>%
+  ungroup() %>%
+  mutate(change = if_else(fromdate != fromdatenew, 1, 0))
+
+
 
 
 # View results
-elig %>% select(year, id, hhid, ssnnew, fromdate, todate, street2, city, add_cnt) %>%
+elig %>% select(year, id, ssnnew, fromdate, todate, street2, city, add_cnt) %>%
   filter(row_number() > 10 & row_number() < 25)
 
-elig.tst %>% select(year, id, hhid, ssnnew, fromdate, todate, street2, city) %>%
+elig.tst %>% select(year, id, ssnnew, fromdate, todate, street2, city) %>%
   filter(row_number() > 4)
 
 
@@ -965,8 +888,8 @@ test <- elig.tst %>%
   select(id, race_tot, fpl)
 
 ptm02 <- proc.time() # Times how long this query takes
-sqlDrop(db.apde, "dbo.medicaidPerTbl")
-sqlSave(db.apde, elig, tablename = "dbo.medicaidPerTbl2")
+sqlDrop(db.apde, "dbo.medicaidPerTbl2")
+sqlSave(db.apde, elig, tablename = "dbo.medicaidPerTbl2", varTypes = c(fromdate = "Date", todate = "Date"))
 proc.time() - ptm02
 
 
