@@ -724,6 +724,29 @@ elig.tst <- elig %>%
 
 
 
+# Find rows with from/to dates that sit completely within preceding row and removes them
+# Trying alternative options
+
+# Order by address (ignore RACcode for now)
+elig.tst <- elig.tst %>%
+  arrange(id, ssnnew, street2, city, zip, fromdate, todate)
+
+# Count number of rows until to date is larger than current row
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Check to see the subsequent row's from date is <=  or immediately following the current to date
 elig.tst <- elig.tst %>%
   arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
@@ -824,30 +847,6 @@ origin = "1970-01-01")
 ####
 
 
-# Order by address (ignore RACcode for now)
-elig.tst <- elig.tst %>%
-  arrange(id, ssnnew, street2, city, zip, fromdate, todatenew)
-
-# The loop runs until there are no more adjacent periods like this
-# (this works on smaller test data but not here, so run each iteration manually until the # of rows remains constant)
-repeat {
-  dfsize <-  nrow(elig.tst)
-  elig.tst <- elig.tst %>%
-    group_by(id, ssnnew) %>%
-    mutate(drop = ifelse((fromdate > lag(fromdate, 1) &
-                            todatenew <= lag(todatenew, 1)) &
-                           !is.na(lag(fromdate, 1)) &
-                           !is.na(lag(todatenew, 1)),
-                         1,
-                         0
-    )) %>%
-    ungroup() %>%
-    filter(drop == 0)
-  dfsize2 <- nrow(elig.tst)
-  if (dfsize2 == dfsize) {
-    break
-  }
-}
 
 
 
@@ -884,24 +883,16 @@ todate = replace(todate, which(todate == "2999-12-31"), Sys.Date())
 
 
 #### Save cleaned person table ####
-test <- elig.tst %>%
-  select(id, race_tot, fpl)
+elig <- elig %>%
+  select(id:cntyname, ssnnew:female, race1new:fromdatenew)
 
 ptm02 <- proc.time() # Times how long this query takes
-sqlDrop(db.apde, "dbo.medicaidPerTbl2")
-sqlSave(db.apde, elig, tablename = "dbo.medicaidPerTbl2", varTypes = c(fromdate = "Date", todate = "Date"))
+sqlDrop(db.apde, "dbo.medicaidPerTbl1")
+sqlSave(db.apde, elig, tablename = "dbo.medicaidPerTbl1", varTypes = c(fromdate = "Date", 
+                                                                       fromdatenew = "Date",
+                                                                       todate = "Date",
+                                                                       todatenew = "Date"))
 proc.time() - ptm02
-
-
-sqlUpdate(db.apde, elig, tablename = "[PH\\MATHESON].medicaidPerTbl2")
-
-sqlSave(db.apde, test, tablename = "[PH\\MATHESON].medicaidPerTbl2")
-
-
-
-
-
-
 
 
 
