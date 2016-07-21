@@ -15,6 +15,7 @@
 options(max.print = 700, scipen = 0)
 
 library(RODBC) # used to connect to SQL server
+library(readxl) # used to read in Excel files
 library(car) # used to recode variables
 library(stringr) # used to manipulate string variables
 library(dplyr) # used to manipulate data
@@ -66,59 +67,52 @@ proc.time() - ptm01
 elig.bk <- elig
 
 
-##### Look at some basic stats (already done in SQL) #####
-
-# Number of unique variables
-count(distinct(elig, id))
-count(distinct(elig, hhid))
-count(distinct(elig, id, ssn))
-count(distinct(elig, id, fname, lname, dob))
-
-# Values in different address fields (will identify spelling errors and where fields have shifted (e.g., city in zip))
-table(elig$city, useNA = 'always')
-table(elig$zip, useNA = 'always')
-
-
 ##### Items to resolve for deduplication #####
-# 1) Multiple Medicaid IDs per SSN
-# 2) Overlapping coverage periods per Med ID
-# 3) Inconsistent demographics per Med ID or SSN
-# 4) Address formatting issues (e.g., city in zip field)
-# 5) Multiple addresses per Med ID during the same coverage period
-# 6) Decide what to do with addresses that indicate the person is homeless
-# 7) Others?
+# 1) Multiple SSNs per Medicaid ID
+# 2) Address cleaning and resolve formatting issues
+# 3) Decide what to do with addresses that indicate the person is homeless
+# 4) Inconsistent demographics per Med ID or SSN
+# 5) Overlapping coverage periods per Med ID
+# 6) Multiple addresses per Med ID during the same coverage period
+
+# Other areas still to be addressed
+# 1) RAC code and Medicaid programs
+# 2) Identifying pregnant women
+# 3) Filling in missing rows for FPL, citizenship/immigration status, and languages
 
 
 ##### Data cleaning #####
 # The purpose is to ensure that each ID + SSN combo only represents one person
-# Demographics can then be asribed to each ID + SSN combo
+# Demographics can then be ascribed to each ID + SSN combo
 
 
 #### SSN ####
 # Goal: Find IDs with >1 SSN and figure out if they are separate people
 elig <- elig %>%
   group_by(id) %>%
-  mutate(ssn_tot = n_distinct(ssn, na_rm = FALSE)) %>%
+  mutate(ssn_tot = n_distinct(ssn, na.rm = FALSE),
+         # Set up a shortened last name to account for hyphenated names that don't match
+         lname_trunc = str_sub(lname, 1, 4)) %>%
   group_by(id, ssn) %>%
   mutate(ssn_cnt = n()) %>%
   ungroup()
 
 
-# Options for dealing with multiple SSNs
-# 1) Look at names and DOB to see there is a match and take the most common SSN
+# Dealing with multiple SSNs
+# Look at names and DOB to see if there is a match. If so, take the most common SSN
 ssn.tmp <- elig %>%
   filter(!is.na(ssn)) %>%
-  select(id, ssn, ssn_tot, ssn_cnt, dob, fname, lname) %>%
-  distinct(id, ssn, dob, fname, lname, .keep_all = TRUE) %>%
-  arrange(id, ssn_cnt, dob, fname, lname) %>%
-  group_by(id, dob, fname, lname) %>%
+  select(id, ssn, ssn_tot, ssn_cnt, dob, fname, lname_trunc) %>%
+  distinct(id, ssn, dob, fname, lname_trunc, .keep_all = TRUE) %>%
+  arrange(id, ssn_cnt, dob, fname, lname_trunc) %>%
+  group_by(id, dob, fname, lname_trunc) %>%
   # where there is a tie, the first SSN is selected, which is an issue if the data are sorted differently
   slice(which.max(ssn_cnt)) %>%
   ungroup() %>%
-  select(id, ssn, dob, fname, lname)
+  select(id, ssn, dob, fname, lname_trunc)
 
 # 1 cont) Merge back with the primary data and update SSN
-elig <- left_join(elig, ssn.tmp, by = c("id", "fname", "lname", "dob"))
+elig <- left_join(elig, ssn.tmp, by = c("id", "fname", "lname_trunc", "dob"))
 rm(ssn.tmp) # remove temp data frames to save memory
 
 # Make new variable with cleaned up SSN
@@ -128,194 +122,50 @@ elig <- mutate(elig, ssnnew = ifelse(!is.na(ssn.y), ssn.y, ssn.x))
 
 #### City ####
 # Goal: Tidy up city name spellings
-elig <- elig %>%
-  mutate(
-    citynew = city,
-    citynew = replace(
-      citynew,
-      which(
-        str_detect(city, "^AU[BD][:alnum:]*N") == TRUE |
-          str_detect(city, "^ABUR") == TRUE |
-          str_detect(city, "^ARB[:alnum:]*N") == TRUE |
-          str_detect(city, "^AURB[:alnum:]*N") == TRUE |
-          str_detect(city, "SOUTH AUBURN") == TRUE
-      ),
-      "AUBURN"
-    ),
-    citynew = replace(citynew,
-                   which(str_detect(city, "[BD]ELL[EV]") == TRUE),
-                   "BELLEVUE"),
-    citynew = replace(citynew,
-                   which(str_detect(city, "BOTHEL") == TRUE),
-                   "BOTHELL"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "CARN[:alnum:]*ON") == TRUE
-                   ),
-                   "CARNATION"),
-    citynew = replace(
-      citynew,
-      which(
-        str_detect(city, "COVIN") == TRUE |
-          str_detect(city, "CONVIN") == TRUE
-      ),
-      "COVINGTON"
-    ),
-    citynew = replace(
-      citynew,
-      which(
-        str_detect(city, "MOIN") == TRUE |
-          str_detect(city, "DES[:space:]*M") == TRUE |
-          city %in% c("DEMING", "DE MONIES")
-      ),
-      "DES MOINES"
-    ),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "MCLAW") == TRUE |
-                       str_detect(city, "ENU[:alnum:]*C[:alnum:]*W") == TRUE
-                   ),
-                   "ENUMCLAW"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "EVE[:alnum:]*[TE]") == TRUE
-                   ),
-                   "EVERETT"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "FALL[:alnum:]*[:space:]*CITY") == TRUE
-                   ),
-                   "FALL CITY"),
-    citynew = replace(
-      citynew,
-      which(
-        str_detect(city, "FED[:alnum:]*[:space:]*W") == TRUE |
-          str_detect(city, "FER[:alnum:]*[:space:]*WAY") == TRUE |
-          str_detect(city, "FER[:alnum:]*[:space:]*W[AY]") == TRUE |
-          str_detect(city, "[DF]E[DF]ERAL") == TRUE
-      ),
-      "FEDERAL WAY"
-    ),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "[AI]S[:alnum:]*AH") == TRUE |
-                       str_detect(city, "IS[:alnum:]*QUA") == TRUE
-                   ),
-                   "ISSAQUAH"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "^KE[:alnum:]*ORE") == TRUE |
-                       city %in% c("AEMMORE", "KEN")
-                   ),
-                   "KENMORE"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "KE[NT][NT][:alnum:]*") == TRUE |
-                       city %in% c("4ENT", "KNET", "KUNT")
-                   ),
-                   "KENT"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "KI[RK][:alnum:]*[LA]ND[:alnum:]*") == TRUE
-                   ),
-                   "KIRKLAND"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "L[AK][:alnum:]*[:space:]*FOR[:alnum:]*") == TRUE
-                   ),
-                   "LAKE FOREST PARK"),
-    citynew = replace(
-      citynew,
-      which(
-        str_detect(city, "MOU[NT][:alnum:]*[:space:]*AKE[:space:]*TERR") == TRUE |
-          str_detect(city, "MT[:alnum:]*[:space:]*AKE[:space:]*TERR") == TRUE
-      ),
-      "MOUNTLAKE TERRACE"
-    ),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "NOR[:alnum:]*PARK") == TRUE
-                   ),
-                   "NORMANDY PARK"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "NO[:alnum:]*[:space:]*B[AE][ND]*") == TRUE |
-                       (
-                         str_detect(city, "H BEND") == TRUE &
-                           str_detect(city, "SOUTH") == FALSE
-                       )
-                   ),
-                   "NORTH BEND"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "S[AO]M[:alnum:]*SH") == TRUE
-                   ),
-                   "SAMMAMISH"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(
-                       citynew,
-                       "S[EA][:alnum:]*[:punct:]*[:space:]*TA[CPS][:alnum:]*"
-                     ) == TRUE |
-                       str_detect(city, "S[EA][:alnum:]*[:punct:]*[:space:]*TC") == TRUE
-                   ),
-                   "SEATAC"),
-    citynew = replace(
-      citynew,
-      which(
-        str_detect(city, "ATTLE") == TRUE |
-          str_detect(city, "[DS]EA[:alnum:]*[KLT]E") == TRUE |
-          str_detect(city, "SEATTL") == TRUE |
-          city %in% c(
-            "BALLARD",
-            "BEACON HILL",
-            "DOWNTOWN FREMONT",
-            "SEATT",
-            "SEATTEL",
-            "SETTLE",
-            "STATTLE"
-          )
-      ),
-      "SEATTLE"
-    ),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "SHO[ER][:alnum:]*[:space:]*LI[EN]*") == TRUE
-                   ),
-                   "SHORELINE"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(
-                       citynew,
-                       "S[MN]O[:alnum:]*Q[:alnum:]*[IM][IM][AE][:space:]*[:alnum:]*"
-                     ) == TRUE
-                   ),
-                   "SNOQUALMIE"),
-    citynew = replace(citynew,
-                   which(
-                     str_detect(city, "TU[AKQRW][:alnum:]*[IL][KLW]A") == TRUE |
-                       city %in% c("PUKWILA", "TEQUILLA")
-                   ),
-                   "TUKWILA")
-  )
+
+# Bring in city lookup table
+city.lookup <- read_excel("H:/My Documents/Medicaid claims/MedicaidRProj/PersonTable/City Lookup.xlsx")
+
+# Set up variables for writing
+elig <- mutate(elig, citynew = NA, f = "")
+city.lookup$numfound <- 0
+
+# Use lookup table
+for(i in 1:nrow(city.lookup)) {
+  found.bools = str_detect(elig$city, city.lookup$ICU_regex[i]) #create bool array from regex
+  elig$f[found.bools] = "*"
+  elig$citynew[found.bools] = city.lookup$city[i]  # reassign from bool array
+  city.lookup$numfound[i] = sum(found.bools) # save how many we found
+}
+# Report out progress
+cat("Finished: Updated",
+    sum(!is.na(elig$citynew)),
+    "of",
+    nrow(elig),
+    "\n")
+# Pass the unchanged cities through
+elig$citynew[is.na(elig$citynew)] = elig$city[is.na(elig$citynew)]
 
 
 #### Addresses (NB. a separate geocoding process may fill in some gaps later) ####
 # Goal: Tidy up and standardize addresses
 elig <- elig %>%
   mutate(
-    # Set up homeless and PO Box variables first to avoid capturing non-permanent residential 
+    # Set up homeless, PO Box, and C/O variables first to avoid capturing non-permanent residential 
     # addresses (e.g., relatives and temporary shelters)
     homeless = ifelse(
-      str_detect(add1, "HOMELESS") == TRUE |
-        str_detect(add2, "HOMELESS"),
+      str_detect(paste(add1, add2, city, sep = ""), "HOMELESS") == TRUE,
       1,
       0
     ),
     # Need spaces to avoid falsely capturing Boxley Pl and other similarly named roads
     pobox = ifelse(
-      str_detect(add1, "[:space:]BOX[:space:]") == TRUE |
-        str_detect(add2, "[:space:]BOX[:space:]"),
+      str_detect(paste(add1, add2, sep = ""), "[:space:]BOX[:space:]") == TRUE,
+      1,
+      0
+    ),
+    careof = ifelse(
+      str_detect(paste(add1, add2, sep = ""), "C/O") == TRUE,
       1,
       0
     ),
@@ -340,8 +190,8 @@ elig <- elig %>%
       )
     ),
     # Remove temporary or relative's addresses that have been erroneously assigned
-    street = replace(street, which(homeless == 1 | pobox == 1), NA),
-    # Strip out apartment numbers etc.
+    street = replace(street, which(homeless == 1 | pobox == 1 | careof == 1), NA),
+    # Strip out apartment numbers etc. (works only if they are after the street address)
     street2 = str_sub(street,
                       1,
                       ifelse(
@@ -372,18 +222,14 @@ elig <- elig %>%
 # Goal: Find IDs with >1 recorded gender
 # NB. This fails if attempting to complete all operations in one command
 elig <- mutate(elig,
-               female = recode(gender, "'Female' = 1; 'Male' = 0; 'Unknown' = NA"))
-
-# Count the number of genders recorded for an individual
-elig <- elig %>%
+               gendernew = car::recode(gender, c("'Female' = 1; 'Male' = 2; 'Unknown' = NA")))
+  # Count the number of genders recorded for an individual
+  elig <- elig %>%
   group_by(id, ssnnew) %>%
-  mutate(gender_tot = n_distinct(female, na_rm = TRUE)) %>%
-  ungroup()
-
-
-# Replace multiple genders as missing
-elig <-
-  mutate(elig, female = replace(female, which(gender_tot > 1), NA))
+  mutate(gender_tot = n_distinct(gendernew, na.rm = TRUE)) %>%
+  ungroup() %>%
+  # Replace multiple genders as 3
+  mutate(gendernew = replace(gendernew, which(gender_tot > 1), 3))
 
 
 
@@ -424,7 +270,20 @@ elig <- elig %>%
          race4new = replace(race4new, which(race4new == race3new), NA)
          )
 
-# Set up single race code with Hispanic
+# Set up AIAN and NHPI fields
+elig <- elig %>%
+  mutate(aian = ifelse(str_detect(
+    paste(race1new, race2new, race3new, race4new, sep = ""), "AIAN"
+  ) == TRUE,
+  1,
+  0),
+  nhpi = ifelse(str_detect(
+    paste(race1new, race2new, race3new, race4new, sep = ""), "NHPI"
+  ) == TRUE,
+  1,
+  0))
+
+# Set up single race code with Hispanic and identify multiple races in a single row
 elig <- elig %>%
   mutate(
     raceh = race1new,
@@ -435,10 +294,10 @@ elig <- elig %>%
   )
 
 
-# Identify people with >1 single race codes
+# Identify people with >1 race codes
 # NB. This fails if attempting to complete all operations in one command
 elig <- elig %>%
-  mutate(racehnum = recode(
+  mutate(racehnum = car::recode(
     raceh,
     c(
       "'AIAN' = 1; 'Asian' = 2; 'Black' = 3;
@@ -448,17 +307,13 @@ elig <- elig %>%
     ))
 
 
-# Count the number of different race/ethnicities each person has
+# Count the number of different race/ethnicities each person has and
+# record whether at any time they were recorded as AIAN or NHPI
 elig <- elig %>%
   group_by(id, ssnnew) %>%
-  mutate(race_tot = n_distinct(racehnum, na_rm = TRUE)) %>%
-  ungroup()
-
-
-# Count how many times each race/ethnicity appears per person (not strictly needed)
-elig <- elig %>%
-  group_by(id, ssnnew, raceh) %>%
-  mutate(race_cnt = n()) %>%
+  mutate(race_tot = n_distinct(racehnum, na.rm = TRUE),
+         aian_cnt = sum(aian == 1),
+         nhpi_cnt = sum(nhpi == 1)) %>%
   ungroup()
 
 
@@ -471,7 +326,7 @@ elig <-
 # Identify a person's race category to fill in NAs
 race.tmp <- elig %>%
   filter(!is.na(raceh)) %>%
-  select(id, ssnnew, raceh, racehnum) %>%
+  select(id, ssnnew, raceh, racehnum, aian_cnt, nhpi_cnt) %>%
   distinct(id, ssnnew, raceh, racehnum) # This assumes that each person only has one race variable,
   # which should be the case after the above code is run
   
@@ -479,7 +334,9 @@ race.tmp <- elig %>%
 # Merge back with the primary data and rename variables
 elig <- left_join(elig, race.tmp, by = c("id", "ssnnew"))
 elig <- elig %>%
-  select(-(raceh.x), -(racehnum.x)) %>%
+  mutate(aian = ifelse(aian_cnt > 0, 1, 0),
+         nhpi = ifelse(nhpi_cnt > 0, 1, 0)) %>%
+  select(-(raceh.x), -(racehnum.x), -(aian_cnt), -(nhpi_cnt)) %>%
   rename(raceh = raceh.y, racehnum = racehnum.y)
 rm(race.tmp) # remove temp data frames to save memory
 
@@ -546,7 +403,7 @@ elig <- elig %>%
   ungroup()
 
 
-### Step 3) Recode to dates of 2099-12-31 to be <year>-12-31
+### Step 3) Recode to dates of 2999-12-31 to be <year>-12-31
 elig <- elig %>%
   mutate(
     todate =
@@ -574,6 +431,7 @@ elig <- elig %>%
 # Order by address (ignore RACcode for now)
 elig <- elig %>%
   arrange(id, ssnnew, street2, city, zip, fromdate, todate)
+
 
 # The loop runs until there are no more adjacent periods like this
 # (this works on smaller test data but not here, so run each iteration manually until the # of rows remains constant)
@@ -636,7 +494,6 @@ elig <- elig %>%
 # This function was adapted from here: 
 # http://stackoverflow.com/questions/5012516/count-how-many-consecutive-values-are-true
 cumul_ones <- function(x)  {
-  #x <- !x
   rl <- rle(x)
   len <- rl$lengths
   v <- rl$values
@@ -682,7 +539,7 @@ elig <- elig %>%
 #            truncate from dates so that each address occupies a single time period
 # NB. This approach gives preference to a person's existing address
 
-# Remove addresses with dates fully contained within another addresses dates
+# Remove addresses with dates fully contained within another address's dates
 repeat {
   dfsize <-  nrow(elig)
   elig <- elig %>%
@@ -714,32 +571,116 @@ elig <- elig %>%
   
 
 
+
+
 ################ TESTING AREA ####################
 elig.bk <- elig # make a new backup once code is run up to coverage period
 
 # Make a test data frame
 elig.tst <- elig %>%
   ungroup() %>%
-  filter(row_number() <= 5000)
+  filter(row_number() <= 100000)
 
 
 
 # Find rows with from/to dates that sit completely within preceding row and removes them
 # Trying alternative options
 
-# Order by address (ignore RACcode for now)
+### Posted this to Stackoverflow: 
+# http://stackoverflow.com/questions/38470160/r-count-rows-until-a-condition-is-reached-by-group
+grp <- c(rep(1:2, each = 5), 3)
+fromdate <- as.Date(c("2010-06-01", "2012-02-01", "2013-02-01", "2013-02-01", "2015-10-01", "2011-02-01", 
+                      "2011-03-01", "2013-04-01", "2013-06-01", "2013-10-01", "2013-02-01"), origin = "1970-01-01")
+todate <- as.Date(c("2016-12-31", "2013-01-31", "2015-10-31", "2015-12-31", "2016-01-31", "2013-02-28", 
+                    "2013-02-28", "2013-09-30", "2016-12-31", "2017-01-31", "2014-12-31"), origin = "1970-01-01")
+df <- data.frame(grp, fromdate, todate)
+
+
+grp <- c(rep(1:2, each = 5), 3)
+fromdate <- as.Date(c("2010-06-01", "2012-02-01", "2013-02-01", "2013-02-01", "2015-10-01", "2011-02-01",
+                      "2011-03-01", "2013-04-01", "2013-06-01", "2013-10-01", "2012-02-01"), origin = "1970-01-01")
+todate <- as.Date(c("2016-12-31", "2013-01-31", "2015-10-31", "2015-12-31", "2016-01-31", "2013-02-28", "2013-02-28", 
+                    "2013-09-30", "2016-12-31", "2017-01-31", "2014-01-31"), origin = "1970-01-01")
+df <- data.frame(grp, fromdate, todate)
+
+
+df <- df %>%
+  arrange(grp, fromdate, todate) %>%
+  group_by(grp) %>%
+  mutate(rows_to_max = sapply(1:length(todate), function(x) min(which(.$todate[x:length(.$todate)] > .$todate[x]))-1)) %>%
+  ungroup()
+
+
+# Reponse #1) (has a bug)
+library(lubridate)
+df$int <- interval(df$fromdate, df$todate)
+drop <- sapply(2:nrow(df),  function(x) {
+  any(df$int[x] %within% df$int[1:(x-1)])
+})
+df$drop <- c(FALSE, drop) 
+
+df <- df %>% 
+  group_by(grp) %>% 
+  mutate(
+    drop = c(FALSE, sapply(2:n(), function(x) any(int[x] %within% int[1:(x-1)])))
+  )
+
+# Edit to response #1)
+ivls <- interval(df$fromdate, df$todate)
+
+df$idx <- 1:nrow(df)
+
+df %>%
+  group_by(grp) %>%
+  mutate(n = n(),
+         test = if_else(n() > 1, 1, 0))
+
+
+df %>%
+  group_by(grp) %>%
+  mutate(grpsize = n(),
+         drop = ifelse(grpsize > 1,
+                       c(FALSE, sapply(2:n(), function(x)
+                         any(ivls[idx[x]] %within% ivls[idx[1]:idx[x - 1]]))),
+                       FALSE)) %>%
+  ungroup()
+
+
+
+
+ivls <- interval(elig.tst$fromdate, elig.tst$todate)
+
+elig.tst$idx <- 1:nrow(elig.tst)
+
 elig.tst <- elig.tst %>%
-  arrange(id, ssnnew, street2, city, zip, fromdate, todate)
-
-# Count number of rows until to date is larger than current row
-
-
-
-
-
-
+  group_by(id, ssnnew, street2, city, zip) %>%
+  mutate(grpsize = n(),
+         drop = ifelse(grpsize > 1,
+                       c(FALSE, sapply(2:n(), function(x)
+                         any(ivls[idx[x]] %within% ivls[idx[1]:idx[x - 1]]))),
+                       FALSE)) %>%
+  ungroup()
 
 
+
+repeat {
+  dfsize <-  nrow(elig.tst)
+  elig.tst <- elig.tst %>%
+    group_by(id, ssnnew, street2, city, zip) %>%
+    mutate(drop = ifelse((fromdate > lag(fromdate, 1) &
+                            todate <= lag(todate, 1)) &
+                           !is.na(lag(fromdate, 1)) &
+                           !is.na(lag(todate, 1)),
+                         1,
+                         0
+    )) %>%
+    ungroup() %>%
+    filter(drop == 0)
+  dfsize2 <- nrow(elig.tst)
+  if (dfsize2 == dfsize) {
+    break
+  }
+}
 
 
 
@@ -884,7 +825,8 @@ todate = replace(todate, which(todate == "2999-12-31"), Sys.Date())
 
 #### Save cleaned person table ####
 elig <- elig %>%
-  select(id:cntyname, ssnnew:female, race1new:fromdatenew)
+  select(id:dob, fromdate:cntyname, ssnnew, citynew, homeless:gendernew, race1new:racehnum,
+         todatenew, fromdatenew)
 
 ptm02 <- proc.time() # Times how long this query takes
 sqlDrop(db.apde, "dbo.medicaidPerTbl1")
