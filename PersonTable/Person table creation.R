@@ -2,7 +2,7 @@
 # Code to create a cleaned person table from the Medicaid eligibility data
 # 
 # Alastair Matheson (PHSKC-APDE)
-# 2016-06-10
+# 2016-07-21
 ###############################################################################
 
 
@@ -27,21 +27,6 @@ db.apde <- odbcConnect("PH_APDESTRE51")
 
 
 ##### Bring in all the relevant eligibility data #####
-### Start here to bring in most processed data
-# Can use this data processed up to step 6 of the "Coverage period" section
-ptm01 <- proc.time()
-elig <- sqlQuery(db.apde,
-                 "SELECT * FROM
-                 dbo.medicaidPerTbl2",
-                 stringsAsFactors = FALSE)
-proc.time() - ptm01
-# Need to reformat dates (not stored in SQL properly)
-elig <- elig %>%
-  mutate(fromdate = as.Date(fromdate),
-         todate = as.Date(todate))
-
-
-### Start here to do things from scratch
 # Bring in all eligibility data
 ptm01 <- proc.time() # Times how long this query takes (~240 secs)
 elig <-
@@ -111,7 +96,7 @@ ssn.tmp <- elig %>%
   ungroup() %>%
   select(id, ssn, dob, fname, lname_trunc)
 
-# 1 cont) Merge back with the primary data and update SSN
+# Merge back with the primary data and update SSN
 elig <- left_join(elig, ssn.tmp, by = c("id", "fname", "lname_trunc", "dob"))
 rm(ssn.tmp) # remove temp data frames to save memory
 
@@ -567,260 +552,6 @@ elig <- elig %>%
                                lag(todatenew, 1) + 1,
                                fromdate)) %>%
   ungroup()
-  
-  
-
-
-
-
-################ TESTING AREA ####################
-elig.bk <- elig # make a new backup once code is run up to coverage period
-
-# Make a test data frame
-elig.tst <- elig %>%
-  ungroup() %>%
-  filter(row_number() <= 100000)
-
-
-
-# Find rows with from/to dates that sit completely within preceding row and removes them
-# Trying alternative options
-
-### Posted this to Stackoverflow: 
-# http://stackoverflow.com/questions/38470160/r-count-rows-until-a-condition-is-reached-by-group
-grp <- c(rep(1:2, each = 5), 3)
-fromdate <- as.Date(c("2010-06-01", "2012-02-01", "2013-02-01", "2013-02-01", "2015-10-01", "2011-02-01", 
-                      "2011-03-01", "2013-04-01", "2013-06-01", "2013-10-01", "2013-02-01"), origin = "1970-01-01")
-todate <- as.Date(c("2016-12-31", "2013-01-31", "2015-10-31", "2015-12-31", "2016-01-31", "2013-02-28", 
-                    "2013-02-28", "2013-09-30", "2016-12-31", "2017-01-31", "2014-12-31"), origin = "1970-01-01")
-df <- data.frame(grp, fromdate, todate)
-
-
-grp <- c(rep(1:2, each = 5), 3)
-fromdate <- as.Date(c("2010-06-01", "2012-02-01", "2013-02-01", "2013-02-01", "2015-10-01", "2011-02-01",
-                      "2011-03-01", "2013-04-01", "2013-06-01", "2013-10-01", "2012-02-01"), origin = "1970-01-01")
-todate <- as.Date(c("2016-12-31", "2013-01-31", "2015-10-31", "2015-12-31", "2016-01-31", "2013-02-28", "2013-02-28", 
-                    "2013-09-30", "2016-12-31", "2017-01-31", "2014-01-31"), origin = "1970-01-01")
-df <- data.frame(grp, fromdate, todate)
-
-
-df <- df %>%
-  arrange(grp, fromdate, todate) %>%
-  group_by(grp) %>%
-  mutate(rows_to_max = sapply(1:length(todate), function(x) min(which(.$todate[x:length(.$todate)] > .$todate[x]))-1)) %>%
-  ungroup()
-
-
-# Reponse #1) (has a bug)
-library(lubridate)
-df$int <- interval(df$fromdate, df$todate)
-drop <- sapply(2:nrow(df),  function(x) {
-  any(df$int[x] %within% df$int[1:(x-1)])
-})
-df$drop <- c(FALSE, drop) 
-
-df <- df %>% 
-  group_by(grp) %>% 
-  mutate(
-    drop = c(FALSE, sapply(2:n(), function(x) any(int[x] %within% int[1:(x-1)])))
-  )
-
-# Edit to response #1)
-ivls <- interval(df$fromdate, df$todate)
-
-df$idx <- 1:nrow(df)
-
-df %>%
-  group_by(grp) %>%
-  mutate(n = n(),
-         test = if_else(n() > 1, 1, 0))
-
-
-df %>%
-  group_by(grp) %>%
-  mutate(grpsize = n(),
-         drop = ifelse(grpsize > 1,
-                       c(FALSE, sapply(2:n(), function(x)
-                         any(ivls[idx[x]] %within% ivls[idx[1]:idx[x - 1]]))),
-                       FALSE)) %>%
-  ungroup()
-
-
-
-
-ivls <- interval(elig.tst$fromdate, elig.tst$todate)
-
-elig.tst$idx <- 1:nrow(elig.tst)
-
-elig.tst <- elig.tst %>%
-  group_by(id, ssnnew, street2, city, zip) %>%
-  mutate(grpsize = n(),
-         drop = ifelse(grpsize > 1,
-                       c(FALSE, sapply(2:n(), function(x)
-                         any(ivls[idx[x]] %within% ivls[idx[1]:idx[x - 1]]))),
-                       FALSE)) %>%
-  ungroup()
-
-
-
-repeat {
-  dfsize <-  nrow(elig.tst)
-  elig.tst <- elig.tst %>%
-    group_by(id, ssnnew, street2, city, zip) %>%
-    mutate(drop = ifelse((fromdate > lag(fromdate, 1) &
-                            todate <= lag(todate, 1)) &
-                           !is.na(lag(fromdate, 1)) &
-                           !is.na(lag(todate, 1)),
-                         1,
-                         0
-    )) %>%
-    ungroup() %>%
-    filter(drop == 0)
-  dfsize2 <- nrow(elig.tst)
-  if (dfsize2 == dfsize) {
-    break
-  }
-}
-
-
-
-
-
-
-
-# Check to see the subsequent row's from date is <=  or immediately following the current to date
-elig.tst <- elig.tst %>%
-  arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
-  group_by(id, ssnnew, street2, city, zip) %>%
-  mutate(overlap = if_else(todate + 1 >= lead(fromdate, 1) &
-                             !is.na(lead(fromdate, 1)) &
-                             !is.na(lead(todate, 1)),
-                           1,
-                           0)) %>%
-  ungroup()
-
-
-# Another approach to figuring out how many overlapping rows to look down to find the new todate
-# adapted from here: 
-# http://stackoverflow.com/questions/5012516/count-how-many-consecutive-values-are-true
-cumul_ones <- function(x)  {
-  #x <- !x
-  rl <- rle(x)
-  len <- rl$lengths
-  v <- rl$values
-  cumLen <- cumsum(len)
-  z <- x
-  # replace the 0 at the end of each zero-block in z by the 
-  # negative of the length of the preceding 1-block....
-  iDrops <- c(0, diff(v)) < 0
-  z[ cumLen[ iDrops ] ] <- -len[ c(iDrops[-1],FALSE) ]
-  # ... to ensure that the cumsum below does the right thing.
-  # We zap the cumsum with x so only the cumsums for the 1-blocks survive:
-  x*cumsum(z)
-}
-
-elig.tst <- elig.tst %>%
-  arrange(id, ssnnew, street2, city, zip, desc(fromdate), desc(todate)) %>%
-  mutate(
-    overlap_num =
-      cumul_ones(overlap)) %>%
-  arrange(id, ssnnew, street2, city, zip, fromdate, todate) %>%
-  mutate(selector = 1:nrow(elig.tst) + overlap_num,
-    drop = if_else(selector == lag(selector, 1) &
-                     !is.na(lag(selector)),
-                   1,
-                   0)
-  )
-
-
-# Replace the current row's todate with that of the futherest overlapping row
-# Use the row defined by the selector variable above and drop the others
-elig.tst <- elig.tst %>%
-  mutate(todatenew = todate[selector]) %>%
-  filter(drop == 0)
-
-####
-# Alternative approaches that didn't work #
-####
-# There is a bug in dplyr that prevents having expressions in lag, so need to define the 
-# function then call it
-lag_expression <- function(a, b) {
-  if_else(
-    !is.infinite(a) &
-      lag(a, 1) > a &
-      !is.infinite(lag(a, 1)) &
-      !is.na(lag(a, 1)),
-    lead(b, a[1]),
-    b
-  )
-}
-
-
-lag_expression <- function(a, b) {
-  n = function(x) sapply(1:length(a), function(x) .$a[x])
-  if_else(a > 0 &
-            (lag(a, 1) > a |
-               lag(a, 1) == 0 |
-               is.na(lag(a, 1))),
-          lead(b, a[n]),
-          b)
-}
-
-
-elig.tst <- elig.tst %>%
-  mutate(rown = row.names(elig.tst),
-    todatenew = lag_expression(overlap_num, todate))
-
-
-
-elig.tst$todatenew <- as.Date(ifelse(
-  elig.tst$overlap_num > 0 &
-    (
-      lag(elig.tst$overlap_num, 1) > elig.tst$overlap_num |
-        lag(elig.tst$overlap_num, 1) == 0 |
-        is.na(lag(elig.tst$overlap_num, 1))
-    ),
-  function(x) lag(.$todate, .$overlap_num[x]),
-  elig.tst$todate
-),
-origin = "1970-01-01")
-
-####
-
-
-
-
-
-
-# Truncate from dates so that each address occupies a single time period
-# NB. This approach gives preference to a person's existing address
-elig.tst <- elig.tst %>%
-  group_by(id, ssnnew) %>%
-  mutate(fromdatenew = if_else(fromdate <= lag(todatenew, 1) &
-                                 !is.na(lag(todatenew, 1)),
-                               lag(todatenew, 1) + 1,
-                               fromdate)) %>%
-  ungroup() %>%
-  mutate(change = if_else(fromdate != fromdatenew, 1, 0))
-
-
-
-
-# View results
-elig %>% select(year, id, ssnnew, fromdate, todate, street2, city, add_cnt) %>%
-  filter(row_number() > 10 & row_number() < 25)
-
-elig.tst %>% select(year, id, ssnnew, fromdate, todate, street2, city) %>%
-  filter(row_number() > 4)
-
-
-# Convert all far off dates (indicating continuous coverage) to today's date
-todate = replace(todate, which(todate == "2999-12-31"), Sys.Date())
-
-
-################ END TESTING AREA ####################
-
-
 
 
 #### Save cleaned person table ####
@@ -836,28 +567,3 @@ sqlSave(db.apde, elig, tablename = "dbo.medicaidPerTbl1", varTypes = c(fromdate 
                                                                        todatenew = "Date"))
 proc.time() - ptm02
 
-
-
-
-
-################ TESTING AREA ####################
-
-# Try exporting data to CSV then uploading to improve performance
-# NB. Need to delete CSV straight away to avoid leaving protected information
-write.table(elig.tst, "J:/SpecProjData/Medicaid/toSQL.txt", quote = FALSE, sep=",",
-            row.names = FALSE, col.names = FALSE, append = FALSE)
-
-sqlQuery(
-  db.apde,
-  "BULK INSERT dbo.medicaidPerTbl2
-  FROM '\\phdata01\EPE_DATA\SpecProjData\Medicaid\toSQL.txt'
-  WITH
-  (
-  FIELDTERMINATOR = ',',
-  ROWTERMINATOR = '\n'
-  )"
-)
-
-
-
-################ END TESTING AREA ####################
