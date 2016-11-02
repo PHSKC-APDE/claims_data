@@ -81,7 +81,8 @@ hospED <-
     db.claims,
     "SELECT DISTINCT MEDICAID_RECIPIENT_ID AS 'ID2014',
     SUM(CASE WHEN CAL_YEAR = 2014 AND CLM_TYPE_CID = 31 THEN 1 ELSE 0 END) AS 'hosp',
-    SUM(CASE WHEN CAL_YEAR=2014 AND REVENUE_CODE IN ('0450','0456','0459','0981') THEN 1 ELSE 0 END) AS 'ED'
+    SUM(CASE WHEN CAL_YEAR = 2014 AND REVENUE_CODE IN ('0450','0456','0459','0981') THEN 1 ELSE 0 END) AS 'ED',
+    SUM(CASE WHEN CAL_YEAR = 2014 AND PLACE_OF_SERVICE = '20 URGENT CARE FAC' THEN 1 ELSE 0 END) AS 'urgent'
     FROM dbo.vClaims
     GROUP BY MEDICAID_RECIPIENT_ID"
   )
@@ -206,6 +207,20 @@ asthmachild <- asthmachild %>%
       1,
       0
     ), na.rm = TRUE),
+    # Urgent care visits for asthma, any diagnosis
+    urgcnt14 = sum(ifelse(
+      CAL_YEAR == 2014 & PLACE_OF_SERVICE == "20 URGENT CARE FAC", 1, 0
+    ), na.rm = TRUE),
+    # Urgent visits for asthma, primary diagnosis
+    urgcntprim14 = sum(ifelse(
+      CAL_YEAR == 2014 & PLACE_OF_SERVICE == "20 URGENT CARE FAC" &
+        (
+          substr(PRIMARY_DIAGNOSIS_CODE, 1, 3) == "493" |
+            substr(PRIMARY_DIAGNOSIS_CODE, 1, 3) == "J45"
+        ),
+      1,
+      0
+    ), na.rm = TRUE),
     # well-child checks for asthma, any diagnosis
     wellcnt14 = sum(ifelse(CAL_YEAR == 2014 &
                              CLM_TYPE_CID == 27, 1, 0), na.rm = TRUE),
@@ -258,13 +273,27 @@ asthmachild <- asthmachild %>%
         ),
       1,
       0
+    ), na.rm = TRUE),
+    # Urgent care visits for asthma, any diagnosis
+    urgcnt15 = sum(ifelse(
+      CAL_YEAR == 2015 & PLACE_OF_SERVICE == "20 URGENT CARE FAC", 1, 0
+    ), na.rm = TRUE),
+    # Urgent visits for asthma, primary diagnosis
+    urgcntprim15 = sum(ifelse(
+      CAL_YEAR == 2015 & PLACE_OF_SERVICE == "20 URGENT CARE FAC" &
+        (
+          substr(PRIMARY_DIAGNOSIS_CODE, 1, 3) == "493" |
+            substr(PRIMARY_DIAGNOSIS_CODE, 1, 3) == "J45"
+        ),
+      1,
+      0
     ), na.rm = TRUE)
   ) %>%
 arrange(ID2014, CAL_YEAR)
 
 
 # Calculate asthma medication ratio
-  tmp.meds <- asthmachild %>%
+tmp.meds <- asthmachild %>%
     group_by(ID2014) %>%
     filter(CAL_YEAR == "2014" &
              (!is.na(controller) | !is.na(reliever))) %>%
@@ -289,15 +318,20 @@ arrange(ID2014, CAL_YEAR)
       relieverhigh4 = ifelse(relievertot >= 4, 1, 0),
       relieverhigh3 = ifelse(relievertot >= 3, 1, 0)
     ) %>%
+<<<<<<< Updated upstream
     distinct(ID2014, amr14) %>%
     select(ID2014, controltot:relieverhigh3)
+=======
+    distinct(ID2014, amr14, .keep_all = TRUE) %>%
+    select(ID2014, controltot, relievertot, amr14, amr14risk, relieverhigh)
+>>>>>>> Stashed changes
 
   
 # Collapse claims data and merge with medication data
 asthmarisk <- asthmachild %>%
-  distinct(ID2014) %>%
+  distinct(ID2014, .keep_all = TRUE) %>%
   # Keep columns of interest
-  select(ID2014, hospcnt14:EDcntprim15)
+  select(ID2014, hospcnt14:urgcntprim15)
   
 
 # Merge with just 2014 claimants, total hospitalizations, demogs from eligibility, meds, and zip code risk
@@ -359,8 +393,10 @@ asthmarisk <- asthmarisk %>%
     fplgrp = cut(FPL, breaks = c(1, 133, 199, max(FPL[!is.na(FPL)])), right = FALSE, labels = c(1:3)),
     fplgrp = replace(fplgrp, which(fplgrp == 1 & RACcode == 1203), 1),
     # make outcomes binary
-    outcome = ifelse(hospcnt15 > 0 | EDcnt15 > 0, 1, 0),
-    outcomeprim = ifelse(hospcntprim15 > 0 | EDcntprim15 > 0, 1, 0)
+    baseline = ifelse(hospcnt14 > 0 | EDcnt14 > 0 | urgcnt14 > 0, 1, 0),
+    baselineprim = ifelse(hospcntprim14 > 0 | EDcntprim14 > 0 | urgcntprim14 > 0, 1, 0),
+    outcome = ifelse(hospcnt15 > 0 | EDcnt15 > 0 | urgcnt15 > 0, 1, 0),
+    outcomeprim = ifelse(hospcntprim15 > 0 | EDcntprim15 > 0 | EDcntprim15 > 0, 1, 0)
   )
 
 
@@ -431,8 +467,30 @@ table(asthmarisk.tmp$EDnonasth14, useNA = 'always')
 table(asthmarisk.tmp$female, useNA = 'always')
 table(asthmarisk.tmp$hizip, useNA = 'always')
 table(asthmarisk.tmp$amr14risk, useNA = 'always')
+<<<<<<< Updated upstream
 
 table(asthmarisk.tmp$relieverhigh6, useNA = 'always')
 table(asthmarisk.tmp$relieverhigh5, useNA = 'always')
 table(asthmarisk.tmp$relieverhigh4, useNA = 'always')
 table(asthmarisk.tmp$relieverhigh3, useNA = 'always')
+=======
+table(asthmarisk.tmp$relieverhigh, useNA = 'always')
+
+# Look at number of children without hospitalization, ED visit, or urgent care event in 2014
+asthmarisk.tmp2 <- asthmarisk %>%
+  filter(baseline == 0) %>%
+  mutate(EDnonasth14hi = ifelse(EDnonasth14 > 0, 1, 0),
+         controlhi = ifelse(controltot > 0, 1, 0),
+         afam = ifelse(race == 2, 1, 0),
+         riskfact = rowSums(cbind(EDnonasth14hi, relieverhigh, controlhi, afam), na.rm = TRUE))
+  
+table(asthmarisk.tmp2$EDnonasth14, useNA = 'always')
+table(asthmarisk.tmp2$EDnonasth14hi, useNA = 'always')
+table(asthmarisk.tmp2$relieverhigh, useNA = 'always')
+table(asthmarisk.tmp2$controltot, useNA = 'always')
+table(asthmarisk.tmp2$controlhi, useNA = 'always')
+table(asthmarisk.tmp2$race, useNA = 'always')
+table(asthmarisk.tmp2$afam, useNA = 'always')
+
+table(asthmarisk.tmp2$riskfact, useNA = 'always')
+>>>>>>> Stashed changes
