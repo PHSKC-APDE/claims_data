@@ -81,7 +81,8 @@ hospED <-
     db.claims,
     "SELECT DISTINCT MEDICAID_RECIPIENT_ID AS 'ID2014',
     SUM(CASE WHEN CAL_YEAR = 2014 AND CLM_TYPE_CID = 31 THEN 1 ELSE 0 END) AS 'hosp',
-    SUM(CASE WHEN CAL_YEAR=2014 AND REVENUE_CODE IN ('0450','0456','0459','0981') THEN 1 ELSE 0 END) AS 'ED'
+    SUM(CASE WHEN CAL_YEAR = 2014 AND REVENUE_CODE IN ('0450','0456','0459','0981') THEN 1 ELSE 0 END) AS 'ED',
+    SUM(CASE WHEN CAL_YEAR = 2014 AND PLACE_OF_SERVICE = '20 URGENT CARE FAC' THEN 1 ELSE 0 END) AS 'urgent'
     FROM dbo.vClaims
     GROUP BY MEDICAID_RECIPIENT_ID"
   )
@@ -145,6 +146,17 @@ meds <- meds %>%
          reliever = ifelse(category %in% c("short-acting inhaled beta-2 agonists"), 1, 0))
 
 
+# Bring in zipcode file and recode
+zipgps <- read_dta("H:/my documents/Medicaid claims/Asthma/zipgps.dta")
+zipgps <- zipgps %>%
+  mutate(region = recode(hpa, "c('Bellevue', 'Bothell/Woodinville', 'Issaquah/Sammamish', 
+                         'Kirkland', 'Mercer Isl/Point Cities', 'Redmond/Union Hill') = 1;
+                         c('Auburn', 'Burien/Des Moines', 'Federal Way', 'Kent', 'Lower Valley & Upper Sno',
+                         'Southeast King County', 'Tukwila/SeaTac', 'Vashon Island') = 2;
+                         else = 3", as.factor.result = FALSE),
+         hizip = ifelse(zipcode %in% c(98001, 98002, 98022, 98023, 98030, 98042, 98047, 98052, 98057,
+                                       98065, 98092, 98112, 98118, 98122, 98144, 98146, 98155, 98178, 98188), 1, 0))
+
 
 ##### Merge all eligible children with asthma claims and total hospital/ED visits #####
 asthmachild <- merge(eligall, asthma, by = "ID2014") %>%
@@ -188,6 +200,20 @@ asthmachild <- asthmachild %>%
     # ED visits for asthma, primary diagnosis
     EDcntprim14 = sum(ifelse(
       CAL_YEAR == 2014 & REVENUE_CODE %in% c(0450, 0456, 0459, 0981) &
+        (
+          substr(PRIMARY_DIAGNOSIS_CODE, 1, 3) == "493" |
+            substr(PRIMARY_DIAGNOSIS_CODE, 1, 3) == "J45"
+        ),
+      1,
+      0
+    ), na.rm = TRUE),
+    # Urgent care visits for asthma, any diagnosis
+    urgcnt14 = sum(ifelse(
+      CAL_YEAR == 2014 & PLACE_OF_SERVICE == "20 URGENT CARE FAC", 1, 0
+    ), na.rm = TRUE),
+    # Urgent visits for asthma, primary diagnosis
+    urgcntprim14 = sum(ifelse(
+      CAL_YEAR == 2014 & PLACE_OF_SERVICE == "20 URGENT CARE FAC" &
         (
           substr(PRIMARY_DIAGNOSIS_CODE, 1, 3) == "493" |
             substr(PRIMARY_DIAGNOSIS_CODE, 1, 3) == "J45"
@@ -247,13 +273,27 @@ asthmachild <- asthmachild %>%
         ),
       1,
       0
+    ), na.rm = TRUE),
+    # Urgent care visits for asthma, any diagnosis
+    urgcnt15 = sum(ifelse(
+      CAL_YEAR == 2015 & PLACE_OF_SERVICE == "20 URGENT CARE FAC", 1, 0
+    ), na.rm = TRUE),
+    # Urgent visits for asthma, primary diagnosis
+    urgcntprim15 = sum(ifelse(
+      CAL_YEAR == 2015 & PLACE_OF_SERVICE == "20 URGENT CARE FAC" &
+        (
+          substr(PRIMARY_DIAGNOSIS_CODE, 1, 3) == "493" |
+            substr(PRIMARY_DIAGNOSIS_CODE, 1, 3) == "J45"
+        ),
+      1,
+      0
     ), na.rm = TRUE)
   ) %>%
 arrange(ID2014, CAL_YEAR)
 
 
 # Calculate asthma medication ratio
-  tmp.meds <- asthmachild %>%
+tmp.meds <- asthmachild %>%
     group_by(ID2014) %>%
     filter(CAL_YEAR == "2014" &
              (!is.na(controller) | !is.na(reliever))) %>%
@@ -272,26 +312,34 @@ arrange(ID2014, CAL_YEAR)
       ), na.rm = TRUE),
       amr14 = controltot / (controltot + relievertot),
       amr14risk = ifelse(amr14 < 0.5, 1, ifelse(amr14 >= 0.5, 0, NA)),
-      # Add in binary classifications of medications
-      relieverhigh = ifelse(relievertot >= 6, 1, 0)
+      # Add in binary classifications of medication use
+      relieverhigh6 = ifelse(relievertot >= 6, 1, 0),
+      relieverhigh5 = ifelse(relievertot >= 5, 1, 0),
+      relieverhigh4 = ifelse(relievertot >= 4, 1, 0),
+      relieverhigh3 = ifelse(relievertot >= 3, 1, 0)
     ) %>%
+<<<<<<< Updated upstream
     distinct(ID2014, amr14) %>%
+    select(ID2014, controltot:relieverhigh3)
+=======
+    distinct(ID2014, amr14, .keep_all = TRUE) %>%
     select(ID2014, controltot, relievertot, amr14, amr14risk, relieverhigh)
+>>>>>>> Stashed changes
 
   
 # Collapse claims data and merge with medication data
 asthmarisk <- asthmachild %>%
-  distinct(ID2014) %>%
+  distinct(ID2014, .keep_all = TRUE) %>%
   # Keep columns of interest
-  select(ID2014, hospcnt14:EDcntprim15)
+  select(ID2014, hospcnt14:urgcntprim15)
   
 
-# Merge with just 2014 claimants, total hospitalizations, demogs from eligibility, and meds
+# Merge with just 2014 claimants, total hospitalizations, demogs from eligibility, meds, and zip code risk
 asthmarisk <- merge(asthmarisk, asthma2014,  by = "ID2014")
 asthmarisk <- merge(asthmarisk, hospED, by = "ID2014", all.x = TRUE)
 asthmarisk <- merge(asthmarisk, eligall, by = "ID2014", all.x = TRUE)
 asthmarisk <- merge(asthmarisk, tmp.meds, by = "ID2014", all.x = TRUE)
-  
+asthmarisk <- merge(asthmarisk, zipgps, by.x = "Zip", by.y = "zipcode", all.x = TRUE)
 
 
 
@@ -325,11 +373,19 @@ asthmarisk <- asthmarisk %>%
     # recodes those with an Asian language and no race to Asian race
     race = replace(race, which(race == 7 & Lang %in% c("Burmese","Chinese","Korean","Vietnamese","Tagalog")), 2),
     # recodes those with Somali language and no race to black race
-    race = replace(race, which(race == 7 & Lang == "Somali"), 2),  
+    race = replace(race, which(race == 7 & Lang == "Somali"), 3),  
     # recodes those with Russian language and no race to white race
-    race = replace(race, which(race == 7 & Lang == "Russian"), 2),   
+    race = replace(race, which(race == 7 & Lang == "Russian"), 6),   
     # recodes those with Spanish language and no race to Hispanic race
-    race = replace(race, which(race == 7 & Lang == "Spanish; Castillian"), 2),
+    race = replace(race, which(race == 7 & Lang == "Spanish; Castillian"), 4),
+    # add in Vietnamese category based on prior experience with asthma programs
+    race2 = race,
+    race2 = replace(race2, which(Lang == "Vietnamese"), 8),
+    # makes race and race2 factor variables and sets white to be reference category
+    race = as.factor(race),
+    race = relevel(race, ref = 6),
+    race2 = as.factor(race2),
+    race2 = relevel(race2, ref = 6),
     # extract age from birth year and recode into age groups
     age = 2014 - as.numeric(substr(DOB,1,4)),
     agegrp = cut(age, breaks = c(3, 5, 11, 18), right = FALSE, labels = c(1:3)),
@@ -337,24 +393,14 @@ asthmarisk <- asthmarisk %>%
     fplgrp = cut(FPL, breaks = c(1, 133, 199, max(FPL[!is.na(FPL)])), right = FALSE, labels = c(1:3)),
     fplgrp = replace(fplgrp, which(fplgrp == 1 & RACcode == 1203), 1),
     # make outcomes binary
-    outcome = ifelse(hospcnt15 > 0 | EDcnt15 > 0, 1, 0),
-    outcomeprim = ifelse(hospcntprim15 > 0 | EDcntprim15 > 0, 1, 0)
+    baseline = ifelse(hospcnt14 > 0 | EDcnt14 > 0 | urgcnt14 > 0, 1, 0),
+    baselineprim = ifelse(hospcntprim14 > 0 | EDcntprim14 > 0 | urgcntprim14 > 0, 1, 0),
+    outcome = ifelse(hospcnt15 > 0 | EDcnt15 > 0 | urgcnt15 > 0, 1, 0),
+    outcomeprim = ifelse(hospcntprim15 > 0 | EDcntprim15 > 0 | EDcntprim15 > 0, 1, 0)
   )
 
 
-# Bring in zipcode file and recode
-zipgps <- read_dta("H:/my documents/Medicaid claims/Asthma/zipgps.dta")
-zipgps <- zipgps %>%
-  mutate(region = recode(hpa, "c('Bellevue', 'Bothell/Woodinville', 'Issaquah/Sammamish', 
-                          'Kirkland', 'Mercer Isl/Point Cities', 'Redmond/Union Hill') = 1;
-                          c('Auburn', 'Burien/Des Moines', 'Federal Way', 'Kent', 'Lower Valley & Upper Sno',
-                          'Southeast King County', 'Tukwila/SeaTac', 'Vashon Island') = 2;
-                          else = 3", as.factor.result = FALSE),
-         hizip = ifelse(zipcode %in% c(98001, 98002, 98022, 98023, 98030, 98042, 98047, 98052, 98057,
-                                       98065, 98092, 98112, 98118, 98122, 98144, 98146, 98155, 98178, 98188), 1, 0))
-  
-asthmarisk <- merge(asthmarisk, zipgps, by.x = "Zip", by.y = "zipcode", all.x = TRUE)
-  
+
 
 # ANALYSIS ----------------------------------------------------------------
 
@@ -371,9 +417,9 @@ m1 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + f
             scored(fplgrp) + hizip, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0, x = TRUE, y = TRUE)
 m1
 
-# Previous model but including asthma medication variables
+# Previous model but including asthma medication variables (can vary relieverhigh from 3 to 6)
 m2 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) + 
-            scored(fplgrp) + hizip + amr14risk + relieverhigh, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0,
+            scored(fplgrp) + hizip + amr14risk + relieverhigh3, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0,
           x = TRUE, y = TRUE)
 m2
 
@@ -382,8 +428,8 @@ plot(p2, anova = anova(m2), pval = TRUE)
 
 
 # repeat using glm
-m2a <- glm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) + 
-            scored(fplgrp) + hizip + amr14risk + relieverhigh, data = asthmarisk, family = "binomial",
+m2a <- glm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + factor(agegrp) + female + factor(race) + 
+            factor(fplgrp) + hizip + amr14risk + relieverhigh3, data = asthmarisk, family = "binomial",
           subset = hospcnt14 ==0 & EDcnt14 == 0)
 
 summary(m2a)
@@ -396,7 +442,7 @@ lrtest(m1, m2)
 
 # Drop FPL due to large # of missing
 m3 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) +
-            hizip + amr14risk + relieverhigh, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0, x = TRUE, y = TRUE)
+            hizip + amr14risk + relieverhigh6, data = asthmarisk, subset = hospcnt14 ==0 & EDcnt14 == 0, x = TRUE, y = TRUE)
 m3
 
 lrtest(m2, m3)
@@ -404,22 +450,47 @@ lrtest(m2, m3)
 
 # Look at children with a hosp/ED asthma event in 2014
 m4 <- lrm(outcome ~ hospnonasth14 + EDnonasth14 + wellcnt14 + scored(agegrp) + female + scored(race) +
-            hizip + amr14risk + relieverhigh, data = asthmarisk, subset = hospcnt14 > 0 & EDcnt14 > 0, x = TRUE, y = TRUE)
+            hizip + amr14risk + relieverhigh6, data = asthmarisk, subset = hospcnt14 > 0 & EDcnt14 > 0, x = TRUE, y = TRUE)
 m4
 
 lrtest(m2, m4)
 
-### Assess number of children with each predictor
 
+### Assess number of children with each predictor
 # Make temp data set to match the children in the model
 asthmarisk.tmp <- asthmarisk %>%
   filter(hospcnt14 == 0 & EDcnt14 == 0 & !is.na(hospnonasth14) & !is.na(EDnonasth14) & !is.na(wellcnt14) & 
            !is.na(agegrp) & !is.na(female) & !is.na(race) & !is.na(fplgrp) & !is.na(hizip) & !is.na(amr14risk) & 
-           !is.na(relieverhigh))
-
+           !is.na(relieverhigh6))
 
 table(asthmarisk.tmp$EDnonasth14, useNA = 'always')
 table(asthmarisk.tmp$female, useNA = 'always')
 table(asthmarisk.tmp$hizip, useNA = 'always')
 table(asthmarisk.tmp$amr14risk, useNA = 'always')
+<<<<<<< Updated upstream
+
+table(asthmarisk.tmp$relieverhigh6, useNA = 'always')
+table(asthmarisk.tmp$relieverhigh5, useNA = 'always')
+table(asthmarisk.tmp$relieverhigh4, useNA = 'always')
+table(asthmarisk.tmp$relieverhigh3, useNA = 'always')
+=======
 table(asthmarisk.tmp$relieverhigh, useNA = 'always')
+
+# Look at number of children without hospitalization, ED visit, or urgent care event in 2014
+asthmarisk.tmp2 <- asthmarisk %>%
+  filter(baseline == 0) %>%
+  mutate(EDnonasth14hi = ifelse(EDnonasth14 > 0, 1, 0),
+         controlhi = ifelse(controltot > 0, 1, 0),
+         afam = ifelse(race == 2, 1, 0),
+         riskfact = rowSums(cbind(EDnonasth14hi, relieverhigh, controlhi, afam), na.rm = TRUE))
+  
+table(asthmarisk.tmp2$EDnonasth14, useNA = 'always')
+table(asthmarisk.tmp2$EDnonasth14hi, useNA = 'always')
+table(asthmarisk.tmp2$relieverhigh, useNA = 'always')
+table(asthmarisk.tmp2$controltot, useNA = 'always')
+table(asthmarisk.tmp2$controlhi, useNA = 'always')
+table(asthmarisk.tmp2$race, useNA = 'always')
+table(asthmarisk.tmp2$afam, useNA = 'always')
+
+table(asthmarisk.tmp2$riskfact, useNA = 'always')
+>>>>>>> Stashed changes
