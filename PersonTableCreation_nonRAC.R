@@ -32,13 +32,12 @@ ptm01 <- proc.time() # Times how long this query takes (~400 secs)
 elig <-
   sqlQuery(
     db.claims,
-    "SELECT CAL_YEAR AS 'year', MEDICAID_RECIPIENT_ID AS 'id', HOH_ID AS 'hhid', SOCIAL_SECURITY_NMBR AS 'ssn',
+    "SELECT MEDICAID_RECIPIENT_ID AS 'id', HOH_ID AS 'hhid', SOCIAL_SECURITY_NMBR AS 'ssn',
     FIRST_NAME AS 'fname', MIDDLE_NAME AS 'mname', LAST_NAME AS 'lname', GENDER AS 'gender',
     RACE1  AS 'race1', RACE2 AS 'race2', RACE3 AS 'race3', RACE4 AS 'race4', HISPANIC_ORIGIN_NAME AS 'hispanic',
     BIRTH_DATE AS 'dob', CTZNSHP_STATUS_NAME AS 'citizenship', INS_STATUS_NAME AS 'immigration',
     SPOKEN_LNG_NAME AS 'langs', WRTN_LNG_NAME AS 'langw', FPL_PRCNTG AS 'fpl', PRGNCY_DUE_DATE AS 'duedate',
     RAC_CODE AS 'RACcode', RAC_NAME AS 'RACname', FROM_DATE AS 'fromdate', TO_DATE AS 'todate',
-    covtime = DATEDIFF(dd,FROM_DATE, CASE WHEN TO_DATE > GETDATE() THEN GETDATE() ELSE TO_DATE END),
     END_REASON AS 'endreason', COVERAGE_TYPE_IND AS 'coverage', DUAL_ELIG AS 'dualelig',
     ADRS_LINE_1 AS 'add1', ADRS_LINE_2 AS 'add2', CITY_NAME AS 'city', POSTAL_CODE AS 'zip', COUNTY_CODE AS 'cntyfips',
     COUNTY_NAME AS 'cntyname', ADR_FROM_DATE AS 'addfrom', ADR_TO_DATE AS 'addto', MBR_H_SID AS 'id2'
@@ -50,6 +49,8 @@ proc.time() - ptm01
 
 # Make a copy of the dataset to avoid having to reread it
 elig.bk <- elig
+
+
 
 
 ##### Items to resolve for deduplication #####
@@ -136,7 +137,7 @@ elig$citynew[is.na(elig$citynew)] = elig$city[is.na(elig$citynew)]
 
 
 #### Addresses (NB. a separate geocoding process may fill in some gaps later) ####
-# Goal: Tidy up and standardize addresses
+# Goal: Tidy up and standardize addresses so that they can be geocoded
 elig <- elig %>%
   mutate(
     # Set up homeless, PO Box, and C/O variables first to avoid capturing non-permanent residential 
@@ -196,13 +197,26 @@ elig <- elig %>%
   )
 
 
+#### Addresses for geocoding ####
+# Pull out distinct addresses
+today <- Sys.Date()
+address <- distinct(elig, street2, citynew, zip, .keep_all = TRUE) %>%
+  select(add1, add2, city, zip, street, street2, citynew) %>%
+  arrange(street2, citynew, zip)
+write.xlsx(address, file = 
+             paste0("//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding/Distinct addresses_", today, ".xlsx"),
+           col.names = TRUE)
+# NB. If R throws an error about not having Rtools installed, run this command:
+# Sys.setenv(R_ZIPCMD= "C:/Rtools/bin/zip")
+
+
 #### Gender ####
 # Goal: Find IDs with >1 recorded gender
 # NB. This fails if attempting to complete all operations in one command
 elig <- mutate(elig,
                gendernew = car::recode(gender, c("'Female' = 1; 'Male' = 2; 'Unknown' = NA")))
-  # Count the number of genders recorded for an individual
-  elig <- elig %>%
+# Count the number of genders recorded for an individual
+elig <- elig %>%
   group_by(id, ssnnew) %>%
   mutate(gender_tot = n_distinct(gendernew, na.rm = TRUE)) %>%
   ungroup() %>%
@@ -356,40 +370,29 @@ rm(race.tmp) # remove temp data frames to save memory
 # To come
 
 
-#### Addresses for geocoding ####
-# Pull out distinct addresses
-today <- Sys.Date()
-address <- distinct(elig, street2, citynew, zip, .keep_all = TRUE) %>%
-  select(add1, add2, city, zip, street, street2, citynew) %>%
-  arrange(street2, citynew, zip)
-write.xlsx(address, file = 
-             paste0("//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding/Distinct addresses_", today, ".xlsx"),
-           col.names = TRUE)
-# NB. If R throws an error about not having Rtools installed, run this command:
-# Sys.setenv(R_ZIPCMD= "C:/Rtools/bin/zip")
+
 
 
 #### COVERAGE PERIOD ####
 # Goal: Make one line per person per coverage period and address (ignoring RAC codes for now)
 # NB. All scenarios are looking within an id + ssn combo and ignore RAC code
 # Scenario 1: Rows with duplicate year + from/to dates (elig and) + address = remove duplicates
-# Scenario 2: From/to dates and addresses are identical across years = take most recent year
-# Scenario 3: From/to dates the same but different addresses = take most common address
+# Scenario 2: From/to dates the same but different addresses = take most common address
 #             (NB. Should not be an issue now address from/to dates available)
-# Scenario 4: Todate is 2099-12-31 = change todate to be <year>-12-31
+# Scenario 3: Todate is 2099-12-31 = change todate to be <year>-12-31
 #             (NB. This includes the current year)
-# Scenario 5: From date and address identical but different to date = take most recent to date
-#             (NB. consider scenario 4 first)
-# Scenario 6: From/to dates within bounds of another row's from/to date + address the same = 
+# Scenario 4: From date and address identical but different to date = take most recent to date
+#             (NB. consider scenario 3 first)
+# Scenario 5: From/to dates within bounds of another row's from/to date + address the same = 
 #             adjust address to dates to fit on one row and remove other rows
-#             (NB. consider scenario 4 frist)
-# Scenario 7: Different addresses but overlapping from/to dates = Adjust *to date* of address with 
+#             (NB. consider scenario 3 frist)
+# Scenario 6: Different addresses but overlapping from/to dates = Adjust *to date* of address with 
 #             earliest *from date* to be the *from date - 1* of the other row 
 #             (e.g., Address 1, from date: 2013-06-01, to date: 2015-05-30 and
 #                    Address 2, from date: 2014-02-01, to date: 2016-01-31 becomes
 #                    Address 1, from date: 2013-06-01, to date: 2014-01-31)
-#             (NB. consider scenario 4 and should not be an issue now address from/to dates available)
-# Scenario 8: Missing address from date (and usually missing address) = not currently addressed,
+#             (NB. consider scenario 3 and should not be an issue now address from/to dates available)
+# Scenario 7: Missing address from date (and usually missing address) = not currently addressed,
 #             results in 190 individuals with overlapping final dates
 
 
@@ -450,24 +453,8 @@ elig <- elig %>%
 elig <- distinct(elig, id, ssnnew, year, fromdate, todatenew, addfrom, addto, street2, citynew, .keep_all = TRUE)
 
 
-#### Step 2) When from/to dates and addresses are identical across years, take the most recent year ####
 
-# It looks like when a coverage period spans >1 year, a new record is created for each year that is all or partially covered.
-# Consolidate rows that are duplicated within a single year at first
-# Update: the CAL_YEAR/year variable is created by KC when entered into the SQL database, not provided by HCA
-# skip this step for now
-
-# NB. There seem to be multiple coverage types (FFS or MC) over the same period
-#     so this is not being considered for now
-# RAC code is also being ignored for now
-
-#elig <- elig %>%
-#  group_by(id, ssnnew, fromdate, todatenew, addfrom, addto, street2, citynew) %>%
-#  slice(which.max(year)) %>%
-#  ungroup()
-
-
-#### Step 3) Recode todates of 2999-12-31 to be <year>-12-31 ####
+#### Step 2) Recode todates of 2999-12-31 to be <year>-12-31 ####
 elig <- elig %>%
   mutate(
     todatenew =
@@ -479,7 +466,7 @@ elig <- elig %>%
   )
 
 
-#### Step 4) Clean up address from and to dates ####
+#### Step 3) Clean up address from and to dates ####
 
 # Update address from dates to match eligibility from date (if add.from < elig.from or NA)
 elig <- elig %>%
@@ -514,8 +501,8 @@ elig <- elig %>%
 elig <- filter(elig, !(addfromnew > todatenew) | is.na(addfromnew))
 
 
-#### Step 5) Consolidate elig and address from/to dates within a single address first ####
-# Need to do steps 5+6 within an address first otherwise some rows with overlapping
+#### Step 4) Consolidate elig and address from/to dates within a single address first ####
+# Need to do steps 4+5 within an address first otherwise some rows with overlapping
 # dates will remain
 
 # Find rows where the elig and address from/to dates fit completely within a previous row
@@ -551,7 +538,7 @@ repeat {
 }
 
 
-#### Step 6) Rewrite from/to dates so that continuous coverage is on a single row for each address ####
+#### Step 5) Rewrite from/to dates so that continuous coverage is on a single row for each address ####
 # Consolidate dates within the same address
 elig <- elig %>%
   arrange(id, ssnnew, street2, fromdate, todatenew, addfromnew, addto) %>%
@@ -626,7 +613,8 @@ elig <- elig %>%
   select(-(selector), -(overlap), -(overlap_num))
 
 
-#### Step 7) Repeat steps 5 and 6 ####
+#### Step 6) Repeat steps 4 and 5 ####
+# Repetition is necessary as the first round of row deletions adjusts the adjacency of dates
 # Consolidate elig and address from/to dates within a single address
 elig <- arrange(elig, id, ssnnew, street2, fromdate, todatenew, addfromnew, addtonew)
 
@@ -704,7 +692,7 @@ elig <- elig %>%
   select(-(selector), -(overlap), -(overlap_num))
 
 
-#### Step 8) Repeat steps 5 and 6 again ####
+#### Step 8) Repeat steps 4 and 5 again ####
 # Copy of code in step 7. Need to turn this into a function to save space
 # Consolidate elig and address from/to dates within a single address
 elig <- arrange(elig, id, ssnnew, street2, fromdate, todatenew, addfromnew, addtonew)
@@ -783,7 +771,7 @@ elig <- elig %>%
   select(-(selector), -(overlap), -(overlap_num))
 
 
-#### Step 9) Create final from and to dates that indicates coverage at that address ####
+#### Step 8) Create final from and to dates that indicates coverage at that address ####
 elig <- elig %>%
   mutate(fromfinal = ifelse(addfromnew > fromdate, addfromnew, fromdate),
          tofinal = ifelse(addtonew < todatenew, addtonew, todatenew),
@@ -792,11 +780,11 @@ elig <- elig %>%
   arrange(id, ssnnew, fromfinal, tofinal, street2)
 
 
-#### Step 10) Remove any duplicate rows based on final dates ####
+#### Step 9) Remove any duplicate rows based on final dates ####
 elig <- distinct(elig, id, ssnnew, year, fromfinal, tofinal, street2, .keep_all = TRUE)
 
 
-#### Step 11) Consolidate rows where final dates sit completely within preceding row ####
+#### Step 10) Consolidate rows where final dates sit completely within preceding row ####
 # Look within addresses for now
 
 # The loop runs until there are no more adjacent periods like this
@@ -823,7 +811,7 @@ repeat {
 }
 
 
-#### Step 12) Find adjacent rows with the same final from_date, same address, and takes the largest to date ####
+#### Step 11) Find adjacent rows with the same final from_date, same address, and takes the largest to date ####
 # The loop repeats until there are no more adjacent periods like this
 elig <- arrange(elig, id, ssnnew, fromfinal, tofinal, street2)
 
@@ -853,7 +841,7 @@ repeat {
 }
 
 
-#### Step 13) Rewrite from/to dates so that continuous coverage is on a single row ####
+#### Step 12) Rewrite from/to dates so that continuous coverage is on a single row ####
 elig <- elig %>%
   arrange(id, ssnnew, fromfinal, tofinal) %>%
   mutate(overlap = ifelse(((is.na(street2) &
@@ -905,7 +893,7 @@ elig <- elig %>%
   select(-(selector), -(overlap), -(overlap_num))
 
 
-#### Step 14) Repeat steps 12 and 13 ####
+#### Step 13) Repeat steps 11 and 12 ####
 # Find adjacent rows with the same final from_date, same address, and takes the largest to date
 elig <- arrange(elig, id, ssnnew, fromfinal, tofinal, street2)
 
@@ -986,7 +974,7 @@ elig <- elig %>%
   select(-(selector), -(overlap), -(overlap_num))
 
 
-#### Step 15) Repeat steps 12 and 13 ####
+#### Step 14) Repeat steps 11 and 12 ####
 # Again, need to turn these into programs to save space
 # Find adjacent rows with the same final from_date, same address, and takes the largest to date
 elig <- arrange(elig, id, ssnnew, fromfinal, tofinal, street2)
