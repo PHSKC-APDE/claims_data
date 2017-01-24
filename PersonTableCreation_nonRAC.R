@@ -3,6 +3,7 @@
 # 
 # Alastair Matheson (PHSKC-APDE)
 # 2016-06-10
+# Last updated: 2017-01-24
 ###############################################################################
 
 
@@ -49,7 +50,6 @@ proc.time() - ptm01
 
 # Make a copy of the dataset to avoid having to reread it
 elig.bk <- elig
-
 
 
 
@@ -692,10 +692,90 @@ elig <- elig %>%
   select(-(selector), -(overlap), -(overlap_num))
 
 
+<<<<<<< HEAD
 #### Step 8) Repeat steps 4 and 5 again ####
 # Copy of code in step 7. Need to turn this into a function to save space
 # Consolidate elig and address from/to dates within a single address
 elig <- arrange(elig, id, ssnnew, street2, fromdate, todatenew, addfromnew, addtonew)
+=======
+#### Step 8) Repeat steps 5 and 6 again ####
+# Copy of code in step 7. Need to turn this into a function to save space
+# Consolidate elig and address from/to dates within a single address
+elig <- arrange(elig, id, ssnnew, street2, fromdate, todatenew, addfromnew, addtonew)
+
+repeat {
+  dfsize <-  nrow(elig)
+  elig <- elig %>%
+    mutate(drop = ifelse((fromdate > lag(fromdate, 1) &
+                            todatenew <= lag(todatenew, 1)) &
+                           !is.na(lag(fromdate, 1)) &
+                           !is.na(lag(todatenew, 1)) &
+                           addfromnew >= lag(addfromnew, 1) &
+                           addto <= lag(addto, 1) &
+                           !is.na(lag(addfromnew, 1)) &
+                           !is.na(lag(addto, 1)) &
+                           street2 == lag(street2, 1) &
+                           id == lag(id, 1) &
+                           ssnnew == lag(ssnnew, 1) &
+                           !is.na(lag(id, 1)) &
+                           !is.na(lag(ssnnew, 1)),
+                         1,
+                         0
+    )) %>%
+    filter(drop == 0)
+  dfsize2 <- nrow(elig)
+  if (dfsize2 == dfsize) {
+    break
+  }
+}
+
+# Rewrite from/to dates so that continuous coverage is on a single row for each address
+elig <- elig %>%
+  arrange(id, ssnnew, street2, fromdate, todatenew, addfromnew, addtonew) %>%
+  mutate(overlap = ifelse((is.na(street2) &
+                             !is.na(lead(street2, 1))) |
+                            (!is.na(street2) &
+                               is.na(lead(street2, 1))),
+                          0,
+                          if_else(
+                            todatenew + 1 >= lead(fromdate, 1) &
+                              !is.na(lead(todatenew, 1)) &
+                              !is.na(lead(fromdate, 1)) &
+                              addtonew + 1 >= lead(addfromnew, 1) &
+                              addfromnew < lead(addfromnew, 1) &
+                              !is.na(lead(addtonew, 1)) &
+                              !is.na(lead(addfromnew, 1)) &
+                              (street2 == lead(street2, 1) |
+                                 (is.na(street2) & is.na(lead(
+                                   street2, 1)))) &
+                              id == lead(id, 1) &
+                              ssnnew == lead(ssnnew, 1) &
+                              !is.na(lead(id, 1)) &
+                              !is.na(lead(ssnnew, 1)),
+                            1,
+                            0
+                          )
+  ))
+
+elig <- elig %>%
+  arrange(id, ssnnew, street2, desc(fromdate), desc(todatenew), desc(addfromnew), desc(addtonew)) %>%
+  mutate(
+    overlap_num =
+      cumul_ones(overlap)) %>%
+  arrange(id, ssnnew, street2, fromdate, todatenew, addfromnew, addtonew) %>%
+  mutate(selector = 1:nrow(elig) + overlap_num,
+         drop = if_else(selector == lag(selector, 1) &
+                          !is.na(lag(selector)),
+                        1,
+                        0)
+  )
+
+elig <- elig %>%
+  mutate(todatenew = todatenew[selector],
+         addtonew = addtonew[selector]) %>%
+  filter(drop == 0) %>%
+  select(-(selector), -(overlap), -(overlap_num))
+>>>>>>> 49f75d6eb8ee3403c926b737521041d434e69357
 
 repeat {
   dfsize <-  nrow(elig)
