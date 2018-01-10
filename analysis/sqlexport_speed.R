@@ -40,9 +40,17 @@ elig_dob <- sqlQuery(
 )
 proc.time() - ptm01
 
+#### Grab column types from SQL server table
+tmp <- sqlColumns(db.claims51, "elig_dob") ## this function grabs a bunch of info about the columns) 
+varTypes <- as.character(tmp$TYPE_NAME) 
+names(varTypes) <- as.character(tmp$COLUMN_NAME)
+
 #Try exporting elig_dob subset with different methods, measure proc time
 
 temp <- slice(elig_dob,1:10000)
+
+#Write full table to secure drive for testing
+write.table(elig_dob,"\\\\dchs-shares01\\dchsdata\\DCHSPHClaimsData\\Data\\temp.txt",quote=FALSE,sep=",",row.names=FALSE,col.names=FALSE,append=FALSE)
 
 #Scenario 1
 ptm02 <- proc.time() # Times how long this query takes - 25.83 sec
@@ -52,15 +60,13 @@ sqlSave(
   temp,
   tablename = "dbo.temp",
   rownames = FALSE,
-  varTypes = c(
-    dobnew = "Date"
-  )
+  varTypes = varTypes
 )
 proc.time() - ptm02
 
 #Scenario 2
 ptm03 <- proc.time() # Times how long this query takes - 24.81 sec
-#sqlDrop(db.claims51, "dbo.temp") # Commented out because not always necessary
+sqlDrop(db.claims51, "dbo.temp") # Commented out because not always necessary
 sqlSave(
   db.claims51,
   temp,
@@ -68,7 +74,8 @@ sqlSave(
   rownames = FALSE,
   fast = TRUE,
   varTypes = c(
-    dobnew = "Date"
+    dobnew = "Date",
+    ssnnew = "Varchar(255)"
   )
 )
 proc.time() - ptm03

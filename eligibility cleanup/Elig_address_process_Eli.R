@@ -171,6 +171,7 @@ sqlSave(
   rownames = FALSE,
   fast = TRUE,
   varTypes = c(
+    id = "Varchar(255)",
     from_add = "Date",
     to_add = "Date"
   )

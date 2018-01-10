@@ -128,6 +128,8 @@ sqlSave(
   rownames = FALSE,
   fast = TRUE,
   varTypes = c(
+    id = "Varchar(255)",  
+    ssnnew = "Varchar(255)",  
     dobnew = "Date"
   )
 )
