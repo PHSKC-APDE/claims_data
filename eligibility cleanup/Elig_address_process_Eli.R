@@ -48,11 +48,11 @@ elig_calmo <- elig_calmo %>%
 ptm01 <- proc.time() # Times how long this query takes - 172 sec
 elig_address <- sqlQuery(
   db.claims51,
-  " select distinct y.CLNDR_YEAR_MNTH as calmo, y.MEDICAID_RECIPIENT_ID as id, y.FROM_DATE as 'from', y.TO_DATE as 'to', y.RSDNTL_ADRS_LINE_1 as add1, 
+  " SELECT DISTINCT y.CLNDR_YEAR_MNTH as calmo, y.MEDICAID_RECIPIENT_ID as id, y.FROM_DATE as 'from', y.TO_DATE as 'to', y.RSDNTL_ADRS_LINE_1 as add1, 
       y.RSDNTL_ADRS_LINE_2 as add2, y.RSDNTL_CITY_NAME as city, y.RSDNTL_STATE_CODE as state, 
 	    y.RSDNTL_POSTAL_CODE as zip, y.RSDNTL_COUNTY_CODE as cntyfips, y.RSDNTL_COUNTY_NAME as cntyname
     FROM (
-    select z.CLNDR_YEAR_MNTH, z.MEDICAID_RECIPIENT_ID, z.FROM_DATE, z.TO_DATE, z.RSDNTL_ADRS_LINE_1, z.RSDNTL_ADRS_LINE_2, z.RSDNTL_CITY_NAME, 
+    SELECT z.CLNDR_YEAR_MNTH, z.MEDICAID_RECIPIENT_ID, z.FROM_DATE, z.TO_DATE, z.RSDNTL_ADRS_LINE_1, z.RSDNTL_ADRS_LINE_2, z.RSDNTL_CITY_NAME, 
       z.RSDNTL_STATE_CODE, z.RSDNTL_POSTAL_CODE, z.RSDNTL_COUNTY_CODE, z.RSDNTL_COUNTY_NAME
       FROM [PHClaims].[dbo].[NewEligibility] as z
     ) as y",
