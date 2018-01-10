@@ -3,8 +3,6 @@
 # 2017-9-6
 
 # Code to assign a single date of birth to Medicaid members using the eligibility data
-# Code to calculate an age based on a reference data
-# Code to select Medicaid members of a certain age range who were eligible during a certain date range
 
 ###############################################################################
 
@@ -43,7 +41,7 @@ db.claims51 <- odbcConnect("PHClaims51")
 ##### Bring in Medicaid eligibility data for DOB processing #####
 #Note to bring in test subset of Medicaid data, insert "top 50000" between SELECT and z.MEDICAID_RECIPIENT_ID
 
-ptm01 <- proc.time() # Times how long this query takes (~400 secs)
+ptm01 <- proc.time() # Times how long this query takes
 elig_dob <- sqlQuery(
   db.claims51,
   " select distinct y.MEDICAID_RECIPIENT_ID as id, y.SOCIAL_SECURITY_NMBR as ssn, y.BIRTH_DATE as dob, count(*) as row_cnt
@@ -120,7 +118,7 @@ elig_dob <- mutate(elig_dob, dobnew = ymd(as.Date(ifelse(!is.na(dob.y), dob.y, d
 #Filter to distinct
 elig_dob <- distinct(elig_dob, id, ssnnew, dobnew)
 
-##### Save dob.elgi_dob to SQL server 51 #####
+##### Save dob.elig_dob to SQL server 51 #####
 #This took 40 min to upload, 829,000 rows x 3 variables
 sqlDrop(db.claims51, "dbo.elig_dob") # Commented out because not always necessary
 sqlSave(
@@ -128,6 +126,7 @@ sqlSave(
   elig_dob,
   tablename = "dbo.elig_dob",
   rownames = FALSE,
+  fast = TRUE,
   varTypes = c(
     dobnew = "Date"
   )
