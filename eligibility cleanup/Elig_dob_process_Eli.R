@@ -120,7 +120,8 @@ elig_dob <- distinct(elig_dob, id, ssnnew, dobnew)
 
 ##### Save dob.elig_dob to SQL server 51 #####
 #This took 40 min to upload, 829,000 rows x 3 variables
-sqlDrop(db.claims51, "dbo.elig_dob") # Commented out because not always necessary
+#sqlDrop(db.claims51, "dbo.elig_dob") # Commented out because not always necessary
+ptm02 <- proc.time() # Times how long this query takes
 sqlSave(
   db.claims51,
   elig_dob,
@@ -133,7 +134,7 @@ sqlSave(
     dobnew = "Date"
   )
 )
-
+proc.time() - ptm02
 
 
 
