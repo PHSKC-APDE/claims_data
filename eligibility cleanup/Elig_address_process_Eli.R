@@ -161,7 +161,7 @@ elig_address_final <- select(elig_address_final, id, from_add, to_add, add1_new,
                       homeless, mailbox, care_of, overridden, kcreg_zip)
 
 ##### Save dob.elig_address to SQL server 51 #####
-#This took XX mins
+#This took 74 mins for 1,837,601 obs with 16 variables
 #sqlDrop(db.claims51, "dbo.elig_address") # Commented out because not always necessary
 ptm03 <- proc.time() # Times how long this query take
 sqlSave(
