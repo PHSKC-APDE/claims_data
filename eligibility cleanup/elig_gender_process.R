@@ -57,7 +57,7 @@ elig_gender <- elig_gender %>%
     toupper
   )
 
-##### Collapse contiguous time periods when address does not change #####
+##### Collapse contiguous time periods when gender does not change #####
 
 #Find multiple genders by ID (just for browsing to make sure collapsing worked)
 elig_gender_mult.tmp <- elig_gender %>%
