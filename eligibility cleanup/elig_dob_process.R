@@ -118,14 +118,14 @@ elig_dob <- mutate(elig_dob, dobnew = ymd(as.Date(ifelse(!is.na(dob.y), dob.y, d
 #Filter to distinct
 elig_dob <- distinct(elig_dob, id, ssnnew, dobnew)
 
-##### Save dob.elig_dob to SQL server 51 #####
+##### Save dob.mcaid_elig_dob to SQL server 51 #####
 #This took 40 min to upload, 829,000 rows x 3 variables
-#sqlDrop(db.claims51, "dbo.elig_dob") # Commented out because not always necessary
+#sqlDrop(db.claims51, "dbo.mcaid_elig_dob") # Commented out because not always necessary
 ptm02 <- proc.time() # Times how long this query takes
 sqlSave(
   db.claims51,
   elig_dob,
-  tablename = "dbo.elig_dob",
+  tablename = "dbo.mcaid_elig_dob",
   rownames = FALSE,
   fast = TRUE,
   varTypes = c(

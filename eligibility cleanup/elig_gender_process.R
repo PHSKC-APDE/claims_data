@@ -2,7 +2,7 @@
 # Eli Kern
 # 2018-1-16
 
-# Code to create a SQL table elig_gender which holds Medicaid member gender by ID and time period
+# Code to create a SQL table dbo.mcaid_elig_gender which holds Medicaid member gender by ID and time period
 # Use to select a gender-based cohort for a given data range
 # Data elements: ID, gender, from date, to date 
 
@@ -83,14 +83,14 @@ elig_gender_final <- elig_gender %>%
 #Drop group variable
 elig_gender_final <- select(elig_gender_final, id, calstart, calend, gender)
 
-##### Save dob.gender to SQL server 51 #####
+##### Save dob.mcaid_elig_gender to SQL server 51 #####
 #This took 47 mins for 1,177,881 obs with 4 variables
-#sqlDrop(db.claims51, "dbo.elig_gender") # Commented out because not always necessary
+#sqlDrop(db.claims51, "dbo.mcaid_elig_gender") # Commented out because not always necessary
 ptm03 <- proc.time() # Times how long this query take
 sqlSave(
   db.claims51,
   elig_gender_final,
-  tablename = "dbo.elig_gender",
+  tablename = "dbo.mcaid_elig_gender",
   rownames = FALSE,
   fast = TRUE,
   varTypes = c(

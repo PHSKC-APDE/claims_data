@@ -2,7 +2,7 @@
 # Eli Kern
 # 2018-1-8
 
-# Code to create a SQL table elig_address which holds clean and geocoded address information for each ID and time period
+# Code to create a SQL table dbo.mcaid_elig_address which holds clean and geocoded address information for each ID and time period
 # From and do dates for addresses and calendar month year are used to create new from and to dates
 # Use to select a geographic-based cohort for a give data range
 # Data elements: id, from and to dates for contiguous time periods per ID and address, clean address fields, geocoded fields, address flags
@@ -162,14 +162,14 @@ elig_address_final <- elig_address %>%
 elig_address_final <- select(elig_address_final, id, from_add, to_add, add1_new, add2_new, city_new, state_new, zip_new, cntyfips_new, cntyname_new, confidential, 
                       homeless, mailbox, care_of, overridden, kcreg_zip)
 
-##### Save dob.elig_address to SQL server 51 #####
+##### Save dob.mcaid_elig_address to SQL server 51 #####
 #This took 74 mins for 1,837,601 obs with 16 variables
-#sqlDrop(db.claims51, "dbo.elig_address") # Commented out because not always necessary
+#sqlDrop(db.claims51, "dbo.mcaid_elig_address") # Commented out because not always necessary
 ptm03 <- proc.time() # Times how long this query take
 sqlSave(
   db.claims51,
   elig_address_final,
-  tablename = "dbo.elig_address",
+  tablename = "dbo.mcaid_elig_address",
   rownames = FALSE,
   fast = TRUE,
   varTypes = c(
