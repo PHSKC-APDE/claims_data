@@ -37,7 +37,7 @@ elig_race <- sqlQuery(
   " select distinct y.CLNDR_YEAR_MNTH as calmo, y.MEDICAID_RECIPIENT_ID as id, y.RACE1 as race1, y.RACE2 as race2, 
       y.RACE3 as race3, y.RACE4 as race4, y.HISPANIC_ORIGIN_NAME as hispanic
     FROM (
-    select top 100000 z.CLNDR_YEAR_MNTH, z.MEDICAID_RECIPIENT_ID, z.RACE1, z.RACE2, z.RACE3, z.RACE4, z.HISPANIC_ORIGIN_NAME
+    select z.CLNDR_YEAR_MNTH, z.MEDICAID_RECIPIENT_ID, z.RACE1, z.RACE2, z.RACE3, z.RACE4, z.HISPANIC_ORIGIN_NAME
       FROM [PHClaims].[dbo].[NewEligibility] as z
     ) as y",
   stringsAsFactors = FALSE
@@ -136,7 +136,7 @@ elig_race_final <- elig_race %>%
 elig_race_final <- select(elig_race_final, id, calstart, calend, aian:latino)
 
 ##### Save dob.mcaid_elig_race to SQL server 51 #####
-#This took XX mins for XX obs with 9 variables
+#This took 52 mins for 1,292,841 obs with 9 variables
 #sqlDrop(db.claims51, "dbo.mcaid_elig_race") # Commented out because not always necessary
 ptm03 <- proc.time() # Times how long this query take
 sqlSave(
