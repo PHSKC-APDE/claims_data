@@ -35,7 +35,7 @@ ptm01 <- proc.time() # Times how long this query takes (~400 secs)
 elig_dob <- sqlQuery(
   db.claims51,
   " select *
-    FROM [PHClaims].[dbo].[elig_dob]",
+    FROM [PHClaims].[dbo].[mcaid_elig_dob]",
   stringsAsFactors = FALSE
 )
 proc.time() - ptm01
@@ -46,8 +46,14 @@ varTypes <- as.character(tmp$TYPE_NAME)
 names(varTypes) <- as.character(tmp$COLUMN_NAME)
 
 #Try exporting elig_dob subset with different methods, measure proc time
-
 temp <- slice(elig_dob,1:10000)
+
+#Create a temp flat file with fake data
+temp_fake <- temp %>%
+  mutate(ssnnew = 10000001:10010000,
+         dobnew = ymd("1965-11-15")
+  )
+write.table(temp_fake,"\\\\dchs-shares01\\dchsdata\\DCHSPHClaimsData\\Data\\temp_fake.txt",quote=FALSE,sep=",",row.names=FALSE,col.names=FALSE,append=FALSE)
 
 #Write full table to secure drive for testing
 write.table(elig_dob,"\\\\dchs-shares01\\dchsdata\\DCHSPHClaimsData\\Data\\temp.txt",quote=FALSE,sep=",",row.names=FALSE,col.names=FALSE,append=FALSE)
@@ -84,6 +90,7 @@ proc.time() - ptm03
 #sqlDrop(db.claims51, "dbo.temp") # Commented out because not always necessary
 ptm04 <- proc.time()
 write.table(temp,"\\\\dchs-shares01\\dchsdata\\DCHSPHClaimsData\\Data\\temp.txt",quote=FALSE,sep=",",row.names=FALSE,col.names=FALSE,append=FALSE)
+
 sqlQuery(db.claims51,
   "BULK INSERT [PHClaims].[dbo].[temp]
                 FROM '\\\\dchs-shares01\\dchsdata\\DCHSPHClaimsData\\Data\\temp.txt'
