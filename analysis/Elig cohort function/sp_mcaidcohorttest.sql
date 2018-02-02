@@ -103,50 +103,14 @@ on cov.id = race.id
 
 --5th table - sub-county areas
 inner join (
-	select distinct x.id,
-
-				/**if one zip per client for time period, keep zip value */
-				iif(zip.zip_cnt = 1, str(x.zip_new, 5, 0), 
-	
-				/**if > 1 zip per client for time period, return "multiple" */
-				iif(zip.zip_cnt > 1, 'multiple',
-
-				null)) as 'zip_new',
-
-				/**if one zip-based region per client for time period, keep zip-based region value */
-				iif(reg.reg_cnt = 1, x.kcreg_zip, 
-	
-				/**if > 1 zip-based region per client for time period, return "multiple" */
-				iif(reg.reg_cnt > 1, 'multiple',
-
-				null)) as 'kcreg_zip',
-
-				homeless.homeless_e
+	select distinct x.id, zipdur.zip_new, zregdur.kcreg_zip, homeless.homeless_e
 
 	--client level table
 	from (
-		select id, from_add, to_add, zip_new, kcreg_zip, homeless
+		select distinct id, zip_new, kcreg_zip
 		from PHClaims.dbo.mcaid_elig_address
-		where from_add < @end and to_add > @begin
+		where from_add < @end AND to_add > @begin
 	) as x
-
-	--count distinct ZIPs per client (count nulls as a unique value)
-	left join (
-		select id, (count(distinct zip_new) + count(distinct case when zip_new is null then 1 end)) as zip_cnt
-		from PHClaims.dbo.mcaid_elig_address
-		where from_add < @end and to_add > @begin
-		group by id
-	) as zip
-	on x.id = zip.id
-
-	--count distinct regions per client (count nulls as a unique value)
-	left join (
-		select id, (count(distinct kcreg_zip) + count(distinct case when kcreg_zip is null then 1 end)) as reg_cnt
-		from PHClaims.dbo.mcaid_elig_address
-		where from_add < @end and to_add > @begin
-		group by id
-	) as reg
-	on x.id = reg.id
 
 	--take max of homeless value (ever homeless)
 	left join (
@@ -156,9 +120,41 @@ inner join (
 	) as homeless
 	on x.id = homeless.id
 
+	--select ZIP code with greatest duration during time range (no ties allowed given row_number() is used instead of rank())
+	left join (
+		select y.id, y.zip_new
+		from (
+			select x.id, x.zip_new, x.zip_dur, row_number() over (partition by x.id order by x.zip_dur desc) as 'zipr'
+			from (
+				select id, zip_new, sum(datediff(day, from_add, to_add) + 1) as 'zip_dur'
+				from PHClaims.dbo.mcaid_elig_address
+				where from_add < @end AND to_add > @begin
+				group by id, zip_new
+			) as x
+		) as y
+		where y.zipr = 1
+	) as zipdur
+	on x.id = zipdur.id
+
+	--duration in each ZIP-based region
+	left join (
+		select y.id, y.kcreg_zip
+		from (
+			select x.id, x.kcreg_zip, x.zreg_dur, row_number() over (partition by x.id order by x.zreg_dur desc) as 'zregr'
+			from (
+				select id, kcreg_zip, sum(datediff(day, from_add, to_add) + 1) as 'zreg_dur'
+				from PHClaims.dbo.mcaid_elig_address
+				where from_add < @end AND to_add > @begin
+				group by id, kcreg_zip
+			) as x
+		) as y
+		where y.zregr = 1
+	) as zregdur
+	on x.id = zregdur.id
+
 	--pass in zip and/or region specifications if provided
-	where ((@zip is null) or zip_new in (select * from PH_APDEStore.dbo.Split(@zip, ',')))
-	and (@region is null or kcreg_zip in (select * from PH_APDEStore.dbo.Split(@region, ',')))
+	where ((@zip is null) or zipdur.zip_new in (select * from PH_APDEStore.dbo.Split(@zip, ',')))
+	and (@region is null or zregdur.kcreg_zip in (select * from PH_APDEStore.dbo.Split(@region, ',')))
 
 ) as geo
 

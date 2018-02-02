@@ -70,7 +70,7 @@ left join (
 	) as y
 	where y.zipr = 1
 ) as zipdur
-on x.id = zipdur.id and x.zip_new = zipdur.zip_new
+on x.id = zipdur.id
 
 --duration in each ZIP-based region
 left join (
@@ -86,6 +86,6 @@ left join (
 	) as y
 	where y.zregr = 1
 ) as zregdur
-on x.id = zregdur.id and x.kcreg_zip = zregdur.kcreg_zip
+on x.id = zregdur.id
 
 order by id.id_cnt desc, x.id, x.from_add
