@@ -2,13 +2,8 @@
 # Eli Kern
 # 2018-1-31
 # APDE
-# Function to receive parameters for Medicaid eligbility cohort and return SQL command to
-# be used in mcaid_cohort_process R script
-
+# Function to generate SQL query to select Medicaid eligibility cohort with specified parameters
 ###############################################################################
-
-##### Call in libraries #####
-library(lubridate) # Used to manipulate dates
 
 #### Define function #####
 mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - months(6), covmin = 0, dualmax = 100,
@@ -147,21 +142,3 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
         vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t,
         maxlang_t, sep = " ")
 }
-
-
-
-
-
-##Testing function
-
-#mcaid_cohort_f()
-#mcaid_cohort_f(begin = "2017-01-01", end = "2017-06-30", agemin = 18, agemax = 64, male = 1, black = 1, covmin = 50)
-# 
-#mcaid_cohort_f(begin = "2017-01-01", end = "2017-06-30", male = 1)
-# mcaid_cohort_f(begin = "2017-01-01", end = "2017-06-30", agemin = 18, agemax = 64)
-# 
-# mcaid_cohort_f(begin = "2017-01-01", end = "2017-06-30")
-# mcaid_cohort_f()
-# mcaid_cohort_f(begin = "2017-01-02", end = "2017-01-01")
-# mcaid_cohort_f(begin = "2017-01-01")
-# mcaid_cohort_f(end = "2017-01-01")
