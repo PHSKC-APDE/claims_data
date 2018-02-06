@@ -25,7 +25,7 @@ origin <- "1970-01-01"
 db.apde51 <- odbcConnect("PH_APDEStore51")
 
 ##### Load user-defined functions for Medicaid data #####
-source("analysis/Elig cohort function/mcaid_cohort_function.R")
+source("analysis/Medicaid cohort function/mcaid_cohort_function.R")
 
 ##### Request Medicaid eligibility cohort #####
 #Note extra "\" to escape "\" in front of "KERNELI" - this is only required in R, not in SQL

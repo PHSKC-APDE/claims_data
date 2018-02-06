@@ -59,7 +59,7 @@ from (
 		select y.id, sum(y.covd) as 'covd', cast(sum((y.covd * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'covper'
 
 		from (
-			select distinct x.MEDICAID_RECIPIENT_ID as 'id', x.startdate, x.enddate,
+			select distinct x.id, x.startdate, x.enddate,
 
 			/**if coverage period fully contains date range then person time is just date range */
 			iif(x.startdate <= @begin and x.enddate >= @end, datediff(day, @begin, @end) + 1, 

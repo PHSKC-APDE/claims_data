@@ -18,15 +18,15 @@ Table 02 - Eligibility accounting for RAC and address (note, need to reference c
 --:CONNECT KCITSQLUTPDBH51
 --:CONNECT KCITSQLPRPDBM50
 
-IF OBJECT_ID('dbo.elig_overall', 'U') IS NOT NULL 
-  DROP TABLE dbo.elig_overall;
+IF OBJECT_ID('dbo.mcaid_elig_overall', 'U') IS NOT NULL 
+  DROP TABLE dbo.mcaid_elig_overall;
 
 
 SELECT
-	dt_2.MEDICAID_RECIPIENT_ID, dt_2.SOCIAL_SECURITY_NMBR,
+	dt_2.MEDICAID_RECIPIENT_ID as 'id', dt_2.SOCIAL_SECURITY_NMBR as 'ssn',
 	dt_2.startdate, dt_2.enddate,
 	DATEDIFF(mm, startdate, enddate) + 1 AS cov_time_mth
-	INTO PHClaims.dbo.elig_overall
+	INTO PHClaims.dbo.mcaid_elig_overall
 	FROM (
 	SELECT
 		dt_1.MEDICAID_RECIPIENT_ID, dt_1.SOCIAL_SECURITY_NMBR,
@@ -47,5 +47,5 @@ SELECT
 			) AS dt_1
 		GROUP BY MEDICAID_RECIPIENT_ID, SOCIAL_SECURITY_NMBR, group_num
 	) AS dt_2
-	ORDER BY  MEDICAID_RECIPIENT_ID, SOCIAL_SECURITY_NMBR, startdate, enddate
+	ORDER BY  id, ssn, startdate, enddate
 
