@@ -46,13 +46,9 @@ ptm01 <- proc.time() # Times how long this query takes
 mcaid_cohort <- sqlQuery(
   db.apde51,
   mcaid_cohort_f(begin = "2017-01-01", end = "2017-06-30", agemin = 18, agemax = 64, male = 1, black = 1, covmin = 50,
-                 zip = "98103,98105"),
+                 dualmax = 0, maxlang = 'ARABIC,SOMALI'),
   stringsAsFactors = FALSE
   )
 proc.time() - ptm01
-
-
-
-
 
 

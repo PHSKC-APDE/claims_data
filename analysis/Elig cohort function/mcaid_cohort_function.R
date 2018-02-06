@@ -11,10 +11,12 @@
 library(lubridate) # Used to manipulate dates
 
 #### Define function #####
-mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - months(6), covmin = 0,
+mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - months(6), covmin = 0, dualmax = 100,
                            agemin = 0, agemax = 200, female = "null", male = "null", aian = "null", 
                            asian = "null", black = "null", nhpi = "null", white = "null", latino = "null",
-                           zip = "null", region = "null") {
+                           zip = "null", region = "null", english = "null", spanish = "null", vietnamese = "null",
+                           chinese = "null", somali = "null", russian = "null", arabic = "null", korean = "null",
+                           ukrainian = "null", amharic = "null", maxlang = "null") {
   
   #Error checks
   if(begin > end & !missing(begin) & !missing(end)) {
@@ -33,6 +35,10 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
     stop("Coverage requirement must be numeric between 0 and 100")
   }
   
+  if(!is.numeric(dualmax) | dualmax < 0 | dualmax > 100){
+    stop("Dual eligibility must be numeric between 0 and 100")
+  }
+  
   if(!is.numeric(agemin) | !is.numeric(agemax)) {
     stop("Age min and max must be provided as numerics")
   }
@@ -44,12 +50,15 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
   
   if(!(aian %in% c("null",0, 1)) | !(asian %in% c("null",0, 1)) | !(black %in% c("null",0, 1)) |
      !(nhpi %in% c("null",0, 1)) | !(white %in% c("null",0, 1)) | !(latino %in% c("null",0, 1)) |
-     !(female %in% c("null",0, 1)) | !(male %in% c("null",0, 1))) {
-    stop("Race and sex parameters must be left missing or set to 'null', 0 or 1")
+     !(female %in% c("null",0, 1)) | !(male %in% c("null",0, 1)) | !(english %in% c("null",0, 1)) |
+     !(spanish %in% c("null",0, 1)) | !(vietnamese %in% c("null",0, 1)) | !(chinese %in% c("null",0, 1)) |
+     !(somali %in% c("null",0, 1)) | !(russian %in% c("null",0, 1)) | !(arabic %in% c("null",0, 1)) |
+     !(korean %in% c("null",0, 1)) | !(ukrainian %in% c("null",0, 1)) | !(amharic %in% c("null",0, 1))) {
+    stop("Race, sex and language parameters must be left missing or set to 'null', 0 or 1")
   }
   
-  if(!is.character(zip) | !is.character(region)) {
-    stop("Geographic parameters must be input as comma-separated characters with no spaces between items")
+  if(!is.character(zip) | !is.character(region) | !is.character(maxlang)) {
+    stop("Geographic and 'maxlang' parameters must be input as comma-separated characters with no spaces between items")
   }
   
   #Run parameters message
@@ -58,6 +67,7 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
         "Coverage start date: ", begin, "(inclusive)\n",
         "Coverage end date: ", end, " (inclusive)\n",
         "Coverage requirement: ", covmin, " percent or more of requested date range\n",
+        "Medicare-Medicaid dual eligibility: ", dualmax, " percent or less of requested date range\n",
         "Minimum age: ", agemin, " years and older\n",
         "Maximum age: ", agemax, " years and younger\n",    
         "Female alone or in combination, ever: ", female, "\n",
@@ -70,6 +80,17 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
         "Latino alone or in combination, ever: ", latino, "\n",
         "ZIP codes: ", zip, "\n",
         "ZIP-based regions: ", region, "\n",
+        "English language alone or in combination, ever: ", english, "\n",  
+        "Spanish language alone or in combination, ever: ", spanish, "\n",
+        "Vietnamese language alone or in combination, ever: ", vietnamese, "\n",   
+        "Chinese language alone or in combination, ever: ", chinese, "\n",
+        "Somali language alone or in combination, ever: ", somali, "\n",
+        "Russian language alone or in combination, ever: ", russian, "\n",
+        "Arabic language alone or in combination, ever: ", arabic, "\n",
+        "Korean language alone or in combination, ever: ", korean, "\n",
+        "Ukrainian language alone or in combination, ever: ", ukrainian, "\n",
+        "Amharic language alone or in combination, ever: ", amharic, "\n",
+        "Languages: ", maxlang, "\n",
         sep = ""))
   
   #Derived variables
@@ -83,6 +104,7 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
   end_t <- paste("@end = \'", end, "\',", sep = "")
   duration_t <- paste("@duration = ", duration, ",", sep = "")
   covmin_t <- paste("@covmin = ", covmin, ",", sep = "")
+  dualmax_t <- paste("@dualmax = ", dualmax, ",", sep = "")
   
   agemin_t <- paste("@agemin = ", agemin, ",", sep = "")
   agemax_t <- paste("@agemax = ", agemax, ",", sep = "")
@@ -98,12 +120,32 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
   latino_t <- paste("@latino = ", latino, ",", sep = "")
   
   ifelse(missing(zip), 
-      zip_t <- paste("@zip = ", zip, ",", sep = ""),
-      zip_t <- paste("@zip = \'", zip, "\',", sep = ""))
-  region_t <- paste("@region = ", region, sep = "")
+         zip_t <- paste("@zip = ", zip, ",", sep = ""),
+         zip_t <- paste("@zip = \'", zip, "\',", sep = ""))
+  ifelse(missing(region), 
+         region_t <- paste("@region = ", region, ",", sep = ""),
+         region_t <- paste("@region = \'", region, "\',", sep = ""))
   
-  paste(exec, begin_t, end_t, duration_t, covmin_t, agemin_t, agemax_t, female_t, male_t, 
-        aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, zip_t, region_t, sep = " ")
+  
+  english_t <- paste("@english = ", english, ",", sep = "")
+  spanish_t <- paste("@spanish = ", spanish, ",", sep = "")
+  vietnamese_t <- paste("@vietnamese = ", vietnamese, ",", sep = "")
+  chinese_t <- paste("@chinese = ", chinese, ",", sep = "")
+  somali_t <- paste("@somali = ", somali, ",", sep = "")
+  russian_t <- paste("@russian = ", russian, ",", sep = "")
+  arabic_t <- paste("@arabic = ", arabic, ",", sep = "")
+  korean_t <- paste("@korean = ", korean, ",", sep = "")
+  ukrainian_t <- paste("@ukrainian = ", ukrainian, ",", sep = "")
+  amharic_t <- paste("@amharic = ", amharic, ",", sep = "")
+  
+  ifelse(missing(maxlang), 
+         maxlang_t <- paste("@maxlang = ", maxlang, sep = ""),
+         maxlang_t <- paste("@maxlang = \'", maxlang, "\'", sep = ""))
+  
+  paste(exec, begin_t, end_t, duration_t, covmin_t, dualmax_t, agemin_t, agemax_t, female_t, male_t, 
+        aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, zip_t, region_t, english_t, spanish_t,
+        vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t,
+        maxlang_t, sep = " ")
 }
 
 
