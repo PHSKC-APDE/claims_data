@@ -1,27 +1,26 @@
 
-Medicaid eligibility cohort function – SQL and R applications
+# Medicaid eligibility cohort function – SQL and R applications
 Version 1.0
 
-Purpose: Script to send a SQL query to the PHClaims database on the SQL Server 51 to return a Medicaid eligibility cohort with specified parameters, either working in SQL Server Management Studio or R.
+## Purpose
+Script to send a SQL query to the PHClaims database on the SQL Server 51 to return a Medicaid eligibility cohort with specified parameters, either working in SQL Server Management Studio or R.
 
-Access/permissions required
-•	All required SQL and R scripts are stored in the APDE Medicaid folder on GitHub  here
+## Access/permissions required
+- All required SQL and R scripts are stored on GitHub [here]()
+- This function uses tables, stored procedures, and functions on SQL Server 51
+- Users must be able to SELECT following tables in PHClaims database:
+     - dbo.mcaid_elig_overall
+     - dbo.mcaid_elig_address
+     - dbo.mcaid_elig_dual
+     - dbo.mcaid_elig_demoever
+- Users must be able to EXECUTE stored procedures in PH_APDEStore database:
+     - PH\KERNELI.sp_mcaidcohort
+- Users must be able to SELECT table-valued functions in PH_APDEStore database:
+     - dbo.Split
+- To check your permissions on any database once you’ve connected, run the SQL code [here](https://github.com/PHSKC-APDE/Medicaid/blob/master/analysis/Broad%20use%20functions/Server%20permissions.sql)
 
-•	This script makes use of the following tables, stored procedures, and functions on SQL Server 51:
-o	User must be able to SELECT following tables in PHClaims database:
-	dbo.mcaid_elig_overall
-	dbo.mcaid_elig_address
-	dbo.mcaid_elig_dual
-	dbo.mcaid_elig_demoever
-o	User must be able to EXECUTE stored procedures in PH_APDEStore database:
-	PH\KERNELI.sp_mcaidcohort
-o	User must be able to SELECT table-valued functions in PH_APDEStore database:
-	dbo.Split
- 
-•	To check your permissions on any database once you’ve connected, run the SQL code on GitHub here
-
-Using the Medicaid eligibility cohort function in R
-1.	You can use the R script titled “mcaid_cohort_process.R” to get started – this will source (i.e. load) the function mcaid_cohort_f from the R script “mcaid_cohort_function.R”
+## Using the Medicaid eligibility cohort function in R
+1.	You can use the R script titled [mcaid_cohort_process.R](mcaid_cohort_process.R) to get started – this will source (i.e. load) the function mcaid_cohort_f from the R script [mcaid_cohort_function.R](Medicaid%20cohort%20function/mcaid_cohort_function.R)
 2.	Make sure to have the suggested R packages installed and loaded (RODBC, dplyr, stringr, lubridate)
 3.	To pass parameters to this function, review the “Function parameters” section below
 
@@ -38,9 +37,7 @@ Check out how the parameters are set in the “mcaidcohort_run.sql” file. This
 •	All ZIP codes and ZIP-based regions are included
 •	Medicaid members must have Arabic or Somali as the most frequently reported spoken or written language alone or in combination at any point in the history of the Medicaid eligibility data set
 
- 
-
-Function parameters
+## Function parameters
 
 Parameter	Definition	Input format/range	Default value
 begin	begin date for Medicaid coverage period	“YYYY-MM-DD”	12 months prior to today’s date
