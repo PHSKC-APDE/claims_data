@@ -20,7 +20,7 @@ Script to send a SQL query to the PHClaims database on the SQL Server 51 to retu
 - To check your permissions on any database once you’ve connected, run the SQL code [here](https://github.com/PHSKC-APDE/Medicaid/blob/master/analysis/Broad%20use%20functions/Server%20permissions.sql)
 
 ## Using the Medicaid eligibility cohort function in R
-1.	You can use the R script titled [mcaid_cohort_process.R](mcaid_cohort_process.R) to get started – this will source (i.e. load) the function mcaid_cohort_f from the R script [mcaid_cohort_function.R](Medicaid%20cohort%20function/mcaid_cohort_function.R)
+1.	You can use the R script titled [mcaid_cohort_process.R](mcaid_cohort_process.R) to get started – this will source (i.e. load) the function mcaid_cohort_f from the R script [mcaid_cohort_function.R](mcaid_cohort_function.R)
 2.	Make sure to have the suggested R packages installed and loaded (RODBC, dplyr, stringr, lubridate)
 3.	To pass parameters to this function, review the [Function parameters](#function-parameters) section below
 
