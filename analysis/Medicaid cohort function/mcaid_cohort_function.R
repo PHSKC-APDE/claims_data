@@ -9,7 +9,7 @@
 mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - months(6), covmin = 0, dualmax = 100,
                            agemin = 0, agemax = 200, female = "null", male = "null", aian = "null", 
                            asian = "null", black = "null", nhpi = "null", white = "null", latino = "null",
-                           zip = "null", region = "null", english = "null", spanish = "null", vietnamese = "null",
+                           zip = "null", zregion = "null", english = "null", spanish = "null", vietnamese = "null",
                            chinese = "null", somali = "null", russian = "null", arabic = "null", korean = "null",
                            ukrainian = "null", amharic = "null", maxlang = "null") {
   
@@ -52,7 +52,7 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
     stop("Race, sex and language parameters must be left missing or set to 'null', 0 or 1")
   }
   
-  if(!is.character(zip) | !is.character(region) | !is.character(maxlang)) {
+  if(!is.character(zip) | !is.character(zregion) | !is.character(maxlang)) {
     stop("Geographic and 'maxlang' parameters must be input as comma-separated characters with no spaces between items")
   }
   
@@ -74,7 +74,7 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
         "White alone or in combination, ever: ", white, "\n",
         "Latino alone or in combination, ever: ", latino, "\n",
         "ZIP codes: ", zip, "\n",
-        "ZIP-based regions: ", region, "\n",
+        "ZIP-based regions: ", zregion, "\n",
         "English language alone or in combination, ever: ", english, "\n",  
         "Spanish language alone or in combination, ever: ", spanish, "\n",
         "Vietnamese language alone or in combination, ever: ", vietnamese, "\n",   
@@ -117,9 +117,9 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
   ifelse(missing(zip), 
          zip_t <- paste("@zip = ", zip, ",", sep = ""),
          zip_t <- paste("@zip = \'", zip, "\',", sep = ""))
-  ifelse(missing(region), 
-         region_t <- paste("@region = ", region, ",", sep = ""),
-         region_t <- paste("@region = \'", region, "\',", sep = ""))
+  ifelse(missing(zregion), 
+         zregion_t <- paste("@region = ", zregion, ",", sep = ""),
+         zregion_t <- paste("@region = \'", zregion, "\',", sep = ""))
   
   
   english_t <- paste("@english = ", english, ",", sep = "")
@@ -138,7 +138,7 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
          maxlang_t <- paste("@maxlang = \'", maxlang, "\'", sep = ""))
   
   paste(exec, begin_t, end_t, duration_t, covmin_t, dualmax_t, agemin_t, agemax_t, female_t, male_t, 
-        aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, zip_t, region_t, english_t, spanish_t,
+        aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, zip_t, zregion_t, english_t, spanish_t,
         vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t,
         maxlang_t, sep = " ")
 }

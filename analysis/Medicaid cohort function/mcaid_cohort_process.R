@@ -27,12 +27,12 @@ db.apde51 <- odbcConnect("PH_APDEStore51")
 ##### Load user-defined functions for Medicaid data #####
 source("analysis/Elig cohort function/mcaid_cohort_function.R")
 
-##### Bring in joined elig_overall and elig_dob table using SQL stored procedure for testing #####
+##### Request Medicaid eligibility cohort #####
 #Note extra "\" to escape "\" in front of "KERNELI" - this is only required in R, not in SQL
 #Function mcaid_cohort_f takes the following parameters:
   #begin: begin date for medicaid coverage period, input as "YYYY-MM-DD", use quotation marks
   #end: end date for medicaid coverage period, same input guidelines as begin date
-  #covmin: mininum coverage required, enter as number on percent scale (0 - 100)
+  #covmin: minimum coverage required, enter as number on percent scale (0 - 100)
   #dualmax: maximum dual eligibility coverage, enter as number on percent scale (0 - 100)
   #agemin: minimum age for cohort, input as number, if left blank will be set to 0 years as default
   #agemax: maximum age for cohort, input as number, if left blank will be set to 200 years as default
