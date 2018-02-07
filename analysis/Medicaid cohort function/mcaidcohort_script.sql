@@ -139,10 +139,28 @@ inner join (
 		from (
 			select x.id, x.zip_new, x.zip_dur, row_number() over (partition by x.id order by x.zip_dur desc) as 'zipr'
 			from (
-				select id, zip_new, sum(datediff(day, from_add, to_add) + 1) as 'zip_dur'
-				from PHClaims.dbo.mcaid_elig_address
-				where from_add < @end AND to_add > @begin
-				group by id, zip_new
+				select a.id, a.zip_new, sum(a.covd) + 1 as 'zip_dur'
+				from (
+					select id, zip_new,
+
+						/**if coverage period fully contains date range then person time is just date range */
+						iif(from_add <= @begin and to_add >= @end, datediff(day, @begin, @end) + 1, 
+	
+						/**if coverage period begins before date range start and ends within date range */
+						iif(from_add <= @begin and to_add < @end, datediff(day, @begin, to_add) + 1,
+
+						/**if coverage period begins after date range start and ends after date range end */
+						iif(from_add > @begin and to_add >= @end, datediff(day, from_add, @end) + 1,
+
+						/**if coverage period begins after date range start and ends before date range end */
+						iif(from_add > @begin and to_add < @end, datediff(day, from_add, to_add) + 1,
+
+						null)))) as 'covd'
+
+					from PHClaims.dbo.mcaid_elig_address
+					where from_add < @end AND to_add > @begin
+				) as a
+				group by a.id, a.zip_new
 			) as x
 		) as y
 		where y.zipr = 1
@@ -155,10 +173,28 @@ inner join (
 		from (
 			select x.id, x.kcreg_zip, x.zreg_dur, row_number() over (partition by x.id order by x.zreg_dur desc) as 'zregr'
 			from (
-				select id, kcreg_zip, sum(datediff(day, from_add, to_add) + 1) as 'zreg_dur'
-				from PHClaims.dbo.mcaid_elig_address
-				where from_add < @end AND to_add > @begin
-				group by id, kcreg_zip
+				select a.id, a.kcreg_zip, sum(a.covd) + 1 as 'zreg_dur'
+				from (
+					select id, kcreg_zip,
+
+						/**if coverage period fully contains date range then person time is just date range */
+						iif(from_add <= @begin and to_add >= @end, datediff(day, @begin, @end) + 1, 
+	
+						/**if coverage period begins before date range start and ends within date range */
+						iif(from_add <= @begin and to_add < @end, datediff(day, @begin, to_add) + 1,
+
+						/**if coverage period begins after date range start and ends after date range end */
+						iif(from_add > @begin and to_add >= @end, datediff(day, from_add, @end) + 1,
+
+						/**if coverage period begins after date range start and ends before date range end */
+						iif(from_add > @begin and to_add < @end, datediff(day, from_add, to_add) + 1,
+
+						null)))) as 'covd'
+
+					from PHClaims.dbo.mcaid_elig_address
+					where from_add < @end AND to_add > @begin
+				) as a
+				group by a.id, a.kcreg_zip
 			) as x
 		) as y
 		where y.zregr = 1
