@@ -103,7 +103,7 @@ Check out how the parameters are set in the [mcaidcohort_run.sql](mcaidcohort_ru
 | ukrainian_t | Percent of total person time (months) with Ukrainian language | numeric | >=0.0 and <=100.0
 | amharic_t | Percent of total person time (months) with Amharic language | numeric | >=0.0 and <=100.0
 
-*Note: For all _t variables, the denominator equals the total months of person time with non-missing demographics (e.g. gender, race, or language). For race, a month with "non-Hispanic" is considered missing if no other race information was available. For language, both spoken and written language must be missing simultaneously for a month not to contribute to the denominator person time. 
+*Note: For all _t variables, the denominator equals the total months of person time with non-missing demographics (e.g. gender, race, or language). For race, a month with "non-Hispanic" is considered missing if no other race information was available. For language, both spoken and written language must be missing simultaneously for a month not to contribute to the denominator person time.*
 
 ## List of languages in Medicaid eligibility data
 
