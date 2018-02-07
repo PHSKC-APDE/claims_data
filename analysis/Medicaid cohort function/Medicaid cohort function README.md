@@ -81,7 +81,7 @@ Check out how the parameters are set in the [mcaidcohort_run.sql](mcaidcohort_ru
 | zip_new | Most frequently reported ZIP code during requested date range | numeric | 5 numeric characters
 | kcreg_zip | Most frequently reported ZIP-based King County region during requested date range | character | east, north, seattle, south
 | homeless_e | Homeless status EVER (pulled from 1st and 2nd line address fields) | numeric | 0 = no, 1 = yes, null or N/A = missing
-| maxlang | Most frequently reported spoken or written language EVER | character | see list [here]((#list-of-languages-in-medicaid-eligibility-data)
+| maxlang | Most frequently reported spoken or written language EVER | character | see list [here](#list-of-languages-in-medicaid-eligibility-data)
 | english | English language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | spanish | Spanish language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | vietnamese | Vietnamese language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
