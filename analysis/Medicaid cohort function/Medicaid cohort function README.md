@@ -57,9 +57,9 @@ Check out how the parameters are set in the [mcaidcohort_run.sql](mcaidcohort_ru
 | Variable | Definition | Type | Possible Values |
 | --- | --- | --- | --- |
 | id | Unique Medicaid member ID (ProviderOne ID) | character | 11 alphanumeric characters
-| covd | Medicaid coverage duration (inclusive) during the requested date range (integer days) | numeric | >=1
+| covd | Medicaid coverage duration during the requested date range (inclusive, integer days) | numeric | >=1
 | covper | Percent of the requested date range with Medicaid coverage | numeric | >0.0 and <=100.0
-| duald | Medicare-Medicaid dual eligibility coverage (inclusive) during requested date range (integer days) | numeric | >=0
+| duald | Medicare-Medicaid dual eligibility coverage during requested date range (inclusive, integer days) | numeric | >=0
 | dualper | Percent of the requested date range with Medicare-Medicaid dual eligibility | numeric | >=0.0 and <=100.0
 | age | Integer age calculated as of the last date of the requested date range | numeric | >=0
 | male | Male gender alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
