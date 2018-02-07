@@ -48,7 +48,7 @@ Check out how the parameters are set in the [mcaidcohort_run.sql](mcaidcohort_ru
 | agemin | minimum age for cohort (integer) | positive integer | 0
 | agemax | maximum age for cohort (integer) | positive integer | 200
 | male, female, aian…latino, english…amharic | alone or in combination EVER gender, race, and language, respectively | 0, 1 | null
-| maxlang | most frequently reported spoken/written language | “SOMALI,ARABIC,etc.” (all caps, comma-separated, no spaces) | null
+| maxlang | most frequently reported spoken/written language, see list [here](#List of languages in Medicaid eligibility data) | “SOMALI,ARABIC,etc.” (all caps, comma-separated, no spaces) | null
 | zip | most frequently reported ZIP code during requested date range | “98103,98105,etc.” (all caps, comma-separated, no spaces) | null
 | zregion | most frequently mapped ZIP code-based region during requested date range | “east,north,seattle,south” (all caps, comma-separated, no spaces) | null
 
