@@ -14,7 +14,7 @@ Script to send a SQL query to the PHClaims database on the SQL Server 51 to retu
      - dbo.mcaid_elig_dual
      - dbo.mcaid_elig_demoever
 - Users must be able to EXECUTE stored procedures in PH_APDEStore database:
-     - PH\KERNELI.sp_mcaidcohort
+     - dbo.sp_mcaidcohort
 - Users must be able to SELECT table-valued functions in PH_APDEStore database:
      - dbo.Split
 - To check your permissions on any database once you’ve connected, run the SQL code [here](https://github.com/PHSKC-APDE/Medicaid/blob/master/analysis/Broad%20use%20functions/Server%20permissions.sql)
@@ -48,9 +48,63 @@ Check out how the parameters are set in the [mcaidcohort_run.sql](mcaidcohort_ru
 | agemin | minimum age for cohort (integer) | positive integer | 0
 | agemax | maximum age for cohort (integer) | positive integer | 200
 | male, female, aian…latino, english…amharic | alone or in combination EVER gender, race, and language, respectively | 0, 1 | null
-| maxlang | most frequently reported spoken/written language | “SOMALI,ARABIC,etc.” (all caps, comma-separated, no spaces) | null
+| maxlang | most frequently reported spoken/written language, see list [here](#list-of-languages-in-medicaid-eligibility-data) | “SOMALI,ARABIC,etc.” (all caps, comma-separated, no spaces) | null
 | zip | most frequently reported ZIP code during requested date range | “98103,98105,etc.” (all caps, comma-separated, no spaces) | null
 | zregion | most frequently mapped ZIP code-based region during requested date range | “east,north,seattle,south” (all caps, comma-separated, no spaces) | null
+| id | list of requested Medicaid IDs | 11-character Medicaid IDs, all caps, comma-separated, no spaces | null
+
+## Data dictionary for data set created by Medicaid eligibility cohort function
+
+| Variable | Definition | Type | Possible Values |
+| --- | --- | --- | --- |
+| id | Unique Medicaid member ID (ProviderOne ID) | character | 11 alphanumeric characters
+| covd | Medicaid coverage duration during the requested date range (inclusive, integer days) | numeric | >=1
+| covper | Percent of the requested date range with Medicaid coverage | numeric | >0.0 and <=100.0
+| duald | Medicare-Medicaid dual eligibility coverage during requested date range (inclusive, integer days) | numeric | >=0
+| dualper | Percent of the requested date range with Medicare-Medicaid dual eligibility | numeric | >=0.0 and <=100.0
+| age | Integer age calculated as of the last date of the requested date range | numeric | >=0
+| male | Male gender alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| female | Female gender alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| male_t | Percent of total person time (months) with male gender | numeric | >=0.0 and <=100.0
+| female_t | Percent of total person time (months) with female gender | numeric | >=0.0 and <=100.0
+| aian | American Indian/Alaska Native race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| asian | Asian race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| black | Black race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| nhpi | Native Hawaiian/Pacific Islander race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| white | White race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| latino | Latino race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| aian_t | Percent of total person time (months) with AI/AN race | numeric | >=0.0 and <=100.0
+| asian_t | Percent of total person time (months) with Asian race | numeric | >=0.0 and <=100.0
+| black_t | Percent of total person time (months) with Black race | numeric | >=0.0 and <=100.0
+| nhpi_t | Percent of total person time (months) with NH/PI race | numeric | >=0.0 and <=100.0
+| white_t | Percent of total person time (months) with White race | numeric | >=0.0 and <=100.0
+| latino_t | Percent of total person time (months) with Latino race | numeric | >=0.0 and <=100.0
+| zip_new | Most frequently reported ZIP code during requested date range | numeric | 5 numeric characters
+| kcreg_zip | Most frequently reported ZIP-based King County region during requested date range | character | east, north, seattle, south
+| homeless_e | Homeless status EVER (pulled from 1st and 2nd line address fields) | numeric | 0 = no, 1 = yes, null or N/A = missing
+| maxlang | Most frequently reported spoken or written language EVER | character | see list [here](#list-of-languages-in-medicaid-eligibility-data)
+| english | English language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| spanish | Spanish language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| vietnamese | Vietnamese language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| chinese | Chinese language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| somali | Somali language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| russian | Russian language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| arabic | Arabic language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| korean | Korean language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| ukrainian | Ukrainian language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| amharic | Amharic language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
+| english_t | Percent of total person time (months) with English language | numeric | >=0.0 and <=100.0
+| spanish_t | Percent of total person time (months) with Spanish language | numeric | >=0.0 and <=100.0
+| vietnamese_t | Percent of total person time (months) with Vietnamese language | numeric | >=0.0 and <=100.0
+| chinese_t | Percent of total person time (months) with Chinese language | numeric | >=0.0 and <=100.0
+| somali_t | Percent of total person time (months) with Somali language | numeric | >=0.0 and <=100.0
+| russian_t | Percent of total person time (months) with Russian language | numeric | >=0.0 and <=100.0
+| arabic_t | Percent of total person time (months) with Arabic language | numeric | >=0.0 and <=100.0
+| korean_t | Percent of total person time (months) with Korean language | numeric | >=0.0 and <=100.0
+| ukrainian_t | Percent of total person time (months) with Ukrainian language | numeric | >=0.0 and <=100.0
+| amharic_t | Percent of total person time (months) with Amharic language | numeric | >=0.0 and <=100.0
+
+*Note: For all _t variables, the denominator equals the total months of person time with non-missing demographics (e.g. gender, race, or language). For race, a month with "non-Hispanic" is considered missing if no other race information was available. For language, both spoken and written language must be missing simultaneously for a month not to contribute to the denominator person time.*
 
 ## List of languages in Medicaid eligibility data
 
