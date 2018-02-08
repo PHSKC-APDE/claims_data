@@ -8,11 +8,11 @@ use PH_APDEStore
 go
 
 --drop stored procedure before creating new
-drop procedure sp_mcaidcohort
+drop procedure dbo.sp_mcaidcohort
 go
 
 --create stored procedure
-create proc sp_mcaidcohort
+create proc dbo.sp_mcaidcohort
 	(
 	@begin as date,
 	@end as date,
@@ -41,7 +41,8 @@ create proc sp_mcaidcohort
 	@korean as varchar(max),
 	@ukrainian as varchar(max),
 	@amharic as varchar(max),
-	@maxlang as varchar(max)
+	@maxlang as varchar(max),
+	@id as varchar(max)
 	)
 as
 begin
@@ -81,6 +82,7 @@ from (
 		group by y.id
 	) as z
 	where z.covper >= @covmin
+	and (@id is null or z.id in (select * from PH_APDEStore.dbo.Split(@id, ',')))
 )as cov
 
 --2nd table - dual eligibility duration

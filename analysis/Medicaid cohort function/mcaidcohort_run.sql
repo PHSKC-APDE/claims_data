@@ -3,7 +3,7 @@ use PH_APDEStore
 go
 
 --exec [PH_APDESTORE].[PH\SONGL].sp_genhosp1 @ThisYear=2015;
-exec PH_APDEStore.[PH\KERNELI].sp_mcaidcohort 
+exec PH_APDEStore.dbo.sp_mcaidcohort 
 	@begin = '2017-01-01', 
 	@end = '2017-06-30',
 	@duration = 181,
@@ -31,4 +31,5 @@ exec PH_APDEStore.[PH\KERNELI].sp_mcaidcohort
 	@korean = null,
 	@ukrainian = null,
 	@amharic = null,
-	@maxlang = 'ARABIC,SOMALI'
+	@maxlang = 'ARABIC,SOMALI',
+	@id = null

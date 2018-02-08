@@ -11,7 +11,7 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
                            asian = "null", black = "null", nhpi = "null", white = "null", latino = "null",
                            zip = "null", zregion = "null", english = "null", spanish = "null", vietnamese = "null",
                            chinese = "null", somali = "null", russian = "null", arabic = "null", korean = "null",
-                           ukrainian = "null", amharic = "null", maxlang = "null") {
+                           ukrainian = "null", amharic = "null", maxlang = "null", id = "null") {
   
   #Error checks
   if(begin > end & !missing(begin) & !missing(end)) {
@@ -52,8 +52,8 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
     stop("Race, sex and language parameters must be left missing or set to 'null', 0 or 1")
   }
   
-  if(!is.character(zip) | !is.character(zregion) | !is.character(maxlang)) {
-    stop("Geographic and 'maxlang' parameters must be input as comma-separated characters with no spaces between items")
+  if(!is.character(zip) | !is.character(zregion) | !is.character(maxlang) | !is.character(id)) {
+    stop("Geographic, 'maxlang' and 'id' parameters must be input as comma-separated characters with no spaces between items")
   }
   
   #Run parameters message
@@ -86,6 +86,7 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
         "Ukrainian language alone or in combination, ever: ", ukrainian, "\n",
         "Amharic language alone or in combination, ever: ", amharic, "\n",
         "Languages: ", maxlang, "\n",
+        "Requested Medicaid IDs: ", id, "\n",
         sep = ""))
   
   #Derived variables
@@ -93,7 +94,7 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
   duration <- as.numeric(as.Date(end) - as.Date(begin)) + 1
   
   #Build SQL query
-  exec <- "exec PH_APDEStore.[PH\\KERNELI].sp_mcaidcohort"
+  exec <- "exec PH_APDEStore.dbo.sp_mcaidcohort"
   
   begin_t <- paste("@begin = \'", begin, "\',", sep = "")
   end_t <- paste("@end = \'", end, "\',", sep = "")
@@ -134,11 +135,15 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
   amharic_t <- paste("@amharic = ", amharic, ",", sep = "")
   
   ifelse(missing(maxlang), 
-         maxlang_t <- paste("@maxlang = ", maxlang, sep = ""),
-         maxlang_t <- paste("@maxlang = \'", maxlang, "\'", sep = ""))
+         maxlang_t <- paste("@maxlang = ", maxlang, ",", sep = ""),
+         maxlang_t <- paste("@maxlang = \'", maxlang, "\',", sep = ""))
+  
+  ifelse(missing(id), 
+         id_t <- paste("@id = ", id, sep = ""),
+         id_t <- paste("@id = \'", id, "\'", sep = ""))
   
   paste(exec, begin_t, end_t, duration_t, covmin_t, dualmax_t, agemin_t, agemax_t, female_t, male_t, 
         aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, zip_t, zregion_t, english_t, spanish_t,
         vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t,
-        maxlang_t, sep = " ")
+        maxlang_t, id_t, sep = " ")
 }

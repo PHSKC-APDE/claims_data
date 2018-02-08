@@ -14,7 +14,7 @@ declare @begin date, @end date, @duration int, @covmin decimal(4,1), @dualmax de
 	@aian varchar(max), @asian varchar(max), @black varchar(max), @nhpi varchar(max), @white varchar(max), @latino varchar (max), 
 	@zip varchar(max), @region varchar(max), @english varchar(max), @spanish varchar(max), @vietnamese varchar(max), @chinese varchar(max),
 	@somali varchar(max), @russian varchar(max), @arabic varchar(max), @korean varchar(max), @ukrainian varchar(max), @amharic varchar(max),
-	@maxlang varchar(max)
+	@maxlang varchar(max), @id varchar(max)
 
 set @begin = '2017-01-01'
 set @end = '2017-06-30'
@@ -44,6 +44,7 @@ set @korean = null
 set @ukrainian = null
 set @amharic = null
 set @maxlang = 'ARABIC,SOMALI'
+set @id = '100012047WA,100011813WA,100011667WA,100011389WA'
 
 --column specs for final joined select query
 select cov.id, cov.covd, cov.covper, dual.duald, dual.dualper, demo.age, demo.male, demo.female, demo.male_t, demo.female_t, demo.aian, demo.asian, demo.black,
@@ -80,6 +81,7 @@ from (
 		group by y.id
 	) as z
 	where z.covper >= @covmin
+	and (@id is null or z.id in (select * from PH_APDEStore.dbo.Split(@id, ',')))
 )as cov
 
 --2nd table - dual eligibility duration
