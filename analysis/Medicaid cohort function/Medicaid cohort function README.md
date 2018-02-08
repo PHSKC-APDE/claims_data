@@ -14,7 +14,7 @@ Script to send a SQL query to the PHClaims database on the SQL Server 51 to retu
      - dbo.mcaid_elig_dual
      - dbo.mcaid_elig_demoever
 - Users must be able to EXECUTE stored procedures in PH_APDEStore database:
-     - PH\KERNELI.sp_mcaidcohort
+     - dbo.sp_mcaidcohort
 - Users must be able to SELECT table-valued functions in PH_APDEStore database:
      - dbo.Split
 - To check your permissions on any database once you’ve connected, run the SQL code [here](https://github.com/PHSKC-APDE/Medicaid/blob/master/analysis/Broad%20use%20functions/Server%20permissions.sql)
@@ -51,6 +51,7 @@ Check out how the parameters are set in the [mcaidcohort_run.sql](mcaidcohort_ru
 | maxlang | most frequently reported spoken/written language, see list [here](#list-of-languages-in-medicaid-eligibility-data) | “SOMALI,ARABIC,etc.” (all caps, comma-separated, no spaces) | null
 | zip | most frequently reported ZIP code during requested date range | “98103,98105,etc.” (all caps, comma-separated, no spaces) | null
 | zregion | most frequently mapped ZIP code-based region during requested date range | “east,north,seattle,south” (all caps, comma-separated, no spaces) | null
+| id | list of requested Medicaid IDs | 11-character Medicaid IDs, all caps, comma-separated, no spaces | null
 
 ## Data dictionary for data set created by Medicaid eligibility cohort function
 
