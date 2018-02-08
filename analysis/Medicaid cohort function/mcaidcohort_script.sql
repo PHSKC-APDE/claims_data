@@ -44,7 +44,7 @@ set @korean = null
 set @ukrainian = null
 set @amharic = null
 set @maxlang = 'ARABIC,SOMALI'
-set @id = '100012047WA,100011813WA,100011667WA,100011389WA'
+set @id = null
 
 --column specs for final joined select query
 select cov.id, cov.covd, cov.covper, dual.duald, dual.dualper, demo.age, demo.male, demo.female, demo.male_t, demo.female_t, demo.aian, demo.asian, demo.black,

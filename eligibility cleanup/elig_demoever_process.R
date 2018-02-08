@@ -440,55 +440,52 @@ elig_lang <- elig_lang %>%
   )
 
 #### Select most frequently reported language per ID ####
-#Count rows associated with each spoken and written language by ID
-lang.tmp <- select(elig_lang, id, slang, wlang) %>%
-  group_by(id, slang) %>%
-  mutate(slang_row_cnt = n()) %>%
-  ungroup()
 
-lang.tmp <- lang.tmp %>%
-  group_by(id, wlang) %>%
-  mutate(wlang_row_cnt = n()) %>%
-  ungroup()
-
-#Create two new datasets that include the most frequently reported spoken and written language by ID
-slang.tmp <- lang.tmp %>%
+#Count spoken language rows by ID and language
+slang.tmp <- select(elig_lang, id, slang) %>%
   filter(!is.na(slang)) %>%
-  select(id, slang, slang_row_cnt) %>%
-  arrange(id, slang_row_cnt) %>%
-  distinct(id, slang, .keep_all = TRUE) %>%
-  group_by(id) %>%
-  # where there is a tie, the first SSN is selected, which is an issue if the data are sorted differently
-  # currently takes the most frequently used SSN
-  slice(which.max(slang_row_cnt)) %>%
+  group_by(id, slang) %>%
+  mutate(row_cnt = n()) %>%
   ungroup() %>%
-  select(id, slang, slang_row_cnt)
+  mutate(maxlang = slang) %>%
+  select(id, maxlang, row_cnt) %>%
+  distinct(id, maxlang, row_cnt)
 
-wlang.tmp <- lang.tmp %>%
+#Count written language rows by ID and language
+wlang.tmp <- select(elig_lang, id, wlang) %>%
   filter(!is.na(wlang)) %>%
-  select(id, wlang, wlang_row_cnt) %>%
-  arrange(id, wlang_row_cnt) %>%
-  distinct(id, wlang, .keep_all = TRUE) %>%
-  group_by(id) %>%
-  # where there is a tie, the first SSN is selected, which is an issue if the data are sorted differently
-  # currently takes the most frequently used SSN
-  slice(which.max(wlang_row_cnt)) %>%
+  group_by(id, wlang) %>%
+  mutate(row_cnt = n()) %>%
   ungroup() %>%
-  select(id, wlang, wlang_row_cnt)
+  mutate(maxlang = wlang) %>%
+  select(id, maxlang, row_cnt) %>%
+  distinct(id, maxlang, row_cnt)
 
-#Merge spoken and written language taken the most frequent as a single language variable (max language)
-swlang.tmp <- full_join(slang.tmp, wlang.tmp, by = c("id")) %>%
+#Join written and spoken language counts and sum by ID and language
+#Assign random number to each ID and language, and sort by ID and random number (this helps with selecting maxlang when tied)
+set.seed(580493617)
+swlang.tmp <- full_join(slang.tmp, wlang.tmp, by = c("id", "maxlang")) %>%
+  group_by(id, maxlang) %>%
   mutate(
-    maxlang = ifelse(is.na(slang), wlang,
-                     ifelse(is.na(wlang), slang,
-                            ifelse(wlang_row_cnt >= slang_row_cnt, wlang, slang)))
+    lang_cnt = sum(row_cnt.x, row_cnt.y, na.rm = TRUE),
+    rand = runif(1, 0, 1)
   ) %>%
+  ungroup() %>%
+  select(id, maxlang, lang_cnt, rand) %>%
+  arrange(id, rand)
+
+#Slice data to one language per ID (most frequently reported)
+swlang.tmp <- swlang.tmp %>%
+  group_by(id) %>%
+  slice(which.max(lang_cnt)) %>%
+  ungroup() %>%
   select(id, maxlang)
+
+rm(slang.tmp, wlang.tmp)
 
 # Merge back with the primary data
 elig_lang <- left_join(elig_lang, swlang.tmp, by = c("id"))
-rm(lang.tmp, slang.tmp, wlang.tmp, swlang.tmp) # remove temp data frames to save memory
-
+rm(swlang.tmp) 
 
 ##### Collapse to one row per ID given we have alone or in combo EVER race variables #####
 elig_lang_final <- distinct(elig_lang, id, maxlang, english, spanish, vietnamese, chinese, somali, russian, arabic, korean, ukrainian, amharic,
@@ -517,8 +514,8 @@ rm(elig_dob, elig_gender_final, elig_race_final, elig_lang_final)
 #count(distinct(elig_demoever, id))
 
 ##### Save dob.mcaid_elig_demoever to SQL server 51 #####
-#This took 41 min to upload, 851,573 rows x 40 variables
-#sqlDrop(db.claims51, "dbo.mcaid_elig_ever") # Commented out because not always necessary
+#This took 31 min to upload, 851,573 rows x 40 variables
+#sqlDrop(db.claims51, "dbo.mcaid_elig_demoever") # Commented out because not always necessary
 ptm02 <- proc.time() # Times how long this query takes
 sqlSave(
   db.claims51,
@@ -533,18 +530,3 @@ sqlSave(
   )
 )
 proc.time() - ptm02
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
