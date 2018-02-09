@@ -1,0 +1,7 @@
+for elig cohort function:
+
+-creating indexes (on ID for joins, and variables used in where clauses) yielded no performance improvement
+-casting dualper and covper as decimals, ints or floats yielded no performance improvement
+
+-in the end the culprit behind the slow query speed when the where statement for dualmax was added was that an "=" was
+used. once i changed to a "<=" sign, the performance issue disappeared

@@ -1,10 +1,8 @@
 ###############################################################################
 # Eli Kern
-# 2017-9-6
+# 2018-2-5
 
 # Code to assign a single date of birth to Medicaid members using the eligibility data
-# Code to calculate an age based on a reference data
-# Code to select Medicaid members of a certain age range who were eligible during a certain date range
 
 ###############################################################################
 
@@ -43,7 +41,7 @@ db.claims51 <- odbcConnect("PHClaims51")
 ##### Bring in Medicaid eligibility data for DOB processing #####
 #Note to bring in test subset of Medicaid data, insert "top 50000" between SELECT and z.MEDICAID_RECIPIENT_ID
 
-ptm01 <- proc.time() # Times how long this query takes (~400 secs)
+ptm01 <- proc.time() # Times how long this query takes
 elig_dob <- sqlQuery(
   db.claims51,
   " select distinct y.MEDICAID_RECIPIENT_ID as id, y.SOCIAL_SECURITY_NMBR as ssn, y.BIRTH_DATE as dob, count(*) as row_cnt
@@ -67,8 +65,7 @@ elig_dob <- elig_dob %>%
 
 #Code to find different DOBs by ID-SSN sets
 elig_dob <- elig_dob %>%
-  group_by(id, ssnnew) %>%
-  #group_by(id, ssn) %>%
+  group_by(id, ssn) %>%
   mutate(
     dob_cnt = n()
   ) %>%
@@ -105,8 +102,8 @@ dob.tmp <- elig_dob %>%
   arrange(id, row_cnt) %>%
   distinct(id, dob, .keep_all = TRUE) %>%
   group_by(id) %>%
-  # where there is a tie, the first SSN is selected, which is an issue if the data are sorted differently
-  # currently takes the most frequently used SSN
+  # where there is a tie, the first DOB is selected, which is an issue if the data are sorted differently
+  # currently takes the most frequently used DOB
   slice(which.max(row_cnt)) %>%
   ungroup() %>%
   select(id, dob)
@@ -121,71 +118,33 @@ elig_dob <- mutate(elig_dob, dobnew = ymd(as.Date(ifelse(!is.na(dob.y), dob.y, d
 #Filter to distinct
 elig_dob <- distinct(elig_dob, id, ssnnew, dobnew)
 
-##### Create age variable using any reference date #####
-
-#Set up local macros
-refdate <- 20161231
-agevar <- "age2016" ##will need to learn how to write function in R to use this, equivalent to local macro in Stata
-
-elig_dob <- elig_dob %>%
-  mutate(
-    age2016 = as.integer(interval(dobnew,ymd(refdate))/years(1)),
-    id = str_to_upper(id)
-  )
-
-##### Bring in elig_overall table #####
-#Join to dob table in order to count # of individuals by age bands who were enrolled in 2016
-ptm01 <- proc.time() # Times how long this query takes (~400 secs)
-elig_overall <- sqlQuery(
+##### Save dob.mcaid_elig_dob to SQL server 51 #####
+#This took 40 min to upload, 829,000 rows x 3 variables
+#sqlDrop(db.claims51, "dbo.mcaid_elig_dob") # Commented out because not always necessary
+ptm02 <- proc.time() # Times how long this query takes
+sqlSave(
   db.claims51,
-  " select *
-  FROM [PHClaims].[dbo].elig_overall",
-  stringsAsFactors = FALSE
-)
-proc.time() - ptm01
-
-##### Calculate covered days and months for any date range, need to add 1 day to include end date ##### 
-
-#Set up local macros 
-start <- 20160101
-end <- 20161231
-dayvar <- "cov2016_dy" ##need to use in function
-movar <- "cov2016_mth" ##need to use in function
-dayvar_tot <- "cov2016_dy_tot" ##need to use in function
-movar_tot <- "cov2016_mth_tot" ##need to use in function
-
-elig_overall <- elig_overall %>%
-  
-  mutate(
-    
-    #Interval
-    #int_temp = lubridate::intersect(interval(ymd(20120101),ymd(20121231)),interval(ymd(startdate),ymd(enddate))),
-    
-    #Days
-    cov2016_dy = (day(as.period(lubridate::intersect(interval(ymd(start),ymd(end)),interval(ymd(startdate),ymd(enddate))),"days"))) + 1,
-    
-    #Months
-    cov2016_mth = round(cov2016_dy/30,digits=0)
+  elig_dob,
+  tablename = "dbo.mcaid_elig_dob",
+  rownames = FALSE,
+  fast = TRUE,
+  varTypes = c(
+    id = "Varchar(255)",  
+    ssnnew = "Varchar(255)",  
+    dobnew = "Date"
   )
-
-#Replace NA with 0 for covered days/months
-elig_overall$cov2016_dy <- car::recode(elig_overall$cov2016_dy,"NA=0")
-elig_overall$cov2016_mth <- car::recode(elig_overall$cov2016_mth,"NA=0")
+)
+proc.time() - ptm02
 
 
-##### Total coverage days and months per calendar year #####
-elig_overall <- elig_overall %>%
-  group_by(MEDICAID_RECIPIENT_ID) %>%
-  
-  mutate(
-    
-    #Days  
-    cov2016_dy_tot = sum(cov2016_dy),
-    
-    #Months  
-    cov2016_mth_tot = sum(cov2016_mth)
-  ) %>%
-  ungroup()
+
+
+
+
+
+
+
+
 
 
 
