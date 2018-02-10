@@ -78,14 +78,14 @@ elig_dual_final <- elig_dual %>%
   #group rows by group #, id, and dual flag
   group_by(gr, id, dual) %>% 
   #collapse data set to contiguous time intervals for each ID - dual combo
-  summarise(calstart = min(calstart), calend = max(calend)) %>%
+  summarise(from_date = min(calstart), to_date = max(calend)) %>%
   ungroup()
 
 #Drop group variable
-elig_dual_final <- select(elig_dual_final, id, calstart, calend, dual)
+elig_dual_final <- select(elig_dual_final, id, from_date, to_date, dual)
 
 ##### Save dob.mcaid_elig_dual to SQL server 51 #####
-#This took 52 mins for 1,189,580 obs with 4 variables
+#This took 47 mins for 1,189,580 obs with 4 variables
 #sqlDrop(db.claims51, "dbo.mcaid_elig_dual") # Commented out because not always necessary
 ptm03 <- proc.time() # Times how long this query take
 sqlSave(
@@ -96,8 +96,8 @@ sqlSave(
   fast = TRUE,
   varTypes = c(
     id = "Varchar(255)",
-    calstart = "Date",
-    calend = "Date"
+    from_date = "Date",
+    to_date = "Date"
   )
 )
 proc.time() - ptm03

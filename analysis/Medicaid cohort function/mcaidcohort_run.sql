@@ -2,11 +2,11 @@
 use PH_APDEStore
 go
 
---exec [PH_APDESTORE].[PH\SONGL].sp_genhosp1 @ThisYear=2015;
+--Note that @duration variable must be entered manually - this is the difference between @begin and @end plus 1 day
 exec PH_APDEStore.dbo.sp_mcaidcohort 
-	@begin = '2017-01-01', 
-	@end = '2017-06-30',
-	@duration = 181,
+	@from = '2017-01-01', 
+	@to = '2017-06-30',
+	@duration = 181, /**must define this MANUALLY**/
 	@covmin = 50,
 	@dualmax = 0,
 	@agemin = 18,
