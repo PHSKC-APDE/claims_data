@@ -61,23 +61,23 @@ from (
 		select y.id, sum(y.covd) as 'covd', cast(sum((y.covd * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'covper'
 
 		from (
-			select distinct x.id, x.from_date, x.to_date,
+			select distinct x.id, x.startdate, x.enddate,
 
 			/**if coverage period fully contains date range then person time is just date range */
-			iif(x.from_date <= @from_date and x.to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+			iif(x.startdate <= @from_date and x.enddate >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 			/**if coverage period begins before date range start and ends within date range */
-			iif(x.from_date <= @from_date and x.to_date < @to_date, datediff(day, @from_date, x.to_date) + 1,
+			iif(x.startdate <= @from_date and x.enddate < @to_date, datediff(day, @from_date, x.enddate) + 1,
 
 			/**if coverage period begins after date range start and ends after date range end */
-			iif(x.from_date > @from_date and x.to_date >= @to_date, datediff(day, x.from_date, @to_date) + 1,
+			iif(x.startdate > @from_date and x.enddate >= @to_date, datediff(day, x.startdate, @to_date) + 1,
 
 			/**if coverage period begins after date range start and ends before date range end */
-			iif(x.from_date > @from_date and x.to_date < @to_date, datediff(day, x.from_date, x.to_date) + 1,
+			iif(x.startdate > @from_date and x.enddate < @to_date, datediff(day, x.startdate, x.enddate) + 1,
 
 			null)))) as 'covd'
 			from PHClaims.dbo.mcaid_elig_overall as x
-			where x.from_date < @to_date and x.to_date > @from_date
+			where x.startdate < @to_date and x.enddate > @from_date
 		) as y
 		group by y.id
 	) as z

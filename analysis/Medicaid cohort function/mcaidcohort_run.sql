@@ -4,8 +4,8 @@ go
 
 --Note that @duration variable must be entered manually - this is the difference between @begin and @end plus 1 day
 exec PH_APDEStore.dbo.sp_mcaidcohort 
-	@from = '2017-01-01', 
-	@to = '2017-06-30',
+	@from_date = '2017-01-01', 
+	@to_date = '2017-06-30',
 	@duration = 181, /**must define this MANUALLY**/
 	@covmin = 50,
 	@dualmax = 0,
