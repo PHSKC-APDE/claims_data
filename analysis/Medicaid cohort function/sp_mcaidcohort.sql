@@ -14,8 +14,8 @@ go
 --create stored procedure
 create proc dbo.sp_mcaidcohort
 	(
-	@begin as date,
-	@end as date,
+	@from_date as date,
+	@to_date as date,
 	@duration as int,
 	@covmin as decimal(4,1),
 	@dualmax as decimal(4,1),
@@ -48,11 +48,11 @@ as
 begin
 
 --column specs for final joined select query
-select cov.id, cov.covd, cov.covper, dual.duald, dual.dualper, demo.age, demo.male, demo.female, demo.male_t, demo.female_t, demo.aian, demo.asian, demo.black,
+select cov.id, cov.covd, cov.covper, dual.duald, dual.dualper, age, demo.male, demo.female, demo.male_t, demo.female_t, demo.aian, demo.asian, demo.black,
 	demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, demo.nhpi_t, demo.white_t, demo.latino_t, geo.zip_new,
 	geo.kcreg_zip, geo.homeless_e, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, demo.russian, demo.arabic,
 	demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
-	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t 
+	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t
 
 --1st table - coverage
 from (
@@ -64,20 +64,20 @@ from (
 			select distinct x.id, x.startdate, x.enddate,
 
 			/**if coverage period fully contains date range then person time is just date range */
-			iif(x.startdate <= @begin and x.enddate >= @end, datediff(day, @begin, @end) + 1, 
+			iif(x.startdate <= @from_date and x.enddate >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 			/**if coverage period begins before date range start and ends within date range */
-			iif(x.startdate <= @begin and x.enddate < @end, datediff(day, @begin, x.enddate) + 1,
+			iif(x.startdate <= @from_date and x.enddate < @to_date, datediff(day, @from_date, x.enddate) + 1,
 
 			/**if coverage period begins after date range start and ends after date range end */
-			iif(x.startdate > @begin and x.enddate >= @end, datediff(day, x.startdate, @end) + 1,
+			iif(x.startdate > @from_date and x.enddate >= @to_date, datediff(day, x.startdate, @to_date) + 1,
 
 			/**if coverage period begins after date range start and ends before date range end */
-			iif(x.startdate > @begin and x.enddate < @end, datediff(day, x.startdate, x.enddate) + 1,
+			iif(x.startdate > @from_date and x.enddate < @to_date, datediff(day, x.startdate, x.enddate) + 1,
 
 			null)))) as 'covd'
 			from PHClaims.dbo.mcaid_elig_overall as x
-			where x.startdate < @end and x.enddate > @begin
+			where x.startdate < @to_date and x.enddate > @from_date
 		) as y
 		group by y.id
 	) as z
@@ -93,23 +93,23 @@ from (
 	cast(sum((y.duald * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'dualper'
 
 		from (
-			select distinct x.id, x.dual, x.calstart, x.calend,
+			select distinct x.id, x.dual, x.from_date, x.to_date,
 
 			/**if coverage period fully contains date range then person time is just date range */
-			iif(x.calstart <= @begin and x.calend >= @end and x.dual = 'Y', datediff(day, @begin, @end) + 1, 
+			iif(x.from_date <= @from_date and x.to_date >= @to_date and x.dual = 'Y', datediff(day, @from_date, @to_date) + 1, 
 	
 			/**if coverage period begins before date range start and ends within date range */
-			iif(x.calstart <= @begin and x.calend < @end and x.dual = 'Y', datediff(day, @begin, x.calend) + 1,
+			iif(x.from_date <= @from_date and x.to_date < @to_date and x.dual = 'Y', datediff(day, @from_date, x.to_date) + 1,
 
 			/**if coverage period begins after date range start and ends after date range end */
-			iif(x.calstart > @begin and x.calend >= @end and x.dual = 'Y', datediff(day, x.calstart, @end) + 1,
+			iif(x.from_date > @from_date and x.to_date >= @to_date and x.dual = 'Y', datediff(day, x.from_date, @to_date) + 1,
 
 			/**if coverage period begins after date range start and ends before date range end */
-			iif(x.calstart > @begin and x.calend < @end and x.dual = 'Y', datediff(day, x.calstart, x.calend) + 1,
+			iif(x.from_date > @from_date and x.to_date < @to_date and x.dual = 'Y', datediff(day, x.from_date, x.to_date) + 1,
 
 			0)))) as 'duald'
 			from PHClaims.dbo.mcaid_elig_dual as x
-			where x.calstart < @end and x.calend > @begin
+			where x.from_date < @to_date and x.to_date > @from_date
 		) as y
 		group by y.id
 	) as z
@@ -125,7 +125,7 @@ inner join (
 	from (
 		select distinct id, zip_new, kcreg_zip
 		from PHClaims.dbo.mcaid_elig_address
-		where from_add < @end AND to_add > @begin
+		where @from_date < @to_date AND @to_date > @from_date
 	) as x
 
 	--take max of homeless value (ever homeless)
@@ -147,21 +147,21 @@ inner join (
 					select id, zip_new,
 
 						/**if coverage period fully contains date range then person time is just date range */
-						iif(from_add <= @begin and to_add >= @end, datediff(day, @begin, @end) + 1, 
+						iif(@from_date <= @from_date and @to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 						/**if coverage period begins before date range start and ends within date range */
-						iif(from_add <= @begin and to_add < @end, datediff(day, @begin, to_add) + 1,
+						iif(@from_date <= @from_date and @to_date < @to_date, datediff(day, @from_date, to_date) + 1,
 
 						/**if coverage period begins after date range start and ends after date range end */
-						iif(from_add > @begin and to_add >= @end, datediff(day, from_add, @end) + 1,
+						iif(@from_date > @from_date and @to_date >= @to_date, datediff(day, from_date, @to_date) + 1,
 
 						/**if coverage period begins after date range start and ends before date range end */
-						iif(from_add > @begin and to_add < @end, datediff(day, from_add, to_add) + 1,
+						iif(@from_date > @from_date and @to_date < @to_date, datediff(day, from_date, to_date) + 1,
 
 						null)))) as 'covd'
 
 					from PHClaims.dbo.mcaid_elig_address
-					where from_add < @end AND to_add > @begin
+					where @from_date < @to_date and @to_date > @from_date
 				) as a
 				group by a.id, a.zip_new
 			) as x
@@ -181,21 +181,21 @@ inner join (
 					select id, kcreg_zip,
 
 						/**if coverage period fully contains date range then person time is just date range */
-						iif(from_add <= @begin and to_add >= @end, datediff(day, @begin, @end) + 1, 
+						iif(@from_date <= @from_date and @to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 						/**if coverage period begins before date range start and ends within date range */
-						iif(from_add <= @begin and to_add < @end, datediff(day, @begin, to_add) + 1,
+						iif(@from_date <= @from_date and @to_date < @to_date, datediff(day, @from_date, to_date) + 1,
 
 						/**if coverage period begins after date range start and ends after date range end */
-						iif(from_add > @begin and to_add >= @end, datediff(day, from_add, @end) + 1,
+						iif(@from_date > @from_date and @to_date >= @to_date, datediff(day, from_date, @to_date) + 1,
 
 						/**if coverage period begins after date range start and ends before date range end */
-						iif(from_add > @begin and to_add < @end, datediff(day, from_add, to_add) + 1,
+						iif(@from_date > @from_date and @to_date < @to_date, datediff(day, from_date, to_date) + 1,
 
 						null)))) as 'covd'
 
 					from PHClaims.dbo.mcaid_elig_address
-					where from_add < @end AND to_add > @begin
+					where @from_date < @to_date and @to_date > @from_date
 				) as a
 				group by a.id, a.kcreg_zip
 			) as x
@@ -222,7 +222,7 @@ inner join (
 	from( 	
 		select distinct id, 
 		--age vars
-		dobnew, floor((datediff(day, dobnew, @end) + 1) / 365.25) as 'age',
+		dobnew, floor((datediff(day, dobnew, @to_date) + 1) / 365.25) as 'age',
 		--gender vars
 		male, female, male_t, female_t,
 		--race vars

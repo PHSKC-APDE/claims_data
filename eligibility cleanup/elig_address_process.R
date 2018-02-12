@@ -100,7 +100,7 @@ ptm02 <- proc.time() # Times how long this query takes
 elig_address_clean <- sqlQuery(
   db.claims51,
   " select *
-    from PHClaims.dbo.elig_address_clean",
+    from PHClaims.dbo.mcaid_elig_address_clean",
   stringsAsFactors = FALSE
 )
 proc.time() - ptm02
@@ -154,16 +154,16 @@ elig_address_final <- elig_address %>%
   group_by(gr, id, add1_new, add2_new, city_new, state_new, zip_new, cntyfips_new, cntyname_new, confidential,
            homeless, mailbox, care_of, overridden, kcreg_zip) %>% 
   #collapse data set to contiguous time intervals for each ID - address combo
-  summarise(from_add = min(from_add), to_add = max(to_add)) %>%
+  summarise(from_date = min(from_add), to_date = max(to_add)) %>%
   ungroup()
 
 
 #Drop group variable
-elig_address_final <- select(elig_address_final, id, from_add, to_add, add1_new, add2_new, city_new, state_new, zip_new, cntyfips_new, cntyname_new, confidential, 
+elig_address_final <- select(elig_address_final, id, from_date, to_date, add1_new, add2_new, city_new, state_new, zip_new, cntyfips_new, cntyname_new, confidential, 
                       homeless, mailbox, care_of, overridden, kcreg_zip)
 
 ##### Save dob.mcaid_elig_address to SQL server 51 #####
-#This took 74 mins for 1,837,601 obs with 16 variables
+#This took 80 mins for 1,903,340 obs with 16 variables
 #sqlDrop(db.claims51, "dbo.mcaid_elig_address") # Commented out because not always necessary
 ptm03 <- proc.time() # Times how long this query take
 sqlSave(
@@ -174,16 +174,11 @@ sqlSave(
   fast = TRUE,
   varTypes = c(
     id = "Varchar(255)",
-    from_add = "Date",
-    to_add = "Date"
+    from_date = "Date",
+    to_date = "Date"
   )
 )
 proc.time() - ptm03
-
-rm(elig_address_clean, regdef)
-
-
-
 
 
 

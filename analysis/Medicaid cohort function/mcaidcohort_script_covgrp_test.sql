@@ -19,15 +19,15 @@ declare @from_date date, @to_date date, @duration int, @covmin decimal(4,1), @du
 set @from_date = '2017-01-01'
 set @to_date = '2017-06-30'
 set @duration = datediff(day, @from_date, @to_date) + 1
-set @covmin = 50
-set @dualmax = 0
-set @agemin = 18
-set @agemax = 64
+set @covmin = 0
+set @dualmax = 100
+set @agemin = 0
+set @agemax = 200
 set @female = null
-set @male = 1
+set @male = null
 set @aian = null
 set @asian = null
-set @black = 1
+set @black = null
 set @nhpi = null
 set @white = null
 set @latino = null
@@ -43,7 +43,7 @@ set @arabic = null
 set @korean = null
 set @ukrainian = null
 set @amharic = null
-set @maxlang = 'ARABIC,SOMALI'
+set @maxlang = null
 set @id = null
 
 --column specs for final joined select query
@@ -51,7 +51,11 @@ select cov.id, cov.covd, cov.covper, dual.duald, dual.dualper, age, demo.male, d
 	demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, demo.nhpi_t, demo.white_t, demo.latino_t, geo.zip_new,
 	geo.kcreg_zip, geo.homeless_e, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, demo.russian, demo.arabic,
 	demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
-	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t
+	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t,
+	
+	round(rac.nadultd / cov.covd * 100.0, 1) as 'nadultper',
+	round(rac.disabledd / cov.covd * 100.0, 1) as 'disabledper',
+	round(rac.nondisabledd / cov.covd * 100.0, 1) as 'nondisabledper'
 
 --1st table - coverage
 from (
@@ -60,23 +64,23 @@ from (
 		select y.id, sum(y.covd) as 'covd', cast(sum((y.covd * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'covper'
 
 		from (
-			select distinct x.id, x.startdate, x.enddate,
+			select distinct x.id, x.from_date, x.to_date,
 
 			/**if coverage period fully contains date range then person time is just date range */
-			iif(x.startdate <= @from_date and x.enddate >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+			iif(x.from_date <= @from_date and x.to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 			/**if coverage period begins before date range start and ends within date range */
-			iif(x.startdate <= @from_date and x.enddate < @to_date, datediff(day, @from_date, x.enddate) + 1,
+			iif(x.from_date <= @from_date and x.to_date < @to_date, datediff(day, @from_date, x.to_date) + 1,
 
 			/**if coverage period begins after date range start and ends after date range end */
-			iif(x.startdate > @from_date and x.enddate >= @to_date, datediff(day, x.startdate, @to_date) + 1,
+			iif(x.from_date > @from_date and x.to_date >= @to_date, datediff(day, x.from_date, @to_date) + 1,
 
 			/**if coverage period begins after date range start and ends before date range end */
-			iif(x.startdate > @from_date and x.enddate < @to_date, datediff(day, x.startdate, x.enddate) + 1,
+			iif(x.from_date > @from_date and x.to_date < @to_date, datediff(day, x.from_date, x.to_date) + 1,
 
 			null)))) as 'covd'
 			from PHClaims.dbo.mcaid_elig_overall as x
-			where x.startdate < @to_date and x.enddate > @from_date
+			where x.from_date < @to_date and x.to_date > @from_date
 		) as y
 		group by y.id
 	) as z
@@ -116,7 +120,66 @@ from (
 ) as dual
 on cov.id = dual.id
 
---3rd table - sub-county areas
+--3rd table - Coverage groups
+inner join (
+--create coverage group vars per zeyno's code
+	select y.id, sum(y.nadultd) as 'nadultd', sum(y.disabled) as 'disabledd', sum(y.nondisabled) as 'nondisabledd'
+	from (
+		select distinct x.id, x.rac, x.from_date, x.to_date, x.nadult, x.disabled, x.nondisabled,
+
+		--new adults
+		/**if coverage period fully contains date range then person time is just date range */
+		iif(x.from_date <= @from_date and x.to_date >= @to_date and x.nadult = 1, datediff(day, @from_date, @to_date) + 1, 
+	
+		/**if coverage period begins before date range start and ends within date range */
+		iif(x.from_date <= @from_date and x.to_date < @to_date and x.nadult = 1, datediff(day, @from_date, x.to_date) + 1,
+
+		/**if coverage period begins after date range start and ends after date range end */
+		iif(x.from_date > @from_date and x.to_date >= @to_date and x.nadult = 1, datediff(day, x.from_date, @to_date) + 1,
+
+		/**if coverage period begins after date range start and ends before date range end */
+		iif(x.from_date > @from_date and x.to_date < @to_date and x.nadult = 1, datediff(day, x.from_date, x.to_date) + 1,
+
+		0)))) as 'nadultd',
+
+		--disabled
+		/**if coverage period fully contains date range then person time is just date range */
+		iif(x.from_date <= @from_date and x.to_date >= @to_date and x.disabled = 1, datediff(day, @from_date, @to_date) + 1, 
+	
+		/**if coverage period begins before date range start and ends within date range */
+		iif(x.from_date <= @from_date and x.to_date < @to_date and x.disabled = 1, datediff(day, @from_date, x.to_date) + 1,
+
+		/**if coverage period begins after date range start and ends after date range end */
+		iif(x.from_date > @from_date and x.to_date >= @to_date and x.disabled = 1, datediff(day, x.from_date, @to_date) + 1,
+
+		/**if coverage period begins after date range start and ends before date range end */
+		iif(x.from_date > @from_date and x.to_date < @to_date and x.disabled = 1, datediff(day, x.from_date, x.to_date) + 1,
+
+		0)))) as 'disabledd',
+
+		--non-disabled
+		/**if coverage period fully contains date range then person time is just date range */
+		iif(x.from_date <= @from_date and x.to_date >= @to_date and x.nondisabled = 1, datediff(day, @from_date, @to_date) + 1, 
+	
+		/**if coverage period begins before date range start and ends within date range */
+		iif(x.from_date <= @from_date and x.to_date < @to_date and x.nondisabled = 1, datediff(day, @from_date, x.to_date) + 1,
+
+		/**if coverage period begins after date range start and ends after date range end */
+		iif(x.from_date > @from_date and x.to_date >= @to_date and x.nondisabled = 1, datediff(day, x.from_date, @to_date) + 1,
+
+		/**if coverage period begins after date range start and ends before date range end */
+		iif(x.from_date > @from_date and x.to_date < @to_date and x.nondisabled = 1, datediff(day, x.from_date, x.to_date) + 1,
+
+		0)))) as 'nondisabledd'
+
+		from PHClaims.dbo.mcaid_elig_covgrp as x
+		where x.from_date < @to_date and x.to_date > @from_date
+	) as y
+	group by y.id
+) as rac
+on cov.id = rac.id
+
+--4th table - sub-county areas
 inner join (
 	select distinct x.id, zipdur.zip_new, zregdur.kcreg_zip, homeless.homeless_e
 
@@ -124,7 +187,7 @@ inner join (
 	from (
 		select distinct id, zip_new, kcreg_zip
 		from PHClaims.dbo.mcaid_elig_address
-		where @from_date < @to_date AND @to_date > @from_date
+		where from_date < @to_date and to_date > @from_date
 	) as x
 
 	--take max of homeless value (ever homeless)
@@ -146,21 +209,21 @@ inner join (
 					select id, zip_new,
 
 						/**if coverage period fully contains date range then person time is just date range */
-						iif(@from_date <= @from_date and @to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+						iif(from_date_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 						/**if coverage period begins before date range start and ends within date range */
-						iif(@from_date <= @from_date and @to_date < @to_date, datediff(day, @from_date, to_date) + 1,
+						iif(from_date_date <= @from_date and to_date < @to_date, datediff(day, @from_date, to_date) + 1,
 
 						/**if coverage period begins after date range start and ends after date range end */
-						iif(@from_date > @from_date and @to_date >= @to_date, datediff(day, from_date, @to_date) + 1,
+						iif(from_date > @from_date and to_date >= @to_date, datediff(day, from_date, @to_date) + 1,
 
 						/**if coverage period begins after date range start and ends before date range end */
-						iif(@from_date > @from_date and @to_date < @to_date, datediff(day, from_date, to_date) + 1,
+						iif(from_date > @from_date and to_date < @to_date, datediff(day, from_date, to_date) + 1,
 
 						null)))) as 'covd'
 
 					from PHClaims.dbo.mcaid_elig_address
-					where @from_date < @to_date and @to_date > @from_date
+					where from_date < @to_date and to_date > @from_date
 				) as a
 				group by a.id, a.zip_new
 			) as x
@@ -180,21 +243,21 @@ inner join (
 					select id, kcreg_zip,
 
 						/**if coverage period fully contains date range then person time is just date range */
-						iif(@from_date <= @from_date and @to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+						iif(from_date_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 						/**if coverage period begins before date range start and ends within date range */
-						iif(@from_date <= @from_date and @to_date < @to_date, datediff(day, @from_date, to_date) + 1,
+						iif(from_date_date <= @from_date and to_date < @to_date, datediff(day, @from_date, to_date) + 1,
 
 						/**if coverage period begins after date range start and ends after date range end */
-						iif(@from_date > @from_date and @to_date >= @to_date, datediff(day, from_date, @to_date) + 1,
+						iif(from_date > @from_date and to_date >= @to_date, datediff(day, from_date, @to_date) + 1,
 
 						/**if coverage period begins after date range start and ends before date range end */
-						iif(@from_date > @from_date and @to_date < @to_date, datediff(day, from_date, to_date) + 1,
+						iif(from_date > @from_date and to_date < @to_date, datediff(day, from_date, to_date) + 1,
 
 						null)))) as 'covd'
 
 					from PHClaims.dbo.mcaid_elig_address
-					where @from_date < @to_date and @to_date > @from_date
+					where from_date < @to_date and to_date > @from_date
 				) as a
 				group by a.id, a.kcreg_zip
 			) as x
@@ -211,7 +274,7 @@ inner join (
 --join on ID
 on cov.id = geo.id
 
---4th table - age, gender, race, and language
+--5th table - age, gender, race, and language
 inner join (
 	select x.id, x.dobnew, x.age, x.male, x.female, x.male_t, x.female_t, x.aian, x.asian,
 		x.black, x.nhpi, x.white, x.latino, x.aian_t, x.asian_t, x.black_t, x.nhpi_t, x.white_t,

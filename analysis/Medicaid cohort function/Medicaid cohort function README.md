@@ -41,8 +41,8 @@ Check out how the parameters are set in the [mcaidcohort_run.sql](mcaidcohort_ru
 
 | Parameter | Definition | Input format/range | Default value |
 | --- | --- | --- | --- |
-| begin | begin date for Medicaid coverage period	| “YYYY-MM-DD” | 12 months prior to today’s date
-| end | end date for Medicaid coverage period | “YYYY-MM-DD” | 6 months prior to today’s date
+| from_date | begin date for Medicaid coverage period	| “YYYY-MM-DD” | 12 months prior to today’s date
+| to_date | end date for Medicaid coverage period | “YYYY-MM-DD” | 6 months prior to today’s date
 | covmin | minimum coverage required during requested date range (percent scale) | 0-100 | begin
 | dualmax | maximum Medicare-Medicaid dual eligibility coverage allowed during requested date range (percent scale) | 0-100 | 100
 | agemin | minimum age for cohort (integer) | positive integer | 0
