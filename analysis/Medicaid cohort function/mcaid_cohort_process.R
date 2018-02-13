@@ -43,7 +43,7 @@ source("analysis/Medicaid cohort function/mcaid_cohort_function.R")
 ptm01 <- proc.time() # Times how long this query takes
 mcaid_cohort <- sqlQuery(
   db.apde51,
-  mcaid_cohort_f(begin = "2017-01-01", end = "2017-06-30"),
+  mcaid_cohort_f(from_date = "2017-01-01", to_date = "2017-06-30"),
   stringsAsFactors = FALSE
   )
 proc.time() - ptm01

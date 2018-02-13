@@ -6,7 +6,7 @@
 ###############################################################################
 
 #### Define function #####
-mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - months(6), covmin = 0, dualmax = 100,
+mcaid_cohort_f <- function(from_date = Sys.Date() - months(12), to_date = Sys.Date() - months(6), covmin = 0, dualmax = 100,
                            agemin = 0, agemax = 200, female = "null", male = "null", aian = "null", 
                            asian = "null", black = "null", nhpi = "null", white = "null", latino = "null",
                            zip = "null", zregion = "null", english = "null", spanish = "null", vietnamese = "null",
@@ -14,16 +14,16 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
                            ukrainian = "null", amharic = "null", maxlang = "null", id = "null") {
   
   #Error checks
-  if(begin > end & !missing(begin) & !missing(end)) {
-    stop("Begin date must be <= end date")
+  if(from_date > to_date & !missing(from_date) & !missing(to_date)) {
+    stop("from_date date must be <= to_date date")
   }
   
-  if(missing(begin) & missing(end)) {
-    print("Default begin and end dates used - 12 and 6 months prior to today's date, respectively")
+  if(missing(from_date) & missing(to_date)) {
+    print("Default from_date and to_date dates used - 12 and 6 months prior to today's date, respectively")
   }
   
-  if((missing(begin) & !missing(end)) | (!missing(begin) & missing(end))) {
-    stop("If begin date provided, end date must also be provided. And vice versa.")
+  if((missing(from_date) & !missing(to_date)) | (!missing(from_date) & missing(to_date))) {
+    stop("If from_date date provided, to_date date must also be provided. And vice versa.")
   }
   
   if(!is.numeric(covmin) | covmin < 0 | covmin > 100){
@@ -59,8 +59,8 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
   #Run parameters message
   cat(paste(
         "You have selected a Medicaid member cohort with the following characteristics:\n",
-        "Coverage start date: ", begin, "(inclusive)\n",
-        "Coverage end date: ", end, " (inclusive)\n",
+        "Coverage begin date: ", from_date, "(inclusive)\n",
+        "Coverage end date: ", to_date, " (inclusive)\n",
         "Coverage requirement: ", covmin, " percent or more of requested date range\n",
         "Medicare-Medicaid dual eligibility: ", dualmax, " percent or less of requested date range\n",
         "Minimum age: ", agemin, " years and older\n",
@@ -91,13 +91,13 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
   
   #Derived variables
   
-  duration <- as.numeric(as.Date(end) - as.Date(begin)) + 1
+  duration <- as.numeric(as.Date(to_date) - as.Date(from_date)) + 1
   
   #Build SQL query
   exec <- "exec PH_APDEStore.dbo.sp_mcaidcohort"
   
-  begin_t <- paste("@begin = \'", begin, "\',", sep = "")
-  end_t <- paste("@end = \'", end, "\',", sep = "")
+  from_date_t <- paste("@from_date = \'", from_date, "\',", sep = "")
+  to_date_t <- paste("@to_date = \'", to_date, "\',", sep = "")
   duration_t <- paste("@duration = ", duration, ",", sep = "")
   covmin_t <- paste("@covmin = ", covmin, ",", sep = "")
   dualmax_t <- paste("@dualmax = ", dualmax, ",", sep = "")
@@ -142,7 +142,7 @@ mcaid_cohort_f <- function(begin = Sys.Date() - months(12), end = Sys.Date() - m
          id_t <- paste("@id = ", id, sep = ""),
          id_t <- paste("@id = \'", id, "\'", sep = ""))
   
-  paste(exec, begin_t, end_t, duration_t, covmin_t, dualmax_t, agemin_t, agemax_t, female_t, male_t, 
+  paste(exec, from_date_t, to_date_t, duration_t, covmin_t, dualmax_t, agemin_t, agemax_t, female_t, male_t, 
         aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, zip_t, zregion_t, english_t, spanish_t,
         vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t,
         maxlang_t, id_t, sep = " ")
