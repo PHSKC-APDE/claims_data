@@ -125,7 +125,7 @@ inner join (
 --create coverage group vars per zeyno's code
 	select y.id, sum(y.nadultd) as 'nadultd', sum(y.disabled) as 'disabledd', sum(y.nondisabled) as 'nondisabledd'
 	from (
-		select distinct x.id, x.rac, x.from_date, x.to_date, x.nadult, x.disabled, x.nondisabled,
+		select distinct x.id, x.rac_code, x.from_date, x.to_date, x.nadult, x.disabled, x.nondisabled,
 
 		--new adults
 		/**if coverage period fully contains date range then person time is just date range */
@@ -209,10 +209,10 @@ inner join (
 					select id, zip_new,
 
 						/**if coverage period fully contains date range then person time is just date range */
-						iif(from_date_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+						iif(from_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 						/**if coverage period begins before date range start and ends within date range */
-						iif(from_date_date <= @from_date and to_date < @to_date, datediff(day, @from_date, to_date) + 1,
+						iif(from_date <= @from_date and to_date < @to_date, datediff(day, @from_date, to_date) + 1,
 
 						/**if coverage period begins after date range start and ends after date range end */
 						iif(from_date > @from_date and to_date >= @to_date, datediff(day, from_date, @to_date) + 1,
@@ -243,10 +243,10 @@ inner join (
 					select id, kcreg_zip,
 
 						/**if coverage period fully contains date range then person time is just date range */
-						iif(from_date_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+						iif(from_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 						/**if coverage period begins before date range start and ends within date range */
-						iif(from_date_date <= @from_date and to_date < @to_date, datediff(day, @from_date, to_date) + 1,
+						iif(from_date <= @from_date and to_date < @to_date, datediff(day, @from_date, to_date) + 1,
 
 						/**if coverage period begins after date range start and ends after date range end */
 						iif(from_date > @from_date and to_date >= @to_date, datediff(day, from_date, @to_date) + 1,
