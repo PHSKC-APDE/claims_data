@@ -6,9 +6,9 @@
 ###############################################################################
 
 #### Define function #####
-mcaid_cohort_f <- function(from_date = Sys.Date() - months(12), to_date = Sys.Date() - months(6), covmin = 0, dualmax = 100,
-                           agemin = 0, agemax = 200, female = "null", male = "null", aian = "null", 
-                           asian = "null", black = "null", nhpi = "null", white = "null", latino = "null",
+mcaid_cohort_f <- function(from_date = Sys.Date() - months(12), to_date = Sys.Date() - months(6), covmin = 0,
+                           dualmax = 100, agemin = 0, agemax = 200, female = "null", male = "null", 
+                           aian = "null", asian = "null", black = "null", nhpi = "null", white = "null", latino = "null",
                            zip = "null", zregion = "null", english = "null", spanish = "null", vietnamese = "null",
                            chinese = "null", somali = "null", russian = "null", arabic = "null", korean = "null",
                            ukrainian = "null", amharic = "null", maxlang = "null", id = "null") {

@@ -10,24 +10,24 @@
 	--who were marked male alone or in combo ever, with the female variable allowed to have any value)
 
 --Begin code
-declare @from_date date, @to_date date, @duration int, @covmin decimal(4,1), @dualmax decimal(4,1), @agemin int, @agemax int, @female varchar(max), @male varchar(max),
-	@aian varchar(max), @asian varchar(max), @black varchar(max), @nhpi varchar(max), @white varchar(max), @latino varchar (max), 
-	@zip varchar(max), @region varchar(max), @english varchar(max), @spanish varchar(max), @vietnamese varchar(max), @chinese varchar(max),
-	@somali varchar(max), @russian varchar(max), @arabic varchar(max), @korean varchar(max), @ukrainian varchar(max), @amharic varchar(max),
-	@maxlang varchar(max), @id varchar(max)
+declare @from_date date, @to_date date, @duration int, @covmin decimal(4,1), @dualmax decimal(4,1), @agemin int, @agemax int, 
+	@female varchar(max), @male varchar(max), @aian varchar(max), @asian varchar(max), @black varchar(max), @nhpi varchar(max), 
+	@white varchar(max), @latino varchar (max), @zip varchar(max), @region varchar(max), @english varchar(max), @spanish varchar(max), 
+	@vietnamese varchar(max), @chinese varchar(max), @somali varchar(max), @russian varchar(max), @arabic varchar(max), 
+	@korean varchar(max), @ukrainian varchar(max), @amharic varchar(max), @maxlang varchar(max), @id varchar(max)
 
 set @from_date = '2017-01-01'
 set @to_date = '2017-06-30'
 set @duration = datediff(day, @from_date, @to_date) + 1
-set @covmin = 50
-set @dualmax = 0
-set @agemin = 18
-set @agemax = 64
+set @covmin = 0
+set @dualmax = 100
+set @agemin = 0
+set @agemax = 200
 set @female = null
-set @male = 1
+set @male = null
 set @aian = null
 set @asian = null
-set @black = 1
+set @black = null
 set @nhpi = null
 set @white = null
 set @latino = null
@@ -43,7 +43,7 @@ set @arabic = null
 set @korean = null
 set @ukrainian = null
 set @amharic = null
-set @maxlang = 'ARABIC,SOMALI'
+set @maxlang = null
 set @id = null
 
 --column specs for final joined select query
@@ -60,28 +60,30 @@ from (
 		select y.id, sum(y.covd) as 'covd', cast(sum((y.covd * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'covper'
 
 		from (
-			select distinct x.id, x.from_date, x.to_date,
+		select distinct x.id, x.from_date, x.to_date,
 
-			/**if coverage period fully contains date range then person time is just date range */
-			iif(x.from_date <= @from_date and x.to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+		--calculate coverage days during specified time period
+		/**if coverage period fully contains date range then person time is just date range */
+		iif(x.from_date <= @from_date and x.to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
-			/**if coverage period begins before date range start and ends within date range */
-			iif(x.from_date <= @from_date and x.to_date < @to_date, datediff(day, @from_date, x.to_date) + 1,
+		/**if coverage period begins before date range start and ends within date range */
+		iif(x.from_date <= @from_date and x.to_date < @to_date, datediff(day, @from_date, x.to_date) + 1,
 
-			/**if coverage period begins after date range start and ends after date range end */
-			iif(x.from_date > @from_date and x.to_date >= @to_date, datediff(day, x.from_date, @to_date) + 1,
+		/**if coverage period begins after date range start and ends after date range end */
+		iif(x.from_date > @from_date and x.to_date >= @to_date, datediff(day, x.from_date, @to_date) + 1,
 
-			/**if coverage period begins after date range start and ends before date range end */
-			iif(x.from_date > @from_date and x.to_date < @to_date, datediff(day, x.from_date, x.to_date) + 1,
+		/**if coverage period begins after date range start and ends before date range end */
+		iif(x.from_date > @from_date and x.to_date < @to_date, datediff(day, x.from_date, x.to_date) + 1,
 
-			null)))) as 'covd'
-			from PHClaims.dbo.mcaid_elig_overall as x
-			where x.from_date < @to_date and x.to_date > @from_date
+		null)))) as 'covd'
+
+		from PHClaims.dbo.mcaid_elig_overall as x
+		where x.from_date < @to_date and x.to_date > @from_date
 		) as y
 		group by y.id
 	) as z
 	where z.covper >= @covmin
-	and (@id is null or z.id in (select * from PH_APDEStore.dbo.Split(@id, ',')))
+		and (@id is null or z.id in (select * from PH_APDEStore.dbo.Split(@id, ',')))
 )as cov
 
 --2nd table - dual eligibility duration
