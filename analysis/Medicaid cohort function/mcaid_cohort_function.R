@@ -1,13 +1,14 @@
 ###############################################################################
 # Eli Kern
-# 2018-1-31
+# 2018-2-27
 # APDE
 # Function to generate SQL query to select Medicaid eligibility cohort with specified parameters
+# Version 1.1
 ###############################################################################
 
 #### Define function #####
-mcaid_cohort_f <- function(from_date = Sys.Date() - months(12), to_date = Sys.Date() - months(6), covmin = 0,
-                           dualmax = 100, agemin = 0, agemax = 200, female = "null", male = "null", 
+mcaid_cohort_f <- function(from_date = Sys.Date() - months(12), to_date = Sys.Date() - months(6), covmin = 0, ccov_min = 1,
+                           covgap_max = "null", dualmax = 100, agemin = 0, agemax = 200, female = "null", male = "null", 
                            aian = "null", asian = "null", black = "null", nhpi = "null", white = "null", latino = "null",
                            zip = "null", zregion = "null", english = "null", spanish = "null", vietnamese = "null",
                            chinese = "null", somali = "null", russian = "null", arabic = "null", korean = "null",
@@ -32,6 +33,14 @@ mcaid_cohort_f <- function(from_date = Sys.Date() - months(12), to_date = Sys.Da
   
   if(!is.numeric(dualmax) | dualmax < 0 | dualmax > 100){
     stop("Dual eligibility must be numeric between 0 and 100")
+  }
+  
+  if(!is.numeric(ccov_min) | ccov_min < 1){
+    stop("Minimum continuous coverage days must be a positive integer greater than 0")
+  }
+  
+  if((!is.numeric(covgap_max) | covgap_max < 0) & !is.character(covgap_max)){
+    stop("Maximum continuous coverage gap must be a positive integer")
   }
   
   if(!is.numeric(agemin) | !is.numeric(agemax)) {
@@ -62,6 +71,8 @@ mcaid_cohort_f <- function(from_date = Sys.Date() - months(12), to_date = Sys.Da
         "Coverage begin date: ", from_date, "(inclusive)\n",
         "Coverage end date: ", to_date, " (inclusive)\n",
         "Coverage requirement: ", covmin, " percent or more of requested date range\n",
+        "Minimum continuous coverage requirement: ", ccov_min, " days during requested date range\n",
+        "Maximum continuous coverage gap: ", covgap_max, " days during requested date range\n",
         "Medicare-Medicaid dual eligibility: ", dualmax, " percent or less of requested date range\n",
         "Minimum age: ", agemin, " years and older\n",
         "Maximum age: ", agemax, " years and younger\n",    
@@ -100,6 +111,8 @@ mcaid_cohort_f <- function(from_date = Sys.Date() - months(12), to_date = Sys.Da
   to_date_t <- paste("@to_date = \'", to_date, "\',", sep = "")
   duration_t <- paste("@duration = ", duration, ",", sep = "")
   covmin_t <- paste("@covmin = ", covmin, ",", sep = "")
+  ccov_min_t <- paste("@ccov_min = ", ccov_min, ",", sep = "")
+  covgap_max_t <- paste("@covgap_max = ", covgap_max, ",", sep = "")
   dualmax_t <- paste("@dualmax = ", dualmax, ",", sep = "")
   
   agemin_t <- paste("@agemin = ", agemin, ",", sep = "")
@@ -142,7 +155,7 @@ mcaid_cohort_f <- function(from_date = Sys.Date() - months(12), to_date = Sys.Da
          id_t <- paste("@id = ", id, sep = ""),
          id_t <- paste("@id = \'", id, "\'", sep = ""))
   
-  paste(exec, from_date_t, to_date_t, duration_t, covmin_t, dualmax_t, agemin_t, agemax_t, female_t, male_t, 
+  paste(exec, from_date_t, to_date_t, duration_t, covmin_t, ccov_min_t, covgap_max_t, dualmax_t, agemin_t, agemax_t, female_t, male_t, 
         aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, zip_t, zregion_t, english_t, spanish_t,
         vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t,
         maxlang_t, id_t, sep = " ")
