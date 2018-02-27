@@ -43,7 +43,9 @@ Check out how the parameters are set in the [mcaidcohort_run_example.sql](mcaidc
 | --- | --- | --- | --- |
 | from_date | begin date for Medicaid coverage period	| “YYYY-MM-DD” | 12 months prior to today’s date
 | to_date | end date for Medicaid coverage period | “YYYY-MM-DD” | 6 months prior to today’s date
-| covmin | minimum coverage required during requested date range (percent scale) | 0-100 | begin
+| covmin | minimum coverage required during requested date range (percent scale) | 0-100 | 0
+| ccov_min | minimum continuous coverage required during requested date range (days) | 1 or more | 1
+| covgap_max | maximum gap in continuous coverage allowed during requested date range (days) | 0 or more | null
 | dualmax | maximum Medicare-Medicaid dual eligibility coverage allowed during requested date range (percent scale) | 0-100 | 100
 | agemin | minimum age for cohort (integer) | positive integer | 0
 | agemax | maximum age for cohort (integer) | positive integer | 200
@@ -60,6 +62,8 @@ Check out how the parameters are set in the [mcaidcohort_run_example.sql](mcaidc
 | id | Unique Medicaid member ID (ProviderOne ID) | character | 11 alphanumeric characters
 | covd | Medicaid coverage duration during the requested date range (inclusive, integer days) | numeric | >=1
 | covper | Percent of the requested date range with Medicaid coverage | numeric | >0.0 and <=100.0
+| ccovd_max | Longest continuous coverage period during requested date range (integer days) | numeric | >=1
+| covgap_max | Longest gap in continuous coverage during requested date range (integer days) | numeric | >=0
 | duald | Medicare-Medicaid dual eligibility coverage during requested date range (inclusive, integer days) | numeric | >=0
 | dualper | Percent of the requested date range with Medicare-Medicaid dual eligibility | numeric | >=0.0 and <=100.0
 | age | Integer age calculated as of the last date of the requested date range | numeric | >=0
