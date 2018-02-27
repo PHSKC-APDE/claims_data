@@ -1,6 +1,6 @@
 
 # Medicaid eligibility cohort function – SQL and R applications
-Version 1.0
+Version 1.1
 
 ## Purpose
 Script to send a SQL query to the PHClaims database on the SQL Server 51 to return a Medicaid eligibility cohort with specified parameters, either working in SQL Server Management Studio or R.
