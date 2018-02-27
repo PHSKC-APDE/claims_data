@@ -28,7 +28,7 @@ Script to send a SQL query to the PHClaims database on the SQL Server 51 to retu
 1.	Copy and paste the SQL code from the SQL script [mcaidcohort_run.sql](mcaidcohort_run.sql) and tweak the parameters to your desire.
 
 ## Illustrative example
-Check out how the parameters are set in the [mcaidcohort_run.sql](mcaidcohort_run.sql) file. This will select a Medicaid eligibility cohort with the following parameters:
+Check out how the parameters are set in the [mcaidcohort_run_example.sql](mcaidcohort_run_example.sql) file. This will select a Medicaid eligibility cohort with the following parameters:
 - Medicaid coverage between 1/1/2017 and 6/30/2017, with minimum coverage of 50% during this time period
 - Members must have 0% Medicare-Medicaid dual eligibility coverage during this time
 - Medicaid members must be between age 18 and 64 (inclusive), age is calculated as of the last day of the requested coverage date range
