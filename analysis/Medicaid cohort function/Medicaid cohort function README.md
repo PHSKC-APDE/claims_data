@@ -1,6 +1,6 @@
 
 # Medicaid eligibility cohort function – SQL and R applications
-Version 1.0
+Version 1.1
 
 ## Purpose
 Script to send a SQL query to the PHClaims database on the SQL Server 51 to return a Medicaid eligibility cohort with specified parameters, either working in SQL Server Management Studio or R.
@@ -28,7 +28,7 @@ Script to send a SQL query to the PHClaims database on the SQL Server 51 to retu
 1.	Copy and paste the SQL code from the SQL script [mcaidcohort_run.sql](mcaidcohort_run.sql) and tweak the parameters to your desire.
 
 ## Illustrative example
-Check out how the parameters are set in the [mcaidcohort_run.sql](mcaidcohort_run.sql) file. This will select a Medicaid eligibility cohort with the following parameters:
+Check out how the parameters are set in the [mcaidcohort_run_example.sql](mcaidcohort_run_example.sql) file. This will select a Medicaid eligibility cohort with the following parameters:
 - Medicaid coverage between 1/1/2017 and 6/30/2017, with minimum coverage of 50% during this time period
 - Members must have 0% Medicare-Medicaid dual eligibility coverage during this time
 - Medicaid members must be between age 18 and 64 (inclusive), age is calculated as of the last day of the requested coverage date range
@@ -43,7 +43,9 @@ Check out how the parameters are set in the [mcaidcohort_run.sql](mcaidcohort_ru
 | --- | --- | --- | --- |
 | from_date | begin date for Medicaid coverage period	| “YYYY-MM-DD” | 12 months prior to today’s date
 | to_date | end date for Medicaid coverage period | “YYYY-MM-DD” | 6 months prior to today’s date
-| covmin | minimum coverage required during requested date range (percent scale) | 0-100 | begin
+| covmin | minimum coverage required during requested date range (percent scale) | 0-100 | 0
+| ccov_min | minimum continuous coverage required during requested date range (days) | 1 or more | 1
+| covgap_max | maximum gap in continuous coverage allowed during requested date range (days) | 0 or more | null
 | dualmax | maximum Medicare-Medicaid dual eligibility coverage allowed during requested date range (percent scale) | 0-100 | 100
 | agemin | minimum age for cohort (integer) | positive integer | 0
 | agemax | maximum age for cohort (integer) | positive integer | 200
@@ -60,6 +62,8 @@ Check out how the parameters are set in the [mcaidcohort_run.sql](mcaidcohort_ru
 | id | Unique Medicaid member ID (ProviderOne ID) | character | 11 alphanumeric characters
 | covd | Medicaid coverage duration during the requested date range (inclusive, integer days) | numeric | >=1
 | covper | Percent of the requested date range with Medicaid coverage | numeric | >0.0 and <=100.0
+| ccovd_max | Longest continuous coverage period during requested date range (integer days) | numeric | >=1
+| covgap_max | Longest gap in continuous coverage during requested date range (integer days) | numeric | >=0
 | duald | Medicare-Medicaid dual eligibility coverage during requested date range (inclusive, integer days) | numeric | >=0
 | dualper | Percent of the requested date range with Medicare-Medicaid dual eligibility | numeric | >=0.0 and <=100.0
 | age | Integer age calculated as of the last date of the requested date range | numeric | >=0

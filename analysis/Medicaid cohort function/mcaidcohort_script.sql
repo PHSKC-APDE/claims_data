@@ -1,33 +1,32 @@
 --Eli Kern
---1/25/18
---APDE
---Code to return a demographic subset of the Medicaid pop for a specific time period
+--Assessment, Policy Development & Evaluation, Public Health - Seattle & King County
+--2/27/18
+--Code to return a demographic subset of the King County Medicaid member population for a specific time period
 
---Notes on specifying gender and race
---If you provide a value of 1 for say example, female, the cohort will only include members that were marked female alone or in combo ever
---If you provide a value of 1 for say example, black, and 0 for white, the cohort will only include members that were marked black alone or in combo ever AND never white
---Leaving any of these demographic parameters null will allow members to have any value for that particular field (e.g. male = 1, female = null will return cohort of members
-	--who were marked male alone or in combo ever, with the female variable allowed to have any value)
+--Refer to README file on GitHub to understand parameters below
+--https://github.com/PHSKC-APDE/Medicaid/tree/master/analysis/Medicaid%20cohort%20function
 
 --Begin code
-declare @from_date date, @to_date date, @duration int, @covmin decimal(4,1), @dualmax decimal(4,1), @agemin int, @agemax int, @female varchar(max), @male varchar(max),
-	@aian varchar(max), @asian varchar(max), @black varchar(max), @nhpi varchar(max), @white varchar(max), @latino varchar (max), 
-	@zip varchar(max), @region varchar(max), @english varchar(max), @spanish varchar(max), @vietnamese varchar(max), @chinese varchar(max),
-	@somali varchar(max), @russian varchar(max), @arabic varchar(max), @korean varchar(max), @ukrainian varchar(max), @amharic varchar(max),
-	@maxlang varchar(max), @id varchar(max)
+declare @from_date date, @to_date date, @duration int, @covmin decimal(4,1), @ccov_min int, @covgap_max int, @dualmax decimal(4,1), @agemin int, @agemax int, 
+	@female varchar(max), @male varchar(max), @aian varchar(max), @asian varchar(max), @black varchar(max), @nhpi varchar(max), 
+	@white varchar(max), @latino varchar (max), @zip varchar(max), @region varchar(max), @english varchar(max), @spanish varchar(max), 
+	@vietnamese varchar(max), @chinese varchar(max), @somali varchar(max), @russian varchar(max), @arabic varchar(max), 
+	@korean varchar(max), @ukrainian varchar(max), @amharic varchar(max), @maxlang varchar(max), @id varchar(max)
 
 set @from_date = '2017-01-01'
 set @to_date = '2017-06-30'
 set @duration = datediff(day, @from_date, @to_date) + 1
-set @covmin = 50
-set @dualmax = 0
-set @agemin = 18
-set @agemax = 64
+set @covmin = 0
+set @ccov_min = 1
+set @covgap_max = null
+set @dualmax = 100
+set @agemin = 0
+set @agemax = 200
 set @female = null
-set @male = 1
+set @male = null
 set @aian = null
 set @asian = null
-set @black = 1
+set @black = null
 set @nhpi = null
 set @white = null
 set @latino = null
@@ -43,11 +42,11 @@ set @arabic = null
 set @korean = null
 set @ukrainian = null
 set @amharic = null
-set @maxlang = 'ARABIC,SOMALI'
+set @maxlang = null
 set @id = null
 
 --column specs for final joined select query
-select cov.id, cov.covd, cov.covper, dual.duald, dual.dualper, age, demo.male, demo.female, demo.male_t, demo.female_t, demo.aian, demo.asian, demo.black,
+select cov.id, cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, age, demo.male, demo.female, demo.male_t, demo.female_t, demo.aian, demo.asian, demo.black,
 	demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, demo.nhpi_t, demo.white_t, demo.latino_t, geo.zip_new,
 	geo.kcreg_zip, geo.homeless_e, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, demo.russian, demo.arabic,
 	demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
@@ -55,33 +54,57 @@ select cov.id, cov.covd, cov.covper, dual.duald, dual.dualper, age, demo.male, d
 
 --1st table - coverage
 from (
-	select z.id, z.covd, z.covper
+	select a.id, a.covd, a.covper, a.ccovd_max, a.covgap_max
 	from (
-		select y.id, sum(y.covd) as 'covd', cast(sum((y.covd * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'covper'
+		select z.id, z.covd, z.covper, z.ccovd_max,
+			case
+				when z.pregap_max >= z.postgap_max then z.pregap_max
+				else z.postgap_max
+			end as 'covgap_max'
 
 		from (
-			select distinct x.id, x.startdate, x.enddate,
+			select y.id, sum(y.covd) as 'covd', cast(sum((y.covd * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'covper',
+				max(y.covd) as 'ccovd_max', max(y.pregap) as 'pregap_max', max(y.postgap) as 'postgap_max'
 
+			from (
+			select distinct x.id, x.from_date, x.to_date,
+
+			--calculate coverage days during specified time period
 			/**if coverage period fully contains date range then person time is just date range */
-			iif(x.startdate <= @from_date and x.enddate >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+			iif(x.from_date <= @from_date and x.to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 			/**if coverage period begins before date range start and ends within date range */
-			iif(x.startdate <= @from_date and x.enddate < @to_date, datediff(day, @from_date, x.enddate) + 1,
+			iif(x.from_date <= @from_date and x.to_date < @to_date, datediff(day, @from_date, x.to_date) + 1,
 
 			/**if coverage period begins after date range start and ends after date range end */
-			iif(x.startdate > @from_date and x.enddate >= @to_date, datediff(day, x.startdate, @to_date) + 1,
+			iif(x.from_date > @from_date and x.to_date >= @to_date, datediff(day, x.from_date, @to_date) + 1,
 
 			/**if coverage period begins after date range start and ends before date range end */
-			iif(x.startdate > @from_date and x.enddate < @to_date, datediff(day, x.startdate, x.enddate) + 1,
+			iif(x.from_date > @from_date and x.to_date < @to_date, datediff(day, x.from_date, x.to_date) + 1,
 
-			null)))) as 'covd'
+			null)))) as 'covd',
+
+			--calculate coverage gaps during specified time period
+			case
+				when x.from_date <= @from_date then 0
+				when lag(x.to_date,1) over (partition by x.id order by x.to_date) is null then datediff(day, @from_date, x.from_date) - 1
+				else datediff(day, lag(x.to_date,1) over (partition by x.id order by x.to_date), x.from_date) - 1
+			end as 'pregap',
+
+			case
+				when x.to_date >= @to_date then 0
+				when lead(x.to_date,1) over (partition by x.id order by x.to_date) is null then datediff(day, x.to_date, @to_date) - 1
+				else datediff(day, x.to_date, lead(x.from_date,1) over (partition by x.id order by x.from_date)) - 1
+			end as 'postgap'
+
 			from PHClaims.dbo.mcaid_elig_overall as x
-			where x.startdate < @to_date and x.enddate > @from_date
-		) as y
-		group by y.id
-	) as z
-	where z.covper >= @covmin
-	and (@id is null or z.id in (select * from PH_APDEStore.dbo.Split(@id, ',')))
+			where x.from_date < @to_date and x.to_date > @from_date
+			) as y
+			group by y.id
+		) as z
+	) as a
+	where a.covper >= @covmin and a.ccovd_max >= @ccov_min and (@covgap_max is null or a.covgap_max <= @covgap_max)
+	and (@id is null or a.id in (select * from PH_APDEStore.dbo.Split(@id, ',')))
 )as cov
 
 --2nd table - dual eligibility duration
