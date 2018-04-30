@@ -58,11 +58,14 @@ Check out how the parameters are set in the [mcaidcohort_run_sql_example.sql](mc
 | covgap_max | Longest gap in continuous coverage during requested date range (integer days) | numeric | >=0
 | duald | Medicare-Medicaid dual eligibility coverage during requested date range (inclusive, integer days) | numeric | >=0
 | dualper | Percent of the requested date range with Medicare-Medicaid dual eligibility | numeric | >=0.0 and <=100.0
+| dobnew | Date of birth | character | YYYY-MM-DD
 | age | Integer age calculated as of the last date of the requested date range | numeric | >=0
+| gender_mx | Mutually exclusive gender EVER | character | Female, Male, Multiple
 | male | Male gender alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | female | Female gender alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | male_t | Percent of total person time (months) with male gender | numeric | >=0.0 and <=100.0
 | female_t | Percent of total person time (months) with female gender | numeric | >=0.0 and <=100.0
+| race_mx | Mutually exclusive race/ethnicity EVER | character | AI/AN, Asian, Black, Multiple, Latino, NH/PI, White
 | aian | American Indian/Alaska Native race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | asian | Asian race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | black | Black race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
