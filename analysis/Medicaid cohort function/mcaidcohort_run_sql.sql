@@ -6,11 +6,12 @@
 --Refer to README file on GitHub to understand parameters below
 --https://github.com/PHSKC-APDE/Medicaid/tree/master/analysis/Medicaid%20cohort%20function
 
-use PH_APDEStore
+use PHClaims
 go
 
 --Note that @duration variable must be entered manually - this is the difference between @begin and @end plus 1 day
-exec PH_APDEStore.dbo.sp_mcaidcohort
+--Note that resulting table will be saved as a global temp table named: ##mcaidcohort
+exec PHClaims.dbo.sp_mcaidcohort_sql
 	@from_date = '2017-01-01', 
 	@to_date = '2017-06-30',
 	@duration = 181, /*must calculate and input manually based on from and to dates*/

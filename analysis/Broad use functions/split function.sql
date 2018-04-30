@@ -1,4 +1,4 @@
-use PH_APDEStore
+use PHClaims
 go
 
 CREATE FUNCTION dbo.Split(@String varchar(8000), @Delimiter char(1))       

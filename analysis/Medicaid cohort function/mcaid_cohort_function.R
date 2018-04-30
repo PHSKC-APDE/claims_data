@@ -105,7 +105,7 @@ mcaid_cohort_f <- function(from_date = Sys.Date() - months(12), to_date = Sys.Da
   duration <- as.numeric(as.Date(to_date) - as.Date(from_date)) + 1
   
   #Build SQL query
-  exec <- "exec PH_APDEStore.dbo.sp_mcaidcohort"
+  exec <- "exec PHClaims.dbo.sp_mcaidcohort_r"
   
   from_date_t <- paste("@from_date = \'", from_date, "\',", sep = "")
   to_date_t <- paste("@to_date = \'", to_date, "\',", sep = "")

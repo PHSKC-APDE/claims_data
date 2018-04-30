@@ -2,20 +2,21 @@
 --Assessment, Policy Development & Evaluation, Public Health - Seattle & King County
 --2/27/18
 --Code to return a demographic subset of the King County Medicaid member population for a specific time period
+--This script creates a stored procedure for use within SQL (only difference is that this creates a global temp table)
 
 --Refer to README file on GitHub to understand parameters below
 --https://github.com/PHSKC-APDE/Medicaid/tree/master/analysis/Medicaid%20cohort%20function
 
 --select database
-use PH_APDEStore
+use PHClaims
 go
 
 --drop stored procedure before creating new
-drop procedure dbo.sp_mcaidcohort
+drop procedure dbo.sp_mcaidcohort_sql
 go
 
 --create stored procedure
-create proc dbo.sp_mcaidcohort
+create proc dbo.sp_mcaidcohort_sql
 	(
 	@from_date as date,
 	@to_date as date,
@@ -52,12 +53,19 @@ create proc dbo.sp_mcaidcohort
 as
 begin
 
+--Drop temp table output if it exists
+if object_id('tempdb..##mcaidcohort') IS NOT NULL 
+  drop table ##mcaidcohort
+
 --column specs for final joined select query
-select cov.id, cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, age, demo.male, demo.female, demo.male_t, demo.female_t, demo.aian, demo.asian, demo.black,
-	demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, demo.nhpi_t, demo.white_t, demo.latino_t, geo.zip_new,
+select cov.id, cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, demo.dobnew, demo.age, demo.gender_mx, demo.male, demo.female, demo.male_t, demo.female_t, demo.race_mx,
+	demo.aian, demo.asian, demo.black, demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, demo.nhpi_t, demo.white_t, demo.latino_t, geo.zip_new,
 	geo.kcreg_zip, geo.homeless_e, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, demo.russian, demo.arabic,
 	demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
 	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t
+
+--create temp table for SQL analysis
+into ##mcaidcohort
 
 --1st table - coverage
 from (
@@ -110,7 +118,7 @@ from (
 		) as z
 	) as a
 	where a.covper >= @covmin and a.ccovd_max >= @ccov_min and (@covgap_max is null or a.covgap_max <= @covgap_max)
-	and (@id is null or a.id in (select * from PH_APDEStore.dbo.Split(@id, ',')))
+	and (@id is null or a.id in (select * from PHClaims.dbo.Split(@id, ',')))
 )as cov
 
 --2nd table - dual eligibility duration
@@ -233,8 +241,8 @@ inner join (
 	on x.id = zregdur.id
 
 	--pass in zip and/or region specifications if provided
-	where ((@zip is null) or zipdur.zip_new in (select * from PH_APDEStore.dbo.Split(@zip, ',')))
-	and (@region is null or zregdur.kcreg_zip in (select * from PH_APDEStore.dbo.Split(@region, ',')))
+	where ((@zip is null) or zipdur.zip_new in (select * from PHClaims.dbo.Split(@zip, ',')))
+	and (@region is null or zregdur.kcreg_zip in (select * from PHClaims.dbo.Split(@region, ',')))
 
 ) as geo
 --join on ID
@@ -246,7 +254,28 @@ inner join (
 		x.black, x.nhpi, x.white, x.latino, x.aian_t, x.asian_t, x.black_t, x.nhpi_t, x.white_t,
 		x.latino_t, x.maxlang, x.english, x.spanish, x.vietnamese, x.chinese, x.somali, x.russian,
 		x.arabic, x.korean, x.ukrainian, x.amharic, x. english_t, x.spanish_t, x.vietnamese_t,
-		x.chinese_t, x.somali_t, x.russian_t, x.arabic_t, x.korean_t, x.ukrainian_t, x.amharic_t
+		x.chinese_t, x.somali_t, x.russian_t, x.arabic_t, x.korean_t, x.ukrainian_t, x.amharic_t,
+
+		--mutually exclusive gender
+		case
+			when female_t > 0 and male_t > 0 then 'Multiple'
+			when female = 1 then 'Female'
+			when male = 1 then 'Male'
+			else null
+		end as 'gender_mx',
+
+		--mutually exclusive race/ethnicity
+		case
+			when (aian + asian + black + nhpi + white + latino) > 1 then 'Multiple'
+			when aian = 1 then 'AI/AN'
+			when asian = 1 then 'Asian'
+			when black = 1 then 'Black'
+			when nhpi = 1 then 'NH/PI'
+			when white = 1 then 'White'
+			when latino = 1 then 'Latino'
+			else null
+		end as 'race_mx'
+
 	from( 	
 		select distinct id, 
 		--age vars
@@ -275,7 +304,7 @@ inner join (
 		(@somali is null or somali = @somali) and (@russian is null or russian = @russian) and
 		(@arabic is null or arabic = @arabic) and (@korean is null or korean = @korean) and
 		(@ukrainian is null or ukrainian = @ukrainian) and (@amharic is null or amharic = @amharic) and
-		((@maxlang is null) or maxlang in (select * from PH_APDEStore.dbo.Split(@maxlang, ',')))
+		((@maxlang is null) or maxlang in (select * from PHClaims.dbo.Split(@maxlang, ',')))
 ) as demo
 --join on ID
 on cov.id = demo.id
