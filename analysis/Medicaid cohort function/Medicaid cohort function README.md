@@ -1,6 +1,6 @@
 
 # Medicaid eligibility cohort function – SQL and R applications
-Version 1.1
+Version 1.2
 
 ## Purpose
 Script to send a SQL query to the PHClaims database on the SQL Server 51 to return a Medicaid eligibility cohort with specified parameters, either working in SQL Server Management Studio or R.
@@ -8,15 +8,7 @@ Script to send a SQL query to the PHClaims database on the SQL Server 51 to retu
 ## Access/permissions required
 - All required SQL and R scripts are stored on GitHub [here]()
 - This function uses tables, stored procedures, and functions on SQL Server 51
-- Users must be able to SELECT following tables in PHClaims database:
-     - dbo.mcaid_elig_overall
-     - dbo.mcaid_elig_address
-     - dbo.mcaid_elig_dual
-     - dbo.mcaid_elig_demoever
-- Users must be able to EXECUTE stored procedures in PH_APDEStore database:
-     - dbo.sp_mcaidcohort
-- Users must be able to SELECT table-valued functions in PH_APDEStore database:
-     - dbo.Split
+- Users must have SELECT and EXECUTE permissions for the PHClaims database
 - To check your permissions on any database once you’ve connected, run the SQL code [here](https://github.com/PHSKC-APDE/Medicaid/blob/master/analysis/Broad%20use%20functions/Server%20permissions.sql)
 
 ## Using the Medicaid eligibility cohort function in R
@@ -109,6 +101,13 @@ Check out how the parameters are set in the [mcaidcohort_run_example.sql](mcaidc
 | amharic_t | Percent of total person time (months) with Amharic language | numeric | >=0.0 and <=100.0
 
 *Note: For all _t variables, the denominator equals the total months of person time with non-missing demographics (e.g. gender, race, or language). For race, a month with "non-Hispanic" is considered missing if no other race information was available. For language, both spoken and written language must be missing simultaneously for a month not to contribute to the denominator person time.*
+
+## Update history
+
+# Version 1.2:
+-For R script, switched to odbc package for consistency
+-Added 3 new variables to results table - mutually exclusive race, mutually exclusive gender, and date of birth
+-Modified SQL script so that global temporary table is created to facilitate subsequent data work
 
 ## List of languages in Medicaid eligibility data
 
