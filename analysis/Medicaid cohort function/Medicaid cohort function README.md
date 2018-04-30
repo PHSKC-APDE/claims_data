@@ -104,10 +104,10 @@ Check out how the parameters are set in the [mcaidcohort_run_example.sql](mcaidc
 
 ## Update history
 
-# Version 1.2:
--For R script, switched to odbc package for consistency
--Added 3 new variables to results table - mutually exclusive race, mutually exclusive gender, and date of birth
--Modified SQL script so that global temporary table is created to facilitate subsequent data work
+### Version 1.2:
+- For R script, switched to odbc package for consistency
+- Added 3 new variables to results table - mutually exclusive race, mutually exclusive gender, and date of birth
+- Modified SQL script so that global temporary table is created to facilitate subsequent data work
 
 ## List of languages in Medicaid eligibility data
 
