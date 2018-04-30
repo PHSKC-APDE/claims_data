@@ -20,6 +20,7 @@ library(RODBC) # used to connect to SQL server
 library(openxlsx) # used to read in Excel files
 library(dplyr) # used to manipulate data
 library(stringr) # used to manipulate string variables
+library(RCurl) # Used to read in data via URL
 
 
 ##### Connect to the servers #####
@@ -63,9 +64,9 @@ elig_add <- elig_add %>%
 #### CITY SPELLING CORRECTIONS ####
 # Goal: Tidy up city name spellings
 
-# Bring in city lookup table
-city.lookup <- read.xlsx("H:/My Documents/Medicaid claims/R Projects/Medicaid-PersonTable/City Lookup.xlsx", 
-                         sheet = "city", colNames = TRUE)
+# Bring in city lookup table from Github
+city.lookup <- read.csv(text = getURL("https://raw.githubusercontent.com/PHSKC-APDE/Medicaid/master/eligibility%20cleanup/City%20lookup.csv"), 
+                         header = TRUE, stringsAsFactors = FALSE)
 
 # Set up variables for writing
 elig_add <- mutate(elig_add, city_new = NA)
@@ -90,7 +91,7 @@ elig_add$city_new[is.na(elig_add$city_new)] = elig_add$city[is.na(elig_add$city_
 #### SPECIFIC ADDRESSES ####
 # Some addresses have specific issues than cannot be addressed via rules
 # However, these specific addresses should not be shared publically
-adds_specific <- read.xlsx("//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding/Medicaid_eligibility_specific_addresses_fix - DO NOT SHARE FILE.xlsx")
+adds_specific <- read.xlsx("//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Data processing protocols/Geocoding/Medicaid_eligibility_specific_addresses_fix - DO NOT SHARE FILE.xlsx")
 elig_add <- left_join(elig_add, adds_specific, by = c("add1", "add2", "city", "state", "zip", "cntyfips", "cntyname")) %>%
   select(-(notes))
 
@@ -384,32 +385,24 @@ address <- select(elig_add, add1_new, city_new:zip_new) %>%
   distinct() %>%
   arrange(add1_new, city_new, zip_new)
 write.xlsx(address, file = 
-             paste0("//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding/Distinct addresses_", today, ".xlsx"),
+             paste0("//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Data processing protocols/Geocoding/Distinct addresses_", today, ".xlsx"),
            col.names = TRUE)
 # NB. If R throws an error about not having Rtools installed, run this command:
 # Sys.setenv(R_ZIPCMD= "C:/Rtools/bin/zip")
 
 
 
-
-
 #### Save cleaned and consolidated person table ####
-elig.clean <- elig_add %>%
-  select(id, hhid, ssnnew, fname:lname, gendernew, racem, raceh, hispanic, aian, nhpi, dob, add1:city, 
-         cntyfips:cntyname, street, street2, city_new, zip, homeless:careof, fromfinal, tofinal)
+elig_clean <- elig_add %>% select(-movetype) %>% distinct()
+
+# Quicker to export xlsx and import via SQL Mgmt Server Studio?
+write.xlsx(elig_clean, file = 
+             paste0("//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Data processing protocols/Geocoding/elig_clean_", today, ".xlsx"),
+           col.names = TRUE)
 
 ptm02 <- proc.time() # Times how long this query takes
 #sqlDrop(db.apde, "dbo.medicaid_elig_consolidated_noRAC")
-sqlSave(
-  db.apde51,
-  elig.clean,
-  tablename = "dbo.medicaid_elig_consolidated_noRAC",
-  varTypes = c(
-    fromfinal = "Date",
-    tofinal = "Date",
-    dob = "Date"
-  )
-)
+sqlSave(db.apde51, elig.clean, tablename = "dbo.mcaid_elig_address_clean")
 proc.time() - ptm02
 
 
