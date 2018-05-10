@@ -18,6 +18,7 @@ library(dplyr) # Used to manipulate data
 library(stringr) # Used to manipulate string data
 library(lubridate) # Used to manipulate dates
 library(odbc) # Used to connect to SQL server
+library(RCurl) # Used for pulling files from web (i.e. GitHub)
 
 ##### Set date origin #####
 origin <- "1970-01-01"
@@ -26,7 +27,10 @@ origin <- "1970-01-01"
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
 
 ##### Load user-defined functions for Medicaid data #####
-source("analysis/Medicaid cohort function/mcaid_cohort_function.R")
+url <- "https://raw.githubusercontent.com/PHSKC-APDE/Medicaid/master/analysis/Medicaid%20cohort%20function/mcaid_cohort_function.R"
+cohort_script <- getURL(url, ssl.verifypeer = FALSE)
+eval(parse(text = cohort_script))
+rm(url, cohort_script)
 
 ##### Request Medicaid eligibility cohort #####
 #Refer to Readme file on GitHub for instructions on how to use this function#
