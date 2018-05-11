@@ -435,6 +435,10 @@ rm(ccs)
 icd910cm <- bind_rows(icd9cm, icd10cm)
 rm(icd9cm, icd10cm)
 
+#Normalize variable names with other Medicaid claims data tables
+icd910cm <- icd910cm %>%
+  rename(dx = icdcode, dx_ver = ver)
+
 ####---
 #---
 ##### Step 7: Upload reference table to SQL Server #####
@@ -447,5 +451,5 @@ rm(icd9cm, icd10cm)
 # Write your data frame. Note that the package adds a dbo schema so don’t include that in the name.
 # Also, you can append = T rather than overwrite = T if desired. 
 # Overwrite does what you would expect without needing to delete the whole table
-dbWriteTable(db.claims51, name = "ref_diag_lookup", value = as.data.frame(icd910cm), overwrite = T)
+dbWriteTable(db.claims51, name = "ref_dx_lookup", value = as.data.frame(icd910cm), overwrite = T)
 

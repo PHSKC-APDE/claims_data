@@ -5,3 +5,6 @@ for elig cohort function:
 
 -in the end the culprit behind the slow query speed when the where statement for dualmax was added was that an "=" was
 used. once i changed to a "<=" sign, the performance issue disappeared
+
+-i also (on 5/10/18) tried reorganizing the medicaid cohort function script so that 4 temp tables are created and
+then joined at end - this did NOT result in any speed performance and thus i did not make any changes

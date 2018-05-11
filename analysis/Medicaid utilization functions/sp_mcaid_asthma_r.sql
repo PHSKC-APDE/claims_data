@@ -50,17 +50,17 @@ left join (
 		--pull out claim and diagnosis fields
 		from (
 			select id, tcn, dx_norm, dx_ver
-			from PHClaims.dbo.mcaid_claim_diag
+			from PHClaims.dbo.mcaid_claim_dx
 		) diag
 
 		--join to diagnosis reference table, subset to those with asthma CCW
 		inner join (
-		select icdcode, ver, asthma_ccw
-		from PHClaims.dbo.ref_diag_lookup
+		select dx, dx_ver, asthma_ccw
+		from PHClaims.dbo.ref_dx_lookup
 		where asthma_ccw = 1
 		) ref
 
-		on (diag.dx_norm = ref.icdcode) and (diag.dx_ver = ref.ver)
+		on (diag.dx_norm = ref.dx) and (diag.dx_ver = ref.dx_ver)
 	) as diag
 
 	on header.tcn = diag.tcn
