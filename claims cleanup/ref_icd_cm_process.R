@@ -31,8 +31,10 @@ db.claims51 <- dbConnect(odbc(), "PHClaims51")
 #---
 ####---
 
-icd910cm <- read.xlsx("//dchs-shares01/dchsdata/DCHSPHClaimsData/References/Diagnostic codes/ICD_9_10_CM_Complete_Eli.xlsx", sheet = "icd910cm",
-          colNames = T)
+##testing from Github
+url <- "https://github.com/PHSKC-APDE/Medicaid/raw/master/reference%20documents/ICD_9_10_CM_Complete.xlsx"
+icd910cm <- read.xlsx(url, sheet = "icd910cm",
+                      colNames = T)
 
 icd9cm <- filter(icd910cm, ver == 9)
 icd10cm <- filter(icd910cm, ver == 10)
@@ -49,10 +51,10 @@ rm(icd910cm)
 #Step 2A: Add in CDC ICD-CM 9 and 10 (proposed) external cause of injury information
 ####---
 
-ext_cause_910cm <- read.xlsx("//dchs-shares01/dchsdata/DCHSPHClaimsData/References/Injuries/icd9_10_cm_external_elimerge_10.4.17.xlsx", 
-                             sheet = "external_matrix", colNames = T)
-
-
+url <- "https://github.com/PHSKC-APDE/Medicaid/raw/master/reference%20documents/icd9_10_cm_external_merge_10.4.17.xlsx"
+ext_cause_910cm <- read.xlsx(url, sheet = "external_matrix",
+                             colNames = T)
+  
 ####---
 #Step 2B: Merge external cause info for ICD-9-CM
 ####---
@@ -185,9 +187,10 @@ rm(list = ls(pattern = "^ext_cause_"))
 ####---
 
 #Bring in CCW lookup
-ccw <- read.xlsx("//dchs-shares01/dchsdata/DCHSPHClaimsData/References/Chronic Conditions Warehouse/ccw_lookup.xlsx", 
-                             sheet = "ccw", colNames = T) %>%
-  
+url <- "https://github.com/PHSKC-APDE/Medicaid/raw/master/reference%20documents/ccw_lookup.xlsx"
+ccw <- read.xlsx(url, sheet = "ccw",
+                             colNames = T) %>%
+
   #create ccw_flags
   mutate(
     asthma_ccw = case_when(ccw_code == 6 ~ 1),
@@ -238,8 +241,9 @@ rm(ccw)
 #---
 ####---
 
-ed_avoid <- read.xlsx("//dchs-shares01/dchsdata/DCHSPHClaimsData/References/ED visits/CA ED algorithm/CA avoidable ED visits ICD 9 and 10 codes - appendix II.xlsx", 
-                 sheet = "Normalized", colNames = T) %>%
+url <- "https://github.com/PHSKC-APDE/Medicaid/raw/master/reference%20documents/CA%20avoidable%20ED%20visits%20ICD%209%20and%2010%20codes%20-%20appendix%20II.xlsx"
+ed_avoid <- read.xlsx(url, sheet = "Normalized",
+                 colNames = T) %>%
   mutate(ed_avoid_ca = 1)
 
 #Join to ICD-9-CM codes
@@ -258,8 +262,9 @@ rm(ed_avoid)
 #---
 ####---
 
-ccs <- read.xlsx("//dchs-shares01/dchsdata/DCHSPHClaimsData/References/Diagnostic codes/CCS groupings/ccs_icd9_10cm.xlsx", 
-                      sheet = "ccs_icdcm", colNames = T) #Join to ICD-9-CM codes
+url <- "https://github.com/PHSKC-APDE/Medicaid/raw/master/reference%20documents/ccs_icd9_10cm.xlsx"
+ccs <- read.xlsx(url, sheet = "ccs_icdcm",
+                      colNames = T)
 
 ##Join to ICD-9-CM codes
 icd9cm <- left_join(icd9cm, ccs, by = c("icdcode" = "icdcode", "ver" = "ver"))
