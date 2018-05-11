@@ -302,7 +302,4 @@ inner join (
 --join on ID
 on cov.id = demo.id
 
---order statement for final joined table
-order by cov.id
-
 end

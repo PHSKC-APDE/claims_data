@@ -38,10 +38,10 @@ rm(url, cohort_script)
 
 ptm01 <- proc.time() # Times how long this query takes
 # Run SQL stored procedure to select Medicaid cohort
-mcaid_cohort_res <- dbSendQuery(
+result <- dbSendQuery(
   db.claims51,
   mcaid_cohort_f(from_date = "2017-01-01", to_date = "2017-06-30")  
   )
-mcaid_cohort <- dbFetch(mcaid_cohort_res) #Save SQL server result as R data frame
-dbClearResult(mcaid_cohort_res) #Clear SQL server result
+mcaid_cohort <- dbFetch(result) #Save SQL server result as R data frame
+dbClearResult(result) #Clear SQL server result
 proc.time() - ptm01
