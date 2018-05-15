@@ -4,6 +4,10 @@
 # APDE
 # Function to tabulate R data frame (e.g. summarize ndistinct) over fixed and looped by variables, binding all output as a single data frame
 # Version 1.0
+
+#Example of running function:
+#tabloop_f(df = mydata, unit = id, loop = loop_var(age, race), fixed = fixed_var(year, region))
+#This would produce a single data frame using data in "mydata" tabulating distinct counts of "id" by year and region, separately by age and race
 ###############################################################################
 
 #### Define helper functions #####
