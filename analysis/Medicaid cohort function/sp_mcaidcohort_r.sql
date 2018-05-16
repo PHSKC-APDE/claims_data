@@ -82,10 +82,10 @@ from (
 			iif(x.from_date <= @from_date and x.to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 			/**if coverage period begins before date range start and ends within date range */
-			iif(x.from_date <= @from_date and x.to_date < @to_date, datediff(day, @from_date, x.to_date) + 1,
+			iif(x.from_date <= @from_date and x.to_date < @to_date and x.to_date >= @from_date, datediff(day, @from_date, x.to_date) + 1,
 
-			/**if coverage period begins after date range start and ends after date range end */
-			iif(x.from_date > @from_date and x.to_date >= @to_date, datediff(day, x.from_date, @to_date) + 1,
+			/**if coverage period begins within date range and ends after date range end */
+			iif(x.from_date > @from_date and x.to_date >= @to_date and x.from_date <= @to_date, datediff(day, x.from_date, @to_date) + 1,
 
 			/**if coverage period begins after date range start and ends before date range end */
 			iif(x.from_date > @from_date and x.to_date < @to_date, datediff(day, x.from_date, x.to_date) + 1,
@@ -128,10 +128,10 @@ from (
 			iif(x.from_date <= @from_date and x.to_date >= @to_date and x.dual = 'Y', datediff(day, @from_date, @to_date) + 1, 
 	
 			/**if coverage period begins before date range start and ends within date range */
-			iif(x.from_date <= @from_date and x.to_date < @to_date and x.dual = 'Y', datediff(day, @from_date, x.to_date) + 1,
+			iif(x.from_date <= @from_date and x.to_date < @to_date and x.to_date >= @from_date and x.dual = 'Y', datediff(day, @from_date, x.to_date) + 1,
 
-			/**if coverage period begins after date range start and ends after date range end */
-			iif(x.from_date > @from_date and x.to_date >= @to_date and x.dual = 'Y', datediff(day, x.from_date, @to_date) + 1,
+			/**if coverage period begins within date range and ends after date range end */
+			iif(x.from_date > @from_date and x.to_date >= @to_date and x.from_date <= @to_date and x.dual = 'Y', datediff(day, x.from_date, @to_date) + 1,
 
 			/**if coverage period begins after date range start and ends before date range end */
 			iif(x.from_date > @from_date and x.to_date < @to_date and x.dual = 'Y', datediff(day, x.from_date, x.to_date) + 1,
@@ -176,16 +176,16 @@ inner join (
 					select id, zip_new,
 
 						/**if coverage period fully contains date range then person time is just date range */
-						iif(@from_date <= @from_date and @to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+						iif(from_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 						/**if coverage period begins before date range start and ends within date range */
-						iif(@from_date <= @from_date and @to_date < @to_date, datediff(day, @from_date, to_date) + 1,
+						iif(from_date <= @from_date and to_date < @to_date and to_date >= @from_date, datediff(day, @from_date, to_date) + 1,
 
-						/**if coverage period begins after date range start and ends after date range end */
-						iif(@from_date > @from_date and @to_date >= @to_date, datediff(day, from_date, @to_date) + 1,
+						/**if coverage period begins within date range and ends after date range end */
+						iif(from_date > @from_date and to_date >= @to_date and from_date <= @to_date, datediff(day, from_date, @to_date) + 1,
 
 						/**if coverage period begins after date range start and ends before date range end */
-						iif(@from_date > @from_date and @to_date < @to_date, datediff(day, from_date, to_date) + 1,
+						iif(from_date > @from_date and to_date < @to_date, datediff(day, from_date, to_date) + 1,
 
 						null)))) as 'covd'
 
@@ -210,16 +210,16 @@ inner join (
 					select id, kcreg_zip,
 
 						/**if coverage period fully contains date range then person time is just date range */
-						iif(@from_date <= @from_date and @to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+						iif(from_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
 						/**if coverage period begins before date range start and ends within date range */
-						iif(@from_date <= @from_date and @to_date < @to_date, datediff(day, @from_date, to_date) + 1,
+						iif(from_date <= @from_date and to_date < @to_date and to_date >= @from_date, datediff(day, @from_date, to_date) + 1,
 
-						/**if coverage period begins after date range start and ends after date range end */
-						iif(@from_date > @from_date and @to_date >= @to_date, datediff(day, from_date, @to_date) + 1,
+						/**if coverage period begins within date range and ends after date range end */
+						iif(from_date > @from_date and to_date >= @to_date and from_date <= @to_date, datediff(day, from_date, @to_date) + 1,
 
 						/**if coverage period begins after date range start and ends before date range end */
-						iif(@from_date > @from_date and @to_date < @to_date, datediff(day, from_date, to_date) + 1,
+						iif(from_date > @from_date and to_date < @to_date, datediff(day, from_date, to_date) + 1,
 
 						null)))) as 'covd'
 
