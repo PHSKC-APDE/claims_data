@@ -141,7 +141,7 @@ on cov.id = dual.id
 
 --3rd table - sub-county areas
 inner join (
-	select distinct x.id, zipdur.zip_new, zregdur.kcreg_zip, homeless.homeless_e
+	select distinct x.id, zipdur.zip_new, zipdur.kcreg_zip, homeless.homeless_e
 
 	--client level table
 	from (
@@ -160,75 +160,52 @@ inner join (
 
 	--select ZIP code with greatest duration during time range (no ties allowed given row_number() is used instead of rank())
 	left join (
-		select y.id, y.zip_new
+		select zip.id, zip.zip_new, reg.kcreg_zip
 		from (
-			select x.id, x.zip_new, x.zip_dur, row_number() over (partition by x.id order by x.zip_dur desc) as 'zipr'
+			select y.id, y.zip_new
 			from (
-				select a.id, a.zip_new, sum(a.covd) + 1 as 'zip_dur'
+				select x.id, x.zip_new, x.zip_dur, row_number() over (partition by x.id order by x.zip_dur desc) as 'zipr'
 				from (
-					select id, zip_new,
+					select a.id, a.zip_new, sum(a.covd) + 1 as 'zip_dur'
+					from (
+						select id, zip_new,
 
-						/**if coverage period fully contains date range then person time is just date range */
-						iif(from_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+							/**if coverage period fully contains date range then person time is just date range */
+							iif(from_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
 	
-						/**if coverage period begins before date range start and ends within date range */
-						iif(from_date <= @from_date and to_date < @to_date and to_date >= @from_date, datediff(day, @from_date, to_date) + 1,
+							/**if coverage period begins before date range start and ends within date range */
+							iif(from_date <= @from_date and to_date < @to_date and to_date >= @from_date, datediff(day, @from_date, to_date) + 1,
 
-						/**if coverage period begins within date range and ends after date range end */
-						iif(from_date > @from_date and to_date >= @to_date and from_date <= @to_date, datediff(day, from_date, @to_date) + 1,
+							/**if coverage period begins within date range and ends after date range end */
+							iif(from_date > @from_date and to_date >= @to_date and from_date <= @to_date, datediff(day, from_date, @to_date) + 1,
 
-						/**if coverage period begins after date range start and ends before date range end */
-						iif(from_date > @from_date and to_date < @to_date, datediff(day, from_date, to_date) + 1,
+							/**if coverage period begins after date range start and ends before date range end */
+							iif(from_date > @from_date and to_date < @to_date, datediff(day, from_date, to_date) + 1,
 
-						null)))) as 'covd'
+							null)))) as 'covd'
 
-					from PHClaims.dbo.mcaid_elig_address
-					where @from_date < @to_date and @to_date > @from_date
-				) as a
-				group by a.id, a.zip_new
-			) as x
-		) as y
-		where y.zipr = 1
+						from PHClaims.dbo.mcaid_elig_address
+						where @from_date < @to_date and @to_date > @from_date
+					) as a
+					group by a.id, a.zip_new
+				) as x
+			) as y
+			where y.zipr = 1
+		) as zip
+
+		--select ZIP-based region based on selected ZIP code
+		left join (
+			select zip, kcreg_zip
+			from PHClaims.dbo.ref_region_zip_1017
+		) as reg
+		on zip.zip_new = reg.zip
+
 	) as zipdur
 	on x.id = zipdur.id
 
-	--select ZIP-based region with greatest duration during time range (no ties allowed given row_number() is used instead of rank())
-	left join (
-		select y.id, y.kcreg_zip
-		from (
-			select x.id, x.kcreg_zip, x.zreg_dur, row_number() over (partition by x.id order by x.zreg_dur desc) as 'zregr'
-			from (
-				select a.id, a.kcreg_zip, sum(a.covd) + 1 as 'zreg_dur'
-				from (
-					select id, kcreg_zip,
-
-						/**if coverage period fully contains date range then person time is just date range */
-						iif(from_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
-	
-						/**if coverage period begins before date range start and ends within date range */
-						iif(from_date <= @from_date and to_date < @to_date and to_date >= @from_date, datediff(day, @from_date, to_date) + 1,
-
-						/**if coverage period begins within date range and ends after date range end */
-						iif(from_date > @from_date and to_date >= @to_date and from_date <= @to_date, datediff(day, from_date, @to_date) + 1,
-
-						/**if coverage period begins after date range start and ends before date range end */
-						iif(from_date > @from_date and to_date < @to_date, datediff(day, from_date, to_date) + 1,
-
-						null)))) as 'covd'
-
-					from PHClaims.dbo.mcaid_elig_address
-					where @from_date < @to_date and @to_date > @from_date
-				) as a
-				group by a.id, a.kcreg_zip
-			) as x
-		) as y
-		where y.zregr = 1
-	) as zregdur
-	on x.id = zregdur.id
-
 	--pass in zip and/or region specifications if provided
 	where ((@zip is null) or zipdur.zip_new in (select * from PHClaims.dbo.Split(@zip, ',')))
-	and (@region is null or zregdur.kcreg_zip in (select * from PHClaims.dbo.Split(@region, ',')))
+	and (@region is null or zipdur.kcreg_zip in (select * from PHClaims.dbo.Split(@region, ',')))
 
 ) as geo
 --join on ID
