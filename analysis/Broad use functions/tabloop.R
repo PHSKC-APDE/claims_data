@@ -39,43 +39,39 @@ tabloop_f <- function(df, unit, loop, fixed = NULL) {
   
   #Process function arguments
   unit <- enquo(unit)
-  loop_len <- length(loop)
   
   #Tabulate data frame by fixed vars, looping over loop vars
-  df_list <- list()
-  for (i in 1:loop_len){
+  lapply(loop, function(x) {
     
     #Process names of loop variables
-    loop_var <- loop[i] 
-    loop_var <- rlang::eval_tidy(enquo(loop_var))
-    
-    #Iterate names of data frames for list of data frames
-    df_name <- paste0("df", i)
-    
-    #Process name of group variable for later rename step
-    group_name <- paste0("(", str_replace(as.character(loop[i]), "~", ""), ")")
+    loop_var <- x 
+    group_name <- quo_name(loop_var)
     group_name <- enquo(group_name)
     
     #Tabulate data frame by fixed and each loop variable
-    df_name <- df %>%
-      group_by(!!! fixed, (!!! loop_var)) %>%
+    df <- df %>%
+      group_by(!!! fixed, (!! loop_var)) %>%
       summarise(count = n_distinct(!! unit)) %>%
+      
       #Create variable to hold name of loop variable
       mutate(
-        group_cat = str_replace(as.character(loop_var), "~", "")
+        group_cat = quo_name(loop_var)
       ) %>%
       ungroup() %>%
+      
       #Create variable to hold name of loop variable values
       rename(., group = !! group_name) %>%
-      mutate(group = as.character(group)) %>%
+      mutate(
+        group = as.character(group)
+      ) %>%
+      
       #Order columns
       select(., !!! fixed, group_cat, group, count)
     
-    #Return and build list of resulting data frames
-    df_list[[i]] <- df_name
-  }
-  
-  #Return list of data frames as single bound data frame
-  df_complete <- as.data.frame(bind_rows(df_list))
-  return(df_complete)
+    #Return one data frame for each loop variable provided
+    return(df)
+    }) %>%
+    
+    #Bind results of lapply function and return result
+    bind_rows()
 }
