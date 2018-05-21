@@ -113,7 +113,7 @@ from (
 			end as 'postgap'
 
 			from PHClaims.dbo.mcaid_elig_overall as x
-			where x.from_date < @to_date and x.to_date > @from_date
+			where x.from_date <= @to_date and x.to_date >= @from_date
 			) as y
 			group by y.id
 		) as z
@@ -146,7 +146,7 @@ from (
 
 			0)))) as 'duald'
 			from PHClaims.dbo.mcaid_elig_dual as x
-			where x.from_date < @to_date and x.to_date > @from_date
+			where x.from_date <= @to_date and x.to_date >= @from_date
 		) as y
 		group by y.id
 	) as z
@@ -200,7 +200,7 @@ inner join (
 							null)))) as 'covd'
 
 						from PHClaims.dbo.mcaid_elig_address
-						where @from_date < @to_date and @to_date > @from_date
+						where @from_date <= @to_date and @to_date >= @from_date
 					) as a
 					group by a.id, a.zip_new
 				) as x
@@ -286,4 +286,5 @@ inner join (
 ) as demo
 --join on ID
 on cov.id = demo.id
+
 end
