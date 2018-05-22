@@ -54,11 +54,11 @@ as
 begin
 
 --column specs for final joined select query
-select cov.id, cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, demo.dobnew, demo.age, demo.gender_mx, demo.male, demo.female, demo.male_t, demo.female_t, demo.race_mx,
-	demo.aian, demo.asian, demo.black, demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, demo.nhpi_t, demo.white_t, demo.latino_t, geo.zip_new,
-	geo.kcreg_zip, geo.homeless_e, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, demo.russian, demo.arabic,
+select cov.id, cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, demo.dobnew, demo.age, demo.gender_mx, demo.male, demo.female, demo.male_t, demo.female_t, 
+	demo.gender_unk, demo.race_mx, demo.aian, demo.asian, demo.black, demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, demo.nhpi_t, demo.white_t, demo.latino_t, demo.race_unk,
+	geo.zip_new, geo.kcreg_zip, geo.homeless_e, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, demo.russian, demo.arabic,
 	demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
-	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t
+	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t, demo.lang_unk
 
 --1st table - coverage
 from (
@@ -221,44 +221,24 @@ on cov.id = geo.id
 
 --4th table - age, gender, race, and language
 inner join (
-	select x.id, x.dobnew, x.age, x.male, x.female, x.male_t, x.female_t, x.aian, x.asian,
+	select x.id, x.dobnew, x.age, x.gender_mx, x.male, x.female, x.male_t, x.female_t, x.gender_unk, x.race_mx, x.aian, x.asian,
 		x.black, x.nhpi, x.white, x.latino, x.aian_t, x.asian_t, x.black_t, x.nhpi_t, x.white_t,
-		x.latino_t, x.maxlang, x.english, x.spanish, x.vietnamese, x.chinese, x.somali, x.russian,
+		x.latino_t, x.race_unk, x.maxlang, x.english, x.spanish, x.vietnamese, x.chinese, x.somali, x.russian,
 		x.arabic, x.korean, x.ukrainian, x.amharic, x. english_t, x.spanish_t, x.vietnamese_t,
-		x.chinese_t, x.somali_t, x.russian_t, x.arabic_t, x.korean_t, x.ukrainian_t, x.amharic_t,
-
-		--mutually exclusive gender
-		case
-			when female_t > 0 and male_t > 0 then 'Multiple'
-			when female = 1 then 'Female'
-			when male = 1 then 'Male'
-			else null
-		end as 'gender_mx',
-
-		--mutually exclusive race/ethnicity
-		case
-			when (aian + asian + black + nhpi + white + latino) > 1 then 'Multiple'
-			when aian = 1 then 'AI/AN'
-			when asian = 1 then 'Asian'
-			when black = 1 then 'Black'
-			when nhpi = 1 then 'NH/PI'
-			when white = 1 then 'White'
-			when latino = 1 then 'Latino'
-			else null
-		end as 'race_mx'
+		x.chinese_t, x.somali_t, x.russian_t, x.arabic_t, x.korean_t, x.ukrainian_t, x.amharic_t, x.lang_unk
 
 	from( 	
 		select distinct id, 
 		--age vars
 		dobnew, floor((datediff(day, dobnew, @to_date) + 1) / 365.25) as 'age',
 		--gender vars
-		male, female, male_t, female_t,
+		gender_mx, male, female, male_t, female_t, gender_unk,
 		--race vars
-		aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, nhpi_t, white_t, latino_t,
+		race_mx, aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, race_unk,
 		--language vars
 		maxlang, english, spanish, vietnamese, chinese, somali, russian, arabic, korean, ukrainian, amharic,
 		english_t, spanish_t, vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t,
-		amharic_t
+		amharic_t, lang_unk
 		from PHClaims.dbo.mcaid_elig_demoever
 		) as x
 	--age subsets

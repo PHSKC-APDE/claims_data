@@ -7,13 +7,17 @@
 # Gender, race, and language are alone or in combination EVER variables
 # Data elements: ID, BLANK
 
+## 5/22/2018 updates:
+# Add in multiple gender and multiple race variables
+# Add in unknown gender, race, and language variables
+
 ###############################################################################
 
 
 ##### Set up global parameter and call in libraries #####
 options(max.print = 350, tibble.print_max = 30, scipen = 999)
 
-library(RODBC) # Used to connect to SQL server
+library(odbc) # Used to connect to SQL server
 library(openxlsx) # Used to import/export Excel files
 library(car) # used to recode variables
 library(stringr) # Used to manipulate string data
@@ -36,7 +40,7 @@ recode2 <- function ( data, fields, recodes, as.factor.result = FALSE ) {
 }
 
 ##### Connect to the SQL server #####
-db.claims51 <- odbcConnect("PHClaims51")
+db.claims51 <- dbConnect(odbc(), "PHClaims51")
 
 #################################################################
 ##### Bring in Medicaid eligibility data for DOB processing #####
@@ -44,17 +48,19 @@ db.claims51 <- odbcConnect("PHClaims51")
 #################################################################
 
 ptm01 <- proc.time() # Times how long this query takes
-elig_dob <- sqlQuery(
+result <- dbSendQuery(
   db.claims51,
   " select distinct y.MEDICAID_RECIPIENT_ID as id, y.SOCIAL_SECURITY_NMBR as ssn, y.BIRTH_DATE as dob, count(*) as row_cnt
 	FROM (
   SELECT z.MEDICAID_RECIPIENT_ID, z.SOCIAL_SECURITY_NMBR, z.BIRTH_DATE
   FROM [PHClaims].[dbo].[NewEligibility] as z
-) as y
+  ) as y
   group by y.MEDICAID_RECIPIENT_ID, y.SOCIAL_SECURITY_NMBR, y.BIRTH_DATE
-  order by y.MEDICAID_RECIPIENT_ID, y.SOCIAL_SECURITY_NMBR, row_cnt desc, y.BIRTH_DATE",
-  stringsAsFactors = FALSE
-  )
+  order by y.MEDICAID_RECIPIENT_ID, y.SOCIAL_SECURITY_NMBR, row_cnt desc, y.BIRTH_DATE"
+)
+elig_dob <- dbFetch(result) #Save SQL server result as R data frame
+dbClearResult(result) #Clear SQL server result
+rm(result)
 proc.time() - ptm01
 
 #Code to find duplicated Medicaid IDs
@@ -126,8 +132,8 @@ elig_dob <- distinct(elig_dob, id, ssnnew, dobnew)
 #################################################################
 
 ##### Bring in Medicaid eligibility data #####
-ptm01 <- proc.time() # Times how long this query takes - 172 sec
-elig_demoever <- sqlQuery(
+ptm01 <- proc.time() # Times how long this query takes
+result <- dbSendQuery(
   db.claims51,
   " select distinct y.CLNDR_YEAR_MNTH as calmo, y.MEDICAID_RECIPIENT_ID as id, y.GENDER as gender, y.RACE1 as race1, y.RACE2 as race2, 
       y.RACE3 as race3, y.RACE4 as race4, y.HISPANIC_ORIGIN_NAME as hispanic, y.SPOKEN_LNG_NAME as 'slang', y.WRTN_LNG_NAME as 'wlang'
@@ -135,9 +141,11 @@ elig_demoever <- sqlQuery(
     select z.CLNDR_YEAR_MNTH, z.MEDICAID_RECIPIENT_ID, z.GENDER, z.RACE1, z.RACE2, z.RACE3, z.RACE4, z.HISPANIC_ORIGIN_NAME,
       z.SPOKEN_LNG_NAME, z.WRTN_LNG_NAME
     from [PHClaims].[dbo].[NewEligibility] as z
-    ) as y",
-  stringsAsFactors = FALSE
+    ) as y"
 )
+elig_demoever <- dbFetch(result) #Save SQL server result as R data frame
+dbClearResult(result) #Clear SQL server result
+rm(result)
 proc.time() - ptm01
 
 ##### Convert calendar month to calendar start and end dates for interval overlap comparison #####
@@ -153,7 +161,6 @@ elig_demoever <- elig_demoever %>%
     vars(gender:wlang),
     toupper
   )
-
 
 #### Set NOT PROVIDED and OTHER race to null ####
 #### Set Other Language, Undetermined, to null ####
@@ -189,7 +196,7 @@ elig_gender <- elig_gender %>%
 ##### Create _t variables for each gender variable to hold this percentage. ##### 
 
 
-#Create a variable to flag if all race vars are NA where Not Hispanic is considered NA as well
+#Create a variable to flag if gender var is missing
 elig_gender <- elig_gender %>%
   mutate(
     genderna = is.na(gender)
@@ -229,6 +236,29 @@ elig_gender <- elig_gender %>%
 
 ##### Collapse to one row per ID given we have alone or in combo EVER gender variables #####
 elig_gender_final <- distinct(elig_gender, id, female, male, female_t, male_t)
+
+#Add in variables for multiple gender (mutually exclusive categories) and missing gender
+elig_gender_final <- elig_gender_final %>%
+  
+  mutate(
+    
+    gender_mx = case_when(
+      female_t > 0 & male_t >0 ~ "Multiple",
+      female == 1 ~ "Female",
+      male == 1 ~ "Male",
+      TRUE ~ NA_character_
+    ),
+    
+    gender_unk = case_when(
+      is.na(gender_mx) ~ 1,
+      !is.na(gender_mx) ~ 0,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  
+select(., id, gender_mx, female, male, female_t, male_t, gender_unk)
+
+#Drop temp table
 rm(elig_gender)
 
 
@@ -334,6 +364,34 @@ elig_race <- elig_race %>%
 
 ##### Collapse to one row per ID given we have alone or in combo EVER race variables #####
 elig_race_final <- distinct(elig_race, id, aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, nhpi_t, white_t, latino_t)
+
+#Add in variables for multiple race (mutually exclusive categories) and missing race
+elig_race_final <- elig_race_final %>%
+  
+  mutate(
+    
+    #Note OR condition to account for NA values in latino that may make race + latino sum to NA
+    race_mx = case_when(
+      ((aian + asian + black + nhpi + white) + (latino) > 1) | ((aian + asian + black + nhpi + white) > 1)  ~ "Multiple",
+      aian == 1 ~ "AI/AN",
+      asian == 1 ~ "Asian",
+      black == 1 ~ "Black",
+      nhpi == 1 ~ "NH/PI",
+      white == 1 ~ "White",
+      latino == 1 ~ "Latino",
+      TRUE ~ NA_character_
+    ),
+    
+    race_unk = case_when(
+      is.na(race_mx) ~ 1,
+      !is.na(race_mx) ~ 0,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  
+  select(., id, race_mx, aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, race_unk)
+
+#Drop temp table
 rm(elig_race)
 
 #############################
@@ -341,7 +399,8 @@ rm(elig_race)
 #############################
 
 elig_lang <- select(elig_demoever, id, slang, wlang, calend, calstart)
-#rm(elig_demoever)
+rm(elig_demoever) ##to save memory for later steps
+gc()
 
 #### Create alone or in combination lang variables for King County tier 1 and 2 translation languages with Arabic in place of Punjabi ####
 
@@ -485,12 +544,31 @@ rm(slang.tmp, wlang.tmp)
 
 # Merge back with the primary data
 elig_lang <- left_join(elig_lang, swlang.tmp, by = c("id"))
-rm(swlang.tmp) 
+rm(swlang.tmp)
+gc()
 
-##### Collapse to one row per ID given we have alone or in combo EVER race variables #####
+##### Collapse to one row per ID given we have alone or in combo EVER language variables #####
 elig_lang_final <- distinct(elig_lang, id, maxlang, english, spanish, vietnamese, chinese, somali, russian, arabic, korean, ukrainian, amharic,
                             english_t, spanish_t, vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t)
+
+#Add in variable for missing language
+elig_lang_final <- elig_lang_final %>%
+  
+  mutate(
+    
+    lang_unk = case_when(
+      is.na(maxlang) ~ 1,
+      !is.na(maxlang) ~ 0,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  
+  select(., id, maxlang, english, spanish, vietnamese, chinese, somali, russian, arabic, korean, ukrainian, amharic,
+         english_t, spanish_t, vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t, lang_unk)
+
+#Drop temp table
 remove(elig_lang)
+gc()
 
 #############################
 #### Join all tables ####
@@ -508,25 +586,22 @@ rm(test)
 
 #Drop individual tables
 rm(elig_dob, elig_gender_final, elig_race_final, elig_lang_final)
+gc()
 
 #Test to make sure all IDs in original data table are included in final
 #count(distinct(elig_demoever_final, id))
 #count(distinct(elig_demoever, id))
 
 ##### Save dob.mcaid_elig_demoever to SQL server 51 #####
-#This took 31 min to upload, 851,573 rows x 40 variables
-#sqlDrop(db.claims51, "dbo.mcaid_elig_demoever") # Commented out because not always necessary
+
+# Remove/delete table if it already exists AND you have changed the data structure (not usually needed)
+#dbRemoveTable(db.claims51, name = "mcaid_elig_demoever_test")
+
+# Write your data frame. Note that the package adds a dbo schema so don’t include that in the name.
+# Also, you can append = T rather than overwrite = T if desired. 
+# Overwrite does what you would expect without needing to delete the whole table
+#This took 80 seconds to upload (as opposed to 30 min with RODBC package)
 ptm02 <- proc.time() # Times how long this query takes
-sqlSave(
-  db.claims51,
-  elig_demoever_final,
-  tablename = "dbo.mcaid_elig_demoever",
-  rownames = FALSE,
-  fast = TRUE,
-  varTypes = c(
-    id = "Varchar(255)",  
-    ssnnew = "Varchar(255)",  
-    dobnew = "Date"
-  )
-)
+dbWriteTable(db.claims51, name = "mcaid_elig_demoever_test", value = as.data.frame(elig_demoever_final), overwrite = T)
 proc.time() - ptm02
+gc()
