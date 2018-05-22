@@ -65,6 +65,7 @@ Check out how the parameters are set in the [mcaidcohort_run_sql_example.sql](mc
 | female | Female gender alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | male_t | Percent of total person time (months) with male gender | numeric | >=0.0 and <=100.0
 | female_t | Percent of total person time (months) with female gender | numeric | >=0.0 and <=100.0
+| gender_unk | Unknown gender EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | race_mx | Mutually exclusive race/ethnicity EVER | character | AI/AN, Asian, Black, Multiple, Latino, NH/PI, White
 | aian | American Indian/Alaska Native race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | asian | Asian race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
@@ -78,6 +79,7 @@ Check out how the parameters are set in the [mcaidcohort_run_sql_example.sql](mc
 | nhpi_t | Percent of total person time (months) with NH/PI race | numeric | >=0.0 and <=100.0
 | white_t | Percent of total person time (months) with White race | numeric | >=0.0 and <=100.0
 | latino_t | Percent of total person time (months) with Latino race | numeric | >=0.0 and <=100.0
+| race_unk | Unknown race/ethnicity EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | zip_new | Most frequently reported ZIP code during requested date range | numeric | 5 numeric characters
 | kcreg_zip | Most frequently reported ZIP-based King County region during requested date range | character | east, north, seattle, south
 | homeless_e | Homeless status EVER (pulled from 1st and 2nd line address fields) | numeric | 0 = no, 1 = yes, null or N/A = missing
@@ -102,6 +104,7 @@ Check out how the parameters are set in the [mcaidcohort_run_sql_example.sql](mc
 | korean_t | Percent of total person time (months) with Korean language | numeric | >=0.0 and <=100.0
 | ukrainian_t | Percent of total person time (months) with Ukrainian language | numeric | >=0.0 and <=100.0
 | amharic_t | Percent of total person time (months) with Amharic language | numeric | >=0.0 and <=100.0
+| lang_unk | Unknown spoken/written language EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 
 *Note: For all _t variables, the denominator equals the total months of person time with non-missing demographics (e.g. gender, race, or language). For race, a month with "non-Hispanic" is considered missing if no other race information was available. For language, both spoken and written language must be missing simultaneously for a month not to contribute to the denominator person time.*
 
