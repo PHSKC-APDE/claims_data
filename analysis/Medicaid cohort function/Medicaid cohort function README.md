@@ -1,6 +1,6 @@
 
 # Medicaid eligibility cohort function – SQL and R applications
-Version 1.2
+Version 1.3
 
 ## Purpose
 Script to send a SQL query to the PHClaims database on the SQL Server 51 to return a Medicaid eligibility cohort with specified parameters, either working in SQL Server Management Studio or R.
@@ -114,6 +114,9 @@ Check out how the parameters are set in the [mcaidcohort_run_sql_example.sql](mc
 - For R script, switched to odbc package for consistency
 - Added 3 new variables to results table - mutually exclusive race, mutually exclusive gender, and date of birth
 - Modified SQL script so that global temporary table is created to facilitate subsequent data work
+
+### Version 1.3
+- Added 3 new variables to results table - unknown gender EVER, unknown race/ethnicity EVER, and unknown spoken/written language EVER
 
 ## List of languages in Medicaid eligibility data
 
