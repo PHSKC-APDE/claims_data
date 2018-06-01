@@ -36,12 +36,7 @@ rm(url, cohort_script)
 #Refer to Readme file on GitHub for instructions on how to use this function#
 #https://github.com/PHSKC-APDE/Medicaid/tree/master/analysis/Medicaid%20cohort%20function
 
-ptm01 <- proc.time() # Times how long this query takes
 # Run SQL stored procedure to select Medicaid cohort
-result <- dbSendQuery(
-  db.claims51,
+system.time(mcaid_cohort <- dbGetQuery(db.claims51,
   mcaid_cohort_f(from_date = "2017-01-01", to_date = "2017-06-30")  
-  )
-mcaid_cohort <- dbFetch(result) #Save SQL server result as R data frame
-dbClearResult(result) #Clear SQL server result
-proc.time() - ptm01
+))
