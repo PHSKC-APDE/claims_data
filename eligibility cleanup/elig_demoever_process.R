@@ -370,8 +370,9 @@ elig_race_final <- elig_race_final %>%
   
   mutate(
     
+    #Multiple race, Latino included as race
     #Note OR condition to account for NA values in latino that may make race + latino sum to NA
-    race_mx = case_when(
+    race_eth_mx = case_when(
       ((aian + asian + black + nhpi + white) + (latino) > 1) | ((aian + asian + black + nhpi + white) > 1)  ~ "Multiple",
       aian == 1 ~ "AI/AN",
       asian == 1 ~ "Asian",
@@ -382,6 +383,17 @@ elig_race_final <- elig_race_final %>%
       TRUE ~ NA_character_
     ),
     
+    #Multiple race, Latino excluded
+    race_mx = case_when(
+      (aian + asian + black + nhpi + white) > 1  ~ "Multiple",
+      aian == 1 ~ "AI/AN",
+      asian == 1 ~ "Asian",
+      black == 1 ~ "Black",
+      nhpi == 1 ~ "NH/PI",
+      white == 1 ~ "White",
+      TRUE ~ NA_character_
+    ),
+    
     race_unk = case_when(
       is.na(race_mx) ~ 1,
       !is.na(race_mx) ~ 0,
@@ -389,7 +401,7 @@ elig_race_final <- elig_race_final %>%
     )
   ) %>%
   
-  select(., id, race_mx, aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, race_unk)
+  select(., id, race_eth_mx, race_mx, aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, race_unk)
 
 #Drop temp table
 rm(elig_race)
