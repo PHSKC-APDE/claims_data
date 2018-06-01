@@ -66,7 +66,8 @@ Check out how the parameters are set in the [mcaidcohort_run_sql_example.sql](mc
 | male_t | Percent of total person time (months) with male gender | numeric | >=0.0 and <=100.0
 | female_t | Percent of total person time (months) with female gender | numeric | >=0.0 and <=100.0
 | gender_unk | Unknown gender EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
-| race_mx | Mutually exclusive race/ethnicity EVER | character | AI/AN, Asian, Black, Multiple, Latino, NH/PI, White
+| race_eth_mx | Mutually exclusive race/ethnicity EVER, Latino included | character | AI/AN, Asian, Black, Multiple, Latino, NH/PI, White
+| race_mx | Mutually exclusive race EVER, Latino excluded | character | AI/AN, Asian, Black, Multiple, NH/PI, White
 | aian | American Indian/Alaska Native race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | asian | Asian race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | black | Black race alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
