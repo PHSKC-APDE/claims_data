@@ -31,8 +31,7 @@ db.claims51 <- dbConnect(odbc(), "PHClaims51")
 #---
 ####---
 
-##testing from Github
-url <- "https://github.com/PHSKC-APDE/Medicaid/raw/master/reference%20documents/ICD_9_10_CM_Complete.xlsx"
+url <- "https://github.com/PHSKC-APDE/reference-data/raw/master/Claims%20data/ICD_9_10_CM_Complete.xlsx"
 icd910cm <- read.xlsx(url, sheet = "icd910cm",
                       colNames = T)
 
@@ -51,7 +50,7 @@ rm(icd910cm)
 #Step 2A: Add in CDC ICD-CM 9 and 10 (proposed) external cause of injury information
 ####---
 
-url <- "https://github.com/PHSKC-APDE/Medicaid/raw/master/reference%20documents/icd9_10_cm_external_merge_10.4.17.xlsx"
+url <- "https://github.com/PHSKC-APDE/reference-data/raw/master/Claims%20data/icd9_10_cm_external_merge_10.4.17.xlsx"
 ext_cause_910cm <- read.xlsx(url, sheet = "external_matrix",
                              colNames = T)
   
@@ -187,7 +186,7 @@ rm(list = ls(pattern = "^ext_cause_"))
 ####---
 
 #Bring in CCW lookup
-url <- "https://github.com/PHSKC-APDE/Medicaid/raw/master/reference%20documents/ccw_lookup.xlsx"
+url <- "https://github.com/PHSKC-APDE/reference-data/raw/master/Claims%20data/ccw_lookup.xlsx"
 ccw <- read.xlsx(url, sheet = "ccw",
                              colNames = T) %>%
 
@@ -241,7 +240,7 @@ rm(ccw)
 #---
 ####---
 
-url <- "https://github.com/PHSKC-APDE/Medicaid/raw/master/reference%20documents/CA%20avoidable%20ED%20visits%20ICD%209%20and%2010%20codes%20-%20appendix%20II.xlsx"
+url <- "https://github.com/PHSKC-APDE/reference-data/raw/master/Claims%20data/CA%20avoidable%20ED%20visits%20ICD%209%20and%2010%20codes%20-%20appendix%20II.xlsx"
 ed_avoid <- read.xlsx(url, sheet = "Normalized",
                  colNames = T) %>%
   mutate(ed_avoid_ca = 1)
@@ -262,7 +261,7 @@ rm(ed_avoid)
 #---
 ####---
 
-url <- "https://github.com/PHSKC-APDE/Medicaid/raw/master/reference%20documents/ccs_icd9_10cm.xlsx"
+url <- "https://github.com/PHSKC-APDE/reference-data/raw/master/Claims%20data/ccs_icd9_10cm.xlsx"
 ccs <- read.xlsx(url, sheet = "ccs_icdcm",
                       colNames = T)
 
