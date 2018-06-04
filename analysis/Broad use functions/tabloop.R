@@ -43,22 +43,25 @@ tabloop_f <- function(df, unit, loop, fixed = NULL) {
   #### Step 1: Create matrix of fixed and loop by variables to allow padding for zero counts #### 
   
   #Create permutation matrix for fixed by variables
-  fix_matrix <- lapply(fixed, function(x) {
-    
-    #Process quosures
-    fix_matrix_var <-  enquo(x)
-    
-    #Distinct values of each by variable, create dummy linking variable
-    df <- df %>%
-      select(., !! fix_matrix_var) %>%
-      distinct(., !! fix_matrix_var) %>%
-      mutate(link = 1)
-    return(df)
-  }) %>%
-    
-    #Full join of resulting matrices for each fixed by variable
-    as.list(df) %>% 
-    Reduce(function(dtf1, dtf2) full_join(dtf1, dtf2, by = "link"), .)
+  
+  if(!is.null(fixed)) {
+    fix_matrix <- lapply(fixed, function(x) {
+      
+      #Process quosures
+      fix_matrix_var <-  enquo(x)
+      
+      #Distinct values of each by variable, create dummy linking variable
+      df <- df %>%
+        select(., !! fix_matrix_var) %>%
+        distinct(., !! fix_matrix_var) %>%
+        mutate(link = 1)
+      return(df)
+    }) %>%
+      
+      #Full join of resulting matrices for each fixed by variable
+      as.list(df) %>% 
+      Reduce(function(dtf1, dtf2) full_join(dtf1, dtf2, by = "link"), .)
+  }
   
   #Create stacked group_cat and group matrix for loop variables
   loop_matrix <- lapply(loop, function(x) {
@@ -86,9 +89,18 @@ tabloop_f <- function(df, unit, loop, fixed = NULL) {
     bind_rows() %>%
     select(., group_cat, group, link)
   
+  
   #Join fixed and loop var matrices
-  full_matrix <- full_join(fix_matrix, loop_matrix, by = "link") %>%
-    select(., -link)
+  
+  ifelse(!is.null(fixed),
+         
+         full_matrix <- full_join(fix_matrix, loop_matrix, by = "link") %>%
+           select(., -link),
+         
+         full_matrix <- select(loop_matrix, -link)
+  )
+  
+  
   
   #### Step 2: Create results grouping by fixed and loop by variables #### 
   
@@ -133,7 +145,13 @@ tabloop_f <- function(df, unit, loop, fixed = NULL) {
   
   #Process names of fixed by variables
   fixed_name <- str_replace_all(as.character(fixed), "~", "")
-  merge_list <- c(fixed_name, "group_cat", "group")
+  
+  ifelse(!is.null(fixed),
+         
+         merge_list <- c(fixed_name, "group_cat", "group"),
+         
+         merge_list <- c("group_cat", "group")
+  )
   
   #Join
   df <- left_join(full_matrix, result, by = merge_list) %>%
