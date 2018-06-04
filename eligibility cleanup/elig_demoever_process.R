@@ -394,9 +394,10 @@ elig_race_final <- elig_race_final %>%
       TRUE ~ NA_character_
     ),
     
+    #Race missing if multiple race/ethnicity variable is NA
     race_unk = case_when(
-      is.na(race_mx) ~ 1,
-      !is.na(race_mx) ~ 0,
+      is.na(race_eth_mx) ~ 1,
+      !is.na(race_eth_mx) ~ 0,
       TRUE ~ NA_real_
     )
   ) %>%
