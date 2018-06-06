@@ -25,6 +25,8 @@ origin <- "1970-01-01"
 ##### Connect to the servers #####
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
 
+
+
 ####---
 #---
 ##### Step 1: Bring in ICD-9-CM and ICD-10-CM codes #####
@@ -39,6 +41,8 @@ icd9cm <- filter(icd910cm, ver == 9)
 icd10cm <- filter(icd910cm, ver == 10)
 
 rm(icd910cm)
+
+
 
 ####---
 #---
@@ -179,6 +183,8 @@ icd10cm <- icd10cm %>%
 
 rm(list = ls(pattern = "^ext_cause_"))
 
+
+
 ####---
 #---
 ##### Step 3: Chronic Condition Warehouse flags #####
@@ -234,6 +240,8 @@ icd10cm <- left_join(icd10cm, ccw, by = c("icdcode" = "dx", "ver" = "ver"))
 
 rm(ccw)
 
+
+
 ####---
 #---
 ##### Step 4: Avoidable ED visit diagnoses #####
@@ -254,6 +262,8 @@ icd10cm <- left_join(icd10cm, ed_avoid, by = c("icdcode" = "icdcode_aed", "ver" 
 #Note: I checked to make sure that all 108 ICD-10-CM codes merged
 
 rm(ed_avoid)
+
+
 
 ####---
 #---
@@ -430,9 +440,43 @@ icd10cm <- icd10cm %>%
 rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
 rm(ccs)
 
+
+
 ####---
 #---
-##### Step 6: Bind ICD-9-CM and ICD-10-CM information #####
+##### Step 6: RDA-defined Mental Health and Substance User Disorder-related diagnoses #####
+#---
+####---
+
+url <- "https://github.com/PHSKC-APDE/reference-data/raw/master/Claims%20data/mh_sud_dx_lookup_rda.xlsx"
+
+mh_rda <- read.xlsx(url, sheet = "mh",
+                      colNames = T) %>%
+  mutate(mental_dx_rda = 1) %>%
+  select(., -dx_description)
+
+sud_rda <- read.xlsx(url, sheet = "sud",
+                    colNames = T) %>%
+  mutate(sud_dx_rda = 1) %>%
+  select(., -dx_description)
+
+#Join to ICD-9-CM codes
+icd9cm <- left_join(icd9cm, mh_rda, by = c("icdcode" = "dx", "ver" = "dx_ver"))
+icd9cm <- left_join(icd9cm, sud_rda, by = c("icdcode" = "dx", "ver" = "dx_ver"))
+#Note: I checked to make sure that all 254 and 246 ICD-9-CM codes merged for MH and SUD, respectively
+
+#Join to ICD-10-CM codes
+icd10cm <- left_join(icd10cm, mh_rda, by = c("icdcode" = "dx", "ver" = "dx_ver"))
+icd10cm <- left_join(icd10cm, sud_rda, by = c("icdcode" = "dx", "ver" = "dx_ver"))
+#Note: I checked to make sure that all 1620 and 872 ICD-10-CM codes merged for MH and SUD, respectively
+
+rm(mh_rda, sud_rda)
+
+
+
+####---
+#---
+##### Step 7: Bind ICD-9-CM and ICD-10-CM information #####
 #---
 ####---
 
@@ -443,16 +487,18 @@ rm(icd9cm, icd10cm)
 icd910cm <- icd910cm %>%
   rename(dx = icdcode, dx_ver = ver)
 
+
+
 ####---
 #---
-##### Step 7: Upload reference table to SQL Server #####
+##### Step 8: Upload reference table to SQL Server #####
 #---
 ####---
 
 # Remove/delete table if it already exists AND you have changed the data structure (not usually needed)
 #dbRemoveTable(db.claims51, name = "ref_diag_lookup")
 
-# Write your data frame. Note that the package adds a dbo schema so don’t include that in the name.
+# Write your data frame. Note that the package adds a dbo schema so do not include that in the name.
 # Also, you can append = T rather than overwrite = T if desired. 
 # Overwrite does what you would expect without needing to delete the whole table
 dbWriteTable(db.claims51, name = "ref_dx_lookup", value = as.data.frame(icd910cm), overwrite = T)
