@@ -12,6 +12,5 @@ However, many of the functions and concepts can be applied to other claims data 
 - The man folder contains the help files for the medicaid package.
 
 # Intructions for installing the medicaid package
-1) Clone this repository.
-2) Make sure devtools is installed (install.packages("devtools")).
-3) Type devtools::install_github("PHSKC-APDE/Medicaid")
+1) Make sure devtools is installed (install.packages("devtools")).
+2) Type devtools::install_github("PHSKC-APDE/Medicaid")
