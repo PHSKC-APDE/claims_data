@@ -1,0 +1,18 @@
+Package: medicaid
+Version: 0.1
+Title: Query and analyze Washington State Medicaid eligibility and claims data
+Description: LARGELY FOR INTERNAL USE
+  This package is for querying and analyzing Washington State Medicaid eligibility and claims data.
+Authors@R: person("Eli", "Kern", email = "eli.kern@kingcounty.gov", role = c("aut", "cre"))
+BugReports: https://github.com/PHSKC-APDE/Medicaid
+Depends: R (>= 3.3.3)
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Imports:
+Suggests:
+    odbc,
+    dplyr,
+    stringr,
+    tidyr
+RoxygenNote: 6.0.1
