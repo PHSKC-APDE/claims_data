@@ -222,7 +222,11 @@ inner join (
 	from( 	
 		select distinct id, 
 		--age vars
-		dobnew, floor((datediff(day, dobnew, @to_date) + 1) / 365.25) as 'age',
+		dobnew, 		
+		case
+			when floor((datediff(day, dobnew, @to_date) + 1) / 365.25) >=0 then floor((datediff(day, dobnew, @to_date) + 1) / 365.25)
+			when floor((datediff(day, dobnew, @to_date) + 1) / 365.25) = -1 then 0
+		end as 'age',
 		--gender vars
 		gender_mx, male, female, male_t, female_t, gender_unk,
 		--race vars
