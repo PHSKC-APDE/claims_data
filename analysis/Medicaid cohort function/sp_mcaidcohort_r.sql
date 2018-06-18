@@ -166,13 +166,14 @@ inner join (
 	) as homeless
 	on x.id = homeless.id
 
-	--select ZIP code with greatest duration during time range (no ties allowed given row_number() is used instead of rank())
+		--select ZIP code with greatest duration during time range (no ties allowed given row_number() is used instead of rank())
+	--to get consistent counts by ZIP, ZIP codes are grouped by ID and ZIP, and then sorted by zip duration (desc) and ZIP (asc)
 	left join (
 		select zip.id, zip.zip_new, reg.kcreg_zip
 		from (
 			select y.id, y.zip_new
 			from (
-				select x.id, x.zip_new, x.zip_dur, row_number() over (partition by x.id order by x.zip_dur desc) as 'zipr'
+				select x.id, x.zip_new, x.zip_dur, row_number() over (partition by x.id order by x.zip_dur desc, x.zip_new) as 'zipr'
 				from (
 					select a.id, a.zip_new, sum(a.covd) + 1 as 'zip_dur'
 					from (
