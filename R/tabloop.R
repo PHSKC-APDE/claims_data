@@ -1,30 +1,30 @@
-###############################################################################
-# Eli Kern
-# 2018-5-14
-# APDE
-# Function to tabulate R data frame (e.g. summarize ndistinct) over fixed and looped by variables, binding all output as a single data frame
-# Version 1.1
-
-#Example of running function:
-#tabloop_f(df = mydata, unit = id, loop = loop_var(age, race), fixed = fixed_var(year, region))
-#This would produce a single data frame using data in "mydata" tabulating distinct counts of "id" by year and region, separately by age and race
-
-##Version 1.1 update:
-#Modified function so that zero counts are returned for rows where permutation of fixed variables and loop variable do not exist in data
-###############################################################################
-
-#### Define helper functions #####
-fixed_var <- function(...) {
-  fixed <- quos(...)
-  return(fixed)
-}
-
-loop_var <- function(...) {
-  loop <- quos(...)
-  return(loop)
-}
-
-#### Define main function #####
+#' @title Tabulation loop
+#' 
+#' \code{tabloop_f} tabulates a data frame (e.g. summarize ndistinct) over fixed and 
+#' looped by variables, binding all output as a single data frame.
+#' 
+#' @description This function tabulates a single data frame over fixed and looped by variables, and binds
+#' all output as a single data frame. Fixed by variables are variables by which the data frame will be disaggregated
+#' for all loop variables, whereas loop variables will only be disaggregated separately. For example, a combination of
+#' region for fixed and age group and sex for loop would produce counts by age group and sex for each region, but not
+#' counts for each sex by age group.
+#' 
+#' The function accepts a row ID variable and summarizes distinct counts of this variable.
+#' The function will produce zero counts for all by variable values that exist in the full join of the fixed
+#' and loop by variable matrix.
+#' 
+#' @param df A data frame in tidy format
+#' @param unit A variable that identifies the unit of tabulation (e.g.person, row, etc.)
+#' @param loop A list of the loop by variables, requires use of \code{list_var}, required
+#' @param fixed A list of the fixed by variables, requires use of \code{list_var}, defaults to null
+#'
+#' @examples
+#' \dontrun{
+#' tabloop_f(df = mcaid_cohort, unit = id, loop = list_var(gender, race), fixed = list_var(region))
+#' tabloop_f(df = mcaid_cohort, unit = id, loop = list_var(gender, race, zip_code, cov_grp, language))
+#' }
+#' 
+#' @export
 tabloop_f <- function(df, unit, loop, fixed = NULL) {
   
   #Error checks
@@ -91,7 +91,6 @@ tabloop_f <- function(df, unit, loop, fixed = NULL) {
   
   
   #Join fixed and loop var matrices
-  
   ifelse(!is.null(fixed),
          
          full_matrix <- full_join(fix_matrix, loop_matrix, by = "link") %>%
@@ -99,7 +98,6 @@ tabloop_f <- function(df, unit, loop, fixed = NULL) {
          
          full_matrix <- select(loop_matrix, -link)
   )
-  
   
   
   #### Step 2: Create results grouping by fixed and loop by variables #### 
@@ -140,6 +138,7 @@ tabloop_f <- function(df, unit, loop, fixed = NULL) {
   }) %>%
     #Bind results of lapply function and return result
     bind_rows()
+  
   
   #### Step 3: Join by variable matrix with tabulate results to add zero counts #### 
   
