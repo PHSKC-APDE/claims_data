@@ -3,12 +3,17 @@
 \name{helper}
 \alias{helper}
 \alias{list_var}
+\alias{sqlbatch_f}
 \title{Broad use helper functions}
 \usage{
 list_var(...)
+
+sqlbatch_f(server, sqlbatch)
 }
 \arguments{
 \item{...}{Variables that will be passed as a list to another function}
+
+\item{server}{SQL server connection created using \code{odbc} package}
 }
 \description{
 Various functions used to support processing and analysis
@@ -16,4 +21,6 @@ of Medicaid claims data.
 
 \code{list_var} accepts a list of unquoted variable names and returns a list of quosures
 for passing to any function.
+\code{sqlbatch_f} prepares and sends batched SQL statements to SQL Server with the final statement
+returning a result set.
 }

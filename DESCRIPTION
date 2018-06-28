@@ -10,9 +10,10 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Imports:
-Suggests:
     odbc,
     dplyr,
     stringr,
+    rlang
+Suggests:
     tidyr
 RoxygenNote: 6.0.1
