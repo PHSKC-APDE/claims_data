@@ -1,8 +1,8 @@
-#' Medicaid member claim summary
+#' @title Medicaid member claim summary
 #' 
-#' \code{mcaid_claim_f} queries a SQL server to return Medicaid member eligibility, demographic and claim summary information.
+#' @description \code{mcaid_claim_f} queries a SQL server to return Medicaid member eligibility, demographic and claim summary information.
 #' 
-#' LARGELY FOR INTERNAL USE
+#' @details LARGELY FOR INTERNAL USE
 #' This function builds and sends a SQL query to return a data set of Medicaid member and claim information
 #' using specified parameters, including coverage time period, coverage characteristics 
 #' (e.g. Medicare dual eligibility), and member demographics. \code{mcaid_Claim_f} is a wrapper for \code{mcaid_elig_f}

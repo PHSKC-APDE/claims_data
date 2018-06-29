@@ -1,8 +1,8 @@
-#' Medicaid member eligibility and demographics
+#' @title Medicaid member eligibility and demographics
 #' 
-#' \code{mcaid_elig_f} builds a SQL query to return Medicaid member eligibility and demographic information.
+#' @description \code{mcaid_elig_f} builds a SQL query to return Medicaid member eligibility and demographic information.
 #' 
-#' LARGELY FOR INTERNAL USE
+#' @details LARGELY FOR INTERNAL USE
 #' This function builds and sends a SQL query to return a Medicaid member cohort with specified parameters, including
 #' coverage time period, coverage characteristics (e.g. Medicare dual eligibility), and member demographics.
 #' 

@@ -1,13 +1,13 @@
 #' @title Tabulation loop
 #' 
-#' \code{tabloop_f} tabulates a data frame (e.g. summarize ndistinct) over fixed and 
+#' @description \code{tabloop_f} tabulates a data frame (e.g. summarize ndistinct) over fixed and 
 #' looped by variables, binding all output as a single data frame.
 #' 
-#' @description This function tabulates a single data frame over fixed and looped by variables, and binds
+#' @details This function tabulates a single data frame over fixed and looped by variables, and binds
 #' all output as a single data frame. Fixed by variables are variables by which the data frame will be disaggregated
 #' for all loop variables, whereas loop variables will only be disaggregated separately. For example, a combination of
 #' region for fixed and age group and sex for loop would produce counts by age group and sex for each region, but not
-#' counts for each sex by age group.
+#' counts for each sex by age group. 
 #' 
 #' The function accepts a row ID variable and summarizes distinct counts of this variable.
 #' The function will produce zero counts for all by variable values that exist in the full join of the fixed

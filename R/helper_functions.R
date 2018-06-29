@@ -5,12 +5,13 @@
 #' 
 #' \code{list_var} accepts a list of unquoted variable names and returns a list of quosures
 #' for passing to any function.
+#' 
 #' \code{sqlbatch_f} prepares and sends batched SQL statements to SQL Server with the final statement
 #' returning a result set.
 #' 
 #' @param ... Variables that will be passed as a list to another function
 #' @param server SQL server connection created using \code{odbc} package
-#' @sqlbatch Any number of SQL queries in list format
+#' @param sqlbatch Any number of SQL queries in list format
 #'
 #' @name helper
 #'  
