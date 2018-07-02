@@ -46,7 +46,15 @@ set @maxlang = null
 set @id = null
 
 --column specs for final joined select query
-select cov.id, cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, demo.dobnew, demo.age, demo.gender_mx, demo.male, demo.female, demo.male_t, demo.female_t, 
+select cov.id, 
+	case
+		when cov.covgap_max <= 30 and dual.dual_flag = 0 then 'small gap, nondual'
+		when cov.covgap_max > 30 and dual.dual_flag = 0 then 'large gap, nondual'
+		when cov.covgap_max <= 30 and dual.dual_flag = 1 then 'small gap, dual'
+		when cov.covgap_max > 30 and dual.dual_flag = 1 then 'large gap, dual'
+	end as 'cov_cohort',
+
+	cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, dual.dual_flag, demo.dobnew, demo.age, demo.age_grp7, demo.gender_mx, demo.male, demo.female, demo.male_t, demo.female_t, 
 	demo.gender_unk, demo.race_eth_mx, demo.race_mx, demo.aian, demo.asian, demo.black, demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, demo.nhpi_t, demo.white_t, demo.latino_t, demo.race_unk,
 	geo.zip_new, geo.kcreg_zip, geo.homeless_e, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, demo.russian, demo.arabic,
 	demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
@@ -109,7 +117,7 @@ from (
 
 --2nd table - dual eligibility duration
 inner join (
-select z.id, z.duald, z.dualper
+select z.id, z.duald, z.dualper, case when z.duald >= 1 then 1 else 0 end as 'dual_flag'
 from (
 	select y.id, sum(y.duald) as 'duald', 
 	cast(sum((y.duald * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'dualper'
@@ -214,7 +222,19 @@ on cov.id = geo.id
 
 --4th table - age, gender, race, and language
 inner join (
-	select x.id, x.dobnew, x.age, x.gender_mx, x.male, x.female, x.male_t, x.female_t, x.gender_unk, x.race_eth_mx, x.race_mx, x.aian, x.asian,
+	select x.id, x.dobnew, x.age, 
+	
+		case
+			when x.age >= 0 and x.age < 5 then '0-4'
+			when x.age >= 5 and x.age < 12 then '5-11'
+			when x.age >= 12 and x.age < 18 then '12-17'
+			when x.age >= 18 and x.age < 25 then '18-24'
+			when x.age >= 25 and x.age < 45 then '25-44'
+			when x.age >= 45 and x.age < 65 then '45-64'
+			when x.age >= 65 then '65 and over'
+		end as 'age_grp7',
+	
+		x.gender_mx, x.male, x.female, x.male_t, x.female_t, x.gender_unk, x.race_eth_mx, x.race_mx, x.aian, x.asian,
 		x.black, x.nhpi, x.white, x.latino, x.aian_t, x.asian_t, x.black_t, x.nhpi_t, x.white_t,
 		x.latino_t, x.race_unk, x.maxlang, x.english, x.spanish, x.vietnamese, x.chinese, x.somali, x.russian,
 		x.arabic, x.korean, x.ukrainian, x.amharic, x. english_t, x.spanish_t, x.vietnamese_t,

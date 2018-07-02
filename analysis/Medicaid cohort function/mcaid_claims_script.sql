@@ -12,9 +12,20 @@ declare @from_date date, @to_date date
 set @from_date = '2016-04-01'
 set @to_date = '2017-03-31'
 
-select query_from_date = @from_date, query_to_date = @to_date, elig.*, claim.mental_dx1_cnt, claim.mental_dxany_cnt, claim.maternal_dx1_cnt, claim.maternal_broad_dx1_cnt,
-	claim.newborn_dx1_cnt, claim.inpatient_cnt, claim.ed_cnt, claim.ed_nohosp_cnt, claim.ed_avoid_ca_cnt, claim.ed_avoid_ca_nohosp_cnt,
-	claim.mental_dx_rda_any_cnt, claim.sud_dx_rda_any_cnt, case when claim.ed_cnt is null then 1 else 0 end as 'no_claims'
+select query_from_date = @from_date, query_to_date = @to_date, elig.*, 
+	case when claim.mental_dx1_cnt is null then 0 else claim.mental_dx1_cnt end as 'mental_dx1_cnt',
+	case when claim.mental_dxany_cnt is null then 0 else claim.mental_dxany_cnt end as 'mental_dxany_cnt',
+	case when claim.maternal_dx1_cnt is null then 0 else claim.maternal_dx1_cnt end as 'maternal_dx1_cnt',
+	case when claim.maternal_broad_dx1_cnt is null then 0 else claim.maternal_broad_dx1_cnt end as 'maternal_broad_dx1_cnt',
+	case when claim.newborn_dx1_cnt is null then 0 else claim.newborn_dx1_cnt end as 'newborn_dx1_cnt',
+	case when claim.inpatient_cnt is null then 0 else claim.inpatient_cnt end as 'inpatient_cnt',
+	case when claim.ed_cnt is null then 0 else claim.ed_cnt end as 'ed_cnt',
+	case when claim.ed_nohosp_cnt is null then 0 else claim.ed_nohosp_cnt end as 'ed_nohosp_cnt',
+	case when claim.ed_avoid_ca_cnt is null then 0 else claim.ed_avoid_ca_cnt end as 'ed_avoid_ca_cnt',
+	case when claim.ed_avoid_ca_nohosp_cnt is null then 0 else claim.ed_avoid_ca_nohosp_cnt end as 'ed_avoid_ca_nohosp_cnt',
+	case when claim.mental_dx_rda_any_cnt is null then 0 else claim.mental_dx_rda_any_cnt end as 'mental_dx_rda_any_cnt',
+	case when claim.sud_dx_rda_any_cnt is null then 0 else claim.sud_dx_rda_any_cnt end as 'sud_dx_rda_any_cnt',
+	case when claim.ed_cnt is null then 1 else 0 end as 'no_claims'
 
 from (
 	select * from ##mcaidcohort
@@ -33,7 +44,7 @@ left join (
 			max(a.mental_dx1) as 'mental_dx1', max(a.mental_dxany) as 'mental_dxany',
 			max(a.maternal_dx1) as 'maternal_dx1', max(a.maternal_broad_dx1) as 'maternal_broad_dx1',
 			max(a.newborn_dx1) as 'newborn_dx1', max(a.inpatient) as 'inpatient', max(a.ipt_medsurg) as 'ipt_medsurg',
-			max(a.ipt_bh) as 'ipt_bh', max( a.ed) as 'ed', max(a.ed_nohosp) as 'ed_nohosp', max(a.ed_avoid_ca) as 'ed_avoid_ca', 
+			max(a.ipt_bh) as 'ipt_bh', max(a.ed) as 'ed', max(a.ed_nohosp) as 'ed_nohosp', max(a.ed_avoid_ca) as 'ed_avoid_ca', 
 			max(a.ed_avoid_ca_nohosp) as 'ed_avoid_ca_nohosp', max(a.mental_dx_rda_any) as 'mental_dx_rda_any', max(a.sud_dx_rda_any) as 'sud_dx_rda_any'
 
 		from (

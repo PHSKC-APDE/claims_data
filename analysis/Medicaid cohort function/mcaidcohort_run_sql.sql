@@ -12,9 +12,9 @@ go
 --Note that @duration variable must be entered manually - this is the difference between @begin and @end plus 1 day
 --Note that resulting table will be saved as a global temp table named: ##mcaidcohort
 exec PHClaims.dbo.sp_mcaidcohort_sql
-	@from_date = '2017-01-01', 
-	@to_date = '2017-06-30',
-	@duration = 181, /*must calculate and input manually based on from and to dates*/
+	@from_date = '2016-04-01', 
+	@to_date = '2017-03-31',
+	@duration = 365, /*must calculate and input manually based on from and to dates*/
 	@covmin = 0,
 	@ccov_min = 1,
 	@covgap_max = null,
