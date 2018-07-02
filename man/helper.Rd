@@ -4,11 +4,14 @@
 \alias{helper}
 \alias{list_var}
 \alias{sqlbatch_f}
+\alias{suppress_f}
 \title{Broad use helper functions}
 \usage{
 list_var(...)
 
 sqlbatch_f(server, sqlbatch)
+
+suppress_f(df, lower = 1, upper = 9, varlist)
 }
 \arguments{
 \item{...}{Variables that will be passed as a list to another function}
@@ -16,6 +19,14 @@ sqlbatch_f(server, sqlbatch)
 \item{server}{SQL server connection created using \code{odbc} package}
 
 \item{sqlbatch}{Any number of SQL queries in list format}
+
+\item{df}{Data frame}
+
+\item{lower}{Lower bound for small number suppression, defaults to 1}
+
+\item{upper}{Upper bound for small number suppression, defaults to 9}
+
+\item{varlist}{Vector of variable names to suppress in quotes (e.g. c = ("count", "mean"))}
 }
 \description{
 Various functions used to support processing and analysis

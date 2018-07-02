@@ -12,6 +12,10 @@
 #' @param ... Variables that will be passed as a list to another function
 #' @param server SQL server connection created using \code{odbc} package
 #' @param sqlbatch Any number of SQL queries in list format
+#' @param df Data frame
+#' @param lower Lower bound for small number suppression, defaults to 1
+#' @param upper Upper bound for small number suppression, defaults to 9
+#' @param varlist Vector of variable names to suppress in quotes (e.g. c = ("count", "mean"))
 #'
 #' @name helper
 #'  
@@ -39,3 +43,17 @@ sqlbatch_f <- function(server, sqlbatch) {
   #Run final statement with returned result set
   odbc::dbGetQuery(server, query_return)
 } 
+
+#' @export
+#' @rdname helper
+suppress_f <- function(df, lower = 1, upper = 9, varlist) {
+  
+  df <- df %>%
+    mutate_at(
+      vars(varlist),
+      funs(case_when(
+        between(., lower, upper) ~ NA_real_,
+        TRUE ~ .
+      )))
+  return(df)
+}
