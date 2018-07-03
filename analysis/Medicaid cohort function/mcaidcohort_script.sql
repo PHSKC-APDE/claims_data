@@ -54,10 +54,10 @@ select cov.id,
 		when cov.covgap_max > 30 and dual.dual_flag = 1 then 'large gap, dual'
 	end as 'cov_cohort',
 
-	cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, dual.dual_flag, demo.dobnew, demo.age, demo.age_grp7, demo.gender_mx, demo.male, demo.female, demo.male_t, demo.female_t, 
-	demo.gender_unk, demo.race_eth_mx, demo.race_mx, demo.aian, demo.asian, demo.black, demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, demo.nhpi_t, demo.white_t, demo.latino_t, demo.race_unk,
-	geo.zip_new, geo.kcreg_zip, geo.homeless_e, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, demo.russian, demo.arabic,
-	demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
+	cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, dual.dual_flag, demo.dobnew, demo.age, demo.age_grp7, demo.gender_mx, demo.male, demo.female, 
+	demo.male_t, demo.female_t, demo.gender_unk, demo.race_eth_mx, demo.race_mx, demo.aian, demo.asian, demo.black, demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, 
+	demo.nhpi_t, demo.white_t, demo.latino_t, demo.race_unk, geo.zip_new, geo.kcreg_zip, geo.homeless_e, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, 
+	demo.russian, demo.arabic, demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
 	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t, demo.lang_unk
 
 --1st table - coverage
@@ -138,7 +138,7 @@ from (
 			iif(x.from_date > @from_date and x.to_date < @to_date and x.dual = 'Y', datediff(day, x.from_date, x.to_date) + 1,
 
 			0)))) as 'duald'
-			from PHClaims.dbo.mcaid_elig_dual as x
+			from PHClaims.dbo.mcaid_elig_covgrp as x
 			where x.from_date <= @to_date and x.to_date >= @from_date
 		) as y
 		group by y.id

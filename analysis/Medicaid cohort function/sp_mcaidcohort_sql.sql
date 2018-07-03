@@ -153,7 +153,7 @@ from (
 			iif(x.from_date > @from_date and x.to_date < @to_date and x.dual = 'Y', datediff(day, x.from_date, x.to_date) + 1,
 
 			0)))) as 'duald'
-			from PHClaims.dbo.mcaid_elig_dual as x
+			from PHClaims.dbo.mcaid_elig_covgrp as x
 			where x.from_date <= @to_date and x.to_date >= @from_date
 		) as y
 		group by y.id
