@@ -2,6 +2,8 @@
 
 export(list_var)
 export(mcaid_claim_f)
+export(mcaid_condition_f)
+export(mcaid_covgrp_f)
 export(mcaid_elig_f)
 export(sqlbatch_f)
 export(suppress_f)
