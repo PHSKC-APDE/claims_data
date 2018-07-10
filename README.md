@@ -16,3 +16,12 @@ A data dictionary for the Medicaid data tables stored on King County SQL Server 
 # Intructions for installing the medicaid package
 1) Make sure devtools is installed (install.packages("devtools")).
 2) Type devtools::install_github("PHSKC-APDE/Medicaid")
+
+# Current functionality of the Medicaid package (v 0.1)
+- Request an eligibility and demographics-based Medicaid member cohort
+- Request a claims summary (e.g. ED visits, avoidable ED, behavioral health hospital stays) for a member cohort
+- Request coverage group information (e.g. persons with disabilities) and automatically join to a specified data frame if desired 
+- Request chronic health condition (e.g. asthma) information and automatically join to a specified data frame if desired
+- Tabulate counts by fixed and looped by variables (for creating summary data files)
+- Apply small number suppression to any data frame, using any number thresholds
+
