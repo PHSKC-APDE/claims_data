@@ -13,7 +13,7 @@ However, many of the functions and concepts can be applied to other claims data 
 
 A data dictionary for the Medicaid data tables stored on King County SQL Server can be accessed [on Google Drive](https://drive.google.com/open?id=1atnht-_GQZ9wrKwiQ-U8Y-UImxKr12FL9ggKWXmMcnE).
 
-# Intructions for installing the medicaid package
+# Intructions for installing the Medicaid package
 1) Make sure devtools is installed (install.packages("devtools")).
 2) Type devtools::install_github("PHSKC-APDE/Medicaid")
 
