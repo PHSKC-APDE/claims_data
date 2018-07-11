@@ -47,11 +47,11 @@
 #' 
 #' @export
 mcaid_elig_f <- function(server, from_date = Sys.Date() - months(12), to_date = Sys.Date() - months(6), covmin = 0, ccov_min = 1,
-                           covgap_max = "null", dualmax = 100, agemin = 0, agemax = 200, female = "null", male = "null", 
-                           aian = "null", asian = "null", black = "null", nhpi = "null", white = "null", latino = "null",
-                           zip = "null", zregion = "null", english = "null", spanish = "null", vietnamese = "null",
-                           chinese = "null", somali = "null", russian = "null", arabic = "null", korean = "null",
-                           ukrainian = "null", amharic = "null", maxlang = "null", id = "null") {
+                         covgap_max = "null", dualmax = 100, agemin = 0, agemax = 200, female = "null", male = "null", 
+                         aian = "null", asian = "null", black = "null", nhpi = "null", white = "null", latino = "null",
+                         zip = "null", zregion = "null", english = "null", spanish = "null", vietnamese = "null",
+                         chinese = "null", somali = "null", russian = "null", arabic = "null", korean = "null",
+                         ukrainian = "null", amharic = "null", maxlang = "null", id = "null") {
   
   #Error checks
   if(missing(server)) {
@@ -110,45 +110,46 @@ mcaid_elig_f <- function(server, from_date = Sys.Date() - months(12), to_date = 
   
   #Run parameters message
   cat(paste(
-        "You have selected a Medicaid member cohort with the following characteristics:\n",
-        "Coverage begin date: ", from_date, "(inclusive)\n",
-        "Coverage end date: ", to_date, " (inclusive)\n",
-        "Coverage requirement: ", covmin, " percent or more of requested date range\n",
-        "Minimum continuous coverage requirement: ", ccov_min, " days during requested date range\n",
-        "Maximum continuous coverage gap: ", covgap_max, " days during requested date range\n",
-        "Medicare-Medicaid dual eligibility: ", dualmax, " percent or less of requested date range\n",
-        "Minimum age: ", agemin, " years and older\n",
-        "Maximum age: ", agemax, " years and younger\n",    
-        "Female alone or in combination, ever: ", female, "\n",
-        "Male alone or in combination, ever: ", male, "\n",  
-        "AI/AN alone or in combination, ever: ", aian, "\n",
-        "Asian alone or in combination, ever: ", asian, "\n",   
-        "Black alone or in combination, ever: ", black, "\n",
-        "NH/PI alone or in combination, ever: ", nhpi, "\n",
-        "White alone or in combination, ever: ", white, "\n",
-        "Latino alone or in combination, ever: ", latino, "\n",
-        "ZIP codes: ", zip, "\n",
-        "ZIP-based regions: ", zregion, "\n",
-        "English language alone or in combination, ever: ", english, "\n",  
-        "Spanish language alone or in combination, ever: ", spanish, "\n",
-        "Vietnamese language alone or in combination, ever: ", vietnamese, "\n",   
-        "Chinese language alone or in combination, ever: ", chinese, "\n",
-        "Somali language alone or in combination, ever: ", somali, "\n",
-        "Russian language alone or in combination, ever: ", russian, "\n",
-        "Arabic language alone or in combination, ever: ", arabic, "\n",
-        "Korean language alone or in combination, ever: ", korean, "\n",
-        "Ukrainian language alone or in combination, ever: ", ukrainian, "\n",
-        "Amharic language alone or in combination, ever: ", amharic, "\n",
-        "Languages: ", maxlang, "\n",
-        "Requested Medicaid IDs: ", id, "\n",
-        sep = ""))
+    "You have selected a Medicaid member cohort with the following characteristics:\n",
+    "Coverage begin date: ", from_date, "(inclusive)\n",
+    "Coverage end date: ", to_date, " (inclusive)\n",
+    "Coverage requirement: ", covmin, " percent or more of requested date range\n",
+    "Minimum continuous coverage requirement: ", ccov_min, " days during requested date range\n",
+    "Maximum continuous coverage gap: ", covgap_max, " days during requested date range\n",
+    "Medicare-Medicaid dual eligibility: ", dualmax, " percent or less of requested date range\n",
+    "Minimum age: ", agemin, " years and older\n",
+    "Maximum age: ", agemax, " years and younger\n",    
+    "Female alone or in combination, ever: ", female, "\n",
+    "Male alone or in combination, ever: ", male, "\n",  
+    "AI/AN alone or in combination, ever: ", aian, "\n",
+    "Asian alone or in combination, ever: ", asian, "\n",   
+    "Black alone or in combination, ever: ", black, "\n",
+    "NH/PI alone or in combination, ever: ", nhpi, "\n",
+    "White alone or in combination, ever: ", white, "\n",
+    "Latino alone or in combination, ever: ", latino, "\n",
+    "ZIP codes: ", zip, "\n",
+    "ZIP-based regions: ", zregion, "\n",
+    "English language alone or in combination, ever: ", english, "\n",  
+    "Spanish language alone or in combination, ever: ", spanish, "\n",
+    "Vietnamese language alone or in combination, ever: ", vietnamese, "\n",   
+    "Chinese language alone or in combination, ever: ", chinese, "\n",
+    "Somali language alone or in combination, ever: ", somali, "\n",
+    "Russian language alone or in combination, ever: ", russian, "\n",
+    "Arabic language alone or in combination, ever: ", arabic, "\n",
+    "Korean language alone or in combination, ever: ", korean, "\n",
+    "Ukrainian language alone or in combination, ever: ", ukrainian, "\n",
+    "Amharic language alone or in combination, ever: ", amharic, "\n",
+    "Languages: ", maxlang, "\n",
+    "Requested Medicaid IDs: ", id, "\n",
+    sep = ""))
   
   #Derived variables
   
   duration <- as.numeric(as.Date(to_date) - as.Date(from_date)) + 1
   
   #Build SQL query
-  exec <- "exec PHClaims.dbo.sp_mcaidcohort_r"
+  exec1 <- "exec PHClaims.dbo.sp_mcaidcohort_r_step1"
+  exec2 <- "exec PHClaims.dbo.sp_mcaidcohort_r_step2"
   
   from_date_t <- paste("@from_date = \'", from_date, "\',", sep = "")
   to_date_t <- paste("@to_date = \'", to_date, "\',", sep = "")
@@ -198,11 +199,12 @@ mcaid_elig_f <- function(server, from_date = Sys.Date() - months(12), to_date = 
          id_t <- paste("@id = ", id, sep = ""),
          id_t <- paste("@id = \'", id, "\'", sep = ""))
   
-  sql1 <- paste(exec, from_date_t, to_date_t, duration_t, covmin_t, ccov_min_t, covgap_max_t, dualmax_t, agemin_t, agemax_t, female_t, male_t, 
-        aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, zip_t, zregion_t, english_t, spanish_t,
-        vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t,
-        maxlang_t, id_t, sep = " ")
+  sql1 <- paste(exec1, from_date_t, to_date_t, duration_t, covmin_t, ccov_min_t, covgap_max_t, dualmax_t, agemin_t, agemax_t, female_t, male_t, 
+                aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, zip_t, zregion_t, english_t, spanish_t,
+                vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t,
+                maxlang_t, id_t, sep = " ")
   
-  #Execute SQL query
-  odbc::dbGetQuery(server, sql1)
+  #Execute batched SQL query
+  sqlbatch_f(server, list(sql1, exec2))
+  
 }

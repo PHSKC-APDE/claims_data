@@ -45,24 +45,133 @@ set @amharic = null
 set @maxlang = null
 set @id = null
 
---column specs for final joined select query
-select cov.id, 
-	case
-		when cov.covgap_max <= 30 and dual.dual_flag = 0 then 'small gap, nondual'
-		when cov.covgap_max > 30 and dual.dual_flag = 0 then 'large gap, nondual'
-		when cov.covgap_max <= 30 and dual.dual_flag = 1 then 'small gap, dual'
-		when cov.covgap_max > 30 and dual.dual_flag = 1 then 'large gap, dual'
-	end as 'cov_cohort',
+--------------------------
+--STEP 1: Temp table for IDs in requested time period
+--------------------------
+if object_id('tempdb..#id') IS NOT NULL drop table #id
+select distinct id
+into #id
+from PHClaims.dbo.mcaid_elig_overall
+where from_date <= @to_date and to_date >= @from_date
 
-	cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, dual.dual_flag, demo.dobnew, demo.age, demo.age_grp7, demo.gender_mx, demo.male, demo.female, 
-	demo.male_t, demo.female_t, demo.gender_unk, demo.race_eth_mx, demo.race_mx, demo.aian, demo.asian, demo.black, demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, 
-	demo.nhpi_t, demo.white_t, demo.latino_t, demo.race_unk, geo.zip_new, geo.kcreg_zip, geo.homeless_e, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, 
-	demo.russian, demo.arabic, demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
-	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t, demo.lang_unk
+--------------------------
+--STEP 2: Temp table for demo info
+--------------------------
+if object_id('tempdb..#demo') IS NOT NULL drop table #demo
+select x.id, x.dobnew, x.age, 
+	
+		case
+			when x.age >= 0 and x.age < 5 then '0-4'
+			when x.age >= 5 and x.age < 12 then '5-11'
+			when x.age >= 12 and x.age < 18 then '12-17'
+			when x.age >= 18 and x.age < 25 then '18-24'
+			when x.age >= 25 and x.age < 45 then '25-44'
+			when x.age >= 45 and x.age < 65 then '45-64'
+			when x.age >= 65 then '65 and over'
+		end as 'age_grp7',
+	
+		x.gender_mx, x.male, x.female, x.male_t, x.female_t, x.gender_unk, x.race_eth_mx, x.race_mx, x.aian, x.asian,
+		x.black, x.nhpi, x.white, x.latino, x.aian_t, x.asian_t, x.black_t, x.nhpi_t, x.white_t,
+		x.latino_t, x.race_unk, x.maxlang, x.english, x.spanish, x.vietnamese, x.chinese, x.somali, x.russian,
+		x.arabic, x.korean, x.ukrainian, x.amharic, x. english_t, x.spanish_t, x.vietnamese_t,
+		x.chinese_t, x.somali_t, x.russian_t, x.arabic_t, x.korean_t, x.ukrainian_t, x.amharic_t, x.lang_unk
 
---1st table - coverage
+	into #demo
+
+	from( 	
+		select distinct id, 
+		--age vars
+		dobnew, 		
+		case
+			when floor((datediff(day, dobnew, @to_date) + 1) / 365.25) >=0 then floor((datediff(day, dobnew, @to_date) + 1) / 365.25)
+			when floor((datediff(day, dobnew, @to_date) + 1) / 365.25) = -1 then 0
+		end as 'age',
+		--gender vars
+		gender_mx, male, female, male_t, female_t, gender_unk,
+		--race vars
+		race_eth_mx, race_mx, aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, race_unk,
+		--language vars
+		maxlang, english, spanish, vietnamese, chinese, somali, russian, arabic, korean, ukrainian, amharic,
+		english_t, spanish_t, vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t,
+		amharic_t, lang_unk
+		from PHClaims.dbo.mcaid_elig_demoever
+		where exists (select id from #id where id = PHClaims.dbo.mcaid_elig_demoever.id)
+		) as x
+	
+	--ID subset
+	--where x.id in (select id from #id)
+	--age subsets
+	where x.age >= @agemin and x.age <= @agemax
+	--gender subsets
+	and (@male is null or x.male = @male) and (@female is null or x.female = @female)
+	--race subsets
+	and (@aian is null or aian = @aian) and (@asian is null or asian = @asian) and
+		(@black is null or black = @black) and (@nhpi is null or nhpi = @nhpi) and
+		(@white is null or white = @white) and (@latino is null or latino = @latino)
+	--language subsets
+	and (@english is null or english = @english) and (@spanish is null or spanish = @spanish) and
+		(@vietnamese is null or vietnamese = @vietnamese) and (@chinese is null or chinese = @chinese) and
+		(@somali is null or somali = @somali) and (@russian is null or russian = @russian) and
+		(@arabic is null or arabic = @arabic) and (@korean is null or korean = @korean) and
+		(@ukrainian is null or ukrainian = @ukrainian) and (@amharic is null or amharic = @amharic) and
+		((@maxlang is null) or maxlang in (select * from PHClaims.dbo.Split(@maxlang, ',')))
+
+--------------------------
+--STEP 3: Temp table for geo info
+--------------------------
+if object_id('tempdb..#geo') IS NOT NULL drop table #geo
+select distinct zip.id, zip.zip_new, reg.kcreg_zip
+into #geo
 from (
-	select a.id, a.covd, a.covper, a.ccovd_max, a.covgap_max
+	select y.id, y.zip_new
+	from (
+		select x.id, x.zip_new, x.zip_dur, row_number() over (partition by x.id order by x.zip_dur desc, x.zip_new) as 'zipr'
+		from (
+			select a.id, a.zip_new, sum(a.covd) + 1 as 'zip_dur'
+			from (
+				select id, zip_new,
+
+					/**if coverage period fully contains date range then person time is just date range */
+					iif(from_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+	
+					/**if coverage period begins before date range start and ends within date range */
+					iif(from_date <= @from_date and to_date < @to_date and to_date >= @from_date, datediff(day, @from_date, to_date) + 1,
+
+					/**if coverage period begins within date range and ends after date range end */
+					iif(from_date > @from_date and to_date >= @to_date and from_date <= @to_date, datediff(day, from_date, @to_date) + 1,
+
+					/**if coverage period begins after date range start and ends before date range end */
+					iif(from_date > @from_date and to_date < @to_date, datediff(day, from_date, to_date) + 1,
+
+					null)))) as 'covd'
+
+				from PHClaims.dbo.mcaid_elig_address
+				where @from_date <= @to_date and @to_date >= @from_date
+					and exists (select id from #id where id = PHClaims.dbo.mcaid_elig_address.id)
+			) as a
+			group by a.id, a.zip_new
+		) as x
+	) as y
+	where y.zipr = 1
+) as zip
+
+--select ZIP-based region based on selected ZIP code
+left join (
+	select zip, kcreg_zip
+	from PHClaims.dbo.ref_region_zip_1017
+) as reg
+on zip.zip_new = reg.zip
+
+--pass in zip and/or region specifications if provided
+where ((@zip is null) or zip.zip_new in (select * from PHClaims.dbo.Split(@zip, ',')))
+and (@region is null or reg.kcreg_zip in (select * from PHClaims.dbo.Split(@region, ',')))
+
+--------------------------
+--STEP 4: Temp table for coverage info
+--------------------------
+if object_id('tempdb..#cov') IS NOT NULL drop table #cov
+select a.id, a.covd, a.covper, a.ccovd_max, a.covgap_max
+into #cov
 	from (
 		select z.id, z.covd, z.covper, z.ccovd_max,
 			case
@@ -113,11 +222,13 @@ from (
 	) as a
 	where a.covper >= @covmin and a.ccovd_max >= @ccov_min and (@covgap_max is null or a.covgap_max <= @covgap_max)
 	and (@id is null or a.id in (select * from PHClaims.dbo.Split(@id, ',')))
-)as cov
 
---2nd table - dual eligibility duration
-inner join (
+--------------------------
+--STEP 5: Temp table for dual flag
+--------------------------
+if object_id('tempdb..#dual') IS NOT NULL drop table #dual
 select z.id, z.duald, z.dualper, case when z.duald >= 1 then 1 else 0 end as 'dual_flag'
+into #dual
 from (
 	select y.id, sum(y.duald) as 'duald', 
 	cast(sum((y.duald * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'dualper'
@@ -144,135 +255,51 @@ from (
 		group by y.id
 	) as z
 	where z.dualper <= @dualmax
+
+--------------------------
+--STEP 6: Join all tables
+--------------------------
+
+select cov.id, 
+	case
+		when cov.covgap_max <= 30 and dual.dual_flag = 0 then 'small gap, nondual'
+		when cov.covgap_max > 30 and dual.dual_flag = 0 then 'large gap, nondual'
+		when cov.covgap_max <= 30 and dual.dual_flag = 1 then 'small gap, dual'
+		when cov.covgap_max > 30 and dual.dual_flag = 1 then 'large gap, dual'
+	end as 'cov_cohort',
+
+	cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, dual.dual_flag, demo.dobnew, demo.age, demo.age_grp7, demo.gender_mx, demo.male, demo.female, 
+	demo.male_t, demo.female_t, demo.gender_unk, demo.race_eth_mx, demo.race_mx, demo.aian, demo.asian, demo.black, demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, 
+	demo.nhpi_t, demo.white_t, demo.latino_t, demo.race_unk, geo.zip_new, geo.kcreg_zip, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, 
+	demo.russian, demo.arabic, demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
+	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t, demo.lang_unk
+
+--1st table - coverage
+from (
+	select id, covd, covper, ccovd_max, covgap_max from #cov
+)as cov
+
+--2nd table - dual eligibility duration
+inner join (
+	select id, duald, dualper, dual_flag from #dual
 ) as dual
 on cov.id = dual.id
 
 --3rd table - sub-county areas
 inner join (
-	select distinct x.id, zipdur.zip_new, zipdur.kcreg_zip, homeless.homeless_e
-
-	--client level table
-	from (
-		select distinct id, zip_new, kcreg_zip
-		from PHClaims.dbo.mcaid_elig_address
-		where @from_date < @to_date AND @to_date > @from_date
-	) as x
-
-	--take max of homeless value (ever homeless)
-	left join (
-		select id, max(homeless) as homeless_e
-		from PHClaims.dbo.mcaid_elig_address
-		group by id
-	) as homeless
-	on x.id = homeless.id
-
-	--select ZIP code with greatest duration during time range (no ties allowed given row_number() is used instead of rank())
-	--to get consistent counts by ZIP, ZIP codes are grouped by ID and ZIP, and then sorted by zip duration (desc) and ZIP (asc)
-	left join (
-		select zip.id, zip.zip_new, reg.kcreg_zip
-		from (
-			select y.id, y.zip_new
-			from (
-				select x.id, x.zip_new, x.zip_dur, row_number() over (partition by x.id order by x.zip_dur desc, x.zip_new) as 'zipr'
-				from (
-					select a.id, a.zip_new, sum(a.covd) + 1 as 'zip_dur'
-					from (
-						select id, zip_new,
-
-							/**if coverage period fully contains date range then person time is just date range */
-							iif(from_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
-	
-							/**if coverage period begins before date range start and ends within date range */
-							iif(from_date <= @from_date and to_date < @to_date and to_date >= @from_date, datediff(day, @from_date, to_date) + 1,
-
-							/**if coverage period begins within date range and ends after date range end */
-							iif(from_date > @from_date and to_date >= @to_date and from_date <= @to_date, datediff(day, from_date, @to_date) + 1,
-
-							/**if coverage period begins after date range start and ends before date range end */
-							iif(from_date > @from_date and to_date < @to_date, datediff(day, from_date, to_date) + 1,
-
-							null)))) as 'covd'
-
-						from PHClaims.dbo.mcaid_elig_address
-						where @from_date <= @to_date and @to_date >= @from_date
-					) as a
-					group by a.id, a.zip_new
-				) as x
-			) as y
-			where y.zipr = 1
-		) as zip
-
-		--select ZIP-based region based on selected ZIP code
-		left join (
-			select zip, kcreg_zip
-			from PHClaims.dbo.ref_region_zip_1017
-		) as reg
-		on zip.zip_new = reg.zip
-
-	) as zipdur
-	on x.id = zipdur.id
-
-	--pass in zip and/or region specifications if provided
-	where ((@zip is null) or zipdur.zip_new in (select * from PHClaims.dbo.Split(@zip, ',')))
-	and (@region is null or zipdur.kcreg_zip in (select * from PHClaims.dbo.Split(@region, ',')))
-
+	select id, zip_new, kcreg_zip from #geo
 ) as geo
 --join on ID
 on cov.id = geo.id
 
 --4th table - age, gender, race, and language
 inner join (
-	select x.id, x.dobnew, x.age, 
-	
-		case
-			when x.age >= 0 and x.age < 5 then '0-4'
-			when x.age >= 5 and x.age < 12 then '5-11'
-			when x.age >= 12 and x.age < 18 then '12-17'
-			when x.age >= 18 and x.age < 25 then '18-24'
-			when x.age >= 25 and x.age < 45 then '25-44'
-			when x.age >= 45 and x.age < 65 then '45-64'
-			when x.age >= 65 then '65 and over'
-		end as 'age_grp7',
-	
-		x.gender_mx, x.male, x.female, x.male_t, x.female_t, x.gender_unk, x.race_eth_mx, x.race_mx, x.aian, x.asian,
-		x.black, x.nhpi, x.white, x.latino, x.aian_t, x.asian_t, x.black_t, x.nhpi_t, x.white_t,
-		x.latino_t, x.race_unk, x.maxlang, x.english, x.spanish, x.vietnamese, x.chinese, x.somali, x.russian,
-		x.arabic, x.korean, x.ukrainian, x.amharic, x. english_t, x.spanish_t, x.vietnamese_t,
-		x.chinese_t, x.somali_t, x.russian_t, x.arabic_t, x.korean_t, x.ukrainian_t, x.amharic_t, x.lang_unk
-
-	from( 	
-		select distinct id, 
-		--age vars
-		dobnew, 		
-		case
-			when floor((datediff(day, dobnew, @to_date) + 1) / 365.25) >=0 then floor((datediff(day, dobnew, @to_date) + 1) / 365.25)
-			when floor((datediff(day, dobnew, @to_date) + 1) / 365.25) = -1 then 0
-		end as 'age',
-		--gender vars
-		gender_mx, male, female, male_t, female_t, gender_unk,
-		--race vars
-		race_eth_mx, race_mx, aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, race_unk,
-		--language vars
-		maxlang, english, spanish, vietnamese, chinese, somali, russian, arabic, korean, ukrainian, amharic,
-		english_t, spanish_t, vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t,
-		amharic_t, lang_unk
-		from PHClaims.dbo.mcaid_elig_demoever
-		) as x
-	--age subsets
-	where x.age >= @agemin and x.age <= @agemax
-	--gender subsets
-	and (@male is null or x.male = @male) and (@female is null or x.female = @female)
-	--race subsets
-	and (@aian is null or aian = @aian) and (@asian is null or asian = @asian) and
-		(@black is null or black = @black) and (@nhpi is null or nhpi = @nhpi) and
-		(@white is null or white = @white) and (@latino is null or latino = @latino)
-	--language subsets
-	and (@english is null or english = @english) and (@spanish is null or spanish = @spanish) and
-		(@vietnamese is null or vietnamese = @vietnamese) and (@chinese is null or chinese = @chinese) and
-		(@somali is null or somali = @somali) and (@russian is null or russian = @russian) and
-		(@arabic is null or arabic = @arabic) and (@korean is null or korean = @korean) and
-		(@ukrainian is null or ukrainian = @ukrainian) and (@amharic is null or amharic = @amharic) and
-		((@maxlang is null) or maxlang in (select * from PHClaims.dbo.Split(@maxlang, ',')))
+	select id, dobnew, age, age_grp7, gender_mx, male, female, 
+		male_t, female_t, gender_unk, race_eth_mx, race_mx, aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, 
+		nhpi_t, white_t, latino_t, race_unk, maxlang, english, spanish, vietnamese, chinese, somali, 
+		russian, arabic, korean, ukrainian, amharic, english_t, spanish_t, vietnamese_t, chinese_t, somali_t, russian_t,
+		arabic_t, korean_t, ukrainian_t, amharic_t, lang_unk
+	from #demo
 ) as demo
 --join on ID
 on cov.id = demo.id

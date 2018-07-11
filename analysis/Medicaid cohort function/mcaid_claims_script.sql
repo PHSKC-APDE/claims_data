@@ -54,6 +54,7 @@ left join (
 		left join (
 			select * from PHClaims.dbo.mcaid_claim_summary
 			where from_date <= @to_date and to_date >= @from_date
+				and exists (select id from ##id where id = PHClaims.dbo.mcaid_claim_summary.id)
 		) as a
 		on id.id = a.id
 		group by a.id, a.from_date

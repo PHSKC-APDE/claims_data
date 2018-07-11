@@ -12,11 +12,11 @@ use PHClaims
 go
 
 --drop stored procedure before creating new
-drop procedure dbo.sp_mcaidcohort_sql
+drop procedure dbo.sp_mcaidcohort_r_step1
 go
 
 --create stored procedure
-create proc dbo.sp_mcaidcohort_sql
+create proc dbo.sp_mcaidcohort_r_step1
 	(
 	@from_date as date,
 	@to_date as date,
@@ -65,7 +65,7 @@ where from_date <= @to_date and to_date >= @from_date
 --------------------------
 --STEP 2: Temp table for demo info
 --------------------------
-if object_id('tempdb..#demo') IS NOT NULL drop table #demo
+if object_id('tempdb..##demo') IS NOT NULL drop table ##demo
 select x.id, x.dobnew, x.age, 
 	
 		case
@@ -84,7 +84,7 @@ select x.id, x.dobnew, x.age,
 		x.arabic, x.korean, x.ukrainian, x.amharic, x. english_t, x.spanish_t, x.vietnamese_t,
 		x.chinese_t, x.somali_t, x.russian_t, x.arabic_t, x.korean_t, x.ukrainian_t, x.amharic_t, x.lang_unk
 
-	into #demo
+	into ##demo
 
 	from( 	
 		select distinct id, 
@@ -127,9 +127,9 @@ select x.id, x.dobnew, x.age,
 --------------------------
 --STEP 3: Temp table for geo info
 --------------------------
-if object_id('tempdb..#geo') IS NOT NULL drop table #geo
+if object_id('tempdb..##geo') IS NOT NULL drop table ##geo
 select distinct zip.id, zip.zip_new, reg.kcreg_zip
-into #geo
+into ##geo
 from (
 	select y.id, y.zip_new
 	from (
@@ -177,9 +177,9 @@ and (@region is null or reg.kcreg_zip in (select * from PHClaims.dbo.Split(@regi
 --------------------------
 --STEP 4: Temp table for coverage info
 --------------------------
-if object_id('tempdb..#cov') IS NOT NULL drop table #cov
+if object_id('tempdb..##cov') IS NOT NULL drop table ##cov
 select a.id, a.covd, a.covper, a.ccovd_max, a.covgap_max
-into #cov
+into ##cov
 	from (
 		select z.id, z.covd, z.covper, z.ccovd_max,
 			case
@@ -234,9 +234,9 @@ into #cov
 --------------------------
 --STEP 5: Temp table for dual flag
 --------------------------
-if object_id('tempdb..#dual') IS NOT NULL drop table #dual
+if object_id('tempdb..##dual') IS NOT NULL drop table ##dual
 select z.id, z.duald, z.dualper, case when z.duald >= 1 then 1 else 0 end as 'dual_flag'
-into #dual
+into ##dual
 from (
 	select y.id, sum(y.duald) as 'duald', 
 	cast(sum((y.duald * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'dualper'
@@ -263,59 +263,5 @@ from (
 		group by y.id
 	) as z
 	where z.dualper <= @dualmax
-
---------------------------
---STEP 6: Join all tables
---------------------------
---Drop temp table output if it exists
-if object_id('tempdb..##mcaidcohort') IS NOT NULL 
-  drop table ##mcaidcohort
-
-select cov.id, 
-	case
-		when cov.covgap_max <= 30 and dual.dual_flag = 0 then 'small gap, nondual'
-		when cov.covgap_max > 30 and dual.dual_flag = 0 then 'large gap, nondual'
-		when cov.covgap_max <= 30 and dual.dual_flag = 1 then 'small gap, dual'
-		when cov.covgap_max > 30 and dual.dual_flag = 1 then 'large gap, dual'
-	end as 'cov_cohort',
-
-	cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, dual.dual_flag, demo.dobnew, demo.age, demo.age_grp7, demo.gender_mx, demo.male, demo.female, 
-	demo.male_t, demo.female_t, demo.gender_unk, demo.race_eth_mx, demo.race_mx, demo.aian, demo.asian, demo.black, demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, 
-	demo.nhpi_t, demo.white_t, demo.latino_t, demo.race_unk, geo.zip_new, geo.kcreg_zip, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, 
-	demo.russian, demo.arabic, demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
-	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t, demo.lang_unk
-
---create temp table for SQL analysis
-into ##mcaidcohort
-
---1st table - coverage
-from (
-	select id, covd, covper, ccovd_max, covgap_max from #cov
-)as cov
-
---2nd table - dual eligibility duration
-inner join (
-	select id, duald, dualper, dual_flag from #dual
-) as dual
-on cov.id = dual.id
-
---3rd table - sub-county areas
-inner join (
-	select id, zip_new, kcreg_zip from #geo
-) as geo
---join on ID
-on cov.id = geo.id
-
---4th table - age, gender, race, and language
-inner join (
-	select id, dobnew, age, age_grp7, gender_mx, male, female, 
-		male_t, female_t, gender_unk, race_eth_mx, race_mx, aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, 
-		nhpi_t, white_t, latino_t, race_unk, maxlang, english, spanish, vietnamese, chinese, somali, 
-		russian, arabic, korean, ukrainian, amharic, english_t, spanish_t, vietnamese_t, chinese_t, somali_t, russian_t,
-		arabic_t, korean_t, ukrainian_t, amharic_t, lang_unk
-	from #demo
-) as demo
---join on ID
-on cov.id = demo.id
 
 end
