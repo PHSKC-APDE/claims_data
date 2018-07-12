@@ -1,3 +1,9 @@
+-- Code to create a SQL table dbo.mcaid_elig_address which holds clean and geocoded address information for each ID and time period combination
+-- Alastair Matheson and Eli Kern
+-- 2018-07
+
+-- Takes ~17m to run
+
 -- Remove existing table if present
 IF object_id('[PHClaims].[dbo].[mcaid_elig_address]') IS NOT NULL
 	DROP TABLE [PHClaims].[dbo].[mcaid_elig_address]
@@ -7,12 +13,12 @@ SELECT k.*,
 	l.add_geocoded,
 	l.zip_geocoded,
 	l.add_type,
-	l.x,
-	l.y,
 	l.check_esri,
 	l.check_opencage,
 	l.geocode_source,
 	l.zip_centroid,
+	l.x,
+	l.y,
 	l.lon,
 	l.lat,
 	l.statefp10,
@@ -328,7 +334,7 @@ FROM (
 										a.FROM_DATE AS fromdate,
 										a.TO_DATE AS todate
 									FROM (
-										SELECT TOP 1000 *
+										SELECT *
 										FROM [PHClaims].[dbo].[NewEligibility]
 										) a
 									LEFT JOIN (
