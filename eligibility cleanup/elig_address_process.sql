@@ -335,7 +335,7 @@ FROM (
 										a.TO_DATE AS todate
 									FROM (
 										SELECT *
-										FROM [PHClaims].[dbo].[NewEligibility]
+										FROM [PHClaims].[dbo].[mcaid_elig_raw]
 										) a
 									LEFT JOIN (
 										SELECT *
