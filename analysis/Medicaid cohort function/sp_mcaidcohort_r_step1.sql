@@ -154,8 +154,7 @@ from (
 					null)))) as 'covd'
 
 				from PHClaims.dbo.mcaid_elig_address
-				where @from_date <= @to_date and @to_date >= @from_date
-					and exists (select id from ##id where id = PHClaims.dbo.mcaid_elig_address.id)
+				where exists (select id from ##id where id = PHClaims.dbo.mcaid_elig_address.id)
 			) as a
 			group by a.id, a.zip_new
 		) as x
