@@ -1,11 +1,14 @@
 ###############################################################################
-# Eli Kern
+# Eli Kern & Alastair Matheson
 # 2018-1-8
+# Made obsolete 2018-07 by SQL code
 
-# Code to create a SQL table dbo.mcaid_elig_address which holds clean and geocoded address information for each ID and time period
-# From and do dates for addresses and calendar month year are used to create new from and to dates
+# Code to create a SQL table dbo.mcaid_elig_address which holds clean and 
+#   geocoded address information for each ID and time period combination
+
 # Use to select a geographic-based cohort for a give data range
-# Data elements: id, from and to dates for contiguous time periods per ID and address, clean address fields, geocoded fields, address flags
+# Data elements: ID, from/to dates for contiguous time periods per ID and address, 
+#   clean address fields, geocoded fields, address flags
 
 ###############################################################################
 
@@ -13,14 +16,9 @@
 ##### Set up global parameter and call in libraries #####
 options(max.print = 350, tibble.print_max = 30, scipen = 999)
 
-library(RODBC) # Used to connect to SQL server
+library(odbc) # used to connect to SQL server
 library(openxlsx) # Used to import/export Excel files
-library(car) # used to recode variables
-library(stringr) # Used to manipulate string data
-library(lubridate) # Used to manipulate dates
-library(dplyr) # Used to manipulate data
-library(RecordLinkage) # used to clean up duplicates in the data
-library(phonics) # used to extract phonetic version of names
+library(tidyverse)# used to manipulate data
 
 ##### Set date origin #####
 origin <- "1970-01-01"
@@ -28,10 +26,9 @@ origin <- "1970-01-01"
 ##### Define global useful functions #####
 
 ##### Connect to the servers #####
-#db.claims50 <- odbcConnect("PHClaims50")
 db.claims51 <- odbcConnect("PHClaims51")
-#db.apde <- odbcConnect("PH_APDEStore50")
-#db.apde51 <- odbcConnect("PH_APDEStore51")
+
+
 
 ##### Bring in calendar month field from SQL eligibility table to find maximum month (to use later) #####
 elig_calmo <- sqlQuery(
