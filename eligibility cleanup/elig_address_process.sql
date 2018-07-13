@@ -2,11 +2,11 @@
 -- Alastair Matheson and Eli Kern
 -- 2018-07
 
--- Takes ~17m to run
+-- Takes ~18m to run
 
 -- Remove existing table if present
-IF object_id('[PHClaims].[dbo].[mcaid_elig_address]') IS NOT NULL
-	DROP TABLE [PHClaims].[dbo].[mcaid_elig_address]
+IF object_id('[PHClaims].[dbo].[mcaid_elig_address_load]') IS NOT NULL
+	DROP TABLE [PHClaims].[dbo].[mcaid_elig_address_load]
 
 -- Select variables for loading
 SELECT k.*,
@@ -40,7 +40,9 @@ SELECT k.*,
 	l.kcc_dist,
 	l.wa_legdist,
 	l.scc_dist
-INTO [PHClaims].[dbo].[mcaid_elig_address]
+
+INTO [PHClaims].[dbo].[mcaid_elig_address_load]
+
 FROM (
 	-- Collapse to single row again (2nd and final time given we have now removed nested periods)
 	SELECT cast(j.id AS VARCHAR(200)) AS 'id',
@@ -330,7 +332,7 @@ FROM (
 										b.mailbox,
 										b.care_of,
 										b.overridden,
-										CONVERT(DATETIME, a.CLNDR_YEAR_MNTH + '01', 112) AS calmonth,
+										CONVERT(DATETIME, CAST(a.CLNDR_YEAR_MNTH as varchar(200)) + '01', 112) AS calmonth,
 										a.FROM_DATE AS fromdate,
 										a.TO_DATE AS todate
 									FROM (
