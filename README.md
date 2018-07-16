@@ -25,3 +25,4 @@ A data dictionary for the Medicaid data tables stored on King County SQL Server 
 - Tabulate counts by fixed and looped by variables (for creating summary data files)
 - Apply small number suppression to any data frame, using any number thresholds
 
+<iframe width="402" height="346" frameborder="0" scrolling="no" src="https://kc1-my.sharepoint.com/personal/eli_kern_kingcounty_gov/_layouts/15/Doc.aspx?sourcedoc={ef813991-9d58-457c-89f8-b20c87aaf096}&action=embedview&ActiveCell='Data%20dictionary'!A1&wdHideHeaders=True&wdDownloadButton=True&wdInConfigurator=True"></iframe>
