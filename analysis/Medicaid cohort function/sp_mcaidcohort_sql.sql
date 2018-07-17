@@ -177,9 +177,9 @@ and (@region is null or reg.kcreg_zip in (select * from PHClaims.dbo.Split(@regi
 --------------------------
 --STEP 4: Temp table for coverage info
 --------------------------
-if object_id('tempdb..#cov') IS NOT NULL drop table #cov
+if object_id('tempdb..##cov') IS NOT NULL drop table ##cov
 select a.id, a.covd, a.covper, a.ccovd_max, a.covgap_max
-into #cov
+into ##cov
 	from (
 		select z.id, z.covd, z.covper, z.ccovd_max,
 			case
@@ -281,7 +281,7 @@ select cov.id,
 
 	cov.covd, cov.covper, cov.ccovd_max, cov.covgap_max, dual.duald, dual.dualper, dual.dual_flag, demo.dobnew, demo.age, demo.age_grp7, demo.gender_mx, demo.male, demo.female, 
 	demo.male_t, demo.female_t, demo.gender_unk, demo.race_eth_mx, demo.race_mx, demo.aian, demo.asian, demo.black, demo.nhpi, demo.white, demo.latino, demo.aian_t, demo.asian_t, demo.black_t, 
-	demo.nhpi_t, demo.white_t, demo.latino_t, demo.race_unk, geo.zip_new, geo.kcreg_zip, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, 
+	demo.nhpi_t, demo.white_t, demo.latino_t, demo.race_unk, geo.tractce10, geo.zip_new, geo.hra_id, geo.hra, geo.region_id, geo.region, demo.maxlang, demo.english, demo.spanish, demo.vietnamese, demo.chinese, demo.somali, 
 	demo.russian, demo.arabic, demo.korean, demo.ukrainian, demo.amharic, demo.english_t, demo.spanish_t, demo.vietnamese_t, demo.chinese_t, demo.somali_t, demo.russian_t,
 	demo.arabic_t, demo.korean_t, demo.ukrainian_t, demo.amharic_t, demo.lang_unk
 
@@ -290,18 +290,18 @@ into ##mcaidcohort
 
 --1st table - coverage
 from (
-	select id, covd, covper, ccovd_max, covgap_max from #cov
+	select id, covd, covper, ccovd_max, covgap_max from ##cov
 )as cov
 
 --2nd table - dual eligibility duration
 inner join (
-	select id, duald, dualper, dual_flag from #dual
+	select id, duald, dualper, dual_flag from ##dual
 ) as dual
 on cov.id = dual.id
 
 --3rd table - sub-county areas
 inner join (
-	select id, zip_new, kcreg_zip from #geo
+	select id, tractce10, zip_new, hra_id, hra, region_id, region from ##geo
 ) as geo
 --join on ID
 on cov.id = geo.id
@@ -313,7 +313,7 @@ inner join (
 		nhpi_t, white_t, latino_t, race_unk, maxlang, english, spanish, vietnamese, chinese, somali, 
 		russian, arabic, korean, ukrainian, amharic, english_t, spanish_t, vietnamese_t, chinese_t, somali_t, russian_t,
 		arabic_t, korean_t, ukrainian_t, amharic_t, lang_unk
-	from #demo
+	from ##demo
 ) as demo
 --join on ID
 on cov.id = demo.id

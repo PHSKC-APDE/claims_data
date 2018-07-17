@@ -128,8 +128,10 @@ select x.id, x.dobnew, x.age,
 --STEP 3: Temp table for geo info
 --------------------------
 if object_id('tempdb..##geo') IS NOT NULL drop table ##geo
-select distinct zip.id, zip.zip_new, reg.kcreg_zip
+select distinct zip.id, tract.tractce10, zip.zip_new, hra.hra_id, reg.hra, reg.region_id, reg.region
 into ##geo
+
+--zip codes
 from (
 	select y.id, y.zip_new
 	from (
@@ -162,16 +164,84 @@ from (
 	where y.zipr = 1
 ) as zip
 
---select ZIP-based region based on selected ZIP code
+--HRAs
+inner join (
+	select y.id, y.hra_id
+	from (
+		select x.id, x.hra_id, x.hra_dur, row_number() over (partition by x.id order by x.hra_dur desc, x.hra_id) as 'hrar'
+		from (
+			select a.id, a.hra_id, sum(a.covd) + 1 as 'hra_dur'
+			from (
+				select id, hra_id,
+
+					/**if coverage period fully contains date range then person time is just date range */
+					iif(from_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+	
+					/**if coverage period begins before date range start and ends within date range */
+					iif(from_date <= @from_date and to_date < @to_date and to_date >= @from_date, datediff(day, @from_date, to_date) + 1,
+
+					/**if coverage period begins within date range and ends after date range end */
+					iif(from_date > @from_date and to_date >= @to_date and from_date <= @to_date, datediff(day, from_date, @to_date) + 1,
+
+					/**if coverage period begins after date range start and ends before date range end */
+					iif(from_date > @from_date and to_date < @to_date, datediff(day, from_date, to_date) + 1,
+
+					null)))) as 'covd'
+
+				from PHClaims.dbo.mcaid_elig_address
+				where exists (select id from ##id where id = PHClaims.dbo.mcaid_elig_address.id)
+			) as a
+			group by a.id, a.hra_id
+		) as x
+	) as y
+	where y.hrar = 1
+) as hra
+on zip.id = hra.id
+
+--Tracts
+inner join (
+	select y.id, y.tractce10
+	from (
+		select x.id, x.tractce10, x.tract_dur, row_number() over (partition by x.id order by x.tract_dur desc, x.tractce10) as 'tractr'
+		from (
+			select a.id, a.tractce10, sum(a.covd) + 1 as 'tract_dur'
+			from (
+				select id, tractce10,
+
+					/**if coverage period fully contains date range then person time is just date range */
+					iif(from_date <= @from_date and to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+	
+					/**if coverage period begins before date range start and ends within date range */
+					iif(from_date <= @from_date and to_date < @to_date and to_date >= @from_date, datediff(day, @from_date, to_date) + 1,
+
+					/**if coverage period begins within date range and ends after date range end */
+					iif(from_date > @from_date and to_date >= @to_date and from_date <= @to_date, datediff(day, from_date, @to_date) + 1,
+
+					/**if coverage period begins after date range start and ends before date range end */
+					iif(from_date > @from_date and to_date < @to_date, datediff(day, from_date, to_date) + 1,
+
+					null)))) as 'covd'
+
+				from PHClaims.dbo.mcaid_elig_address
+				where exists (select id from ##id where id = PHClaims.dbo.mcaid_elig_address.id)
+			) as a
+			group by a.id, a.tractce10
+		) as x
+	) as y
+	where y.tractr = 1
+) as tract
+on zip.id = tract.id
+
+--select HRA-based region based on selected HRA
 left join (
-	select zip, kcreg_zip
-	from PHClaims.dbo.ref_region_zip_1017
+	select hra_id, hra, region_id, region
+	from PHClaims.dbo.ref_region_hra_1017
 ) as reg
-on zip.zip_new = reg.zip
+on hra.hra_id = reg.hra_id
 
 --pass in zip and/or region specifications if provided
 where ((@zip is null) or zip.zip_new in (select * from PHClaims.dbo.Split(@zip, ',')))
-and (@region is null or reg.kcreg_zip in (select * from PHClaims.dbo.Split(@region, ',')))
+and (@region is null or reg.region in (select * from PHClaims.dbo.Split(@region, ',')))
 
 --------------------------
 --STEP 4: Temp table for coverage info
