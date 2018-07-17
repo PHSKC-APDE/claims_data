@@ -82,7 +82,7 @@ Check out how the parameters are set in the [mcaidcohort_run_sql_example.sql](mc
 | latino_t | Percent of total person time (months) with Latino race | numeric | >=0.0 and <=100.0
 | race_unk | Unknown race/ethnicity EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | zip_new | Most frequently reported ZIP code during requested date range | numeric | 5 numeric characters
-| kcreg_zip | Most frequently reported ZIP-based King County region during requested date range | character | east, north, seattle, south
+| region | Most frequently reported HRA-based King County region during requested date range | character | East, North, Seattle, South
 | maxlang | Most frequently reported spoken or written language EVER | character | see list [here](#list-of-languages-in-medicaid-eligibility-data)
 | english | English language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | spanish | Spanish language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
