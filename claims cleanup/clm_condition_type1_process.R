@@ -28,8 +28,8 @@ db.claims51 <- dbConnect(odbc(), "PHClaims51")
 
 ##### Step 0: set parameters for person-condition table #####
 
-condition <- "depression"
-lookback <- "12mo"
+condition <- "ischemic_heart_dis"
+lookback <- "24mo"
 claim_type <- "31,33,12,23,1,3,26,27,28,34"
 
 #Use this parameter for script testing - set to "top 5000" for example
