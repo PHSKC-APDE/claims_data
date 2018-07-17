@@ -11,7 +11,7 @@ However, many of the functions and concepts can be applied to other claims data 
 - The R folder contains the functions used in the medicaid package.
 - The man folder contains the help files for the medicaid package.
 
-A data dictionary for the Medicaid data tables stored on King County SQL Server can be accessed [on Google Drive](https://drive.google.com/open?id=1atnht-_GQZ9wrKwiQ-U8Y-UImxKr12FL9ggKWXmMcnE).
+A data dictionary for the Medicaid data tables stored on King County SQL Server can be accessed [on OneDrive](https://kc1-my.sharepoint.com/:x:/g/personal/eli_kern_kingcounty_gov/EZE5ge9YnXxFifiyDIeq8JYBDbiRHIK_t_9-ERAhd13zhQ?e=5PZPiH).
 
 # Intructions for installing the Medicaid package
 1) Make sure devtools is installed (install.packages("devtools")).
@@ -24,4 +24,3 @@ A data dictionary for the Medicaid data tables stored on King County SQL Server 
 - Request chronic health condition (e.g. asthma) information and automatically join to a specified data frame
 - Tabulate counts by fixed and looped by variables (for creating summary data files)
 - Apply small number suppression to any data frame, using any number thresholds
-

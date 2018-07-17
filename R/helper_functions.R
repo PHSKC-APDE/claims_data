@@ -52,8 +52,8 @@ suppress_f <- function(df, lower = 1, upper = 9, varlist) {
     mutate_at(
       vars(varlist),
       funs(case_when(
-        between(., lower, upper) ~ NA_real_,
-        TRUE ~ .
+        between(., lower, upper) ~  NA_real_,
+        TRUE ~ as.numeric(.)
       )))
   return(df)
 }

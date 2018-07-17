@@ -35,6 +35,7 @@ select query_from_date = @from_date, query_to_date = @to_date, elig.*,
 	case when claim.ed_avoid_ca_nohosp_cnt is null then 0 else claim.ed_avoid_ca_nohosp_cnt end as 'ed_avoid_ca_nohosp_cnt',
 	case when claim.mental_dx_rda_any_cnt is null then 0 else claim.mental_dx_rda_any_cnt end as 'mental_dx_rda_any_cnt',
 	case when claim.sud_dx_rda_any_cnt is null then 0 else claim.sud_dx_rda_any_cnt end as 'sud_dx_rda_any_cnt',
+	case when claim.dental_cnt is null then 0 else claim.dental_cnt end as 'dental_cnt',
 	case when claim.ed_cnt is null then 1 else 0 end as 'no_claims'
 
 from (
@@ -47,7 +48,8 @@ left join (
 			sum(b.maternal_dx1) as 'maternal_dx1_cnt', sum(b.maternal_broad_dx1) as 'maternal_broad_dx1_cnt',
 			sum(b.newborn_dx1) as 'newborn_dx1_cnt', sum(b.inpatient) as 'inpatient_cnt', sum(b.ipt_medsurg) as 'ipt_medsurg_cnt',
 			sum(b.ipt_bh) as 'ipt_bh_cnt', sum( b.ed) as 'ed_cnt', sum(b.ed_nohosp) as 'ed_nohosp_cnt', sum(b.ed_avoid_ca) as 'ed_avoid_ca_cnt', 
-			sum(b.ed_avoid_ca_nohosp) as 'ed_avoid_ca_nohosp_cnt', sum(b.mental_dx_rda_any) as 'mental_dx_rda_any_cnt', sum(b.sud_dx_rda_any) as 'sud_dx_rda_any_cnt'
+			sum(b.ed_avoid_ca_nohosp) as 'ed_avoid_ca_nohosp_cnt', sum(b.mental_dx_rda_any) as 'mental_dx_rda_any_cnt', sum(b.sud_dx_rda_any) as 'sud_dx_rda_any_cnt',
+			sum(b.dental) as 'dental_cnt'
 
 	from (
 		select a.id,
@@ -55,14 +57,15 @@ left join (
 			max(a.maternal_dx1) as 'maternal_dx1', max(a.maternal_broad_dx1) as 'maternal_broad_dx1',
 			max(a.newborn_dx1) as 'newborn_dx1', max(a.inpatient) as 'inpatient', max(a.ipt_medsurg) as 'ipt_medsurg',
 			max(a.ipt_bh) as 'ipt_bh', max(a.ed) as 'ed', max(a.ed_nohosp) as 'ed_nohosp', max(a.ed_avoid_ca) as 'ed_avoid_ca', 
-			max(a.ed_avoid_ca_nohosp) as 'ed_avoid_ca_nohosp', max(a.mental_dx_rda_any) as 'mental_dx_rda_any', max(a.sud_dx_rda_any) as 'sud_dx_rda_any'
+			max(a.ed_avoid_ca_nohosp) as 'ed_avoid_ca_nohosp', max(a.mental_dx_rda_any) as 'mental_dx_rda_any', max(a.sud_dx_rda_any) as 'sud_dx_rda_any',
+			max(a.dental) as 'dental'
 
 		from (
 			select id from ##mcaidcohort
 		) as id
 
 		left join (
-			select * from PHClaims.dbo.mcaid_claim_summary
+			select *, case when clm_type_code = '4' then 1 else 0 end as 'dental' from PHClaims.dbo.mcaid_claim_summary
 			where from_date <= @to_date and to_date >= @from_date
 				and exists (select id from ##id where id = PHClaims.dbo.mcaid_claim_summary.id)
 		) as a

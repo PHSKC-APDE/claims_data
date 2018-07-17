@@ -44,7 +44,7 @@ Check out how the parameters are set in the [mcaidcohort_run_sql_example.sql](mc
 | male, female, aian…latino, english…amharic | alone or in combination EVER gender, race, and language, respectively | 0, 1 | null
 | maxlang | most frequently reported spoken/written language, see list [here](#list-of-languages-in-medicaid-eligibility-data) | “SOMALI,ARABIC,etc.” (all caps, comma-separated, no spaces) | null
 | zip | most frequently reported ZIP code during requested date range | “98103,98105,etc.” (all caps, comma-separated, no spaces) | null
-| zregion | most frequently mapped ZIP code-based region during requested date range | “east,north,seattle,south” (all caps, comma-separated, no spaces) | null
+| region | most frequently mapped HRA-based region during requested date range | “East,North,Seattle,South” (all caps, comma-separated, no spaces) | null
 | id | list of requested Medicaid IDs | 11-character Medicaid IDs, all caps, comma-separated, no spaces | null
 
 ## Data dictionary for data set created by Medicaid eligibility cohort function
@@ -82,7 +82,7 @@ Check out how the parameters are set in the [mcaidcohort_run_sql_example.sql](mc
 | latino_t | Percent of total person time (months) with Latino race | numeric | >=0.0 and <=100.0
 | race_unk | Unknown race/ethnicity EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | zip_new | Most frequently reported ZIP code during requested date range | numeric | 5 numeric characters
-| kcreg_zip | Most frequently reported ZIP-based King County region during requested date range | character | east, north, seattle, south
+| region | Most frequently reported HRA-based King County region during requested date range | character | East, North, Seattle, South
 | maxlang | Most frequently reported spoken or written language EVER | character | see list [here](#list-of-languages-in-medicaid-eligibility-data)
 | english | English language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
 | spanish | Spanish language alone or in combination EVER | numeric | 0 = no, 1 = yes, null or N/A = missing
