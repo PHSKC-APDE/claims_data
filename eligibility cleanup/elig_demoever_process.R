@@ -1,5 +1,5 @@
 ###############################################################################
-# Eli Kern
+# Eli Kern and Alastair Matheson
 # 2018-2-5
 
 # Code to create a SQL table dbo.mcaid_elig_demoever which holds SSN, DOB, gender, race, and language
@@ -11,265 +11,221 @@
 # Add in multiple gender and multiple race variables
 # Add in unknown gender, race, and language variables
 
+## 2018-07-17 updates:
+# Converted most code to use data.table package due to large size of data
+# Removed vestigal code and other tidying
+
 ###############################################################################
 
 
 ##### Set up global parameter and call in libraries #####
 options(max.print = 350, tibble.print_max = 30, scipen = 999)
+origin <- "1970-01-01"
 
 library(odbc) # Used to connect to SQL server
 library(openxlsx) # Used to import/export Excel files
-library(car) # used to recode variables
-library(stringr) # Used to manipulate string data
+library(tidyverse) # Used to manipulate data
 library(lubridate) # Used to manipulate dates
-library(dplyr) # Used to manipulate data
-library(RecordLinkage) # used to clean up duplicates in the data
-library(phonics) # used to extract phonetic version of names
+library(data.table) # Useful for large data sets
 
-##### Set date origin #####
-origin <- "1970-01-01"
-
-##### Define global useful functions #####
-
-#Recode variables using CAR package
-recode2 <- function ( data, fields, recodes, as.factor.result = FALSE ) {
-  for ( i in which(names(data) %in% fields) ) { # iterate over column indexes that are present in the passed dataframe that are also included in the fields list
-    data[,i] <- car::recode( data[,i], recodes, as.factor.result = as.factor.result )
-  }
-  data
-}
-
-##### Connect to the SQL server #####
+#### Connect to the SQL server ####
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
+
 
 #################################################################
 ##### Bring in Medicaid eligibility data for DOB processing #####
 #Note to bring in test subset of Medicaid data, insert "top 100000" between SELECT and z.MEDICAID_RECIPIENT_ID
 #################################################################
 
-ptm01 <- proc.time() # Times how long this query takes
-result <- dbSendQuery(
+elig_dob <- dbGetQuery(
   db.claims51,
-  " select distinct y.MEDICAID_RECIPIENT_ID as id, y.SOCIAL_SECURITY_NMBR as ssn, y.BIRTH_DATE as dob, count(*) as row_cnt
-	FROM (
-  SELECT z.MEDICAID_RECIPIENT_ID, z.SOCIAL_SECURITY_NMBR, z.BIRTH_DATE
-  FROM [PHClaims].[dbo].[NewEligibility] as z
-  ) as y
-  group by y.MEDICAID_RECIPIENT_ID, y.SOCIAL_SECURITY_NMBR, y.BIRTH_DATE
-  order by y.MEDICAID_RECIPIENT_ID, y.SOCIAL_SECURITY_NMBR, row_cnt desc, y.BIRTH_DATE"
+  # select most frequently reported SSN and DOB per Medicaid ID
+  "select id.id, ssn.ssnnew, dob.dobnew
+  
+  from (
+    select distinct MEDICAID_RECIPIENT_ID as 'id'
+    from PHClaims.dbo.mcaid_elig_raw
+  ) as id
+  
+  left join (
+    select b.id, b.ssn as 'ssnnew'
+    from (
+      select a.id, a.ssn, row_number() over (partition by a.id order by a.id, a.ssn_cnt desc, a.ssn) as 'ssn_rank'
+      from (
+        select distinct MEDICAID_RECIPIENT_ID as 'id', SOCIAL_SECURITY_NMBR as 'ssn', count(SOCIAL_SECURITY_NMBR) as 'ssn_cnt'
+        from PHClaims.dbo.mcaid_elig_raw
+        where SOCIAL_SECURITY_NMBR is not null
+        group by MEDICAID_RECIPIENT_ID, SOCIAL_SECURITY_NMBR
+      ) as a
+    ) as b
+    where b.ssn_rank = 1
+  ) as ssn
+  
+  on id.id = ssn.id
+  
+  left join(
+    select b.id, cast(b.dob as date) as 'dobnew'
+    from (
+      select a.id, a.dob, row_number() over (partition by a.id order by a.id, a.dob_cnt desc, a.dob) as 'dob_rank'
+      from (
+        select MEDICAID_RECIPIENT_ID as 'id', BIRTH_DATE as 'dob', count(BIRTH_DATE) as 'dob_cnt'
+        from PHClaims.dbo.mcaid_elig_raw
+        where BIRTH_DATE is not null
+        group by MEDICAID_RECIPIENT_ID, BIRTH_DATE
+      ) as a
+    ) as b
+    where b.dob_rank = 1
+  ) as dob
+  
+  on id.id = dob.id"
 )
-elig_dob <- dbFetch(result) #Save SQL server result as R data frame
-dbClearResult(result) #Clear SQL server result
-rm(result)
-proc.time() - ptm01
 
-#Code to find duplicated Medicaid IDs
-elig_dob <- elig_dob %>%
-  group_by(id) %>%
-  mutate(
-    id_cnt = n()
-  ) %>%
-  ungroup()
 
-#Code to find different DOBs by ID-SSN sets
-elig_dob <- elig_dob %>%
-  group_by(id, ssn) %>%
-  mutate(
-    dob_cnt = n()
-  ) %>%
-  ungroup()
-
-#### SSN and DOB cleanup ####
-# Dealing with multiple SSNs
-ssn.tmp <- elig_dob %>%
-  filter(!is.na(ssn)) %>%
-  select(id, ssn, row_cnt) %>%
-  arrange(id, row_cnt) %>%
-  distinct(id, ssn, .keep_all = TRUE) %>%
-  group_by(id) %>%
-  # where there is a tie, the first SSN is selected, which is an issue if the data are sorted differently
-  # currently takes the most frequently used SSN
-  slice(which.max(row_cnt)) %>%
-  ungroup() %>%
-  select(id, ssn)
-
-# Merge back with the primary data and update SSN
-elig_dob <- left_join(elig_dob, ssn.tmp, by = c("id"))
-rm(ssn.tmp) # remove temp data frames to save memory
-
-# Make new variable with cleaned up SSN
-elig_dob <- mutate(elig_dob, ssnnew = ifelse(!is.na(ssn.y), ssn.y, ssn.x))
-                   
-#Filter to distinct
-elig_dob <- distinct(elig_dob, id, ssnnew, dob, row_cnt)
-
-# Dealing with multiple DOBs
-dob.tmp <- elig_dob %>%
-  filter(!is.na(dob)) %>%
-  select(id, dob, row_cnt) %>%
-  arrange(id, row_cnt) %>%
-  distinct(id, dob, .keep_all = TRUE) %>%
-  group_by(id) %>%
-  # where there is a tie, the first DOB is selected, which is an issue if the data are sorted differently
-  # currently takes the most frequently used DOB
-  slice(which.max(row_cnt)) %>%
-  ungroup() %>%
-  select(id, dob)
-
-# Merge back with the primary data and update SSN
-elig_dob <- left_join(elig_dob, dob.tmp, by = c("id"))
-rm(dob.tmp) # remove temp data frames to save memory
-
-# Make new variable with cleaned up DOB
-elig_dob <- mutate(elig_dob, dobnew = ymd(as.Date(ifelse(!is.na(dob.y), dob.y, dob.x))))
-
-#Filter to distinct
-elig_dob <- distinct(elig_dob, id, ssnnew, dobnew)
 
 #################################################################
 ##### Bring in Medicaid eligibility data for gender, race and language processing #####
 #Note to bring in test subset of Medicaid data, insert "top 100000" between SELECT and z.MEDICAID_RECIPIENT_ID
 #################################################################
 
-##### Bring in Medicaid eligibility data #####
-ptm01 <- proc.time() # Times how long this query takes
-result <- dbSendQuery(
+### Bring in Medicaid eligibility data
+system.time( # Times how long this query takes (~520s)
+  elig_demoever <- dbGetQuery(
   db.claims51,
-  " select distinct y.CLNDR_YEAR_MNTH as calmo, y.MEDICAID_RECIPIENT_ID as id, y.GENDER as gender, y.RACE1 as race1, y.RACE2 as race2, 
-      y.RACE3 as race3, y.RACE4 as race4, y.HISPANIC_ORIGIN_NAME as hispanic, y.SPOKEN_LNG_NAME as 'slang', y.WRTN_LNG_NAME as 'wlang'
-    from (
-    select z.CLNDR_YEAR_MNTH, z.MEDICAID_RECIPIENT_ID, z.GENDER, z.RACE1, z.RACE2, z.RACE3, z.RACE4, z.HISPANIC_ORIGIN_NAME,
-      z.SPOKEN_LNG_NAME, z.WRTN_LNG_NAME
-    from [PHClaims].[dbo].[NewEligibility] as z
+  "SELECT DISTINCT y.CLNDR_YEAR_MNTH as calmo, y.MEDICAID_RECIPIENT_ID as id, 
+      y.GENDER as gender, y.RACE1 as race1, y.RACE2 as race2, 
+      y.RACE3 as race3, y.RACE4 as race4, y.HISPANIC_ORIGIN_NAME as hispanic, 
+      y.SPOKEN_LNG_NAME as 'slang', y.WRTN_LNG_NAME as 'wlang'
+    FROM (
+      SELECT z.CLNDR_YEAR_MNTH, z.MEDICAID_RECIPIENT_ID, z.GENDER, z.RACE1, 
+            z.RACE2, z.RACE3, z.RACE4, z.HISPANIC_ORIGIN_NAME,
+            z.SPOKEN_LNG_NAME, z.WRTN_LNG_NAME
+      FROM [PHClaims].[dbo].[mcaid_elig_raw] as z
     ) as y"
 )
-elig_demoever <- dbFetch(result) #Save SQL server result as R data frame
-dbClearResult(result) #Clear SQL server result
-rm(result)
-proc.time() - ptm01
+)
 
-##### Convert calendar month to calendar start and end dates for interval overlap comparison #####
-elig_demoever <- elig_demoever %>%
-  mutate(
-    calstart = ymd(paste(as.character(calmo), "01", sep = "")),
-    calend = ymd(paste(as.character(calmo), days_in_month(ymd(paste(as.character(calmo), "01", sep = ""))), sep = ""))
-  )
+# Convert to data table and remove calmonth (no longer needed)
+elig_demoever <- setDT(elig_demoever)
+elig_demoever <- elig_demoever[, c("id", "gender", "race1", "race2", "race3", 
+                                   "race4", "hispanic", "slang", "wlang")]
 
-##### Set strings to UPPERCASE #####
-elig_demoever <- elig_demoever %>%
-  mutate_at(
-    vars(gender:wlang),
-    toupper
-  )
 
-#### Set NOT PROVIDED and OTHER race to null ####
-#### Set Other Language, Undetermined, to null ####
+### Set strings to UPPERCASE
+cols <- c("gender", "race1", "race2", "race3", "race4", "hispanic", "slang", "wlang")
+elig_demoever[, (cols) := lapply(.SD, toupper), .SDcols = cols]
+
+
+### Set NOT PROVIDED and OTHER race to null
+### Set Other Language, Undetermined, to null
 nullrace_txt <- c("NOT PROVIDED", "OTHER")
 nulllang_txt <- c("UNDETERMINED", "OTHER LANGUAGE")
 
-elig_demoever <- elig_demoever %>%
-  mutate_at(
-    vars(race1:hispanic),
-    str_replace, pattern = paste(nullrace_txt, collapse = '|'), replacement = NA_character_
-  ) %>%
-  mutate_at(
-    vars(slang:wlang),
-    str_replace, pattern = paste(nulllang_txt, collapse = '|'), replacement = NA_character_
-  )
+cols <- c("race1", "race2", "race3", "race4", "hispanic")
+elig_demoever[, (cols) := 
+                   lapply(.SD, function(x)
+                          str_replace(x, 
+                                      pattern = paste(nullrace_txt, collapse = '|'), 
+                                      replacement = NA_character_)), 
+                 .SDcols = cols]
+
+cols <- c("slang", "wlang")
+elig_demoever[, (cols) := 
+                   lapply(.SD, function(x)
+                     str_replace(x, 
+                                 pattern = paste(nulllang_txt, collapse = '|'), 
+                                 replacement = NA_character_)), 
+                 .SDcols = cols]
+
+
 
 #############################
 #### Process gender data ####
 #############################
 
-elig_gender <- select(elig_demoever, id, gender, calstart, calend)
+elig_gender <- elig_demoever[, c("id", "gender")]
 
-#### Create alone or in combination gender variables ####
-elig_gender <- elig_gender %>%
-  mutate(
-    female = ifelse(str_detect(gender, "FEMALE"), 1, 0),
-    male = ifelse(str_detect(gender, "^MALE$"), 1, 0)
-  )
+### Create alone or in combination gender variables
+elig_gender[, c("female", "male") := 
+                     list(ifelse(str_detect(gender, "FEMALE"), 1, 0),
+                          ifelse(str_detect(gender, "^MALE$"), 1, 0))]
 
 
-##### For each gender variable, count number of rows where variable = 1. ##### 
-##### Divide this number by total number of rows (eg months) where gender is non-missing. ##### 
-##### Create _t variables for each gender variable to hold this percentage. ##### 
+### For each gender variable, count number of rows where variable = 1.
+### Divide this number by total number of rows (i.e., months) where gender is non-missing.
+### Create _t variables for each gender variable to hold this percentage.
+
+# Create a variable to flag if gender var is missing
+elig_gender[, genderna := is.na(gender), ]
+
+# Create gender person time vars
+elig_gender[, c("female_t", "male_t") := 
+                   list(round((length(female[female == 1 & !is.na(female)]) / 
+                                 length(genderna[genderna == FALSE]) * 100), 1),
+                        round((length(male[male == 1 & !is.na(male)]) / 
+                                 length(genderna[genderna == FALSE]) * 100), 1))
+                 , by = "id"]
 
 
-#Create a variable to flag if gender var is missing
-elig_gender <- elig_gender %>%
-  mutate(
-    genderna = is.na(gender)
-  )
+# Replace NA person time variables with 0
+  elig_gender[, c("female_t", "male_t") := 
+                   list(recode(female_t, .missing = 0),
+                        recode(male_t, .missing = 0))
+                 , ]
 
-#Create gender person time vars
-elig_gender <- elig_gender %>%
-  group_by(id) %>%
-  mutate(
-    female_t = round((length(female[female == 1 & !is.na(female)]) / length(genderna[genderna == FALSE]) * 100), 1),
-    male_t = round((length(male[male == 1 & !is.na(male)]) / length(genderna[genderna == FALSE]) * 100), 1)
-  ) %>%
-  ungroup()
 
-#Replace NA person time variables with 0
-elig_gender <- elig_gender %>%
-  mutate_at(
-    vars(female_t, male_t),
-    recode, .missing = 0
-  )
+### Copy all non-missing gender variable values to all rows within each ID
+# First make collapsed max of genders for each ID
+elig_gender_sum <- elig_gender[, .(female = max(female, na.rm = T), 
+                                          male = max(male, na.rm = T)),
+                                      by = "id"]
+#Replace infinity values with NA (generated by max function applied to NA rows)
+cols <- c("female", "male")
+elig_gender_sum[, (cols) := 
+                   lapply(.SD, function(x)
+                     replace(x, is.infinite(x), NA)), 
+                 .SDcols = cols]
 
-#### Copy all non-missing gender variable values to all rows within each ID. ####
-elig_gender <- elig_gender %>%
-  group_by(id) %>%
-  mutate_at(
-    vars(female, male),
-    funs(max(., na.rm = TRUE))
-  ) %>%
-  ungroup()
 
-#Replace infinity values with NA (these were generated by max function applied to NA rows)
-elig_gender <- elig_gender %>%
-  mutate_at(
-    vars(female, male),
-    function(x) replace(x, is.infinite(x),NA)
-  )
+# Now join back to main data
+elig_gender[elig_gender_sum, c("female", "male") := list(i.female, i.male), 
+               on = "id"]
+rm(elig_gender_sum)
 
-##### Collapse to one row per ID given we have alone or in combo EVER gender variables #####
-elig_gender_final <- distinct(elig_gender, id, female, male, female_t, male_t)
+
+### Collapse to one row per ID given we have alone or in combo EVER gender variables
+elig_gender <- elig_gender[, c("id", "female", "male", "female_t", "male_t")]
+elig_gender_final <- unique(elig_gender)
 
 #Add in variables for multiple gender (mutually exclusive categories) and missing gender
 elig_gender_final <- elig_gender_final %>%
-  
   mutate(
-    
     gender_mx = case_when(
       female_t > 0 & male_t >0 ~ "Multiple",
       female == 1 ~ "Female",
       male == 1 ~ "Male",
       TRUE ~ NA_character_
     ),
-    
     gender_unk = case_when(
       is.na(gender_mx) ~ 1,
       !is.na(gender_mx) ~ 0,
       TRUE ~ NA_real_
     )
   ) %>%
-  
 select(., id, gender_mx, female, male, female_t, male_t, gender_unk)
 
 #Drop temp table
 rm(elig_gender)
+gc()
 
 
 #############################
 #### Process race data ####
 #############################
 
-elig_race <- select(elig_demoever, id, race1:hispanic, calend, calstart)
+elig_race <- elig_demoever[, c("id", "race1", "race2", "race3", "race4", "hispanic")]
 
-#### Create alone or in combination race variables ####
 
+### Create alone or in combination race variables
 aian_txt <- c("ALASKAN NATIVE", "AMERICAN INDIAN")
 black_txt <- c("BLACK")
 asian_txt <- c("ASIAN")
@@ -277,103 +233,112 @@ nhpi_txt <- c("HAWAIIAN", "PACIFIC ISLANDER")
 white_txt <- c("WHITE")
 latino_txt <- c("^HISPANIC$")
 
-elig_race$aian <- rowSums(sapply(elig_race[c("race1", "race2", "race3", "race4")], function(x) str_detect(x, paste(aian_txt, collapse = '|'))), na.rm = TRUE)
-elig_race$asian <- rowSums(sapply(elig_race[c("race1", "race2", "race3", "race4")], function(x) str_detect(x, asian_txt)), na.rm = TRUE)
-elig_race$black <- rowSums(sapply(elig_race[c("race1", "race2", "race3", "race4")], function(x) str_detect(x, black_txt)), na.rm = TRUE)
-elig_race$nhpi <- rowSums(sapply(elig_race[c("race1", "race2", "race3", "race4")], function(x) str_detect(x, paste(nhpi_txt, collapse = '|'))), na.rm = TRUE)
-elig_race$white <- rowSums(sapply(elig_race[c("race1", "race2", "race3", "race4")], function(x) str_detect(x, white_txt)), na.rm = TRUE)
-elig_race$latino <- rowSums(sapply(elig_race[c("hispanic")], function(x) str_detect(x, latino_txt)), na.rm = TRUE)
-
-#As the same race can sometimes be listed more than once across the race variables, replace all sums > 1 with 1
-elig_race <- elig_race %>%
-  mutate_at(
-    vars(aian:latino),
-    funs(ifelse(.>1, 1, .))
-  )
-
-##Replace race vars with NA if race1 is NA, latino with NA if hispanic is NA
-
-#Function to replace 1 variable with NA if a 2nd variable is NA
-na_check <- function(x, y) {
-  ifelse(is.na(x), NA, y)
-}
-#sapply(elig_race[c("aian")], function(x) na_check(elig_race$race1, x))
+cols <- c("race1", "race2", "race3", "race4")
+elig_race[, aian := rowSums(sapply(.SD, function(x)
+  str_detect(x, paste(aian_txt, collapse = '|'))), 
+  na.rm = TRUE), .SDcols = cols]
+elig_race[, asian := rowSums(sapply(.SD, function(x) str_detect(x, asian_txt)), 
+  na.rm = TRUE), .SDcols = cols]
+elig_race[, black := rowSums(sapply(.SD, function(x) str_detect(x, black_txt)), 
+  na.rm = TRUE), .SDcols = cols]
+elig_race[, nhpi := rowSums(sapply(.SD, function(x)
+  str_detect(x, paste(nhpi_txt, collapse = '|'))), 
+  na.rm = TRUE), .SDcols = cols]
+elig_race[, white := rowSums(sapply(.SD, function(x) str_detect(x, white_txt)), 
+  na.rm = TRUE), .SDcols = cols]
+elig_race[, latino := str_detect(hispanic, latino_txt) * 1]
 
 
-elig_race <- elig_race %>%
-  mutate_at(
-    vars(aian, asian, black, nhpi, white),
-    funs(na_check(elig_race$race1, .))
-  ) %>%
-  mutate_at(
-    vars(latino),
-    funs(na_check(elig_race$hispanic, .))
-  )
+# Same race can be listed more than once across race variables, replace sums > 1 with 1
+cols <- c("aian", "asian", "black", "nhpi", "white", "latino")
+elig_race[, (cols) := 
+            lapply(.SD, function(x) if_else(x > 1, 1, x)), 
+          .SDcols = cols]
 
-##### For each race variable, count number of rows where variable = 1. ##### 
-##### Divide this number by total number of rows (eg months) where at least one race variable is non-missing. ##### 
-##### Create _t variables for each race variable to hold this percentage. ##### 
+# Replace race vars with NA if all race vars are NA, (latino already NA if hispanic is NA)
+cols <- c("aian", "asian", "black", "nhpi", "white")
+elig_race[, (cols) := 
+            lapply(.SD, function(x) 
+              if_else(is.na(race1) & is.na(race2) & is.na(race3) &
+                        is.na(race4), NA_real_, x)), 
+          .SDcols = cols]
 
-#Create a variable to flag if all race vars are NA where Not Hispanic is considered NA as well
-elig_race <- elig_race %>%
-  mutate(
-    racena = is.na(race1) & (is.na(hispanic) | hispanic == "NOT HISPANIC")
-  )
 
-#Create race person time vars
-elig_race <- elig_race %>%
-  group_by(id) %>%
-  mutate(
-    #total_n = length(racena[racena == FALSE]),
-    #aian_n = length(aian[aian == 1 & !is.na(aian)]),
-    aian_t = round((length(aian[aian == 1 & !is.na(aian)]) / length(racena[racena == FALSE]) * 100), 1),
-    asian_t = round((length(asian[asian == 1 & !is.na(asian)]) / length(racena[racena == FALSE]) * 100), 1),
-    black_t = round((length(black[black == 1 & !is.na(black)]) / length(racena[racena == FALSE]) * 100), 1),
-    nhpi_t = round((length(nhpi[nhpi == 1 & !is.na(nhpi)]) / length(racena[racena == FALSE]) * 100), 1),
-    white_t = round((length(white[white == 1 & !is.na(white)]) / length(racena[racena == FALSE]) * 100), 1),
-    latino_t = round((length(latino[latino == 1 & !is.na(latino)]) / length(racena[racena == FALSE]) * 100), 1)
-  ) %>%
-  ungroup()
+### For each race variable, count number of rows where variable = 1.
+# Divide this number by total number of rows (eg months) where at least one race variable is non-missing.
+# Create _t variables for each race variable to hold this percentage.
 
-#Replace NA person time variables with 0
-elig_race <- elig_race %>%
-  mutate_at(
-    vars(aian_t, asian_t, black_t, nhpi_t, white_t, latino_t),
-    recode, .missing = 0
-  )
+# Create a variable to flag if all race vars are NA and Latino also 0 or NA
+# Can just check aian since this is only NA if all race fields are NA
+elig_race[, racena := is.na(aian) & (is.na(latino) | latino == 0), ]
 
-#### Copy all non-missing race variable values to all rows within each ID. ####
-elig_race <- elig_race %>%
-  group_by(id) %>%
-  mutate_at(
-    vars(aian, asian, black, nhpi, white),
-    funs(max(., na.rm = TRUE))
-  ) %>%
-  mutate_at(
-    vars(latino),
-    funs(max(., na.rm = TRUE))    
-  ) %>%
-  ungroup()
+# Create race person time vars
+elig_race[, c("aian_t", "asian_t", "black_t", "nhpi_t",
+              "white_t", "latino_t") := 
+              list(
+                round((length(aian[aian == 1 & !is.na(aian)]) / 
+                         length(racena[racena == FALSE]) * 100), 1),
+                round((length(asian[asian == 1 & !is.na(asian)]) / 
+                         length(racena[racena == FALSE]) * 100), 1),
+                round((length(black[black == 1 & !is.na(black)]) / 
+                         length(racena[racena == FALSE]) * 100), 1),
+                round((length(nhpi[nhpi == 1 & !is.na(nhpi)]) / 
+                         length(racena[racena == FALSE]) * 100), 1),
+                round((length(white[white == 1 & !is.na(white)]) / 
+                         length(racena[racena == FALSE]) * 100), 1),
+                round((length(latino[latino == 1 & !is.na(latino)]) / 
+                         length(racena[racena == FALSE]) * 100), 1)
+              )
+            , by = "id"]
 
-#Replace infinity values with NA (these were generated by max function applied to NA rows)
-elig_race <- elig_race %>%
-  mutate_at(
-    vars(aian, asian, black, nhpi, white, latino),
-    function(x) replace(x, is.infinite(x),NA)
-  )
 
-##### Collapse to one row per ID given we have alone or in combo EVER race variables #####
-elig_race_final <- distinct(elig_race, id, aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, nhpi_t, white_t, latino_t)
+# Replace NA person time variables with 0
+cols <- c("aian_t", "asian_t", "black_t", "nhpi_t", "white_t", "latino_t")
+elig_race[, (cols) := 
+            lapply(.SD, function(x) recode(x, .missing = 0)), 
+          .SDcols = cols]
 
-#Add in variables for multiple race (mutually exclusive categories) and missing race
+
+### Copy all non-missing race variable values to all rows within each ID.
+# First make collapsed max of race for each ID
+elig_race_sum <- elig_race[, .(aian = max(aian, na.rm = T),
+                                   asian = max(asian, na.rm = T),
+                                   black = max(black, na.rm = T),
+                                   nhpi = max(nhpi, na.rm = T),
+                                   white = max(white, na.rm = T),
+                                   latino = max(latino, na.rm = T)),
+                               by = "id"]
+
+
+#Replace infinity values with NA (generated by max function applied to NA rows)
+cols <- c("aian", "asian", "black", "nhpi", "white", "latino")
+elig_race_sum[, (cols) := 
+                  lapply(.SD, function(x)
+                    replace(x, is.infinite(x), NA)), 
+                .SDcols = cols]
+# Now join back to main data
+elig_race[elig_race_sum, c("aian", "asian", "black", "nhpi", "white", "latino") := 
+            list(i.aian, i.asian, i.black, i.nhpi, i.white, i.latino), 
+            on = "id"]
+rm(elig_race_sum)
+gc()
+
+
+
+### Collapse to one row per ID given we have alone or in combo EVER race variables
+elig_race <- elig_race[, c("id", "aian", "asian", "black", "nhpi", "white", 
+                           "latino", "aian_t", "asian_t", "black_t", 
+                           "nhpi_t", "white_t", "latino_t")]
+elig_race_final <- unique(elig_race)
+
+# Add in variables for multiple race (mutually exclusive categories) and missing race
 elig_race_final <- elig_race_final %>%
-  
   mutate(
-    
-    #Multiple race, Latino included as race
-    #Note OR condition to account for NA values in latino that may make race + latino sum to NA
+    # Multiple race, Latino included as race
+    # Note OR condition to account for NA values in latino that may make race + latino sum to NA
     race_eth_mx = case_when(
-      ((aian + asian + black + nhpi + white) + (latino) > 1) | ((aian + asian + black + nhpi + white) > 1)  ~ "Multiple",
+      (aian + asian + black + nhpi + white + latino > 1) | 
+        ((aian + asian + black + nhpi + white) > 1)  ~ "Multiple",
       aian == 1 ~ "AI/AN",
       asian == 1 ~ "Asian",
       black == 1 ~ "Black",
@@ -382,10 +347,9 @@ elig_race_final <- elig_race_final %>%
       latino == 1 ~ "Latino",
       TRUE ~ NA_character_
     ),
-    
-    #Multiple race, Latino excluded
+    # Multiple race, Latino excluded
     race_mx = case_when(
-      (aian + asian + black + nhpi + white) > 1  ~ "Multiple",
+      aian + asian + black + nhpi + white > 1  ~ "Multiple",
       aian == 1 ~ "AI/AN",
       asian == 1 ~ "Asian",
       black == 1 ~ "Black",
@@ -393,29 +357,30 @@ elig_race_final <- elig_race_final %>%
       white == 1 ~ "White",
       TRUE ~ NA_character_
     ),
-    
-    #Race missing if multiple race/ethnicity variable is NA
+    # Race missing if multiple race/ethnicity variable is NA
     race_unk = case_when(
       is.na(race_eth_mx) ~ 1,
       !is.na(race_eth_mx) ~ 0,
       TRUE ~ NA_real_
     )
   ) %>%
-  
-  select(., id, race_eth_mx, race_mx, aian, asian, black, nhpi, white, latino, aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, race_unk)
+  select(., id, race_eth_mx, race_mx, aian, asian, black, nhpi, white, latino, 
+         aian_t, asian_t, black_t, nhpi_t, white_t, latino_t, race_unk)
 
 #Drop temp table
 rm(elig_race)
-
-#############################
-#### Process language data ####
-#############################
-
-elig_lang <- select(elig_demoever, id, slang, wlang, calend, calstart)
-rm(elig_demoever) ##to save memory for later steps
 gc()
 
-#### Create alone or in combination lang variables for King County tier 1 and 2 translation languages with Arabic in place of Punjabi ####
+
+###############################
+#### Process language data ####
+###############################
+
+elig_lang <- select(elig_demoever, id, slang, wlang)
+gc()
+
+### Create alone or in combination lang variables for King County tier 1 and 2 
+# translation languages with Arabic in place of Punjabi
 
 english_txt <- c("^ENGLISH$")
 spanish_txt <- c("^SPANISH; CASTILIAN$", "^SPANISH$", "^CASTILIAN$")
@@ -428,193 +393,216 @@ korean_txt <- c("^KOREAN$")
 ukrainian_txt <- c("^UKRAINIAN$")
 amharic_txt <- c("^AMHARIC$")
 
-elig_lang$english <- rowSums(sapply(elig_lang[c("slang", "wlang")], function(x) str_detect(x, paste(english_txt, collapse = '|'))), na.rm = TRUE)
-elig_lang$spanish <- rowSums(sapply(elig_lang[c("slang", "wlang")], function(x) str_detect(x, paste(spanish_txt, collapse = '|'))), na.rm = TRUE)
-elig_lang$vietnamese <- rowSums(sapply(elig_lang[c("slang", "wlang")], function(x) str_detect(x, paste(vietnamese_txt, collapse = '|'))), na.rm = TRUE)
-elig_lang$chinese <- rowSums(sapply(elig_lang[c("slang", "wlang")], function(x) str_detect(x, paste(chinese_txt, collapse = '|'))), na.rm = TRUE)
-elig_lang$somali <- rowSums(sapply(elig_lang[c("slang", "wlang")], function(x) str_detect(x, paste(somali_txt, collapse = '|'))), na.rm = TRUE)
-elig_lang$russian <- rowSums(sapply(elig_lang[c("slang", "wlang")], function(x) str_detect(x, paste(russian_txt, collapse = '|'))), na.rm = TRUE)
-elig_lang$arabic <- rowSums(sapply(elig_lang[c("slang", "wlang")], function(x) str_detect(x, paste(arabic_txt, collapse = '|'))), na.rm = TRUE)
-elig_lang$korean <- rowSums(sapply(elig_lang[c("slang", "wlang")], function(x) str_detect(x, paste(korean_txt, collapse = '|'))), na.rm = TRUE)
-elig_lang$ukrainian <- rowSums(sapply(elig_lang[c("slang", "wlang")], function(x) str_detect(x, paste(ukrainian_txt, collapse = '|'))), na.rm = TRUE)
-elig_lang$amharic <- rowSums(sapply(elig_lang[c("slang", "wlang")], function(x) str_detect(x, paste(amharic_txt, collapse = '|'))), na.rm = TRUE)
 
+cols <- c("slang", "wlang")
 
-#As the same language can sometimes be listed for both spoken and written language, replace all sums > 1 with 1
-elig_lang <- elig_lang %>%
-  mutate_at(
-    vars(english:amharic),
-    funs(ifelse(.>1, 1, .))
-  )
+elig_lang[, english := rowSums(sapply(.SD, function(x) str_detect(x, english_txt)),
+                               na.rm = TRUE), .SDcols = cols]
+elig_lang[, spanish := rowSums(sapply(.SD, function(x) str_detect(x, paste(spanish_txt, collapse = '|'))), 
+                               na.rm = TRUE), .SDcols = cols]
+elig_lang[, vietnamese := rowSums(sapply(.SD, function(x) str_detect(x, vietnamese_txt)), 
+                               na.rm = TRUE), .SDcols = cols]
+elig_lang[, chinese := rowSums(sapply(.SD, function(x) str_detect(x, paste(chinese_txt, collapse = '|'))),
+                               na.rm = TRUE), .SDcols = cols]
+elig_lang[, somali := rowSums(sapply(.SD, function(x) str_detect(x, somali_txt)), 
+                               na.rm = TRUE), .SDcols = cols]
+elig_lang[, russian := rowSums(sapply(.SD, function(x) str_detect(x, russian_txt)), 
+                               na.rm = TRUE), .SDcols = cols]
+elig_lang[, arabic := rowSums(sapply(.SD, function(x) str_detect(x, arabic_txt)), 
+                               na.rm = TRUE), .SDcols = cols]
+elig_lang[, korean := rowSums(sapply(.SD, function(x) str_detect(x, korean_txt)), 
+                               na.rm = TRUE), .SDcols = cols]
+elig_lang[, ukrainian := rowSums(sapply(.SD, function(x) str_detect(x, ukrainian_txt)), 
+                               na.rm = TRUE), .SDcols = cols]
+elig_lang[, amharic := rowSums(sapply(.SD, function(x) str_detect(x, amharic_txt)), 
+                               na.rm = TRUE), .SDcols = cols]
+
+# Helps to clean out memory after this step
+gc()
+
+# Same langs can be listed more than once across written/spoken, replace sums > 1 with 1
+cols <- c("english", "spanish", "vietnamese", "chinese", "somali", "russian",
+          "arabic", "korean", "ukrainian", "amharic")
+elig_lang[, (cols) := 
+            lapply(.SD, function(x) if_else(x > 1, 1, x)), 
+          .SDcols = cols]
+
 
 ##Replace lang vars with NA if slang and wlang are both NA
+cols <- c("english", "spanish", "vietnamese", "chinese", "somali", "russian",
+          "arabic", "korean", "ukrainian", "amharic")
+elig_lang[, (cols) := 
+            lapply(.SD, function(x) 
+              if_else(is.na(slang) & is.na(wlang), NA_real_, x)), 
+          .SDcols = cols]
 
-#Function to replace 1 variable with NA if a 2nd variable is NA
-na_check_2 <- function(x, y, z) {
-  ifelse(is.na(x) & is.na(y), NA, z)
-}
-#sapply(elig_lang[c("english")], function(x) na_check_2(elig_lang$slang, elig_lang$wlang,  x))
 
-elig_lang <- elig_lang %>%
-  mutate_at(
-    vars(english:amharic),
-    funs(na_check_2(elig_lang$slang, elig_lang$wlang, .))
-  )
-
-##### For each language variable, count number of rows where variable = 1. ##### 
-##### Divide this number by total number of rows (eg months) where at least one language variable is non-missing. ##### 
-##### Create _t variables for each lang variable to hold this percentage. ##### 
+### For each language variable, count number of rows where variable = 1.
+# Divide this number by total number of rows (eg months) where at least one language variable is non-missing.
+# Create _t variables for each lang variable to hold this percentage.
 
 #Create a variable to flag if all lang vars are NA
-elig_lang <- elig_lang %>%
-  mutate(
-    langna = is.na(slang) & is.na(wlang)
-  )
+elig_lang[, langna := is.na(slang) & is.na(wlang), ]
 
 #Create lang person time vars
-elig_lang <- elig_lang %>%
-  group_by(id) %>%
-  mutate(
-    english_t = round((length(english[english == 1 & !is.na(english)]) / length(langna[langna == FALSE]) * 100), 1),
-    spanish_t = round((length(spanish[spanish == 1 & !is.na(spanish)]) / length(langna[langna == FALSE]) * 100), 1),
-    vietnamese_t = round((length(vietnamese[vietnamese == 1 & !is.na(vietnamese)]) / length(langna[langna == FALSE]) * 100), 1),
-    chinese_t = round((length(chinese[chinese == 1 & !is.na(chinese)]) / length(langna[langna == FALSE]) * 100), 1),
-    somali_t = round((length(somali[somali == 1 & !is.na(somali)]) / length(langna[langna == FALSE]) * 100), 1),
-    russian_t = round((length(russian[russian == 1 & !is.na(russian)]) / length(langna[langna == FALSE]) * 100), 1),
-    arabic_t = round((length(arabic[arabic == 1 & !is.na(arabic)]) / length(langna[langna == FALSE]) * 100), 1),
-    korean_t = round((length(korean[korean == 1 & !is.na(korean)]) / length(langna[langna == FALSE]) * 100), 1),
-    ukrainian_t = round((length(ukrainian[ukrainian == 1 & !is.na(ukrainian)]) / length(langna[langna == FALSE]) * 100), 1),
-    amharic_t = round((length(amharic[amharic == 1 & !is.na(amharic)]) / length(langna[langna == FALSE]) * 100), 1)
-  ) %>%
-  ungroup()
+elig_lang[, c("english_t", "spanish_t", "vietnamese_t", "chinese_t", "somali_t", 
+              "russian_t", "arabic_t", "korean_t", "ukrainian_t", "amharic_t") := 
+            list(
+              round((length(english[english == 1 & !is.na(english)]) / 
+                       length(langna[langna == FALSE]) * 100), 1),
+              round((length(spanish[spanish == 1 & !is.na(spanish)]) / 
+                       length(langna[langna == FALSE]) * 100), 1),
+              round((length(vietnamese[vietnamese == 1 & !is.na(vietnamese)]) / 
+                       length(langna[langna == FALSE]) * 100), 1),
+              round((length(chinese[chinese == 1 & !is.na(chinese)]) / 
+                       length(langna[langna == FALSE]) * 100), 1),
+              round((length(somali[somali == 1 & !is.na(somali)]) / 
+                       length(langna[langna == FALSE]) * 100), 1),
+              round((length(russian[russian == 1 & !is.na(russian)]) / 
+                       length(langna[langna == FALSE]) * 100), 1),
+              round((length(arabic[arabic == 1 & !is.na(arabic)]) / 
+                       length(langna[langna == FALSE]) * 100), 1),
+              round((length(korean[korean == 1 & !is.na(korean)]) / 
+                       length(langna[langna == FALSE]) * 100), 1),
+              round((length(ukrainian[ukrainian == 1 & !is.na(ukrainian)]) / 
+                       length(langna[langna == FALSE]) * 100), 1),
+              round((length(amharic[amharic == 1 & !is.na(amharic)]) / 
+                       length(langna[langna == FALSE]) * 100), 1)
+            )
+          , by = "id"]
 
-#Replace NA person time variables with 0
-elig_lang <- elig_lang %>%
-  mutate_at(
-    vars(english_t:amharic_t),
-    recode, .missing = 0
-  )
 
-#### Copy all non-missing language variable values to all rows within each ID. ####
-elig_lang <- elig_lang %>%
-  group_by(id) %>%
-  mutate_at(
-    vars(english:amharic),
-    funs(max(., na.rm = TRUE))
-  ) %>%
-  ungroup()
+# Replace NA person time variables with 0
+cols <- c("english_t", "spanish_t", "vietnamese_t", "chinese_t", "somali_t", 
+          "russian_t", "arabic_t", "korean_t", "ukrainian_t", "amharic_t")
+elig_lang[, (cols) := 
+            lapply(.SD, function(x) recode(x, .missing = 0)), 
+          .SDcols = cols]
 
-#Replace infinity values with NA (these were generated by max function applied to NA rows)
-elig_lang <- elig_lang %>%
-  mutate_at(
-    vars(english:amharic),
-    function(x) replace(x, is.infinite(x),NA)
-  )
 
-#### Select most frequently reported language per ID ####
+### Copy all non-missing language variable values to all rows within each ID
+# First make collapsed max of lang for each ID
+elig_lang_sum <- elig_lang[, .(english = max(english, na.rm = T),
+                               spanish = max(spanish, na.rm = T),
+                               vietnamese = max(vietnamese, na.rm = T),
+                               chinese = max(chinese, na.rm = T),
+                               somali = max(somali, na.rm = T),
+                               russian = max(russian, na.rm = T),
+                               arabic = max(arabic, na.rm = T),
+                               korean = max(korean, na.rm = T),
+                               ukrainian = max(ukrainian, na.rm = T),
+                               amharic = max(amharic, na.rm = T)),
+                           by = "id"]
+#Replace infinity values with NA (generated by max function applied to NA rows)
+cols <- c("english", "spanish", "vietnamese", "chinese", "somali", "russian",
+          "arabic", "korean", "ukrainian", "amharic")
+elig_lang_sum[, (cols) := 
+                lapply(.SD, function(x)
+                  replace(x, is.infinite(x), NA)), 
+              .SDcols = cols]
+# Now join back to main data
+elig_lang[elig_lang_sum, c("english", "spanish", "vietnamese", "chinese", 
+                           "somali", "russian", "arabic", "korean", 
+                           "ukrainian", "amharic") := 
+            list(i.english, i.spanish, i.vietnamese, i.chinese, i.somali, 
+                 i.russian, i.arabic, i.korean, i.ukrainian, i.amharic), 
+          on = "id"]
+rm(elig_lang_sum)
+gc()
 
-#Count spoken language rows by ID and language
-slang.tmp <- select(elig_lang, id, slang) %>%
-  filter(!is.na(slang)) %>%
-  group_by(id, slang) %>%
-  mutate(row_cnt = n()) %>%
-  ungroup() %>%
-  mutate(maxlang = slang) %>%
-  select(id, maxlang, row_cnt) %>%
-  distinct(id, maxlang, row_cnt)
+
+### Select most frequently reported language per ID
+# Count spoken language rows by ID and language
+slang_tmp <- elig_lang[!is.na(slang), row_cnt_s := .N,
+                       by = c("id", "slang")]
+slang_tmp[, maxlang := slang]
+slang_tmp <- slang_tmp[, c("id", "maxlang", "row_cnt_s")]
+slang_tmp <- unique(slang_tmp)
 
 #Count written language rows by ID and language
-wlang.tmp <- select(elig_lang, id, wlang) %>%
-  filter(!is.na(wlang)) %>%
-  group_by(id, wlang) %>%
-  mutate(row_cnt = n()) %>%
-  ungroup() %>%
-  mutate(maxlang = wlang) %>%
-  select(id, maxlang, row_cnt) %>%
-  distinct(id, maxlang, row_cnt)
+wlang_tmp <- elig_lang[!is.na(wlang), row_cnt_w := .N,
+                       by = c("id", "wlang")]
+wlang_tmp[, maxlang := wlang]
+wlang_tmp <- wlang_tmp[, c("id", "maxlang", "row_cnt_w")]
+wlang_tmp <- unique(wlang_tmp)
+
 
 #Join written and spoken language counts and sum by ID and language
 #Assign random number to each ID and language, and sort by ID and random number (this helps with selecting maxlang when tied)
 set.seed(580493617)
-swlang.tmp <- full_join(slang.tmp, wlang.tmp, by = c("id", "maxlang")) %>%
-  group_by(id, maxlang) %>%
-  mutate(
-    lang_cnt = sum(row_cnt.x, row_cnt.y, na.rm = TRUE),
-    rand = runif(1, 0, 1)
-  ) %>%
-  ungroup() %>%
-  select(id, maxlang, lang_cnt, rand) %>%
-  arrange(id, rand)
 
-#Slice data to one language per ID (most frequently reported)
-swlang.tmp <- swlang.tmp %>%
-  group_by(id) %>%
-  slice(which.max(lang_cnt)) %>%
-  ungroup() %>%
-  select(id, maxlang)
+swlang_tmp <- merge(slang_tmp, wlang_tmp, by = c("id", "maxlang"), all = T)
+swlang_tmp[, c("lang_cnt", "rand") :=
+             list(sum(row_cnt_s, row_cnt_w, na.rm = TRUE),
+                  runif(1, 0, 1)),
+           by = c("id", "maxlang")]
+swlang_tmp <- swlang_tmp[, c("id", "maxlang", "lang_cnt", "rand")][order(id, -lang_cnt, rand)]
+
+# Slice data to one language per ID (most frequently reported)
+swlang_tmp <- swlang_tmp[, head(.SD, 1), by = "id"]
+swlang_tmp <- swlang_tmp[, c("id", "maxlang")]
 
 rm(slang.tmp, wlang.tmp)
 
 # Merge back with the primary data
-elig_lang <- left_join(elig_lang, swlang.tmp, by = c("id"))
-rm(swlang.tmp)
+elig_lang[swlang_tmp, maxlang := list(i.maxlang), on = "id"]
+rm(slang_tmp, wlang_tmp, swlang_tmp)
 gc()
 
-##### Collapse to one row per ID given we have alone or in combo EVER language variables #####
-elig_lang_final <- distinct(elig_lang, id, maxlang, english, spanish, vietnamese, chinese, somali, russian, arabic, korean, ukrainian, amharic,
-                            english_t, spanish_t, vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t)
+### Collapse to one row per ID given we have alone or in combo EVER language variables
+elig_lang <- elig_lang[, c("id", "maxlang", "english", "spanish", "vietnamese", 
+                           "chinese", "somali", "russian", "arabic", "korean", 
+                           "ukrainian", "amharic", "english_t", "spanish_t", 
+                           "vietnamese_t", "chinese_t", "somali_t", "russian_t", 
+                           "arabic_t", "korean_t", "ukrainian_t", "amharic_t")]
+elig_lang_final <- unique(elig_lang)
 
-#Add in variable for missing language
+# Add in variable for missing language
 elig_lang_final <- elig_lang_final %>%
-  
   mutate(
-    
     lang_unk = case_when(
       is.na(maxlang) ~ 1,
       !is.na(maxlang) ~ 0,
       TRUE ~ NA_real_
     )
   ) %>%
-  
-  select(., id, maxlang, english, spanish, vietnamese, chinese, somali, russian, arabic, korean, ukrainian, amharic,
-         english_t, spanish_t, vietnamese_t, chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, amharic_t, lang_unk)
+  select(., id, maxlang, english, spanish, vietnamese, chinese, somali, russian, 
+         arabic, korean, ukrainian, amharic, english_t, spanish_t, vietnamese_t, 
+         chinese_t, somali_t, russian_t, arabic_t, korean_t, ukrainian_t, 
+         amharic_t, lang_unk)
 
-#Drop temp table
+# Drop temp table
 remove(elig_lang)
 gc()
+
 
 #############################
 #### Join all tables ####
 #############################
 
-elig_demoever_final <- inner_join(inner_join(inner_join(elig_dob, elig_gender_final, by = c("id")), elig_race_final, by = c("id")),
-                                  elig_lang_final, by = c("id"))
+elig_demoever_final <- list(elig_dob, elig_gender_final, elig_race_final, elig_lang_final) %>%
+  Reduce(function(df1, df2) left_join(df1, df2, by = "id"), .)
 
-#Test to make sure no IDs are duplicated
-test <- elig_demoever_final %>%
-  group_by(id) %>%
-  count(id)
-max(test$n)
-rm(test)
 
-#Drop individual tables
-rm(elig_dob, elig_gender_final, elig_race_final, elig_lang_final)
-gc()
 
-#Test to make sure all IDs in original data table are included in final
-#count(distinct(elig_demoever_final, id))
-#count(distinct(elig_demoever, id))
 
-##### Save dob.mcaid_elig_demoever to SQL server 51 #####
-
+#### Save dob.mcaid_elig_demoever to SQL server 51 ####
 # Remove/delete table if it already exists AND you have changed the data structure (not usually needed)
-#dbRemoveTable(db.claims51, name = "mcaid_elig_demoever_test")
+dbRemoveTable(db.claims51, name = "mcaid_elig_demoever_load")
 
 # Write your data frame. Note that the package adds a dbo schema so don’t include that in the name.
 # Also, you can append = T rather than overwrite = T if desired. 
 # Overwrite does what you would expect without needing to delete the whole table
-#This took 80 seconds to upload (as opposed to 30 min with RODBC package)
-ptm02 <- proc.time() # Times how long this query takes
-dbWriteTable(db.claims51, name = "mcaid_elig_demoever_test", value = as.data.frame(elig_demoever_final), overwrite = T)
-proc.time() - ptm02
+dbWriteTable(db.claims51, name = "mcaid_elig_demoever_load", 
+             value = as.data.frame(elig_demoever_final), overwrite = T,
+             field.types = c(
+               spanish_t = "decimal(4,1)"
+             ))
+
+#Drop individual tables
+rm(elig_dob, elig_gender_final, elig_race_final, elig_lang_final, elig_demoever)
+rm(elig_demoever_final)
+rm(list = ls(pattern = "_txt"))
+rm(cols)
 gc()
+
