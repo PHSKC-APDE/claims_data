@@ -4,16 +4,38 @@
 \alias{tabloop_f}
 \title{Tabulation loop}
 \usage{
-tabloop_f(df, unit, loop, fixed = NULL)
+tabloop_f(df, count, dcount, sum, mean, median, loop, fixed = NULL,
+  filter = FALSE, rename = FALSE, suppress = FALSE, suppress_var,
+  lower = 1, upper = 9)
 }
 \arguments{
 \item{df}{A data frame in tidy format}
 
-\item{unit}{A variable that identifies the unit of tabulation (e.g.person, row, etc.)}
+\item{count}{A variable that identifies the unit of tabulation for non-distinct counts}
+
+\item{dcount}{A variable that identifies the unit of tabulation for distinct counts}
+
+\item{sum}{A variable that identifies the unit of tabulation for sums}
+
+\item{mean}{A variable that identifies the unit of tabulation for calculating means}
 
 \item{loop}{A list of the loop by variables, requires use of \code{list_var}, required}
 
 \item{fixed}{A list of the fixed by variables, requires use of \code{list_var}, defaults to null}
+
+\item{filter}{Specifies whether results should be filtered to positive values only for binary variables, defaults to false}
+
+\item{rename}{Specifies whether results group categories should be renamed according to APDE defauts, defaults to false}
+
+\item{suppress}{Specifies whether suppression should be applied}
+
+\item{suppress_var}{Specifies which variables to base suppression on}
+
+\item{lower}{Lower cell count for suppression (inclusive), defaults to 1}
+
+\item{upper}{Upper cell count for suppression (inclusive), defaults to 9}
+
+\item{mean}{A variable that identifies the unit of tabulation for calculating medians}
 }
 \description{
 \code{tabloop_f} tabulates a data frame (e.g. summarize ndistinct) over fixed and 
@@ -34,6 +56,10 @@ and loop by variable matrix.
 \dontrun{
 tabloop_f(df = mcaid_cohort, unit = id, loop = list_var(gender, race), fixed = list_var(region))
 tabloop_f(df = mcaid_cohort, unit = id, loop = list_var(gender, race, zip_code, cov_grp, language))
+tabloop_f_test(df = depression, dcount = list_var(id), count = list_var(hra_id),
+               sum = list_var(ed_cnt, inpatient_cnt, depression_ccw), mean = list_var(age), median = list_var(age),
+               loop = list_var(gender_mx), filter = T, rename = T, suppress = T, 
+               suppress_var = list_var(id_dcount))
 }
 
 }

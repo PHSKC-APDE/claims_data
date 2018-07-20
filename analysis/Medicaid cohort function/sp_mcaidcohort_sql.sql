@@ -65,7 +65,7 @@ where from_date <= @to_date and to_date >= @from_date
 --------------------------
 --STEP 2: Temp table for demo info
 --------------------------
-if object_id('tempdb..#demo') IS NOT NULL drop table #demo
+if object_id('tempdb..##demo') IS NOT NULL drop table ##demo
 select x.id, x.dobnew, x.age, 
 	
 		case
@@ -84,7 +84,7 @@ select x.id, x.dobnew, x.age,
 		x.arabic, x.korean, x.ukrainian, x.amharic, x. english_t, x.spanish_t, x.vietnamese_t,
 		x.chinese_t, x.somali_t, x.russian_t, x.arabic_t, x.korean_t, x.ukrainian_t, x.amharic_t, x.lang_unk
 
-	into #demo
+	into ##demo
 
 	from( 	
 		select distinct id, 
@@ -244,11 +244,68 @@ where ((@zip is null) or zip.zip_new in (select * from PHClaims.dbo.Split(@zip, 
 and (@region is null or reg.region in (select * from PHClaims.dbo.Split(@region, ',')))
 
 --------------------------
+--STEP 4: Temp table for coverage info
+--------------------------
+if object_id('tempdb..##cov') IS NOT NULL drop table ##cov
+select a.id, a.covd, a.covper, a.ccovd_max, a.covgap_max
+into ##cov
+	from (
+		select z.id, z.covd, z.covper, z.ccovd_max,
+			case
+				when z.pregap_max >= z.postgap_max then z.pregap_max
+				else z.postgap_max
+			end as 'covgap_max'
+
+		from (
+			select y.id, sum(y.covd) as 'covd', cast(sum((y.covd * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'covper',
+				max(y.covd) as 'ccovd_max', max(y.pregap) as 'pregap_max', max(y.postgap) as 'postgap_max'
+
+			from (
+			select distinct x.id, x.from_date, x.to_date,
+
+			--calculate coverage days during specified time period
+			/**if coverage period fully contains date range then person time is just date range */
+			iif(x.from_date <= @from_date and x.to_date >= @to_date, datediff(day, @from_date, @to_date) + 1, 
+	
+			/**if coverage period begins before date range start and ends within date range */
+			iif(x.from_date <= @from_date and x.to_date < @to_date and x.to_date >= @from_date, datediff(day, @from_date, x.to_date) + 1,
+
+			/**if coverage period begins within date range and ends after date range end */
+			iif(x.from_date > @from_date and x.to_date >= @to_date and x.from_date <= @to_date, datediff(day, x.from_date, @to_date) + 1,
+
+			/**if coverage period begins after date range start and ends before date range end */
+			iif(x.from_date > @from_date and x.to_date < @to_date, datediff(day, x.from_date, x.to_date) + 1,
+
+			null)))) as 'covd',
+
+			--calculate coverage gaps during specified time period
+			case
+				when x.from_date <= @from_date then 0
+				when lag(x.to_date,1) over (partition by x.id order by x.to_date) is null then datediff(day, @from_date, x.from_date) - 1
+				else datediff(day, lag(x.to_date,1) over (partition by x.id order by x.to_date), x.from_date) - 1
+			end as 'pregap',
+
+			case
+				when x.to_date >= @to_date then 0
+				when lead(x.to_date,1) over (partition by x.id order by x.to_date) is null then datediff(day, x.to_date, @to_date) - 1
+				else datediff(day, x.to_date, lead(x.from_date,1) over (partition by x.id order by x.from_date)) - 1
+			end as 'postgap'
+
+			from PHClaims.dbo.mcaid_elig_overall as x
+			where x.from_date <= @to_date and x.to_date >= @from_date
+			) as y
+			group by y.id
+		) as z
+	) as a
+	where a.covper >= @covmin and a.ccovd_max >= @ccov_min and (@covgap_max is null or a.covgap_max <= @covgap_max)
+	and (@id is null or a.id in (select * from PHClaims.dbo.Split(@id, ',')))
+
+--------------------------
 --STEP 5: Temp table for dual flag
 --------------------------
-if object_id('tempdb..#dual') IS NOT NULL drop table #dual
+if object_id('tempdb..##dual') IS NOT NULL drop table ##dual
 select z.id, z.duald, z.dualper, case when z.duald >= 1 then 1 else 0 end as 'dual_flag'
-into #dual
+into ##dual
 from (
 	select y.id, sum(y.duald) as 'duald', 
 	cast(sum((y.duald * 1.0)) / (@duration * 1.0) * 100.0 as decimal(4,1)) as 'dualper'

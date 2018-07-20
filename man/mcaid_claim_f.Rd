@@ -9,7 +9,7 @@ mcaid_claim_f(server, from_date = Sys.Date() - months(12),
   covgap_max = "null", dualmax = 100, agemin = 0, agemax = 200,
   female = "null", male = "null", aian = "null", asian = "null",
   black = "null", nhpi = "null", white = "null", latino = "null",
-  zip = "null", zregion = "null", english = "null", spanish = "null",
+  zip = "null", region = "null", english = "null", spanish = "null",
   vietnamese = "null", chinese = "null", somali = "null",
   russian = "null", arabic = "null", korean = "null",
   ukrainian = "null", amharic = "null", maxlang = "null", id = "null")
@@ -51,7 +51,7 @@ mcaid_claim_f(server, from_date = Sys.Date() - months(12),
 
 \item{zip}{Most frequently reported ZIP code during requested date range, eg. "98103,98105", defaults to null}
 
-\item{zregion}{Most frequently mapped ZIP code-based region during requested date range, e.g, "east,north,seattle,south", defaults to null}
+\item{region}{Most frequently mapped HRA based region during requested date range, e.g, "east,north,seattle,south", defaults to null}
 
 \item{english}{Alone or in combination English written or spoken language over entire member history, defaults to null}
 
