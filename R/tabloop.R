@@ -230,50 +230,55 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
     #Keep only one set of by variable columns
     result_dcount <- select(result_dcount, !!! fixed, group_cat, group, !!! dcount_name_list)
     
-    ##Create overall counts
-    result_dcount_all <- lapply(dcount, function(y) {
-      dcount <- y
-      dcount <- enquo(dcount)
-      dcount_name <- paste0(quo_name(dcount), "_dcount")
-      
-      result_dcount_all <- lapply(fixed_name_cntdwn_vector, function(y) {
-        
-        df <- df %>%  
-          
-          #Set fixed variables to Overall
-          mutate_at(
-            vars(y),
-            funs(as.character("_Overall"))
-          ) %>%
-          
-          group_by(!!! fixed) %>%
-          summarise(!! dcount_name := n_distinct(!! dcount, na.rm = TRUE)) %>%
-          
-          #Create variable to hold name of loop variable
-          mutate(
-            group_cat = "_Overall"
-          ) %>%
-          ungroup() %>%
-          
-          #Create variable to hold name of loop variable values
-          mutate(
-            group = "_Overall"
-          ) %>%
-          
-          #Order columns
-          select(., !!! fixed, group_cat, group, !! dcount_name)
-        
-        #Return one data frame for each loop variable provided
-        return(df)
-      }) %>%
-        #Bind results of lapply function and return result
-        bind_rows()
-      return(result_dcount_all)
-    }) %>%
-      bind_rows()
+    ##Create overall counts if fixed vars have been requested
     
-    ## Append overall with disaggregated results
-    result_dcount <- bind_rows(result_dcount_all, result_dcount)
+    if(!is.null(fixed)) {
+      result_dcount_all <- lapply(dcount, function(y) {
+        dcount <- y
+        dcount <- enquo(dcount)
+        dcount_name <- paste0(quo_name(dcount), "_dcount")
+        
+        result_dcount_all <- lapply(fixed_name_cntdwn_vector, function(y) {
+          
+          df <- df %>%  
+            
+            #Set fixed variables to Overall
+            mutate_at(
+              vars(y),
+              funs(as.character("_Overall"))
+            ) %>%
+            
+            group_by(!!! fixed) %>%
+            summarise(!! dcount_name := n_distinct(!! dcount, na.rm = TRUE)) %>%
+            
+            #Create variable to hold name of loop variable
+            mutate(
+              group_cat = "_Overall"
+            ) %>%
+            ungroup() %>%
+            
+            #Create variable to hold name of loop variable values
+            mutate(
+              group = "_Overall"
+            ) %>%
+            
+            #Order columns
+            select(., !!! fixed, group_cat, group, !! dcount_name)
+          
+          #Return one data frame for each loop variable provided
+          return(df)
+        }) %>%
+          #Bind results of lapply function and return result
+          bind_rows()
+        return(result_dcount_all)
+      }) %>%
+        bind_cols()
+      #Keep only one set of by variable columns
+      result_dcount_all <- select(result_dcount_all, !!! fixed, group_cat, group, !!! dcount_name_list)
+      
+      ## Append overall with disaggregated results
+      result_dcount <- bind_rows(result_dcount_all, result_dcount)
+    }
   }  
   
   
@@ -343,51 +348,58 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
     #Keep only one set of by variable columns
     result_count <- select(result_count, !!! fixed, group_cat, group, !!! count_name_list)
     
-    ##Create overall tabulations
-    result_count_all <- lapply(count, function(y) {
-      count <- y
-      count <- enquo(count)
-      count_name <- paste0(quo_name(count), "_count")
-      
-      result_count_all <- lapply(fixed_name_cntdwn_vector, function(y) {
-        
-        df <- df %>%  
-          
-          #Set fixed variables to Overall
-          mutate_at(
-            vars(y),
-            funs(as.character("_Overall"))
-          ) %>%
-          
-          group_by(!!! fixed) %>%
-          summarise(!! count_name := length(which(!is.na(!! count)))) %>% # code needed to appropriately ignore NAs
-          
-          #Create variable to hold name of loop variable
-          mutate(
-            group_cat = "_Overall"
-          ) %>%
-          ungroup() %>%
-          
-          #Create variable to hold name of loop variable values
-          mutate(
-            group = "_Overall"
-          ) %>%
-          
-          #Order columns
-          select(., !!! fixed, group_cat, group, !! count_name)
-        
-        #Return one data frame for each loop variable provided
-        return(df)
-      }) %>%
-        #Bind results of lapply function and return result
-        bind_rows()
-      return(result_count_all)
-    }) %>%
-      bind_rows()
+    ##Create overall tabulations if fixed vars requested
     
-    ## Append overall with disaggregated results
-    result_count <- bind_rows(result_count_all, result_count)
+    if(!is.null(fixed)) {
+      
+      result_count_all <- lapply(count, function(y) {
+        count <- y
+        count <- enquo(count)
+        count_name <- paste0(quo_name(count), "_count")
+        
+        result_count_all <- lapply(fixed_name_cntdwn_vector, function(y) {
+          
+          df <- df %>%  
+            
+            #Set fixed variables to Overall
+            mutate_at(
+              vars(y),
+              funs(as.character("_Overall"))
+            ) %>%
+            
+            group_by(!!! fixed) %>%
+            summarise(!! count_name := length(which(!is.na(!! count)))) %>% # code needed to appropriately ignore NAs
+            
+            #Create variable to hold name of loop variable
+            mutate(
+              group_cat = "_Overall"
+            ) %>%
+            ungroup() %>%
+            
+            #Create variable to hold name of loop variable values
+            mutate(
+              group = "_Overall"
+            ) %>%
+            
+            #Order columns
+            select(., !!! fixed, group_cat, group, !! count_name)
+          
+          #Return one data frame for each loop variable provided
+          return(df)
+        }) %>%
+          #Bind results of lapply function and return result
+          bind_rows()
+        return(result_count_all)
+      }) %>%
+        bind_cols()
+      #Keep only one set of by variable columns
+      result_count_all <- select(result_count_all, !!! fixed, group_cat, group, !!! count_name_list)
+      
+      ## Append overall with disaggregated results
+      result_count <- bind_rows(result_count_all, result_count)
+    }  
   }
+  
   
   #### Step 4: Calculate sums by fixed and loop by variables, if requested #### 
   
@@ -456,50 +468,56 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
     #Keep only one set of by variable columns
     result_sum <- select(result_sum, !!! fixed, group_cat, group, !!! sum_name_list)
     
-    ##Create overall tabulations
-    result_sum_all <- lapply(sum, function(y) {
-      sum <- y
-      sum <- enquo(sum)
-      sum_name <- paste0(quo_name(sum), "_sum")
-      
-      result_sum_all <- lapply(fixed_name_cntdwn_vector, function(y) {
-        
-        df <- df %>%  
-          
-          #Set fixed variables to Overall
-          mutate_at(
-            vars(y),
-            funs(as.character("_Overall"))
-          ) %>%
-          
-          group_by(!!! fixed) %>%
-          summarise(!! sum_name := sum(!! sum, na.rm = TRUE)) %>%
-          
-          #Create variable to hold name of loop variable
-          mutate(
-            group_cat = "_Overall"
-          ) %>%
-          ungroup() %>%
-          
-          #Create variable to hold name of loop variable values
-          mutate(
-            group = "_Overall"
-          ) %>%
-          
-          #Order columns
-          select(., !!! fixed, group_cat, group, !! sum_name)
-        
-        #Return one data frame for each loop variable provided
-        return(df)
-      }) %>%
-        #Bind results of lapply function and return result
-        bind_rows()
-      return(result_sum_all)
-    }) %>%
-      bind_rows()
+    ##Create overall tabulations if fixed vars requested
     
-    ## Append overall with disaggregated results
-    result_sum <- bind_rows(result_sum_all, result_sum)
+    if(!is.null(fixed)) {
+      
+      result_sum_all <- lapply(sum, function(y) {
+        sum <- y
+        sum <- enquo(sum)
+        sum_name <- paste0(quo_name(sum), "_sum")
+        
+        result_sum_all <- lapply(fixed_name_cntdwn_vector, function(y) {
+          
+          df <- df %>%  
+            
+            #Set fixed variables to Overall
+            mutate_at(
+              vars(y),
+              funs(as.character("_Overall"))
+            ) %>%
+            
+            group_by(!!! fixed) %>%
+            summarise(!! sum_name := sum(!! sum, na.rm = TRUE)) %>%
+            
+            #Create variable to hold name of loop variable
+            mutate(
+              group_cat = "_Overall"
+            ) %>%
+            ungroup() %>%
+            
+            #Create variable to hold name of loop variable values
+            mutate(
+              group = "_Overall"
+            ) %>%
+            
+            #Order columns
+            select(., !!! fixed, group_cat, group, !! sum_name)
+          
+          #Return one data frame for each loop variable provided
+          return(df)
+        }) %>%
+          #Bind results of lapply function and return result
+          bind_rows()
+        return(result_sum_all)
+      }) %>%
+        bind_cols()
+      #Keep only one set of by variable columns
+      result_sum_all <- select(result_sum_all, !!! fixed, group_cat, group, !!! sum_name_list)
+      
+      ## Append overall with disaggregated results
+      result_sum <- bind_rows(result_sum_all, result_sum)
+    }
   }  
   
   
@@ -570,50 +588,56 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
     #Keep only one set of by variable columns
     result_mean <- select(result_mean, !!! fixed, group_cat, group, !!! mean_name_list)
     
-    ##Create overall tabulations
-    result_mean_all <- lapply(mean, function(y) {
-      mean <- y
-      mean <- enquo(mean)
-      mean_name <- paste0(quo_name(mean), "_mean")
-      
-      result_mean_all <- lapply(fixed_name_cntdwn_vector, function(y) {
-        
-        df <- df %>%  
-          
-          #Set fixed variables to Overall
-          mutate_at(
-            vars(y),
-            funs(as.character("_Overall"))
-          ) %>%
-          
-          group_by(!!! fixed) %>%
-          summarise(!! mean_name := round(mean(!! mean, na.rm = TRUE), 1)) %>%
-          
-          #Create variable to hold name of loop variable
-          mutate(
-            group_cat = "_Overall"
-          ) %>%
-          ungroup() %>%
-          
-          #Create variable to hold name of loop variable values
-          mutate(
-            group = "_Overall"
-          ) %>%
-          
-          #Order columns
-          select(., !!! fixed, group_cat, group, !! mean_name)
-        
-        #Return one data frame for each loop variable provided
-        return(df)
-      }) %>%
-        #Bind results of lapply function and return result
-        bind_rows()
-      return(result_mean_all)
-    }) %>%
-      bind_rows()
+    ##Create overall tabulations if fixed vars requested
     
-    ## Append overall with disaggregated results
-    result_mean <- bind_rows(result_mean_all, result_mean)
+    if(!is.null(fixed)) {
+      
+      result_mean_all <- lapply(mean, function(y) {
+        mean <- y
+        mean <- enquo(mean)
+        mean_name <- paste0(quo_name(mean), "_mean")
+        
+        result_mean_all <- lapply(fixed_name_cntdwn_vector, function(y) {
+          
+          df <- df %>%  
+            
+            #Set fixed variables to Overall
+            mutate_at(
+              vars(y),
+              funs(as.character("_Overall"))
+            ) %>%
+            
+            group_by(!!! fixed) %>%
+            summarise(!! mean_name := round(mean(!! mean, na.rm = TRUE), 1)) %>%
+            
+            #Create variable to hold name of loop variable
+            mutate(
+              group_cat = "_Overall"
+            ) %>%
+            ungroup() %>%
+            
+            #Create variable to hold name of loop variable values
+            mutate(
+              group = "_Overall"
+            ) %>%
+            
+            #Order columns
+            select(., !!! fixed, group_cat, group, !! mean_name)
+          
+          #Return one data frame for each loop variable provided
+          return(df)
+        }) %>%
+          #Bind results of lapply function and return result
+          bind_rows()
+        return(result_mean_all)
+      }) %>%
+        bind_cols()
+      #Keep only one set of by variable columns
+      result_mean_all <- select(result_mean_all, !!! fixed, group_cat, group, !!! mean_name_list)
+      
+      ## Append overall with disaggregated results
+      result_mean <- bind_rows(result_mean_all, result_mean)
+    }
   }  
   
   
@@ -684,50 +708,56 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
     #Keep only one set of by variable columns
     result_median <- select(result_median, !!! fixed, group_cat, group, !!! median_name_list)
     
-    ##Create overall tabulations
-    result_median_all <- lapply(median, function(y) {
-      median <- y
-      median <- enquo(median)
-      median_name <- paste0(quo_name(median), "_median")
-      
-      result_median_all <- lapply(fixed_name_cntdwn_vector, function(y) {
-        
-        df <- df %>%  
-          
-          #Set fixed variables to Overall
-          mutate_at(
-            vars(y),
-            funs(as.character("_Overall"))
-          ) %>%
-          
-          group_by(!!! fixed) %>%
-          summarise(!! median_name := round(median(!! median, na.rm = TRUE), 1)) %>%
-          
-          #Create variable to hold name of loop variable
-          mutate(
-            group_cat = "_Overall"
-          ) %>%
-          ungroup() %>%
-          
-          #Create variable to hold name of loop variable values
-          mutate(
-            group = "_Overall"
-          ) %>%
-          
-          #Order columns
-          select(., !!! fixed, group_cat, group, !! median_name)
-        
-        #Return one data frame for each loop variable provided
-        return(df)
-      }) %>%
-        #Bind results of lapply function and return result
-        bind_rows()
-      return(result_median_all)
-    }) %>%
-      bind_rows()
+    ##Create overall tabulations if fixed vars requested
     
-    ## Append overall with disaggregated results
-    result_median <- bind_rows(result_median_all, result_median)
+    if(!is.null(fixed)) {
+      
+      result_median_all <- lapply(median, function(y) {
+        median <- y
+        median <- enquo(median)
+        median_name <- paste0(quo_name(median), "_median")
+        
+        result_median_all <- lapply(fixed_name_cntdwn_vector, function(y) {
+          
+          df <- df %>%  
+            
+            #Set fixed variables to Overall
+            mutate_at(
+              vars(y),
+              funs(as.character("_Overall"))
+            ) %>%
+            
+            group_by(!!! fixed) %>%
+            summarise(!! median_name := round(median(!! median, na.rm = TRUE), 1)) %>%
+            
+            #Create variable to hold name of loop variable
+            mutate(
+              group_cat = "_Overall"
+            ) %>%
+            ungroup() %>%
+            
+            #Create variable to hold name of loop variable values
+            mutate(
+              group = "_Overall"
+            ) %>%
+            
+            #Order columns
+            select(., !!! fixed, group_cat, group, !! median_name)
+          
+          #Return one data frame for each loop variable provided
+          return(df)
+        }) %>%
+          #Bind results of lapply function and return result
+          bind_rows()
+        return(result_median_all)
+      }) %>%
+        bind_cols()
+      #Keep only one set of by variable columns
+      result_median_all <- select(result_median_all, !!! fixed, group_cat, group, !!! median_name_list)
+      
+      ## Append overall with disaggregated results
+      result_median <- bind_rows(result_median_all, result_median)
+    }
   } 
   
   
