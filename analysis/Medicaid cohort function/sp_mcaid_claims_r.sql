@@ -29,6 +29,8 @@ select query_from_date = @from_date, query_to_date = @to_date, elig.*,
 	case when claim.maternal_broad_dx1_cnt is null then 0 else claim.maternal_broad_dx1_cnt end as 'maternal_broad_dx1_cnt',
 	case when claim.newborn_dx1_cnt is null then 0 else claim.newborn_dx1_cnt end as 'newborn_dx1_cnt',
 	case when claim.inpatient_cnt is null then 0 else claim.inpatient_cnt end as 'inpatient_cnt',
+	case when claim.ipt_medsurg_cnt is null then 0 else claim.ipt_medsurg_cnt end as 'ipt_medsurg_cnt',
+	case when claim.ipt_bh_cnt is null then 0 else claim.ipt_bh_cnt end as 'ipt_bh_cnt',
 	case when claim.ed_cnt is null then 0 else claim.ed_cnt end as 'ed_cnt',
 	case when claim.ed_nohosp_cnt is null then 0 else claim.ed_nohosp_cnt end as 'ed_nohosp_cnt',
 	case when claim.ed_avoid_ca_cnt is null then 0 else claim.ed_avoid_ca_cnt end as 'ed_avoid_ca_cnt',
@@ -49,7 +51,7 @@ left join (
 			sum(b.newborn_dx1) as 'newborn_dx1_cnt', sum(b.inpatient) as 'inpatient_cnt', sum(b.ipt_medsurg) as 'ipt_medsurg_cnt',
 			sum(b.ipt_bh) as 'ipt_bh_cnt', sum( b.ed) as 'ed_cnt', sum(b.ed_nohosp) as 'ed_nohosp_cnt', sum(b.ed_avoid_ca) as 'ed_avoid_ca_cnt', 
 			sum(b.ed_avoid_ca_nohosp) as 'ed_avoid_ca_nohosp_cnt', sum(b.mental_dx_rda_any) as 'mental_dx_rda_any_cnt', sum(b.sud_dx_rda_any) as 'sud_dx_rda_any_cnt',
-			sum(b.dental) as 'dental_cnt'
+			sum(b.dental) as 'dental_cnt', sum(b.ipt_medsurg) as 'ipt_medsurg', sum(b.ipt_bh) as 'ipt_bh'
 
 	from (
 		select a.id,
@@ -65,7 +67,9 @@ left join (
 		) as id
 
 		left join (
-			select *, case when clm_type_code = '4' then 1 else 0 end as 'dental' from PHClaims.dbo.mcaid_claim_summary
+			select *, 
+			case when clm_type_code = '4' then 1 else 0 end as 'dental'
+			from PHClaims.dbo.mcaid_claim_summary
 			where from_date <= @to_date and to_date >= @from_date
 				and exists (select id from ##id where id = PHClaims.dbo.mcaid_claim_summary.id)
 		) as a
