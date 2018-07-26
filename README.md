@@ -22,4 +22,4 @@ A data dictionary for the Medicaid data tables stored on King County SQL Server 
 - Request a claims summary (e.g. ED visits, avoidable ED, behavioral health hospital stays) for a member cohort
 - Request coverage group information (e.g. persons with disabilities) and automatically join to a specified data frame
 - Request chronic health condition (e.g. asthma) information and automatically join to a specified data frame
-- Tabulate counts by fixed and looped by variables (for creating summary data files), with automatic suppression and other features
+- Tabulate counts by fixed and looped by variables (i.e. data aggregation), with automatic suppression and other features
