@@ -4,6 +4,9 @@
 # 2018-4-24
 
 # Code to prepare and upload ICD-CM reference table to SQL Server
+
+#7/26/18 update: Added NYU ED algorithm
+
 ####---
 
 ##### Set up global parameter and call in libraries #####
@@ -244,7 +247,7 @@ rm(ccw)
 
 ####---
 #---
-##### Step 4: Avoidable ED visit diagnoses #####
+##### Step 4: Avoidable ED visit diagnoses, CA algorithm #####
 #---
 ####---
 
@@ -264,10 +267,237 @@ icd10cm <- left_join(icd10cm, ed_avoid, by = c("icdcode" = "icdcode_aed", "ver" 
 rm(ed_avoid)
 
 
+####---
+#---
+##### Step 5: Avoidable ED visit diagnoses, NYU algorithm #####
+#---
+####---
+
+url <- "https://github.com/PHSKC-APDE/reference-data/raw/master/Claims%20data/nyu_ed_icd-cm-9_10_merge.xlsx"
+ed_avoid_nyu <- read.xlsx(url, sheet = "Normalized",
+                      colNames = T)
+
+##Join to ICD-9-CM codes
+icd9cm <- left_join(icd9cm, ed_avoid_nyu, by = c("icdcode" = "dx_norm", "ver" = "dx_ver"))
+#Note there are a small number of ICD-9-CM (mostly header level) that do not match
+#Used record linkage approach to find closest matched ICD-9-CM code and copy over NYU values
+
+#Unmatched ICD codes
+nomatch <- filter(icd9cm, is.na(ed_mh_nyu)) %>%
+  mutate(block = str_sub(icdcode, 1, 4)) %>%
+  select(., icdcode, block)
+
+#Matched ICD codes
+match <- filter(icd9cm, !is.na(ed_mh_nyu)) %>%
+  mutate(block = str_sub(icdcode, 1, 4)) %>%
+  select(., icdcode, block)
+
+#Link based on string comparison, blocking on 1st four digits of ICD-9-CM code (4 chosen through trial and error)
+match1 <- compare.linkage(match, nomatch, blockfld = "block", strcmp = "icdcode")
+
+#Code to process RecordLinkage output and create pairs data frame
+match1_tmp <- epiWeights(match1)
+classify1 <- epiClassify(match1_tmp, threshold.upper = 0.45)
+summary(classify1)
+pairs1 <- getPairs(classify1, single.rows = TRUE)
+
+#Sort by unmatched ICD-9-CM code, descending by match weight, and matched ICD code and take 1st row grouped by unmatched ICD-9-CM code
+#1st sort variable groups by unmatched ICD code
+#2nd sort variable places highest matched code 1st
+#3rd sort helps when multiple matched codes have same match score - it will send more generic codes (e.g. A200 vs A202) to the top
+pairs2 <- pairs1 %>%
+  
+  arrange(., icdcode.2, desc(Weight), icdcode.1) %>%
+  group_by(icdcode.2) %>%
+  slice(., 1) %>%
+  ungroup()
+
+#Merge with NYU to get NYU ED algorithm flags
+pairs2 <- pairs2 %>%
+  mutate(icdcode_match = icdcode.1, icdcode_nomatch = icdcode.2, ver = 9) %>%
+  select(., icdcode_match, icdcode_nomatch, ver)
+
+pairs3 <- left_join(pairs2, ed_avoid_nyu, by = c("icdcode_match" = "dx_norm", "ver" = "dx_ver")) 
+
+#Merge with full ICD-9-CM data and fill in missing info
+icd9cm <- left_join(icd9cm, pairs3, by = c("icdcode" = "icdcode_nomatch", "ver" = "ver"))
+
+icd9cm <- icd9cm %>%
+  
+  mutate(
+    
+    ed_needed_unavoid_nyu = case_when(
+      !is.na(ed_needed_unavoid_nyu.x) ~ ed_needed_unavoid_nyu.x,
+      is.na(ed_needed_unavoid_nyu.x) ~ ed_needed_unavoid_nyu.y
+    ),
+    
+    ed_needed_avoid_nyu = case_when(
+      !is.na(ed_needed_avoid_nyu.x) ~ ed_needed_avoid_nyu.x,
+      is.na(ed_needed_avoid_nyu.x) ~ ed_needed_avoid_nyu.y
+    ),
+    
+    ed_pc_treatable_nyu = case_when(
+      !is.na(ed_pc_treatable_nyu.x) ~ ed_pc_treatable_nyu.x,
+      is.na(ed_pc_treatable_nyu.x) ~ ed_pc_treatable_nyu.y
+    ),
+    
+    ed_nonemergent_nyu = case_when(
+      !is.na(ed_nonemergent_nyu.x) ~ ed_nonemergent_nyu.x,
+      is.na(ed_nonemergent_nyu.x) ~ ed_nonemergent_nyu.y
+    ),
+    
+    ed_mh_nyu = case_when(
+      !is.na(ed_mh_nyu.x) ~ ed_mh_nyu.x,
+      is.na(ed_mh_nyu.x) ~ ed_mh_nyu.y
+    ),
+    
+    ed_sud_nyu = case_when(
+      !is.na(ed_sud_nyu.x) ~ ed_sud_nyu.x,
+      is.na(ed_sud_nyu.x) ~ ed_sud_nyu.y
+    ),
+    
+    ed_alc_nyu = case_when(
+      !is.na(ed_alc_nyu.x) ~ ed_alc_nyu.x,
+      is.na(ed_alc_nyu.x) ~ ed_alc_nyu.y
+    ),
+    
+    ed_injury_nyu = case_when(
+      !is.na(ed_injury_nyu.x) ~ ed_injury_nyu.x,
+      is.na(ed_injury_nyu.x) ~ ed_injury_nyu.y
+    ),
+    
+    ed_unclass_nyu = case_when(
+      !is.na(ed_unclass_nyu.x) ~ ed_unclass_nyu.x,
+      is.na(ed_unclass_nyu.x) ~ ed_unclass_nyu.y
+    )
+  ) %>%
+  
+  select(., icdcode, ver, dx_description, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
+         heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
+         ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
+         ed_unclass_nyu)
+
+#clean up
+rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
+
+##Join to ICD-10-CM codes
+icd10cm <- left_join(icd10cm, ed_avoid_nyu, by = c("icdcode" = "dx_norm", "ver" = "dx_ver"))
+#Note there are a large number of ICD-10-CM (mostly header level) that do not match, too much for manual fixing
+#Thus use record linkage approach to find closest matched ICD-10-CM code and copy over NYU values
+
+#Unmatched ICD codes
+nomatch <- filter(icd10cm, is.na(ed_mh_nyu)) %>%
+  mutate(block = str_sub(icdcode, 1, 3)) %>%
+  select(., icdcode, block)
+
+#Matched ICD codes
+match <- filter(icd10cm, !is.na(ed_mh_nyu)) %>%
+  mutate(block = str_sub(icdcode, 1, 3)) %>%
+  select(., icdcode, block)
+
+#Link based on string comparison, blocking on 1st 3 digits of ICD-10-CM code (3 chosen through trial and error)
+match1 <- compare.linkage(match, nomatch, blockfld = "block", strcmp = "icdcode")
+
+#Code to process RecordLinkage output and create pairs data frame
+match1_tmp <- epiWeights(match1)
+classify1 <- epiClassify(match1_tmp, threshold.upper = 0.45)
+summary(classify1)
+pairs1 <- getPairs(classify1, single.rows = TRUE)
+
+#Sort by unmatched ICD-10-CM code, descending by match weight, and matched ICD code and take 1st row grouped by unmatched ICD-10-CM code
+#1st sort variable groups by unmatched ICD code
+#2nd sort variable places highest matched code 1st
+#3rd sort helps when multiple matched codes have same match score - it will send more generic codes (e.g. A200 vs A202) to the top
+pairs2 <- pairs1 %>%
+  
+  arrange(., icdcode.2, desc(Weight), icdcode.1) %>%
+  group_by(icdcode.2) %>%
+  slice(., 1) %>%
+  ungroup()
+
+#Merge with NYU to get NYU ED algorithm flags
+pairs2 <- pairs2 %>%
+  mutate(icdcode_match = icdcode.1, icdcode_nomatch = icdcode.2, ver = 10) %>%
+  select(., icdcode_match, icdcode_nomatch, ver)
+
+pairs3 <- left_join(pairs2, ed_avoid_nyu, by = c("icdcode_match" = "dx_norm", "ver" = "dx_ver")) 
+
+#Merge with full ICD-9-CM data and fill in missing info
+#Special case - when there is no match (which means block did not exist, then set all NYU vars to 0 except unclassified - set to 1)
+icd10cm <- left_join(icd10cm, pairs3, by = c("icdcode" = "icdcode_nomatch", "ver" = "ver"))
+
+icd10cm <- icd10cm %>%
+  
+  mutate(
+    
+    ed_needed_unavoid_nyu = case_when(
+      !is.na(ed_needed_unavoid_nyu.x) ~ ed_needed_unavoid_nyu.x,
+      is.na(ed_needed_unavoid_nyu.x) & !is.na(ed_needed_unavoid_nyu.y) ~ ed_needed_unavoid_nyu.y,
+      is.na(ed_needed_unavoid_nyu.x) & is.na(ed_needed_unavoid_nyu.y) ~ 0
+    ),
+    
+    ed_needed_avoid_nyu = case_when(
+      !is.na(ed_needed_avoid_nyu.x) ~ ed_needed_avoid_nyu.x,
+      is.na(ed_needed_avoid_nyu.x) & !is.na(ed_needed_avoid_nyu.y) ~ ed_needed_avoid_nyu.y,
+      is.na(ed_needed_avoid_nyu.x) & is.na(ed_needed_avoid_nyu.y) ~ 0
+    ),
+    
+    ed_pc_treatable_nyu = case_when(
+      !is.na(ed_pc_treatable_nyu.x) ~ ed_pc_treatable_nyu.x,
+      is.na(ed_pc_treatable_nyu.x) & !is.na(ed_pc_treatable_nyu.y) ~ ed_pc_treatable_nyu.y,
+      is.na(ed_pc_treatable_nyu.x) & is.na(ed_pc_treatable_nyu.y) ~ 0
+    ),
+    
+    ed_nonemergent_nyu = case_when(
+      !is.na(ed_nonemergent_nyu.x) ~ ed_nonemergent_nyu.x,
+      is.na(ed_nonemergent_nyu.x) & !is.na(ed_nonemergent_nyu.y) ~ ed_nonemergent_nyu.y,
+      is.na(ed_nonemergent_nyu.x) & is.na(ed_nonemergent_nyu.y) ~ 0
+    ),
+    
+    ed_mh_nyu = case_when(
+      !is.na(ed_mh_nyu.x) ~ ed_mh_nyu.x,
+      is.na(ed_mh_nyu.x) & !is.na(ed_mh_nyu.y) ~ ed_mh_nyu.y,
+      is.na(ed_mh_nyu.x) & is.na(ed_mh_nyu.y) ~ 0
+    ),
+    
+    ed_sud_nyu = case_when(
+      !is.na(ed_sud_nyu.x) ~ ed_sud_nyu.x,
+      is.na(ed_sud_nyu.x) & !is.na(ed_sud_nyu.y) ~ ed_sud_nyu.y,
+      is.na(ed_sud_nyu.x) & is.na(ed_sud_nyu.y) ~ 0
+    ),
+    
+    ed_alc_nyu = case_when(
+      !is.na(ed_alc_nyu.x) ~ ed_alc_nyu.x,
+      is.na(ed_alc_nyu.x) & !is.na(ed_alc_nyu.y) ~ ed_alc_nyu.y,
+      is.na(ed_alc_nyu.x) & is.na(ed_alc_nyu.y) ~ 0
+    ),
+    
+    ed_injury_nyu = case_when(
+      !is.na(ed_injury_nyu.x) ~ ed_injury_nyu.x,
+      is.na(ed_injury_nyu.x) & !is.na(ed_injury_nyu.y) ~ ed_injury_nyu.y,
+      is.na(ed_injury_nyu.x) & is.na(ed_injury_nyu.y) ~ 0
+    ),
+    
+    ed_unclass_nyu = case_when(
+      !is.na(ed_unclass_nyu.x) ~ ed_unclass_nyu.x,
+      is.na(ed_unclass_nyu.x) & !is.na(ed_unclass_nyu.y) ~ ed_unclass_nyu.y,
+      is.na(ed_unclass_nyu.x) & is.na(ed_unclass_nyu.y) ~ 1
+    )
+  ) %>%
+  
+  select(., icdcode, ver, dx_description, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
+         heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
+         ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
+         ed_unclass_nyu)
+
+#clean up
+rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
+rm(ed_avoid_nyu)
+
 
 ####---
 #---
-##### Step 5: Clinical classifications software (CCS) from AHRQ HCUP project #####
+##### Step 6: Clinical classifications software (CCS) from AHRQ HCUP project #####
 #---
 ####---
 
@@ -351,7 +581,9 @@ icd9cm <- icd9cm %>%
   ) %>%
   
   select(., icdcode, ver, dx_description, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
-         heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ccs, ccs_description, 
+         heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
+         ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
+         ed_unclass_nyu, ccs, ccs_description, 
          multiccs_lv1, multiccs_lv1_description, multiccs_lv2, multiccs_lv2_description, multiccs_lv3, multiccs_lv3_description)
 
 #clean up
@@ -433,7 +665,9 @@ icd10cm <- icd10cm %>%
   ) %>%
   
   select(., icdcode, ver, dx_description, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
-         heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ccs, ccs_description, 
+         heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
+         ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
+         ed_unclass_nyu, ccs, ccs_description, 
          multiccs_lv1, multiccs_lv1_description, multiccs_lv2, multiccs_lv2_description, multiccs_lv3, multiccs_lv3_description)
   
 #clean up
@@ -444,7 +678,7 @@ rm(ccs)
 
 ####---
 #---
-##### Step 6: RDA-defined Mental Health and Substance User Disorder-related diagnoses #####
+##### Step 7: RDA-defined Mental Health and Substance User Disorder-related diagnoses #####
 #---
 ####---
 
@@ -476,7 +710,7 @@ rm(mh_rda, sud_rda)
 
 ####---
 #---
-##### Step 7: Bind ICD-9-CM and ICD-10-CM information #####
+##### Step 8: Bind ICD-9-CM and ICD-10-CM information #####
 #---
 ####---
 
@@ -491,15 +725,12 @@ icd910cm <- icd910cm %>%
 
 ####---
 #---
-##### Step 8: Upload reference table to SQL Server #####
+##### Step 9: Upload reference table to SQL Server #####
 #---
 ####---
-
-# Remove/delete table if it already exists AND you have changed the data structure (not usually needed)
-#dbRemoveTable(db.claims51, name = "ref_diag_lookup")
 
 # Write your data frame. Note that the package adds a dbo schema so do not include that in the name.
 # Also, you can append = T rather than overwrite = T if desired. 
 # Overwrite does what you would expect without needing to delete the whole table
-dbWriteTable(db.claims51, name = "ref_dx_lookup", value = as.data.frame(icd910cm), overwrite = T)
+dbWriteTable(db.claims51, name = "ref_dx_lookup_load", value = as.data.frame(icd910cm), overwrite = T)
 
