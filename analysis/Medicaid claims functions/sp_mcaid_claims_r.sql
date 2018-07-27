@@ -51,7 +51,7 @@ left join (
 			sum(b.newborn_dx1) as 'newborn_dx1_cnt', sum(b.inpatient) as 'inpatient_cnt', sum(b.ipt_medsurg) as 'ipt_medsurg_cnt',
 			sum(b.ipt_bh) as 'ipt_bh_cnt', sum( b.ed) as 'ed_cnt', sum(b.ed_nohosp) as 'ed_nohosp_cnt', sum(b.ed_avoid_ca) as 'ed_avoid_ca_cnt', 
 			sum(b.ed_avoid_ca_nohosp) as 'ed_avoid_ca_nohosp_cnt', sum(b.mental_dx_rda_any) as 'mental_dx_rda_any_cnt', sum(b.sud_dx_rda_any) as 'sud_dx_rda_any_cnt',
-			sum(b.dental) as 'dental_cnt', sum(b.ipt_medsurg) as 'ipt_medsurg', sum(b.ipt_bh) as 'ipt_bh'
+			sum(b.dental) as 'dental_cnt'
 
 	from (
 		select a.id,

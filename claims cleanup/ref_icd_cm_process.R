@@ -375,7 +375,14 @@ icd9cm <- icd9cm %>%
   select(., icdcode, ver, dx_description, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
          heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
          ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
-         ed_unclass_nyu)
+         ed_unclass_nyu) %>%
+  
+  #Round NYU percentages to 2 decimal places
+  mutate_at(
+    vars(c("ed_needed_unavoid_nyu", "ed_needed_avoid_nyu", "ed_pc_treatable_nyu", "ed_nonemergent_nyu", "ed_mh_nyu",
+           "ed_sud_nyu", "ed_alc_nyu", "ed_injury_nyu", "ed_unclass_nyu")),
+    funs(round(., digits = 2))
+  )
 
 #clean up
 rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
@@ -488,7 +495,14 @@ icd10cm <- icd10cm %>%
   select(., icdcode, ver, dx_description, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
          heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
          ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
-         ed_unclass_nyu)
+         ed_unclass_nyu) %>%
+  
+  #Round NYU percentages to 2 decimal places
+  mutate_at(
+    vars(c("ed_needed_unavoid_nyu", "ed_needed_avoid_nyu", "ed_pc_treatable_nyu", "ed_nonemergent_nyu", "ed_mh_nyu",
+           "ed_sud_nyu", "ed_alc_nyu", "ed_injury_nyu", "ed_unclass_nyu")),
+    funs(round(., digits = 2))
+  )
 
 #clean up
 rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
