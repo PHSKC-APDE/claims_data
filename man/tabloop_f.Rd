@@ -5,8 +5,7 @@
 \title{Tabulation loop}
 \usage{
 tabloop_f(df, count, dcount, sum, mean, median, loop, fixed = NULL,
-  filter = FALSE, rename = FALSE, suppress = FALSE, suppress_var,
-  lower = 1, upper = 9)
+  filter = FALSE, rename = FALSE, suppress = FALSE, ...)
 }
 \arguments{
 \item{df}{A data frame in tidy format}
@@ -28,12 +27,6 @@ tabloop_f(df, count, dcount, sum, mean, median, loop, fixed = NULL,
 \item{rename}{Specifies whether results group categories should be renamed according to APDE defauts, defaults to false}
 
 \item{suppress}{Specifies whether suppression should be applied}
-
-\item{suppress_var}{Specifies which variables to base suppression on}
-
-\item{lower}{Lower cell count for suppression (inclusive), defaults to 1}
-
-\item{upper}{Upper cell count for suppression (inclusive), defaults to 9}
 
 \item{mean}{A variable that identifies the unit of tabulation for calculating medians}
 }

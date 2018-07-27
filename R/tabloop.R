@@ -24,9 +24,6 @@
 #' @param filter Specifies whether results should be filtered to positive values only for binary variables, defaults to false
 #' @param rename Specifies whether results group categories should be renamed according to APDE defauts, defaults to false
 #' @param suppress Specifies whether suppression should be applied
-#' @param suppress_var Specifies which variables to base suppression on
-#' @param lower Lower cell count for suppression (inclusive), defaults to 1
-#' @param upper Upper cell count for suppression (inclusive), defaults to 9
 #'
 #' @examples
 #' \dontrun{
@@ -40,7 +37,7 @@
 #' 
 #' @export
 tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, filter = FALSE, rename = FALSE, suppress = FALSE,
-                      suppress_var, lower = 1, upper = 9) {
+                      ...) {
   
   
   #### Error checks ####
@@ -54,10 +51,6 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
   
   if(missing(dcount) & missing(count) & missing(sum) & missing(mean) & missing(median)) {
     stop("Column to tabulate has not been provided or is not valid column name in data frame")
-  }
-  
-  if(suppress == TRUE & missing(suppress_var)) {
-    stop("If suppression desired, please provide variable names on which to base suppression")
   }
   
   #### Step 1: Create matrix of fixed and loop by variables to allow padding for zero counts #### 
@@ -567,21 +560,7 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
   #### Step 10: Apply suppression if requested #### 
   
   if(suppress == T) {
-    
-    #Prepare data frame of column to use for total result set suppression
-    suppress_var_vector <- sapply(suppress_var, function(y) {
-      suppress_var <- y
-      suppress_var <- enquo(suppress_var)
-      suppress_var <- quo_name(suppress_var)
-      return(suppress_var)
-    })
-    result_suppress <- select(result, !!! suppress_var_vector)  
-    
-    #Apply suppression
-    result <- result %>%
-      mutate_if(
-        is.numeric,
-        funs(ifelse(rowSums(result_suppress >= lower & result_suppress <= upper) > 0, NA_real_, .)))
+    result <- suppress_f(df = result, ...)
   }
   
   #Return final result data frame
