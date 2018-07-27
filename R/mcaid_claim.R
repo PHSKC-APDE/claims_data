@@ -38,6 +38,7 @@
 #' @param zip Most frequently reported ZIP code during requested date range, eg. "98103,98105", defaults to null
 #' @param region Most frequently mapped HRA based region during requested date range, e.g, "east,north,seattle,south", defaults to null
 #' @param id List of requested Medicaid ProviderOne IDs, defaults to null
+#' @param detailed_claims Request detailed claim summary information (takes longer to run), defaults to FALSE
 #'
 #' @examples
 #' \dontrun{
@@ -52,7 +53,7 @@ mcaid_claim_f <- function(server, from_date = Sys.Date() - months(12), to_date =
                            aian = "null", asian = "null", black = "null", nhpi = "null", white = "null", latino = "null",
                            zip = "null", region = "null", english = "null", spanish = "null", vietnamese = "null",
                            chinese = "null", somali = "null", russian = "null", arabic = "null", korean = "null",
-                           ukrainian = "null", amharic = "null", maxlang = "null", id = "null") {
+                           ukrainian = "null", amharic = "null", maxlang = "null", id = "null", detailed_claims = FALSE) {
   
   #Error checks
   if(missing(server)) {
@@ -151,7 +152,9 @@ mcaid_claim_f <- function(server, from_date = Sys.Date() - months(12), to_date =
   
   #Build SQL query
   exec1 <- "exec PHClaims.dbo.sp_mcaidcohort_sql"
-  exec2 <- "exec PHClaims.dbo.sp_mcaid_claims_r"
+  ifelse(detailed_claims == FALSE, 
+         exec2 <- "exec PHClaims.dbo.sp_mcaid_claims_simple_r", 
+         exec2 <- "exec PHClaims.dbo.sp_mcaid_claims_detail_r")
   
   from_date_t <- paste("@from_date = \'", from_date, "\',", sep = "")
   to_date_t1 <- paste("@to_date = \'", to_date, "\',", sep = "") #comma included for elig cohort sp

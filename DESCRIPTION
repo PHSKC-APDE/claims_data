@@ -1,5 +1,5 @@
 Package: medicaid
-Version: 0.1.0
+Version: 0.1.1
 Title: Query and analyze Washington State Medicaid eligibility and claims data
 Description: LARGELY FOR INTERNAL USE
   This package is for querying and analyzing Washington State Medicaid eligibility and claims data.

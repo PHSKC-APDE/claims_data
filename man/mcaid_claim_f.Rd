@@ -12,7 +12,8 @@ mcaid_claim_f(server, from_date = Sys.Date() - months(12),
   zip = "null", region = "null", english = "null", spanish = "null",
   vietnamese = "null", chinese = "null", somali = "null",
   russian = "null", arabic = "null", korean = "null",
-  ukrainian = "null", amharic = "null", maxlang = "null", id = "null")
+  ukrainian = "null", amharic = "null", maxlang = "null", id = "null",
+  detailed_claims = FALSE)
 }
 \arguments{
 \item{server}{SQL server connection created using \code{odbc} package}
@@ -76,6 +77,8 @@ mcaid_claim_f(server, from_date = Sys.Date() - months(12),
 \item{maxlang}{Most frequently reported spoken/written language, e.g. "SOMALI,ARABIC", defaults to null}
 
 \item{id}{List of requested Medicaid ProviderOne IDs, defaults to null}
+
+\item{detailed_claims}{Request detailed claim summary information (takes longer to run), defaults to FALSE}
 }
 \description{
 \code{mcaid_claim_f} queries a SQL server to return Medicaid member eligibility, demographic and claim summary information.
