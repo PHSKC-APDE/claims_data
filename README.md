@@ -27,7 +27,7 @@ A data dictionary for the Medicaid data tables stored on King County SQL Server 
 2) Type github_update() #This will show you how your version of the *medicaid* package compares to what is on GitHub
 3) Type github_update(auto.install = T) #To install an updated version if available
 
-# Current functionality of the *medicaid* package (v 0.1.1)
+# Current functionality of the *medicaid* package (v 0.1.2)
 - Request an eligibility and demographics-based Medicaid member cohort
 - Request a claims summary (e.g. ED visits, avoidable ED, behavioral health hospital stays) for a member cohort
 - Request coverage group information (e.g. persons with disabilities) and automatically join to a specified data frame
