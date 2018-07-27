@@ -6,7 +6,7 @@ However, many of the functions and concepts can be applied to other claims data 
 
 - See eligibility cleanup folder for code that processes and stores Medicaid eligibility data on SQL server
 - See claims cleanup folder for code that processes and stores Medicaid claims data on SQL server
-- See analysis folder for useful functions that are not yet included in the *medicaid* R package
+- See analysis folder for useful functions that are not yet included in the *medicaid* package
 - See reference documents folder for documentation helpful for understanding WA State Medicaid data
 - The R folder contains the functions used in the *medicaid* package.
 - The man folder contains the help files for the *medicaid* package.
