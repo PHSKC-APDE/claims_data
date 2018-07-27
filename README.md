@@ -17,7 +17,12 @@ A data dictionary for the Medicaid data tables stored on King County SQL Server 
 1) Make sure devtools is installed (install.packages("devtools")).
 2) Type devtools::install_github("PHSKC-APDE/Medicaid")
 
-# Instructions for updating the *medicaid* package using the *dtupdate* package
+# Instructions for updating the *medicaid* package
+
+**Option 1**
+1) Simply reinstall the package by typing devtools::install_github("PHSKC-APDE/Medicaid")
+
+**Option 2**
 1) Type devtools::install_github("hrbrmstr/dtupdate")
 2) Type github_update() #This will show you how your version of the *medicaid* package compares to what is on GitHub
 3) Type github_update(auto.install = T) #To install an updated version if available
