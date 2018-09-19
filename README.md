@@ -13,6 +13,10 @@ However, many of the functions and concepts can be applied to other claims data 
 
 A data dictionary for the Medicaid data tables stored on King County SQL Server can be accessed [on OneDrive](https://kc1-my.sharepoint.com/:x:/g/personal/eli_kern_kingcounty_gov/EZE5ge9YnXxFifiyDIeq8JYBDbiRHIK_t_9-ERAhd13zhQ?e=5PZPiH).
 
+A training video for how to use the *medicaid* package can be viewed [on OneDrive](https://kc1-my.sharepoint.com/:v:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/Medicaid%20R%20Package%20Training_2018.mp4?csf=1&e=3OydL9).
+
+And the R script used in the training video can be viewed [here](https://github.com/PHSKC-APDE/Medicaid/blob/master/Medicaid%20package%20orientation.R).
+
 # Instructions for installing the *medicaid* package
 1) Make sure devtools is installed (install.packages("devtools")).
 2) Type devtools::install_github("PHSKC-APDE/Medicaid")
