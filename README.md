@@ -8,9 +8,6 @@ King County analysts transform the raw eligibility and claims data to create an 
 
 For more information on data tables available on King County's SQL Servers, users can review the [purpose and structure of each table](https://kc1-my.sharepoint.com/:x:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/Medicaid%20data%20table%20structure.xlsx?d=w13d589b863b647269b03d645618ba7b2&csf=1&e=7i3atF), as well as a [data dictionary](https://kc1-my.sharepoint.com/:x:/g/personal/eli_kern_kingcounty_gov/EZE5ge9YnXxFifiyDIeq8JYBDbiRHIK_t_9-ERAhd13zhQ?e=5PZPiH) that describes each individual data element.
 
-## Creation of analytic-ready person and event-level tables
-Users interested in learning about how the raw eligibility and claims data files are transformed to create analytic-ready tables can review the SQL and R scripts for [eligibility data](https://github.com/PHSKC-APDE/Medicaid/tree/master/eligibility%20cleanup) and [claims data](https://github.com/PHSKC-APDE/Medicaid/tree/master/claims%20cleanup).
-
 ## Medicaid R package for rapid data analysis
 King County analysts developed the *medicaid* R package to facilitate querying and analyzing the aforementioned analytic-ready eligibility and claims data tables.
 
