@@ -29,4 +29,4 @@ King County analysts developed the *medicaid* R package to facilitate querying a
 - Tabulate counts by fixed and looped by variables (i.e. data aggregation), with automatic suppression and other features
 
 ### Training
-R users can view a [training video](https://kc1-my.sharepoint.com/:v:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/Medicaid%20R%20Package%20Training_2018.mp4?csf=1&e=3OydL9) for how to use the *medicaid* package. Users can also view the [R script used in the training video(https://github.com/PHSKC-APDE/Medicaid/blob/master/Medicaid%20package%20orientation.R).
+R users can view a [training video](https://kc1-my.sharepoint.com/:v:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/Medicaid%20R%20Package%20Training_2018.mp4?csf=1&e=3OydL9) for how to use the *medicaid* package. Users can also view the [R script used in the training video](https://github.com/PHSKC-APDE/Medicaid/blob/master/Medicaid%20package%20orientation.R).
