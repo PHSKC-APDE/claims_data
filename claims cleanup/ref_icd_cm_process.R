@@ -6,6 +6,7 @@
 # Code to prepare and upload ICD-CM reference table to SQL Server
 
 #7/26/18 update: Added NYU ED algorithm
+#10/11/18 updates: 1) Added plain language for some CCS categories, 2) Corrected ICD10-CM external cause tables
 
 ####---
 
@@ -57,7 +58,7 @@ rm(icd910cm)
 #Step 2A: Add in CDC ICD-CM 9 and 10 (proposed) external cause of injury information
 ####---
 
-url <- "https://github.com/PHSKC-APDE/reference-data/raw/master/Claims%20data/icd9_10_cm_external_merge_10.4.17.xlsx"
+url <- "https://github.com/PHSKC-APDE/reference-data/raw/master/Claims%20data/icd9_10_cm_external_merge_10.11.18.xlsx"
 ext_cause_910cm <- read.xlsx(url, sheet = "external_matrix",
                              colNames = T)
   
@@ -68,7 +69,7 @@ ext_cause_910cm <- read.xlsx(url, sheet = "external_matrix",
 ext_cause_9cm <- filter(ext_cause_910cm, ver == 9)
 
 icd9cm <- left_join(icd9cm, ext_cause_9cm, by = c("icdcode" = "dx", "ver" = "ver")) %>%
-  select(., icdcode, ver, dx_description, intent, mechanism)
+  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism)
 
 ####---
 #Step 2C: Merge external cause info for ICD-10-CM
@@ -85,7 +86,7 @@ ext_cause_10cm <- ext_cause_10cm %>%
     dx_5 = str_sub(dx, 1, 5)
   ) %>%
   
-  select(., dx, dx_6, dx_5, ver, intent, mechanism)
+  select(., dx, dx_6, dx_5, ver, injury_icd10cm, intent, mechanism)
 
 ##Group intent and mechanism by these truncated versions, keeping only those that are distinct
 
@@ -95,7 +96,7 @@ ext10cm_6 <- ext_cause_10cm %>%
   mutate(cnt = n()) %>%
   ungroup() %>%
   filter(., cnt == 1) %>%
-  select(., dx_6, intent, mechanism)
+  select(., dx_6, injury_icd10cm, intent, mechanism)
 
 #First 5 digits
 ext10cm_5 <- ext_cause_10cm %>%
@@ -103,30 +104,32 @@ ext10cm_5 <- ext_cause_10cm %>%
   mutate(cnt = n()) %>%
   ungroup() %>%
   filter(., cnt == 1) %>%
-  select(., dx_5, intent, mechanism)
+  select(., dx_5, injury_icd10cm, intent, mechanism)
 
 #Join distinct truncated dx version back to original table
 ext_cause_10cm <- left_join(ext_cause_10cm, ext10cm_6, by = "dx_6", suffix = c(".x", ".y")) %>%
   mutate(
     intent = intent.x, 
     mechanism = mechanism.x,
+    injury_icd10cm = injury_icd10cm.x,
     dx_6 = case_when(
       !is.na(intent.y) ~ dx_6,
       is.na(intent.y) ~ ""
       )
     ) %>%
-  select(., dx, dx_6, dx_5, ver, intent, mechanism)
+  select(., dx, dx_6, dx_5, ver, injury_icd10cm, intent, mechanism)
 
 ext_cause_10cm <- left_join(ext_cause_10cm, ext10cm_5, by = "dx_5", suffix = c(".x", ".y")) %>%
   mutate(
     intent = intent.x, 
     mechanism = mechanism.x,
+    injury_icd10cm = injury_icd10cm.x,
     dx_5 = case_when(
       !is.na(intent.y) ~ dx_5,
       is.na(intent.y) ~ ""
     )
   ) %>%
-  select(., dx, dx_6, dx_5, ver, intent, mechanism)
+  select(., dx, dx_6, dx_5, ver, injury_icd10cm, intent, mechanism)
 
 rm(list = ls(pattern = "^ext10cm_"))
 
@@ -140,8 +143,8 @@ icd10cm <- icd10cm %>%
 
 #Merge on full ICD digits
 icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icdcode" = "dx", "ver" = "ver")) %>%
-  mutate(intent_final = intent, mechanism_final = mechanism) %>%
-  select(., icdcode, icd_6, icd_5, ver, dx_description, intent_final, mechanism_final)
+  mutate(intent_final = intent, mechanism_final = mechanism, injury_icd10cm_final = injury_icd10cm) %>%
+  select(., icdcode, icd_6, icd_5, ver, dx_description, injury_icd10cm_final, intent_final, mechanism_final)
 
 #Merge on 6 digits and fill in missing info
 icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_6" = "dx_6", "ver" = "ver"), suffix = c(".x", ".y")) %>%
@@ -153,9 +156,13 @@ icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_6" = "dx_6", "ver" = "
     mechanism_final = case_when(
       !is.na(mechanism_final) ~ mechanism_final,
       !is.na(mechanism) ~ mechanism
+    ),
+    injury_icd10cm_final = case_when(
+      !is.na(injury_icd10cm_final) ~ injury_icd10cm_final,
+      !is.na(injury_icd10cm) ~ injury_icd10cm
     )
   ) %>%
-  select(., icdcode, icd_6, icd_5, ver, dx_description, intent_final, mechanism_final)
+  select(., icdcode, icd_6, icd_5, ver, dx_description, injury_icd10cm_final, intent_final, mechanism_final)
 
 #Merge on 5 digits and fill in missing info
 icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_5" = "dx_5", "ver" = "ver"), suffix = c(".x", ".y")) %>%
@@ -167,9 +174,13 @@ icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_5" = "dx_5", "ver" = "
     mechanism_final = case_when(
       !is.na(mechanism_final) ~ mechanism_final,
       !is.na(mechanism) ~ mechanism
+    ),
+    injury_icd10cm_final = case_when(
+      !is.na(injury_icd10cm_final) ~ injury_icd10cm_final,
+      !is.na(injury_icd10cm) ~ injury_icd10cm
     )
   ) %>%
-  select(., icdcode, icd_6, icd_5, ver, dx_description, intent_final, mechanism_final)
+  select(., icdcode, icd_6, icd_5, ver, dx_description, injury_icd10cm_final, intent_final, mechanism_final)
 
 ##Set all sequelae-related injury diagnosis codes to missing per CDC proposed framework
 
@@ -180,9 +191,12 @@ icd10cm <- icd10cm %>%
     ),
     mechanism = case_when (
       !is.na(mechanism_final) & str_sub(icdcode,-1,-1) != "S" ~ mechanism_final
+    ),
+    injury_icd10cm = case_when (
+      !is.na(injury_icd10cm_final) & str_sub(icdcode,-1,-1) != "S" ~ injury_icd10cm_final
     )
   ) %>%
-  select(., icdcode, ver, dx_description, intent, mechanism)
+  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism)
 
 rm(list = ls(pattern = "^ext_cause_"))
 
@@ -372,7 +386,7 @@ icd9cm <- icd9cm %>%
     )
   ) %>%
   
-  select(., icdcode, ver, dx_description, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
+  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
          heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
          ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
          ed_unclass_nyu) %>%
@@ -492,7 +506,7 @@ icd10cm <- icd10cm %>%
     )
   ) %>%
   
-  select(., icdcode, ver, dx_description, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
+  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
          heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
          ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
          ed_unclass_nyu) %>%
@@ -604,7 +618,7 @@ icd9cm <- icd9cm %>%
     )
   ) %>%
   
-  select(., icdcode, ver, dx_description, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
+  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
          heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
          ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
          ed_unclass_nyu, ccs, ccs_description, ccs_description_plain_lang,
@@ -692,7 +706,7 @@ icd10cm <- icd10cm %>%
     )
   ) %>%
   
-  select(., icdcode, ver, dx_description, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
+  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
          heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
          ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
          ed_unclass_nyu, ccs, ccs_description, ccs_description_plain_lang,
