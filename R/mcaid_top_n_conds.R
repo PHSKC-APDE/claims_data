@@ -159,7 +159,7 @@ top_causes_f <- function(cohort,
                    CREATE TABLE ##temp_ids (id VARCHAR(20))
                        INSERT INTO ##temp_ids (id)
                        VALUES ", id_list, ";")
-  dbExecute(server, id_load)
+  DBI::dbExecute(server, id_load)
   
   claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_description, e.ccs_description_plain_lang, 
                     e.multiccs_lv2, e.multiccs_lv2_description, e.multiccs_lv2_plain_lang
@@ -178,7 +178,7 @@ top_causes_f <- function(cohort,
                         dx_num,
                         " ORDER BY c.id, c.from_date, e.multiccs_lv2_plain_lang;")
   
-  claims <- dbGetQuery(server, claim_query)
+  claims <- DBI::dbGetQuery(server, claim_query)
   
   ### Decide which level to use
   claims <- claims %>%

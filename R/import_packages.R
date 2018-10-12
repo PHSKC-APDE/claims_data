@@ -3,5 +3,6 @@
 #' @import stringr
 #' @import odbc
 #' @import rlang
+#' @import DBI
 #' 
 NULL
