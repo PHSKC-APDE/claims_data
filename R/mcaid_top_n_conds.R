@@ -147,20 +147,40 @@ top_causes_f <- function(cohort,
 
   ### Extract list of unique IDs and set up for writing to SQL
   ids <- cohort %>% distinct(!!id_quo) %>% rename(id = !!id_quo)
-  id_list <- paste0("('", paste(ids$id, collapse = "'), ('"), "')")
+  # Can only write 1000 values at a time so may need to do multiple rounds
+  num_ids <- nrow(ids)
+  n_rounds <- ceiling(num_ids/1000)
+  id_lists <- as.list(paste0("id_list_", 1:n_rounds))
   
   ### Compose SQL query
   # 1) Add IDs to local temp table
+  list_start <- 1
+  list_end <- min(1000, num_ids)
+  
+  for (i in 1:n_rounds) {
+    
+    id_lists[[i]] <- paste0("('", paste(ids$id[list_start:list_end], collapse = "'), ('"), "')")
+    
+    list_start <- list_start + 1000
+    list_end <- min(list_start + 1000, num_ids)
+    
+    if (i == 1) {
+      id_load <- paste0("IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;
+                        CREATE TABLE ##temp_ids (id VARCHAR(20))
+                        INSERT INTO ##temp_ids (id)
+                        VALUES ", id_lists[[i]], ";")
+      DBI::dbExecute(server, id_load)
+    } else {
+      id_load <- paste0("INSERT INTO ##temp_ids (id)
+                        VALUES ", id_lists[[i]], ";")
+      DBI::dbExecute(server, id_load)
+    }
+  }
+  
+  
   # 2) Join IDs to claims that fall in desired date range
   # 3) Obtain DXs from claims
   # 4) Join DXs to DX lookup
-  
-  id_load <- paste0("IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;
-                   CREATE TABLE ##temp_ids (id VARCHAR(20))
-                       INSERT INTO ##temp_ids (id)
-                       VALUES ", id_list, ";")
-  DBI::dbExecute(server, id_load)
-  
   claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_description, e.ccs_description_plain_lang, 
                     e.multiccs_lv2, e.multiccs_lv2_description, e.multiccs_lv2_plain_lang
                         FROM (SELECT a.id, b.from_date, b.tcn
