@@ -5,8 +5,9 @@
 \title{Top N conditions seen among Mediciad patients}
 \usage{
 top_causes_f(cohort, cohort_id = NULL, server = db.claims51,
-  from_date = NULL, to_date = NULL, top = 15, primary_dx = T,
-  ed_all = T, ed_avoid_ny = T, ed_avoid_ca = T, inpatient = T)
+  from_date = NULL, to_date = NULL, top = 15, catch_all = F,
+  primary_dx = T, ed_all = T, ed_avoid_ny = T, ed_avoid_ca = T,
+  inpatient = T)
 }
 \arguments{
 \item{cohort}{The group of individuals of interest. Note: it is possible to generate a cohort on the fly
@@ -21,6 +22,9 @@ the previous calendar year.}
 or 6 months prior to today's date, whichever is earlier.}
 
 \item{top}{The maximum number of condition groups that will be returned, default is 15.}
+
+\item{catch_all}{Determines whether or not catch_all codes are included in the list,
+default is no.}
 
 \item{primary_dx}{Whether or not to only look at the primary diagnosis field, default is TRUE.}
 

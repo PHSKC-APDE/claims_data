@@ -536,7 +536,8 @@ ccs <- read.xlsx(url, sheet = "ccs_icdcm",
 ## Fill in missing plain language text
 ccs <- ccs %>%
   mutate(ccs_description_plain_lang = ifelse(is.na(ccs_description_plain_lang), ccs_description, ccs_description_plain_lang),
-         multiccs_lv2_plain_lang = ifelse(is.na(multiccs_lv2_plain_lang), multiccs_lv2_description, multiccs_lv2_plain_lang))
+         multiccs_lv2_plain_lang = ifelse(is.na(multiccs_lv2_plain_lang), multiccs_lv2_description, multiccs_lv2_plain_lang),
+         ccs_final_plain_lang = ifelse(is.na(ccs_final_plain_lang), ccs_final_description, ccs_final_plain_lang))
 
 ##Join to ICD-9-CM codes
 icd9cm <- left_join(icd9cm, ccs, by = c("icdcode" = "icdcode", "ver" = "ver"))
@@ -585,45 +586,50 @@ pairs3 <- left_join(pairs2, ccs, by = c("icdcode_match" = "icdcode", "ver" = "ve
 icd9cm <- left_join(icd9cm, pairs3, by = c("icdcode" = "icdcode_nomatch", "ver" = "ver"))
 
 icd9cm <- icd9cm %>%
-  
   mutate(
     ccs_description_plain_lang = case_when(
       !is.na(ccs_description_plain_lang.x) ~ ccs_description_plain_lang.x,
       is.na(ccs_description_plain_lang.x) ~ ccs_description_plain_lang.y
     ),
-    
     multiccs_lv1 = case_when(
       !is.na(multiccs_lv1.x) ~ multiccs_lv1.x,
       is.na(multiccs_lv1.x) ~ multiccs_lv1.y
     ),
-    
     multiccs_lv1_description = case_when(
       !is.na(multiccs_lv1_description.x) ~ multiccs_lv1_description.x,
       is.na(multiccs_lv1_description.x) ~ multiccs_lv1_description.y
     ),
-    
     multiccs_lv2 = case_when(
       !is.na(multiccs_lv2.x) ~ multiccs_lv2.x,
       is.na(multiccs_lv2.x) ~ multiccs_lv2.y
     ),
-    
     multiccs_lv2_description = case_when(
       !is.na(multiccs_lv2_description.x) ~ multiccs_lv2_description.x,
       is.na(multiccs_lv2_description.x) ~ multiccs_lv2_description.y
     ),
-    
     multiccs_lv2_plain_lang = case_when(
       !is.na(multiccs_lv2_plain_lang.x) ~ multiccs_lv2_plain_lang.x,
       is.na(multiccs_lv2_plain_lang.x) ~ multiccs_lv2_plain_lang.y
+    ),
+    ccs_final_description = case_when(
+      !is.na(ccs_final_description.x) ~ ccs_final_description.x,
+      is.na(ccs_final_description.x) ~ ccs_final_description.y
+    ),
+    ccs_final_plain_lang = case_when(
+      !is.na(ccs_final_plain_lang.x) ~ ccs_final_plain_lang.x,
+      is.na(ccs_final_plain_lang.x) ~ ccs_final_plain_lang.y
+    ),
+    ccs_catch_all = case_when(
+      !is.na(ccs_catch_all.x) ~ ccs_catch_all.x,
+      is.na(ccs_catch_all.x) ~ ccs_catch_all.y
     )
   ) %>%
-  
   select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
          heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
          ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
          ed_unclass_nyu, ccs, ccs_description, ccs_description_plain_lang,
          multiccs_lv1, multiccs_lv1_description, multiccs_lv2, multiccs_lv2_description, multiccs_lv2_plain_lang,
-         multiccs_lv3, multiccs_lv3_description)
+         multiccs_lv3, multiccs_lv3_description, ccs_final_description, ccs_final_plain_lang, ccs_catch_all)
 
 #clean up
 rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
@@ -679,39 +685,45 @@ icd10cm <- icd10cm %>%
       !is.na(ccs_description_plain_lang.x) ~ ccs_description_plain_lang.x,
       is.na(ccs_description_plain_lang.x) ~ ccs_description_plain_lang.y
     ),
-    
     multiccs_lv1 = case_when(
       !is.na(multiccs_lv1.x) ~ multiccs_lv1.x,
       is.na(multiccs_lv1.x) ~ multiccs_lv1.y
     ),
-    
     multiccs_lv1_description = case_when(
       !is.na(multiccs_lv1_description.x) ~ multiccs_lv1_description.x,
       is.na(multiccs_lv1_description.x) ~ multiccs_lv1_description.y
     ),
-    
     multiccs_lv2 = case_when(
       !is.na(multiccs_lv2.x) ~ multiccs_lv2.x,
       is.na(multiccs_lv2.x) ~ multiccs_lv2.y
     ),
-    
     multiccs_lv2_description = case_when(
       !is.na(multiccs_lv2_description.x) ~ multiccs_lv2_description.x,
       is.na(multiccs_lv2_description.x) ~ multiccs_lv2_description.y
     ),
-    
     multiccs_lv2_plain_lang = case_when(
       !is.na(multiccs_lv2_plain_lang.x) ~ multiccs_lv2_plain_lang.x,
       is.na(multiccs_lv2_plain_lang.x) ~ multiccs_lv2_plain_lang.y
+    ),
+    ccs_final_description = case_when(
+      !is.na(ccs_final_description.x) ~ ccs_final_description.x,
+      is.na(ccs_final_description.x) ~ ccs_final_description.y
+    ),
+    ccs_final_plain_lang = case_when(
+      !is.na(ccs_final_plain_lang.x) ~ ccs_final_plain_lang.x,
+      is.na(ccs_final_plain_lang.x) ~ ccs_final_plain_lang.y
+    ),
+    ccs_catch_all = case_when(
+      !is.na(ccs_catch_all.x) ~ ccs_catch_all.x,
+      is.na(ccs_catch_all.x) ~ ccs_catch_all.y
     )
   ) %>%
-  
   select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
          heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
          ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
          ed_unclass_nyu, ccs, ccs_description, ccs_description_plain_lang,
          multiccs_lv1, multiccs_lv1_description, multiccs_lv2, multiccs_lv2_description, multiccs_lv2_plain_lang,
-         multiccs_lv3, multiccs_lv3_description)
+         multiccs_lv3, multiccs_lv3_description, ccs_final_description, ccs_final_plain_lang, ccs_catch_all)
   
 #clean up
 rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)

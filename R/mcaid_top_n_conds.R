@@ -18,6 +18,8 @@
 #' @param to_date End date for claims period, "YYYY-MM-DD", defaults to end of the previous calendar year
 #' or 6 months prior to today's date, whichever is earlier.
 #' @param top The maximum number of condition groups that will be returned, default is 15.
+#' @param catch_all Determines whether or not catch_all codes are included in the list,
+#' default is no.
 #' @param primary_dx Whether or not to only look at the primary diagnosis field, default is TRUE.
 #' @param ed_all Will include any ED visit
 #' @param ed_avoid_ny Will include any avoidable ED visit (based on NYU classification)
@@ -38,6 +40,7 @@ top_causes_f <- function(cohort,
                          from_date = NULL,
                          to_date = NULL,
                          top = 15,
+                         catch_all = F,
                          primary_dx = T,
                          ed_all = T,
                          ed_avoid_ny = T,
@@ -181,10 +184,10 @@ top_causes_f <- function(cohort,
   # 2) Join IDs to claims that fall in desired date range
   # 3) Obtain DXs from claims
   # 4) Join DXs to DX lookup
-  claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_description, e.ccs_description_plain_lang, 
-                    e.multiccs_lv2, e.multiccs_lv2_description, e.multiccs_lv2_plain_lang
+  claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_final_description, 
+                          e.ccs_final_plain_lang, e.ccs_catch_all
                         FROM (SELECT a.id, b.from_date, b.tcn
-                        FROM ##temp_ids as a
+                        FROM ##temp_ids AS a
                         LEFT JOIN PHClaims.dbo.mcaid_claim_summary AS b
                         ON a.id = b.id
                         WHERE b.from_date >= '", from_date, "' AND 
@@ -196,34 +199,29 @@ top_causes_f <- function(cohort,
                         LEFT JOIN PHClaims.dbo.ref_dx_lookup AS e
                         ON d.dx_norm = e.dx and d.dx_ver = e.dx_ver ",
                         dx_num,
-                        " ORDER BY c.id, c.from_date, e.multiccs_lv2_plain_lang;")
+                        " ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;")
   
   claims <- DBI::dbGetQuery(server, claim_query)
   
-  ### Decide which level to use
-  claims <- claims %>%
-    mutate(ccs_description = case_when(
-      is.na(multiccs_lv2) | multiccs_lv2 %in% c("17.1", "17.2") ~ ccs_description,
-      TRUE ~ multiccs_lv2_description
-      ),
-      plain_language = case_when(
-        is.na(multiccs_lv2) | multiccs_lv2 %in% c("17.1", "17.2") ~ ccs_description_plain_lang,
-        TRUE ~ multiccs_lv2_plain_lang
-      ))
+  ### Decide whether or not to include catch-all categories
+  if (catch_all == F) {
+    claims <- claims %>% filter(is.na(ccs_catch_all))
+  }
+
 
   ### Take top N causes
   claims <- claims %>%
-    group_by(ccs_description, plain_language) %>%
+    group_by(ccs_final_description, ccs_final_plain_lang) %>%
     summarise(claim_cnt = n()) %>%
     ungroup()
   
-  final_n <- min(n_distinct(claims$plain_language), top)
+  final_n <- min(n_distinct(claims$ccs_final_plain_lang), top)
   if (final_n < top) {
     print(paste0("Warning: Only ", final_n, " categories were found"))
   }
   
   claims <- top_n(claims, final_n, wt = claim_cnt) %>%
-    arrange(-claim_cnt, plain_language)
+    arrange(-claim_cnt, ccs_final_plain_lang)
 
   return(claims)
 }
