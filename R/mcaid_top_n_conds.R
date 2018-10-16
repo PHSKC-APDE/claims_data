@@ -147,7 +147,7 @@ top_causes_f <- function(cohort,
     flags <- paste0(flags, ") AND ")
   }
   
-
+  
   ### Extract list of unique IDs and set up for writing to SQL
   ids <- cohort %>% distinct(!!id_quo) %>% rename(id = !!id_quo)
   # Can only write 1000 values at a time so may need to do multiple rounds
@@ -164,20 +164,22 @@ top_causes_f <- function(cohort,
     
     id_lists[[i]] <- paste0("('", paste(ids$id[list_start:list_end], collapse = "'), ('"), "')")
     
-    list_start <- list_start + 1000
-    list_end <- min(list_start + 1000, num_ids)
-    
     if (i == 1) {
+      print(paste0("Loading ID set 1 of ", n_rounds))
       id_load <- paste0("IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;
                         CREATE TABLE ##temp_ids (id VARCHAR(20))
                         INSERT INTO ##temp_ids (id)
                         VALUES ", id_lists[[i]], ";")
       DBI::dbExecute(server, id_load)
     } else {
+      print(paste0("Loading ID set ", i, " of ", n_rounds))
       id_load <- paste0("INSERT INTO ##temp_ids (id)
                         VALUES ", id_lists[[i]], ";")
       DBI::dbExecute(server, id_load)
     }
+    
+    list_start <- list_start + 1000
+    list_end <- min(list_end + 1000, num_ids)
   }
   
   
@@ -185,7 +187,7 @@ top_causes_f <- function(cohort,
   # 3) Obtain DXs from claims
   # 4) Join DXs to DX lookup
   claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_final_description, 
-                          e.ccs_final_plain_lang, e.ccs_catch_all
+                        e.ccs_final_plain_lang, e.ccs_catch_all
                         FROM (SELECT a.id, b.from_date, b.tcn
                         FROM ##temp_ids AS a
                         LEFT JOIN PHClaims.dbo.mcaid_claim_summary AS b
@@ -207,8 +209,8 @@ top_causes_f <- function(cohort,
   if (catch_all == F) {
     claims <- claims %>% filter(is.na(ccs_catch_all))
   }
-
-
+  
+  
   ### Take top N causes
   claims <- claims %>%
     group_by(ccs_final_description, ccs_final_plain_lang) %>%
@@ -222,6 +224,6 @@ top_causes_f <- function(cohort,
   
   claims <- top_n(claims, final_n, wt = claim_cnt) %>%
     arrange(-claim_cnt, ccs_final_plain_lang)
-
+  
   return(claims)
-}
+  }
