@@ -11,7 +11,7 @@
 #' 
 #' @param cohort The group of individuals of interest. Note: it is possible to generate a cohort on the fly
 #' using \code{\link{mcaid_elig_f}}.
-#' @param cohort_d The field that contains the Medicaid ID in the cohort data. Defaults to id.
+#' @param cohort_id The field that contains the Medicaid ID in the cohort data. Defaults to id.
 #' @param server SQL server connection created using \code{odbc} package.
 #' @param from_date Begin date for claims period, "YYYY-MM-DD", defaults to start of 
 #' the previous calendar year.

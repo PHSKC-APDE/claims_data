@@ -7,6 +7,7 @@
 
 #7/26/18 update: Added NYU ED algorithm
 #10/11/18 updates: 1) Added plain language for some CCS categories, 2) Corrected ICD10-CM external cause tables
+#10/15/18 update: Added final CCS categories
 
 ####---
 
@@ -16,9 +17,8 @@ options(max.print = 350, tibble.print_max = 30, scipen = 999)
 library(odbc) # Used to connect to SQL server
 library(openxlsx) # Used to import/export Excel files
 library(car) # used to recode variables
-library(stringr) # Used to manipulate string data
 library(lubridate) # Used to manipulate dates
-library(dplyr) # Used to manipulate data
+library(tidyverse) # Used to manipulate data
 library(RecordLinkage) # used to clean up duplicates in the data
 library(phonics) # used to extract phonetic version of names
 library(psych) # used for summary stats
@@ -611,6 +611,10 @@ icd9cm <- icd9cm %>%
       !is.na(multiccs_lv2_plain_lang.x) ~ multiccs_lv2_plain_lang.x,
       is.na(multiccs_lv2_plain_lang.x) ~ multiccs_lv2_plain_lang.y
     ),
+    ccs_final_code = case_when(
+      !is.na(ccs_final_code.x) ~ ccs_final_code.x,
+      is.na(ccs_final_code.x) ~ ccs_final_code.y
+    ),
     ccs_final_description = case_when(
       !is.na(ccs_final_description.x) ~ ccs_final_description.x,
       is.na(ccs_final_description.x) ~ ccs_final_description.y
@@ -629,7 +633,8 @@ icd9cm <- icd9cm %>%
          ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
          ed_unclass_nyu, ccs, ccs_description, ccs_description_plain_lang,
          multiccs_lv1, multiccs_lv1_description, multiccs_lv2, multiccs_lv2_description, multiccs_lv2_plain_lang,
-         multiccs_lv3, multiccs_lv3_description, ccs_final_description, ccs_final_plain_lang, ccs_catch_all)
+         multiccs_lv3, multiccs_lv3_description, 
+         ccs_final_code, ccs_final_description, ccs_final_plain_lang, ccs_catch_all)
 
 #clean up
 rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
@@ -705,6 +710,10 @@ icd10cm <- icd10cm %>%
       !is.na(multiccs_lv2_plain_lang.x) ~ multiccs_lv2_plain_lang.x,
       is.na(multiccs_lv2_plain_lang.x) ~ multiccs_lv2_plain_lang.y
     ),
+    ccs_final_code = case_when(
+      !is.na(ccs_final_code.x) ~ ccs_final_code.x,
+      is.na(ccs_final_code.x) ~ ccs_final_code.y
+    ),
     ccs_final_description = case_when(
       !is.na(ccs_final_description.x) ~ ccs_final_description.x,
       is.na(ccs_final_description.x) ~ ccs_final_description.y
@@ -723,7 +732,8 @@ icd10cm <- icd10cm %>%
          ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
          ed_unclass_nyu, ccs, ccs_description, ccs_description_plain_lang,
          multiccs_lv1, multiccs_lv1_description, multiccs_lv2, multiccs_lv2_description, multiccs_lv2_plain_lang,
-         multiccs_lv3, multiccs_lv3_description, ccs_final_description, ccs_final_plain_lang, ccs_catch_all)
+         multiccs_lv3, multiccs_lv3_description, 
+         ccs_final_code, ccs_final_description, ccs_final_plain_lang, ccs_catch_all)
   
 #clean up
 rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
