@@ -20,12 +20,13 @@ Instructions for installing the *medicaid* package:
 Instructions for updating the *medicaid* package:
 - Simply reinstall the package by typing devtools::install_github("PHSKC-APDE/Medicaid")
 
-Current functionality of the *medicaid* package (v 0.1.2):
+Current functionality of the *medicaid* package (v 0.1.3):
 - Request an eligibility and demographics-based Medicaid member cohort
 - Request a claims summary (e.g. ED visits, avoidable ED, behavioral health hospital stays) for a member cohort
 - Request coverage group information (e.g. persons with disabilities) and automatically join to a specified data frame
 - Request chronic health condition (e.g. asthma) information and automatically join to a specified data frame
 - Tabulate counts by fixed and looped by variables (i.e. data aggregation), with automatic suppression and other features
+- Calculate the top N causes of ED visits and hospitalizations
 
 Training resources:
 - R users can view a [training video](https://kc1-my.sharepoint.com/:v:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/Medicaid%20R%20Package%20Training_2018.mp4?csf=1&e=3OydL9) for how to use the *medicaid* package.
