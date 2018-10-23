@@ -5,13 +5,15 @@
 \title{Top N conditions seen among Mediciad patients}
 \usage{
 top_causes_f(cohort, cohort_id = NULL, server = db.claims51,
-  from_date = NULL, to_date = NULL, top = 15, catch_all = F,
-  primary_dx = T, ed_all = T, ed_avoid_ny = T, ed_avoid_ca = T,
-  inpatient = T)
+  from_date = NULL, to_date = NULL, ind_dates = F, ind_from_date = NULL,
+  ind_to_date = NULL, top = 15, catch_all = F, primary_dx = T,
+  ed_all = T, ed_avoid_ny = T, ed_avoid_ca = T, inpatient = T)
 }
 \arguments{
 \item{cohort}{The group of individuals of interest. Note: it is possible to generate a cohort on the fly
 using \code{\link{mcaid_elig_f}}.}
+
+\item{cohort_id}{The field that contains the Medicaid ID in the cohort data. Defaults to id.}
 
 \item{server}{SQL server connection created using \code{odbc} package.}
 
@@ -20,6 +22,13 @@ the previous calendar year.}
 
 \item{to_date}{End date for claims period, "YYYY-MM-DD", defaults to end of the previous calendar year
 or 6 months prior to today's date, whichever is earlier.}
+
+\item{ind_dates}{Flag to indicate that individualized dates are used to narrow
+the default date window.}
+
+\item{ind_from_date}{Field in the cohort data that contains an individual from date.}
+
+\item{ind_to_date}{Field in the cohort data that contains an individual to date.}
 
 \item{top}{The maximum number of condition groups that will be returned, default is 15.}
 
@@ -35,8 +44,6 @@ default is no.}
 \item{ed_avoid_ca}{Will include any avoidable ED visit (based on CA classification)}
 
 \item{inpatient}{Will include any inpatient visit}
-
-\item{cohort_d}{The field that contains the Medicaid ID in the cohort data. Defaults to id.}
 }
 \description{
 \code{top_causes_f} identifies the top N causes for a given set of visits.

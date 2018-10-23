@@ -17,6 +17,10 @@
 #' the previous calendar year.
 #' @param to_date End date for claims period, "YYYY-MM-DD", defaults to end of the previous calendar year
 #' or 6 months prior to today's date, whichever is earlier.
+#' @param ind_dates Flag to indicate that individualized dates are used to narrow
+#' the default date window.
+#' @param ind_from_date Field in the cohort data that contains an individual from date.
+#' @param ind_to_date Field in the cohort data that contains an individual to date.
 #' @param top The maximum number of condition groups that will be returned, default is 15.
 #' @param catch_all Determines whether or not catch_all codes are included in the list,
 #' default is no.
@@ -35,17 +39,20 @@
 #' 
 #' @export
 top_causes_f <- function(cohort,
-                         cohort_id = NULL,
-                         server = db.claims51,
-                         from_date = NULL,
-                         to_date = NULL,
-                         top = 15,
-                         catch_all = F,
-                         primary_dx = T,
-                         ed_all = T,
-                         ed_avoid_ny = T,
-                         ed_avoid_ca = T,
-                         inpatient = T) {
+                          cohort_id = NULL,
+                          server = db.claims51,
+                          from_date = NULL,
+                          to_date = NULL,
+                          ind_dates = F,
+                          ind_from_date = NULL,
+                          ind_to_date = NULL,
+                          top = 15,
+                          catch_all = F,
+                          primary_dx = T,
+                          ed_all = T,
+                          ed_avoid_ny = T,
+                          ed_avoid_ca = T,
+                          inpatient = T) {
   
   ### Set up quosures and other vars
   # Assume that id is the variable
@@ -57,90 +64,86 @@ top_causes_f <- function(cohort,
     stop("No valid ID field found")
   }
   
-  # Set default dates
+  # Assume that an individualized date fields are from_date and to_date
+  if (ind_dates == T) {
+    if (!missing(ind_from_date)) {
+      ind_from_date_quo <- enquo(ind_from_date)
+    } else if("from_date" %in% names(cohort)) {
+      ind_from_date_quo <- quo(from_date)
+    } else{
+      stop("No valid individualized from date found")
+    }
+    
+    if (!missing(ind_to_date)) {
+      ind_to_date_quo <- enquo(ind_to_date)
+    } else if("to_date" %in% names(cohort)) {
+      ind_to_date_quo <- quo(to_date)
+    } else{
+      stop("No valid individualized to date found")
+    }
+  }
+  
+  # Set common dates (default to cover last calendar year)
   if (!is.null(from_date)) {
     if (str_detect(from_date, "[0-9]{4}-[0-9]{2}-[0-9]{2}") == F) {
       stop("Invalid from_date. Use YYYY-MM-DD format")
     } else {
+      from_date <- as.Date(from_date)
       print(paste0("Looking at claims starting from ", from_date))
     }
   } else if (is.null(from_date)) {
-    from_date <- paste0(year(Sys.Date()) - 1, "-01-01")
+    from_date <- as.date(paste0(year(Sys.Date()) - 1, "-01-01"))
   }
   
   if (!is.null(to_date)) {
     if (str_detect(to_date, "[0-9]{4}-[0-9]{2}-[0-9]{2}") == F) {
       stop("Invalid to_date. Use YYYY-MM-DD format")
     } else {
-      print(paste0("Looking at claims starting to ", to_date))
+      to_date <- as.Date(to_date)
+      print(paste0("Looking at claims through to ", to_date))
     }
   } else if (is.null(to_date)) {
-    to_date <- paste0(year(Sys.Date()) - 1, "-12-31")
+    to_date <- as.date(min(paste0(year(Sys.Date()) - 1, "-12-31"), Sys.Date() - months(6)))
   }
   
-  # Process flags
+  # Process dx type flag
   if (primary_dx == T) {
     dx_num <- "WHERE d.dx_number = 1"
   } else {
     dx_num <- NULL
   }
   
-  if (ed_all == T) {
-    ed_all_code <- "b.ed = 1"
-  } else {
-    ed_all_code <- NULL
-  }
-  
-  if (ed_avoid_ny == T) {
-    ed_avoid_ny_code <- "b.ed_nonemergent_nyu = 1"
-  } else {
-    ed_avoid_ny_code <- NULL
-  }
-  
-  if (ed_avoid_ca == T) {
-    ed_avoid_ca_code <- "b.ed_avoid_ca = 1"
-  } else {
-    ed_avoid_ca_code <- NULL
-  }
-  
-  if (inpatient == T) {
-    inpatient_code <- "b.inpatient = 1 "
-  } else {
-    inpatient_code <- NULL
-  }
-  
-  # Combine flags together
-  if (is.null(ed_all_code) & is.null(ed_avoid_ny) & 
-      is.null(ed_avoid_ca) & is.null(inpatient)) {
+  # Combine visit type flags together
+  if (ed_avoid_ny == F & ed_avoid_ny == F & ed_avoid_ca == F & inpatient == F) {
     flags <- NULL
   } else {
     flags <- " ("
     
-    if (!is.null(ed_all_code)) {
-      flags <- paste0(flags, ed_all_code)
+    if (ed_all == T) {
+      flags <- paste0(flags, "ed = 1")
     }
     
-    if (!is.null(ed_avoid_ny_code)) {
+    if (ed_avoid_ny == T) {
       if(nchar(flags) > 2) {
-        flags <- paste0(flags, " OR ", ed_avoid_ny_code)
+        flags <- paste0(flags, " OR ", "ed_nonemergent_nyu = 1")
       } else {
-        flags <- paste0(flags, ed_avoid_ny_code)
+        flags <- paste0(flags, "ed_nonemergent_nyu = 1")
       }
     }
     
-    if (!is.null(ed_avoid_ca_code)) {
+    if (ed_avoid_ca == T) {
       if(nchar(flags) > 2) {
-        flags <- paste0(flags, " OR ", ed_avoid_ca_code)
+        flags <- paste0(flags, " OR ", "ed_avoid_ca = 1")
       } else {
-        flags <- paste0(flags, ed_avoid_ca_code)
+        flags <- paste0(flags, "ed_avoid_ca = 1")
       }
     }
     
-    if (!is.null(inpatient_code)) {
+    if (inpatient == T) {
       if(nchar(flags) > 2) {
-        flags <- paste0(flags, " OR ", inpatient_code)
+        flags <- paste0(flags, " OR ", "inpatient = 1")
       } else {
-        flags <- paste0(flags, inpatient_code)
+        flags <- paste0(flags, "inpatient = 1")
       }
     }
     
@@ -148,8 +151,22 @@ top_causes_f <- function(cohort,
   }
   
   
-  ### Extract list of unique IDs and set up for writing to SQL
-  ids <- cohort %>% distinct(!!id_quo) %>% rename(id = !!id_quo)
+  ### Extract list of unique IDs (and dates) and set up for writing to SQL
+  if (ind_dates == T) {
+    ids <- cohort %>% distinct(!!id_quo, !!ind_from_date_quo, !!ind_to_date_quo) %>% 
+      rename(id = !!id_quo,
+             from_date_ind = !!ind_from_date_quo,
+             to_date_ind = !!ind_to_date_quo) %>%
+      # Constrain dates to between common range
+      filter(!(to_date_ind < from_date | from_date_ind > to_date)) %>%
+      mutate(from_date_ind = pmax(from_date_ind, from_date, na.rm = T),
+             to_date_ind = pmin(to_date_ind, to_date, na.rm = T)) %>%
+      distinct(id, from_date_ind, to_date_ind)
+    
+  } else {
+    ids <- cohort %>% distinct(!!id_quo) %>% rename(id = !!id_quo)
+  }
+  
   # Can only write 1000 values at a time so may need to do multiple rounds
   num_ids <- nrow(ids)
   n_rounds <- ceiling(num_ids/1000)
@@ -160,21 +177,38 @@ top_causes_f <- function(cohort,
   list_start <- 1
   list_end <- min(1000, num_ids)
   
+  if (ind_dates == T) {
+    id_vars_create <- "(id VARCHAR(20), from_date_ind DATE, to_date_ind DATE) "
+    id_vars <- "(id, from_date_ind, to_date_ind) "
+  } else {
+    id_vars_create <- "(id VARCHAR(20)) "
+    id_vars <- "(id) "
+  }
+  
   for (i in 1:n_rounds) {
     
-    id_lists[[i]] <- paste0("('", paste(ids$id[list_start:list_end], collapse = "'), ('"), "')")
+    if (ind_dates == T) {
+      id_lists[[i]] <- paste0("('", paste(paste(ids$id[list_start:list_end], 
+                                                ids$from_date_ind[list_start:list_end], 
+                                                ids$to_date_ind[list_start:list_end], 
+                                                sep = "', '"), 
+                                          collapse = "'), ('"), "')")
+    } else {
+      id_lists[[i]] <- paste0("('", paste(ids$id[list_start:list_end], collapse = "'), ('"), "')")
+    }
+    
     
     if (i == 1) {
       print(paste0("Loading ID set 1 of ", n_rounds))
       id_load <- paste0("IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;
-                        CREATE TABLE ##temp_ids (id VARCHAR(20))
-                        INSERT INTO ##temp_ids (id)
-                        VALUES ", id_lists[[i]], ";")
+                        CREATE TABLE ##temp_ids ", id_vars_create,
+                        "INSERT INTO ##temp_ids ", id_vars,
+                        "VALUES ", id_lists[[i]], ";")
       DBI::dbExecute(server, id_load)
     } else {
       print(paste0("Loading ID set ", i, " of ", n_rounds))
-      id_load <- paste0("INSERT INTO ##temp_ids (id)
-                        VALUES ", id_lists[[i]], ";")
+      id_load <- paste0("INSERT INTO ##temp_ids ", id_vars,
+                        "VALUES ", id_lists[[i]], ";")
       DBI::dbExecute(server, id_load)
     }
     
@@ -182,28 +216,54 @@ top_causes_f <- function(cohort,
     list_end <- min(list_end + 1000, num_ids)
   }
   
+  # 2) Pull claims from date range into temp table
   
-  # 2) Join IDs to claims that fall in desired date range
-  # 3) Obtain DXs from claims
-  # 4) Join DXs to DX lookup
-  claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_final_description, 
-                        e.ccs_final_plain_lang, e.ccs_catch_all
-                        FROM (SELECT a.id, b.from_date, b.tcn
-                        FROM ##temp_ids AS a
-                        LEFT JOIN PHClaims.dbo.mcaid_claim_summary AS b
-                        ON a.id = b.id
-                        WHERE b.from_date >= '", from_date, "' AND 
-                        b.from_date <= '", to_date, "' AND ",
-                        flags,
-                        "b.ccs_description IS NOT NULL) AS c
-                        LEFT JOIN PHClaims.dbo.mcaid_claim_dx AS d
-                        ON c.tcn = d.tcn
-                        LEFT JOIN PHClaims.dbo.ref_dx_lookup AS e
-                        ON d.dx_norm = e.dx and d.dx_ver = e.dx_ver ",
-                        dx_num,
-                        " ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;")
+  claim_load <- paste0("IF object_id('tempdb..##claims_temp') IS NOT NULL DROP TABLE ##claims_temp;
+                       SELECT id, from_date, tcn, ed, inpatient, ccs_description
+                       INTO ##claims_temp
+                       FROM PHClaims.dbo.mcaid_claim_summary
+                       WHERE from_date >= '", from_date, "' AND from_date <= '", to_date, "' AND ",
+                       flags,
+                       "ccs_description IS NOT NULL")
+  
+  DBI::dbExecute(server, claim_load)
+  
+  # 3) Join IDs to claims that fall in desired date range
+  # 4) Obtain DXs from claims
+  # 5) Join DXs to DX lookup
+  if (ind_dates == T) {
+    claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_final_description, 
+                          e.ccs_final_plain_lang, e.ccs_catch_all
+                          FROM (SELECT a.id, a.from_date_ind, a.to_date_ind, b.from_date, b.tcn
+                          FROM ##temp_ids AS a
+                          LEFT JOIN 
+                          ##claims_temp AS b
+                          ON a.id = b.id
+                          WHERE b.from_date >= a.from_date_ind AND b.from_date <= a.to_date_ind) AS c
+                          LEFT JOIN PHClaims.dbo.mcaid_claim_dx AS d
+                          ON c.tcn = d.tcn
+                          LEFT JOIN PHClaims.dbo.ref_dx_lookup AS e
+                          ON d.dx_norm = e.dx and d.dx_ver = e.dx_ver ",
+                          dx_num,
+                          " ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;")
+  } else {
+    claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_final_description, 
+                          e.ccs_final_plain_lang, e.ccs_catch_all
+                          FROM (SELECT a.id, b.from_date, b.tcn
+                          FROM ##temp_ids AS a
+                          LEFT JOIN 
+                          ##claims_temp AS b
+                          ON a.id = b.id) AS c
+                          LEFT JOIN PHClaims.dbo.mcaid_claim_dx AS d
+                          ON c.tcn = d.tcn
+                          LEFT JOIN PHClaims.dbo.ref_dx_lookup AS e
+                          ON d.dx_norm = e.dx and d.dx_ver = e.dx_ver ",
+                          dx_num,
+                          " ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;")
+  }
   
   claims <- DBI::dbGetQuery(server, claim_query)
+  
   
   ### Decide whether or not to include catch-all categories
   if (catch_all == F) {
@@ -226,4 +286,4 @@ top_causes_f <- function(cohort,
     arrange(-claim_cnt, ccs_final_plain_lang)
   
   return(claims)
-  }
+}
