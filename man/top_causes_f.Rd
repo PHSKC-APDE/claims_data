@@ -8,7 +8,7 @@ top_causes_f(cohort, cohort_id = NULL, server = db.claims51,
   renew_ids = T, from_date = NULL, to_date = NULL, ind_dates = F,
   ind_from_date = NULL, ind_to_date = NULL, top = 15, catch_all = F,
   primary_dx = T, ed_all = T, ed_avoid_ny = T, ed_avoid_ca = T,
-  inpatient = T)
+  inpatient = T, override_all = F)
 }
 \arguments{
 \item{cohort}{The group of individuals of interest. Note: it is possible to generate a cohort on the fly
@@ -42,11 +42,14 @@ default is no.}
 
 \item{ed_all}{Will include any ED visit}
 
-\item{ed_avoid_ny}{Will include any avoidable ED visit (based on NYU classification)}
+\item{ed_avoid_ny}{Will include any avoidable ED visit (based on NYU classification).}
 
-\item{ed_avoid_ca}{Will include any avoidable ED visit (based on CA classification)}
+\item{ed_avoid_ca}{Will include any avoidable ED visit (based on CA classification).}
 
-\item{inpatient}{Will include any inpatient visit}
+\item{inpatient}{Will include any inpatient visit.}
+
+\item{override_all}{Override the warning message about pulling all claims when
+no flags are selected, default is FALSE.}
 }
 \description{
 \code{top_causes_f} identifies the top N causes for a given set of visits.
