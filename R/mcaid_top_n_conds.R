@@ -13,6 +13,7 @@
 #' using \code{\link{mcaid_elig_f}}.
 #' @param cohort_id The field that contains the Medicaid ID in the cohort data. Defaults to id.
 #' @param server SQL server connection created using \code{odbc} package.
+#' @param renew_ids Option to avoid reloading ID fields to temp table.
 #' @param from_date Begin date for claims period, "YYYY-MM-DD", defaults to start of 
 #' the previous calendar year.
 #' @param to_date End date for claims period, "YYYY-MM-DD", defaults to end of the previous calendar year
@@ -39,20 +40,21 @@
 #' 
 #' @export
 top_causes_f <- function(cohort,
-                          cohort_id = NULL,
-                          server = db.claims51,
-                          from_date = NULL,
-                          to_date = NULL,
-                          ind_dates = F,
-                          ind_from_date = NULL,
-                          ind_to_date = NULL,
-                          top = 15,
-                          catch_all = F,
-                          primary_dx = T,
-                          ed_all = T,
-                          ed_avoid_ny = T,
-                          ed_avoid_ca = T,
-                          inpatient = T) {
+                         cohort_id = NULL,
+                         server = db.claims51,
+                         renew_ids = T,
+                         from_date = NULL,
+                         to_date = NULL,
+                         ind_dates = F,
+                         ind_from_date = NULL,
+                         ind_to_date = NULL,
+                         top = 15,
+                         catch_all = F,
+                         primary_dx = T,
+                         ed_all = T,
+                         ed_avoid_ny = T,
+                         ed_avoid_ca = T,
+                         inpatient = T) {
   
   ### Set up quosures and other vars
   # Assume that id is the variable
@@ -173,48 +175,52 @@ top_causes_f <- function(cohort,
   id_lists <- as.list(paste0("id_list_", 1:n_rounds))
   
   ### Compose SQL query
-  # 1) Add IDs to local temp table
-  list_start <- 1
-  list_end <- min(1000, num_ids)
-  
-  if (ind_dates == T) {
-    id_vars_create <- "(id VARCHAR(20), from_date_ind DATE, to_date_ind DATE) "
-    id_vars <- "(id, from_date_ind, to_date_ind) "
-  } else {
-    id_vars_create <- "(id VARCHAR(20)) "
-    id_vars <- "(id) "
-  }
-  
-  for (i in 1:n_rounds) {
+  # 1) Add IDs to local temp table (if new IDs are needed)
+  if (renew_ids == T) {
+    list_start <- 1
+    list_end <- min(1000, num_ids)
     
     if (ind_dates == T) {
-      id_lists[[i]] <- paste0("('", paste(paste(ids$id[list_start:list_end], 
-                                                ids$from_date_ind[list_start:list_end], 
-                                                ids$to_date_ind[list_start:list_end], 
-                                                sep = "', '"), 
-                                          collapse = "'), ('"), "')")
+      id_vars_create <- "(id VARCHAR(20), from_date_ind DATE, to_date_ind DATE) "
+      id_vars <- "(id, from_date_ind, to_date_ind) "
     } else {
-      id_lists[[i]] <- paste0("('", paste(ids$id[list_start:list_end], collapse = "'), ('"), "')")
+      id_vars_create <- "(id VARCHAR(20)) "
+      id_vars <- "(id) "
     }
     
-    
-    if (i == 1) {
-      print(paste0("Loading ID set 1 of ", n_rounds))
-      id_load <- paste0("IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;
+    for (i in 1:n_rounds) {
+      
+      if (ind_dates == T) {
+        id_lists[[i]] <- paste0("('", paste(paste(ids$id[list_start:list_end], 
+                                                  ids$from_date_ind[list_start:list_end], 
+                                                  ids$to_date_ind[list_start:list_end], 
+                                                  sep = "', '"), 
+                                            collapse = "'), ('"), "')")
+      } else {
+        id_lists[[i]] <- paste0("('", paste(ids$id[list_start:list_end], collapse = "'), ('"), "')")
+      }
+      
+      
+      if (i == 1) {
+        print(paste0("Loading ID set 1 of ", n_rounds))
+        id_load <- paste0("IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;
                         CREATE TABLE ##temp_ids ", id_vars_create,
-                        "INSERT INTO ##temp_ids ", id_vars,
-                        "VALUES ", id_lists[[i]], ";")
-      DBI::dbExecute(server, id_load)
-    } else {
-      print(paste0("Loading ID set ", i, " of ", n_rounds))
-      id_load <- paste0("INSERT INTO ##temp_ids ", id_vars,
-                        "VALUES ", id_lists[[i]], ";")
-      DBI::dbExecute(server, id_load)
+                          "INSERT INTO ##temp_ids ", id_vars,
+                          "VALUES ", id_lists[[i]], ";")
+        DBI::dbExecute(server, id_load)
+      } else {
+        print(paste0("Loading ID set ", i, " of ", n_rounds))
+        id_load <- paste0("INSERT INTO ##temp_ids ", id_vars,
+                          "VALUES ", id_lists[[i]], ";")
+        DBI::dbExecute(server, id_load)
+      }
+      
+      list_start <- list_start + 1000
+      list_end <- min(list_end + 1000, num_ids)
     }
-    
-    list_start <- list_start + 1000
-    list_end <- min(list_end + 1000, num_ids)
   }
+  
+
   
   # 2) Pull claims from date range into temp table
   
@@ -232,8 +238,7 @@ top_causes_f <- function(cohort,
   # 4) Obtain DXs from claims
   # 5) Join DXs to DX lookup
   if (ind_dates == T) {
-    claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_final_description, 
-                          e.ccs_final_plain_lang, e.ccs_catch_all
+    claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_final_plain_lang, e.ccs_catch_all
                           FROM (SELECT a.id, a.from_date_ind, a.to_date_ind, b.from_date, b.tcn
                           FROM ##temp_ids AS a
                           LEFT JOIN 
@@ -247,8 +252,7 @@ top_causes_f <- function(cohort,
                           dx_num,
                           " ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;")
   } else {
-    claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_final_description, 
-                          e.ccs_final_plain_lang, e.ccs_catch_all
+    claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_final_plain_lang, e.ccs_catch_all
                           FROM (SELECT a.id, b.from_date, b.tcn
                           FROM ##temp_ids AS a
                           LEFT JOIN 
@@ -273,7 +277,7 @@ top_causes_f <- function(cohort,
   
   ### Take top N causes
   claims <- claims %>%
-    group_by(ccs_final_description, ccs_final_plain_lang) %>%
+    group_by(ccs_final_plain_lang) %>%
     summarise(claim_cnt = n()) %>%
     ungroup()
   

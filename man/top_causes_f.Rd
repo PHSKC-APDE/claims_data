@@ -5,9 +5,10 @@
 \title{Top N conditions seen among Mediciad patients}
 \usage{
 top_causes_f(cohort, cohort_id = NULL, server = db.claims51,
-  from_date = NULL, to_date = NULL, ind_dates = F, ind_from_date = NULL,
-  ind_to_date = NULL, top = 15, catch_all = F, primary_dx = T,
-  ed_all = T, ed_avoid_ny = T, ed_avoid_ca = T, inpatient = T)
+  renew_ids = T, from_date = NULL, to_date = NULL, ind_dates = F,
+  ind_from_date = NULL, ind_to_date = NULL, top = 15, catch_all = F,
+  primary_dx = T, ed_all = T, ed_avoid_ny = T, ed_avoid_ca = T,
+  inpatient = T)
 }
 \arguments{
 \item{cohort}{The group of individuals of interest. Note: it is possible to generate a cohort on the fly
@@ -16,6 +17,8 @@ using \code{\link{mcaid_elig_f}}.}
 \item{cohort_id}{The field that contains the Medicaid ID in the cohort data. Defaults to id.}
 
 \item{server}{SQL server connection created using \code{odbc} package.}
+
+\item{renew_ids}{Option to avoid reloading ID fields to temp table.}
 
 \item{from_date}{Begin date for claims period, "YYYY-MM-DD", defaults to start of 
 the previous calendar year.}
