@@ -27,9 +27,11 @@
 #' default is no.
 #' @param primary_dx Whether or not to only look at the primary diagnosis field, default is TRUE.
 #' @param ed_all Will include any ED visit
-#' @param ed_avoid_ny Will include any avoidable ED visit (based on NYU classification)
-#' @param ed_avoid_ca Will include any avoidable ED visit (based on CA classification)
-#' @param inpatient Will include any inpatient visit
+#' @param ed_avoid_ny Will include any avoidable ED visit (based on NYU classification).
+#' @param ed_avoid_ca Will include any avoidable ED visit (based on CA classification).
+#' @param inpatient Will include any inpatient visit.
+#' @param override_all Override the warning message about pulling all claims when
+#' no flags are selected, default is FALSE.
 #'
 #' @examples
 #' \dontrun{
@@ -54,7 +56,8 @@ top_causes_f <- function(cohort,
                          ed_all = T,
                          ed_avoid_ny = T,
                          ed_avoid_ca = T,
-                         inpatient = T) {
+                         inpatient = T,
+                         override_all = F) {
   
   ### Set up quosures and other vars
   # Assume that id is the variable
@@ -94,7 +97,7 @@ top_causes_f <- function(cohort,
       print(paste0("Looking at claims starting from ", from_date))
     }
   } else if (is.null(from_date)) {
-    from_date <- as.date(paste0(year(Sys.Date()) - 1, "-01-01"))
+    from_date <- as.Date(paste0(year(Sys.Date()) - 1, "-01-01"))
   }
   
   if (!is.null(to_date)) {
@@ -105,7 +108,10 @@ top_causes_f <- function(cohort,
       print(paste0("Looking at claims through to ", to_date))
     }
   } else if (is.null(to_date)) {
-    to_date <- as.date(min(paste0(year(Sys.Date()) - 1, "-12-31"), Sys.Date() - months(6)))
+    to_date <- as.Date(as.numeric(min(
+      paste0(year(Sys.Date()) - 1, "-12-31"),
+      Sys.Date() - months(6))),
+      origin = "1970-01-01")
   }
   
   # Process dx type flag
@@ -116,8 +122,14 @@ top_causes_f <- function(cohort,
   }
   
   # Combine visit type flags together
-  if (ed_avoid_ny == F & ed_avoid_ny == F & ed_avoid_ca == F & inpatient == F) {
-    flags <- NULL
+  if (ed_all == F & ed_avoid_ny == F & ed_avoid_ca == F & inpatient == F) {
+    if (override_all == T) {
+      flags <- NULL
+    }
+    else {
+      stop("Warning: no flags selected so all visits will be pulled (slow). 
+           Use override_all = T to confirm")
+    }
   } else {
     flags <- " ("
     
@@ -188,6 +200,10 @@ top_causes_f <- function(cohort,
       id_vars <- "(id) "
     }
     
+    # Make progress bar
+    print(paste0("Loading ", n_rounds, " ID sets"))
+    pb <- txtProgressBar(min = 0, max = n_rounds, style = 3)
+    
     for (i in 1:n_rounds) {
       
       if (ind_dates == T) {
@@ -202,14 +218,14 @@ top_causes_f <- function(cohort,
       
       
       if (i == 1) {
-        print(paste0("Loading ID set 1 of ", n_rounds))
-        id_load <- paste0("IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;
-                        CREATE TABLE ##temp_ids ", id_vars_create,
+        # Clear temp table with standalone command
+        # (otherwise switching between just ID and individual dates causes an error)
+        DBI::dbExecute(server, "IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;")
+        id_load <- paste0("CREATE TABLE ##temp_ids ", id_vars_create,
                           "INSERT INTO ##temp_ids ", id_vars,
                           "VALUES ", id_lists[[i]], ";")
         DBI::dbExecute(server, id_load)
       } else {
-        print(paste0("Loading ID set ", i, " of ", n_rounds))
         id_load <- paste0("INSERT INTO ##temp_ids ", id_vars,
                           "VALUES ", id_lists[[i]], ";")
         DBI::dbExecute(server, id_load)
@@ -217,24 +233,24 @@ top_causes_f <- function(cohort,
       
       list_start <- list_start + 1000
       list_end <- min(list_end + 1000, num_ids)
+      
+      # Update progress bar
+      setTxtProgressBar(pb, i)
+    }
+    
+    # Add index to id and from_date for faster join
+    # Think about only using this if n_rounds is >2-3
+    if (ind_dates == T) {
+      DBI::dbExecute(server,
+                     "CREATE NONCLUSTERED INDEX temp_ids_id ON ##temp_ids (id) 
+                    CREATE NONCLUSTERED INDEX temp_ids_from_date ON ##temp_ids (from_date_ind)")
+    } else {
+      DBI::dbExecute(server,
+                     "CREATE NONCLUSTERED INDEX temp_ids_id ON ##temp_ids (id)")
     }
   }
   
-
-  
-  # 2) Pull claims from date range into temp table
-  
-  claim_load <- paste0("IF object_id('tempdb..##claims_temp') IS NOT NULL DROP TABLE ##claims_temp;
-                       SELECT id, from_date, tcn, ed, inpatient, ccs_description
-                       INTO ##claims_temp
-                       FROM PHClaims.dbo.mcaid_claim_summary
-                       WHERE from_date >= '", from_date, "' AND from_date <= '", to_date, "' AND ",
-                       flags,
-                       "ccs_description IS NOT NULL")
-  
-  DBI::dbExecute(server, claim_load)
-  
-  # 3) Join IDs to claims that fall in desired date range
+  # 2) Join IDs to claims that fall in desired date range
   # 4) Obtain DXs from claims
   # 5) Join DXs to DX lookup
   if (ind_dates == T) {
@@ -242,13 +258,17 @@ top_causes_f <- function(cohort,
                           FROM (SELECT a.id, a.from_date_ind, a.to_date_ind, b.from_date, b.tcn
                           FROM ##temp_ids AS a
                           LEFT JOIN 
-                          ##claims_temp AS b
+                          (SELECT id, from_date, tcn, ed, inpatient, ccs_description
+                          FROM PHClaims.dbo.mcaid_claim_summary
+                          WHERE from_date >= '", from_date, "' AND from_date <= '", to_date, "' AND ",
+                          flags,
+                          "ccs_description IS NOT NULL) AS b
                           ON a.id = b.id
                           WHERE b.from_date >= a.from_date_ind AND b.from_date <= a.to_date_ind) AS c
                           LEFT JOIN PHClaims.dbo.mcaid_claim_dx AS d
                           ON c.tcn = d.tcn
                           LEFT JOIN PHClaims.dbo.ref_dx_lookup AS e
-                          ON d.dx_norm = e.dx and d.dx_ver = e.dx_ver ",
+                          ON d.dx_ver = e.dx_ver AND d.dx_norm = e.dx ",
                           dx_num,
                           " ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;")
   } else {
@@ -256,12 +276,16 @@ top_causes_f <- function(cohort,
                           FROM (SELECT a.id, b.from_date, b.tcn
                           FROM ##temp_ids AS a
                           LEFT JOIN 
-                          ##claims_temp AS b
+                          (SELECT id, from_date, tcn, ed, inpatient, ccs_description
+                          FROM PHClaims.dbo.mcaid_claim_summary
+                          WHERE from_date >= '", from_date, "' AND from_date <= '", to_date, "' AND ",
+                          flags,
+                          "ccs_description IS NOT NULL) AS b
                           ON a.id = b.id) AS c
                           LEFT JOIN PHClaims.dbo.mcaid_claim_dx AS d
                           ON c.tcn = d.tcn
                           LEFT JOIN PHClaims.dbo.ref_dx_lookup AS e
-                          ON d.dx_norm = e.dx and d.dx_ver = e.dx_ver ",
+                          ON d.dx_ver = e.dx_ver AND d.dx_norm = e.dx ",
                           dx_num,
                           " ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;")
   }
