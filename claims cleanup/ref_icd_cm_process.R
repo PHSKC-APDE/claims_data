@@ -799,3 +799,5 @@ icd910cm <- icd910cm %>%
 # Overwrite does what you would expect without needing to delete the whole table
 dbWriteTable(db.claims51, name = "ref_dx_lookup_load", value = as.data.frame(icd910cm), overwrite = T)
 
+DBI::dbExecute(db.claims51, "CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON ref_dx_lookup_load (dx_ver, dx)")
+
