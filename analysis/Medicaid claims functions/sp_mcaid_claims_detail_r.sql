@@ -51,13 +51,18 @@ select query_from_date = @from_date, query_to_date = @to_date,
 	case when claim.mental_dx_rda_any_cnt is null then 0 else claim.mental_dx_rda_any_cnt end as 'mental_dx_rda_any_cnt',
 	case when claim.sud_dx_rda_any_cnt is null then 0 else claim.sud_dx_rda_any_cnt end as 'sud_dx_rda_any_cnt',
 	case when claim.dental_cnt is null then 0 else claim.dental_cnt end as 'dental_cnt',
-	case when claim.ed_emergent_nyu_cnt is null then 0 else claim.ed_emergent_nyu_cnt end as 'ed_emergent_nyu_cnt',
-	case when claim.ed_nonemergent_nyu_cnt is null then 0 else claim.ed_nonemergent_nyu_cnt end as 'ed_nonemergent_nyu_cnt',
-	case when claim.ed_intermediate_nyu_cnt is null then 0 else claim.ed_intermediate_nyu_cnt end as 'ed_intermediate_nyu_cnt',
+	case when claim.ed_ne_nyu_cnt is null then 0 else claim.ed_ne_nyu_cnt end as 'ed_ne_nyu_cnt',
+	case when claim.ed_pct_nyu_cnt is null then 0 else claim.ed_pct_nyu_cnt end as 'ed_pct_nyu_cnt',
+	case when claim.ed_pa_nyu_cnt is null then 0 else claim.ed_pa_nyu_cnt end as 'ed_pa_nyu_cnt',	
+	case when claim.ed_npa_nyu_cnt is null then 0 else claim.ed_npa_nyu_cnt end as 'ed_npa_nyu_cnt',	
 	case when claim.ed_mh_nyu_cnt is null then 0 else claim.ed_mh_nyu_cnt end as 'ed_mh_nyu_cnt',
 	case when claim.ed_sud_nyu_cnt is null then 0 else claim.ed_sud_nyu_cnt end as 'ed_sud_nyu_cnt',
 	case when claim.ed_alc_nyu_cnt is null then 0 else claim.ed_alc_nyu_cnt end as 'ed_alc_nyu_cnt',
 	case when claim.ed_unclass_nyu_cnt is null then 0 else claim.ed_unclass_nyu_cnt end as 'ed_unclass_nyu_cnt',
+	case when claim.ed_emergent_nyu_cnt is null then 0 else claim.ed_emergent_nyu_cnt end as 'ed_emergent_nyu_cnt',
+	case when claim.ed_nonemergent_nyu_cnt is null then 0 else claim.ed_nonemergent_nyu_cnt end as 'ed_nonemergent_nyu_cnt',
+	case when claim.ed_intermediate_nyu_cnt is null then 0 else claim.ed_intermediate_nyu_cnt end as 'ed_intermediate_nyu_cnt',
+
 	case when claim.ed_cnt is null then 1 else 0 end as 'no_claims'
 
 from (
@@ -77,9 +82,10 @@ left join (
 			sum(b.ipt_bh) as 'ipt_bh_cnt', sum( b.ed) as 'ed_cnt', sum(b.ed_nohosp) as 'ed_nohosp_cnt', sum(b.ed_bh) as 'ed_bh_cnt', 
 			sum(b.ed_avoid_ca) as 'ed_avoid_ca_cnt', sum(b.mental_dx_rda_any) as 'mental_dx_rda_any_cnt', sum(b.sud_dx_rda_any) as 'sud_dx_rda_any_cnt',
 			sum(b.dental) as 'dental_cnt', sum(b.ed_emergent_nyu) as 'ed_emergent_nyu_cnt', 
+			sum(b.ed_ne_nyu) as 'ed_ne_nyu_cnt', sum(b.ed_pct_nyu) as 'ed_pct_nyu_cnt', sum(b.ed_pa_nyu) as 'ed_pa_nyu_cnt',
+			sum(b.ed_npa_nyu) as 'ed_npa_nyu_cnt', sum(b.ed_mh_nyu) as 'ed_mh_nyu_cnt', sum(b.ed_sud_nyu) as 'ed_sud_nyu_cnt', 
+			sum(b.ed_alc_nyu) as 'ed_alc_nyu_cnt', sum(b.ed_injury_nyu) as 'ed_injury_nyu_cnt', sum(b.ed_unclass_nyu) as 'ed_unclass_nyu_cnt',
 			sum(b.ed_nonemergent_nyu) as 'ed_nonemergent_nyu_cnt', sum(b.ed_intermediate_nyu) as 'ed_intermediate_nyu_cnt', 
-			sum(b.ed_mh_nyu) as 'ed_mh_nyu_cnt', sum(b.ed_sud_nyu) as 'ed_sud_nyu_cnt', sum(b.ed_alc_nyu) as 'ed_alc_nyu_cnt', 
-			sum(b.ed_injury_nyu) as 'ed_injury_nyu_cnt', sum(b.ed_unclass_nyu) as 'ed_unclass_nyu_cnt',
 			sum(b.ed_sdoh) as ed_sdoh_cnt, sum(b.ipt_sdoh) as ipt_sdoh_cnt
 
 	from (
@@ -89,9 +95,11 @@ left join (
 			max(a.newborn_dx1) as 'newborn_dx1', max(a.inpatient) as 'inpatient', max(a.ipt_medsurg) as 'ipt_medsurg',
 			max(a.ipt_bh) as 'ipt_bh', max(a.ed) as 'ed', max(a.ed_nohosp) as 'ed_nohosp', max(a.ed_bh) as 'ed_bh', max(a.ed_avoid_ca) as 'ed_avoid_ca', 
 			max(a.mental_dx_rda_any) as 'mental_dx_rda_any', max(a.sud_dx_rda_any) as 'sud_dx_rda_any',
-			max(a.dental) as 'dental', max(a.ed_emergent_nyu) as 'ed_emergent_nyu', max(a.ed_nonemergent_nyu) as 'ed_nonemergent_nyu',
-			max(a.ed_intermediate_nyu) as 'ed_intermediate_nyu', max(a.ed_mh_nyu) as 'ed_mh_nyu', max(a.ed_sud_nyu) as 'ed_sud_nyu',
+			max(a.dental) as 'dental', max(a.ed_ne_nyu) as 'ed_ne_nyu', max(a.ed_pct_nyu) as 'ed_pct_nyu', max(a.ed_pa_nyu) as 'ed_pa_nyu',
+			max(a.ed_npa_nyu) as 'ed_npa_nyu', max(a.ed_mh_nyu) as 'ed_mh_nyu', max(a.ed_sud_nyu) as 'ed_sud_nyu',
 			max(a.ed_alc_nyu) as 'ed_alc_nyu', max(a.ed_injury_nyu) as 'ed_injury_nyu', max(a.ed_unclass_nyu) as 'ed_unclass_nyu',
+			max(a.ed_emergent_nyu) as 'ed_emergent_nyu', max(a.ed_nonemergent_nyu) as 'ed_nonemergent_nyu',
+			max(a.ed_intermediate_nyu) as 'ed_intermediate_nyu', 
 			max(a.ed_sdoh) as 'ed_sdoh', max(a.ipt_sdoh) as 'ipt_sdoh'
 
 		from (
@@ -101,8 +109,9 @@ left join (
 		left join (
 			select id, tcn, from_date, mental_dx1, mental_dxany, maternal_dx1, maternal_broad_dx1, newborn_dx1,
 				inpatient, ipt_medsurg, ipt_bh, ed, ed_nohosp, ed_bh, ed_avoid_ca, mental_dx_rda_any, sud_dx_rda_any,
-				ed_emergent_nyu, ed_nonemergent_nyu, ed_intermediate_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu,
-				ed_injury_nyu, ed_unclass_nyu, ed_sdoh, ipt_sdoh,
+				ed_ne_nyu, ed_pct_nyu, ed_pa_nyu, ed_npa_nyu,
+				ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu, ed_unclass_nyu,
+				ed_emergent_nyu, ed_nonemergent_nyu, ed_intermediate_nyu, ed_sdoh, ipt_sdoh,
 			case when clm_type_code = '4' then 1 else 0 end as 'dental'
 			from PHClaims.dbo.mcaid_claim_summary
 			where from_date <= @to_date and to_date >= @from_date
