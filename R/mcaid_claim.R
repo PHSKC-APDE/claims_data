@@ -112,7 +112,6 @@ mcaid_claim_f <- function(server, from_date = Sys.Date() - months(12), to_date =
   
   #Run parameters message
   cat(paste(
-        "SQL server: ", tail(as.character(enquo(server)),1), "\n",
         "You have selected a Medicaid member cohort with the following characteristics:\n",
         "Coverage begin date: ", from_date, "(inclusive)\n",
         "Coverage end date: ", to_date, " (inclusive)\n",
