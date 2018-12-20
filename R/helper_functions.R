@@ -15,7 +15,7 @@
 #' @param df Data frame on which to perform small number suppression
 #' @param suppress_var Specifies which variables to base suppression on
 #' @param lower Lower cell count for suppression (inclusive), defaults to 1
-#' @param upper Upper cell count for suppression (inclusive), defaults to 9
+#' @param upper Upper cell count for suppression (inclusive), defaults to 10
 #' @col_wise Whether to perform total result set or column-wise suppression, defaults to TRUE
 #'
 #' @name helper
@@ -47,7 +47,7 @@ sqlbatch_f <- function(server, sqlbatch) {
 
 #' @export
 #' @rdname helper
-suppress_f <- function(df, suppress_var, lower = 1, upper = 9, col_wise = TRUE) {
+suppress_f <- function(df, suppress_var, lower = 1, upper = 10, col_wise = TRUE) {
 
 #Prepare data frame of column to use for total result set suppression
 suppress_var_vector <- sapply(suppress_var, function(y) {
