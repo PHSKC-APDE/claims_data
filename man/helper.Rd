@@ -11,7 +11,7 @@ list_var(...)
 
 sqlbatch_f(server, sqlbatch)
 
-suppress_f(df, suppress_var, lower = 1, upper = 9, col_wise = TRUE)
+suppress_f(df, suppress_var, lower = 1, upper = 10, col_wise = TRUE)
 }
 \arguments{
 \item{...}{Variables that will be passed as a list to another function}
@@ -26,7 +26,7 @@ suppress_f(df, suppress_var, lower = 1, upper = 9, col_wise = TRUE)
 
 \item{lower}{Lower cell count for suppression (inclusive), defaults to 1}
 
-\item{upper}{Upper cell count for suppression (inclusive), defaults to 9}
+\item{upper}{Upper cell count for suppression (inclusive), defaults to 10}
 }
 \description{
 Various functions used to support processing and analysis

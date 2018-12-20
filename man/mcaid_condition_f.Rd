@@ -4,8 +4,8 @@
 \alias{mcaid_condition_f}
 \title{Medicaid member chronic health condition status}
 \usage{
-mcaid_condition_f(server, condition, from_date, to_date, join_type = "none",
-  df_join_name)
+mcaid_condition_f(server, condition, from_date, to_date,
+  join_type = "none", df_join_name)
 }
 \arguments{
 \item{server}{SQL server connection created using \code{odbc} package}

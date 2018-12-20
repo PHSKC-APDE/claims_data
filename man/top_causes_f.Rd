@@ -6,9 +6,9 @@
 \usage{
 top_causes_f(cohort, cohort_id = NULL, server = db.claims51,
   renew_ids = T, from_date = NULL, to_date = NULL, ind_dates = F,
-  ind_from_date = NULL, ind_to_date = NULL, top = 15, catch_all = F,
-  primary_dx = T, ed_all = T, ed_avoid_ny = T, ed_avoid_ca = T,
-  inpatient = T, override_all = F)
+  ind_from_date = NULL, ind_to_date = NULL, top = 15,
+  catch_all = F, primary_dx = T, ed_all = T, ed_avoid_ny = T,
+  ed_avoid_ca = T, inpatient = T, override_all = F)
 }
 \arguments{
 \item{cohort}{The group of individuals of interest. Note: it is possible to generate a cohort on the fly

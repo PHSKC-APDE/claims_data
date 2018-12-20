@@ -9,10 +9,11 @@ mcaid_elig_f(server, from_date = Sys.Date() - months(12),
   covgap_max = "null", dualmax = 100, agemin = 0, agemax = 200,
   female = "null", male = "null", aian = "null", asian = "null",
   black = "null", nhpi = "null", white = "null", latino = "null",
-  zip = "null", region = "null", english = "null", spanish = "null",
-  vietnamese = "null", chinese = "null", somali = "null",
-  russian = "null", arabic = "null", korean = "null",
-  ukrainian = "null", amharic = "null", maxlang = "null", id = "null")
+  zip = "null", region = "null", english = "null",
+  spanish = "null", vietnamese = "null", chinese = "null",
+  somali = "null", russian = "null", arabic = "null",
+  korean = "null", ukrainian = "null", amharic = "null",
+  maxlang = "null", id = "null")
 }
 \arguments{
 \item{server}{SQL server connection created using \code{odbc} package}
