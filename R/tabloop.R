@@ -18,12 +18,13 @@
 #' @param dcount A variable that identifies the unit of tabulation for distinct counts
 #' @param sum A variable that identifies the unit of tabulation for sums
 #' @param mean A variable that identifies the unit of tabulation for calculating means
-#' @param mean A variable that identifies the unit of tabulation for calculating medians
+#' @param median A variable that identifies the unit of tabulation for calculating medians
 #' @param loop A list of the loop by variables, requires use of \code{list_var}, required
 #' @param fixed A list of the fixed by variables, requires use of \code{list_var}, defaults to null
 #' @param filter Specifies whether results should be filtered to positive values only for binary variables, defaults to false
 #' @param rename Specifies whether results group categories should be renamed according to APDE defauts, defaults to false
 #' @param suppress Specifies whether suppression should be applied
+#' @param rounding Specifies how many decimal places to round mean and median to
 #'
 #' @examples
 #' \dontrun{
@@ -32,11 +33,12 @@
 #' tabloop_f_test(df = depression, dcount = list_var(id), count = list_var(hra_id),
 #'                sum = list_var(ed_cnt, inpatient_cnt, depression_ccw), mean = list_var(age), median = list_var(age),
 #'                loop = list_var(gender_mx), filter = T, rename = T, suppress = T, 
-#'                suppress_var = list_var(id_dcount))
+#'                suppress_var = list_var(id_dcount), round = 3)
 #' }
 #' 
 #' @export
-tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, filter = FALSE, rename = FALSE, suppress = FALSE,
+tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, filter = FALSE, 
+                      rename = FALSE, suppress = FALSE, rounding = 1,
                       ...) {
   
   
@@ -368,7 +370,7 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
         #Tabulate data frame by fixed and each loop variable
         df <- df %>%
           group_by(!!! fixed, (!! loop_var)) %>%
-          summarise(!! mean_name := round(mean(!! mean, na.rm = TRUE), 1)) %>%
+          summarise(!! mean_name := round(mean(!! mean, na.rm = TRUE), rounding)) %>%
           
           #Create variable to hold name of loop variable
           mutate(
@@ -437,7 +439,7 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
         #Tabulate data frame by fixed and each loop variable
         df <- df %>%
           group_by(!!! fixed, (!! loop_var)) %>%
-          summarise(!! median_name := round(median(!! median, na.rm = TRUE), 1)) %>%
+          summarise(!! median_name := round(median(!! median, na.rm = TRUE), rounding)) %>%
           
           #Create variable to hold name of loop variable
           mutate(
