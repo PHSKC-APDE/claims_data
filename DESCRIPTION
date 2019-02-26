@@ -6,7 +6,7 @@ Description: LARGELY FOR INTERNAL USE
   All-Payer Claims Database eligibility and claims data.
 Authors@R: c(
   person("Eli", "Kern", email = "eli.kern@kingcounty.gov", role = c("aut", "cre")),
-  person("Alastair", "Matheson", email = "alastair.matheson@kingcounty.gov", role = "aut")
+  person("Alastair", "Matheson", email = "alastair.matheson@kingcounty.gov", role = "aut"))
 BugReports: https://github.com/PHSKC-APDE/Medicaid
 Depends: R (>= 3.3.3)
 License: GPL-3
