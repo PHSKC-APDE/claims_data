@@ -1,9 +1,12 @@
-Package: medicaid
+Package: claims
 Version: 0.1.3
-Title: Query and analyze Washington State Medicaid eligibility and claims data
+Title: Query and analyze WA State Medicaid, Medicare, and APCD data
 Description: LARGELY FOR INTERNAL USE
-  This package is for querying and analyzing Washington State Medicaid eligibility and claims data.
-Authors@R: person("Eli", "Kern", email = "eli.kern@kingcounty.gov", role = c("aut", "cre"))
+  This package is for querying and analyzing WA State Medicaid, Medicare, and 
+  All-Payer Claims Database eligibility and claims data.
+Authors@R: c(
+  person("Eli", "Kern", email = "eli.kern@kingcounty.gov", role = c("aut", "cre")),
+  person("Alastair", "Matheson", email = "alastair.matheson@kingcounty.gov", role = "aut")
 BugReports: https://github.com/PHSKC-APDE/Medicaid
 Depends: R (>= 3.3.3)
 License: GPL-3
