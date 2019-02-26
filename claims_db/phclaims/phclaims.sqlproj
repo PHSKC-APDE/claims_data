@@ -57,5 +57,25 @@
   <Import Condition="'$(SQLDBExtensionsRefPath)' == ''" Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" />
   <ItemGroup>
     <Folder Include="Properties" />
+    <Folder Include="schemas" />
+    <Folder Include="raw" />
+    <Folder Include="ref" />
+    <Folder Include="stage" />
+    <Folder Include="final" />
+    <Folder Include="archive" />
+    <Folder Include="raw\tables" />
+    <Folder Include="ref\tables" />
+    <Folder Include="ref\indexes" />
+    <Folder Include="stage\tables" />
+    <Folder Include="stage\indexes" />
+    <Folder Include="stage\sprocs" />
+    <Folder Include="final\indexes" />
+    <Folder Include="final\sprocs" />
+    <Folder Include="final\tables" />
+    <Folder Include="archive\tables" />
+    <Folder Include="archive\sprocs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PreDeploy Include="schemas\raw.sql" />
   </ItemGroup>
 </Project>
