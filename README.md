@@ -6,21 +6,21 @@ Currently King County receives quarterly Medicaid eligibility and claims data fi
 
 King County analysts transform the raw eligibility and claims data to create an array of analytic-ready tables that can be used to flexibly compute people and event-based statistics over time, such as the count of Emergency Department visits by Medicaid member race/ethnicity.
 
-For more information on data tables available on King County's SQL Servers, users can review the [purpose and structure of each table](https://kc1-my.sharepoint.com/:x:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/Medicaid%20data%20table%20structure.xlsx?d=w13d589b863b647269b03d645618ba7b2&csf=1&e=7i3atF), as well as a [data dictionary](https://kc1-my.sharepoint.com/:x:/g/personal/eli_kern_kingcounty_gov/EZE5ge9YnXxFifiyDIeq8JYBDbiRHIK_t_9-ERAhd13zhQ?e=5PZPiH) that describes each individual data element.
+For more information on data tables available on King County's SQL Servers, users can review the [purpose and structure of each table](https://kc1-my.sharepoint.com/:x:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/Medicaid%20data%20table%20structure.xlsx?d=w13d589b863b647269b03d645618ba7b2&csf=1&e=7i3atF), as well as a [data dictionary](https://kc1-my.sharepoint.com/:x:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/King%20County%20ProviderOne%20Data%20Dictionary_ForOneDrive.xlsx?d=wef8139919d58457c89f8b20c87aaf096&csf=1&e=f6nDgg) that describes each individual data element.
 
 An ever-growing group of King County analysts meet every three weeks to discuss their shared experiences using Medicaid claims data. Users can view [ongoing agenda items and point people for specific topics](https://kc1-my.sharepoint.com/:x:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/PH-DCHS%20Healthcare%20Data%20Meetings.xlsx?d=w632b8ab629f34250ab2dbe4bdf52405e&csf=1&e=GWeyLm).
 
-## Medicaid R package for rapid data analysis
-King County analysts developed the *medicaid* R package to facilitate querying and analyzing the aforementioned analytic-ready eligibility and claims data tables.
+## Claims R package for rapid data analysis
+King County analysts developed the *claims* R package to facilitate querying and analyzing the aforementioned analytic-ready eligibility and claims data tables.
 
-Instructions for installing the *medicaid* package:
+Instructions for installing the *claims* package:
 - Make sure devtools is installed (install.packages("devtools")).
-- Type devtools::install_github("PHSKC-APDE/Medicaid")
+- Type devtools::install_github("PHSKC-APDE/claims_data"")
 
-Instructions for updating the *medicaid* package:
-- Simply reinstall the package by typing devtools::install_github("PHSKC-APDE/Medicaid")
+Instructions for updating the *claims* package:
+- Simply reinstall the package by typing devtools::install_github("PHSKC-APDE/claims_data"")
 
-Current functionality of the *medicaid* package (v 0.1.3):
+Current functionality of the *claims* package (v 0.1.3):
 - Request an eligibility and demographics-based Medicaid member cohort
 - Request a claims summary (e.g. ED visits, avoidable ED, behavioral health hospital stays) for a member cohort
 - Request coverage group information (e.g. persons with disabilities) and automatically join to a specified data frame
@@ -29,5 +29,5 @@ Current functionality of the *medicaid* package (v 0.1.3):
 - Calculate the top N causes of ED visits and hospitalizations
 
 Training resources:
-- R users can view a [training video](https://kc1-my.sharepoint.com/:v:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/Medicaid%20R%20Package%20Training_2018.mp4?csf=1&e=3OydL9) for how to use the *medicaid* package.
+- R users can view a [training video](https://kc1-my.sharepoint.com/:v:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/Medicaid%20R%20Package%20Training_2018.mp4?csf=1&e=3OydL9) for how to use the *claims* package.
 - Users can also view the [R script used in the training video](https://github.com/PHSKC-APDE/Medicaid/blob/master/Medicaid%20package%20orientation.R).
