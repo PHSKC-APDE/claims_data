@@ -76,7 +76,10 @@ left join (
 			select id, tcn, from_date, inpatient, ipt_medsurg, ipt_bh, ed, ed_avoid_ca, ed_emergent_nyu,
 				ed_nonemergent_nyu, ed_intermediate_nyu, case when clm_type_code = '4' then 1 else 0 end as 'dental'
 			from PHClaims.dbo.mcaid_claim_summary
-			where from_date <= @to_date and to_date >= @from_date
+			 --This captures health care events that overlapped any part of window
+			--where from_date <= @to_date and to_date >= @from_date
+			 --This captures health care events that BEGAN during window
+			where from_date >= @from_date and from_date <= @to_date
 				and exists (select id from ##id where id = PHClaims.dbo.mcaid_claim_summary.id)
 		) as a
 		on id.id = a.id
