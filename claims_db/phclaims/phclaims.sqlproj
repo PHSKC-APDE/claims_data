@@ -58,12 +58,12 @@
   <ItemGroup>
     <Folder Include="Properties" />
     <Folder Include="schemas" />
-    <Folder Include="raw" />
+    <Folder Include="load_raw" />
     <Folder Include="ref" />
     <Folder Include="stage" />
     <Folder Include="final" />
     <Folder Include="archive" />
-    <Folder Include="raw\tables" />
+    <Folder Include="load_raw\tables" />
     <Folder Include="ref\tables" />
     <Folder Include="ref\indexes" />
     <Folder Include="stage\tables" />
@@ -74,8 +74,29 @@
     <Folder Include="final\tables" />
     <Folder Include="archive\tables" />
     <Folder Include="archive\sprocs" />
+    <Folder Include="metadata" />
+    <Folder Include="metadata\tables" />
   </ItemGroup>
   <ItemGroup>
-    <PreDeploy Include="schemas\raw.sql" />
+    <PreDeploy Include="schemas\load_raw.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="schemas\stage.sql" />
+    <None Include="load_raw\tables\mcaid_elig_cal_years.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="schemas\final.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="schemas\archive.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="schemas\tmp.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="schemas\ref.sql" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="schemas\metadata.sql" />
   </ItemGroup>
 </Project>
