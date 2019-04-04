@@ -1,0 +1,1 @@
+﻿CREATE SCHEMA [metadata] AUTHORIZATION [KC\PH_DCHS_Claims];
