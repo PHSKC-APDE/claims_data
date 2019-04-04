@@ -52,7 +52,7 @@ load_raw.mcaid_elig_f <- function(
   # Alert users they are in test mode
   if (test_mode == T) {
     print("FUNCTION WILL BE RUN IN TEST MODE, WRITING TO TMP SCHEMA")
-    test_msg <- "(Function is in test mode)"
+    test_msg <- " (function is in test mode)"
   } else {
     test_msg <- ""
   }
