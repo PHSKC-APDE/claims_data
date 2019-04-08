@@ -1,0 +1,1 @@
+﻿CREATE SCHEMA [archive] AUTHORIZATION [KC\PH_DCHS_Claims];
