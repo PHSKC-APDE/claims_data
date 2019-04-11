@@ -89,7 +89,9 @@ INTO [stage].[perf_enroll_denom]
 FROM CTE
 WHERE 1 = 1
 -- Months with at least 23 prior months
-AND [row_num] >= 24
+--AND [row_num] >= 24
+-- Months with at least 11 prior months
+AND [row_num] >= 12
 -- Include members enrolled at least one month
 AND [enrolled_any_t_12_m] >= 1;
 
@@ -121,7 +123,7 @@ If the last 12-month period ends 201712
 THESE PARAMETERS ARE INTEGERS
 This procedure will index the [stage].[perf_enroll_denom] table
 
-EXEC [stage].[sp_perf_enroll_denom] @start_date_int = 201501, @end_date_int = 201712;
+EXEC [stage].[sp_perf_enroll_denom] @start_date_int = 201201, @end_date_int = 201712;
 
 SELECT 
  [year_month]
