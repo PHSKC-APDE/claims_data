@@ -16,6 +16,7 @@ CREATE TABLE [ref].[age_grp]
 ,[age_grp_7] VARCHAR(20) NULL
 ,[age_grp_8] VARCHAR(20) NULL
 ,[age_grp_9_months] VARCHAR(20) NULL
+,[age_grp_10] VARCHAR(20) NULL
 ,CONSTRAINT [PK_ref_age_grp] PRIMARY KEY CLUSTERED ([age]));
 GO
 
@@ -37,7 +38,8 @@ INSERT INTO [ref].[age_grp]
 ,[age_grp_6]
 ,[age_grp_7]
 ,[age_grp_8]
-,[age_grp_9_months])
+,[age_grp_9_months]
+,[age_grp_10])
 
 SELECT
  [age]
@@ -61,6 +63,8 @@ SELECT
  END AS [age_grp_8]
 ,CASE WHEN [age] BETWEEN 0 AND 11 THEN 'Age 0-11 Months' WHEN [age] BETWEEN 12 AND 24 THEN 'Age 12-24 Months' WHEN [age] BETWEEN 25 AND 83 THEN 'Age 25 Months-6' WHEN [age] BETWEEN 84 AND 143 THEN 'Age 7-11' WHEN [age] BETWEEN 144 AND 239 THEN 'Age 12-19'
  END AS [age_grp_9_months]
+,CASE WHEN [age] BETWEEN 5 AND 11 THEN 'Age 5-11' WHEN [age] BETWEEN 12 AND 18 THEN 'Age 12-18' WHEN [age] BETWEEN 19 AND 50 THEN 'Age 19-50' WHEN [age] BETWEEN 51 AND 64 THEN 'Age 51-64'
+ END AS [age_grp_10]
 FROM CTE;
 
 SELECT * FROM [ref].[age_grp];
