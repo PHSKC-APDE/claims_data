@@ -1,0 +1,14 @@
+schema: # add name of schema here
+table: # add name of table here
+years:
+    - # add each year you want to create an individual table for
+    - # one on each line with the dash in front
+    - # duplicates will be removed
+vars:
+    # add column name and format here
+    # style is column_name: format
+    # e.g., FROM_SERVICE_DATE: DATE
+    # e.g., DIAGNOSIS_CODE_2: VARCHAR(200)
+    # One on each line with no dashes in front
+    # WARNING: duplicate column names will cause an error
+# Make sure there is one blank line at the end (i.e., delete this comment)
