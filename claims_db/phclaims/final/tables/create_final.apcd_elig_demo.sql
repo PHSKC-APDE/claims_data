@@ -1,10 +1,10 @@
---Code to create stage.apcd_elig_demo table
+--Code to create final.apcd_elig_demo table
 --A historical record of each person's non time-varying demographics (e.g. date of birth, gender)
 --Eli Kern (PHSKC-APDE)
 --2019-4-11
 
-IF object_id('PHClaims.stage.apcd_elig_demo', 'U') is not null DROP TABLE PHClaims.stage.apcd_elig_demo;
-CREATE TABLE PHClaims.stage.apcd_elig_demo (
+IF object_id('PHClaims.final.apcd_elig_demo', 'U') is not null DROP TABLE PHClaims.final.apcd_elig_demo;
+CREATE TABLE PHClaims.final.apcd_elig_demo (
 	id_apcd bigint,
 	dob date,
 	ninety_only tinyint,
