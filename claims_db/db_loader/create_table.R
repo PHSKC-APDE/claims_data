@@ -1,4 +1,4 @@
-#### FUNCTION TO CREATE LOAD_RAW MCAID ELIG TABLES
+#### FUNCTION TO CREATE TABLES IN SQL
 # Alastair Matheson
 # Created:        2019-04-04
 # Last modified:  2019-04-15
@@ -10,10 +10,9 @@
 
 #### PARAMETERS ####
 # conn = name of the connection to the SQL database
+# config_file = path + file name of YAML config file
 # overall = create overall table (default is TRUE)
 # ind_yr = create tables for individual years (default is TRUE)
-# min_yr = the starting point of individual year tables (must be from 2012-2022)
-# min_yr = the ending point of individual year tables (must be from 2012-2022)
 # overwrite = drop table first before creating it, if it exists (default is TRUE)
 # test_mode = write things to the tmp schema to test out functions (default is FALSE)
 
@@ -21,7 +20,7 @@
 #### FUNCTION ####
 create_table_f <- function(
   conn,
-  file_name,
+  config_file,
   overall = T,
   ind_yr = T,
   overwrite = T,
@@ -31,23 +30,23 @@ create_table_f <- function(
   
   #### INITIAL ERROR CHECK ####
   # Check that the yaml config file exists in the right format
-  if (file.exists(file_name) == F) {
+  if (file.exists(config_file) == F) {
     stop("File does not exist, check file name")
   }
   
-  if (is.yaml.file(file_name) == F) {
+  if (is.yaml.file(config_file) == F) {
     stop(paste0("File is not a YAML config file. \n", 
                 "Check there are no duplicate variables listed"))
   }
   
   
   #### READ IN CONFIG FILE ####
-  table_config <- yaml::read_yaml(file_name)
+  table_config <- yaml::read_yaml(config_file)
   
 
   #### ERROR CHECKS AND OVERALL MESSAGES ####
   # Check that the yaml config file has necessary components
-  if (!"schema" %in% eval.config.sections(file_name) & test_mode == F) {
+  if (!"schema" %in% eval.config.sections(config_file) & test_mode == F) {
     stop("YAML file is missing a schema")
   } else {
     if (is.null(table_config$schema)) {
@@ -55,7 +54,7 @@ create_table_f <- function(
     }
   }
   
-  if (!"table" %in% eval.config.sections(file_name)) {
+  if (!"table" %in% eval.config.sections(config_file)) {
     stop("YAML file is missing a table name")
   } else {
     if (is.null(table_config$table)) {
@@ -63,7 +62,7 @@ create_table_f <- function(
     }
   }
   
-  if (!"vars" %in% eval.config.sections(file_name)) {
+  if (!"vars" %in% eval.config.sections(config_file)) {
     stop("YAML file is missing a list of variables")
   } else {
     if (is.null(table_config$vars)) {
@@ -71,7 +70,7 @@ create_table_f <- function(
     }
   }
   
-  if (!"years" %in% eval.config.sections(file_name) & ind_yr == T) {
+  if (!"years" %in% eval.config.sections(config_file) & ind_yr == T) {
     stop("YAML file is missing a list of years")
   } else {
     if (ind_yr == T & is.null(unlist(table_config$years))) {
@@ -142,7 +141,7 @@ create_table_f <- function(
       
       # Add additional year-specific variables if present
       add_vars_name <- paste0("vars_", x)
-      if (add_vars_name %in% eval.config.sections(file_name)) {
+      if (add_vars_name %in% eval.config.sections(config_file)) {
         vars <- c(vars, unlist(table_config[[add_vars_name]]))
       }
       
