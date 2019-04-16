@@ -141,6 +141,12 @@ create_table_f <- function(
         }
       }
       
+      # Add additional year-specific variables if present
+      add_vars_name <- paste0("vars_", x)
+      if (add_vars_name %in% eval.config.sections(file_name)) {
+        vars <- c(vars, unlist(table_config[[add_vars_name]]))
+      }
+      
       DBI::dbCreateTable(conn, tbl_name, fields = vars)
     })
   }

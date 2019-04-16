@@ -11,4 +11,9 @@ vars:
     # e.g., DIAGNOSIS_CODE_2: VARCHAR(200)
     # One on each line with no dashes in front
     # WARNING: duplicate column names will cause an error
+vars_20xx:
+    # Add year-specific variables here.
+    # They will be placed at the end after the common variables
+    # Use the same format as for the common variables
+    # Repeat this code block for each year with specific variables
 # Make sure there is one blank line at the end (i.e., delete this comment)
