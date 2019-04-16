@@ -1,18 +1,17 @@
 #### FUNCTION TO CREATE LOAD_RAW MCAID ELIG TABLES
 # Alastair Matheson
 # Created:        2019-04-04
-# Last modified:  2019-04-04
+# Last modified:  2019-04-15
 
 
 ### Plans for future improvements:
-# Allow for non-contiguous year tables to be created (e.g., 2013 and 2016)
-# Add warning when overall mcaid_elig is about to be overwritten
+# Add warning when overall table is about to be overwritten
 
 
 #### PARAMETERS ####
 # conn = name of the connection to the SQL database
-# overall = create overall mcaid_elig table (default is TRUE)
-# ind_yr = create mcaid_elig tables for individual years (default is TRUE)
+# overall = create overall table (default is TRUE)
+# ind_yr = create tables for individual years (default is TRUE)
 # min_yr = the starting point of individual year tables (must be from 2012-2022)
 # min_yr = the ending point of individual year tables (must be from 2012-2022)
 # overwrite = drop table first before creating it, if it exists (default is TRUE)
