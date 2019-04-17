@@ -1,0 +1,31 @@
+schema: # add name of schema here
+table: # add name of table here
+index_name: # add name of clustered index here (if applicable)
+index:
+    - # Add each column that goes into the index
+    - # One on each line with a dash in front
+vars:
+    - # Add column name here, only relevant if combining tables
+    - # One per line, dash in front
+    - # e.g., FROM_SERVICE_DATE
+    - # e.g., DIAGNOSIS_CODE_2
+overall: # Add this block if loading a single file to the main SQL table
+    file_path: # Add path to file (e.g., //kcitsqlutpdbh51/importdata/Data/KC_Elig_2019-05-15.txt)
+    field_term: # Add the field terminator (e.g., \t, ,)
+    row_term: # Add the row terminator (e.g., \n)
+table_20xx: # Add this block for each individual year to be loaded
+    file_path: # Add path to file (e.g., //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2012.txt)
+    vars_2012: # Add any additional variables specific to this year
+        - # One per line with dash in front
+    field_term: # Add the field terminator (e.g., \t, ,)
+    row_term: # Add the row terminator (e.g., \n)
+table_20xx:
+    file_path: 
+    vars_2015: null
+    field_term: null
+    row_term: null
+combine_years:
+    - # List the years to be combined into a single table (e.g., 2012)
+    - # One per line, dash in front
+    - # Don't add years here that don't have a code block above
+    - #     unless the table already exists and is loaded

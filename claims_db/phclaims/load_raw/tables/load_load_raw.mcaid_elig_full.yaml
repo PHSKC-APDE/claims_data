@@ -1,0 +1,84 @@
+schema: load_raw
+table: mcaid_elig
+index_name: idx_cl_load_raw_mcaid_elig_CLNDR_YEAR_MNTH_MEDICAID_RECIPIENT_ID
+index:
+    - CLNDR_YEAR_MNTH
+    - MEDICAID_RECIPIENT_ID
+vars:
+    - CLNDR_YEAR_MNTH
+    - MEDICAID_RECIPIENT_ID
+    - HOH_ID
+    - SOCIAL_SECURITY_NMBR
+    - FIRST_NAME
+    - MIDDLE_NAME
+    - LAST_NAME
+    - GENDER
+    - RACE1_NAME
+    - RACE2_NAME
+    - RACE3_NAME
+    - RACE4_NAME
+    - HISPANIC_ORIGIN_NAME
+    - BIRTH_DATE
+    - SPOKEN_LNG_NAME
+    - WRTN_LNG_NAME
+    - PRGNCY_DUE_DATE
+    - RPRTBL_RAC_CODE
+    - RPRTBL_RAC_NAME
+    - RAC_CODE
+    - RAC_NAME
+    - RPRTBL_BSP_GROUP_CID
+    - RPRTBL_BSP_GROUP_NAME
+    - FROM_DATE
+    - TO_DATE
+    - END_REASON
+    - COVERAGE_TYPE_IND
+    - MC_PRVDR_ID
+    - MC_PRVDR_NAME
+    - DUAL_ELIG
+    - TPL_FULL_FLAG
+    - RSDNTL_ADRS_LINE_1
+    - RSDNTL_ADRS_LINE_2
+    - RSDNTL_CITY_NAME
+    - RSDNTL_STATE_CODE
+    - RSDNTL_POSTAL_CODE
+    - RSDNTL_COUNTY_CODE
+    - RSDNTL_COUNTY_NAME
+    - MBR_ACES_IDNTFR
+    - MBR_H_SID
+#table_2012:
+#    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2012.txt
+#    vars_2012: null
+#table_2013:
+#    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2013.txt
+#    vars_2013: null
+table_2014:
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2014.txt
+    vars_2014: null
+table_2015:
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2015.txt
+    vars_2015: null
+    field_term: \t
+    row_term: \n
+table_2016:
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2016.txt
+    vars_2016: null
+    field_term: \t
+    row_term: \n
+table_2017:
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2017.txt
+    vars_2017: null
+    field_term: \t
+    row_term: \n
+table_2018:
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2018.txt
+    vars_2018: null
+    field_term: \t
+    row_term: \n
+combine_years:
+    #- 2012
+    #- 2013
+    - 2014
+    - 2015
+    - 2016
+    - 2017
+    - 2018

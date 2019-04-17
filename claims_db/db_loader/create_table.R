@@ -31,11 +31,11 @@ create_table_f <- function(
   #### INITIAL ERROR CHECK ####
   # Check that the yaml config file exists in the right format
   if (file.exists(config_file) == F) {
-    stop("File does not exist, check file name")
+    stop("Config file does not exist, check file name")
   }
   
   if (is.yaml.file(config_file) == F) {
-    stop(paste0("File is not a YAML config file. \n", 
+    stop(paste0("Config file is not a YAML config file. \n", 
                 "Check there are no duplicate variables listed"))
   }
   
@@ -105,7 +105,7 @@ create_table_f <- function(
   
   if (ind_yr == T) {
     # Use unique in case variables are repeated
-    years <- unique(table_config$years)
+    years <- sort(unique(table_config$years))
   }
   
   
@@ -131,7 +131,7 @@ create_table_f <- function(
     print(paste0("Creating calendar year [", schema, "].[", table_name, "] tables", test_msg))
     
     lapply(years, function(x) {
-      tbl_name <- DBI::Id(schema = schema, table = paste0(table_name, x))
+      tbl_name <- DBI::Id(schema = schema, table = paste0(table_name, "_", x))
       
       if (overwrite == T) {
         if (dbExistsTable(conn, tbl_name)) {
@@ -148,4 +148,5 @@ create_table_f <- function(
       DBI::dbCreateTable(conn, tbl_name, fields = vars)
     })
   }
+  
 }
