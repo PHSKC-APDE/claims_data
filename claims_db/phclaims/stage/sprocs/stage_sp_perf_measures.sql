@@ -16,8 +16,8 @@ BEGIN
 IF @measure_name = 'All-Cause ED Visits'
 BEGIN
 
-DELETE FROM [stage].[mcaid_perf_measures]
-FROM [stage].[mcaid_perf_measures] AS a
+DELETE FROM [stage].[mcaid_perf_measure]
+FROM [stage].[mcaid_perf_measure] AS a
 INNER JOIN [ref].[perf_measure] AS b
 ON a.[measure_id] = b.[measure_id]
 WHERE b.[measure_name] = @measure_name
@@ -72,7 +72,7 @@ WHERE ym.[year_month] >= (SELECT [beg_measure_year_month] FROM [ref].[perf_year_
 AND ym.[year_month] <= ' + CAST(@end_month_int AS CHAR(6)) + '
 )
 
-INSERT INTO [stage].[mcaid_perf_measures]
+INSERT INTO [stage].[mcaid_perf_measure]
 ([beg_year_month]
 ,[end_year_month]
 ,[id]
@@ -105,8 +105,8 @@ END
 IF @measure_name = 'Acute Hospital Utilization'
 BEGIN
 
-DELETE FROM [stage].[mcaid_perf_measures]
-FROM [stage].[mcaid_perf_measures] AS a
+DELETE FROM [stage].[mcaid_perf_measure]
+FROM [stage].[mcaid_perf_measure] AS a
 INNER JOIN [ref].[perf_measure] AS b
 ON a.[measure_id] = b.[measure_id]
 WHERE b.[measure_name] = @measure_name
@@ -162,7 +162,7 @@ WHERE ym.[year_month] >= (SELECT [beg_measure_year_month] FROM [ref].[perf_year_
 AND ym.[year_month] <= ' + CAST(@end_month_int AS CHAR(6)) + '
 )
 
-INSERT INTO [stage].[mcaid_perf_measures]
+INSERT INTO [stage].[mcaid_perf_measure]
 ([beg_year_month]
 ,[end_year_month]
 ,[id]
@@ -193,11 +193,126 @@ AND [hospice_t_12_m] = 0
 AND [outlier] = 0;'
 END
 
+IF @measure_name = 'Follow-up ED visit for Alcohol/Drug Abuse'
+BEGIN
+
+DELETE FROM [stage].[mcaid_perf_measure]
+FROM [stage].[mcaid_perf_measure] AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON a.[measure_id] = b.[measure_id]
+WHERE b.[measure_name] LIKE @measure_name + '%'
+AND [end_year_month] = @end_month_int;
+
+SET @SQL = @SQL + N'
+
+WITH CTE AS
+(
+SELECT
+ ym.[beg_measure_year_month] AS [beg_year_month]
+,stg.[year_month] AS [end_year_month]
+,den.[end_quarter]
+,stg.[id]
+,den.[end_month_age]
+,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
+      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
+      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
+      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
+      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
+      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
+      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
+      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
+      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
+ END AS [age_grp]
+,ref.[measure_id]
+,den.[full_criteria]
+,den.[hospice]
+/*
+Members need coverage in month following index event.
+*/
+,[full_criteria_p_2_m]
+,[hospice_p_2_m]
+
+,stg.[event_date]
+/*
+If index visit occurs on 1st of month, then 31-day follow-up period contained
+within calendar month.
+Then, [full_criteria_p_2_m], [hospice_p_2_m] are not used
+*/
+,CASE WHEN DAY(stg.[event_date]) = 1 AND MONTH([event_date]) IN (1, 3, 5, 7, 8, 10, 12)
+THEN 1 ELSE 0 END AS [need_1_month_coverage]
+
+,stg.[denominator]
+,stg.[numerator]
+
+FROM [stage].[perf_staging_event_date] AS stg
+
+INNER JOIN [ref].[perf_measure] AS ref
+ON stg.[measure_id] = ref.[measure_id]
+AND ref.[measure_name] LIKE ''' + CAST(@measure_name AS VARCHAR(200)) + '%' + '''
+
+INNER JOIN [ref].[perf_year_month] AS ym
+ON stg.[year_month] = ym.[year_month]
+
+LEFT JOIN [stage].[perf_enroll_denom] AS den
+ON stg.[id] = den.[id]
+AND stg.[year_month] = den.[year_month]
+
+/*
+Join age_grp columns here, use CASE above to select age_grp_x from ref.perf_measure
+*/
+LEFT JOIN [ref].[age_grp] AS age
+ON den.[end_month_age] = age.[age]
+
+WHERE stg.[event_date] >= (SELECT [12_month_prior] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
+/*
+Cut off index visits during last 31-day period
+because of insufficient follow-up period
+*/
+AND stg.[event_date] <= (SELECT DATEADD(DAY, -30, [end_month]) FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
+)
+
+INSERT INTO [stage].[mcaid_perf_measure]
+([beg_year_month]
+,[end_year_month]
+,[id]
+,[end_month_age]
+,[age_grp]
+,[measure_id]
+,[denominator]
+,[numerator]
+,[load_date])
+
+SELECT
+ (SELECT [beg_measure_year_month] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ') AS [beg_year_month]
+,' + CAST(@end_month_int AS CHAR(6)) + ' AS [end_year_month]
+,[id]
+,[end_month_age]
+,[age_grp]
+,[measure_id]
+,SUM([denominator]) AS [denominator]
+,SUM([numerator]) AS [numerator]
+,CAST(GETDATE() AS DATE) AS [load_date]
+
+FROM [CTE]
+
+WHERE 1 = 1
+AND [end_month_age] >= 13
+AND [full_criteria] = 1
+AND [hospice] = 0
+AND (([need_1_month_coverage] = 1) OR ([full_criteria_p_2_m] = 2 AND [hospice_p_2_m] = 0))
+
+GROUP BY 
+ [id]
+,[end_month_age]
+,[age_grp]
+,[measure_id];'
+END
+
 IF @measure_name = 'Child and Adolescent Access to Primary Care'
 BEGIN
 
-DELETE FROM [stage].[mcaid_perf_measures]
-FROM [stage].[mcaid_perf_measures] AS a
+DELETE FROM [stage].[mcaid_perf_measure]
+FROM [stage].[mcaid_perf_measure] AS a
 INNER JOIN [ref].[perf_measure] AS b
 ON a.[measure_id] = b.[measure_id]
 WHERE b.[measure_name] = @measure_name
@@ -258,7 +373,7 @@ WHERE ym.[year_month] >= (SELECT [beg_measure_year_month] - 100 FROM [ref].[perf
 AND ym.[year_month] <= ' + CAST(@end_month_int AS CHAR(6)) + '
 )
 
-INSERT INTO [final].[perf_measures]
+INSERT INTO [stage].[mcaid_perf_measure]
 ([beg_year_month]
 ,[end_year_month]
 ,[id]
