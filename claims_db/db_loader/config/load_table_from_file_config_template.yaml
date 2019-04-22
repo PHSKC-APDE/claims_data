@@ -1,6 +1,6 @@
-schema: # add name of schema here
-table: # add name of table here
-index_name: # add name of clustered index here (if applicable)
+schema: # Add name of schema here
+table: # Add name of table here
+index_name: # Add name of clustered index here (if applicable)
 index:
     - # Add each column that goes into the index
     - # One on each line with a dash in front
@@ -29,3 +29,4 @@ combine_years:
     - # One per line, dash in front
     - # Don't add years here that don't have a code block above
     - #     unless the table already exists and is loaded
+# Make sure there is one blank line at the end (i.e., delete this comment but keep the line)

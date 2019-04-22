@@ -1,0 +1,16 @@
+from_schema: # Add name of source schema here
+from_table: # Add name of source table here
+to_schema: # Add name of destination schema here
+to_table: # Add name of destination table here
+index_name: # Add name of clustered index here (if applicable)
+index:
+    - # Add each column that goes into the index
+    - # One on each line with a dash in front
+vars:
+    - # Add column names here
+    - # One per line, dash in front
+    - # e.g., FROM_SERVICE_DATE
+    - # e.g., DIAGNOSIS_CODE_2
+date_var: # Column in the destination table that determines where to truncate old data from (e.g., prescription_filled_dt, CLNDR_YEAR_MNTH)
+date_truncate: # Marks the date from which to truncate records and insert and new ones (should match format of date_var)
+# Make sure there is one blank line at the end (i.e., delete this comment but keep the line)

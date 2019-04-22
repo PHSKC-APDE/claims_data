@@ -171,36 +171,37 @@ load_table_from_file_f <- function(
     
     # Truncate existing table if desired
     if (truncate_inner == T) {
-      dbGetQuery(conn_inner, paste0("TRUNCATE TABLE ", schema_inner, ".", table_name_inner))
+      dbGetQuery(conn_inner, glue::glue_sql("TRUNCATE TABLE {`schema_inner`}.{`table_name_inner`}", 
+                                            .con = conn_inner))
     }
     
     # Remove existing clustered index if desired (and an index exists)
     if (drop_index == T) {
       # This code pulls out the clustered index name
-      index_name <- dbGetQuery(conn_inner,
-                               paste0("SELECT DISTINCT a.index_name
-                                      FROM
-                                      (SELECT ind.name AS index_name
-                                      FROM
-                                      (SELECT object_id, name, type_desc FROM sys.indexes
-                                      WHERE type_desc = 'CLUSTERED') ind
-                                      INNER JOIN
-                                      (SELECT name, schema_id, object_id FROM sys.tables
-                                      WHERE name = '", table_name_inner, "') t
-                                      ON ind.object_id = t.object_id
-                                      INNER JOIN
-                                      (SELECT name, schema_id FROM sys.schemas
-                                      WHERE name = '", schema_inner, "') s
-                                      ON t.schema_id = s.schema_id
-                                      ) a"))[[1]]
+      index_name <- dbGetQuery(conn_inner, glue::glue_sql("SELECT DISTINCT a.index_name
+                                  FROM
+                                  (SELECT ind.name AS index_name
+                                  FROM
+                                  (SELECT object_id, name, type_desc FROM sys.indexes
+                                  WHERE type_desc = 'CLUSTERED') ind
+                                  INNER JOIN
+                                  (SELECT name, schema_id, object_id FROM sys.tables
+                                  WHERE name = {`table`}) t
+                                  ON ind.object_id = t.object_id
+                                  INNER JOIN
+                                  (SELECT name, schema_id FROM sys.schemas
+                                  WHERE name = {`schema`}) s
+                                  ON t.schema_id = s.schema_id
+                                  ) a", .con = conn_inner,
+                                table = dbQuoteString(conn_inner, table_name_inner),
+                                schema = dbQuoteString(conn_inner, schema_inner)))[[1]]
 
       if (length(index_name) != 0) {
         dbGetQuery(conn_inner,
-                   paste0("DROP INDEX [", index_name, "] ON ",
-                          schema_inner, ".", table_name_inner))
+                   glue::glue_sql("DROP INDEX {`index_name`} ON 
+                                  {`schema_inner`}.{`table_name_inner`}", .con = conn_inner))
       }
     }
-
 
     # Pull out parameters for BCP load
     if (!is.null(table_config_inner[[config_section]][["field_term"]])) {
@@ -231,15 +232,14 @@ load_table_from_file_f <- function(
   if (overall == T) {
     # Run loading function
     loading_process_f(config_section = "overall")
-    
+
     # Add index to the table
     dbGetQuery(conn,
-               paste0("CREATE CLUSTERED INDEX [",
-                      dbQuoteString(conn, table_config$index_name),
-                      "] ON [", schema, "].[", table_name, "]([",
-                      paste(table_config$index, collapse = "], ["), "])"))
+               glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
+                              {`schema`}.{`table_name`}({`index_vars`*})",
+                              index_vars = table_config$index,
+                              .con = conn))
   }
-  
   
   #### CALENDAR YEAR TABLES ####
   if (ind_yr == T) {
@@ -255,21 +255,18 @@ load_table_from_file_f <- function(
       
       # Add index to the table
       dbGetQuery(conn,
-                 paste0("CREATE CLUSTERED INDEX [",
-                        dbQuoteString(conn, table_config$index_name),
-                        "] ON [", schema, "].[", table_name_new, "]([",
-                        paste(table_config$index, collapse = "], ["), "])"))
+                 glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
+                                {`schema`}.{`table_name_new`}({`index_vars`*})",
+                                index_vars = table_config$index,
+                                .con = conn))
     })
     
     # Combine individual years into a single table if desired
     if (combine_yr == T) {
-      # Remove data from existing combined table if desired
-      # if (truncate == T) {
-      #   dbGetQuery(conn_inner, paste0("TRUNCATE TABLE ", schema, ".", table_name))
-      # }
-      
       if (truncate == T) {
-        dbGetQuery(conn, paste0("TRUNCATE TABLE ", schema, ".", table_name))
+        # Remove data from existing combined table if desired
+        dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`schema`}.{`table_name`}", 
+                                              .con = conn))
       }
       
       
@@ -285,9 +282,10 @@ load_table_from_file_f <- function(
       
       
       # Set up SQL code to load columns
-      sql_combine <- paste0("INSERT INTO ", schema, ".", table_name, 
-                            " WITH (TABLOCK) SELECT ", 
-                            paste(all_vars, collapse = ", "), " FROM (")
+      sql_combine <- glue::glue_sql("INSERT INTO {`schema`}.{`table_name`} WITH (TABLOCK) 
+                                    SELECT {`vars`*} FROM (", 
+                                    .con = conn,
+                                    vars = all_vars)
       
       # For each year check which of the additional columns are present
       lapply(seq_along(combine_years), function(x) {
@@ -308,13 +306,21 @@ load_table_from_file_f <- function(
         
         # Add to main SQL statement
         if (x < length(combine_years)) {
-          sql_combine <<- paste0(sql_combine, "SELECT ", 
-                                 paste(vars_to_load, collapse = ", "), " FROM ",
-                                 schema, ".", table_name_new, " UNION ALL ")
+          # sql_combine <<- paste0(sql_combine, "SELECT ", 
+          #                        paste(vars_to_load, collapse = ", "), " FROM ",
+          #                        schema, ".", table_name_new, " UNION ALL ")
+          sql_combine <<- glue::glue_sql("{`sql_combine`} SELECT {`vars_to_load`*}
+                                         FROM {`schema`}.{`table`} UNION ALL ",
+                                         .con = conn,
+                                         table = table_name_new)
         } else {
-          sql_combine <<- paste0(sql_combine, "SELECT ", 
-                                 paste(vars_to_load, collapse = ", "), " FROM ",
-                                 schema, ".", table_name_new, ") AS tmp")
+          # sql_combine <<- paste0(sql_combine, "SELECT ", 
+          #                        paste(vars_to_load, collapse = ", "), " FROM ",
+          #                        schema, ".", table_name_new, ") AS tmp")
+          sql_combine <<- glue::glue_sql("{`sql_combine`} SELECT {`vars_to_load`*}
+                                         FROM {`schema`}.{`table`}) AS tmp",
+                                         .con = conn,
+                                         table = table_name_new)
         }
         
       })
@@ -323,7 +329,6 @@ load_table_from_file_f <- function(
     }
   }
 }
-
 
 
 
@@ -343,7 +348,7 @@ load_table_from_sql_f <- function(
   conn,
   config_file,
   truncate = F,
-  date_truncate = T,
+  truncate_date = T,
   auto_date = T,
   test_mode = F
   ) {
@@ -406,12 +411,12 @@ load_table_from_sql_f <- function(
     }
   }
 
-  if (truncate == T & date_truncate == T) {
-    print("Warning: truncate and date_truncate both set to TRUE. \n
+  if (truncate == T & truncate_date == T) {
+    print("Warning: truncate and truncate_date both set to TRUE. \n
           Entire table will be truncated.")
   }
   
-  if (date_truncate == T) {
+  if (truncate_date == T) {
     if (!"date_var" %in% eval.config.sections(config_file)) {
       stop("YAML file is missing a date_var section")
     }
@@ -419,7 +424,7 @@ load_table_from_sql_f <- function(
       stop("No date_var variable specified")
     }
     
-    if (auto_truncate == F) {
+    if (auto_date == F) {
       if (!"date_truncate" %in% eval.config.sections(config_file)) {
         stop("YAML file is missing a date_truncate section")
       }
@@ -448,13 +453,19 @@ load_table_from_sql_f <- function(
     to_schema <- "tmp"
     archive_schema <- "tmp"
     from_table_name <- paste0(table_config$from_schema, "_", from_table_name)
+    archive_table_name <- paste0("archive_", to_table_name)
     to_table_name <- paste0(table_config$to_schema, "_", to_table_name)
     load_rows <- " TOP (5000) " # Using 5,000 to better test data from multiple years
+    archive_rows <- " TOP (4000) " # When unioning tables in test mode, ensure a mix from both
+    new_rows <- " TOP (1000) " # When unioning tables in test mode, ensure a mix from both
   } else {
     from_schema <- table_config$from_schema
     to_schema <- table_config$to_schema
     archive_schema <- "archive"
+    archive_table_name <- to_table_name
     load_rows <- ""
+    archive_rows <- ""
+    new_rows <- ""
   }
   
   if (!is.null(table_config$index_name)) {
@@ -463,41 +474,75 @@ load_table_from_sql_f <- function(
     add_index <- FALSE
   }
   
+  if (truncate_date == T) {
+    
+    date_var <- table_config$date_var
+    
+    if (auto_date == T) {
+      # Find the most recent date in the new data
+      max_date <- dbGetQuery(conn, glue::glue_sql("SELECT MAX({`table_config$date_var`})
+                                 FROM {`from_schema`}.{`from_table_name`}",
+                                 .con = conn))
+      
+      print(paste0("Most recent date found in the new data: ", max_date))
+      
+      # If using auto-date, assume the data run through to the end of the month
+      #   even if the actual date does not
+      if (nchar(max_date) == 6) {
+        if (str_sub(as.character(max_date), -2, -1) == "12") {
+          date_truncate <- max_date - 11
+        } else {
+          date_truncate <- max_date - 99
+        }
+      } else if (nchar(max_date %in% c(8, 10) | is.Date(max_date))) {
+        # Logic for full dates is go to the first day of the next month then back a year
+        #   (= going back to the first day of 11 months ago)
+        date_truncate <- rollback(max_date %m+% months(1), roll_to_first = T) - years(1)
+      } else {
+        stop("There was an error with the format of the date_var variable")
+      }
+    } else {
+      date_truncate <- table_config$date_truncate
+    }
+    
+    print(paste0("Date to truncate from: ", date_truncate))
+  }
+
   
-  #### DEAL WITH EXISTING TABLE
+  #### DEAL WITH EXISTING TABLE ####
   # Truncate existing table if desired
   if (truncate == T) {
-    dbGetQuery(conn, paste0("TRUNCATE TABLE ", to_schema, ".", to_table_name))
+    dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`to_schema`}.{`to_table_name`}", .con = conn))
   }
   
-  # Truncate from a given date if desired
-  if (truncate == F & date_truncate == T) {
+  # 'Truncate' from a given date if desired (really move existing data to archive then copy back)
+  if (truncate == F & truncate_date == T) {
+    print("Archiving existing table")
     # Check if the archive table exists and move table over. If not, show error.
     tbl_id <- DBI::Id(catalog = "PHClaims", schema = archive_schema, table = to_table_name)
     if (dbExistsTable(conn, tbl_id)) {
-      print(paste0("Truncating archive.", to_table_name))
-      dbGetQuery(conn, paste0("TRUNCATE TABLE ", archive_schema, ".", to_table_name))
+      dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`archive_schema`}.{`archive_table_name`}", .con = conn))
       
-      sql_transfer <- dbQuoteString(conn, 
-                                   paste0("INSERT INTO ", archive_schema, ".", to_table_name, 
-                                          " WITH (TABLOCK) SELECT ", load_rows,
-                                          paste(vars, collapse = ", "), " FROM ",
-                                          to_schema, ".", to_table_name))
-      
-      dbGetQuery(conn, sql_transfer)
-      
+      sql_archive <- glue::glue_sql("INSERT INTO {`archive_schema`}.{`archive_table_name`} WITH (TABLOCK) 
+                                SELECT {`archive_rows`} {`vars`*} FROM 
+                                {`to_schema`}.{`to_table_name`}", .con = conn,
+                                     archive_rows = DBI::SQL(archive_rows))
+
+      dbGetQuery(conn, sql_archive)
     } else {
-      stop(paste0(archive_schema, ".", to_table_name, " does not exist. \n",
+      stop(paste0(archive_schema, ".", archive_table_name, " does not exist. \n",
                   " Create this table then rerun the load function."))
     }
+    # Now truncate destination table
+    dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`to_schema`}.{`to_table_name`}", .con = conn))
+    
   }
   
   
   # Remove existing clustered index if a new one is to be added
   if (add_index == T) {
     # This code pulls out the clustered index name
-    index_name <- dbGetQuery(conn,
-                             paste0("SELECT DISTINCT a.index_name
+    index_sql <- glue::glue_sql("SELECT DISTINCT a.index_name
                                   FROM
                                   (SELECT ind.name AS index_name
                                   FROM
@@ -505,63 +550,61 @@ load_table_from_sql_f <- function(
                                   WHERE type_desc = 'CLUSTERED') ind
                                   INNER JOIN
                                   (SELECT name, schema_id, object_id FROM sys.tables
-                                  WHERE name = '", to_table_name, "') t
+                                  WHERE name = {`table`}) t
                                   ON ind.object_id = t.object_id
                                   INNER JOIN
                                   (SELECT name, schema_id FROM sys.schemas
-                                  WHERE name = '", to_schema, "') s
+                                  WHERE name = {`schema`}) s
                                   ON t.schema_id = s.schema_id
-                                  ) a"))[[1]]
+                                  ) a", .con = conn,
+                                table = dbQuoteString(conn, to_table_name),
+                                schema = dbQuoteString(conn, to_schema))
+    
+    
+    index_name <- dbGetQuery(conn, index_sql)[[1]]
     
     if (length(index_name) != 0) {
       dbGetQuery(conn,
-                 paste0("DROP INDEX [", index_name, "] ON ",
-                        to_schema, ".", to_table_name))
+                 glue::glue_sql("DROP INDEX {`index_name`} ON 
+                                {`to_schema`}.{`to_table_name`}", .con = conn))
     }
   }
   
+
   #### LOAD DATA TO TABLE ####
   # Add message to user
   print(paste0("Loading to [", to_schema, "].[", to_table_name, "] table", test_msg))
   
   # Run INSERT statement
-  sql_combine <- paste0("INSERT INTO ", 
-                        dbQuoteIdentifier(conn, to_schema), ".",
-                        dbQuoteIdentifier(conn, to_table_name), 
-                        " WITH (TABLOCK) SELECT ", load_rows,
-                        paste(vars, collapse = ", "), " FROM ",
-                        dbQuoteIdentifier(conn, from_schema), ".",
-                        dbQuoteIdentifier(conn, from_table_name))
-  
-  #print(sql_combine)
-  print("code above")
-  
-  # sql_combine <- DBI::sqlInterpolate(db_claims, "INSERT INTO ?to_schema.?to_table_name 
-  #                               WITH (TABLOCK) SELECT ?load_rows ?vars FROM 
-  #                               ?from_schema.?from_table_name",
-  #                                    to_schema = dbQuoteIdentifier(conn, to_schema),
-  #                                    to_table_name = dbQuoteIdentifier(conn, to_table_name),
-  #                                    load_rows = DBI::SQL(load_rows),
-  #                                    #vars = DBI::SQL(paste(vars, collapse = ", ")), # works but vulnerable
-  #                                    #vars = DBI::SQL(paste(dbQuoteString(conn, vars), collapse = ", ")), # doesn't work
-  #                                    #vars = dbQuoteString(conn, vars), # doesn't work
-  #                                    vars = paste0(dbQuoteString(conn, vars), collapse = ", "), # doesn't work, too many quote makrs
-  #                                    #vars = DBI::sqlData(conn, data.frame(vars = table_config$vars, stringsAsFactors = F)), # fails
-  #                                    from_schema = dbQuoteIdentifier(conn, from_schema),
-  #                                    from_table_name = dbQuoteIdentifier(conn, from_table_name)
-  #                                    )
-  
-  
-  sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table_name`} WITH (TABLOCK) 
+  if (truncate_date == F) {
+    sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table_name`} WITH (TABLOCK) 
                                 SELECT {`load_rows`} {`vars`*} FROM 
                                 {`from_schema`}.{`from_table_name`}", .con = conn,
-                                 load_rows = DBI::SQL(load_rows))
-  
-  
-  print(sql_combine)
-  print("new code above")
-  
+                                  load_rows = DBI::SQL(load_rows))
+  } else if (truncate_date == T) {
+    sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table_name`} WITH (TABLOCK)
+                                  SELECT {`archive_rows`} {`vars`*} FROM 
+                                  {`archive_schema`}.{`archive_table_name`}
+                                  WHERE {`date_var`} < {`date_truncate`}  
+                                  UNION 
+                                  SELECT {`new_rows`} {`vars`*} FROM 
+                                  {`from_schema`}.{`from_table_name`}
+                                  WHERE {`date_var`} >= {`date_truncate`}",
+                                  .con = conn,
+                                  load_rows = DBI::SQL(load_rows),
+                                  archive_rows = DBI::SQL(archive_rows),
+                                  new_rows = DBI::SQL(new_rows),
+                                  date_var = dbQuoteIdentifier(conn, date_var),
+                                  date_truncate = dbQuoteString(conn, as.character(date_truncate)))
+  }
   dbGetQuery(conn, sql_combine)
+  
+  # Add index to the table
+  dbGetQuery(conn,
+             glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
+                            {`to_schema`}.{`to_table_name`}({`index_vars`*})",
+                            index_vars = table_config$index,
+                            .con = conn))
 
 }
 
