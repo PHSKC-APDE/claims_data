@@ -5,6 +5,6 @@ index:
     - CLNDR_YEAR_MNTH
     - MEDICAID_RECIPIENT_ID
 overall:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2014.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2014.txt # This is just a placeholder
     field_term: \t
     row_term: \n
