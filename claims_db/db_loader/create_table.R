@@ -93,14 +93,15 @@ create_table_f <- function(
   
   
   #### VARIABLES ####
+  table_name <- table_config$table
+  vars <- unlist(table_config$vars)
+  
   if (test_mode == T) {
     schema <- "tmp"
+    table_name <- paste0(table_config$schema, "_", table_name)
   } else {
     schema <- table_config$schema
   }
-  
-  table_name <- table_config$table
-  vars <- unlist(table_config$vars)
   
   
   if (ind_yr == T) {
