@@ -818,3 +818,29 @@ if (dbExistsTable(db_claims, "stage.mcaid_perf_measures") == T) {
                     (SELECT age, age_grp_10 FROM ref.age_grp) b
                     ON a.end_month_age = b.age"))
 }
+
+
+### See how many people are excluded at each step
+### Eventually add this as a flag when this code is turned into a function
+elig_asthma <- asthma_denom %>% group_by(end_month) %>% summarise(any_asthma = n()) %>% ungroup() %>%
+  left_join(., asthma_denom %>% filter(rx_any == 1) %>%
+              group_by(end_month) %>% summarise(had_rx = n_distinct(id)) %>% ungroup(),
+            by = "end_month") %>%
+  left_join(., asthma_denom %>% filter(enroll_flag == 1) %>%
+              group_by(end_month) %>% summarise(elig_enroll = n_distinct(id)) %>% ungroup(),
+            by = "end_month") %>%
+  left_join(., asthma_denom %>% filter(persistent == 1) %>%
+              group_by(end_month) %>% summarise(persistent = n_distinct(id)) %>% ungroup(),
+            by = "end_month") %>%
+  left_join(., asthma_denom %>% filter(dx_exclude == 0) %>%
+              group_by(end_month) %>% summarise(dx_exclude = n_distinct(id)) %>% ungroup(),
+            by = "end_month") %>%
+  left_join(., asthma_denom %>% filter(enroll_flag == 1 & persistent == 1) %>%
+              group_by(end_month) %>% summarise(elig_enroll_persistent = n_distinct(id)) %>% ungroup(),
+            by = "end_month") %>%
+  left_join(., asthma_denom %>% filter(enroll_flag == 1 & rx_any == 1 & persistent == 1 & dx_exclude == 0) %>%
+              group_by(end_month) %>% summarise(all_criteria = n_distinct(id)) %>% ungroup(),
+            by = "end_month")
+
+write.csv(elig_asthma, file = "//dchs-shares01/dchsdata/DCHSPHClaimsData/Analyses/Alastair/asthma_amr_elig_numbers.csv",
+          row.names = F)
