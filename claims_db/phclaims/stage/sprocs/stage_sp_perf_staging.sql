@@ -12,11 +12,10 @@ CREATE PROCEDURE [stage].[sp_perf_staging]
 AS
 SET NOCOUNT ON;
 DECLARE @SQL NVARCHAR(MAX) = '';
+DECLARE @start_month_date DATE;
+DECLARE @end_month_date DATE;
 
 BEGIN
-DECLARE 
- @start_month_date DATE
-,@end_month_date DATE;
 
 IF @measure_name = 'All-Cause ED Visits'
 BEGIN
@@ -297,7 +296,7 @@ DROP TABLE #v_perf_tpm_numerator;
 SELECT *
 INTO #v_perf_tpm_numerator
 FROM [stage].[v_perf_tpm_numerator]
-WHERE [from_date] BETWEEN @start_month_date AND @end_month_date;
+WHERE [from_date] BETWEEN ''' + CAST(@start_month_date AS CHAR(10)) + ''' AND ''' + CAST(@end_month_date AS CHAR(10)) + ''';
 CREATE CLUSTERED INDEX idx_cl_#v_perf_tpm_numerator ON #v_perf_tpm_numerator([from_date]);
 
 IF OBJECT_ID(''tempdb..#v_perf_tpm_denominator'') IS NOT NULL
@@ -305,7 +304,7 @@ DROP TABLE #v_perf_tpm_denominator;
 SELECT *
 INTO #v_perf_tpm_denominator
 FROM [stage].[v_perf_tpm_denominator]
-WHERE [from_date] BETWEEN @start_month_date AND @end_month_date;
+WHERE [from_date] BETWEEN ''' + CAST(@start_month_date AS CHAR(10)) + ''' AND ''' + CAST(@end_month_date AS CHAR(10)) + ''';
 CREATE CLUSTERED INDEX idx_cl_#v_perf_tpm_denominator ON #v_perf_tpm_denominator([from_date]);
 
 INSERT INTO [stage].[perf_staging]
