@@ -7,7 +7,14 @@
 
 -- Code collapses data from 1+ rows per person per month to a single row of contiguous coverage for all time-varying variables (coverage type,
 --dual flag, RAC code, ZIP code of residence
--- Takes 80 min to run
+--Note for dental coverage: can't do same thing with dental coverage because there is no dental coverage information in member_month_detail
+-- Takes 94 min to run
+
+------------------
+--Set extract max date which is used to convert future dates
+------------------
+declare @extract_date varchar(100);
+set @extract_date = '2018-09-30';
 
 -------------------
 --STEP 1: Join distinct member IDs with year-month matrix
@@ -21,7 +28,7 @@ if object_id('tempdb..#id_month') is not null drop table #id_month;
 select a.internal_member_id, b.beg_month, b.end_month
 into #id_month
 from #id as a
-full join (select beg_month, end_month, 1 as flag from phclaims.ref.year_month where beg_month >= '2014-01-01' and end_month <= '2018-06-30') as b
+full join (select beg_month, end_month, 1 as flag from phclaims.ref.year_month where beg_month >= '2014-01-01' and end_month <= @extract_date) as b
 on a.flag = b.flag;
 
 
@@ -36,7 +43,7 @@ left join (
   select internal_member_id, eligibility_start_dt,
   --set ongoing eligibility end dates to latest extract end date 
   case 
-    when eligibility_end_dt > '2018-06-30' then '2018-06-30'
+    when eligibility_end_dt > @extract_date then @extract_date
     else eligibility_end_dt
   end as eligibility_end_dt,
   --convert dual information to binary numeric flag
