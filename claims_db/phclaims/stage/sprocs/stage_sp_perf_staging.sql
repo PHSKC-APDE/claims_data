@@ -354,6 +354,85 @@ ON a.[from_date] BETWEEN ym.[beg_month] AND ym.[end_month]
 GROUP BY ym.[year_month], a.[id], b.[measure_id];'
 END
 
+IF @measure_name = 'SUD Treatment Penetration'
+BEGIN
+
+DELETE FROM [stage].[perf_staging]
+FROM [stage].[perf_staging] AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON a.[measure_id] = b.[measure_id]
+WHERE b.[measure_name] = @measure_name
+AND [year_month] >= @start_month_int
+AND [year_month] <= @end_month_int;
+
+SET @start_month_date = CAST(CAST(@start_month_int * 100 + 1 AS CHAR(8)) AS DATE);
+SET @end_month_date = EOMONTH(CAST(CAST(@end_month_int * 100 + 1 AS CHAR(8)) AS DATE));
+
+SET @SQL = @SQL + N'
+
+IF OBJECT_ID(''tempdb..#v_perf_tps_numerator'') IS NOT NULL
+DROP TABLE #v_perf_tps_numerator;
+SELECT *
+INTO #v_perf_tps_numerator
+FROM [stage].[v_perf_tps_numerator]
+WHERE [from_date] BETWEEN ''' + CAST(@start_month_date AS CHAR(10)) + ''' AND ''' + CAST(@end_month_date AS CHAR(10)) + ''';
+CREATE CLUSTERED INDEX idx_cl_#v_perf_tps_numerator ON #v_perf_tps_numerator([from_date]);
+
+IF OBJECT_ID(''tempdb..#v_perf_tps_denominator'') IS NOT NULL
+DROP TABLE #v_perf_tps_denominator;
+SELECT *
+INTO #v_perf_tps_denominator
+FROM [stage].[v_perf_tps_denominator]
+WHERE [from_date] BETWEEN ''' + CAST(@start_month_date AS CHAR(10)) + ''' AND ''' + CAST(@end_month_date AS CHAR(10)) + ''';
+CREATE CLUSTERED INDEX idx_cl_#v_perf_tps_denominator ON #v_perf_tps_denominator([from_date]);
+
+INSERT INTO [stage].[perf_staging]
+([year_month]
+,[id]
+,[measure_id]
+,[num_denom]
+,[measure_value]
+,[load_date])
+
+SELECT 
+ ym.[year_month]
+,a.[id]
+,b.[measure_id]
+,''N'' AS [num_denom]
+,MAX(a.[flag]) AS [measure_value]
+,CAST(GETDATE() AS DATE) AS [load_date]
+
+FROM #v_perf_tps_numerator AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON b.[measure_name] = ''' + @measure_name + '''
+INNER JOIN [ref].[perf_year_month] AS ym
+ON a.[from_date] BETWEEN ym.[beg_month] AND ym.[end_month]
+GROUP BY ym.[year_month], a.[id], b.[measure_id];
+
+INSERT INTO [stage].[perf_staging]
+([year_month]
+,[id]
+,[measure_id]
+,[num_denom]
+,[measure_value]
+,[load_date])
+
+SELECT 
+ ym.[year_month]
+,a.[id]
+,b.[measure_id]
+,''D'' AS [num_denom]
+,MAX(a.[flag]) AS [measure_value]
+,CAST(GETDATE() AS DATE) AS [load_date]
+
+FROM #v_perf_tps_denominator AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON b.[measure_name] = ''' + @measure_name + '''
+INNER JOIN [ref].[perf_year_month] AS ym
+ON a.[from_date] BETWEEN ym.[beg_month] AND ym.[end_month]
+GROUP BY ym.[year_month], a.[id], b.[measure_id];'
+END
+
 IF @measure_name = 'Child and Adolescent Access to Primary Care'
 BEGIN
 

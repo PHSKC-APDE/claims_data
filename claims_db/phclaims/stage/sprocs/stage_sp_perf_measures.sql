@@ -582,6 +582,128 @@ AND [denominator] = 1
 AND [full_criteria_t_12_m] >= 11;'
 END
 
+IF @measure_name = 'SUD Treatment Penetration'
+BEGIN
+
+DELETE FROM [stage].[mcaid_perf_measure]
+FROM [stage].[mcaid_perf_measure] AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON a.[measure_id] = b.[measure_id]
+WHERE b.[measure_name] = @measure_name
+AND [end_year_month] = @end_month_int;
+
+SET @SQL = @SQL + N'
+IF OBJECT_ID(''tempdb..#temp'') IS NOT NULL
+DROP TABLE #temp;
+WITH CTE AS
+(
+SELECT
+ ym.[beg_measure_year_month] AS [beg_year_month]
+,ym.[year_month] AS [end_year_month]
+,den.[end_quarter]
+,mem.[id]
+,den.[end_month_age]
+,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
+      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
+      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
+      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
+      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
+      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
+      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
+      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
+      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
+ END AS [age_grp]
+,ref.[measure_id]
+,den.[full_criteria_t_12_m]
+
+,stg_den.[measure_value] AS [denominator]
+,stg_num.[measure_value] AS [numerator]
+
+FROM [ref].[perf_year_month] AS ym
+
+CROSS JOIN [stage].[perf_distinct_member] AS mem
+
+LEFT JOIN [stage].[perf_enroll_denom] AS den
+ON mem.[id] = den.[id]
+AND ym.[year_month] = den.[year_month]
+AND den.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
+
+LEFT JOIN [ref].[perf_measure] AS ref
+ON ref.[measure_name] = ''' + @measure_name + '''
+
+LEFT JOIN [ref].[age_grp] AS age
+ON den.[end_month_age] = age.[age]
+
+LEFT JOIN [stage].[perf_staging] AS stg_den
+ON mem.[id] = stg_den.[id]
+AND ym.[year_month] = stg_den.[year_month]
+AND ref.[measure_id] = stg_den.[measure_id]
+AND stg_den.[num_denom] = ''D''
+
+LEFT JOIN [stage].[perf_staging] AS stg_num
+ON mem.[id] = stg_num.[id]
+AND ym.[year_month] = stg_num.[year_month]
+-- [beg_measure_year_month] denotes 12-month identification period for numerator
+AND stg_num.[year_month] >= (SELECT [beg_measure_year_month] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
+AND ref.[measure_id] = stg_num.[measure_id]
+AND stg_num.[num_denom] = ''N''
+
+-- [beg_measure_year_month] - 100 denotes 24-month identification period for denominator
+WHERE ym.[year_month] >= (SELECT [beg_measure_year_month] - 100 FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
+AND ym.[year_month] <= ' + CAST(@end_month_int AS CHAR(6)) + '
+)
+
+SELECT *
+INTO #temp
+FROM CTE;
+CREATE CLUSTERED INDEX idx_cl_#temp ON #temp([id], [end_year_month]);
+
+WITH CTE AS
+(
+SELECT
+ [beg_year_month]
+,[end_year_month]
+,[id]
+,[end_month_age]
+,[age_grp]
+,[measure_id]
+,[full_criteria_t_12_m]
+,MAX(ISNULL([denominator], 0)) OVER(PARTITION BY [id] ORDER BY [end_year_month] ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) AS [denominator]
+,MAX(ISNULL([numerator], 0)) OVER(PARTITION BY [id] ORDER BY [end_year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [numerator]
+FROM #temp
+)
+
+INSERT INTO [stage].[mcaid_perf_measure]
+([beg_year_month]
+,[end_year_month]
+,[id]
+,[end_month_age]
+,[age_grp]
+,[measure_id]
+,[denominator]
+,[numerator]
+,[load_date])
+
+SELECT
+ [beg_year_month]
+,[end_year_month]
+,[id]
+,[end_month_age]
+,[age_grp]
+,[measure_id]
+,[denominator]
+,[numerator]
+,CAST(GETDATE() AS DATE) AS [load_date]
+
+FROM CTE
+
+WHERE 1 = 1
+AND [end_month_age] >= 6
+AND [denominator] = 1
+-- [full_criteria_t_12_m] will be NULL in all rows except were [end_year_month] = @end_month_int
+AND [full_criteria_t_12_m] >= 11;'
+END
+
 IF @measure_name = 'Child and Adolescent Access to Primary Care'
 BEGIN
 
