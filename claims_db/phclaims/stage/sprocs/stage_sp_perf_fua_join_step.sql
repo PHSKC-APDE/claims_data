@@ -1,3 +1,37 @@
+/*
+This procedure join FUA ED visits (denominator events) with their follow-up 
+visits (numerator events).
+
+(1) Call [stage].[fn_perf_fua_ed_index_visit_exclusion] to get ED visits 
+subject to:
+[ed_within_30_day] = 0, no subsequent ED visit within 30 days
+[inpatient_within_30_day] = 0, no subsequent inpatient stay within 30 days
+
+(2) Call [stage].[fn_perf_fua_follow_up_visit] to get follow-up visits
+
+(3) Join based on 
+[follow-up].[from_date] BETWEEN [ED].[to_date] AND DATEADD(DAY, 7, [ED].[to_date])
+or
+[follow-up].[from_date] BETWEEN [ED].[to_date] AND DATEADD(DAY, 30, [ED].[to_date])
+
+Author: Philip Sylling
+Created: 2019-04-24
+Last Modified: 2019-04-24
+
+Returns:
+ [year_month]
+,[id]
+,[age]
+,[tcn]
+,[from_date]
+,[to_date]
+,[ed_index_visit], flag for ED visit
+,[ed_within_30_day]
+,[inpatient_within_30_day]
+,[need_1_month_coverage]
+,[follow_up_7_day], flag for follow-up visit
+,[follow_up_30_day], flag for follow-up visit
+*/
 
 USE PHClaims;
 GO

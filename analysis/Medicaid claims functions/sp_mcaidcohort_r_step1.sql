@@ -235,7 +235,7 @@ on zip.id = tract.id
 --select HRA-based region based on selected HRA
 left join (
 	select hra_id, hra, region_id, region
-	from PHClaims.dbo.ref_region_hra_1017
+	from PHClaims.ref.region_hra_1017
 ) as reg
 on hra.hra_id = reg.hra_id
 

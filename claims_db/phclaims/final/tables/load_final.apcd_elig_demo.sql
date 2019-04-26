@@ -2,7 +2,7 @@
 --A historical record of each person's non time-varying demographics (e.g. date of birth, gender)
 -- Eli Kern (PHSKC-APDE)
 -- 2019-3-28
--- Takes XX min to run
+-- Takes <1 min to run
 
 ------------------
 --STEP 1: Insert data that has passed QA in stage schema table
@@ -12,8 +12,8 @@ select
 	id_apcd,
 	dob,
 	ninety_only,
-	female,
-	male,
+	gender_female,
+	gender_male,
 	gender_me,
 	gender_recent
 from PHClaims.stage.apcd_elig_demo;

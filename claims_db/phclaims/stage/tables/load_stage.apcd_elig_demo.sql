@@ -51,8 +51,8 @@ select
 		else null
 	end as dob,
 	ninety_only,
-	female,
-	male,
+	female as gender_female,
+	male as gender_male,
 	--multiple gender variable
 	case
 		when female = 1 and male = 1 then 'Multiple'

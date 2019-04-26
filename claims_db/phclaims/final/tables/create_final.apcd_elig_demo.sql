@@ -8,8 +8,8 @@ CREATE TABLE PHClaims.final.apcd_elig_demo (
 	id_apcd bigint,
 	dob date,
 	ninety_only tinyint,
-	female tinyint,
-	male tinyint,
+	gender_female tinyint,
+	gender_male tinyint,
 	gender_me varchar(8),
 	gender_recent varchar(8)
 );

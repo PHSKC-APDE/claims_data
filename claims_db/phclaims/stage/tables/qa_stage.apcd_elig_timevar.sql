@@ -82,83 +82,16 @@ order by a.internal_member_id, a.year_month
 --member with multiple ZIP codes and contiguous and non-contiguous rows: 11269028924
 
 select * from phclaims.stage.apcd_elig_timevar
-where id_apcd = 12381222126
+where id_apcd = 11269028924
 order by from_date;
 
 select * from phclaims.stage.apcd_member_month_detail
-where internal_member_id = 12381222126
+where internal_member_id = 11269028924
 order by year_month;
 
 select eligibility_id, submitter_id, internal_member_id, coverage_class, eligibility_start_dt, eligibility_end_dt,
   product_code, dual_eligibility_code_id, aid_category_code 
 from phclaims.stage.apcd_eligibility
-where internal_member_id = 12381222126
+where internal_member_id = 11269028924
 --and coverage_class = 'MEDICAL'
 order by eligibility_start_dt;
-
-
-----------------
---EXTERNAL CONSISTENCY: For comparison with ProviderOne data
-----------------
---all people in King County in 2016
-select count(distinct id_apcd) as id_dcount
-from phclaims.stage.apcd_elig_timevar
-where from_date <= '2016-12-31' and to_date >= '2016-01-01'
-  and geo_ach = 'King';
-
---all Medicaid members (medical) in King County in 2016
---group by ID and find people with King residence and Medicaid coverage at any point in time in 2016
-select count(distinct id_apcd) as id_dcount
-from (
-select id_apcd, max(case when geo_ach = 'King' then 1 else 0 end) as king, max(med_medicaid) as med_medicaid
-from phclaims.stage.apcd_elig_timevar
-where from_date <= '2016-12-31' and to_date >= '2016-01-01'
-group by id_apcd
-) as a
-where king = 1 and med_medicaid = 1;
-  
---all Medicaid members (medical or pharm) in King County in 2016
---group by ID and find people with King residence and Medicaid coverage at any point in time in 2016
-select count(distinct id_apcd) as id_dcount
-from (
-select id_apcd, max(case when geo_ach = 'King' then 1 else 0 end) as king, max(med_medicaid) as med_medicaid, max(pharm_medicaid) as pharm_medicaid
-from phclaims.stage.apcd_elig_timevar
-where from_date <= '2016-12-31' and to_date >= '2016-01-01'
-group by id_apcd
-) as a
-where king = 1 and (med_medicaid = 1 or pharm_medicaid = 1);
-
---all Medicaid members (medical and pharm) in King County in 2016
---group by ID and find people with King residence and Medicaid coverage at any point in time in 2016
-select count(distinct id_apcd) as id_dcount
-from (
-select id_apcd, max(case when geo_ach = 'King' then 1 else 0 end) as king, max(med_medicaid) as med_medicaid, max(pharm_medicaid) as pharm_medicaid
-from phclaims.stage.apcd_elig_timevar
-where from_date <= '2016-12-31' and to_date >= '2016-01-01'
-group by id_apcd
-) as a
-where king = 1 and (med_medicaid = 1 and pharm_medicaid = 1);
-
---all Medicaid-Medicare dual members (medical) in King County in 2016
---group by ID and find people with King residence and Medicaid coverage at any point in time in 2016
-select count(distinct id_apcd) as id_dcount
-from (
-select id_apcd, max(case when geo_ach = 'King' then 1 else 0 end) as king, max(med_medicaid) as med_medicaid, max(pharm_medicaid) as pharm_medicaid,
-  max(med_medicare) as med_medicare, max(pharm_medicare) as pharm_medicare
-from phclaims.stage.apcd_elig_timevar
-where from_date <= '2016-12-31' and to_date >= '2016-01-01'
-group by id_apcd
-) as a
-where king = 1 and (med_medicaid = 1 and med_medicare = 1)
-
---all Medicaid-Medicare dual members (medical or pharmacy) in King County in 2016
---group by ID and find people with King residence and Medicaid coverage at any point in time in 2016
-select count(distinct id_apcd) as id_dcount
-from (
-select id_apcd, max(case when geo_ach = 'King' then 1 else 0 end) as king, max(med_medicaid) as med_medicaid, max(pharm_medicaid) as pharm_medicaid,
-  max(med_medicare) as med_medicare, max(pharm_medicare) as pharm_medicare
-from phclaims.stage.apcd_elig_timevar
-where from_date <= '2016-12-31' and to_date >= '2016-12-01'
-group by id_apcd
-) as a
-where king = 1 and ((med_medicaid = 1 or pharm_medicaid = 1) and (med_medicare = 1 or pharm_medicare = 1))
