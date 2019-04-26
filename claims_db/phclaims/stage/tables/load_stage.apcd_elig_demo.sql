@@ -1,8 +1,8 @@
--- Code to load data to stage.apcd_elig_demo table
+--Code to load data to stage.apcd_elig_demo table
 --A historical record of each person's non time-varying demographics (e.g. date of birth, gender)
--- Eli Kern (PHSKC-APDE)
--- 2019-3-28
--- Takes 20 min to run
+--Eli Kern (PHSKC-APDE)
+--2019-3-28
+--Takes 20 min to run
 
 ------------------
 --STEP 1: Estimate date of birth and create gender variables
