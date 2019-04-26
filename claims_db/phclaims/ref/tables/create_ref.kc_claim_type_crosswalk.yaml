@@ -1,0 +1,9 @@
+schema: ref
+table: kc_claim_type_crosswalk
+vars:
+    source_clm_type_id: varchar(20)
+    source_clm_type_desc: varchar(255)
+    source_desc: varchar(255)
+    kc_clm_type_id: tinyint
+    kc_clm_type_desc: varchar(255)
+    
