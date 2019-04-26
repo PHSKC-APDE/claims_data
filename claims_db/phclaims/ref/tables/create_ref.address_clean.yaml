@@ -1,0 +1,16 @@
+schema: ref
+table: address_clean
+vars:
+    geo_add_source: VARCHAR(200)
+    geo_add1_raw: VARCHAR(200)
+    geo_add2_raw: VARCHAR(200)
+    geo_city_raw: VARCHAR(200)
+    geo_county_fips_raw: INTEGER
+    geo_state_raw: VARCHAR(200)
+    geo_zip_raw: VARCHAR(200)
+    geo_add1_clean: VARCHAR(200)
+    geo_add2_clean: VARCHAR(200)
+    geo_city_clean: VARCHAR(200)
+    geo_county_fips_clean: INTEGER
+    geo_state_clean: VARCHAR(200)
+    geo_zip_clean: VARCHAR(200)
