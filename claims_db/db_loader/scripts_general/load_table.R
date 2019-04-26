@@ -217,11 +217,11 @@ load_table_from_file_f <- function(
     }
 
     # Set up BCP arguments and run BCP
-    bcp_args <- c(paste0("PHclaims.", schema_inner, ".", table_name_inner), 
-                  " IN ", table_config_inner[[config_section]][["file_path"]], 
-                  field_term, row_term, "-C 65001 ", "-F 2 ",
-                  "-S KCITSQLUTPDBH51 -T ", "-b 100000 ", 
-                  load_rows_inner, " -c ")
+    bcp_args <- c(glue(' PHclaims.{schema_inner}.{table_name_inner} IN '), 
+                  glue(' "{table_config_inner[[config_section]][["file_path"]]}" '),
+                  glue(' {field_term} {row_term} -C 65001 -F 2 '),
+                  glue(' -S KCITSQLUTPDBH51 -T -b 100000 '), 
+                  glue(' {load_rows_inner} -c ')) 
     
     system2(command = "bcp", args = c(bcp_args))
   }
