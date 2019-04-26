@@ -1,6 +1,6 @@
 /*
-This view gets inpatient stays by
-RDA DEFINITION [clm_type_code] IN (31, 33).
+This view gets acute inpatient stays by
+HEDIS DEFINITION: Inpatient Stay VALUE SET EXCLUDING Nonacute Inpatient Stay VALUE SET.
 Then the stays within 1 day of each other are connected into an episode.
 
 Author: Philip Sylling
@@ -30,26 +30,78 @@ Note Hierarchy:
 USE PHClaims;
 GO
 
-IF OBJECT_ID('[stage].[v_perf_ah_inpatient_direct_transfer]', 'V') IS NOT NULL
-DROP VIEW [stage].[v_perf_ah_inpatient_direct_transfer];
+IF OBJECT_ID('[stage].[v_perf_pcr_inpatient_direct_transfer]', 'V') IS NOT NULL
+DROP VIEW [stage].[v_perf_pcr_inpatient_direct_transfer];
 GO
-CREATE VIEW [stage].[v_perf_ah_inpatient_direct_transfer]
+CREATE VIEW [stage].[v_perf_pcr_inpatient_direct_transfer]
 AS
 /* 
 In the future, adapt this code to use admit and discharge dates
+
+SELECT [value_set_name]
+      ,[code_system]
+      ,COUNT([code])
+FROM [ref].[hedis_code_system]
+WHERE [value_set_name] IN
+('Inpatient Stay'
+,'Nonacute Inpatient Stay')
+GROUP BY [value_set_name], [code_system]
+ORDER BY [value_set_name], [code_system];
 */
 WITH [get_acute_inpatient] AS
 (
 -- Acute Inpatient Discharges
 SELECT 
- [id]
-,[tcn]
-,[from_date]
-,[to_date]
-,[patient_status]
-FROM [dbo].[mcaid_claim_header]
-WHERE [clm_type_code] IN (31, 33)
-),
+ hd.[id]
+,hd.[tcn]
+,hd.[from_date]
+,hd.[to_date]
+,hd.[patient_status]
+
+FROM [dbo].[mcaid_claim_header] AS hd
+INNER JOIN [dbo].[mcaid_claim_line] AS ln
+ON hd.[tcn] = ln.[tcn]
+INNER JOIN [ref].[hedis_code_system] AS hed
+ON hed.[value_set_name] IN 
+('Inpatient Stay')
+AND hed.[code_system] = 'UBREV'
+AND ln.[rcode] = hed.[code]
+
+EXCEPT
+
+(
+SELECT 
+ hd.[id]
+,hd.[tcn]
+,hd.[from_date]
+,hd.[to_date]
+,hd.[patient_status]
+
+FROM [dbo].[mcaid_claim_header] AS hd
+INNER JOIN [dbo].[mcaid_claim_line] AS ln
+ON hd.[tcn] = ln.[tcn]
+INNER JOIN [ref].[hedis_code_system] AS hed
+ON [value_set_name] IN 
+('Nonacute Inpatient Stay')
+AND hed.[code_system] = 'UBREV'
+AND ln.[rcode] = hed.[code]
+
+UNION
+
+SELECT 
+ hd.[id]
+,hd.[tcn]
+,hd.[from_date]
+,hd.[to_date]
+,hd.[patient_status]
+
+FROM [dbo].[mcaid_claim_header] AS hd
+INNER JOIN [ref].[hedis_code_system] AS hed
+ON [value_set_name] IN 
+('Nonacute Inpatient Stay')
+AND hed.[code_system] = 'UBTOB' 
+AND hd.[bill_type_code] = hed.[code]
+)),
 
 [increment_stays_by_person] AS
 (
@@ -66,7 +118,7 @@ SELECT
 /*
 Create a chronological (0, 1) indicator column.
 If 0, it is the first stay for the person OR the stay is within 1 day of the prior stay (direct transfer).
-If 1, the prior stay is NOT within 1 day of the prior stay (new stay).
+If 1, the prior stay is NOT within 1 day of the next stay (new stay).
 This indicator column will be summed to create a stay_id.
 */
 ,CASE WHEN ROW_NUMBER() OVER(PARTITION BY [id] ORDER BY [from_date], [to_date], [tcn]) = 1 THEN 0
@@ -108,8 +160,6 @@ SELECT
 ,FIRST_VALUE([from_date]) OVER(PARTITION BY [id], [episode_id] ORDER BY [from_date], [to_date], [tcn] ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS [episode_from_date]
 ,LAST_VALUE([to_date]) OVER(PARTITION BY [id], [episode_id] ORDER BY [from_date], [to_date], [tcn] ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS [episode_to_date]
 ,COUNT(*) OVER(PARTITION BY [id], [episode_id] ORDER BY [id], [episode_id], [tcn]) AS [count_stays]
---,ROW_NUMBER() OVER(PARTITION BY [id], [episode_id] ORDER BY [from_date] DESC, [to_date] DESC, [tcn] DESC) AS [stay_id]
---,CASE WHEN [patient_status] = 'Expired' THEN 1 ELSE 0 END AS [death_during_stay]
 ,ROW_NUMBER() OVER(PARTITION BY [id], [episode_id] ORDER BY [from_date], [to_date], [tcn]) AS [stay_id]
 ,MAX(CASE WHEN [patient_status] = 'Expired' THEN 1 ELSE 0 END) OVER(PARTITION BY [id], [episode_id] ORDER BY [id], [episode_id]) AS [death_during_stay]
 FROM [create_episode_id];
@@ -117,6 +167,6 @@ GO
 
 /*
 SELECT * 
-FROM [stage].[v_perf_ah_inpatient_direct_transfer]
+FROM [stage].[v_perf_pcr_inpatient_direct_transfer]
 ORDER BY [id], [episode_id], [stay_id];
 */
