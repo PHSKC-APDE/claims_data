@@ -4,9 +4,10 @@
 --Eli Kern (PHSKC-APDE)
 --2019-4-26
 
-IF object_id('PHClaims.stage.apcd_claim_header', 'U') is not null DROP TABLE PHClaims.stage.apcd_claim_header;
-CREATE TABLE PHClaims.stage.apcd_claim_header (
+if object_id('PHClaims.stage.apcd_claim_header', 'U') is not null drop table PHClaims.stage.apcd_claim_header;
+create table PHClaims.stage.apcd_claim_header (
 	id_apcd bigint,
+	extract_id int,
 	claim_header_id bigint,
 	submitter_id int,
 	provider_id_apcd bigint,
@@ -22,7 +23,8 @@ CREATE TABLE PHClaims.stage.apcd_claim_header (
 	claim_type_apcd_id varchar(100),
 	claim_type_id tinyint,
 	type_of_bill_code varchar(4),
-	inpatient_flag tinyint,
+	ipt_flag tinyint,
+	discharge_dt date,
 	ed_flag tinyint,
 	or_flag tinyint
 );

@@ -1,0 +1,6 @@
+schema: ref
+table: kc_claim_type
+vars:
+    kc_clm_type_id: tinyint
+    kc_clm_type_desc: varchar(255)
+    

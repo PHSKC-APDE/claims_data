@@ -1,12 +1,6 @@
 schema: ref
 table: kc_claim_type_crosswalk
-vars:
-    - source_clm_type_id
-    - source_clm_type_desc
-    - source_desc
-    - kc_clm_type_id
-    - kc_clm_type_desc	
 overall:
-    file_path: C:\Users\kerneli\SharePoint\King County Cross-Sector Data - Doc\References\Claim type\kc_claim_type_crosswalk.csv
-    field_term: ,
-    row_term: # Add the row terminator (e.g., \n)
+    file_path: C:/Users/kerneli/SharePoint/King County Cross-Sector Data - Doc/References/Claim type/kc_claim_type_crosswalk.csv
+    field_term: ','
+    row_term: \n
