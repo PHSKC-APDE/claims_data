@@ -1,7 +1,7 @@
 #### FUNCTION TO CREATE TABLES IN SQL
 # Alastair Matheson
 # Created:        2019-04-04
-# Last modified:  2019-04-15
+# Last modified:  2019-04-26
 
 
 ### Plans for future improvements:
@@ -10,7 +10,8 @@
 
 #### PARAMETERS ####
 # conn = name of the connection to the SQL database
-# config_file = path + file name of YAML config file
+# config_url = URL location of YAML config file (should be blank if using config_file)
+# config_file = path + file name of YAML config file (should be blank if using config_url)
 # overall = create overall table (default is TRUE)
 # ind_yr = create tables for individual years (default is TRUE)
 # overwrite = drop table first before creating it, if it exists (default is TRUE)
@@ -20,7 +21,8 @@
 #### FUNCTION ####
 create_table_f <- function(
   conn,
-  config_file,
+  config_url = NULL,
+  config_file = NULL,
   overall = T,
   ind_yr = T,
   overwrite = T,
@@ -29,24 +31,38 @@ create_table_f <- function(
   
   
   #### INITIAL ERROR CHECK ####
-  # Check that the yaml config file exists in the right format
-  if (file.exists(config_file) == F) {
-    stop("Config file does not exist, check file name")
+  # Check if the config provided is a local file or on a webpage
+  if (!is.null(config_url) & !is.null(config_file)) {
+    stop("Specify either a config_url or config_file but not both")
   }
   
-  if (is.yaml.file(config_file) == F) {
-    stop(paste0("Config file is not a YAML config file. \n", 
-                "Check there are no duplicate variables listed"))
+  if (!is.null(config_url)) {
+    print("Warning: YAML configs pulled from a URL are subject to fewer error checks")
   }
   
+  if (!is.null(config_file)) {
+    # Check that the yaml config file exists in the right format
+    if (file.exists(config_file) == F) {
+      stop("Config file does not exist, check file name")
+    }
+    
+    if (is.yaml.file(config_file) == F) {
+      stop(paste0("Config file is not a YAML config file. \n", 
+                  "Check there are no duplicate variables listed"))
+    }
+
+  }
   
   #### READ IN CONFIG FILE ####
-  table_config <- yaml::read_yaml(config_file)
-  
+  if (!is.null(config_url)) {
+    table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+  } else {
+    table_config <- yaml::read_yaml(config_file)
+  }
 
   #### ERROR CHECKS AND OVERALL MESSAGES ####
   # Check that the yaml config file has necessary components
-  if (!"schema" %in% eval.config.sections(config_file) & test_mode == F) {
+  if (!"schema" %in% names(table_config) & test_mode == F) {
     stop("YAML file is missing a schema")
   } else {
     if (is.null(table_config$schema)) {
@@ -54,7 +70,7 @@ create_table_f <- function(
     }
   }
   
-  if (!"table" %in% eval.config.sections(config_file)) {
+  if (!"table" %in% names(table_config)) {
     stop("YAML file is missing a table name")
   } else {
     if (is.null(table_config$table)) {
@@ -62,7 +78,7 @@ create_table_f <- function(
     }
   }
   
-  if (!"vars" %in% eval.config.sections(config_file)) {
+  if (!"vars" %in% names(table_config)) {
     stop("YAML file is missing a list of variables")
   } else {
     if (is.null(table_config$vars)) {
@@ -70,7 +86,7 @@ create_table_f <- function(
     }
   }
   
-  if (!"years" %in% eval.config.sections(config_file) & ind_yr == T) {
+  if (!"years" %in% names(table_config) & ind_yr == T) {
     stop("YAML file is missing a list of years")
   } else {
     if (ind_yr == T & is.null(unlist(table_config$years))) {
@@ -142,7 +158,7 @@ create_table_f <- function(
       
       # Add additional year-specific variables if present
       add_vars_name <- paste0("vars_", x)
-      if (add_vars_name %in% eval.config.sections(config_file)) {
+      if (add_vars_name %in% names(table_config)) {
         vars <- c(vars, unlist(table_config[[add_vars_name]]))
       }
       
