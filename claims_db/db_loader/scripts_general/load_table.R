@@ -363,7 +363,8 @@ load_table_from_file_f <- function(
 
 load_table_from_sql_f <- function(
   conn,
-  config_file,
+  config_url = NULL,
+  config_file = NULL,
   truncate = F,
   truncate_date = T,
   auto_date = T,
@@ -371,19 +372,35 @@ load_table_from_sql_f <- function(
   ) {
   
   #### INITIAL ERROR CHECK ####
+  # Check if the config provided is a local file or on a webpage
+  if (!is.null(config_url) & !is.null(config_file)) {
+    stop("Specify either a config_url or config_file but not both")
+  }
+  
+  if (!is.null(config_url)) {
+    print("Warning: YAML configs pulled from a URL are subject to fewer error checks")
+  }
+  
   # Check that the yaml config file exists in the right format
-  if (file.exists(config_file) == F) {
-    stop("Config file does not exist, check file name")
+  if (!is.null(config_file)) {
+    # Check that the yaml config file exists in the right format
+    if (file.exists(config_file) == F) {
+      stop("Config file does not exist, check file name")
+    }
+    
+    if (is.yaml.file(config_file) == F) {
+      stop(paste0("Config file is not a YAML config file. \n", 
+                  "Check there are no duplicate variables listed"))
+    }
+    
   }
-  
-  if (is.yaml.file(config_file) == F) {
-    stop(paste0("Config file is not a YAML config file. \n", 
-                "Check there are no duplicate variables listed"))
-  }
-  
   
   #### READ IN CONFIG FILE ####
-  table_config <- yaml::read_yaml(config_file)  
+  if (!is.null(config_url)) {
+    table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+  } else {
+    table_config <- yaml::read_yaml(config_file)
+  }
   
   
   #### ERROR CHECKS AND OVERALL MESSAGES ####
