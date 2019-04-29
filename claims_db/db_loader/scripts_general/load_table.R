@@ -22,7 +22,8 @@
 
 load_table_from_file_f <- function(
   conn,
-  config_file,
+  config_url = NULL,
+  config_file = NULL,
   truncate = T,
   overall = T,
   ind_yr = F,
@@ -32,19 +33,35 @@ load_table_from_file_f <- function(
   
   
   #### INITIAL ERROR CHECK ####
+  # Check if the config provided is a local file or on a webpage
+  if (!is.null(config_url) & !is.null(config_file)) {
+    stop("Specify either a config_url or config_file but not both")
+  }
+  
+  if (!is.null(config_url)) {
+    print("Warning: YAML configs pulled from a URL are subject to fewer error checks")
+  }
+  
   # Check that the yaml config file exists in the right format
-  if (file.exists(config_file) == F) {
-    stop("Config file does not exist, check file name")
+  if (!is.null(config_file)) {
+    # Check that the yaml config file exists in the right format
+    if (file.exists(config_file) == F) {
+      stop("Config file does not exist, check file name")
+    }
+    
+    if (is.yaml.file(config_file) == F) {
+      stop(paste0("Config file is not a YAML config file. \n", 
+                  "Check there are no duplicate variables listed"))
+    }
+    
   }
-  
-  if (is.yaml.file(config_file) == F) {
-    stop(paste0("Config file is not a YAML config file. \n", 
-                "Check there are no duplicate variables listed"))
-  }
-  
   
   #### READ IN CONFIG FILE ####
-  table_config <- yaml::read_yaml(config_file)
+  if (!is.null(config_url)) {
+    table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+  } else {
+    table_config <- yaml::read_yaml(config_file)
+  }
   
 
   #### ERROR CHECKS AND OVERALL MESSAGES ####
@@ -59,7 +76,7 @@ load_table_from_file_f <- function(
   
   
   # Check that the yaml config file has necessary components
-  if (!"schema" %in% eval.config.sections(config_file) & test_mode == F) {
+  if (!"schema" %in% names(table_config) & test_mode == F) {
     stop("YAML file is missing a schema section")
   } else {
     if (is.null(table_config$schema)) {
@@ -67,19 +84,11 @@ load_table_from_file_f <- function(
     }
   }
   
-  if (!"table" %in% eval.config.sections(config_file)) {
+  if (!"table" %in% names(table_config)) {
     stop("YAML file is missing a table name section")
   } else {
     if (is.null(table_config$table)) {
       stop("Table name is blank in config file")
-    }
-  }
-  
-  if (!"vars" %in% eval.config.sections(config_file)) {
-    stop("YAML file is missing a variables (vars) section")
-  } else {
-    if (is.null(table_config$vars)) {
-      stop("No variables specified in config file")
     }
   }
   
@@ -88,7 +97,7 @@ load_table_from_file_f <- function(
   }
   
   if (overall == T) {
-    if (!"overall" %in% eval.config.sections(config_file)) {
+    if (!"overall" %in% names(table_config)) {
       stop("YAML file is missing details for overall file")
     }
     
@@ -98,7 +107,7 @@ load_table_from_file_f <- function(
   }
   
   if (ind_yr == T) {
-    if ("overall" %in% eval.config.sections(config_file)) {
+    if ("overall" %in% names(table_config)) {
       warning("YAML file has details for an overall file. \n
               This will be ignored since ind_yr == T.")
     }
@@ -106,8 +115,16 @@ load_table_from_file_f <- function(
                        "table_20[0-9]{2}")) == 0) {
       stop("YAML file is missing details for individual years")
     }
-    if (combine_yr == T & is.null(unlist(table_config$combine_years))) {
-      stop("No years specified for combining in config file")
+    if (combine_yr == T) {
+      if (is.null(unlist(table_config$combine_years))) {
+        stop("No years specified for combining in config file")
+      }
+      if (!"vars" %in% names(table_config)) {
+        stop("YAML file is missing a variables (vars) section")
+      }
+      if (is.null(table_config$vars)) {
+        stop("No variables specified in config file")
+      }
     }
   }
 
@@ -244,7 +261,7 @@ load_table_from_file_f <- function(
   #### CALENDAR YEAR TABLES ####
   if (ind_yr == T) {
     # Find which years have details
-    years <- as.list(eval.config.sections(config_file)[str_detect(eval.config.sections(config_file), "table_")])
+    years <- as.list(names(table_config)[str_detect(names(table_config), "table_")])
 
     lapply(years, function(x) {
       
@@ -371,7 +388,7 @@ load_table_from_sql_f <- function(
   
   #### ERROR CHECKS AND OVERALL MESSAGES ####
   # Check that the yaml config file has necessary components
-  if (!"from_schema" %in% eval.config.sections(config_file) & test_mode == F) {
+  if (!"from_schema" %in% names(table_config) & test_mode == F) {
     stop("YAML file is missing a from_schema section")
   } else {
     if (is.null(table_config$from_schema)) {
@@ -379,7 +396,7 @@ load_table_from_sql_f <- function(
     }
   }
   
-  if (!"from_table" %in% eval.config.sections(config_file)) {
+  if (!"from_table" %in% names(table_config)) {
     stop("YAML file is missing a from_table section")
   } else {
     if (is.null(table_config$from_table)) {
@@ -387,7 +404,7 @@ load_table_from_sql_f <- function(
     }
   }
   
-  if (!"to_schema" %in% eval.config.sections(config_file) & test_mode == F) {
+  if (!"to_schema" %in% names(table_config) & test_mode == F) {
     stop("YAML file is missing a to_schema section")
   } else {
     if (is.null(table_config$to_schema)) {
@@ -395,7 +412,7 @@ load_table_from_sql_f <- function(
     }
   }
   
-  if (!"to_table" %in% eval.config.sections(config_file)) {
+  if (!"to_table" %in% names(table_config)) {
     stop("YAML file is missing a to_table section")
   } else {
     if (is.null(table_config$to_table)) {
@@ -403,7 +420,7 @@ load_table_from_sql_f <- function(
     }
   }
   
-  if (!"vars" %in% eval.config.sections(config_file)) {
+  if (!"vars" %in% names(table_config)) {
     stop("YAML file is missing a variables (vars) section")
   } else {
     if (is.null(table_config$vars)) {
@@ -417,7 +434,7 @@ load_table_from_sql_f <- function(
   }
   
   if (truncate_date == T) {
-    if (!"date_var" %in% eval.config.sections(config_file)) {
+    if (!"date_var" %in% names(table_config)) {
       stop("YAML file is missing a date_var section")
     }
     if (is.null(table_config$date_var)) {
@@ -425,7 +442,7 @@ load_table_from_sql_f <- function(
     }
     
     if (auto_date == F) {
-      if (!"date_truncate" %in% eval.config.sections(config_file)) {
+      if (!"date_truncate" %in% names(table_config)) {
         stop("YAML file is missing a date_truncate section")
       }
       if (is.null(table_config$date_truncate)) {
