@@ -145,8 +145,10 @@ SELECT
 ,[increment]
 ,SUM([increment]) OVER(PARTITION BY [id] ORDER BY [from_date], [to_date], [tcn] ROWS UNBOUNDED PRECEDING) + 1 AS [episode_id]
 FROM [increment_stays_by_person]
-)
+),
 
+[create_episode_from_to_date] AS
+(
 SELECT 
  [id]
 ,[tcn]
@@ -162,7 +164,28 @@ SELECT
 ,COUNT(*) OVER(PARTITION BY [id], [episode_id] ORDER BY [id], [episode_id], [tcn]) AS [count_stays]
 ,ROW_NUMBER() OVER(PARTITION BY [id], [episode_id] ORDER BY [from_date], [to_date], [tcn]) AS [stay_id]
 ,MAX(CASE WHEN [patient_status] = 'Expired' THEN 1 ELSE 0 END) OVER(PARTITION BY [id], [episode_id] ORDER BY [id], [episode_id]) AS [death_during_stay]
-FROM [create_episode_id];
+FROM [create_episode_id]
+)
+
+SELECT 
+ ep.[id]
+,DATEDIFF(YEAR, elig.[dobnew], ep.[episode_to_date]) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, elig.[dobnew], ep.[episode_to_date]), elig.[dobnew]) > ep.[episode_to_date] THEN 1 ELSE 0 END AS [age]
+,[tcn]
+,[prior_claim_to_date]
+,[claim_from_date]
+,[claim_to_date]
+,[patient_status]
+,[date_diff]
+,[increment]
+,[episode_id]
+,[episode_from_date]
+,[episode_to_date]
+,[count_stays]
+,[stay_id]
+,[death_during_stay]
+FROM [create_episode_from_to_date] AS ep
+INNER JOIN [dbo].[mcaid_elig_demoever] AS elig
+ON ep.[id] = elig.[id];
 GO
 
 /*

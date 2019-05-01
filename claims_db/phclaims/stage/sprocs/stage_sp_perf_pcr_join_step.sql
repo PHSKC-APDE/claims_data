@@ -50,6 +50,7 @@ THUS: DO NOT aggregate c.[flag] over a.[episode_id]
 ,ISNULL(c.[flag], 0) AS [planned_exclusion]
 
 FROM [stage].[v_perf_pcr_inpatient_direct_transfer] AS a
+
 LEFT JOIN [stage].[v_perf_pcr_pregnancy_exclusion] AS b
 ON a.[tcn] = b.[tcn]
 LEFT JOIN [stage].[v_perf_pcr_planned_exclusion] AS c
@@ -100,9 +101,11 @@ WITH CTE AS
 (
 SELECT
  a.[id]
+,a.[age]
 ,a.[episode_id]
 ,a.[episode_from_date]
 ,a.[episode_to_date]
+,a.[stay_id] AS [inpatient_index_stay]
 ,b.[episode_from_date] AS [readmission_from_date]
 ,b.[episode_to_date] AS [readmission_to_date]
 ,DATEDIFF(DAY, a.[episode_to_date], b.[episode_from_date]) AS [date_diff]
@@ -120,16 +123,21 @@ ON a.[id] = b.[id]
 AND b.[episode_from_date] BETWEEN DATEADD(DAY, 1, a.[episode_to_date]) AND DATEADD(DAY, 30, a.[episode_to_date])
 )
 SELECT
- [id]
+ b.[year_month]
+,[id]
+,[age]
 ,[episode_id]
 ,[episode_from_date]
 ,[episode_to_date]
+,[inpatient_index_stay]
 ,[readmission_from_date]
 ,[readmission_to_date]
 ,CASE WHEN [readmission_from_date] IS NOT NULL THEN 1 ELSE 0 END AS [readmission_flag]
 ,[date_diff]
 ,[planned_readmission]
-FROM CTE
+FROM CTE AS a
+INNER JOIN [ref].[perf_year_month] AS b
+ON a.[episode_from_date] BETWEEN b.[beg_month] AND b.[end_month]
 WHERE 1 = 1
 AND [row_num] = 1
 AND ([planned_readmission] IS NULL OR [planned_readmission] = 0);'

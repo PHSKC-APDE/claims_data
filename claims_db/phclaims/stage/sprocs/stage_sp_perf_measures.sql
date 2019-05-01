@@ -31,7 +31,7 @@ EXEC [stage].[sp_perf_measures]
 --,@measure_name = 'Child and Adolescent Access to Primary Care';
 
 Author: Philip Sylling
-Last Modified: 2019-04-23
+Last Modified: 2019-04-30
 */
 
 USE PHClaims;
@@ -46,6 +46,7 @@ CREATE PROCEDURE [stage].[sp_perf_measures]
 AS
 --SET NOCOUNT ON;
 DECLARE @SQL NVARCHAR(MAX) = '';
+DECLARE @end_month_date DATE;
 
 BEGIN
 IF @measure_name = 'All-Cause ED Visits'
@@ -100,6 +101,9 @@ ON den.[end_month_age] = age.[age]
 LEFT JOIN [stage].[perf_staging] AS stg
 ON mem.[id] = stg.[id]
 AND ym.[year_month] = stg.[year_month]
+/*
+This JOIN condition gets only utilization rows for the relevant measure
+*/
 AND ref.[measure_id] = stg.[measure_id]
 AND stg.[num_denom] = ''N''
 
@@ -191,6 +195,9 @@ ON den.[end_month_age] = age.[age]
 LEFT JOIN [stage].[perf_staging] AS stg
 ON mem.[id] = stg.[id]
 AND ym.[year_month] = stg.[year_month]
+/*
+This JOIN condition gets only utilization rows for the relevant measure
+*/
 AND ref.[measure_id] = stg.[measure_id]
 AND stg.[num_denom] = ''N''
 
@@ -248,25 +255,30 @@ SELECT
 ,stg.[year_month] AS [end_year_month]
 ,den.[end_quarter]
 ,stg.[id]
-,den.[end_month_age]
-,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
-      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
-      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
-      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
-      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
-      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
-      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
-      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
-      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
- END AS [age_grp]
+
+/*
+[stage].[mcaid_perf_measure] requires one row per person per measurement year. 
+However, for event-based measures, a person may have two different ages at 
+different index events during the same measurement year. Thus, insert age at 
+last index event [end_month_age] into [stage].[mcaid_perf_measure] BUT filter 
+for inclusion below by age at each index event [event_date_age].
+*/
+,MAX(DATEDIFF(YEAR, den.[dob], stg.[event_date]) - 
+ CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, den.[dob], stg.[event_date]), den.[dob]) > 
+ stg.[event_date] THEN 1 ELSE 0 END) OVER(PARTITION BY stg.[id]) AS [end_month_age]
+
+,DATEDIFF(YEAR, den.[dob], stg.[event_date]) - 
+ CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, den.[dob], stg.[event_date]), den.[dob]) > 
+ stg.[event_date] THEN 1 ELSE 0 END AS [event_date_age]
+
 ,ref.[measure_id]
 ,den.[full_criteria]
 ,den.[hospice]
 /*
 Members need coverage in month following index event.
 */
-,[full_criteria_p_2_m]
-,[hospice_p_2_m]
+,den.[full_criteria_p_2_m]
+,den.[hospice_p_2_m]
 
 ,stg.[event_date]
 /*
@@ -293,12 +305,6 @@ LEFT JOIN [stage].[perf_enroll_denom] AS den
 ON stg.[id] = den.[id]
 AND stg.[year_month] = den.[year_month]
 
-/*
-Join age_grp columns here, use CASE above to select age_grp_x from ref.perf_measure
-*/
-LEFT JOIN [ref].[age_grp] AS age
-ON den.[end_month_age] = age.[age]
-
 WHERE stg.[event_date] >= (SELECT [12_month_prior] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
 /*
 Cut off index visits during last 31-day period
@@ -323,16 +329,37 @@ SELECT
 ,' + CAST(@end_month_int AS CHAR(6)) + ' AS [end_year_month]
 ,[id]
 ,[end_month_age]
-,[age_grp]
-,[measure_id]
+,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
+      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
+      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
+      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
+      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
+      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
+      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
+      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
+      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
+ END AS [age_grp]
+,a.[measure_id]
 ,SUM([denominator]) AS [denominator]
 ,SUM([numerator]) AS [numerator]
 ,CAST(GETDATE() AS DATE) AS [load_date]
 
-FROM [CTE]
+FROM [CTE] AS a
+
+INNER JOIN [ref].[perf_measure] AS ref
+ON a.[measure_id] = ref.[measure_id]
+
+/*
+Join age_grp columns here, use CASE above to select age_grp_x from ref.perf_measure
+*/
+LEFT JOIN [ref].[age_grp] AS age
+ON a.[end_month_age] = age.[age]
 
 WHERE 1 = 1
-AND [end_month_age] >= 13
+/*
+Filter by age at time of index event
+*/
+AND [event_date_age] >= 13
 -- For follow-up measures, enrollment is required only at time of index event
 AND [full_criteria] = 1
 AND [hospice] = 0
@@ -341,8 +368,17 @@ AND (([need_1_month_coverage] = 1) OR ([full_criteria_p_2_m] = 2 AND [hospice_p_
 GROUP BY 
  [id]
 ,[end_month_age]
-,[age_grp]
-,[measure_id];'
+,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
+      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
+      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
+      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
+      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
+      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
+      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
+      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
+      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
+ END
+,a.[measure_id];'
 END
 
 IF @measure_name = 'Follow-up ED visit for Mental Illness'
@@ -363,17 +399,22 @@ SELECT
 ,stg.[year_month] AS [end_year_month]
 ,den.[end_quarter]
 ,stg.[id]
-,den.[end_month_age]
-,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
-      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
-      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
-      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
-      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
-      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
-      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
-      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
-      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
- END AS [age_grp]
+
+/*
+[stage].[mcaid_perf_measure] requires one row per person per measurement year. 
+However, for event-based measures, a person may have two different ages at 
+different index events during the same measurement year. Thus, insert age at 
+last index event [end_month_age] into [stage].[mcaid_perf_measure] BUT filter 
+for inclusion below by age at each index event [event_date_age].
+*/
+,MAX(DATEDIFF(YEAR, den.[dob], stg.[event_date]) - 
+ CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, den.[dob], stg.[event_date]), den.[dob]) > 
+ stg.[event_date] THEN 1 ELSE 0 END) OVER(PARTITION BY stg.[id]) AS [end_month_age]
+
+,DATEDIFF(YEAR, den.[dob], stg.[event_date]) - 
+ CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, den.[dob], stg.[event_date]), den.[dob]) > 
+ stg.[event_date] THEN 1 ELSE 0 END AS [event_date_age]
+
 ,ref.[measure_id]
 ,den.[full_criteria]
 ,den.[hospice]
@@ -408,12 +449,6 @@ LEFT JOIN [stage].[perf_enroll_denom] AS den
 ON stg.[id] = den.[id]
 AND stg.[year_month] = den.[year_month]
 
-/*
-Join age_grp columns here, use CASE above to select age_grp_x from ref.perf_measure
-*/
-LEFT JOIN [ref].[age_grp] AS age
-ON den.[end_month_age] = age.[age]
-
 WHERE stg.[event_date] >= (SELECT [12_month_prior] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
 /*
 Cut off index visits during last 31-day period
@@ -438,16 +473,34 @@ SELECT
 ,' + CAST(@end_month_int AS CHAR(6)) + ' AS [end_year_month]
 ,[id]
 ,[end_month_age]
-,[age_grp]
-,[measure_id]
+,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
+      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
+      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
+      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
+      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
+      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
+      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
+      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
+      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
+ END AS [age_grp]
+,a.[measure_id]
 ,SUM([denominator]) AS [denominator]
 ,SUM([numerator]) AS [numerator]
 ,CAST(GETDATE() AS DATE) AS [load_date]
 
-FROM [CTE]
+FROM [CTE] AS a
+
+INNER JOIN [ref].[perf_measure] AS ref
+ON a.[measure_id] = ref.[measure_id]
+
+/*
+Join age_grp columns here, use CASE above to select age_grp_x from ref.perf_measure
+*/
+LEFT JOIN [ref].[age_grp] AS age
+ON a.[end_month_age] = age.[age]
 
 WHERE 1 = 1
-AND [end_month_age] >= 6
+AND [event_date_age] >= 6
 -- For follow-up measures, enrollment is required only at time of index event
 AND [full_criteria] = 1
 AND [hospice] = 0
@@ -456,8 +509,17 @@ AND (([need_1_month_coverage] = 1) OR ([full_criteria_p_2_m] = 2 AND [hospice_p_
 GROUP BY 
  [id]
 ,[end_month_age]
-,[age_grp]
-,[measure_id];'
+,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
+      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
+      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
+      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
+      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
+      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
+      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
+      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
+      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
+ END
+,a.[measure_id];'
 END
 
 IF @measure_name = 'Follow-up Hospitalization for Mental Illness'
@@ -478,17 +540,22 @@ SELECT
 ,stg.[year_month] AS [end_year_month]
 ,den.[end_quarter]
 ,stg.[id]
-,den.[end_month_age]
-,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
-      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
-      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
-      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
-      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
-      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
-      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
-      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
-      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
- END AS [age_grp]
+
+/*
+[stage].[mcaid_perf_measure] requires one row per person per measurement year. 
+However, for event-based measures, a person may have two different ages at 
+different index events during the same measurement year. Thus, insert age at 
+last index event [end_month_age] into [stage].[mcaid_perf_measure] BUT filter 
+for inclusion below by age at each index event [event_date_age].
+*/
+,MAX(DATEDIFF(YEAR, den.[dob], stg.[event_date]) - 
+ CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, den.[dob], stg.[event_date]), den.[dob]) > 
+ stg.[event_date] THEN 1 ELSE 0 END) OVER(PARTITION BY stg.[id]) AS [end_month_age]
+
+,DATEDIFF(YEAR, den.[dob], stg.[event_date]) - 
+ CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, den.[dob], stg.[event_date]), den.[dob]) > 
+ stg.[event_date] THEN 1 ELSE 0 END AS [event_date_age]
+
 ,ref.[measure_id]
 ,den.[full_criteria]
 ,den.[hospice]
@@ -523,12 +590,6 @@ LEFT JOIN [stage].[perf_enroll_denom] AS den
 ON stg.[id] = den.[id]
 AND stg.[year_month] = den.[year_month]
 
-/*
-Join age_grp columns here, use CASE above to select age_grp_x from ref.perf_measure
-*/
-LEFT JOIN [ref].[age_grp] AS age
-ON den.[end_month_age] = age.[age]
-
 WHERE stg.[event_date] >= (SELECT [12_month_prior] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
 /*
 Cut off index visits during last 31-day period
@@ -553,16 +614,37 @@ SELECT
 ,' + CAST(@end_month_int AS CHAR(6)) + ' AS [end_year_month]
 ,[id]
 ,[end_month_age]
-,[age_grp]
-,[measure_id]
+,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
+      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
+      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
+      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
+      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
+      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
+      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
+      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
+      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
+ END AS [age_grp]
+,a.[measure_id]
 ,SUM([denominator]) AS [denominator]
 ,SUM([numerator]) AS [numerator]
 ,CAST(GETDATE() AS DATE) AS [load_date]
 
-FROM [CTE]
+FROM [CTE] AS a
+
+INNER JOIN [ref].[perf_measure] AS ref
+ON a.[measure_id] = ref.[measure_id]
+
+/*
+Join age_grp columns here, use CASE above to select age_grp_x from ref.perf_measure
+*/
+LEFT JOIN [ref].[age_grp] AS age
+ON a.[end_month_age] = age.[age]
 
 WHERE 1 = 1
-AND [end_month_age] >= 6
+/*
+Filter by age at time of index event
+*/
+AND [event_date_age] >= 6
 -- For follow-up measures, enrollment is required only at time of index event
 AND [full_criteria] = 1
 AND [hospice] = 0
@@ -571,8 +653,17 @@ AND (([need_1_month_coverage] = 1) OR ([full_criteria_p_2_m] = 2 AND [hospice_p_
 GROUP BY 
  [id]
 ,[end_month_age]
-,[age_grp]
-,[measure_id];'
+,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
+      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
+      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
+      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
+      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
+      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
+      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
+      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
+      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
+ END
+,a.[measure_id];'
 END
 
 IF @measure_name = 'Mental Health Treatment Penetration'
@@ -630,6 +721,9 @@ ON den.[end_month_age] = age.[age]
 LEFT JOIN [stage].[perf_staging] AS stg_den
 ON mem.[id] = stg_den.[id]
 AND ym.[year_month] = stg_den.[year_month]
+/*
+This JOIN condition gets only utilization rows for the relevant measure
+*/
 AND ref.[measure_id] = stg_den.[measure_id]
 AND stg_den.[num_denom] = ''D''
 
@@ -638,6 +732,9 @@ ON mem.[id] = stg_num.[id]
 AND ym.[year_month] = stg_num.[year_month]
 -- [beg_measure_year_month] denotes 12-month identification period for numerator
 AND stg_num.[year_month] >= (SELECT [beg_measure_year_month] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
+/*
+This JOIN condition gets only utilization rows for the relevant measure
+*/
 AND ref.[measure_id] = stg_num.[measure_id]
 AND stg_num.[num_denom] = ''N''
 
@@ -661,7 +758,9 @@ SELECT
 ,[age_grp]
 ,[measure_id]
 ,[full_criteria_t_12_m]
+-- 24-month identification period for denominator
 ,MAX(ISNULL([denominator], 0)) OVER(PARTITION BY [id] ORDER BY [end_year_month] ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) AS [denominator]
+-- 12-month identification period for numerator
 ,MAX(ISNULL([numerator], 0)) OVER(PARTITION BY [id] ORDER BY [end_year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [numerator]
 FROM #temp
 )
@@ -752,6 +851,9 @@ ON den.[end_month_age] = age.[age]
 LEFT JOIN [stage].[perf_staging] AS stg_den
 ON mem.[id] = stg_den.[id]
 AND ym.[year_month] = stg_den.[year_month]
+/*
+This JOIN condition gets only utilization rows for the relevant measure
+*/
 AND ref.[measure_id] = stg_den.[measure_id]
 AND stg_den.[num_denom] = ''D''
 
@@ -760,6 +862,9 @@ ON mem.[id] = stg_num.[id]
 AND ym.[year_month] = stg_num.[year_month]
 -- [beg_measure_year_month] denotes 12-month identification period for numerator
 AND stg_num.[year_month] >= (SELECT [beg_measure_year_month] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
+/*
+This JOIN condition gets only utilization rows for the relevant measure
+*/
 AND ref.[measure_id] = stg_num.[measure_id]
 AND stg_num.[num_denom] = ''N''
 
@@ -783,7 +888,9 @@ SELECT
 ,[age_grp]
 ,[measure_id]
 ,[full_criteria_t_12_m]
+-- 24-month identification period for denominator
 ,MAX(ISNULL([denominator], 0)) OVER(PARTITION BY [id] ORDER BY [end_year_month] ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) AS [denominator]
+-- 12-month identification period for denominator
 ,MAX(ISNULL([numerator], 0)) OVER(PARTITION BY [id] ORDER BY [end_year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [numerator]
 FROM #temp
 )
@@ -813,10 +920,174 @@ SELECT
 FROM CTE
 
 WHERE 1 = 1
-AND [end_month_age] >= 6
+AND [end_month_age] >= 12
 AND [denominator] = 1
 -- [full_criteria_t_12_m] will be NULL in all rows except were [end_year_month] = @end_month_int
 AND [full_criteria_t_12_m] >= 11;'
+END
+
+IF @measure_name = 'Plan All-Cause Readmissions (30 days)'
+BEGIN
+
+DELETE FROM [stage].[mcaid_perf_measure]
+FROM [stage].[mcaid_perf_measure] AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON a.[measure_id] = b.[measure_id]
+WHERE b.[measure_name] = @measure_name
+AND [end_year_month] = @end_month_int;
+
+SET @SQL = @SQL + N'
+IF OBJECT_ID(''tempdb..#temp'', ''U'') IS NOT NULL
+DROP TABLE #temp;
+WITH CTE AS
+(
+SELECT
+ ym.[beg_measure_year_month] AS [beg_year_month]
+,stg.[year_month] AS [end_year_month]
+,den.[end_quarter]
+,stg.[id]
+
+/*
+[stage].[mcaid_perf_measure] requires one row per person per measurement year. 
+However, for event-based measures, a person may have two different ages at 
+different index events during the same measurement year. Thus, insert age at 
+last index event [end_month_age] into [stage].[mcaid_perf_measure] BUT filter 
+for inclusion below by age at each index event [event_date_age].
+*/
+,MAX(DATEDIFF(YEAR, den.[dob], stg.[event_date]) - 
+ CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, den.[dob], stg.[event_date]), den.[dob]) > 
+ stg.[event_date] THEN 1 ELSE 0 END) OVER(PARTITION BY stg.[id]) AS [end_month_age]
+
+,DATEDIFF(YEAR, den.[dob], stg.[event_date]) - 
+ CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, den.[dob], stg.[event_date]), den.[dob]) > 
+ stg.[event_date] THEN 1 ELSE 0 END AS [event_date_age]
+
+,ref.[measure_id]
+/*
+Members need coverage in 11/12 months prior to index event
+*/
+,den.[full_criteria_t_12_m]
+,den.[hospice_t_12_m]
+
+,den.[full_criteria]
+,den.[hospice]
+/*
+Members need coverage in month following index event.
+*/
+,den.[full_criteria_p_2_m]
+,den.[hospice_p_2_m]
+
+,stg.[event_date]
+/*
+If index event occurs on 1st of month, then 31-day follow-up period contained
+within calendar month.
+Then, [full_criteria_p_2_m], [hospice_p_2_m] are not used
+*/
+,CASE WHEN DAY(stg.[event_date]) = 1 AND MONTH([event_date]) IN (1, 3, 5, 7, 8, 10, 12)
+THEN 1 ELSE 0 END AS [need_1_month_coverage]
+
+,stg.[denominator]
+,stg.[numerator]
+
+FROM [stage].[perf_staging_event_date] AS stg
+
+INNER JOIN [ref].[perf_measure] AS ref
+ON stg.[measure_id] = ref.[measure_id]
+AND ref.[measure_name] = ''' + @measure_name + '''
+
+INNER JOIN [ref].[perf_year_month] AS ym
+ON stg.[year_month] = ym.[year_month]
+
+/*
+Backward-looking and forward-looking enrollment criteria at time of index event
+are joined to year_month of index event
+*/
+LEFT JOIN [stage].[perf_enroll_denom] AS den
+ON stg.[id] = den.[id]
+AND stg.[year_month] = den.[year_month]
+
+WHERE stg.[event_date] >= (SELECT [12_month_prior] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
+/*
+Cut off index events during last 31-day period
+because of insufficient follow-up period
+*/
+AND stg.[event_date] <= (SELECT DATEADD(DAY, -30, [end_month]) FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
+)
+SELECT *
+INTO #temp
+FROM CTE;
+
+INSERT INTO [stage].[mcaid_perf_measure]
+([beg_year_month]
+,[end_year_month]
+,[id]
+,[end_month_age]
+,[age_grp]
+,[measure_id]
+,[denominator]
+,[numerator]
+,[load_date])
+
+SELECT
+ (SELECT [beg_measure_year_month] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ') AS [beg_year_month]
+,' + CAST(@end_month_int AS CHAR(6)) + ' AS [end_year_month]
+,[id]
+,[end_month_age]
+,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
+      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
+      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
+      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
+      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
+      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
+      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
+      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
+      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
+ END AS [age_grp]
+,a.[measure_id]
+,SUM([denominator]) AS [denominator]
+,SUM([numerator]) AS [numerator]
+,CAST(GETDATE() AS DATE) AS [load_date]
+
+FROM #temp AS a
+
+INNER JOIN [ref].[perf_measure] AS ref
+ON a.[measure_id] = ref.[measure_id]
+
+/*
+Join age_grp columns here, use CASE above to select age_grp_x from ref.perf_measure
+*/
+LEFT JOIN [ref].[age_grp] AS age
+ON a.[end_month_age] = age.[age]
+
+WHERE 1 = 1
+/*
+Filter by age at time of index event
+*/
+AND [event_date_age] BETWEEN 18 AND 64
+
+/*
+For readmission measure, members need coverage for 11/12 months prior to Index Discharge Date and for 30 days following Index Discharge Date
+*/
+AND [full_criteria_t_12_m] >= 11
+AND [hospice_t_12_m] = 0
+AND [full_criteria] = 1
+AND [hospice] = 0
+AND (([need_1_month_coverage] = 1) OR ([full_criteria_p_2_m] = 2 AND [hospice_p_2_m] = 0))
+
+GROUP BY 
+ [id]
+,[end_month_age]
+,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
+      WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
+      WHEN ref.[age_group] = ''age_grp_3'' THEN age.[age_grp_3]
+      WHEN ref.[age_group] = ''age_grp_4'' THEN age.[age_grp_4]
+      WHEN ref.[age_group] = ''age_grp_5'' THEN age.[age_grp_5]
+      WHEN ref.[age_group] = ''age_grp_6'' THEN age.[age_grp_6]
+      WHEN ref.[age_group] = ''age_grp_7'' THEN age.[age_grp_7]
+      WHEN ref.[age_group] = ''age_grp_8'' THEN age.[age_grp_8]
+      WHEN ref.[age_group] = ''age_grp_9_months'' THEN age.[age_grp_9_months]
+ END
+,a.[measure_id];'
 END
 
 IF @measure_name = 'Child and Adolescent Access to Primary Care'
@@ -876,6 +1147,9 @@ ON den.[age_in_months] = age.[age]
 LEFT JOIN [stage].[perf_staging] AS stg
 ON mem.[id] = stg.[id]
 AND ym.[year_month] = stg.[year_month]
+/*
+This JOIN condition gets only utilization rows for the relevant measure
+*/
 AND ref.[measure_id] = stg.[measure_id]
 AND stg.[num_denom] = ''N''
 
