@@ -522,6 +522,60 @@ ON a.[from_date] BETWEEN ym.[beg_month] AND ym.[end_month]
 GROUP BY ym.[year_month], a.[id], b.[measure_id];'
 END
 
+IF @measure_name = 'Plan All-Cause Readmissions (30 days)'
+BEGIN
+
+DELETE FROM [stage].[perf_staging]
+FROM [stage].[perf_staging] AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON a.[measure_id] = b.[measure_id]
+WHERE b.[measure_name] = @measure_name
+AND [year_month] >= @start_month_int
+AND [year_month] <= @end_month_int;
+
+SET @SQL = @SQL + N'
+IF OBJECT_ID(''tempdb..#temp'', ''U'') IS NOT NULL
+DROP TABLE #temp;
+CREATE TABLE #temp
+([year_month] INT
+,[id] VARCHAR(200)
+,[age] INT
+,[episode_id] INT
+,[episode_from_date] DATE
+,[episode_to_date] DATE
+,[inpatient_index_stay] INT
+,[readmission_from_date] DATE
+,[readmission_to_date] DATE
+,[readmission_flag] INT
+,[date_diff] INT
+,[planned_readmission] INT);
+
+INSERT INTO #temp
+EXEC [stage].[sp_perf_pcr_join_step];
+
+INSERT INTO [stage].[perf_staging_event_date]
+([year_month]
+,[event_date]
+,[id]
+,[measure_id]
+,[denominator]
+,[numerator]
+,[load_date])
+
+SELECT
+ [year_month]
+,[episode_to_date] AS [event_date]
+,[id]
+,[measure_id]
+,[inpatient_index_stay] AS [denominator]
+,[readmission_flag] AS [numerator]
+,CAST(GETDATE() AS DATE) AS [load_date]
+FROM #temp AS a
+LEFT JOIN [ref].[perf_measure] AS b
+ON b.[measure_name] = ''' + @measure_name + '''
+WHERE [year_month] BETWEEN ' + CAST(@start_month_int AS CHAR(6)) + ' AND ' + CAST(@end_month_int AS CHAR(6)) + ';'
+END
+
 IF @measure_name = 'Child and Adolescent Access to Primary Care'
 BEGIN
 
