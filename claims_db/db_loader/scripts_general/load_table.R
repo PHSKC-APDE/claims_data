@@ -612,34 +612,40 @@ load_table_from_sql_f <- function(
   # Run INSERT statement
   if (truncate_date == F) {
     sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table_name`} WITH (TABLOCK) 
-                                SELECT {`load_rows`} {`vars`*} FROM 
-                                {`from_schema`}.{`from_table_name`}", .con = conn,
-                                  load_rows = DBI::SQL(load_rows))
+                                SELECT {load_rows} {vars*} FROM 
+                                {`from_schema`}.{`from_table_name`}", 
+                                  .con = conn,
+                                  load_rows = DBI::SQL(load_rows),
+                                  vars = dbQuoteIdentifier(conn, vars))
   } else if (truncate_date == T) {
     sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table_name`} WITH (TABLOCK)
-                                  SELECT {`archive_rows`} {`vars`*} FROM 
-                                  {`archive_schema`}.{`archive_table_name`}
-                                  WHERE {`date_var`} < {`date_truncate`}  
+                                  SELECT {archive_rows} {vars*} FROM 
+                                  {archive_schema}.{archive_table_name}
+                                  WHERE {date_var} < {date_truncate}  
                                   UNION 
-                                  SELECT {`new_rows`} {`vars`*} FROM 
-                                  {`from_schema`}.{`from_table_name`}
-                                  WHERE {`date_var`} >= {`date_truncate`}",
+                                  SELECT {new_rows} {vars*} FROM 
+                                  {from_schema}.{from_table_name}
+                                  WHERE {date_var} >= {date_truncate}",
                                   .con = conn,
                                   load_rows = DBI::SQL(load_rows),
                                   archive_rows = DBI::SQL(archive_rows),
+                                  vars = dbQuoteIdentifier(conn, vars),
                                   new_rows = DBI::SQL(new_rows),
                                   date_var = dbQuoteIdentifier(conn, date_var),
                                   date_truncate = dbQuoteString(conn, as.character(date_truncate)))
   }
   dbGetQuery(conn, sql_combine)
   
-  # Add index to the table
-  dbGetQuery(conn,
-             glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                            {`to_schema`}.{`to_table_name`}({`index_vars`*})",
-                            index_vars = table_config$index,
-                            .con = conn))
-
+  
+  # Add index to the table (if desired)
+  if (add_index == T) {
+    index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX {index_name} ON 
+                            {`to_schema`}.{`to_table_name`}({index_vars*})",
+                                index_name = dbQuoteString(conn, table_config$index_name),
+                                index_vars = dbQuoteIdentifier(conn, table_config$index),
+                                .con = conn)
+    dbGetQuery(conn, index_sql)
+  }
 }
 
 
