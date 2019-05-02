@@ -110,7 +110,7 @@ dbGetQuery(db_claims,
            ON a.id = b.id AND a.tcn = b.tcn
            INNER JOIN
            (SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS dx_ver 
-             FROM [PHClaims].[dbo].[ref_hedis_code_system] 
+             FROM [PHClaims].[ref].[hedis_code_system] 
              WHERE value_set_name = 'Asthma') c 
            ON b.dx_norm = c.code AND b.dx_ver = c.dx_ver")
 
@@ -170,7 +170,7 @@ lapply(months_list, function(x) {
                        (SELECT id, tcn, pcode FROM [PHClaims].[dbo].[mcaid_claim_proc]) c 
                        ON a.id = c.id AND a.tcn = c.tcn 
                        INNER JOIN 
-                       (SELECT code FROM [PHClaims].[dbo].[ref_hedis_code_system] 
+                       (SELECT code FROM [PHClaims].[ref].[hedis_code_system] 
                          WHERE value_set_name = 'Outpatient') d 
                        ON c.pcode = d.code 
                        GROUP BY a.id")
@@ -215,7 +215,7 @@ lapply(months_list, function(x) {
                         drug_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
                       INNER JOIN
                       (SELECT medication_list_name, ndc_code, generic_product_name, [route], [description]
-                        FROM [PHClaims].[ref].[hedis_ndc_codes] 
+                        FROM [PHClaims].[ref].[hedis_ndc_code] 
                         WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications') 
                         AND [route] = 'oral' AND [description] = 'Leukotriene modifiers') b
                       ON a.ndc_code = b.ndc_code
@@ -259,7 +259,7 @@ lapply(months_list, function(x) {
                         drug_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
                       INNER JOIN
                       (SELECT medication_list_name, ndc_code, generic_product_name, [route], [description]
-                        FROM [PHClaims].[ref].[hedis_ndc_codes] 
+                        FROM [PHClaims].[ref].[hedis_ndc_code] 
                         WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications') 
                         AND [route] = 'oral' AND [description] <> 'Leukotriene modifiers') b
                       ON a.ndc_code = b.ndc_code
@@ -299,7 +299,7 @@ lapply(months_list, function(x) {
                       drug_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
                      INNER JOIN
                      (SELECT medication_list_name, ndc_code, generic_product_name, [route]
-                       FROM [PHClaims].[ref].[hedis_ndc_codes]
+                       FROM [PHClaims].[ref].[hedis_ndc_code]
                        WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications')
                        AND [route] = 'inhalation') b 
                      ON a.ndc_code = b.ndc_code
@@ -339,7 +339,7 @@ lapply(months_list, function(x) {
                       drug_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
                      INNER JOIN
                      (SELECT medication_list_name, ndc_code, [route], [description]
-                       FROM [PHClaims].[ref].[hedis_ndc_codes]
+                       FROM [PHClaims].[ref].[hedis_ndc_code]
                        WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications')
                        AND [route] IN ('intravenous', 'subcutaneous') AND [description] = 'Antibody inhibitor') b
                      ON a.ndc_code = b.ndc_code
@@ -378,7 +378,7 @@ lapply(months_list, function(x) {
                drug_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
               INNER JOIN
               (SELECT medication_list_name, ndc_code, [route], [description] 
-              FROM [PHClaims].[ref].[hedis_ndc_codes] 
+              FROM [PHClaims].[ref].[hedis_ndc_code] 
               WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications') 
                 AND [route] IN ('intravenous', 'subcutaneous') AND [description] <> 'Antibody inhibitor') b 
               ON a.ndc_code = b.ndc_code
@@ -508,31 +508,31 @@ lapply(months_list, function(x) {
                      ON a.id = b.id AND a.tcn = b.tcn
                      INNER JOIN
                      (SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS dx_ver
-                       FROM [PHClaims].[dbo].[ref_hedis_code_system]
+                       FROM [PHClaims].[ref].[hedis_code_system]
                        WHERE value_set_name = 'Emphysema'
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS dx_ver
-                       FROM [PHClaims].[dbo].[ref_hedis_code_system]
+                       FROM [PHClaims].[ref].[hedis_code_system]
                        WHERE value_set_name = 'Other Emphysema'
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS dx_ver
-                       FROM [PHClaims].[dbo].[ref_hedis_code_system]
+                       FROM [PHClaims].[ref].[hedis_code_system]
                        WHERE value_set_name = 'COPD'
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS dx_ver
-                       FROM [PHClaims].[dbo].[ref_hedis_code_system]
+                       FROM [PHClaims].[ref].[hedis_code_system]
                        WHERE value_set_name = 'Obstructive Chronic Bronchitis' 
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS dx_ver
-                       FROM [PHClaims].[dbo].[ref_hedis_code_system]
+                       FROM [PHClaims].[ref].[hedis_code_system]
                        WHERE value_set_name = 'Chronic Respiratory Conditions Due To Fumes/Vapors' 
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS dx_ver
-                       FROM [PHClaims].[dbo].[ref_hedis_code_system]
+                       FROM [PHClaims].[ref].[hedis_code_system]
                        WHERE value_set_name = 'Cystic Fibrosis' 
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS dx_ver
-                       FROM [PHClaims].[dbo].[ref_hedis_code_system]
+                       FROM [PHClaims].[ref].[hedis_code_system]
                        WHERE value_set_name = 'Acute Respiratory Failure' 
                      ) c
                      ON b.dx_norm = c.code AND b.dx_ver = c.dx_ver")
@@ -704,7 +704,7 @@ dbGetQuery(db_claims,
             FROM [PHClaims].[dbo].[mcaid_claim_pharm]) a 
             INNER JOIN
             (SELECT medication_list_name, ndc_code, generic_product_name, [route], package_size
-            FROM [PHClaims].[ref].[hedis_ndc_codes] 
+            FROM [PHClaims].[ref].[hedis_ndc_code] 
             WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications')) b
             ON a.ndc_code = b.ndc_code
             GROUP BY a.id, b.medication_list_name, a.drug_fill_date, b.[route], 
