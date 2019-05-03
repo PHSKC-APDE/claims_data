@@ -5,6 +5,7 @@ to_table: address_clean
 vars:
     - geo_add1_raw
     - geo_add2_raw
+    - geo_add3_raw
     - geo_city_raw
     - geo_state_raw
     - geo_zip_raw
