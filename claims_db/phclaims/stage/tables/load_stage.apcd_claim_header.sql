@@ -3,11 +3,10 @@
 --value per claim header.
 --Eli Kern (PHSKC-APDE)
 --2019-4-26
---Run time: XX min
+--Run time: 67 min
 
 ------------------
 --STEP 1: Transform medical_claim_header table, add all fields that do not require table joins
---Note that all denied and orphaned claim headers are dropped at this stage
 -------------------
 if object_id('tempdb..#temp1') is not null drop table #temp1;
 select
@@ -31,23 +30,30 @@ type_of_bill_code,
 cast(case when emergency_room_flag = 'Y' then 1 when emergency_room_flag = 'N' then 0 end as tinyint) as ed_flag,
 cast(case when operating_room_flag = 'Y' then 1 when operating_room_flag = 'N' then 0 end as tinyint) as or_flag
 into #temp1
-from PHClaims.stage.apcd_medical_claim_header
-where denied_header_flag = 'N' and orphaned_header_flag = 'N';
+from PHClaims.stage.apcd_medical_claim_header;
 
 ------------------
---STEP 2: Prepare header-level inpatient stay data elements using line-level table
---Note that is definition of an acute inpatient stay was defined through Susan Hernandez's work and dialogue with OnPoint
+--STEP 2: Prepare select header-level data elements using line-level table
+--Acute inpatient stay defined through Susan Hernandez's work and dialogue with OnPoint
+--Max of discharge dt grouped by claim header will take latest discharge date when >1 discharge dt links to header
+--Header-level denied and orphaned claim status based on line-level table
 -------------------
 if object_id('tempdb..#temp2') is not null drop table #temp2;
-select b.medical_claim_header_id, max(a.ipt_flag) as ipt_flag, max(a.discharge_dt) as discharge_dt
+select b.medical_claim_header_id, max(a.ipt_flag) as ipt_flag, max(a.discharge_dt) as discharge_dt,
+	min(case when a.denied_claim_flag = 'Y' then 1 else 0 end) as denied_line_min,
+	min(case when a.orphaned_adjustment_flag = 'Y' then 1 else 0 end) as orphaned_line_min
 into #temp2
 from (
-select medical_claim_service_line_id, 1 as ipt_flag, discharge_dt
-from PHClaims.stage.apcd_medical_claim 
-where claim_type_id = '1' and type_of_setting_id = '1' and place_of_setting_id = '1'
+select medical_claim_service_line_id,
+case when claim_type_id = '1' and type_of_setting_id = '1' and place_of_setting_id = '1'
 	and (denied_claim_flag = 'N' AND orphaned_adjustment_flag = 'N')
 	and claim_status_id in (-1, -2, 1, 5, 2, 6)
 	and discharge_dt is not null
+then 1 else 0 end as ipt_flag,
+discharge_dt,
+denied_claim_flag,
+orphaned_adjustment_flag
+from PHClaims.stage.apcd_medical_claim 
 ) as a
 left join PHClaims.stage.apcd_medical_crosswalk as b
 on a.medical_claim_service_line_id = b.medical_claim_service_line_id
@@ -55,7 +61,8 @@ group by b.medical_claim_header_id;
 
 
 ------------------
---STEP 3: Join claim header temp table with new header-level inpatient flags
+--STEP 3: Join claim header temp table with line-level based table
+--Use line-level denied/orphaned flags to exclude claim headers
 -------------------
 if object_id('tempdb..#temp3') is not null drop table #temp3;
 select 
@@ -82,7 +89,8 @@ a.or_flag
 into #temp3
 from #temp1 as a
 left join #temp2 as b
-on a.claim_header_id = b.medical_claim_header_id;
+on a.claim_header_id = b.medical_claim_header_id
+where b.denied_line_min = 0 and b.orphaned_line_min = 0;
 
 
 ------------------
