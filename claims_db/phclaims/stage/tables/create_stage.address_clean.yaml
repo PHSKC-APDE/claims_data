@@ -3,6 +3,7 @@ table: address_clean
 vars:
     geo_add1_raw: VARCHAR(200)
     geo_add2_raw: VARCHAR(200)
+    geo_add3_raw: VARCHAR(200)
     geo_city_raw: VARCHAR(200)
     geo_state_raw: VARCHAR(200)
     geo_zip_raw: VARCHAR(200)
