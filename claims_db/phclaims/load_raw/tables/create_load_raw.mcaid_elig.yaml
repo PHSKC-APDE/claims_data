@@ -5,9 +5,9 @@ years:
     - 2013
     - 2014
     - 2015
-    - 2016
-    - 2017
-    - 2018
+    #- 2016
+    #- 2017
+    #- 2018
 vars:
     CLNDR_YEAR_MNTH: INTEGER
     MEDICAID_RECIPIENT_ID: VARCHAR(200)
