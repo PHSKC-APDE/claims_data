@@ -46,37 +46,37 @@ vars:
     - MBR_ACES_IDNTFR
     - MBR_H_SID
 table_2012:
-    file_path: //kcitsqlutpdbh51/importdata/Data/New data_May2019/KC_Elig_CY2012.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2012.txt
     vars_2012: null
     field_term: \t
     row_term: \n
 table_2013:
-    file_path: //kcitsqlutpdbh51/importdata/Data/New data_May2019/KC_Elig_CY2013.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2013.txt
     vars_2013: null
     field_term: \t
     row_term: \n
 table_2014:
-    file_path: //kcitsqlutpdbh51/importdata/Data/New data_May2019/KC_Elig_CY2014.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2014.txt
     vars_2014: null
     field_term: \t
     row_term: \n
 table_2015:
-    file_path: //kcitsqlutpdbh51/importdata/Data/New data_May2019/KC_Elig_CY2015.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2015.txt
     vars_2015: null
     field_term: \t
     row_term: \n
 #table_2016:
-#    file_path: //kcitsqlutpdbh51/importdata/Data/New data_May2019/KC_Elig_CY2016.txt
+#    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2016.txt
 #    vars_2016: null
 #    field_term: \t
 #    row_term: \n
 #table_2017:
-#    file_path: //kcitsqlutpdbh51/importdata/Data/New data_May2019/KC_Elig_CY2017.txt
+#    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2017.txt
 #    vars_2017: null
 #    field_term: \t
 #    row_term: \n
 #table_2018:
-#    file_path: //kcitsqlutpdbh51/importdata/Data/New data_May2019/KC_Elig_CY2018.txt
+#    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2018.txt
 #    vars_2018: null
 #    field_term: \t
 #    row_term: \n
