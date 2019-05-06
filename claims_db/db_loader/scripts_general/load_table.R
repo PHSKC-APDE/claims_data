@@ -251,12 +251,14 @@ load_table_from_file_f <- function(
     # Run loading function
     loading_process_f(config_section = "overall")
 
-    # Add index to the table
-    dbGetQuery(conn,
-               glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
+    if (add_index == T) {
+      # Add index to the table
+      dbGetQuery(conn,
+                 glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
                               {`schema`}.{`table_name`}({`index_vars`*})",
-                              index_vars = table_config$index,
-                              .con = conn))
+                                index_vars = table_config$index,
+                                .con = conn))
+    }
   }
   
   #### CALENDAR YEAR TABLES ####
@@ -285,6 +287,35 @@ load_table_from_file_f <- function(
         # Remove data from existing combined table if desired
         dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`schema`}.{`table_name`}", 
                                               .con = conn))
+      }
+      
+      if (add_index == T) {
+        # Remove index from combined table if it exists
+        # This code pulls out the clustered index name
+        index_name <- dbGetQuery(conn_inner, 
+                                 glue::glue_sql("SELECT DISTINCT a.index_name
+                                                FROM
+                                                (SELECT ind.name AS index_name
+                                                  FROM
+                                                  (SELECT object_id, name, type_desc FROM sys.indexes
+                                                    WHERE type_desc = 'CLUSTERED') ind
+                                                  INNER JOIN
+                                                  (SELECT name, schema_id, object_id FROM sys.tables
+                                                    WHERE name = {`table`}) t
+                                                  ON ind.object_id = t.object_id
+                                                  INNER JOIN
+                                                  (SELECT name, schema_id FROM sys.schemas
+                                                    WHERE name = {`schema`}) s
+                                                  ON t.schema_id = s.schema_id) a",
+                                                .con = conn,
+                                                table = dbQuoteString(conn, table_name),
+                                                schema = dbQuoteString(conn, schema)))[[1]]
+        
+        if (length(index_name) != 0) {
+          dbGetQuery(conn_inner,
+                     glue::glue_sql("DROP INDEX {`index_name`} ON 
+                                  {`schema`}.{`table_name`}", .con = conn))
+        }
       }
       
       
@@ -324,17 +355,11 @@ load_table_from_file_f <- function(
         
         # Add to main SQL statement
         if (x < length(combine_years)) {
-          # sql_combine <<- paste0(sql_combine, "SELECT ", 
-          #                        paste(vars_to_load, collapse = ", "), " FROM ",
-          #                        schema, ".", table_name_new, " UNION ALL ")
           sql_combine <<- glue::glue_sql("{`sql_combine`} SELECT {`vars_to_load`*}
                                          FROM {`schema`}.{`table`} UNION ALL ",
                                          .con = conn,
                                          table = table_name_new)
         } else {
-          # sql_combine <<- paste0(sql_combine, "SELECT ", 
-          #                        paste(vars_to_load, collapse = ", "), " FROM ",
-          #                        schema, ".", table_name_new, ") AS tmp")
           sql_combine <<- glue::glue_sql("{`sql_combine`} SELECT {`vars_to_load`*}
                                          FROM {`schema`}.{`table`}) AS tmp",
                                          .con = conn,
@@ -344,6 +369,15 @@ load_table_from_file_f <- function(
       })
       
       dbGetQuery(conn, sql_combine)
+      
+      if (add_index == T) {
+        # Add index to the table
+        dbGetQuery(conn,
+                   glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
+                              {`schema`}.{`table_name`}({`index_vars`*})",
+                                  index_vars = table_config$index,
+                                  .con = conn))
+      }
     }
   }
 }
