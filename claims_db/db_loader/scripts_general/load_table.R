@@ -111,7 +111,7 @@ load_table_from_file_f <- function(
       warning("YAML file has details for an overall file. \n
               This will be ignored since ind_yr == T.")
     }
-    if (max(str_detect(eval.config.sections(file = config_file), 
+    if (max(str_detect(names(table_config), 
                        "table_20[0-9]{2}")) == 0) {
       stop("YAML file is missing details for individual years")
     }
