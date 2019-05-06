@@ -184,7 +184,8 @@ load_table_from_file_f <- function(
     }
 
     # Add message to user
-    print(paste0("Loading ", ind_yr_msg, " [", schema_inner, "].[", table_name_inner, "] table", test_msg_inner))
+    print(glue('Loading {ind_yr_msg} [{schema_inner}].[{table_name_inner}] table(s) ',
+               ' from {table_config_inner[[config_section]][["file_path"]]} {test_msg_inner}'))
     
     # Truncate existing table if desired
     if (truncate_inner == T) {
