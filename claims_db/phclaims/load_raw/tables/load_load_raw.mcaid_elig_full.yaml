@@ -45,6 +45,8 @@ vars:
     - RSDNTL_COUNTY_NAME
     - MBR_ACES_IDNTFR
     - MBR_H_SID
+    - SECONDARY_RAC_CODE
+    - SECONDARY_RAC_NAME
 table_2012:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2012.txt
     vars_2012: null
