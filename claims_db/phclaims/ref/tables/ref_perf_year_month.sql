@@ -1,5 +1,6 @@
 
-USE PHClaims;
+--USE [PHClaims];
+--USE [DCHS_Analytics];
 GO
 
 IF OBJECT_ID('[ref].[perf_year_month]', 'U') IS NOT NULL
@@ -20,7 +21,7 @@ SELECT [n] * 100 + [month] AS [year_month]
 INTO [ref].[perf_year_month]
 FROM 
 (
-SELECT [n] FROM [ref].[nums] WHERE n BETWEEN 2010 AND 2020
+SELECT [n] FROM [ref].[num] WHERE n BETWEEN 2010 AND 2020
 ) AS a
 CROSS JOIN 
 (

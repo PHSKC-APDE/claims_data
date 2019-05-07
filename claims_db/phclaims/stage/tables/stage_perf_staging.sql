@@ -38,3 +38,21 @@ CREATE TABLE [stage].[perf_staging_event_date]
 ,[numerator] INT NOT NULL
 ,[load_date] DATE NOT NULL);
 GO
+
+/*
+BHO Versions
+*/
+
+USE [DCHS_Analytics]
+GO
+IF OBJECT_ID('[stage].[perf_bho_staging]', 'U') IS NOT NULL
+DROP TABLE [stage].[perf_bho_staging];
+CREATE TABLE [stage].[perf_bho_staging]
+([year_month] INT NOT NULL
+,[kcid] INT NOT NULL
+,[p1_id] VARCHAR(200) NULL
+,[measure_id] INT NOT NULL
+,[num_denom] CHAR(1) NOT NULL
+,[measure_value] INT NOT NULL
+,[load_date] DATE NOT NULL);
+GO
