@@ -395,7 +395,7 @@ icd9cm <- icd9cm %>%
   mutate_at(
     vars(c("ed_needed_unavoid_nyu", "ed_needed_avoid_nyu", "ed_pc_treatable_nyu", "ed_nonemergent_nyu", "ed_mh_nyu",
            "ed_sud_nyu", "ed_alc_nyu", "ed_injury_nyu", "ed_unclass_nyu")),
-    funs(round(., digits = 2))
+    list(~round(., digits = 2))
   )
 
 #clean up
@@ -515,7 +515,7 @@ icd10cm <- icd10cm %>%
   mutate_at(
     vars(c("ed_needed_unavoid_nyu", "ed_needed_avoid_nyu", "ed_pc_treatable_nyu", "ed_nonemergent_nyu", "ed_mh_nyu",
            "ed_sud_nyu", "ed_alc_nyu", "ed_injury_nyu", "ed_unclass_nyu")),
-    funs(round(., digits = 2))
+    list(~round(., digits = 2))
   )
 
 #clean up
@@ -797,7 +797,7 @@ icd910cm <- icd910cm %>%
 # Write your data frame. Note that the package adds a dbo schema so do not include that in the name.
 # Also, you can append = T rather than overwrite = T if desired. 
 # Overwrite does what you would expect without needing to delete the whole table
-dbWriteTable(db.claims51, name = "ref_dx_lookup_load", value = as.data.frame(icd910cm), overwrite = T)
-
-DBI::dbExecute(db.claims51, "CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON ref_dx_lookup_load (dx_ver, dx)")
+tbl_name <- DBI::Id(schema = "ref", table = "dx_lookup_load")
+dbWriteTable(db.claims51, name = tbl_name, value = as.data.frame(icd910cm), overwrite = T)
+DBI::dbExecute(db.claims51, "CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON phclaims.ref.dx_lookup_load (dx_ver, dx)")
 
