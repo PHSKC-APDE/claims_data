@@ -292,7 +292,7 @@ load_table_from_file_f <- function(
       if (add_index == T) {
         # Remove index from combined table if it exists
         # This code pulls out the clustered index name
-        index_name <- dbGetQuery(conn_inner, 
+        index_name <- dbGetQuery(conn, 
                                  glue::glue_sql("SELECT DISTINCT a.index_name
                                                 FROM
                                                 (SELECT ind.name AS index_name

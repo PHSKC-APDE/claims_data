@@ -65,16 +65,16 @@ vars:
 #    vars_2015: null
 #    field_term: \t
 #    row_term: \n
-table_2016:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2016.txt
-    vars_2016: null
-    field_term: \t
-    row_term: \n
-table_2017:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2017.txt
-    vars_2017: null
-    field_term: \t
-    row_term: \n
+#table_2016:
+#    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2016.txt
+#    vars_2016: null
+#    field_term: \t
+#    row_term: \n
+#table_2017:
+#    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2017.txt
+#    vars_2017: null
+#    field_term: \t
+#    row_term: \n
 table_2018:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2018.txt
     vars_2018: null
