@@ -1,0 +1,8 @@
+schema: metadata
+table: etl_log
+vars:
+  etl_batch_id: INTEGER
+  batch_type: VARCHAR(200)
+  data_source: VARCHAR(200)
+  delivery_date: DATE
+  note: VARCHAR(2000)
