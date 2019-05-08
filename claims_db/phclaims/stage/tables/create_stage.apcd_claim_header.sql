@@ -2,7 +2,7 @@
 --Distinct header-level claim variables (e.g. claim type). In other words elements for which there is only one distinct 
 --value per claim header.
 --Eli Kern (PHSKC-APDE)
---2019-4-26
+--2019-4-26 
 
 if object_id('PHClaims.stage.apcd_claim_header', 'U') is not null drop table PHClaims.stage.apcd_claim_header;
 create table PHClaims.stage.apcd_claim_header (
