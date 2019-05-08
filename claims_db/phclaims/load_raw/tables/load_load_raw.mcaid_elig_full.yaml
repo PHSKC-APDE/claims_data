@@ -57,12 +57,12 @@ table_2013:
     field_term: \t
     row_term: \n
     row_count: 3317994
-table_2014:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2014.txt
-    vars_2014: null
-    field_term: \t
-    row_term: \n
-    row_count: 4612489
+# table_2014:
+#     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2014.txt
+#     vars_2014: null
+#     field_term: \t
+#     row_term: \n
+#     row_count: 4612489
 # table_2015:
 #     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/New data_May2019/KC_Elig_CY2015.txt
 #     vars_2015: null
