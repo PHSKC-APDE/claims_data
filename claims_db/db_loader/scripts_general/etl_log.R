@@ -38,6 +38,10 @@ load_metadata_etl_log_f <- function(conn = NULL,
   }
   
   
+  #### REDO batch_type VARIABLE ####
+  batch_type <- ifelse(batch_type == "incremental", "Incremental refresh",
+                       "Full refresh")
+  
   #### CHECK EXISTING ENTRIES ####
   latest <- odbc::dbGetQuery(conn, 
                              "SELECT TOP (1) * FROM metadata.etl_log
@@ -50,10 +54,16 @@ load_metadata_etl_log_f <- function(conn = NULL,
                                       ORDER BY etl_batch_id DESC",
                                       .con = conn))
   
+  matches <- odbc::dbGetQuery(conn, 
+                              glue::glue_sql(
+                                "SELECT * FROM metadata.etl_log
+                                      WHERE batch_type = {batch_type} AND
+                                      data_source = {data_source} AND 
+                                      delivery_date = {delivery_date}
+                                      ORDER BY etl_batch_id DESC",
+                                .con = conn))
+
   #### SET DEFAULTS ####
-  batch_type <- ifelse(batch_type == "incremental", "Incremental refresh",
-                       "Full refresh")
-  
   proceed <- T # Move ahead with the load
   if (nrow(latest) > 0) {
     etl_batch_id <- latest$etl_batch_id + 1
@@ -62,11 +72,20 @@ load_metadata_etl_log_f <- function(conn = NULL,
   }
   
   
-  
   #### CHECK AGAINST EXISTING ENTRIES ####
   # (assume if there is no record for this data source already then yes)
-  if (nrow(latest) > 0 & nrow(latest_source) > 0) {
-    proceed_msg <- glue::glue("
+  if (nrow(matches) > 0) {
+    print(matches)
+    
+    proceed_msg <- glue::glue("There are already entries in the table that \\
+                              look similar to what you are attempting to enter. \\
+                              See the console window.
+                              
+                              Do you still want to make a new entry?")
+    proceed <- askYesNo(msg = proceed_msg)
+  } else {
+    if (nrow(latest) > 0 & nrow(latest_source) > 0) {
+      proceed_msg <- glue::glue("
 The most recent entry in the etl_log is as follows:
 etl_batch_id: {latest[1]}
 batch_type: {latest[2]}
@@ -82,12 +101,13 @@ delivery_date: {latest_source[4]}
 note: {latest_source[5]}
 
 Do you still want to make a new entry?",
-                              .con = conn)
-    
-    proceed <- askYesNo(msg = proceed_msg)
-    
+                                .con = conn)
+      
+      proceed <- askYesNo(msg = proceed_msg)
+      
+    }
   }
-  
+ 
   if (proceed == F | is.na(proceed)) {
     print("ETL log load cancelled at user request")
   } else {
