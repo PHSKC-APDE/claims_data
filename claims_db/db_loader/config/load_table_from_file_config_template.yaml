@@ -13,17 +13,20 @@ overall: # Add this block if loading a single file to the main SQL table
     file_path: # Add path to file (e.g., //kcitsqlutpdbh51/importdata/Data/KC_Elig_2019-05-15.txt)
     field_term: # Add the field terminator (e.g., \t, ,)
     row_term: # Add the row terminator (e.g., \n)
+    row_count: # Add the EXPECTED number of rows (without any punctuation)
 table_20xx: # Add this block for each individual year to be loaded
     file_path: # Add path to file (e.g., //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2012.txt)
     vars_2012: # Add any additional variables specific to this year
         - # One per line with dash in front
     field_term: # Add the field terminator (e.g., \t, ,)
     row_term: # Add the row terminator (e.g., \n)
+    row_count: # Add the EXPECTED number of rows (without any punctuation)
 table_20xx:
     file_path: 
     vars_2015: null
     field_term: null
     row_term: null
+    row_count: 
 combine_years:
     - # List the years to be combined into a single table (e.g., 2012)
     - # One per line, dash in front
