@@ -1,0 +1,9 @@
+schema: metadata
+table: qa_mcaid
+vars:
+  etl_batch_id: INTEGER
+  table_name: VARCHAR(200)
+  qa_item: VARCHAR(500)
+  qa_result: VARCHAR(200)
+  qa_date: DATE
+  note: VARCHAR(2000)
