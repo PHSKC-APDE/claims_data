@@ -1,7 +1,7 @@
 #### FUNCTIONS TO LOAD DATA TO SQL TABLES
 # Alastair Matheson
 # Created:        2019-04-15
-# Last modified:  2019-04-16
+# Last modified:  2019-05-06
 
 
 ### Plans for future improvements:
@@ -283,6 +283,7 @@ load_table_from_file_f <- function(
     
     # Combine individual years into a single table if desired
     if (combine_yr == T) {
+      print("Combining years into a single table")
       if (truncate == T) {
         # Remove data from existing combined table if desired
         dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`schema`}.{`table_name`}", 
