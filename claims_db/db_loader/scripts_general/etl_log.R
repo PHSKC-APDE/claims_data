@@ -121,7 +121,10 @@ Do you still want to make a new entry?",
     
     odbc::dbGetQuery(conn, sql_load)
     
+    # Finish with a message and return the latest etl_batch_id
+    # (users should be assigning this to a current_batch_id object)
     print(glue::glue("ETL batch #{etl_batch_id} loaded"))
+    return(etl_batch_id)
   }
 }
 
