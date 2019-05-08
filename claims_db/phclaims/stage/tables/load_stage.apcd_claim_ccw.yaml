@@ -1,0 +1,23 @@
+asthma:
+    ccw_code: 1
+    ccw_desc: Asthma
+    lookback_years: 1
+    dx_fields: any
+    claim_type1:
+        - 1
+        - 2
+        - 3
+    claim_type2:
+    condition_type: 1
+copd:
+    ccw_code: 12
+    ccw_desc: COPD
+    lookback_years: 1
+    dx_fields: any
+    claim_type1:
+        - 1
+        - 2
+        - 3
+    claim_type2:
+    condition_type: 1
+
