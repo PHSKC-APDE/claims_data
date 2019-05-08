@@ -13,9 +13,19 @@ library(lubridate) # Used to manipulate dates
 library(odbc) # Used to connect to SQL server
 origin <- "1970-01-01"
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
+config_file <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
 
 
-##### Step 0: set parameters for person-condition table #####
+##### Step 1: 
+table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+
+
+
+
+
+
+
+#### set parameters for person-condition table #####
 
 condition <- "ischemic_heart_dis"
 lookback <- "24mo"
