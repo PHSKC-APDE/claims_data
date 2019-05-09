@@ -1,3 +1,4 @@
+source_data: apcd
 from_table_claim_header: final.apcd_claim_header
 from_table_icdcm: final.apcd_claim_icdcm_header
 schema: stage

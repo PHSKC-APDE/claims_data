@@ -23,7 +23,9 @@ top_rows <- "" #Use this parameter for script testing - set to "top 5000" for ex
 table_config <- yaml::yaml.load(RCurl::getURL(config_url))
 conditions <- table_config[str_detect(names(table_config), "cond_")]
 schema <- table_config[str_detect(names(table_config), "schema")][[1]]
-table_name <- table_config[str_detect(names(table_config), "table")][[1]]
+from_table_claim_header <- table_config[str_detect(names(table_config), "from_table_claim_header")][[1]]
+from_table_icdcm <- table_config[str_detect(names(table_config), "from_table_icdcm")][[1]]
+to_table <- table_config[str_detect(names(table_config), "to_table")][[1]]
 
 ## Temporary code: set parameters for asthma table for testing
 ccw_code <- table_config$cond_asthma$ccw_code
@@ -65,8 +67,8 @@ sql <- paste0(
   "--pull out claim type and service dates
   from (
     select id, tcn, clm_type_code, from_date
-    from PHClaims.dbo.mcaid_claim_header
-  ) header
+    from PHClaims.", from_table_claim_header, 
+  ") header
   
   --right join to claims containing a diagnosis in the CCW condition definition
   right join (
