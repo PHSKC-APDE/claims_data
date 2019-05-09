@@ -14,6 +14,8 @@ overall: # Add this block if loading a single file to the main SQL table
     field_term: # Add the field terminator (e.g., \t, ,)
     row_term: # Add the row terminator (e.g., \n)
     row_count: # Add the EXPECTED number of rows (without any punctuation)
+    date_min: # Add the EXPECTED minimum date for the field of interest (e.g., 201401 or 2014-01-01)
+    date_max: # Add the EXPECTED maximum date for the field of interest (e.g., 201412 or 2014-12-31)
 table_20xx: # Add this block for each individual year to be loaded
     file_path: # Add path to file (e.g., //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2012.txt)
     vars_2012: # Add any additional variables specific to this year
@@ -21,12 +23,16 @@ table_20xx: # Add this block for each individual year to be loaded
     field_term: # Add the field terminator (e.g., \t, ,)
     row_term: # Add the row terminator (e.g., \n)
     row_count: # Add the EXPECTED number of rows (without any punctuation)
+    date_min: # Add the EXPECTED minimum date for the field of interest (e.g., 201401 or 2014-01-01)
+    date_max: # Add the EXPECTED maximum date for the field of interest (e.g., 201412 or 2014-12-31)
 table_20xx:
     file_path: 
     vars_2015: null
     field_term: null
     row_term: null
-    row_count: 
+    row_count: null
+    date_min: null
+    date_max: null
 combine_years:
     - # List the years to be combined into a single table (e.g., 2012)
     - # One per line, dash in front
