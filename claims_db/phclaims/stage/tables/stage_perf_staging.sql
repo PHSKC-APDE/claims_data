@@ -27,6 +27,7 @@ CREATE TABLE [dbo].[p4p_staging_event_date]
 ,[load_date] DATE NOT NULL);
 GO
 */
+
 IF OBJECT_ID('[stage].[perf_staging_event_date]', 'U') IS NOT NULL
 DROP TABLE [stage].[perf_staging_event_date];
 CREATE TABLE [stage].[perf_staging_event_date]
@@ -43,8 +44,10 @@ GO
 BHO Versions
 */
 
-USE [DCHS_Analytics]
+--USE [DCHS_Analytics]
+USE [PHClaims]
 GO
+
 IF OBJECT_ID('[stage].[perf_bho_staging]', 'U') IS NOT NULL
 DROP TABLE [stage].[perf_bho_staging];
 CREATE TABLE [stage].[perf_bho_staging]
