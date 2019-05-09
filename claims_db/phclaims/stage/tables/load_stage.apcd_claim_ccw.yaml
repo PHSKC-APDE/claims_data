@@ -1,7 +1,13 @@
-asthma:
+source_data: apcd
+from_table_claim_header: final.apcd_claim_header
+from_table_icdcm: final.apcd_claim_icdcm_header
+schema: stage
+to_table: apcd_claim_ccw
+cond_asthma:
     ccw_code: 1
     ccw_desc: Asthma
-    lookback_years: 1
+    ccw_abbrev: asthma
+    lookback_months: 12
     dx_fields: any
     claim_type1:
         - 1
@@ -9,10 +15,11 @@ asthma:
         - 3
     claim_type2:
     condition_type: 1
-copd:
+cond_copd:
     ccw_code: 12
     ccw_desc: COPD
-    lookback_years: 1
+    ccw_abbrev: copd
+    lookback_months: 12
     dx_fields: any
     claim_type1:
         - 1
@@ -20,4 +27,17 @@ copd:
         - 3
     claim_type2:
     condition_type: 1
-
+cond_diabetes:
+    ccw_code: 14
+    ccw_desc: Diabetes
+    ccw_abbrev: diabetes
+    lookback_months: 24
+    dx_fields: any
+    claim_type1:
+        - 1
+        - 2
+        - 3
+    claim_type2:
+        - 4
+        - 5
+    condition_type: 2
