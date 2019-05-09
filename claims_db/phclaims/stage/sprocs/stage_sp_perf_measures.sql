@@ -280,6 +280,8 @@ Members need coverage in month following index event.
 ,den.[full_criteria_p_2_m]
 ,den.[hospice_p_2_m]
 
+,res.[enrolled_any_t_12_m]
+
 ,stg.[event_date]
 /*
 If index visit occurs on 1st of month, then 31-day follow-up period contained
@@ -301,9 +303,21 @@ AND ref.[measure_name] LIKE ''' + CAST(@measure_name AS VARCHAR(200)) + '%' + ''
 INNER JOIN [ref].[perf_year_month] AS ym
 ON stg.[year_month] = ym.[year_month]
 
+/*
+[stage].[perf_enroll_denom] must be joined TWICE
+(1) Member must have comprehensive, non-dual, no-hospice coverage from 
+[event_date] through 30 days after [event_date]
+(2) Member must have residence in the ACH region for 11 out of 12 months in the
+measurement year. This is proxied by [enrolled_any_t_12_m]
+*/
+
 LEFT JOIN [stage].[perf_enroll_denom] AS den
 ON stg.[id] = den.[id]
 AND stg.[year_month] = den.[year_month]
+
+LEFT JOIN [stage].[perf_enroll_denom] AS res
+ON stg.[id] = res.[id]
+AND res.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
 
 WHERE stg.[event_date] >= (SELECT [12_month_prior] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
 /*
@@ -360,10 +374,12 @@ WHERE 1 = 1
 Filter by age at time of index event
 */
 AND [event_date_age] >= 13
--- For follow-up measures, enrollment is required only at time of index event
+-- For follow-up measures, enrollment is required at time of index event
 AND [full_criteria] = 1
 AND [hospice] = 0
 AND (([need_1_month_coverage] = 1) OR ([full_criteria_p_2_m] = 2 AND [hospice_p_2_m] = 0))
+-- For ACH regional attribution, ANY enrollment is used as a proxy for King County residence
+AND [enrolled_any_t_12_m] >= 11
 
 GROUP BY 
  [id]
@@ -421,8 +437,10 @@ for inclusion below by age at each index event [event_date_age].
 /*
 Members need coverage in month following index event.
 */
-,[full_criteria_p_2_m]
-,[hospice_p_2_m]
+,den.[full_criteria_p_2_m]
+,den.[hospice_p_2_m]
+
+,res.[enrolled_any_t_12_m]
 
 ,stg.[event_date]
 /*
@@ -445,9 +463,21 @@ AND ref.[measure_name] LIKE ''' + CAST(@measure_name AS VARCHAR(200)) + '%' + ''
 INNER JOIN [ref].[perf_year_month] AS ym
 ON stg.[year_month] = ym.[year_month]
 
+/*
+[stage].[perf_enroll_denom] must be joined TWICE
+(1) Member must have comprehensive, non-dual, no-hospice coverage from 
+[event_date] through 30 days after [event_date]
+(2) Member must have residence in the ACH region for 11 out of 12 months in the
+measurement year. This is proxied by [enrolled_any_t_12_m]
+*/
+
 LEFT JOIN [stage].[perf_enroll_denom] AS den
 ON stg.[id] = den.[id]
 AND stg.[year_month] = den.[year_month]
+
+LEFT JOIN [stage].[perf_enroll_denom] AS res
+ON stg.[id] = res.[id]
+AND res.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
 
 WHERE stg.[event_date] >= (SELECT [12_month_prior] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
 /*
@@ -501,10 +531,12 @@ ON a.[end_month_age] = age.[age]
 
 WHERE 1 = 1
 AND [event_date_age] >= 6
--- For follow-up measures, enrollment is required only at time of index event
+-- For follow-up measures, enrollment is required at time of index event
 AND [full_criteria] = 1
 AND [hospice] = 0
 AND (([need_1_month_coverage] = 1) OR ([full_criteria_p_2_m] = 2 AND [hospice_p_2_m] = 0))
+-- For ACH regional attribution, ANY enrollment is used as a proxy for King County residence
+AND [enrolled_any_t_12_m] >= 11
 
 GROUP BY 
  [id]
@@ -562,8 +594,10 @@ for inclusion below by age at each index event [event_date_age].
 /*
 Members need coverage in month following index event.
 */
-,[full_criteria_p_2_m]
-,[hospice_p_2_m]
+,den.[full_criteria_p_2_m]
+,den.[hospice_p_2_m]
+
+,res.[enrolled_any_t_12_m]
 
 ,stg.[event_date]
 /*
@@ -586,9 +620,21 @@ AND ref.[measure_name] LIKE ''' + CAST(@measure_name AS VARCHAR(200)) + '%' + ''
 INNER JOIN [ref].[perf_year_month] AS ym
 ON stg.[year_month] = ym.[year_month]
 
+/*
+[stage].[perf_enroll_denom] must be joined TWICE
+(1) Member must have comprehensive, non-dual, no-hospice coverage from 
+[event_date] through 30 days after [event_date]
+(2) Member must have residence in the ACH region for 11 out of 12 months in the
+measurement year. This is proxied by [enrolled_any_t_12_m]
+*/
+
 LEFT JOIN [stage].[perf_enroll_denom] AS den
 ON stg.[id] = den.[id]
 AND stg.[year_month] = den.[year_month]
+
+LEFT JOIN [stage].[perf_enroll_denom] AS res
+ON stg.[id] = res.[id]
+AND res.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
 
 WHERE stg.[event_date] >= (SELECT [12_month_prior] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
 /*
@@ -645,10 +691,12 @@ WHERE 1 = 1
 Filter by age at time of index event
 */
 AND [event_date_age] >= 6
--- For follow-up measures, enrollment is required only at time of index event
+-- For follow-up measures, enrollment is required at time of index event
 AND [full_criteria] = 1
 AND [hospice] = 0
 AND (([need_1_month_coverage] = 1) OR ([full_criteria_p_2_m] = 2 AND [hospice_p_2_m] = 0))
+-- For ACH regional attribution, ANY enrollment is used as a proxy for King County residence
+AND [enrolled_any_t_12_m] >= 11
 
 GROUP BY 
  [id]
