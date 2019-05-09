@@ -1,4 +1,4 @@
-## Code to create stage.apcd_claim_ccw table
+## Code to create stage.SOURCE_claim_ccw table
 ## Person-level CCW condition status by time period
 ## Eli Kern (PHSKC-APDE)
 ## 2019-5-8 
@@ -13,11 +13,12 @@ library(lubridate) # Used to manipulate dates
 library(odbc) # Used to connect to SQL server
 origin <- "1970-01-01"
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
-config_file <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
 
 
-##### Step 1: 
+##### Step 1: Load chronic condition parameters from config file 
 table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+conditions <- as.list(names(table_config)[str_detect(names(table_config), "table_")])
 
 
 
