@@ -3,6 +3,7 @@ table: apcd_claim_ccw
 cond_asthma:
     ccw_code: 1
     ccw_desc: Asthma
+    ccw_abbrev: asthma
     lookback_years: 1
     dx_fields: any
     claim_type1:
@@ -14,6 +15,7 @@ cond_asthma:
 cond_copd:
     ccw_code: 12
     ccw_desc: COPD
+    ccw_abbrev: copd
     lookback_years: 1
     dx_fields: any
     claim_type1:

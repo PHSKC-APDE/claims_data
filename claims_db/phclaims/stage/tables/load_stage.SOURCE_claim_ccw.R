@@ -6,7 +6,7 @@
 
 ## This is for Type 1 CCW definitions - that require 1 claim in lookback period to meet condition criteria
 
-##### Set up global parameter and call in libraries #####
+#### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 30, scipen = 999)
 library(tidyverse) # Used to manipulate tidy data
 library(lubridate) # Used to manipulate dates
@@ -14,39 +14,49 @@ library(odbc) # Used to connect to SQL server
 origin <- "1970-01-01"
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
 config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
+top_rows <- "" #Use this parameter for script testing - set to "top 5000" for example
 
+# ### ### ### ### ### ### ###
+#### Step 1: Load parameters from config file #### 
+# ### ### ### ### ### ### ###
 
-##### Step 1: Load chronic condition parameters from config file 
 table_config <- yaml::yaml.load(RCurl::getURL(config_url))
-conditions <- as.list(names(table_config)[str_detect(names(table_config), "table_")])
+conditions <- table_config[str_detect(names(table_config), "cond_")]
+schema <- table_config[str_detect(names(table_config), "schema")][[1]]
+table_name <- table_config[str_detect(names(table_config), "table")][[1]]
 
+## Temporary code: set parameters for asthma table for testing
+ccw_code <- table_config$cond_asthma$ccw_code
+ccw_desc <- table_config$cond_asthma$ccw_desc
+lookback_years <- table_config$cond_asthma$lookback_years
+claim_type1 <- table_config$cond_asthma$claim_type1
+claim_type2 <- table_config$cond_asthma$claim_type2
+condition_type <- table_config$cond_asthma$condition_type
 
+#For looping later on
+lapply(conditions, function(x){
+  ccw_code <- x$ccw_code
+  ccw_desc <- x$ccw_desc
+  lookback_years <- x$lookback_years
+  dx_fields <- x$dx_fields
+  claim_type1 <- x$claim_type1
+  claim_type2 <- x$claim_type2
+  condition_type <- x$condition_type
+})
 
-
-
-
-
-#### set parameters for person-condition table #####
-
-condition <- "ischemic_heart_dis"
-lookback <- "24mo"
-claim_type <- "31,33,12,23,1,3,26,27,28,34"
-
-#Use this parameter for script testing - set to "top 5000" for example
-top_rows <- ""
+# ### ### ### ### ### ### ###
+#### Step 2: create temp table to hold condition-specific claims and dates #### 
+# ### ### ### ### ### ### ###
 
 ptm01 <- proc.time() # Times how long this query takes
-
-##### step 1: create temp table to hold condition-specific claims and dates #####
-
 # Build SQL query
 sql <- paste0(
   
   "--#drop temp table if it exists
-  if object_id('tempdb..##condition_tmp') IS NOT NULL 
-  drop table ##condition_tmp
+  if object_id('tempdb..##", ccw_desc, "') IS NOT NULL 
+  drop table ##", ccw_desc,
   
-  --apply CCW claim type criteria to define conditions 1 and 2
+  "--apply CCW claim type criteria to define conditions 1 and 2
   select header.id, header.tcn, header.clm_type_code, header.from_date, diag.", condition, "_ccw, 
   
 	  case when header.clm_type_code in (select * from PHClaims.dbo.Split('", claim_type, "', ',')) then 1 else 0 end as 'condition'
