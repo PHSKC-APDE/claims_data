@@ -28,6 +28,7 @@ table_name <- table_config[str_detect(names(table_config), "table")][[1]]
 ## Temporary code: set parameters for asthma table for testing
 ccw_code <- table_config$cond_asthma$ccw_code
 ccw_desc <- table_config$cond_asthma$ccw_desc
+ccw_abbrev <- table_config$cond_asthma$ccw_abbrev
 lookback_years <- table_config$cond_asthma$lookback_years
 claim_type1 <- table_config$cond_asthma$claim_type1
 claim_type2 <- table_config$cond_asthma$claim_type2
@@ -37,6 +38,7 @@ condition_type <- table_config$cond_asthma$condition_type
 lapply(conditions, function(x){
   ccw_code <- x$ccw_code
   ccw_desc <- x$ccw_desc
+  ccw_abbrev <- x$ccw_abbrev
   lookback_years <- x$lookback_years
   dx_fields <- x$dx_fields
   claim_type1 <- x$claim_type1
@@ -53,17 +55,14 @@ ptm01 <- proc.time() # Times how long this query takes
 sql <- paste0(
   
   "--#drop temp table if it exists
-  if object_id('tempdb..##", ccw_desc, "') IS NOT NULL 
-  drop table ##", ccw_desc,
+  if object_id('tempdb..##", ccw_abbrev, "') IS NOT NULL drop table ##", ccw_abbrev,
   
   "--apply CCW claim type criteria to define conditions 1 and 2
-  select header.id, header.tcn, header.clm_type_code, header.from_date, diag.", condition, "_ccw, 
+  select header.id, header.tcn, header.clm_type_code, header.from_date, diag.", ccw_abbrev, "_ccw, 
+  case when header.clm_type_code in (select * from PHClaims.dbo.Split('", claim_type1, "', ',')) then 1 else 0 end as 'condition'
+  into ##", ccw_abbrev,
   
-	  case when header.clm_type_code in (select * from PHClaims.dbo.Split('", claim_type, "', ',')) then 1 else 0 end as 'condition'
-  
-  into ##condition_tmp
-  
-  --pull out claim type and service dates
+  "--pull out claim type and service dates
   from (
     select id, tcn, clm_type_code, from_date
     from PHClaims.dbo.mcaid_claim_header
