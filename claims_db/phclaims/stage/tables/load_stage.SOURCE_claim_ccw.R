@@ -28,11 +28,11 @@ from_table_icdcm <- table_config[str_detect(names(table_config), "from_table_icd
 to_table <- table_config[str_detect(names(table_config), "to_table")][[1]]
 source_data <- table_config[str_detect(names(table_config), "source_data")][[1]]
 
-## Temporary code: set parameters for asthma table for testing
+## Temporary code: set parameters for diabetes table for testing
 ccw_code <- table_config$cond_asthma$ccw_code
 ccw_desc <- table_config$cond_asthma$ccw_desc
 ccw_abbrev <- table_config$cond_asthma$ccw_abbrev
-lookback_years <- table_config$cond_asthma$lookback_years
+lookback_months <- table_config$cond_asthma$lookback_months
 claim_type1 <- paste(as.character(table_config$cond_asthma$claim_type1), collapse=",")
 claim_type2 <- paste(as.character(table_config$cond_asthma$claim_type2), collapse=",")
 condition_type <- table_config$cond_asthma$condition_type
@@ -42,7 +42,7 @@ lapply(conditions, function(x){
   ccw_code <- x$ccw_code
   ccw_desc <- x$ccw_desc
   ccw_abbrev <- x$ccw_abbrev
-  lookback_years <- x$lookback_years
+  lookback_months <- x$lookback_months
   dx_fields <- x$dx_fields
   claim_type1 <- paste(as.character(x$claim_type1), collapse=",")
   claim_type2 <- paste(as.character(x$claim_type2), collapse=",")
@@ -58,14 +58,14 @@ ptm01 <- proc.time() # Times how long this query takes
 sql1 <- paste0(
   
   "--#drop temp table if it exists
-  if object_id('tempdb..##", ccw_abbrev, "') IS NOT NULL drop table ##", ccw_abbrev, "\n",
+  if object_id('tempdb..##header') IS NOT NULL drop table ##header;
   
-  "--apply CCW claim type criteria to define conditions 1 and 2
+  --apply CCW claim type criteria to define conditions 1 and 2
   select header.id_", source_data, ", header.claim_header_id, header.claim_type_id, header.first_service_dt, diag.", ccw_abbrev, "_ccw, 
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ',')) then 1 else 0 end as 'condition'
-  into ##", ccw_abbrev, "\n",
+  into ##header
   
-  "--pull out claim type and service dates
+  --pull out claim type and service dates
   from (
     select id_", source_data, ", claim_header_id, claim_type_id, first_service_dt
     from PHClaims.", from_table_claim_header, 
@@ -91,7 +91,7 @@ sql1 <- paste0(
     on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
   ) as diag
   
-  on header.claim_header_id = diag.claim_header_id"
+  on header.claim_header_id = diag.claim_header_id;"
 )
 
 #Run SQL query
@@ -103,26 +103,25 @@ dbSendQuery(db.claims51,sql1)
 #Build SQL query
 sql2 <- paste0(
 
-  "if object_id('tempdb..##rolling_tmp') IS NOT NULL 
-  drop table ##rolling_tmp
+  "if object_id('tempdb..##rolling_tmp') IS NOT NULL drop table ##rolling_tmp;
   
   --join rolling time table to person ids
-  select id, start_window, end_window
+  select id.id_", source_data, ", rolling.start_window, rolling.end_window
   
   into ##rolling_tmp
   
   from (
-    select distinct id_", source_data, ", 'link' = 1 from ##", ccw_abbrev, "\n",
-  ") as id
+    select distinct id_", source_data, ", 'link' = 1 from ##header
+  ) as id
   
   right join (
     select cast(start_window as date) as 'start_window', cast(end_window as date) as 'end_window',
     'link' = 1
-    from PHClaims.dbo.ref_rolling_time_", lookback, "_2012_2020
+    from PHClaims.ref.rolling_time_", lookback_months, "mo_2012_2020
   ) as rolling
   
   on id.link = rolling.link
-  order by id.id, rolling.start_window"
+  order by id.id_", source_data, ", rolling.start_window;"
 )
 
 #Run SQL query
@@ -133,67 +132,67 @@ dbSendQuery(db.claims51,sql2)
 #Build SQL query
 sql3 <- paste0(
   
-  "if object_id('PHClaims.dbo.mcaid_claim_", condition, "_person_load', 'U') IS NOT NULL 
-  drop table PHClaims.dbo.mcaid_claim_", condition, "_person_load;
+  "--#drop temp table if it exists
+  if object_id('tempdb..##", ccw_abbrev, "') IS NOT NULL drop table ##", ccw_abbrev, ";
   
   --collapse to single row per ID and contiguous time period
-  select distinct d.id, min(d.start_window) as 'from_date', max(d.end_window) as 'to_date', '", condition, "_ccw' = 1
+  select distinct d.id_", source_data, ", min(d.start_window) as 'from_date', max(d.end_window) as 'to_date', ", ccw_code, " as 'ccw_code',
+    '", ccw_abbrev, "' as 'ccw_desc'
   
-  into PHClaims.dbo.mcaid_claim_", condition, "_person_load
+  into ##", ccw_abbrev, "\n",
   
-  from (
+  "from (
   	--set up groups where there is contiguous time
-    select c.id, c.start_window, c.end_window, c.discont, c.temp_row,
+    select c.id_", source_data, ", c.start_window, c.end_window, c.discont, c.temp_row,
   
     sum(case when c.discont is null then 0 else 1 end) over
-      (order by c.id, c.temp_row rows between unbounded preceding and current row) as 'grp'
+      (order by c.id_", source_data, ", c.temp_row rows between unbounded preceding and current row) as 'grp'
   
     from (
       --pull out ID and time periods that contain 1 condition claim
-      select b.id, b.start_window, b.end_window, b.condition_cnt,
+      select b.id_", source_data, ", b.start_window, b.end_window, b.condition_cnt,
     
       --create a flag for a discontinuity in a person's disease status
       case
-        when datediff(month, lag(b.start_window) over (partition by b.id order by b.id, b.start_window), b.start_window) <= 1 then null
-        when b.start_window < lag(b.end_window) over (partition by b.id order by b.id, b.start_window) then null
-        when row_number() over (partition by b.id order by b.id, b.start_window) = 1 then null
-        else row_number() over (partition by b.id order by b.id, b.start_window)
+        when datediff(month, lag(b.start_window) over (partition by b.id_", source_data, " order by b.id_", source_data, ", b.start_window), b.start_window) <= 1 then null
+        when b.start_window < lag(b.end_window) over (partition by b.id_", source_data, " order by b.id_", source_data, ", b.start_window) then null
+        when row_number() over (partition by b.id_", source_data, " order by b.id_", source_data, ", b.start_window) = 1 then null
+        else row_number() over (partition by b.id_", source_data, " order by b.id_", source_data, ", b.start_window)
       end as 'discont',
   
-    row_number() over (partition by b.id order by b.id, b.start_window) as 'temp_row'
+    row_number() over (partition by b.id_", source_data, " order by b.id_", source_data, ", b.start_window) as 'temp_row'
   
     from (
       --count condition claims by ID and time period
-      select a.id, a.start_window, a.end_window,
+      select a.id_", source_data, ", a.start_window, a.end_window,
         sum(a.condition) as 'condition_cnt'
     
       from (
       --pull ID, time period and depression claim information, subset to ID x time period rows containing an depression claim
-      select matrix.id, matrix.start_window, matrix.end_window, cond.from_date, cond.condition
+      select matrix.id_", source_data, ", matrix.start_window, matrix.end_window, cond.first_service_dt, cond.condition
       
       --pull in ID x time period matrix
       from (
-        select id, start_window, end_window
+        select id_", source_data, ", start_window, end_window
         from ##rolling_tmp
       ) as matrix
       
       --join to condition temp table
       left join (
-        select id, from_date, condition
-        from ##condition_tmp
+        select id_", source_data, ", first_service_dt, condition
+        from ##header
       ) as cond
       
-      on matrix.id = cond.id
-      where cond.from_date between matrix.start_window and matrix.end_window
+      on matrix.id_", source_data, " = cond.id_", source_data, "
+      where cond.first_service_dt between matrix.start_window and matrix.end_window
     ) as a
-    group by a.id, a.start_window, a.end_window
+    group by a.id_", source_data, ", a.start_window, a.end_window
   ) as b
   where (b.condition_cnt >= 1)
   ) as c
 ) as d
-group by d.id, d.grp
-order by d.id, from_date"
-
+group by d.id_", source_data, ", d.grp
+order by d.id_", source_data, ", from_date;"
 )
 
 #Run SQL query

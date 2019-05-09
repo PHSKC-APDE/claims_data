@@ -27,4 +27,17 @@ cond_copd:
         - 3
     claim_type2:
     condition_type: 1
-
+cond_diabetes:
+    ccw_code: 14
+    ccw_desc: Diabetes
+    ccw_abbrev: diabetes
+    lookback_months: 24
+    dx_fields: any
+    claim_type1:
+        - 1
+        - 2
+        - 3
+    claim_type2:
+        - 4
+        - 5
+    condition_type: 2
