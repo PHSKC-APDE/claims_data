@@ -14,7 +14,7 @@ library(odbc) # Used to connect to SQL server
 origin <- "1970-01-01"
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
 config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
-top_rows <- "" #Use this parameter for script testing - set to "top 5000" for example
+top_rows <- "top 5000" #Use this parameter for script testing - set to "top 5000" for example
 
 # ### ### ### ### ### ### ###
 #### Step 1: Load parameters from config file #### 
@@ -26,14 +26,15 @@ schema <- table_config[str_detect(names(table_config), "schema")][[1]]
 from_table_claim_header <- table_config[str_detect(names(table_config), "from_table_claim_header")][[1]]
 from_table_icdcm <- table_config[str_detect(names(table_config), "from_table_icdcm")][[1]]
 to_table <- table_config[str_detect(names(table_config), "to_table")][[1]]
+source_data <- table_config[str_detect(names(table_config), "source_data")][[1]]
 
 ## Temporary code: set parameters for asthma table for testing
 ccw_code <- table_config$cond_asthma$ccw_code
 ccw_desc <- table_config$cond_asthma$ccw_desc
 ccw_abbrev <- table_config$cond_asthma$ccw_abbrev
 lookback_years <- table_config$cond_asthma$lookback_years
-claim_type1 <- table_config$cond_asthma$claim_type1
-claim_type2 <- table_config$cond_asthma$claim_type2
+claim_type1 <- paste(as.character(table_config$cond_asthma$claim_type1), collapse=",")
+claim_type2 <- paste(as.character(table_config$cond_asthma$claim_type2), collapse=",")
 condition_type <- table_config$cond_asthma$condition_type
 
 #For looping later on
@@ -43,8 +44,8 @@ lapply(conditions, function(x){
   ccw_abbrev <- x$ccw_abbrev
   lookback_years <- x$lookback_years
   dx_fields <- x$dx_fields
-  claim_type1 <- x$claim_type1
-  claim_type2 <- x$claim_type2
+  claim_type1 <- paste(as.character(x$claim_type1), collapse=",")
+  claim_type2 <- paste(as.character(x$claim_type2), collapse=",")
   condition_type <- x$condition_type
 })
 
@@ -54,48 +55,47 @@ lapply(conditions, function(x){
 
 ptm01 <- proc.time() # Times how long this query takes
 # Build SQL query
-sql <- paste0(
+sql1 <- paste0(
   
   "--#drop temp table if it exists
-  if object_id('tempdb..##", ccw_abbrev, "') IS NOT NULL drop table ##", ccw_abbrev,
+  if object_id('tempdb..##", ccw_abbrev, "') IS NOT NULL drop table ##", ccw_abbrev, "\n",
   
   "--apply CCW claim type criteria to define conditions 1 and 2
-  select header.id, header.tcn, header.clm_type_code, header.from_date, diag.", ccw_abbrev, "_ccw, 
-  case when header.clm_type_code in (select * from PHClaims.dbo.Split('", claim_type1, "', ',')) then 1 else 0 end as 'condition'
-  into ##", ccw_abbrev,
+  select header.id_", source_data, ", header.claim_header_id, header.claim_type_id, header.first_service_dt, diag.", ccw_abbrev, "_ccw, 
+  case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ',')) then 1 else 0 end as 'condition'
+  into ##", ccw_abbrev, "\n",
   
   "--pull out claim type and service dates
   from (
-    select id, tcn, clm_type_code, from_date
+    select id_", source_data, ", claim_header_id, claim_type_id, first_service_dt
     from PHClaims.", from_table_claim_header, 
   ") header
   
   --right join to claims containing a diagnosis in the CCW condition definition
   right join (
-    select diag.id, diag.tcn, ref.", condition, "_ccw
+    select diag.id_", source_data, ", diag.claim_header_id, ref.", ccw_abbrev, "_ccw
     
     --pull out claim and diagnosis fields
     from (
-      select ", top_rows, " id, tcn, dx_norm, dx_ver
-      from PHClaims.dbo.mcaid_claim_dx
-    ) diag
+      select ", top_rows, " id_", source_data, ", claim_header_id, icdcm_norm, icdcm_version
+      from PHClaims.", from_table_icdcm, 
+    ") diag
 
   --join to diagnosis reference table, subset to those with CCW condition
     inner join (
-      select ", top_rows, " dx, dx_ver, ", condition, "_ccw
-      from PHClaims.dbo.ref_dx_lookup
-      where ", condition, "_ccw = 1
+      select ", top_rows, " dx, dx_ver, ", ccw_abbrev, "_ccw
+      from PHClaims.ref.dx_lookup
+      where ", ccw_abbrev, "_ccw = 1
     ) ref
     
-    on (diag.dx_norm = ref.dx) and (diag.dx_ver = ref.dx_ver)
+    on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
   ) as diag
   
-  on header.tcn = diag.tcn"
-  
+  on header.claim_header_id = diag.claim_header_id"
 )
 
 #Run SQL query
-dbSendQuery(db.claims51,sql)
+dbSendQuery(db.claims51,sql1)
 
 
 ##### step 2: create temp table to hold ID and rolling time period matrix #####
@@ -112,8 +112,8 @@ sql2 <- paste0(
   into ##rolling_tmp
   
   from (
-    select distinct id, 'link' = 1 from ##condition_tmp
-  ) as id
+    select distinct id_", source_data, ", 'link' = 1 from ##", ccw_abbrev, "\n",
+  ") as id
   
   right join (
     select cast(start_window as date) as 'start_window', cast(end_window as date) as 'end_window',
