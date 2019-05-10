@@ -75,7 +75,7 @@ sql1 <- paste0(
   if object_id('tempdb..##header') IS NOT NULL drop table ##header;
   
   --apply CCW claim type criteria to define conditions 1 and 2
-  select header.id_", source_data, ", header.claim_header_id, header.claim_type_id, header.first_service_dt, diag.", ccw_abbrev, "_ccw, 
+  select header.id_", source_data, ", header.claim_header_id, header.claim_type_id, header.first_service_dt, diag.ccw_", ccw_abbrev, ", 
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ',')) then 1 else 0 end as 'condition1',
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type2, "', ',')) then 1 else 0 end as 'condition2',
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ','))
@@ -93,7 +93,7 @@ sql1 <- paste0(
   
   --right join to claims containing a diagnosis in the CCW condition definition
   right join (
-    select diag.id_", source_data, ", diag.claim_header_id, ref.", ccw_abbrev, "_ccw
+    select diag.id_", source_data, ", diag.claim_header_id, ref.ccw_", ccw_abbrev, "
     
     --pull out claim and diagnosis fields
     from (
@@ -103,9 +103,9 @@ sql1 <- paste0(
 
   --join to diagnosis reference table, subset to those with CCW condition
     inner join (
-      select ", top_rows, " dx, dx_ver, ", ccw_abbrev, "_ccw
+      select ", top_rows, " dx, dx_ver, ccw_", ccw_abbrev, "
       from PHClaims.ref.dx_lookup
-      where ", ccw_abbrev, "_ccw = 1
+      where ccw_", ccw_abbrev, " = 1
     ) ref
     
     on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
