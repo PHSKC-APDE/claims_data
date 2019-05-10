@@ -28,14 +28,14 @@ from_table_icdcm <- table_config[str_detect(names(table_config), "from_table_icd
 to_table <- table_config[str_detect(names(table_config), "to_table")][[1]]
 source_data <- table_config[str_detect(names(table_config), "source_data")][[1]]
 
-## Temporary code: set parameters for diabetes table for testing
-ccw_code <- table_config$cond_asthma$ccw_code
-ccw_desc <- table_config$cond_asthma$ccw_desc
-ccw_abbrev <- table_config$cond_asthma$ccw_abbrev
-lookback_months <- table_config$cond_asthma$lookback_months
-claim_type1 <- paste(as.character(table_config$cond_asthma$claim_type1), collapse=",")
-claim_type2 <- paste(as.character(table_config$cond_asthma$claim_type2), collapse=",")
-condition_type <- table_config$cond_asthma$condition_type
+## Temporary code: set parameters for asthma versus diabetes table for testing
+ccw_code <- table_config$cond_diabetes$ccw_code
+ccw_desc <- table_config$cond_diabetes$ccw_desc
+ccw_abbrev <- table_config$cond_diabetes$ccw_abbrev
+lookback_months <- table_config$cond_diabetes$lookback_months
+claim_type1 <- paste(as.character(table_config$cond_diabetes$claim_type1), collapse=",")
+claim_type2 <- paste(as.character(table_config$cond_diabetes$claim_type2), collapse=",")
+condition_type <- table_config$cond_diabetes$condition_type
 
 #For looping later on
 lapply(conditions, function(x){
@@ -49,8 +49,22 @@ lapply(conditions, function(x){
   condition_type <- x$condition_type
 })
 
+
 # ### ### ### ### ### ### ###
-#### Step 2: create temp table to hold condition-specific claims and dates #### 
+#### Step 2: Create branching code segments for type 1 versus type 2 conditions #### 
+# ### ### ### ### ### ### ###
+
+## Construct where statement for claim count requirements
+if(condition_type == 1){
+  claim_count_condition <- "where (b.condition_1_cnt >= 1)"
+}
+if(condition_type == 2){
+  claim_count_condition <- 
+    "where (b.condition_1_cnt >= 1) or (b.condition_2_cnt >=2 and abs(datediff(day, b.condition_2_min_date, b.condition_2_max_date)) >=1)"
+}
+
+# ### ### ### ### ### ### ###
+#### Step 3: create temp table to hold condition-specific claims and dates #### 
 # ### ### ### ### ### ### ###
 
 ptm01 <- proc.time() # Times how long this query takes
@@ -62,7 +76,13 @@ sql1 <- paste0(
   
   --apply CCW claim type criteria to define conditions 1 and 2
   select header.id_", source_data, ", header.claim_header_id, header.claim_type_id, header.first_service_dt, diag.", ccw_abbrev, "_ccw, 
-  case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ',')) then 1 else 0 end as 'condition'
+  case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ',')) then 1 else 0 end as 'condition1',
+  case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type2, "', ',')) then 1 else 0 end as 'condition2',
+  case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ','))
+    then header.first_service_dt else null end as 'condition_1_from_date',
+  case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type2, "', ',')) 
+    then header.first_service_dt else null end as 'condition_2_from_date'
+
   into ##header
   
   --pull out claim type and service dates
@@ -95,10 +115,12 @@ sql1 <- paste0(
 )
 
 #Run SQL query
-dbSendQuery(db.claims51,sql1)
+sql_result <- dbSendQuery(db.claims51,sql1)
+dbClearResult(sql_result)
 
-
-##### step 2: create temp table to hold ID and rolling time period matrix #####
+# ### ### ### ### ### ### ###
+#### Step 4: create temp table to hold ID and rolling time period matrix #### 
+# ### ### ### ### ### ### ###
 
 #Build SQL query
 sql2 <- paste0(
@@ -125,9 +147,12 @@ sql2 <- paste0(
 )
 
 #Run SQL query
-dbSendQuery(db.claims51,sql2)
+sql_result <- dbSendQuery(db.claims51,sql2)
+dbClearResult(sql_result)
 
-##### step 3: identify condition status over time and collapse to contiguous time periods #####
+# ### ### ### ### ### ### ###
+#### Step 4: identify condition status over time and collapse to contiguous time periods  #### 
+# ### ### ### ### ### ### ###
 
 #Build SQL query
 sql3 <- paste0(
@@ -149,8 +174,8 @@ sql3 <- paste0(
       (order by c.id_", source_data, ", c.temp_row rows between unbounded preceding and current row) as 'grp'
   
     from (
-      --pull out ID and time periods that contain 1 condition claim
-      select b.id_", source_data, ", b.start_window, b.end_window, b.condition_cnt,
+      --pull out ID and time periods that contain appropriate claim counts
+      select b.id_", source_data, ", b.start_window, b.end_window, b.condition_1_cnt, b.condition_2_min_date, b.condition_2_max_date,
     
       --create a flag for a discontinuity in a person's disease status
       case
@@ -163,13 +188,14 @@ sql3 <- paste0(
     row_number() over (partition by b.id_", source_data, " order by b.id_", source_data, ", b.start_window) as 'temp_row'
   
     from (
-      --count condition claims by ID and time period
-      select a.id_", source_data, ", a.start_window, a.end_window,
-        sum(a.condition) as 'condition_cnt'
+  --sum condition1 and condition2 claims by ID and period, take min and max service date for each condition2 claim by ID and period
+      select a.id_", source_data, ", a.start_window, a.end_window, sum(a.condition1) as 'condition_1_cnt', sum(a.condition2) as 'condition_2_cnt',
+        min(a.condition_2_from_date) as 'condition_2_min_date', max(a.condition_2_from_date) as 'condition_2_max_date'
     
       from (
-      --pull ID, time period and depression claim information, subset to ID x time period rows containing an depression claim
-      select matrix.id_", source_data, ", matrix.start_window, matrix.end_window, cond.first_service_dt, cond.condition
+      --pull ID, time period and claim information, subset to ID x time period rows containing a relevant claim
+      select matrix.id_", source_data, ", matrix.start_window, matrix.end_window, cond.first_service_dt, cond.condition1,
+        cond.condition2, condition_2_from_date
       
       --pull in ID x time period matrix
       from (
@@ -179,7 +205,7 @@ sql3 <- paste0(
       
       --join to condition temp table
       left join (
-        select id_", source_data, ", first_service_dt, condition
+        select id_", source_data, ", first_service_dt, condition1, condition2, condition_2_from_date
         from ##header
       ) as cond
       
@@ -187,16 +213,22 @@ sql3 <- paste0(
       where cond.first_service_dt between matrix.start_window and matrix.end_window
     ) as a
     group by a.id_", source_data, ", a.start_window, a.end_window
-  ) as b
-  where (b.condition_cnt >= 1)
-  ) as c
+  ) as b", "\n",
+  claim_count_condition, "\n",
+  ") as c
 ) as d
 group by d.id_", source_data, ", d.grp
 order by d.id_", source_data, ", from_date;"
 )
 
 #Run SQL query
-dbSendQuery(db.claims51,sql3)
+sql_result <- dbSendQuery(db.claims51,sql3)
+dbClearResult(sql_result)
 
 #Run time of all steps
 proc.time() - ptm01
+
+
+# ### ### ### ### ### ### ###
+#### Step 5: Union all condition tables into final stage table  #### 
+# ### ### ### ### ### ### ###
