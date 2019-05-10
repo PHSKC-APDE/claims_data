@@ -355,4 +355,14 @@ odbc::dbGetQuery(db_claims,
                    DEFAULT {current_batch_id} WITH VALUES",
                    .con = db_claims))
 
-# Then populate it with the currect batch
+
+#### CLEAN UP ####
+rm(from_nulls)
+rm(id_len, rac_len)
+rm(qa_column)
+rm(qa_date_range)
+rm(qa_rows_file, qa_rows_sql)
+rm(total_rows, distinct_rows)
+rm(pct_null)
+rm(list = ls(pattern = "^qa_"))
+rm(list = ls(pattern = "_f$"))
