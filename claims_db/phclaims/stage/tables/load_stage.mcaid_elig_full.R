@@ -40,10 +40,10 @@ table_config <- yaml::yaml.load(RCurl::getURL(
   "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_full.yaml"
 ))
 
-from_schema_name <- table_config$from_schema
-from_table_name <- table_config$from_table
-to_schema_name <- table_config$to_schema
-to_table_name <- table_config$to_table
+from_schema <- table_config$from_schema
+from_table <- table_config$from_table
+to_schema <- table_config$to_schema
+to_table <- table_config$to_table
 vars <- unlist(table_config$vars)
 # Need to specify which temp table the vars come from
 # Can't handle this just with glue_sql
@@ -56,7 +56,7 @@ vars_dedup <- lapply(var_names, DBI::dbQuoteIdentifier, conn = db_claims)
 ### Set up temporary table
 # This can then be used to deduplicate rows with differing end reasons
 # Remove temp table if it exists
-try(dbRemoveTable(db_claims, "##mcaid_elig", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##mcaid_elig", temporary = T))
 
 odbc::dbGetQuery(db_claims,
                  glue::glue_sql("SELECT {`vars`*}, 
@@ -68,12 +68,12 @@ odbc::dbGetQuery(db_claims,
                                   WHEN END_REASON = 'Already Eligible for Program in Different AU' THEN 6 
                                   ELSE 7 END AS reason_score
                                 INTO ##mcaid_elig 
-                                FROM {`from_schema_name`}.{`from_table_name`}",
+                                FROM {`from_schema`}.{`from_table`}",
                                 .con = db_claims))
 
 ### Manipulate the temporary table to deduplicate and then insert into stage
 dedup_sql <- glue::glue_sql(
-  "INSERT INTO {`to_schema_name`}.{`to_table_name`} WITH (TABLOCK)
+  "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
   SELECT {`vars_dedup`*} FROM
     (SELECT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
       TO_DATE, SECONDARY_RAC_CODE, MAX(reason_score) AS max_score 
@@ -124,11 +124,24 @@ if (rows_load_raw - rows_stage != 42) {
     }
 
 
+#### ADD INDEX ####
+if (!is.null(table_config$index_name)) {
+  index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX [{`table_config$index_name`}] ON 
+                              {`to_schema`}.{`to_table`}({index_vars*})",
+                              index_vars = dbQuoteIdentifier(db_claims, table_config$index),
+                              .con = db_claims)
+  dbGetQuery(db_claims, index_sql)
+}
+
+
 #### CLEAN UP ####
+# Drop global temp table
+try(odbc::dbRemoveTable(db_claims, "##mcaid_elig", temporary = T))
 rm(dedup_sql)
 rm(vars, var_names, vars_dedup)
-rm(from_schema_name, from_table_name, to_schema_name, to_table_name)
+rm(from_schema, from_table, to_schema, to_table)
 rm(rows_stage, rows_load_raw)
 rm(table_config)
+rm(index_sql)
 rm(list = ls(pattern = "_f$"))
 
