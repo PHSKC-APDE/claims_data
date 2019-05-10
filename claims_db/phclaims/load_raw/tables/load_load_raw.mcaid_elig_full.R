@@ -314,8 +314,9 @@ from_nulls <- dbGetQuery(db_claims,
                         FROM load_raw.mcaid_elig) b
                       ON a.seqnum = b.seqnum")
 
-if (from_nulls$null_dates / from_nulls$total_rows > 0.02) {
-  pct_null <- round(from_nulls$null_dates / from_nulls$total_rows  *100, 3)
+pct_null <- round(from_nulls$null_dates / from_nulls$total_rows  * 100, 3)
+
+if (pct_null > 2.0) {
   odbc::dbGetQuery(
     conn = db_claims,
     glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -340,10 +341,18 @@ if (from_nulls$null_dates / from_nulls$total_rows > 0.02) {
                    'NULL from dates', 
                    'PASS', 
                    {Sys.Date()}, 
-                   '<2% of from date rows were null')",
+                   '<2% of from date rows were null ({pct_null}% of total rows)')",
                    .con = db_claims))
 }
 
 
 #### ADD BATCH ID COLUMN ####
+# Add column to the SQL table and set current batch to the default
+odbc::dbGetQuery(db_claims,
+                 glue::glue_sql(
+                   "ALTER TABLE load_raw.mcaid_elig 
+                   ADD etl_batch_id INTEGER 
+                   DEFAULT {current_batch_id} WITH VALUES",
+                   .con = db_claims))
 
+# Then populate it with the currect batch
