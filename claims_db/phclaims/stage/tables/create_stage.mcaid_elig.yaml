@@ -41,4 +41,4 @@ vars:
     MBR_H_SID: VARCHAR(200)
     SECONDARY_RAC_CODE: INTEGER
     SECONDARY_RAC_NAME: VARCHAR(200)
-    etl_batch_d: INTEGER
+    etl_batch_id: INTEGER
