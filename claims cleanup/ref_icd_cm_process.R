@@ -1,3 +1,4 @@
+
 ####---
 # Eli Kern
 # APDE, PHSKC
@@ -8,6 +9,7 @@
 #7/26/18 update: Added NYU ED algorithm
 #10/11/18 updates: 1) Added plain language for some CCS categories, 2) Corrected ICD10-CM external cause tables
 #10/15/18 update: Added final CCS categories
+#5/10/19 update: Added all remaining CCW conditions
 
 ####---
 
@@ -68,8 +70,7 @@ ext_cause_910cm <- read.xlsx(url, sheet = "external_matrix",
 
 ext_cause_9cm <- filter(ext_cause_910cm, ver == 9)
 
-icd9cm <- left_join(icd9cm, ext_cause_9cm, by = c("icdcode" = "dx", "ver" = "ver")) %>%
-  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism)
+icd9cm <- left_join(icd9cm, ext_cause_9cm, by = c("icdcode" = "dx", "ver" = "ver")) %>% select(., -len)
 
 ####---
 #Step 2C: Merge external cause info for ICD-10-CM
@@ -85,8 +86,7 @@ ext_cause_10cm <- ext_cause_10cm %>%
     dx_6 = str_sub(dx, 1, 6),
     dx_5 = str_sub(dx, 1, 5)
   ) %>%
-  
-  select(., dx, dx_6, dx_5, ver, injury_icd10cm, intent, mechanism)
+  select(., -len)
 
 ##Group intent and mechanism by these truncated versions, keeping only those that are distinct
 
@@ -143,8 +143,8 @@ icd10cm <- icd10cm %>%
 
 #Merge on full ICD digits
 icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icdcode" = "dx", "ver" = "ver")) %>%
-  mutate(intent_final = intent, mechanism_final = mechanism, injury_icd10cm_final = injury_icd10cm) %>%
-  select(., icdcode, icd_6, icd_5, ver, dx_description, injury_icd10cm_final, intent_final, mechanism_final)
+  mutate(intent_final = intent, mechanism_final = mechanism, injury_icd10cm_final = injury_icd10cm) %>% 
+  select(., -dx_6, -dx_5, -injury_icd10cm, -intent, -mechanism)
 
 #Merge on 6 digits and fill in missing info
 icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_6" = "dx_6", "ver" = "ver"), suffix = c(".x", ".y")) %>%
@@ -162,7 +162,7 @@ icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_6" = "dx_6", "ver" = "
       !is.na(injury_icd10cm) ~ injury_icd10cm
     )
   ) %>%
-  select(., icdcode, icd_6, icd_5, ver, dx_description, injury_icd10cm_final, intent_final, mechanism_final)
+  select(., -dx, -dx_5, -injury_icd10cm, -intent, -mechanism)
 
 #Merge on 5 digits and fill in missing info
 icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_5" = "dx_5", "ver" = "ver"), suffix = c(".x", ".y")) %>%
@@ -180,10 +180,9 @@ icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_5" = "dx_5", "ver" = "
       !is.na(injury_icd10cm) ~ injury_icd10cm
     )
   ) %>%
-  select(., icdcode, icd_6, icd_5, ver, dx_description, injury_icd10cm_final, intent_final, mechanism_final)
+  select(., -dx, -dx_6, -injury_icd10cm, -intent, -mechanism)
 
 ##Set all sequelae-related injury diagnosis codes to missing per CDC proposed framework
-
 icd10cm <- icd10cm %>%
   mutate(
     intent = case_when (
@@ -196,7 +195,7 @@ icd10cm <- icd10cm %>%
       !is.na(injury_icd10cm_final) & str_sub(icdcode,-1,-1) != "S" ~ injury_icd10cm_final
     )
   ) %>%
-  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism)
+  select(., -icd_6, -icd_5, -injury_icd10cm_final, -intent_final, -mechanism_final)
 
 rm(list = ls(pattern = "^ext_cause_"))
 
@@ -212,25 +211,28 @@ rm(list = ls(pattern = "^ext_cause_"))
 url <- "https://github.com/PHSKC-APDE/reference-data/raw/master/Claims%20data/ccw_lookup.xlsx"
 ccw <- read.xlsx(url, sheet = "ccw",
                              colNames = T) %>%
+  mutate(link = 1)
 
-  #create ccw_flags
-  mutate(
-    asthma_ccw = case_when(ccw_code == 6 ~ 1),
-    copd_ccw = case_when(ccw_code == 11 ~ 1),
-    diabetes_ccw = case_when(ccw_code == 13 ~ 1),
-    ischemic_heart_dis_ccw = case_when(ccw_code == 19 ~ 1),
-    heart_failure_ccw = case_when(ccw_code == 15 ~ 1),
-    hypertension_ccw = case_when(ccw_code == 18 ~ 1),
-    chr_kidney_dis_ccw = case_when(ccw_code == 10 ~ 1),
-    depression_ccw = case_when(ccw_code == 12 ~ 1)
-  ) %>%
-  
+#Create CCW condition 0/1 flags
+ccw_condition_vars <- distinct(select(ccw, ccw_code, ccw_abbrev)) %>%
+  spread(., key = ccw_abbrev, ccw_code) %>%
+  rename_all(., .funs = list(~paste0("ccw_",.))) %>%
+  mutate(link = 1)
+
+ccw <- left_join(ccw, ccw_condition_vars, by = "link") %>%
+  select(., -link) %>%
+  mutate_at(
+    vars(ccw_alzheimer:ccw_stroke_exclude2),
+    list(~case_when(
+      . == ccw_code ~ as.integer(1),
+      TRUE ~ NA_integer_)
+    )) %>%
+
   #some diagnosis codes are duplicated in CCW lookup, thus copy CCW flag info across rows by code
   group_by(dx) %>%
   
   mutate_at(
-    vars(asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw, heart_failure_ccw, hypertension_ccw,
-         chr_kidney_dis_ccw, depression_ccw),
+    vars(ccw_alzheimer:ccw_stroke_exclude2),
     function(x) min(x, na.rm = TRUE)
   ) %>%
 
@@ -238,14 +240,14 @@ ccw <- read.xlsx(url, sheet = "ccw",
   
   #remove infinity values (consequence of aggregate function on NA values)
   mutate_at(
-    vars(asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw, heart_failure_ccw, hypertension_ccw,
-         chr_kidney_dis_ccw, depression_ccw),
+    vars(ccw_alzheimer:ccw_stroke_exclude2),
     function(x) replace(x, is.infinite(x),NA)
   ) %>%
   
   #collapse to one row per code
-  select(., -ccw_code) %>%
+  select(., -ccw_code, -ccw_abbrev) %>%
   distinct(.)
+rm(ccw_condition_vars)
 
 #Join to ICD-9-CM codes
 icd9cm <- left_join(icd9cm, ccw, by = c("icdcode" = "dx", "ver" = "ver"))
@@ -384,12 +386,8 @@ icd9cm <- icd9cm %>%
       !is.na(ed_unclass_nyu.x) ~ ed_unclass_nyu.x,
       is.na(ed_unclass_nyu.x) ~ ed_unclass_nyu.y
     )
-  ) %>%
-  
-  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
-         heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
-         ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
-         ed_unclass_nyu) %>%
+  ) %>% 
+  select(., -ends_with(".x"), -ends_with(".y"),  -icdcode_match) %>%
   
   #Round NYU percentages to 2 decimal places
   mutate_at(
@@ -505,11 +503,7 @@ icd10cm <- icd10cm %>%
       is.na(ed_unclass_nyu.x) & is.na(ed_unclass_nyu.y) ~ 1
     )
   ) %>%
-  
-  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
-         heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
-         ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
-         ed_unclass_nyu) %>%
+  select(., -ends_with(".x"), -ends_with(".y"), -icdcode_match) %>%
   
   #Round NYU percentages to 2 decimal places
   mutate_at(
@@ -628,13 +622,7 @@ icd9cm <- icd9cm %>%
       is.na(ccs_catch_all.x) ~ ccs_catch_all.y
     )
   ) %>%
-  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
-         heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
-         ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
-         ed_unclass_nyu, ccs, ccs_description, ccs_description_plain_lang,
-         multiccs_lv1, multiccs_lv1_description, multiccs_lv2, multiccs_lv2_description, multiccs_lv2_plain_lang,
-         multiccs_lv3, multiccs_lv3_description, 
-         ccs_final_code, ccs_final_description, ccs_final_plain_lang, ccs_catch_all)
+  select(., -ends_with(".x"), -ends_with(".y"), -icdcode_match)
 
 #clean up
 rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
@@ -727,13 +715,7 @@ icd10cm <- icd10cm %>%
       is.na(ccs_catch_all.x) ~ ccs_catch_all.y
     )
   ) %>%
-  select(., icdcode, ver, dx_description, injury_icd10cm, intent, mechanism, asthma_ccw, copd_ccw, diabetes_ccw, ischemic_heart_dis_ccw,
-         heart_failure_ccw, hypertension_ccw, chr_kidney_dis_ccw, depression_ccw, ed_avoid_ca, ed_needed_unavoid_nyu,
-         ed_needed_avoid_nyu, ed_pc_treatable_nyu, ed_nonemergent_nyu, ed_mh_nyu, ed_sud_nyu, ed_alc_nyu, ed_injury_nyu,
-         ed_unclass_nyu, ccs, ccs_description, ccs_description_plain_lang,
-         multiccs_lv1, multiccs_lv1_description, multiccs_lv2, multiccs_lv2_description, multiccs_lv2_plain_lang,
-         multiccs_lv3, multiccs_lv3_description, 
-         ccs_final_code, ccs_final_description, ccs_final_plain_lang, ccs_catch_all)
+  select(., -ends_with(".x"), -ends_with(".y"), -icdcode_match)
   
 #clean up
 rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
@@ -786,7 +768,18 @@ rm(icd9cm, icd10cm)
 icd910cm <- icd910cm %>%
   rename(dx = icdcode, dx_ver = ver)
 
-
+#Order variables for final table upload
+icd910cm <- icd910cm %>%
+  select(
+    dx:dx_description,
+    ccs_final_code:ccs_catch_all,
+    ccs:ccs_description, ccs_description_plain_lang,
+    multiccs_lv1:multiccs_lv2_plain_lang, multiccs_lv3:multiccs_lv3_description,
+    ccw_alzheimer:ccw_stroke_exclude2,
+    mental_dx_rda:sud_dx_rda,
+    injury_icd10cm:mechanism,
+    ed_avoid_ca:ed_unclass_nyu
+  )
 
 ####---
 #---
@@ -800,4 +793,3 @@ icd910cm <- icd910cm %>%
 tbl_name <- DBI::Id(schema = "ref", table = "dx_lookup_load")
 dbWriteTable(db.claims51, name = tbl_name, value = as.data.frame(icd910cm), overwrite = T)
 DBI::dbExecute(db.claims51, "CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON phclaims.ref.dx_lookup_load (dx_ver, dx)")
-
