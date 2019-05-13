@@ -49,7 +49,7 @@ vars <- unlist(table_config$vars)
 # Can't handle this just with glue_sql
 # (see https://community.rstudio.com/t/using-glue-sql-s-collapse-with-table-name-identifiers/11633)
 var_names <- lapply(table_config$vars, 
-                    function(nme) DBI::Id(table = "b", column = nme))
+                    function(nme) DBI::Id(table = "a", column = nme))
 vars_dedup <- lapply(var_names, DBI::dbQuoteIdentifier, conn = db_claims)
 
 
@@ -73,21 +73,22 @@ odbc::dbGetQuery(db_claims,
 
 ### Manipulate the temporary table to deduplicate and then insert into stage
 dedup_sql <- glue::glue_sql(
-  "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
+  'INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
   SELECT {`vars_dedup`*} FROM
+    (SELECT {`vars`*}, reason_score FROM ##mcaid_elig) a
+  LEFT JOIN
     (SELECT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
       TO_DATE, SECONDARY_RAC_CODE, MAX(reason_score) AS max_score 
-      FROM ##mcaid_elig
-      GROUP BY CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
-        TO_DATE, SECONDARY_RAC_CODE) a
-  LEFT JOIN
-    (SELECT * FROM ##mcaid_elig) b
+    FROM ##mcaid_elig
+    GROUP BY CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
+    TO_DATE, SECONDARY_RAC_CODE) b
   ON a.CLNDR_YEAR_MNTH = b.CLNDR_YEAR_MNTH AND 
     a.MEDICAID_RECIPIENT_ID = b.MEDICAID_RECIPIENT_ID AND 
-    a.FROM_DATE = b.FROM_DATE AND a.TO_DATE = b.TO_DATE AND 
+    (a.FROM_DATE = b.FROM_DATE OR (a.FROM_DATE IS NULL AND b.FROM_DATE IS NULL)) AND 
+    (a.TO_DATE = b.TO_DATE OR (a.TO_DATE IS NULL AND b.TO_DATE IS NULL)) AND 
     (a.SECONDARY_RAC_CODE = b.SECONDARY_RAC_CODE OR 
-      a.SECONDARY_RAC_CODE IS NULL AND b.SECONDARY_RAC_CODE IS NULL) AND 
-    a.max_score = b.reason_score",
+      a.SECONDARY_RAC_CODE IS NULL AND b.SECONDARY_RAC_CODE IS NULL) 
+  WHERE a.reason_score = b.max_score',
     .con = db_claims)
 
 odbc::dbGetQuery(db_claims, dedup_sql)
@@ -107,7 +108,7 @@ if (rows_load_raw - rows_stage != 42) {
                                   'Rows passed from load_raw to stage', 
                                   'FAIL',
                                   {Sys.Date()},
-                                  'Issue even after accoutning for the 42 people with duplicate rows. Investigate further.')",
+                                  'Issue even after accounting for the 42 people with duplicate rows. Investigate further.')",
                                   .con = db_claims))
   stop("Number of distinct rows does not match total expected")
   } else {
@@ -122,6 +123,38 @@ if (rows_load_raw - rows_stage != 42) {
                                   'Number of rows in stage matches load_raw (minus deduplicated end_reason rows)')",
                                   .con = db_claims))
     }
+
+
+#### QA CHECK: NULL IDs ####
+# Because of deduplication, should be 42 less than load_raw table
+null_ids <- as.numeric(dbGetQuery(db_claims, 
+                                    "SELECT COUNT (*) FROM stage.mcaid_elig 
+                                    WHERE MEDICAID_RECIPIENT_ID IS NULL"))
+
+if (null_ids != 0) {
+  odbc::dbGetQuery(conn = db_claims,
+                   glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                                  (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
+                                  VALUES ({current_batch_id}, 
+                                  'stage.mcaid_elig',
+                                  'Null Medicaid IDs', 
+                                  'FAIL',
+                                  {Sys.Date()},
+                                  'Null IDs found. Investigate further.')",
+                                  .con = db_claims))
+  stop("Null Medicaid IDs found in stage.mcaid_elig")
+} else {
+  odbc::dbGetQuery(conn = db_claims,
+                   glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                                  (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
+                                  VALUES ({current_batch_id}, 
+                                  'stage.mcaid_elig',
+                                  'Null Medicaid IDs', 
+                                  'PASS',
+                                  {Sys.Date()},
+                                  'No null IDs found')",
+                                  .con = db_claims))
+}
 
 
 #### ADD INDEX ####
