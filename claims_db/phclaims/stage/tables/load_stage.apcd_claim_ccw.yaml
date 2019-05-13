@@ -3,36 +3,84 @@ from_table_claim_header: final.apcd_claim_header
 from_table_icdcm: final.apcd_claim_icdcm_header
 schema: stage
 to_table: apcd_claim_ccw
+cond_mi:
+    ccw_code: 2
+    ccw_desc: Acute myocardial infarction
+    ccw_abbrev: mi
+    lookback_months: 12
+    dx_fields: 1-2
+    dx_exclude:
+    claim_type1:
+        - 1
+    claim_type2:
+    condition_type: 1  
 cond_asthma:
     ccw_code: 6
     ccw_desc: Asthma
     ccw_abbrev: asthma
     lookback_months: 12
     dx_fields: any
+    dx_exclude:
     claim_type1:
         - 1
         - 2
         - 3
     claim_type2:
-    condition_type: 1
+        - 4
+        - 5
+    condition_type: 2
+cond_bph:
+    ccw_code: 8
+    ccw_desc: Benign prostatic hyperplasia
+    ccw_abbrev: bph
+    lookback_months: 12
+    dx_fields: any
+    dx_exclude: bph_exclude
+    claim_type1:
+        - 1
+        - 2
+        - 3
+    claim_type2:
+        - 4
+        - 5
+    condition_type: 2
 cond_copd:
     ccw_code: 12
     ccw_desc: COPD
     ccw_abbrev: copd
     lookback_months: 12
     dx_fields: any
+    dx_exclude:
     claim_type1:
         - 1
         - 2
         - 3
     claim_type2:
-    condition_type: 1
+        - 4
+        - 5
+    condition_type: 2
+cond_depression:
+    ccw_code: 13
+    ccw_desc: Depression
+    ccw_abbrev: depression
+    lookback_months: 12
+    dx_fields: any
+    dx_exclude:
+    claim_type1:
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+    claim_type2:
+    condition_type: 1  
 cond_diabetes:
     ccw_code: 14
     ccw_desc: Diabetes
     ccw_abbrev: diabetes
     lookback_months: 24
     dx_fields: any
+    dx_exclude:
     claim_type1:
         - 1
         - 2
