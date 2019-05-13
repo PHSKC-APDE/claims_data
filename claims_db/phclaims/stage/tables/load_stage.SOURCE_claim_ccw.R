@@ -14,7 +14,7 @@ library(odbc) # Used to connect to SQL server
 origin <- "1970-01-01"
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
 config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
-top_rows <- "top 10000" #Use this parameter for script testing - set to "top 5000" for example
+top_rows <- "" #Use this parameter for script testing - set to "top 5000" for example
 
 # ### ### ### ### ### ### ###
 #### Step 1: Load parameters from config file #### 
@@ -29,15 +29,15 @@ to_table <- table_config[str_detect(names(table_config), "to_table")][[1]]
 source_data <- table_config[str_detect(names(table_config), "source_data")][[1]]
 
 ## Temporary code: set parameters for testing
-ccw_code <- table_config$cond_cataract$ccw_code
-ccw_desc <- table_config$cond_cataract$ccw_desc
-ccw_abbrev <- table_config$cond_cataract$ccw_abbrev
-lookback_months <- table_config$cond_cataract$lookback_months
-dx_fields <- table_config$cond_cataract$dx_fields
-dx_exclude <- table_config$cond_cataract$dx_exclude
-claim_type1 <- paste(as.character(table_config$cond_cataract$claim_type1), collapse=",")
-claim_type2 <- paste(as.character(table_config$cond_cataract$claim_type2), collapse=",")
-condition_type <- table_config$cond_cataract$condition_type
+ccw_code <- table_config$cond_bph$ccw_code
+ccw_desc <- table_config$cond_bph$ccw_desc
+ccw_abbrev <- table_config$cond_bph$ccw_abbrev
+lookback_months <- table_config$cond_bph$lookback_months
+dx_fields <- table_config$cond_bph$dx_fields
+dx_exclude <- table_config$cond_bph$dx_exclude
+claim_type1 <- paste(as.character(table_config$cond_bph$claim_type1), collapse=",")
+claim_type2 <- paste(as.character(table_config$cond_bph$claim_type2), collapse=",")
+condition_type <- table_config$cond_bph$condition_type
 
 #For looping later on
 lapply(conditions, function(x){
@@ -66,9 +66,45 @@ if(condition_type == 2){
 }
 
 ## Construct where statement for diagnosis field numbers
-if(dx_fields == "1-2")
+if(dx_fields == "1-2"){
+  dx_fields_condition <- " where icdcm_number in ('01','02')"
+}
+if(dx_fields == "1"){
+  dx_fields_condition <- " where icdcm_number = '01'" 
+}
+if(dx_fields == "any"){
+  dx_fields_condition <- ""
+}
 
-if(dx_fields == "any")
+##Construct diagnosis-based exclusion code
+if(is.null(dx_exclude)){
+  dx_exclude_condition <- ""
+} else {
+  dx_exclude_condition <- paste0(
+    "--left join diagnoses to claim-level exclude flag if specified
+    left join(
+      select diag.claim_header_id, max(ref.ccw_", dx_exclude, ") as exclude
+
+    --pull out claim and diagnosis fields
+    from (
+      select ", top_rows, " id_", source_data, ", claim_header_id, icdcm_norm, icdcm_version
+      from PHClaims.", from_table_icdcm, dx_fields_condition, 
+    ") diag
+    
+    --join to diagnosis reference table, subset to those with CCW exclusion flag
+    inner join (
+      select ", top_rows, " dx, dx_ver, ccw_", dx_exclude, "
+      from PHClaims.ref.dx_lookup
+      where ccw_", dx_exclude, " = 1
+    ) ref
+  
+    on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
+    group by diag.claim_header_id
+    ) as exclude
+    on diag_lookup.claim_header_id = exclude.claim_header_id
+    where exclude.exclude is null")
+}
+
 
 # ### ### ### ### ### ### ###
 #### Step 3: create temp table to hold condition-specific claims and dates #### 
@@ -82,7 +118,7 @@ sql1 <- paste0(
   if object_id('tempdb..##header') IS NOT NULL drop table ##header;
   
   --apply CCW claim type criteria to define conditions 1 and 2
-  select header.id_", source_data, ", header.claim_header_id, header.claim_type_id, header.first_service_dt, diag.ccw_", ccw_abbrev, ", 
+  select header.id_", source_data, ", header.claim_header_id, header.claim_type_id, header.first_service_dt, diag_lookup.ccw_", ccw_abbrev, ", 
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ',')) then 1 else 0 end as 'condition1',
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type2, "', ',')) then 1 else 0 end as 'condition2',
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ','))
@@ -105,7 +141,7 @@ sql1 <- paste0(
     --pull out claim and diagnosis fields
     from (
       select ", top_rows, " id_", source_data, ", claim_header_id, icdcm_norm, icdcm_version
-      from PHClaims.", from_table_icdcm, 
+      from PHClaims.", from_table_icdcm, dx_fields_condition, 
     ") diag
 
   --join to diagnosis reference table, subset to those with CCW condition
@@ -116,14 +152,15 @@ sql1 <- paste0(
     ) ref
     
     on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
-  ) as diag
+  ) as diag_lookup
   
-  on header.claim_header_id = diag.claim_header_id;"
-)
+  on header.claim_header_id = diag_lookup.claim_header_id
+  ", dx_exclude_condition, ";")
 
 #Run SQL query
 sql_result <- dbSendQuery(db.claims51,sql1)
 dbClearResult(sql_result)
+
 
 # ### ### ### ### ### ### ###
 #### Step 4: create temp table to hold ID and rolling time period matrix #### 
@@ -157,8 +194,9 @@ sql2 <- paste0(
 sql_result <- dbSendQuery(db.claims51,sql2)
 dbClearResult(sql_result)
 
+
 # ### ### ### ### ### ### ###
-#### Step 4: identify condition status over time and collapse to contiguous time periods  #### 
+#### Step 5: identify condition status over time and collapse to contiguous time periods  #### 
 # ### ### ### ### ### ### ###
 
 #Build SQL query
@@ -237,5 +275,5 @@ proc.time() - ptm01
 
 
 # ### ### ### ### ### ### ###
-#### Step 5: Union all condition tables into final stage table  #### 
+#### Step 6: Union all condition tables into final stage table  #### 
 # ### ### ### ### ### ### ###

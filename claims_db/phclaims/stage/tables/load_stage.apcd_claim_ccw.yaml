@@ -9,7 +9,10 @@ cond_mi:
     ccw_abbrev: mi
     lookback_months: 12
     dx_fields: '1-2'
-    dx_exclude:
+    dx_exclude1:
+    dx_exclude2:
+    dx_exclude1_fields:
+    dx_exclude2_fields:
     claim_type1:
         - 1
     claim_type2:
@@ -20,7 +23,10 @@ cond_asthma:
     ccw_abbrev: asthma
     lookback_months: 12
     dx_fields: any
-    dx_exclude:
+    dx_exclude1:
+    dx_exclude2:
+    dx_exclude1_fields:
+    dx_exclude2_fields:
     claim_type1:
         - 1
         - 2
@@ -35,7 +41,10 @@ cond_bph:
     ccw_abbrev: bph
     lookback_months: 12
     dx_fields: any
-    dx_exclude: bph_exclude
+    dx_exclude1: bph_exclude
+    dx_exclude2:
+    dx_exclude1_fields: any
+    dx_exclude2_fields:
     claim_type1:
         - 1
         - 2
@@ -50,7 +59,10 @@ cond_cataract:
     ccw_abbrev: cataract
     lookback_months: 12
     dx_fields: '1'
-    dx_exclude:
+    dx_exclude1:
+    dx_exclude2:
+    dx_exclude1_fields:
+    dx_exclude2_fields:
     claim_type1:
         - 4
         - 5
@@ -62,7 +74,10 @@ cond_copd:
     ccw_abbrev: copd
     lookback_months: 12
     dx_fields: any
-    dx_exclude:
+    dx_exclude1:
+    dx_exclude2:
+    dx_exclude1_fields:
+    dx_exclude2_fields:
     claim_type1:
         - 1
         - 2
@@ -77,7 +92,10 @@ cond_depression:
     ccw_abbrev: depression
     lookback_months: 12
     dx_fields: any
-    dx_exclude:
+    dx_exclude1:
+    dx_exclude2:
+    dx_exclude1_fields:
+    dx_exclude2_fields:
     claim_type1:
         - 1
         - 2
@@ -92,7 +110,10 @@ cond_diabetes:
     ccw_abbrev: diabetes
     lookback_months: 24
     dx_fields: any
-    dx_exclude:
+    dx_exclude1:
+    dx_exclude2:
+    dx_exclude1_fields:
+    dx_exclude2_fields:
     claim_type1:
         - 1
         - 2
@@ -101,3 +122,22 @@ cond_diabetes:
         - 4
         - 5
     condition_type: 2
+cond_stroke:
+    ccw_code: 27
+    ccw_desc: Stroke/TIA
+    ccw_abbrev: stroke
+    lookback_months: 12
+    dx_fields: any
+    dx_exclude1: stroke_exclude1
+    dx_exclude2: stroke_exclude2
+    dx_exclude1_fields: any
+    dx_exclude2_fields: '1'
+    claim_type1:
+        - 1
+        - 2
+        - 3
+    claim_type2:
+        - 4
+        - 5
+    condition_type: 2
+
