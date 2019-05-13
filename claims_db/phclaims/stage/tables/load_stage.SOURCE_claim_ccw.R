@@ -29,15 +29,18 @@ to_table <- table_config[str_detect(names(table_config), "to_table")][[1]]
 source_data <- table_config[str_detect(names(table_config), "source_data")][[1]]
 
 ## Temporary code: set parameters for testing
-ccw_code <- table_config$cond_bph$ccw_code
-ccw_desc <- table_config$cond_bph$ccw_desc
-ccw_abbrev <- table_config$cond_bph$ccw_abbrev
-lookback_months <- table_config$cond_bph$lookback_months
-dx_fields <- table_config$cond_bph$dx_fields
-dx_exclude <- table_config$cond_bph$dx_exclude
-claim_type1 <- paste(as.character(table_config$cond_bph$claim_type1), collapse=",")
-claim_type2 <- paste(as.character(table_config$cond_bph$claim_type2), collapse=",")
-condition_type <- table_config$cond_bph$condition_type
+ccw_code <- table_config$cond_stroke$ccw_code
+ccw_desc <- table_config$cond_stroke$ccw_desc
+ccw_abbrev <- table_config$cond_stroke$ccw_abbrev
+lookback_months <- table_config$cond_stroke$lookback_months
+dx_fields <- table_config$cond_stroke$dx_fields
+dx_exclude1 <- table_config$cond_stroke$dx_exclude1
+dx_exclude2 <- table_config$cond_stroke$dx_exclude2
+dx_exclude1_fields <- table_config$cond_stroke$dx_exclude1_fields
+dx_exclude2_fields <- table_config$cond_stroke$dx_exclude2_fields
+claim_type1 <- paste(as.character(table_config$cond_stroke$claim_type1), collapse=",")
+claim_type2 <- paste(as.character(table_config$cond_stroke$claim_type2), collapse=",")
+condition_type <- table_config$cond_stroke$condition_type
 
 #For looping later on
 lapply(conditions, function(x){
@@ -46,6 +49,10 @@ lapply(conditions, function(x){
   ccw_abbrev <- x$ccw_abbrev
   lookback_months <- x$lookback_months
   dx_fields <- x$dx_fields
+  dx_exclude1 <- x$dx_exclude1
+  dx_exclude2 <- x$dx_exclude2
+  dx_exclude1_fields <- x$dx_exclude1_fields
+  dx_exclude2_fields <- x$dx_exclude2_fields
   claim_type1 <- paste(as.character(x$claim_type1), collapse=",")
   claim_type2 <- paste(as.character(x$claim_type2), collapse=",")
   condition_type <- x$condition_type
@@ -76,33 +83,85 @@ if(dx_fields == "any"){
   dx_fields_condition <- ""
 }
 
+## Construct diagnosis field number code for exclusion code
+if(!is.null(dx_exclude1_fields)){
+  if(dx_exclude1_fields == "1-2"){
+    dx_exclude1_fields_condition <- " and diag.icdcm_number in ('01','02')"
+  }
+  if(dx_exclude1_fields == "1"){
+    dx_exclude1_fields_condition <- " and diag.icdcm_number = '01'" 
+  }
+  if(dx_exclude1_fields == "any"){
+    dx_exclude1_fields_condition <- ""
+  }
+}
+if(!is.null(dx_exclude2_fields)){
+  if(dx_exclude2_fields == "1-2"){
+    dx_exclude2_fields_condition <- " and diag.icdcm_number in ('01','02')"
+  }
+  if(dx_exclude2_fields == "1"){
+    dx_exclude2_fields_condition <- " and diag.icdcm_number = '01'"
+  }
+  if(dx_exclude2_fields == "any"){
+    dx_exclude2_fields_condition <- ""
+  }
+}
+
 ##Construct diagnosis-based exclusion code
-if(is.null(dx_exclude)){
+if(is.null(dx_exclude1) & is.null(dx_exclude2)){
   dx_exclude_condition <- ""
-} else {
+}
+if(!is.null(dx_exclude1) & is.null(dx_exclude2)){
   dx_exclude_condition <- paste0(
     "--left join diagnoses to claim-level exclude flag if specified
     left join(
-      select diag.claim_header_id, max(ref.ccw_", dx_exclude, ") as exclude
+      select diag.claim_header_id, max(ref.ccw_", dx_exclude1, ") as exclude1
 
     --pull out claim and diagnosis fields
     from (
-      select ", top_rows, " id_", source_data, ", claim_header_id, icdcm_norm, icdcm_version
-      from PHClaims.", from_table_icdcm, dx_fields_condition, 
+      select ", top_rows, " id_", source_data, ", claim_header_id, icdcm_norm, icdcm_version, icdcm_number
+      from PHClaims.", from_table_icdcm, 
     ") diag
     
     --join to diagnosis reference table, subset to those with CCW exclusion flag
     inner join (
-      select ", top_rows, " dx, dx_ver, ccw_", dx_exclude, "
+      select ", top_rows, " dx, dx_ver, ccw_", dx_exclude1, "
       from PHClaims.ref.dx_lookup
-      where ccw_", dx_exclude, " = 1
+      where ccw_", dx_exclude1, " = 1
     ) ref
   
     on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
+    where (ref.ccw_", dx_exclude1, " = 1", dx_exclude1_fields_condition, ")
     group by diag.claim_header_id
     ) as exclude
     on diag_lookup.claim_header_id = exclude.claim_header_id
-    where exclude.exclude is null")
+    where exclude.exclude1 is null")
+}
+if(!is.null(dx_exclude1) & !is.null(dx_exclude2)){
+  dx_exclude_condition <- paste0(
+    "--left join diagnoses to claim-level exclude flag if specified
+    left join(
+      select diag.claim_header_id, max(ref.ccw_", dx_exclude1, ") as exclude1, max(ref.ccw_", dx_exclude2, ") as exclude2
+
+    --pull out claim and diagnosis fields
+    from (
+      select ", top_rows, " id_", source_data, ", claim_header_id, icdcm_norm, icdcm_version, icdcm_number
+      from PHClaims.", from_table_icdcm, 
+    ") diag
+    
+    --join to diagnosis reference table, subset to those with CCW exclusion flag
+    inner join (
+      select ", top_rows, " dx, dx_ver, ccw_", dx_exclude1, ", ccw_", dx_exclude2, "
+      from PHClaims.ref.dx_lookup
+      where ccw_", dx_exclude1, " = 1 or ccw_", dx_exclude2, " = 1
+    ) ref
+  
+    on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
+    where (ref.ccw_", dx_exclude1, " = 1", dx_exclude1_fields_condition, ") or (ref.ccw_", dx_exclude2, " = 1", dx_exclude2_fields_condition, ")
+    group by diag.claim_header_id
+    ) as exclude
+    on diag_lookup.claim_header_id = exclude.claim_header_id
+    where exclude.exclude1 is null and exclude.exclude2 is null")
 }
 
 
