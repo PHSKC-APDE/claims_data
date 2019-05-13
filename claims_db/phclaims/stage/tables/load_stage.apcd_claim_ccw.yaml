@@ -430,7 +430,7 @@ cond_cancer_prostate:
         - 4
         - 5
     condition_type: 2
-cond_cancer_arthritis:
+cond_arthritis:
     ccw_code: 26
     ccw_desc: Rheumatoid arthritis/osteoarthritis
     ccw_abbrev: arthritis

@@ -14,7 +14,7 @@ library(odbc) # Used to connect to SQL server
 origin <- "1970-01-01"
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
 config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
-top_rows <- "" #Use this parameter for script testing - set to "top 5000" for example
+top_rows <- "top 50000" #Use this parameter for script testing - set to "top 5000" for example
 
 # ### ### ### ### ### ### ###
 #### Step 1: Load parameters from config file #### 
@@ -29,18 +29,18 @@ to_table <- table_config[str_detect(names(table_config), "to_table")][[1]]
 source_data <- table_config[str_detect(names(table_config), "source_data")][[1]]
 
 ## Temporary code: set parameters for testing
-ccw_code <- table_config$cond_stroke$ccw_code
-ccw_desc <- table_config$cond_stroke$ccw_desc
-ccw_abbrev <- table_config$cond_stroke$ccw_abbrev
-lookback_months <- table_config$cond_stroke$lookback_months
-dx_fields <- table_config$cond_stroke$dx_fields
-dx_exclude1 <- table_config$cond_stroke$dx_exclude1
-dx_exclude2 <- table_config$cond_stroke$dx_exclude2
-dx_exclude1_fields <- table_config$cond_stroke$dx_exclude1_fields
-dx_exclude2_fields <- table_config$cond_stroke$dx_exclude2_fields
-claim_type1 <- paste(as.character(table_config$cond_stroke$claim_type1), collapse=",")
-claim_type2 <- paste(as.character(table_config$cond_stroke$claim_type2), collapse=",")
-condition_type <- table_config$cond_stroke$condition_type
+ccw_code <- table_config$cond_arthritis$ccw_code
+ccw_desc <- table_config$cond_arthritis$ccw_desc
+ccw_abbrev <- table_config$cond_arthritis$ccw_abbrev
+lookback_months <- table_config$cond_arthritis$lookback_months
+dx_fields <- table_config$cond_arthritis$dx_fields
+dx_exclude1 <- table_config$cond_arthritis$dx_exclude1
+dx_exclude2 <- table_config$cond_arthritis$dx_exclude2
+dx_exclude1_fields <- table_config$cond_arthritis$dx_exclude1_fields
+dx_exclude2_fields <- table_config$cond_arthritis$dx_exclude2_fields
+claim_type1 <- paste(as.character(table_config$cond_arthritis$claim_type1), collapse=",")
+claim_type2 <- paste(as.character(table_config$cond_arthritis$claim_type2), collapse=",")
+condition_type <- table_config$cond_arthritis$condition_type
 
 #For looping later on
 lapply(conditions, function(x){
