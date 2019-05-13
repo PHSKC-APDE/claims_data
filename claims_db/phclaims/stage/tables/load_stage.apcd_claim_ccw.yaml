@@ -44,6 +44,18 @@ cond_bph:
         - 4
         - 5
     condition_type: 2
+cond_cataract:
+    ccw_code: 9
+    ccw_desc: Cataract
+    ccw_abbrev: cataract
+    lookback_months: 12
+    dx_fields: 1
+    dx_exclude:
+    claim_type1:
+        - 4
+        - 5
+    claim_type2:
+    condition_type: 1  
 cond_copd:
     ccw_code: 12
     ccw_desc: COPD

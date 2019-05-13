@@ -28,14 +28,16 @@ from_table_icdcm <- table_config[str_detect(names(table_config), "from_table_icd
 to_table <- table_config[str_detect(names(table_config), "to_table")][[1]]
 source_data <- table_config[str_detect(names(table_config), "source_data")][[1]]
 
-## Temporary code: set parameters for asthma versus diabetes table for testing
-ccw_code <- table_config$cond_diabetes$ccw_code
-ccw_desc <- table_config$cond_diabetes$ccw_desc
-ccw_abbrev <- table_config$cond_diabetes$ccw_abbrev
-lookback_months <- table_config$cond_diabetes$lookback_months
-claim_type1 <- paste(as.character(table_config$cond_diabetes$claim_type1), collapse=",")
-claim_type2 <- paste(as.character(table_config$cond_diabetes$claim_type2), collapse=",")
-condition_type <- table_config$cond_diabetes$condition_type
+## Temporary code: set parameters for testing
+ccw_code <- table_config$cond_mi$ccw_code
+ccw_desc <- table_config$cond_mi$ccw_desc
+ccw_abbrev <- table_config$cond_mi$ccw_abbrev
+lookback_months <- table_config$cond_mi$lookback_months
+dx_fields <- table_config$cond_mi$dx_fields
+dx_exclude <- table_config$cond_mi$dx_exclude
+claim_type1 <- paste(as.character(table_config$cond_mi$claim_type1), collapse=",")
+claim_type2 <- paste(as.character(table_config$cond_mi$claim_type2), collapse=",")
+condition_type <- table_config$cond_mi$condition_type
 
 #For looping later on
 lapply(conditions, function(x){
