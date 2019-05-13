@@ -8,7 +8,7 @@ cond_mi:
     ccw_desc: Acute myocardial infarction
     ccw_abbrev: mi
     lookback_months: 12
-    dx_fields: 1-2
+    dx_fields: '1-2'
     dx_exclude:
     claim_type1:
         - 1
@@ -49,7 +49,7 @@ cond_cataract:
     ccw_desc: Cataract
     ccw_abbrev: cataract
     lookback_months: 12
-    dx_fields: 1
+    dx_fields: '1'
     dx_exclude:
     claim_type1:
         - 4

@@ -14,7 +14,7 @@ library(odbc) # Used to connect to SQL server
 origin <- "1970-01-01"
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
 config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
-top_rows <- "top 5000" #Use this parameter for script testing - set to "top 5000" for example
+top_rows <- "top 10000" #Use this parameter for script testing - set to "top 5000" for example
 
 # ### ### ### ### ### ### ###
 #### Step 1: Load parameters from config file #### 
@@ -29,15 +29,15 @@ to_table <- table_config[str_detect(names(table_config), "to_table")][[1]]
 source_data <- table_config[str_detect(names(table_config), "source_data")][[1]]
 
 ## Temporary code: set parameters for testing
-ccw_code <- table_config$cond_mi$ccw_code
-ccw_desc <- table_config$cond_mi$ccw_desc
-ccw_abbrev <- table_config$cond_mi$ccw_abbrev
-lookback_months <- table_config$cond_mi$lookback_months
-dx_fields <- table_config$cond_mi$dx_fields
-dx_exclude <- table_config$cond_mi$dx_exclude
-claim_type1 <- paste(as.character(table_config$cond_mi$claim_type1), collapse=",")
-claim_type2 <- paste(as.character(table_config$cond_mi$claim_type2), collapse=",")
-condition_type <- table_config$cond_mi$condition_type
+ccw_code <- table_config$cond_cataract$ccw_code
+ccw_desc <- table_config$cond_cataract$ccw_desc
+ccw_abbrev <- table_config$cond_cataract$ccw_abbrev
+lookback_months <- table_config$cond_cataract$lookback_months
+dx_fields <- table_config$cond_cataract$dx_fields
+dx_exclude <- table_config$cond_cataract$dx_exclude
+claim_type1 <- paste(as.character(table_config$cond_cataract$claim_type1), collapse=",")
+claim_type2 <- paste(as.character(table_config$cond_cataract$claim_type2), collapse=",")
+condition_type <- table_config$cond_cataract$condition_type
 
 #For looping later on
 lapply(conditions, function(x){
@@ -64,6 +64,11 @@ if(condition_type == 2){
   claim_count_condition <- 
     "where (b.condition_1_cnt >= 1) or (b.condition_2_cnt >=2 and abs(datediff(day, b.condition_2_min_date, b.condition_2_max_date)) >=1)"
 }
+
+## Construct where statement for diagnosis field numbers
+if(dx_fields == "1-2")
+
+if(dx_fields == "any")
 
 # ### ### ### ### ### ### ###
 #### Step 3: create temp table to hold condition-specific claims and dates #### 
