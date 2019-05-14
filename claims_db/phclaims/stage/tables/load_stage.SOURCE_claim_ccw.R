@@ -2,7 +2,7 @@
 ## Person-level CCW condition status by time period
 ## Eli Kern (PHSKC-APDE)
 ## 2019-5-13
-## Run time: XX min
+## Run time: 2h 30min
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 30, scipen = 999)
