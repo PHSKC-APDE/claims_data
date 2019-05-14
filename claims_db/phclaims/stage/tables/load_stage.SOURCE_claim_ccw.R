@@ -1,20 +1,19 @@
 ## Code to create stage.SOURCE_claim_ccw table
 ## Person-level CCW condition status by time period
 ## Eli Kern (PHSKC-APDE)
-## 2019-5-8 
+## 2019-5-13
 ## Run time: XX min
-
-## This is for Type 1 CCW definitions - that require 1 claim in lookback period to meet condition criteria
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 30, scipen = 999)
 library(tidyverse) # Used to manipulate tidy data
-library(lubridate) # Used to manipulate dates
 library(odbc) # Used to connect to SQL server
-origin <- "1970-01-01"
+library(yaml) # Work with YAML config files
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
+top_rows <- "" #Use this parameter for script testing - set to "top 5000" for example
+
+## Select config file for desired data source
 config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
-top_rows <- "top 50000" #Use this parameter for script testing - set to "top 5000" for example
 
 # ### ### ### ### ### ### ###
 #### Step 1: Load parameters from config file #### 
@@ -28,21 +27,14 @@ from_table_icdcm <- table_config[str_detect(names(table_config), "from_table_icd
 to_table <- table_config[str_detect(names(table_config), "to_table")][[1]]
 source_data <- table_config[str_detect(names(table_config), "source_data")][[1]]
 
-## Temporary code: set parameters for testing
-ccw_code <- table_config$cond_arthritis$ccw_code
-ccw_desc <- table_config$cond_arthritis$ccw_desc
-ccw_abbrev <- table_config$cond_arthritis$ccw_abbrev
-lookback_months <- table_config$cond_arthritis$lookback_months
-dx_fields <- table_config$cond_arthritis$dx_fields
-dx_exclude1 <- table_config$cond_arthritis$dx_exclude1
-dx_exclude2 <- table_config$cond_arthritis$dx_exclude2
-dx_exclude1_fields <- table_config$cond_arthritis$dx_exclude1_fields
-dx_exclude2_fields <- table_config$cond_arthritis$dx_exclude2_fields
-claim_type1 <- paste(as.character(table_config$cond_arthritis$claim_type1), collapse=",")
-claim_type2 <- paste(as.character(table_config$cond_arthritis$claim_type2), collapse=",")
-condition_type <- table_config$cond_arthritis$condition_type
 
-#For looping later on
+# ### ### ### ### ### ### ###
+#### Step 2: Create branching code segments for type 1 versus type 2 conditions #### 
+# ### ### ### ### ### ### ###
+
+ptm01 <- proc.time() # Times how long this query takes
+
+## Begin loop over conditions - loop continues across all SQL queries
 lapply(conditions, function(x){
   ccw_code <- x$ccw_code
   ccw_desc <- x$ccw_desc
@@ -56,12 +48,6 @@ lapply(conditions, function(x){
   claim_type1 <- paste(as.character(x$claim_type1), collapse=",")
   claim_type2 <- paste(as.character(x$claim_type2), collapse=",")
   condition_type <- x$condition_type
-})
-
-
-# ### ### ### ### ### ### ###
-#### Step 2: Create branching code segments for type 1 versus type 2 conditions #### 
-# ### ### ### ### ### ### ###
 
 ## Construct where statement for claim count requirements
 if(condition_type == 1){
@@ -169,7 +155,6 @@ if(!is.null(dx_exclude1) & !is.null(dx_exclude2)){
 #### Step 3: create temp table to hold condition-specific claims and dates #### 
 # ### ### ### ### ### ### ###
 
-ptm01 <- proc.time() # Times how long this query takes
 # Build SQL query
 sql1 <- paste0(
   
@@ -329,10 +314,28 @@ order by d.id_", source_data, ", from_date;"
 sql_result <- dbSendQuery(db.claims51,sql3)
 dbClearResult(sql_result)
 
+
+# ### ### ### ### ### ### ###
+#### Step 6: Insert all condition tables into final stage table  #### 
+# ### ### ### ### ### ### ###
+
+#Build SQL query
+sql4 <- paste0(
+  "insert into PHClaims.", schema, ".", to_table, " with (tablock)
+  select
+  id_apcd,
+  from_date,
+  to_date,
+  ccw_code,
+  ccw_desc
+  from ##", ccw_abbrev, ";"
+)
+
+#Run SQL query
+sql_result <- dbSendQuery(db.claims51,sql4)
+dbClearResult(sql_result)
+
+})
+
 #Run time of all steps
 proc.time() - ptm01
-
-
-# ### ### ### ### ### ### ###
-#### Step 6: Union all condition tables into final stage table  #### 
-# ### ### ### ### ### ### ###
