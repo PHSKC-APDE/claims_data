@@ -1,20 +1,19 @@
 ## Code to create stage.SOURCE_claim_ccw table
 ## Person-level CCW condition status by time period
 ## Eli Kern (PHSKC-APDE)
-## 2019-5-8 
-## Run time: XX min
-
-## This is for Type 1 CCW definitions - that require 1 claim in lookback period to meet condition criteria
+## 2019-5-13
+## Run time: 2h 30min
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 30, scipen = 999)
 library(tidyverse) # Used to manipulate tidy data
-library(lubridate) # Used to manipulate dates
 library(odbc) # Used to connect to SQL server
-origin <- "1970-01-01"
+library(yaml) # Work with YAML config files
 db.claims51 <- dbConnect(odbc(), "PHClaims51")
+top_rows <- "" #Use this parameter for script testing - set to "top 5000" for example
+
+## Select config file for desired data source
 config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
-top_rows <- "top 10000" #Use this parameter for script testing - set to "top 5000" for example
 
 # ### ### ### ### ### ### ###
 #### Step 1: Load parameters from config file #### 
@@ -28,33 +27,27 @@ from_table_icdcm <- table_config[str_detect(names(table_config), "from_table_icd
 to_table <- table_config[str_detect(names(table_config), "to_table")][[1]]
 source_data <- table_config[str_detect(names(table_config), "source_data")][[1]]
 
-## Temporary code: set parameters for testing
-ccw_code <- table_config$cond_cataract$ccw_code
-ccw_desc <- table_config$cond_cataract$ccw_desc
-ccw_abbrev <- table_config$cond_cataract$ccw_abbrev
-lookback_months <- table_config$cond_cataract$lookback_months
-dx_fields <- table_config$cond_cataract$dx_fields
-dx_exclude <- table_config$cond_cataract$dx_exclude
-claim_type1 <- paste(as.character(table_config$cond_cataract$claim_type1), collapse=",")
-claim_type2 <- paste(as.character(table_config$cond_cataract$claim_type2), collapse=",")
-condition_type <- table_config$cond_cataract$condition_type
 
-#For looping later on
+# ### ### ### ### ### ### ###
+#### Step 2: Create branching code segments for type 1 versus type 2 conditions #### 
+# ### ### ### ### ### ### ###
+
+ptm01 <- proc.time() # Times how long this query takes
+
+## Begin loop over conditions - loop continues across all SQL queries
 lapply(conditions, function(x){
   ccw_code <- x$ccw_code
   ccw_desc <- x$ccw_desc
   ccw_abbrev <- x$ccw_abbrev
   lookback_months <- x$lookback_months
   dx_fields <- x$dx_fields
+  dx_exclude1 <- x$dx_exclude1
+  dx_exclude2 <- x$dx_exclude2
+  dx_exclude1_fields <- x$dx_exclude1_fields
+  dx_exclude2_fields <- x$dx_exclude2_fields
   claim_type1 <- paste(as.character(x$claim_type1), collapse=",")
   claim_type2 <- paste(as.character(x$claim_type2), collapse=",")
   condition_type <- x$condition_type
-})
-
-
-# ### ### ### ### ### ### ###
-#### Step 2: Create branching code segments for type 1 versus type 2 conditions #### 
-# ### ### ### ### ### ### ###
 
 ## Construct where statement for claim count requirements
 if(condition_type == 1){
@@ -66,15 +59,102 @@ if(condition_type == 2){
 }
 
 ## Construct where statement for diagnosis field numbers
-if(dx_fields == "1-2")
+if(dx_fields == "1-2"){
+  dx_fields_condition <- " where icdcm_number in ('01','02')"
+}
+if(dx_fields == "1"){
+  dx_fields_condition <- " where icdcm_number = '01'" 
+}
+if(dx_fields == "any"){
+  dx_fields_condition <- ""
+}
 
-if(dx_fields == "any")
+## Construct diagnosis field number code for exclusion code
+if(!is.null(dx_exclude1_fields)){
+  if(dx_exclude1_fields == "1-2"){
+    dx_exclude1_fields_condition <- " and diag.icdcm_number in ('01','02')"
+  }
+  if(dx_exclude1_fields == "1"){
+    dx_exclude1_fields_condition <- " and diag.icdcm_number = '01'" 
+  }
+  if(dx_exclude1_fields == "any"){
+    dx_exclude1_fields_condition <- ""
+  }
+}
+if(!is.null(dx_exclude2_fields)){
+  if(dx_exclude2_fields == "1-2"){
+    dx_exclude2_fields_condition <- " and diag.icdcm_number in ('01','02')"
+  }
+  if(dx_exclude2_fields == "1"){
+    dx_exclude2_fields_condition <- " and diag.icdcm_number = '01'"
+  }
+  if(dx_exclude2_fields == "any"){
+    dx_exclude2_fields_condition <- ""
+  }
+}
+
+##Construct diagnosis-based exclusion code
+if(is.null(dx_exclude1) & is.null(dx_exclude2)){
+  dx_exclude_condition <- ""
+}
+if(!is.null(dx_exclude1) & is.null(dx_exclude2)){
+  dx_exclude_condition <- paste0(
+    "--left join diagnoses to claim-level exclude flag if specified
+    left join(
+      select diag.claim_header_id, max(ref.ccw_", dx_exclude1, ") as exclude1
+
+    --pull out claim and diagnosis fields
+    from (
+      select ", top_rows, " id_", source_data, ", claim_header_id, icdcm_norm, icdcm_version, icdcm_number
+      from PHClaims.", from_table_icdcm, 
+    ") diag
+    
+    --join to diagnosis reference table, subset to those with CCW exclusion flag
+    inner join (
+      select ", top_rows, " dx, dx_ver, ccw_", dx_exclude1, "
+      from PHClaims.ref.dx_lookup
+      where ccw_", dx_exclude1, " = 1
+    ) ref
+  
+    on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
+    where (ref.ccw_", dx_exclude1, " = 1", dx_exclude1_fields_condition, ")
+    group by diag.claim_header_id
+    ) as exclude
+    on diag_lookup.claim_header_id = exclude.claim_header_id
+    where exclude.exclude1 is null")
+}
+if(!is.null(dx_exclude1) & !is.null(dx_exclude2)){
+  dx_exclude_condition <- paste0(
+    "--left join diagnoses to claim-level exclude flag if specified
+    left join(
+      select diag.claim_header_id, max(ref.ccw_", dx_exclude1, ") as exclude1, max(ref.ccw_", dx_exclude2, ") as exclude2
+
+    --pull out claim and diagnosis fields
+    from (
+      select ", top_rows, " id_", source_data, ", claim_header_id, icdcm_norm, icdcm_version, icdcm_number
+      from PHClaims.", from_table_icdcm, 
+    ") diag
+    
+    --join to diagnosis reference table, subset to those with CCW exclusion flag
+    inner join (
+      select ", top_rows, " dx, dx_ver, ccw_", dx_exclude1, ", ccw_", dx_exclude2, "
+      from PHClaims.ref.dx_lookup
+      where ccw_", dx_exclude1, " = 1 or ccw_", dx_exclude2, " = 1
+    ) ref
+  
+    on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
+    where (ref.ccw_", dx_exclude1, " = 1", dx_exclude1_fields_condition, ") or (ref.ccw_", dx_exclude2, " = 1", dx_exclude2_fields_condition, ")
+    group by diag.claim_header_id
+    ) as exclude
+    on diag_lookup.claim_header_id = exclude.claim_header_id
+    where exclude.exclude1 is null and exclude.exclude2 is null")
+}
+
 
 # ### ### ### ### ### ### ###
 #### Step 3: create temp table to hold condition-specific claims and dates #### 
 # ### ### ### ### ### ### ###
 
-ptm01 <- proc.time() # Times how long this query takes
 # Build SQL query
 sql1 <- paste0(
   
@@ -82,7 +162,7 @@ sql1 <- paste0(
   if object_id('tempdb..##header') IS NOT NULL drop table ##header;
   
   --apply CCW claim type criteria to define conditions 1 and 2
-  select header.id_", source_data, ", header.claim_header_id, header.claim_type_id, header.first_service_dt, diag.ccw_", ccw_abbrev, ", 
+  select header.id_", source_data, ", header.claim_header_id, header.claim_type_id, header.first_service_dt, diag_lookup.ccw_", ccw_abbrev, ", 
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ',')) then 1 else 0 end as 'condition1',
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type2, "', ',')) then 1 else 0 end as 'condition2',
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ','))
@@ -105,7 +185,7 @@ sql1 <- paste0(
     --pull out claim and diagnosis fields
     from (
       select ", top_rows, " id_", source_data, ", claim_header_id, icdcm_norm, icdcm_version
-      from PHClaims.", from_table_icdcm, 
+      from PHClaims.", from_table_icdcm, dx_fields_condition, 
     ") diag
 
   --join to diagnosis reference table, subset to those with CCW condition
@@ -116,14 +196,15 @@ sql1 <- paste0(
     ) ref
     
     on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
-  ) as diag
+  ) as diag_lookup
   
-  on header.claim_header_id = diag.claim_header_id;"
-)
+  on header.claim_header_id = diag_lookup.claim_header_id
+  ", dx_exclude_condition, ";")
 
 #Run SQL query
 sql_result <- dbSendQuery(db.claims51,sql1)
 dbClearResult(sql_result)
+
 
 # ### ### ### ### ### ### ###
 #### Step 4: create temp table to hold ID and rolling time period matrix #### 
@@ -157,8 +238,9 @@ sql2 <- paste0(
 sql_result <- dbSendQuery(db.claims51,sql2)
 dbClearResult(sql_result)
 
+
 # ### ### ### ### ### ### ###
-#### Step 4: identify condition status over time and collapse to contiguous time periods  #### 
+#### Step 5: identify condition status over time and collapse to contiguous time periods  #### 
 # ### ### ### ### ### ### ###
 
 #Build SQL query
@@ -232,10 +314,28 @@ order by d.id_", source_data, ", from_date;"
 sql_result <- dbSendQuery(db.claims51,sql3)
 dbClearResult(sql_result)
 
+
+# ### ### ### ### ### ### ###
+#### Step 6: Insert all condition tables into final stage table  #### 
+# ### ### ### ### ### ### ###
+
+#Build SQL query
+sql4 <- paste0(
+  "insert into PHClaims.", schema, ".", to_table, " with (tablock)
+  select
+  id_apcd,
+  from_date,
+  to_date,
+  ccw_code,
+  ccw_desc
+  from ##", ccw_abbrev, ";"
+)
+
+#Run SQL query
+sql_result <- dbSendQuery(db.claims51,sql4)
+dbClearResult(sql_result)
+
+})
+
 #Run time of all steps
 proc.time() - ptm01
-
-
-# ### ### ### ### ### ### ###
-#### Step 5: Union all condition tables into final stage table  #### 
-# ### ### ### ### ### ### ###
