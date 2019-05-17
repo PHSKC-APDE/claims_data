@@ -2,6 +2,11 @@
 --5/13/19
 --Eli Kern
 
+
+------------------------
+--STEP 1: Table-wide checks
+------------------------
+
 --Count number and percent of distinct people by condition
 select ccw_code, ccw_desc, count(distinct id_apcd) as id_dcount
 from PHClaims.stage.apcd_claim_ccw
@@ -77,22 +82,100 @@ from (
 group by c.age_grp7;
 
 
+------------------------
+--STEP 2: Validate status of one person per condition with two or more time periods
+------------------------
 
---person who should not have cataract CCW because of DX fields condition
-id_apcd = 11050947020
-claim_header_id = 629257980861086
+--Generic code to find people to QA
+select top 1 a.*
+from (
+select id_apcd, count(from_date) as time_cnt
+from PHClaims.stage.apcd_claim_ccw
+where ccw_code = 1 -- change this to select different condition
+group by id_apcd
+) as a
+where a.time_cnt > 1;
 
---claim that should not be included in BPH CCW definition because of DX exclusions
-id_apcd = 11278002499
-claim_header_id = 629250025757699
+--Validate CCW status (1-2 min run time per condition)
+declare @id bigint, @ccw_code tinyint, @clm_type varchar(100)
+set @id = --retrieve from above code--
+set @ccw_code = 1
+set @clm_type = '1,2,3,4,5'
 
---a qualifying claim for BPH
-id_apcd = 11051002955
-claim_header_id = 629257853156008
+select *
+from PHClaims.stage.apcd_claim_ccw
+where ccw_code = @ccw_code and id_apcd = @id
+order by from_date;
 
---a claim that should be excluded from stroke definition by second criteria
-id_apcd = 11058143040
-claim_header_id = 629246622926380
+select a.id_apcd, a.first_service_dt, a.claim_type_id, b.icdcm_norm, b.icdcm_version, b.icdcm_number, c.ccw_hypothyroid
+from PHClaims.final.apcd_claim_header as a
+left join PHClaims.final.apcd_claim_icdcm_header as b
+on a.claim_header_id = b.claim_header_id
+left join PHClaims.ref.dx_lookup as c
+on b.icdcm_norm = c.dx and b.icdcm_version = c.dx_ver
+where a.claim_type_id in (select * from PHClaims.dbo.Split(@clm_type, ','))
+and a.id_apcd = @id
+and c.ccw_hypothyroid = 1
+order by a.first_service_dt;
 
---a person who should have stroke
-id_apcd = 11050947017
+
+------------------------
+--STEP 3: Validate diagnosis number conditions / diagnosis exclusions
+------------------------
+
+--Cataract - person excluded because of DX fields condition
+--Claim header that should be excluded: 629257980861086
+select *
+from PHClaims.stage.apcd_claim_ccw
+where ccw_code = 9 and id_apcd = 11050947020
+order by from_date;
+
+select a.id_apcd, a.first_service_dt, a.claim_header_id, a.claim_type_id, b.icdcm_norm, b.icdcm_version, b.icdcm_number, c.ccw_cataract
+from PHClaims.final.apcd_claim_header as a
+left join PHClaims.final.apcd_claim_icdcm_header as b
+on a.claim_header_id = b.claim_header_id
+left join PHClaims.ref.dx_lookup as c
+on b.icdcm_norm = c.dx and b.icdcm_version = c.dx_ver
+where a.claim_type_id in (4,5)
+and a.id_apcd = 11050947020
+and c.ccw_cataract = 1
+order by a.first_service_dt;
+
+--BPH - claim that should be excluded per diagnosis
+--Claim header that should be excluded: 629250025757699
+select *
+from PHClaims.stage.apcd_claim_ccw
+where ccw_code = 8 and id_apcd = 11278002499
+order by from_date;
+
+select a.id_apcd, a.claim_header_id, a.first_service_dt, max(a.claim_type_id) as claim_type_id, max(c.ccw_bph) as ccw_bph, max(c.ccw_bph_exclude) as ccw_bph_exclude
+from PHClaims.final.apcd_claim_header as a
+left join PHClaims.final.apcd_claim_icdcm_header as b
+on a.claim_header_id = b.claim_header_id
+left join PHClaims.ref.dx_lookup as c
+on b.icdcm_norm = c.dx and b.icdcm_version = c.dx_ver
+where a.claim_type_id in (1,2,3,4,5)
+and a.id_apcd = 11278002499
+and (c.ccw_bph = 1 or c.ccw_bph_exclude = 1)
+group by a.id_apcd, a.claim_header_id, a.first_service_dt
+order by a.first_service_dt;
+
+--Stroke - claim that should be excluded per diagnosis
+--Claim header that should be excluded: 629246622926380
+select *
+from PHClaims.stage.apcd_claim_ccw
+where ccw_code = 27 and id_apcd = 11060407594
+order by from_date;
+
+select a.id_apcd, a.claim_header_id, a.first_service_dt, max(a.claim_type_id) as claim_type_id, max(c.ccw_stroke) as ccw_stroke, 
+	max(c.ccw_stroke_exclude1) as ccw_stroke_exclude1, max(c.ccw_stroke_exclude2) as ccw_stroke_exclude2
+from PHClaims.final.apcd_claim_header as a
+left join PHClaims.final.apcd_claim_icdcm_header as b
+on a.claim_header_id = b.claim_header_id
+left join PHClaims.ref.dx_lookup as c
+on b.icdcm_norm = c.dx and b.icdcm_version = c.dx_ver
+where a.claim_type_id in (1,4,5)
+and a.id_apcd = 11060407594
+and (c.ccw_stroke = 1 or c.ccw_stroke_exclude1 = 1 or c.ccw_stroke_exclude2 = 1)
+group by a.id_apcd, a.claim_header_id, a.first_service_dt
+order by a.first_service_dt;
