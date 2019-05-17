@@ -3,14 +3,17 @@
 --value per claim header.
 --Eli Kern (PHSKC-APDE)
 --2019-4-26
---Run time: 67 min
+--Run time: XXmin
 
 ------------------
 --STEP 1: Transform medical_claim_header table, add all fields that do not require table joins
+--Exclude all members with no eligibility information using ref.apcd_claim_no_elig
 -------------------
 if object_id('tempdb..#temp1') is not null drop table #temp1;
-select
-internal_member_id as id_apcd,
+select a.*
+into #temp1
+from (
+select internal_member_id as id_apcd,
 extract_id,
 medical_claim_header_id as claim_header_id,
 submitter_id,
@@ -29,8 +32,12 @@ cast(convert(varchar(100), claim_type_id) + '.' + convert(varchar(100), type_of_
 type_of_bill_code,
 cast(case when emergency_room_flag = 'Y' then 1 when emergency_room_flag = 'N' then 0 end as tinyint) as ed_flag,
 cast(case when operating_room_flag = 'Y' then 1 when operating_room_flag = 'N' then 0 end as tinyint) as or_flag
-into #temp1
-from PHClaims.stage.apcd_medical_claim_header;
+from PHClaims.stage.apcd_medical_claim_header
+) as a
+left join PHClaims.ref.apcd_claim_no_elig as b
+on a.id_apcd = b.id_apcd
+where b.id_apcd is null;
+
 
 ------------------
 --STEP 2: Prepare select header-level data elements using line-level table

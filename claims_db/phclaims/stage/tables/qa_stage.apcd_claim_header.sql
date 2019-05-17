@@ -6,13 +6,14 @@
 ------------------
 --STEP 1: Prepare temp table that is copy of medical_claim_header table with denied and orphaned claims
 --re-written using min of line-level values; then use this table for comparisons below
+--Note that this temp table also excludes members with no elig information
 --Run time: 42 min
 ------------------
 if object_id('tempdb..#temp1') is not null drop table #temp1;
 select x.internal_member_id, x.medical_claim_header_id, x.internal_provider_id, x.icd_version_ind,
 	x.emergency_room_flag, x.operating_room_flag, y.denied_line_min, y.orphaned_line_min
 into #temp1
-from PHClaims.stage.apcd_medical_claim_header as x
+from (select * from PHClaims.stage.apcd_medical_claim_header where internal_member_id not in (select id_apcd from PHClaims.ref.apcd_claim_no_elig)) as x
 left join (
 select a.medical_claim_header_id, min(case when b.denied_claim_flag = 'Y' then 1 else 0 end) as denied_line_min,
 	min(case when b.orphaned_adjustment_flag = 'Y' then 1 else 0 end) as orphaned_line_min
@@ -41,6 +42,19 @@ from PHClaims.stage.apcd_claim_header;
 select count(distinct internal_member_id) as member_cnt
 from #temp1
 where denied_line_min = 0 and orphaned_line_min = 0;
+
+--All members should be in elig_demo and elig_timevar tables
+select count(a.id_apcd) as id_dcount
+from PHClaims.stage.apcd_claim_header as a
+left join PHClaims.final.apcd_elig_demo as b
+on a.id_apcd = b.id_apcd
+where b.id_apcd is null;
+
+select count(a.id_apcd) as id_dcount
+from PHClaims.stage.apcd_claim_header as a
+left join PHClaims.final.apcd_elig_timevar as b
+on a.id_apcd = b.id_apcd
+where b.id_apcd is null;
 
 --Compare claim header counts
 select count(distinct claim_header_id) as header_cnt
@@ -95,6 +109,7 @@ group by id_apcd, discharge_dt
 
 --This code appears convoluted, but it's because it has to mimic process through which ipt claim lines are grouped by
 --claim header (taking max of discharge dt), then grouped by id and discharge date, then summed
+--Note that this code appropriately excludes members with no elig information
 select sum(e.ipt_flag) as ipt_count
 from (
 	select d.id_apcd, d.discharge_dt, max(d.ipt_flag) as ipt_flag
@@ -109,6 +124,7 @@ from (
 			and (denied_claim_flag = 'N' AND orphaned_adjustment_flag = 'N')
 			and claim_status_id in (-1, -2, 1, 5, 2, 6)
 			and discharge_dt is not null
+			and internal_member_id not in (select id_apcd from PHClaims.ref.apcd_claim_no_elig)
 		) as a
 		left join PHClaims.stage.apcd_medical_crosswalk as b
 		on a.medical_claim_service_line_id = b.medical_claim_service_line_id
@@ -118,6 +134,17 @@ from (
 	) as d
 	group by d.id_apcd, d.discharge_dt
 ) as e;
+
+--Check an individual inpatient stay to make sure discharge date has come through correctly
+select id_apcd, claim_header_id, ipt_flag, discharge_dt
+from PHClaims.stage.apcd_claim_header
+where claim_header_id = 629250577489368;
+
+select a.*
+from PHClaims.stage.apcd_medical_claim as a
+left join PHClaims.stage.apcd_medical_crosswalk as b
+on a.medical_claim_service_line_id = b.medical_claim_service_line_id
+where b.medical_claim_header_id = 629250577489368;
 
 --Verify that an example of a denied and orphaned claim header is excluded
 select * 

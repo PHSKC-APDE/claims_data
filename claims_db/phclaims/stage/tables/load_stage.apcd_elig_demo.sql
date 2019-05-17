@@ -27,8 +27,8 @@ select internal_member_id, year_month, age,
 		then dateadd(month, 1, convert(date, cast((year_month - ((age + 1) * 100)) as varchar(200)) + '01'))
 	end as dob_2,
   --create alone or in combination gender variables
-  case when gender_code = 'F' then 1 else 0 end as female,
-  case when gender_code = 'M' then 1 else 0 end as male,
+  case when gender_code = 'F' then 1 when gender_code = 'U' then null else 0 end as female,
+  case when gender_code = 'M' then 1 when gender_code = 'U' then null else 0 end as male,
   case when gender_code = 'U' then 1 else 0 end as gender_unk,
   --create variable to hold most recent gender, ignore null and 'Unknown' values
   last_value(gender_code) over (partition by internal_member_id

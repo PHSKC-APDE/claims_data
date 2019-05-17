@@ -2,6 +2,7 @@
 --ICD-CM diagnosis codes in long format at claim header level
 --Eli Kern (PHSKC-APDE)
 --2019-5-7
+--Run time: 7 min
 ------------------
 --STEP 1: Insert data that has passed QA in stage schema table
 -------------------

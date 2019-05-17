@@ -13,6 +13,10 @@ from phclaims.stage.apcd_elig_timevar;
 --All people using member_month_detail
 select count(distinct internal_member_id) as id_dcount_mm
 from phclaims.stage.apcd_member_month_detail;
+
+--Member counts should match final.apcd_elig_demo table
+select count(distinct id_apcd) as id_dcount_demo
+from PHClaims.final.apcd_elig_demo;
   
 --All King people in 2016 using elig_covgrp
 select count(distinct id_apcd) as id_dcount_timevar
