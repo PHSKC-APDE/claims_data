@@ -2,50 +2,6 @@
 USE [PHClaims];
 GO
 
-/*
-IF OBJECT_ID('[ref].[rda_value_set]', 'U') IS NOT NULL
-DROP TABLE [ref].[rda_value_set];
-SELECT [value_set_group]
-      ,[value_set_name]
-      ,[data_source_type]
-      ,[sub_group]
-      ,[code_set]
-      ,[code]
-      ,[desc_1]
-      ,[desc_2]
-      ,[active]
-      ,[from_date]
-      ,[to_date]
-INTO [ref].[rda_value_set]
-FROM [dbo].[ref_rda_value_set];
-
-ALTER TABLE [ref].[rda_value_set] ADD CONSTRAINT [PK_ref_rda_value_set] PRIMARY KEY CLUSTERED 
-([value_set_name] ASC
-,[data_source_type] ASC
-,[sub_group] ASC
-,[code_set] ASC
-,[code] ASC);
-GO
-*/
-
-IF OBJECT_ID('[ref].[rda_value_set]', 'U') IS NOT NULL
-DROP TABLE [ref].[rda_value_set];
-CREATE TABLE [ref].[rda_value_set]
-([value_set_group] VARCHAR(20) NOT NULL
-,[value_set_name] VARCHAR(100) NOT NULL
-,[data_source_type] VARCHAR(50) NOT NULL
-,[sub_group] VARCHAR(50) NOT NULL
-,[code_set] VARCHAR(50) NOT NULL
-,[code] VARCHAR(20) NOT NULL
-,[desc_1] VARCHAR(200) NULL
-,[desc_2] VARCHAR(200) NULL
-,[active] CHAR(1) NULL
-,[from_date] DATE NULL
-,[to_date] DATE NULL
-,CONSTRAINT [PK_ref_rda_value_set] PRIMARY KEY CLUSTERED([value_set_name], [data_source_type], [sub_group], [code_set], [code])
-);
-GO
-
 TRUNCATE TABLE [ref].[rda_value_set];
 
 -- Mental Health Value Sets
@@ -73,7 +29,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_MH-Dx-value-set-ICD9-10.xlsx]
+FROM [tmp].[tmp_MH-Dx-value-set-ICD9-10.xlsx]
 WHERE [ICD] = 'ICD-10';
 
 WITH CTE AS
@@ -81,7 +37,7 @@ WITH CTE AS
 SELECT 
  *
 ,ROW_NUMBER() OVER(PARTITION BY REPLACE(CAST(REPLACE([Code], '.', '') AS CHAR(5)), ' ', '0') ORDER BY [Code] DESC) AS [row_num]
-FROM [KC\psylling].[tmp_MH-Dx-value-set-ICD9-10.xlsx]
+FROM [tmp].[tmp_MH-Dx-value-set-ICD9-10.xlsx]
 WHERE [ICD] = 'ICD-9'
 )
 
@@ -138,7 +94,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_MH-procedure-value-set_20180918.xlsx];
+FROM [tmp].[tmp_MH-procedure-value-set_20180918.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
@@ -164,7 +120,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_MH-procedure-with-Dx-value-set_20180920.xlsx];
+FROM [tmp].[tmp_MH-procedure-with-Dx-value-set_20180920.xlsx];
 
 WITH CTE AS
 (
@@ -172,7 +128,7 @@ SELECT [MetricCodeGroup]
       ,[GPI]
       ,[CodeDescription]
 	  ,ROW_NUMBER() OVER(PARTITION BY [GPI] ORDER BY CASE WHEN [CodeDescription] IS NOT NULL THEN 1 ELSE 2 END) AS [row_num]
-FROM [KC\psylling].[tmp_MH-Rx-value-set-20180430.xlsx]
+FROM [tmp].[tmp_MH-Rx-value-set-20180430.xlsx]
 )
 
 INSERT INTO [ref].[rda_value_set]
@@ -210,7 +166,7 @@ SELECT [MetricCodeGroup]
       ,CAST(CAST([NDCExpansion] AS BIGINT) AS VARCHAR(255)) AS [NDCExpansion]
       ,[NDCLabel]
 	  ,ROW_NUMBER() OVER(PARTITION BY CAST(CAST([NDCExpansion] AS BIGINT) AS VARCHAR(255)) ORDER BY CASE WHEN [NDCLabel] IS NOT NULL THEN 1 ELSE 2 END) AS [row_num]
-FROM [KC\psylling].[tmp_MH-Rx-value-set-20180430.xlsx]
+FROM [tmp].[tmp_MH-Rx-value-set-20180430.xlsx]
 )
 
 INSERT INTO [ref].[rda_value_set]
@@ -265,7 +221,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_MH-taxonomy-value-set.xlsx];
+FROM [tmp].[tmp_MH-taxonomy-value-set.xlsx];
 
 -- Substance Use Disorder Value Sets
 INSERT INTO [ref].[rda_value_set]
@@ -292,14 +248,14 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_SUD-Tx-Pen-Value-Set-1.xlsx] WHERE CodeSet = 'ICD10';
+FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-1.xlsx] WHERE CodeSet = 'ICD10';
 
 WITH CTE AS
 (
 SELECT 
  *
 ,ROW_NUMBER() OVER(PARTITION BY REPLACE(CAST(REPLACE([Code], '.', '') AS CHAR(5)), ' ', '0') ORDER BY [Code] DESC) AS [row_num]
-FROM [KC\psylling].[tmp_SUD-Tx-Pen-Value-Set-1.xlsx]
+FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-1.xlsx]
 WHERE [CodeSet] = 'ICD9'
 )
 
@@ -356,7 +312,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_SUD-Tx-Pen-Value-Set-2-1.xlsx];
+FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-2-1.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
@@ -382,7 +338,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_SUD-Tx-Pen-Value-Set-2-2.xlsx];
+FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-2-2.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
@@ -408,7 +364,7 @@ SELECT
 ,CAST(CASE WHEN [DRUG_STATUS_CODE] = 'I' THEN 'N' WHEN [DRUG_STATUS_CODE] = 'A' THEN 'Y' END AS VARCHAR(1)) AS [active]
 ,CAST([FROM_DATE] AS DATE) AS [from_date]
 ,CAST([TO_DATE] AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_SUD-Tx-Pen-Value-Set-3-1_20180928.xlsx];
+FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-3-1_20180928.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
@@ -434,7 +390,7 @@ SELECT
 ,CAST(CASE WHEN [DRUG_STATUS_CODE] = 'I' THEN 'N' WHEN [DRUG_STATUS_CODE] = 'A' THEN 'Y' END AS VARCHAR(1)) AS [active]
 ,CAST([FROM_DATE] AS DATE) AS [from_date]
 ,CAST([TO_DATE] AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_SUD-Tx-Pen-Value-Set-3-2_20180928.xlsx];
+FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-3-2_20180928.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
@@ -463,7 +419,7 @@ SELECT
 	  END AS VARCHAR(1)) AS [active]
 ,CAST([FROM_DATE] AS DATE) AS [from_date]
 ,CAST([TO_DATE] AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_SUD-Tx-Pen-Value-Set-3-3_20180928.xlsx];
+FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-3-3_20180928.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
@@ -489,7 +445,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_SUD-Tx-Pen-Value-Set-4.xlsx];
+FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-4.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
@@ -519,7 +475,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_SUD-Tx-Pen-Value-Set-5.xlsx];
+FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-5.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
@@ -545,7 +501,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_SUD-Tx-Pen-Value-Set-6.xlsx];
+FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-6.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
@@ -571,7 +527,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_SUD-Tx-Pen-Value-Set-7.xlsx];
+FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-7.xlsx];
 
 -- Opioid Use Disorder Value Sets
 INSERT INTO [ref].[rda_value_set]
@@ -598,14 +554,14 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_OUD-Tx-Pen-Value-Set-1.xlsx] WHERE [CodeSet] = 'ICD10';
+FROM [tmp].[tmp_OUD-Tx-Pen-Value-Set-1.xlsx] WHERE [CodeSet] = 'ICD10';
 
 WITH CTE AS
 (
 SELECT 
  *
 ,ROW_NUMBER() OVER(PARTITION BY REPLACE(CAST(REPLACE([Code], '.', '') AS CHAR(5)), ' ', '0') ORDER BY [Code] DESC) AS [row_num]
-FROM [KC\psylling].[tmp_OUD-Tx-Pen-Value-Set-1.xlsx]
+FROM [tmp].[tmp_OUD-Tx-Pen-Value-Set-1.xlsx]
 WHERE [CodeSet] = 'ICD9'
 )
 
@@ -662,7 +618,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_OUD-Tx-Pen-Value-Set-2-1.xlsx];
+FROM [tmp].[tmp_OUD-Tx-Pen-Value-Set-2-1.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
@@ -688,7 +644,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_OUD-Tx-Pen-Value-Set-2-2.xlsx];
+FROM [tmp].[tmp_OUD-Tx-Pen-Value-Set-2-2.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
@@ -714,7 +670,7 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [KC\psylling].[tmp_OUD-Tx-Pen-Value-Set-2-3.xlsx];
+FROM [tmp].[tmp_OUD-Tx-Pen-Value-Set-2-3.xlsx];
 
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
