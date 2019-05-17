@@ -460,8 +460,6 @@ cond_stroke:
     dx_exclude2_fields: '1'
     claim_type1:
         - 1
-        - 2
-        - 3
     claim_type2:
         - 4
         - 5
