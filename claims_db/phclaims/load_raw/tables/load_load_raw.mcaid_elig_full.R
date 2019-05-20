@@ -356,6 +356,19 @@ odbc::dbGetQuery(db_claims,
                    .con = db_claims))
 
 
+#### ADD VALUES TO QA_VALUES TABLE ####
+odbc::dbGetQuery(
+  conn = db_claims,
+  glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
+                   (table_name, qa_item, qa_value, qa_date, note) 
+                   VALUES ('load_raw.mcaid_elig',
+                   'row_count', 
+                   '{total_rows}', 
+                   {Sys.Date()}, 
+                   '')",
+                 .con = db_claims))
+
+
 #### CLEAN UP ####
 rm(from_nulls)
 rm(id_len, rac_len)
