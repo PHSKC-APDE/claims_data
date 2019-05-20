@@ -1,0 +1,8 @@
+schema: metadata
+table: qa_mcaid_values
+vars:
+  table_name: VARCHAR(200)
+  qa_item: VARCHAR(500)
+  qa_value: VARCHAR(200)
+  qa_date: DATE
+  note: VARCHAR(2000)
