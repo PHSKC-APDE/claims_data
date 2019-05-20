@@ -4,5 +4,5 @@ vars:
   table_name: VARCHAR(200)
   qa_item: VARCHAR(500)
   qa_value: VARCHAR(200)
-  qa_date: DATE
+  qa_date: DATETIME
   note: VARCHAR(2000)

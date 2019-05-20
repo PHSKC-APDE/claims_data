@@ -2,8 +2,9 @@ schema: metadata
 table: qa_mcaid
 vars:
   etl_batch_id: INTEGER
+  last_run: DATETIME
   table_name: VARCHAR(200)
   qa_item: VARCHAR(500)
   qa_result: VARCHAR(200)
-  qa_date: DATE
+  qa_date: DATETIME
   note: VARCHAR(2000)
