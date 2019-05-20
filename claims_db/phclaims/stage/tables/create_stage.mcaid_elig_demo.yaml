@@ -3,8 +3,8 @@ table: mcaid_elig_demo
 vars:
     id_mcaid: VARCHAR(200)
     dob: DATE
-    gender_me: VARCHAR(8),
-    gender_recent: VARCHAR(8),
+    gender_me: VARCHAR(8)
+    gender_recent: VARCHAR(8)
     gender_female: TINYINT
     gender_male: TINYINT
     gender_female_t: NUMERIC
