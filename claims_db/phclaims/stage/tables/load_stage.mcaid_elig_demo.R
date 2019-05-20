@@ -613,6 +613,9 @@ elig_demoever_final <- list(elig_dob, elig_gender_final, elig_race_final, elig_l
   Reduce(function(df1, df2) left_join(df1, df2, by = "id_mcaid"), .)
 
 
+### Add in date for last run
+elig_demoever_final <- elig_demoever_final %>%
+  mutate(last_run = Sys.time())
 
 
 #### Load to SQL server ####

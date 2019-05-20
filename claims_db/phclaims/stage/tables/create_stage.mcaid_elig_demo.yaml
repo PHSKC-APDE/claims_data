@@ -46,4 +46,4 @@ vars:
     lang_spanish_t: NUMERIC
     lang_ukrainian_t: NUMERIC
     lang_vietnamese_t: NUMERIC
-    last_run: DATE
+    last_run: DATETIME
