@@ -2,9 +2,9 @@ from_schema: stage
 from_table: mcaid_elig_demo
 to_schema: final
 to_table: mcaid_elig_demo
-index_name: idx_cl_final_mcaid_elig_demo_MEDICAID_RECIPIENT_ID
+index_name: idx_cl_final_mcaid_elig_demo_id_mcaid
 index:
-  - MEDICAID_RECIPIENT_ID
+  - id_mcaid
 vars:
   - id_mcaid
   - dob

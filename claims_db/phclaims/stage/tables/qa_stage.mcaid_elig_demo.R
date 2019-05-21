@@ -21,7 +21,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
   
   if (load_only == F) {
     ### Pull out run date of stage.mcaid_elig_demo
-    run_date <- odbc::dbGetQuery(conn, "SELECT MAX (run_date) FROM stage.mcaid_elig_demo")
+    last_run <- odbc::dbGetQuery(conn, "SELECT MAX (last_run) FROM stage.mcaid_elig_demo")
     
     
     #### COUNT NUMBER OF ROWS ####
@@ -46,7 +46,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
         conn = db_claims,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({run_date}, 
+                   VALUES ({last_run}, 
                    'stage.mcaid_elig_demo',
                    'Number new rows compared to most recent run', 
                    'FAIL', 
@@ -56,13 +56,13 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                        .con = conn))
       
       stop(glue::glue("Fewer rows than found last time.  
-                  Check metadata.qa_mcaid for details (last_run = {run_date}"))
+                  Check metadata.qa_mcaid for details (last_run = {last_run}"))
     } else {
       odbc::dbGetQuery(
         conn = db_claims,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({run_date}, 
+                   VALUES ({last_run}, 
                    'stage.mcaid_elig_demo',
                    'Number new rows compared to most recent run', 
                    'PASS', 
@@ -84,7 +84,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
         conn = db_claims,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES ({run_date}, 
+                       VALUES ({last_run}, 
                        'stage.mcaid_elig_demo',
                        'Number distinct IDs', 
                        'FAIL', 
@@ -93,13 +93,13 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                        .con = conn))
       
       stop(glue::glue("Fewer rows than found last time.  
-                      Check metadata.qa_mcaid for details (last_run = {run_date}"))
+                      Check metadata.qa_mcaid for details (last_run = {last_run}"))
     } else {
       odbc::dbGetQuery(
         conn = db_claims,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES ({run_date}, 
+                       VALUES ({last_run}, 
                        'stage.mcaid_elig_demo',
                        'Number distinct IDs', 
                        'PASS', 

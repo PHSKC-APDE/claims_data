@@ -36,17 +36,6 @@ library(data.table) # Useful for large data sets
 db_claims <- dbConnect(odbc(), "PHClaims51")
 
 
-#### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-
-
-### HERE FOR NOW, MOVE INTO MCAID MASTER SCRIPT
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig_demo.yaml",
-               overall = T, ind_yr = F, overwrite = T)
-
-
-
 #################################################################
 ##### Bring in Medicaid eligibility data for DOB processing #####
 #Note to bring in test subset of Medicaid data, insert "top 100000" between SELECT and z.MEDICAID_RECIPIENT_ID
