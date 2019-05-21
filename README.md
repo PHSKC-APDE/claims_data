@@ -14,11 +14,11 @@ An ever-growing group of King County analysts meet every three weeks to discuss 
 King County analysts developed the *claims* R package to facilitate querying and analyzing the aforementioned analytic-ready eligibility and claims data tables.
 
 Instructions for installing the *claims* package:
-- Make sure devtools is installed (install.packages("devtools")).
-- Type devtools::install_github("PHSKC-APDE/claims_data"")
+- Make sure devtools is installed (`install.packages("devtools")`).
+- Type `devtools::install_github("PHSKC-APDE/claims_data")`
 
 Instructions for updating the *claims* package:
-- Simply reinstall the package by typing devtools::install_github("PHSKC-APDE/claims_data"")
+- Simply reinstall the package by typing `devtools::install_github("PHSKC-APDE/claims_data")`
 
 Current functionality of the *claims* package (v 0.1.3):
 - Request an eligibility and demographics-based Medicaid member cohort
