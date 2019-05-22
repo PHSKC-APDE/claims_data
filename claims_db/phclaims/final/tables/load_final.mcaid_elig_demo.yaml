@@ -1,0 +1,54 @@
+from_schema: stage
+from_table: mcaid_elig_demo
+to_schema: final
+to_table: mcaid_elig_demo
+index_name: idx_cl_final_mcaid_elig_demo_id_mcaid
+index:
+  - id_mcaid
+vars:
+  - id_mcaid
+  - dob
+  - gender_me
+  - gender_recent
+  - gender_female
+  - gender_male
+  - gender_female_t
+  - gender_male_t
+  - race_me
+  - race_eth_me
+  - race_recent
+  - race_eth_recent
+  - race_aian
+  - race_asian
+  - race_black
+  - race_latino
+  - race_nhpi
+  - race_white
+  - race_aian_t
+  - race_asian_t
+  - race_black_t
+  - race_latino_t
+  - race_nhpi_t
+  - race_white_t
+  - lang_max
+  - lang_amharic
+  - lang_arabic
+  - lang_chinese
+  - lang_korean
+  - lang_english
+  - lang_russian
+  - lang_somali
+  - lang_spanish
+  - lang_ukrainian
+  - lang_vietnamese
+  - lang_amharic_t
+  - lang_arabic_t
+  - lang_chinese_t
+  - lang_korean_t
+  - lang_english_t
+  - lang_russian_t
+  - lang_somali_t
+  - lang_spanish_t
+  - lang_ukrainian_t
+  - lang_vietnamese_t
+  - last_run

@@ -167,13 +167,26 @@ if (!is.null(table_config$index_name)) {
 }
 
 
+#### ADD VALUES TO QA_VALUES TABLE ####
+odbc::dbGetQuery(
+  conn = db_claims,
+  glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
+                   (table_name, qa_item, qa_value, qa_date, note) 
+                   VALUES ('stage.mcaid_elig',
+                   'row_count', 
+                   '{rows_stage}', 
+                   {Sys.Date()}, 
+                   'Count after full refresh')",
+                 .con = db_claims))
+
+
 #### CLEAN UP ####
 # Drop global temp table
 try(odbc::dbRemoveTable(db_claims, "##mcaid_elig", temporary = T))
 rm(dedup_sql)
 rm(vars, var_names, vars_dedup)
 rm(from_schema, from_table, to_schema, to_table)
-rm(rows_stage, rows_load_raw)
+rm(rows_stage, rows_load_raw, null_ids)
 rm(table_config)
 rm(index_sql)
 rm(list = ls(pattern = "_f$"))

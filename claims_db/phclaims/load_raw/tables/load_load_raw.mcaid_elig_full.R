@@ -18,7 +18,7 @@ db_claims <- dbConnect(odbc(), "PHClaims51")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
 
 
 #### SET UP BATCH ID ####
@@ -45,7 +45,7 @@ odbc::dbGetQuery(conn = db_claims,
                                         'load_raw.mcaid_elig',
                                         'Number of rows in source file(s) match(es) expected value', 
                                         {qa_rows_file$outcome},
-                                        {Sys.Date()},
+                                        {Sys.time()},
                                         {qa_rows_file$note})",
                                 .con = db_claims))
 
@@ -75,7 +75,7 @@ odbc::dbGetQuery(conn = db_claims,
                                         'load_raw.mcaid_elig',
                                         'Order of columns in source file matches SQL table', 
                                         {qa_column$outcome},
-                                        {Sys.Date()},
+                                        {Sys.time()},
                                         {qa_column$note})",
                                 .con = db_claims))
 
@@ -106,7 +106,7 @@ odbc::dbGetQuery(conn = db_claims,
                                         'load_raw.mcaid_elig',
                                         'Number rows loaded to SQL vs. expected value(s)', 
                                         {qa_rows_sql$outcome[1]},
-                                        {Sys.Date()},
+                                        {Sys.time()},
                                         {qa_rows_sql$note[1]})",
                                 .con = db_claims))
 # Report combined years result out to SQL table
@@ -117,7 +117,7 @@ odbc::dbGetQuery(conn = db_claims,
                                 'load_raw.mcaid_elig',
                                 'Number rows loaded to combined SQL table vs. expected value(s)', 
                                 {qa_rows_sql$outcome[2]},
-                                {Sys.Date()},
+                                {Sys.time()},
                                 {qa_rows_sql$note[2]})",
                                 .con = db_claims))
 
@@ -156,7 +156,7 @@ if (distinct_rows != total_rows) {
                              'load_raw.mcaid_elig',
                              'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, SECONDARY RAC)', 
                              'FAIL', 
-                             {Sys.Date()}, 
+                             {Sys.time()}, 
                              'Known issue where 42 people have duplicate rows but differing end reason. Continued with load.')",
                      .con = db_claims))
     } else if (total_rows - distinct_rows != 42) {
@@ -167,7 +167,7 @@ if (distinct_rows != total_rows) {
                                     'load_raw.mcaid_elig',
                                     'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, SECONDARY RAC)', 
                                     'FAIL',
-                                    {Sys.Date()},
+                                    {Sys.time()},
                                     'Issue was not the known 42 people with duplicate rows. Investigate further.')",
                                     .con = db_claims))
     stop("Number of distinct rows does not match total expected")
@@ -180,7 +180,7 @@ if (distinct_rows != total_rows) {
                                   'load_raw.mcaid_elig',
                                   'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, SECONDARY RAC)', 
                                   'PASS',
-                                  {Sys.Date()},
+                                  {Sys.time()},
                                   'Number of distinct rows equals total # rows')",
                                   .con = db_claims))
 }
@@ -200,7 +200,7 @@ odbc::dbGetQuery(conn = db_claims,
                                         'load_raw.mcaid_elig',
                                         'Actual vs. expected date range in data', 
                                         {qa_date_range$outcome[1]},
-                                        {Sys.Date()},
+                                        {Sys.time()},
                                         {qa_date_range$note[1]})",
                                 .con = db_claims))
 # Report combined years result out to SQL table
@@ -211,7 +211,7 @@ odbc::dbGetQuery(conn = db_claims,
                                 'load_raw.mcaid_elig',
                                 'Actual vs. expected date range in combined SQL table', 
                                 {qa_date_range$outcome[2]},
-                                {Sys.Date()},
+                                {Sys.time()},
                                 {qa_date_range$note[2]})",
                                 .con = db_claims))
 
@@ -240,7 +240,7 @@ if (id_len$min_len != 11 | id_len$max_len != 11) {
                    'load_raw.mcaid_elig',
                    'Length of Medicaid ID', 
                    'FAIL', 
-                   {Sys.Date()}, 
+                   {Sys.time()}, 
                    'Minimum ID length was {id_len$min_len}, maximum was {id_len$max_len}')",
                    .con = db_claims))
   
@@ -255,7 +255,7 @@ if (id_len$min_len != 11 | id_len$max_len != 11) {
                    'load_raw.mcaid_elig',
                    'Length of Medicaid ID', 
                    'PASS', 
-                   {Sys.Date()}, 
+                   {Sys.time()}, 
                    'All Medicaid IDs were 11 characters')",
                    .con = db_claims))
 }
@@ -279,7 +279,7 @@ if (rac_len$min_len != 4 | rac_len$max_len != 4 |
                    'load_raw.mcaid_elig',
                    'Length of RAC codes', 
                    'FAIL', 
-                   {Sys.Date()}, 
+                   {Sys.time()}, 
                    'Min RPRTBLE_RAC_CODE length was {rac_len$min_len}, max was {rac_len$max_len};
                    Min SECONDARY_RAC_CODE length was {rac_len$min_len2}, max was {rac_len$max_len2}')",
                    .con = db_claims))
@@ -295,7 +295,7 @@ if (rac_len$min_len != 4 | rac_len$max_len != 4 |
                    'load_raw.mcaid_elig',
                    'Length of RAC codes', 
                    'PASS', 
-                   {Sys.Date()}, 
+                   {Sys.time()}, 
                    'All RAC codes (reportable and secondary) were 4 characters')",
                    .con = db_claims))
 }
@@ -325,7 +325,7 @@ if (pct_null > 2.0) {
                    'load_raw.mcaid_elig',
                    'NULL from dates', 
                    'FAIL', 
-                   {Sys.Date()}, 
+                   {Sys.time()}, 
                    'There were {from_nulls$null_dates} NULL from dates ({pct_null}% of total rows)')",
                    .con = db_claims))
   
@@ -340,7 +340,7 @@ if (pct_null > 2.0) {
                    'load_raw.mcaid_elig',
                    'NULL from dates', 
                    'PASS', 
-                   {Sys.Date()}, 
+                   {Sys.time()}, 
                    '<2% of from date rows were null ({pct_null}% of total rows)')",
                    .con = db_claims))
 }
@@ -354,6 +354,19 @@ odbc::dbGetQuery(db_claims,
                    ADD etl_batch_id INTEGER 
                    DEFAULT {current_batch_id} WITH VALUES",
                    .con = db_claims))
+
+
+#### ADD VALUES TO QA_VALUES TABLE ####
+odbc::dbGetQuery(
+  conn = db_claims,
+  glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
+                   (table_name, qa_item, qa_value, qa_date, note) 
+                   VALUES ('load_raw.mcaid_elig',
+                   'row_count', 
+                   '{total_rows}', 
+                   {Sys.time()}, 
+                   'Count after full refresh')",
+                 .con = db_claims))
 
 
 #### CLEAN UP ####
