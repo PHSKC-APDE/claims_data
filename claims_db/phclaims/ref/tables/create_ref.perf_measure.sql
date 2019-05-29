@@ -13,7 +13,7 @@ CREATE TABLE [ref].[perf_measure]
 ,[age_group_desc] VARCHAR(200)
 ,[mcaid_enrolled] VARCHAR(200)
 ,[expressed_as] VARCHAR(200)
-,CONSTRAINT [PK_ref_perf_measure] PRIMARY KEY CLUSTERED ([measure_id])
+,CONSTRAINT [PK_ref_perf_measure] PRIMARY KEY CLUSTERED ([measure_short_name])
 );
 GO
 INSERT INTO [ref].[perf_measure]([measure_id], [measure_short_name], [measure_name], [age_group], [age_group_desc], [mcaid_enrolled], [expressed_as])
@@ -31,17 +31,18 @@ VALUES
 ,(11, 'TPO', 'SUD Treatment Penetration (Opioid)', 'age_grp_7', 'Age 18-64, Age 65+', '11+ months Medicaid enrolled in measurement period', 'Proportion of members')
 ,(12, 'PCR', 'Plan All-Cause Readmissions (30 days)', 'age_grp_8', 'Age 18-64', '11+ months Medicaid enrolled prior to discharge, 30+ days following discharge', 'Proportion of index events')
 ,(13, 'CAP', 'Child and Adolescent Access to Primary Care', 'age_grp_9_months', 'Age 12-24 Months, Age 25 Months-6, Age 7-11, Age 12-19', '11+ months Medicaid enrolled in measurement period, if applicable: 11+ months Medicaid enrolled in year prior to measurement period', 'Proportion of members')
-,(14, '', 'Diabetes Care: Eye Exam', '', '', '', '')
-,(15, '', 'Diabetes Care: A1c Testing', '', '', '', '')
-,(16, '', 'Diabetes Care: Kidney Screening', '', '', '', '')
+,(14, 'DC_EYE', 'Diabetes Care: Eye Exam', '', '', '', '')
+,(15, 'DC_HbA1c', 'Diabetes Care: A1c Testing', '', '', '', '')
+,(16, 'DC_KIDNEY', 'Diabetes Care: Kidney Screening', '', '', '', '')
 ,(17, 'MMA_50', 'Medication Management for Asthma: Compliance 50%', 'age_grp_10', 'Age 5-11, Age 12-18, Age 19-50, Age 51-64', '11+ months Medicaid enrolled in measurement period, if applicable: 11+ months Medicaid enrolled in year prior to measurement period', 'Proportion of members')
 ,(18, 'MMA_75', 'Medication Management for Asthma: Compliance 75%', 'age_grp_10', 'Age 5-11, Age 12-18, Age 19-50, Age 51-64', '11+ months Medicaid enrolled in measurement period, if applicable: 11+ months Medicaid enrolled in year prior to measurement period', 'Proportion of members')
 ,(19, 'AMR', 'Asthma Medication Ratio', 'age_grp_10', 'Age 5-11, Age 12-18, Age 19-50, Age 51-64', '11+ months Medicaid enrolled in measurement period, if applicable: 11+ months Medicaid enrolled in year prior to measurement period', 'Proportion of members')
-,(20, '', 'Percent Homeless', '', '', '', '')
-,(21, '', 'Antidepressant Medication Management', '', '', '', '')
-,(22, '', 'High-dose Chronic Opioid Therapy', '', '', '', '')
-,(23, '', 'Concurrent Opioids and Sedatives Prescriptions', '', '', '', '')
-,(24, '', 'Statin Therapy for Heart Disease', '', '', '', '')
+,(20, 'AMR_1', 'Asthma Medication Ratio (1-year requirement)', 'age_grp_10', 'Age 5-11, Age 12-18, Age 19-50, Age 51-64', '11+ months Medicaid enrolled in measurement period, if applicable: 11+ months Medicaid enrolled in year prior to measurement period', 'Proportion of members')
+,(21, 'HOMELESS', 'Percent Homeless', '', '', '', '')
+,(22, 'AMM', 'Antidepressant Medication Management', '', '', '', '')
+,(23, 'HDO', 'High-dose Chronic Opioid Therapy', '', '', '', '')
+,(24, 'COS', 'Concurrent Opioids and Sedatives Prescriptions', '', '', '', '')
+,(25, 'SPC', 'Statin Therapy for Heart Disease', '', '', '', '')
 GO
-CREATE NONCLUSTERED INDEX idx_nc_ref_perf_measure_measure_name ON [ref].[perf_measure]([measure_name]);
+CREATE NONCLUSTERED INDEX idx_nc_ref_perf_measure_measure_name ON [ref].[perf_measure]([measure_name]) INCLUDE([measure_id]);
 GO
