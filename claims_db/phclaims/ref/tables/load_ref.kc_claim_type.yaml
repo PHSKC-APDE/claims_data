@@ -1,6 +1,6 @@
 schema: ref
 table: kc_claim_type
 overall:
-    file_path: C:/Users/kerneli/SharePoint/King County Cross-Sector Data - Doc/References/Claim type/kc_claim_type.csv
+    file_path: C:/Users/kerneli/SharePoint/King County Cross-Sector Data - Doc 1/References/Claim type/kc_claim_type.csv
     field_term: ','
     row_term: \n
