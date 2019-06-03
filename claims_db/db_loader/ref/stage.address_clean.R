@@ -47,7 +47,7 @@ manual_add <- manual_add %>%
 # NB. WAITING ON NEW MCAID DATA TO MAKE STAGE SCHEMA TABLE
 # USING LOAD_RAW FOR NOW BUT SWITCH TO STAGE LATER
 
-# Seems slightly quick to push addresses to a temp table then take distinct
+# Seems slightly quicker to push addresses to a temp table than take distinct
 try(dbRemoveTable(db_claims, "##add_temp", temporary = T))
 dbGetQuery(db_claims, 
            "SELECT 
@@ -103,7 +103,7 @@ check3 <- anti_join(pha_add, bind_rows(pha_add_bk, joint_add))
 
 
 
-# Subset to partially cleaned addresses and et missing add to NA to match Medicaid
+# Subset to partially cleaned addresses and set missing add to NA to match Medicaid
 pha_add <- pha_add_full %>%
   distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw,
            geo_source_mcaid, geo_source_pha) %>%
@@ -434,7 +434,7 @@ dbWriteTable(db_claims, tbl_id_meta, combined_add_full_load, overwrite = T)
 ### Eventually the results of the geocoding might be used to clean addresses further,
 #      though ArcGIS doesn't do a great job of this
 
-### Bring in previously geocoded data
+### Bring in previously geocoded data (ESRI)
 geocoded_2018_06_12 <- read_sf(file.path(geocode_path, 
                                          "Distinct_addresses_geocoded_2018-06-20.shp"))
 
