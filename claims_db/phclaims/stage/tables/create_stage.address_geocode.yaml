@@ -18,8 +18,8 @@ vars:
     geo_y: FLOAT
     geo_lon: FLOAT
     geo_lat: FLOAT
-    geo_statefp10: SMALLINT
-    geo_countyfp10: TINYINT
+    geo_statefp10: VARCHAR(255)
+    geo_countyfp10: VARCHAR(255)
     geo_tractce10: VARCHAR(255)
     geo_blockce10: VARCHAR(255)
     geo_block_geoid10: VARCHAR(255)
