@@ -644,7 +644,7 @@ dbGetQuery(db_claims,
 
 # Check counts
 dbGetQuery(db_claims, "SELECT end_month, persistent,  COUNT(*) AS count, COUNT (DISTINCT id) AS count_id 
-           FROM ##asthma_persist GROUP BY end_month, persistent ORDER BY end_month")
+           FROM ##asthma_persist GROUP BY end_month, persistent ORDER BY end_month, persistent")
 
 
 ### Remove people with exclusion critiera
@@ -765,6 +765,7 @@ dbGetQuery(db_claims, "SELECT TOP(20) * FROM ##asthma_amr ORDER BY id, end_month
 
 ###########################################################
 #### PART 3 - BRING NUMERATOR AND DENOMINATOR TOGETHER ####
+### For full HEDIS measure, require persistent asthma
 try(dbRemoveTable(db_claims, "##asthma_final", temporary = T))
 dbGetQuery(db_claims,
            "SELECT a.id, a.end_month, beg_measure_year_month AS beg_year_month, 
@@ -787,11 +788,13 @@ dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id) 
 
 ### Add to performance measurement table
 ### Remove any existing rows for this measure
-if (dbExistsTable(db_claims, "stage.mcaid_perf_measures") == T) {
-  dbGetQuery(db_claims, "DELETE FROM stage.mcaid_perf_measures WHERE measure_id = '19'")
+tbl_id_meta <- DBI::Id(catalog = "PHClaims", schema = "stage", table = "mcaid_perf_measure")
+if (dbExistsTable(db_claims, tbl_id_meta) == T) {
+  dbGetQuery(db_claims, "DELETE FROM stage.mcaid_perf_measure WITH (TABLOCK) 
+             WHERE measure_id = 19;")
   
   dbGetQuery(db_claims,
-             paste0("INSERT INTO stage.mcaid_perf_measures
+             paste0("INSERT INTO stage.mcaid_perf_measure WITH (TABLOCK)
                     SELECT a.beg_year_month, a.end_year_month, 
                       a.id, a.end_month_age, b.age_grp_10 AS age_grp, 
                       'measure_id' = 19, 'denominator' = 1, 
@@ -803,7 +806,7 @@ if (dbExistsTable(db_claims, "stage.mcaid_perf_measures") == T) {
                       LEFT JOIN
                       (SELECT age, age_grp_10 FROM ref.age_grp) b
                       ON a.end_month_age = b.age"))
-} else if(dbExistsTable(db_claims, "stage.mcaid_perf_measures") == F) {
+} else if(dbExistsTable(db_claims, "stage.mcaid_perf_measure") == F) {
   dbGetQuery(db_claims,
              paste0("SELECT a.beg_year_month, a.end_year_month, 
                     a.id, a.end_month_age, b.age_grp_10 AS age_grp, 
@@ -820,7 +823,66 @@ if (dbExistsTable(db_claims, "stage.mcaid_perf_measures") == T) {
 }
 
 
-### See how many people are excluded at each step
+### For more relaxed version of AMR measure, ignore asthma dx in prev year
+try(dbRemoveTable(db_claims, "##asthma_final_1yr", temporary = T))
+dbGetQuery(db_claims,
+           "SELECT a.id, a.end_month, beg_measure_year_month AS beg_year_month, 
+            a.year_month AS end_year_month, 
+            a.end_month_age, b.amr
+           INTO ##asthma_final_1yr FROM
+            (SELECT id, year_month, end_month, past_year, end_month_age, beg_measure_year_month
+              FROM ##asthma_denom 
+              WHERE enroll_flag = 1 AND rx_any = 1 AND dx_exclude = 0) a
+            LEFT JOIN
+            (SELECT id, end_month, amr FROM ##asthma_amr) b
+            ON a.id = b.id AND a.end_month = b.end_month
+            ORDER BY a.id, a.end_month")
+
+# Check counts
+dbGetQuery(db_claims, "SELECT COUNT(*) FROM ##asthma_final_1yr")
+dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id) AS count_id 
+           FROM ##asthma_final_1yr GROUP BY end_month ORDER BY end_month")
+
+
+### Add to performance measurement table
+### Remove any existing rows for this measure
+tbl_id_meta <- DBI::Id(catalog = "PHClaims", schema = "stage", table = "mcaid_perf_measure")
+if (dbExistsTable(db_claims, tbl_id_meta) == T) {
+  dbGetQuery(db_claims, "DELETE FROM stage.mcaid_perf_measure WITH (TABLOCK) 
+             WHERE measure_id = 20;")
+  
+  dbGetQuery(db_claims,
+             paste0("INSERT INTO stage.mcaid_perf_measure WITH (TABLOCK)
+                    SELECT a.beg_year_month, a.end_year_month, 
+                    a.id, a.end_month_age, b.age_grp_10 AS age_grp, 
+                    'measure_id' = 20, 'denominator' = 1, 
+                    CASE WHEN a.amr >= 0.5 THEN 1 ELSE 0 END AS numerator,
+                    load_date = '", Sys.Date() , "'
+                    FROM
+                    (SELECT beg_year_month, end_year_month, id, end_month_age, amr
+                    FROM ##asthma_final_1yr) a
+                    LEFT JOIN
+                    (SELECT age, age_grp_10 FROM ref.age_grp) b
+                    ON a.end_month_age = b.age"))
+} else if(dbExistsTable(db_claims, "stage.mcaid_perf_measure") == F) {
+  dbGetQuery(db_claims,
+             paste0("SELECT a.beg_year_month, a.end_year_month, 
+                    a.id, a.end_month_age, b.age_grp_10 AS age_grp, 
+                    'measure_id' = 20, 'denominator' = 1, 
+                    CASE WHEN a.amr >= 0.5 THEN 1 ELSE 0 END AS numerator,
+                    load_date = '", Sys.Date() , "' 
+                    INTO stage.mcaid_perf_measures
+                    FROM
+                    (SELECT beg_year_month, end_year_month, id, end_month_age, amr
+                    FROM ##asthma_final_1yr) a
+                    LEFT JOIN
+                    (SELECT age, age_grp_10 FROM ref.age_grp) b
+                    ON a.end_month_age = b.age"))
+}
+
+
+
+#### See how many people are excluded at each step ####
 ### Eventually add this as a flag when this code is turned into a function
 elig_asthma <- asthma_denom %>% group_by(end_month) %>% summarise(any_asthma = n()) %>% ungroup() %>%
   left_join(., asthma_denom %>% filter(rx_any == 1) %>%
