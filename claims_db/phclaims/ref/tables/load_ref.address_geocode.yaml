@@ -1,0 +1,42 @@
+from_schema: stage
+from_table: address_geocode
+to_schema: ref
+to_table: address_geocode
+vars:
+  - geo_add1_clean
+  - geo_city_clean
+  - geo_state_clean
+  - geo_zip_clean
+  - geo_add_geocoded
+  - geo_zip_geocoded
+  - geo_add_type
+  - geo_check_esri
+  - geo_check_here
+  - geo_geocode_source
+  - geo_zip_centroid
+  - geo_street_centroid
+  - geo_lon
+  - geo_lat
+  - geo_x
+  - geo_y
+  - geo_statefp10
+  - geo_countyfp10
+  - geo_tractce10
+  - geo_blockce10
+  - geo_block_geoid10
+  - geo_pumace10
+  - geo_puma_geoid10
+  - geo_puma_name
+  - geo_zcta5ce10
+  - geo_zcta_geoid10
+  - geo_hra_id
+  - geo_hra
+  - geo_region_id
+  - geo_region
+  - geo_school_geoid10
+  - geo_school
+  - geo_kcc_dist
+  - geo_wa_legdist
+  - geo_scc_dist
+  - last_run
+
