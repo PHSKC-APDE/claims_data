@@ -3,7 +3,6 @@ table: address_geocode
 vars:
     geo_add1_clean: VARCHAR(255)
     geo_city_clean: VARCHAR(255)
-    geo_county_fips_clean: INTEGER
     geo_state_clean: VARCHAR(255)
     geo_zip_clean: VARCHAR(255)
     geo_add_geocoded: VARCHAR(255)
