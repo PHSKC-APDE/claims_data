@@ -36,4 +36,4 @@ vars:
     geo_kcc_dist: TINYINT
     geo_wa_legdist: TINYINT
     geo_scc_dist: TINYINT
-    last_run: DATE
+    last_run: DATETIME
