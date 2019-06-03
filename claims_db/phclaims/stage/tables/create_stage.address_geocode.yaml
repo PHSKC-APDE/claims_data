@@ -6,8 +6,6 @@ vars:
     geo_county_fips_clean: INTEGER
     geo_state_clean: VARCHAR(255)
     geo_zip_clean: VARCHAR(255)
-    geo_source_mcaid: TINYINT
-    geo_source_pha: TINYINT
     geo_add_geocoded: VARCHAR(255)
     geo_zip_geocoded: VARCHAR(255)
     geo_add_type: VARCHAR(255)
