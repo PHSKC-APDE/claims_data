@@ -37,11 +37,12 @@ VALUES
 ,(17, 'MMA_50', 'Medication Management for Asthma: Compliance 50%', 'age_grp_10', 'Age 5-11, Age 12-18, Age 19-50, Age 51-64', '11+ months Medicaid enrolled in measurement period, if applicable: 11+ months Medicaid enrolled in year prior to measurement period', 'Proportion of members')
 ,(18, 'MMA_75', 'Medication Management for Asthma: Compliance 75%', 'age_grp_10', 'Age 5-11, Age 12-18, Age 19-50, Age 51-64', '11+ months Medicaid enrolled in measurement period, if applicable: 11+ months Medicaid enrolled in year prior to measurement period', 'Proportion of members')
 ,(19, 'AMR', 'Asthma Medication Ratio', 'age_grp_10', 'Age 5-11, Age 12-18, Age 19-50, Age 51-64', '11+ months Medicaid enrolled in measurement period, if applicable: 11+ months Medicaid enrolled in year prior to measurement period', 'Proportion of members')
-,(20, '', 'Percent Homeless', '', '', '', '')
-,(21, '', 'Antidepressant Medication Management', '', '', '', '')
-,(22, '', 'High-dose Chronic Opioid Therapy', '', '', '', '')
-,(23, '', 'Concurrent Opioids and Sedatives Prescriptions', '', '', '', '')
-,(24, '', 'Statin Therapy for Heart Disease', '', '', '', '')
+,(20, 'AMR_1', 'Asthma Medication Ratio (1-year requirement)', 'age_grp_10', 'Age 5-11, Age 12-18, Age 19-50, Age 51-64', '11+ months Medicaid enrolled in measurement period, if applicable: 11+ months Medicaid enrolled in year prior to measurement period', 'Proportion of members')
+,(21, '', 'Percent Homeless', '', '', '', '')
+,(22, '', 'Antidepressant Medication Management', '', '', '', '')
+,(23, '', 'High-dose Chronic Opioid Therapy', '', '', '', '')
+,(24, '', 'Concurrent Opioids and Sedatives Prescriptions', '', '', '', '')
+,(25, '', 'Statin Therapy for Heart Disease', '', '', '', '')
 GO
 CREATE NONCLUSTERED INDEX idx_nc_ref_perf_measure_measure_name ON [ref].[perf_measure]([measure_name]);
 GO
