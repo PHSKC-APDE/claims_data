@@ -6,10 +6,10 @@ vars:
     to_date: DATE
     contiguous: TINYINT
     dual: TINYINT
+    tpl: TINYINT
     rac_code_1: SMALLINT
     rac_code_2: SMALLINT
-    mco_id: BIGINT
-    tpl: TINYINT
+    mco_id: INT
     geo_add1_clean: VARCHAR(255)
     geo_add2_clean: VARCHAR(255)
     geo_city_clean: VARCHAR(255)

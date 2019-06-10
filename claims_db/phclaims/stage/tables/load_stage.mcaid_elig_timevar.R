@@ -16,7 +16,7 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_01", temporary = T))
   
   step1_sql <- glue::glue_sql(
-    "SELECT DISTINCT a.mcaid_id, 
+    "SELECT DISTINCT a.id_mcaid, 
     CONVERT(DATETIME, CAST(a.CLNDR_YEAR_MNTH as varchar(200)) + '01', 112) AS calmonth, 
     a.fromdate, a.todate, a.dual, a.tpl,
     a.rac_code_1, a.rac_code_2, a.mco_id,
@@ -24,7 +24,7 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
     b.geo_state_clean, b.geo_zip_clean
     INTO ##timevar_01
     FROM
-    (SELECT MEDICAID_RECIPIENT_ID AS 'mcaid_id', 
+    (SELECT MEDICAID_RECIPIENT_ID AS 'id_mcaid', 
       CLNDR_YEAR_MNTH, FROM_DATE AS 'fromdate', TO_DATE AS 'todate',
       DUAL_ELIG AS 'dual', TPL_FULL_FLAG AS 'tpl', 
       RPRTBL_RAC_CODE AS 'rac_code_1', SECONDARY_RAC_CODE AS 'rac_code_2',
@@ -60,11 +60,11 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_02a", temporary = T))
   
   step2a_sql <- glue::glue_sql(
-    "SELECT DISTINCT mcaid_id, calmonth, fromdate, todate,
+    "SELECT DISTINCT id_mcaid, calmonth, fromdate, todate,
     dual, tpl, rac_code_1, rac_code_2, mco_id, 
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
     DATEDIFF(month, lag(calmonth) OVER (
-      PARTITION BY mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id, 
+      PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id, 
       geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean
       ORDER BY calmonth), calmonth) AS group_num
     INTO ##timevar_02a
@@ -85,11 +85,11 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_02b", temporary = T))
   
   step2b_sql <- glue::glue_sql(
-    "SELECT DISTINCT mcaid_id, calmonth, fromdate, todate,
+    "SELECT DISTINCT id_mcaid, calmonth, fromdate, todate,
     dual, tpl, rac_code_1, rac_code_2, mco_id, 
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
     CASE 
-    WHEN group_num >1  OR group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY mcaid_id ORDER BY calmonth) + 1
+    WHEN group_num >1  OR group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY id_mcaid ORDER BY calmonth) + 1
     WHEN group_num = 1 OR group_num = 0 THEN NULL
     END AS group_num
     INTO ##timevar_02b
@@ -109,11 +109,11 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_02c", temporary = T))
   
   step2c_sql <- glue::glue_sql(
-    "SELECT DISTINCT mcaid_id, calmonth, fromdate, todate,
+    "SELECT DISTINCT id_mcaid, calmonth, fromdate, todate,
     dual, tpl, rac_code_1, rac_code_2, mco_id, 
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
     group_num = max(group_num) OVER 
-      (PARTITION BY mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id, 
+      (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id, 
         geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean 
         ORDER BY calmonth)
     INTO ##timevar_02c
@@ -133,7 +133,7 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_03", temporary = T))
   
   step3_sql <- glue::glue_sql(
-    "SELECT DISTINCT mcaid_id, calmonth, group_num, fromdate, todate,
+    "SELECT DISTINCT id_mcaid, calmonth, group_num, fromdate, todate,
     dual, tpl, rac_code_1, rac_code_2, mco_id, 
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean
     INTO ##timevar_03
@@ -154,13 +154,13 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T))
   
   step4a_sql <- glue::glue_sql(
-    "SELECT mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+    "SELECT id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     MIN(calmonth) AS startdate, dateadd(day, - 1, dateadd(month, 1, MAX(calmonth))) AS enddate,
     group_num, fromdate, todate
     INTO ##timevar_04a
     FROM ##timevar_03
-    GROUP BY mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+    GROUP BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     group_num, fromdate, todate",
     .con = conn)
@@ -178,7 +178,7 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T))
   
   step4b_sql <- glue::glue_sql(
-    "SELECT mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+    "SELECT id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     group_num,
     CASE 
@@ -207,17 +207,17 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_05a", temporary = T))
   
   step5a_sql <- glue::glue_sql(
-    "SELECT mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+    "SELECT id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     from_date, to_date,
     MIN(from_date) OVER 
-    (PARTITION BY mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+    (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean 
-      ORDER BY mcaid_id, from_date, to_date DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS 'min_from',
+      ORDER BY id_mcaid, from_date, to_date DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS 'min_from',
     MAX(to_date) OVER 
-    (PARTITION BY mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+    (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean 
-      ORDER BY mcaid_id, from_date, to_date DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS 'max_to'
+      ORDER BY id_mcaid, from_date, to_date DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS 'max_to'
     INTO ##timevar_05a
     FROM ##timevar_04b",
     .con = conn)
@@ -234,27 +234,27 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_05b", temporary = T))
   
   step5b_sql <- glue::glue_sql(
-    "SELECT mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+    "SELECT id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     from_date, to_date,
     CASE
       WHEN from_date - lag(to_date) OVER 
-      (PARTITION BY mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+      (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
         geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean
-        ORDER BY mcaid_id, from_date, to_date DESC) <= 1 THEN NULL
+        ORDER BY id_mcaid, from_date, to_date DESC) <= 1 THEN NULL
     ELSE row_number() OVER 
-      (PARTITION BY mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+      (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
         geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean 
         ORDER BY from_date, to_date DESC)
     END AS group_num2,
     row_number() OVER 
-      (PARTITION BY mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+      (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
         geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean 
-        ORDER BY mcaid_id, from_date, to_date DESC) AS temp_row
+        ORDER BY id_mcaid, from_date, to_date DESC) AS temp_row
     INTO ##timevar_05b
     FROM ##timevar_05a
     WHERE NOT(from_date > min_from AND to_date < max_to)
-    order by mcaid_id, from_date, to_date DESC",
+    order by id_mcaid, from_date, to_date DESC",
     .con = conn)
   
   print("Running step 5b: Identify breaks in coverage")
@@ -271,9 +271,9 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   step5c_sql <- glue::glue_sql(
     "SELECT *, 
     lagged_to = LAG(to_date) OVER 
-      (PARTITION BY mcaid_id ORDER BY mcaid_id, from_date, to_date DESC),
+      (PARTITION BY id_mcaid ORDER BY id_mcaid, from_date, to_date DESC),
     lagged_from = LAG(from_date) OVER 
-      (PARTITION BY mcaid_id ORDER BY mcaid_id, from_date, to_date DESC)
+      (PARTITION BY id_mcaid ORDER BY id_mcaid, from_date, to_date DESC)
     INTO ##timevar_05c
     FROM ##timevar_05b",
     .con = conn)
@@ -292,14 +292,14 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_06a", temporary = T))
   
   step6a_sql <- glue::glue_sql(
-    "SELECT mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+    "SELECT id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     from_date, to_date, group_num2, temp_row
     INTO ##timevar_06a
     FROM ##timevar_05c
     WHERE NOT(from_date = lagged_from AND to_date < lagged_to AND 
               lagged_from IS NOT NULL AND lagged_to IS NOT NULL)
-    ORDER BY mcaid_id, from_date, to_date DESC",
+    ORDER BY id_mcaid, from_date, to_date DESC",
     .con = conn)
   
   print("Running step 6a: Drop dates nested within other dates when they have the same start date")
@@ -314,11 +314,11 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_06b", temporary = T))
   
   step6b_sql <- glue::glue_sql(
-    "SELECT mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+    "SELECT id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     from_date, to_date, group_num2,
     SUM(CASE WHEN group_num2 IS NULL THEN 0 ELSE 1 END) OVER
-    (PARTITION BY mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+    (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
       geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean
       ORDER BY temp_row ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS group_num3
     INTO ##timevar_06b
@@ -337,7 +337,7 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
   try(odbc::dbRemoveTable(db_claims, "##timevar_06c", temporary = T))
   
   step6c_sql <- glue::glue_sql(
-    "SELECT mcaid_id, 
+    "SELECT id_mcaid, 
     CAST(MIN(from_date) as date) AS 'from_date',
 		CAST(MAX(to_date) as date) AS 'to_date',
     dual, tpl, rac_code_1, rac_code_2, mco_id,
@@ -345,10 +345,10 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
     DATEDIFF(dd, MIN(from_date), MAX(to_date)) + 1 as cov_time_day
     INTO ##timevar_06c
     FROM ##timevar_06b
-    GROUP BY mcaid_id, dual, tpl, rac_code_1, rac_code_2, mco_id,
+    GROUP BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     group_num3
-    ORDER BY mcaid_id, from_date",
+    ORDER BY id_mcaid, from_date",
     .con = conn)
   
   print("Running step 6c: Collapse rows one last time and select variables for loading")
@@ -360,21 +360,33 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
                " mins)"))
   
   
-  #### STEP 7: ADD CONTIGUOUS FLAG, JOIN TO GEOCODES, AND LOAD TO STAGE TABLE ####
-  step7_sql <- glue::glue_sql(
+  #### STEP 7: ADD CONTIGUOUS FLAG, RECODE DUAL, JOIN TO GEOCODES, AND LOAD TO STAGE TABLE ####
+  # Truncate stage.mcaid_elig_timevar (just in case)
+  print("Running step 7a: Truncate stage table")
+  time_start <- Sys.time()
+  odbc::dbGetQuery(conn = db_claims, "TRUNCATE TABLE stage.mcaid_elig_timevar")
+  time_end <- Sys.time()
+  print(paste0("Step 7a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
+               " mins)"))
+  
+  # Now do the final transformation plus loading
+  step7b_sql <- glue::glue_sql(
     "INSERT INTO stage.mcaid_elig_timevar WITH (TABLOCK)
     SELECT
-    a.mcaid_id, a.from_date, a.to_date, 
+    a.id_mcaid, a.from_date, a.to_date, 
     CASE WHEN DATEDIFF(day, lag(a.to_date, 1) OVER 
-      (PARTITION BY a.mcaid_id order by a.mcaid_id, a.from_date), a.from_date) = 1
+      (PARTITION BY a.id_mcaid order by a.id_mcaid, a.from_date), a.from_date) = 1
       THEN 1 ELSE 0 END AS 'contiguous', 
-    a.dual, a.tpl, a.rac_code_1, a.rac_code_2, a.mco_id,
+    CASE WHEN a.dual = 'Y' THEN 1 ELSE 0 END AS dual,
+    CASE WHEN a.tpl = 'Y' THEN 1 ELSE 0 END AS tpl,
+    a.rac_code_1, a.rac_code_2, a.mco_id,
     a.geo_add1_clean, a.geo_add2_clean, a.geo_city_clean, a.geo_state_clean, a.geo_zip_clean,
     b.geo_zip_centroid, b.geo_street_centroid, b.geo_countyfp10, b.geo_tractce10, 
     b.geo_hra_id, b.geo_school_geoid10, a.cov_time_day,
     {Sys.time()} AS last_run
     FROM
-    (SELECT mcaid_id, from_date, to_date, 
+    (SELECT id_mcaid, from_date, to_date, 
       dual, tpl, rac_code_1, rac_code_2, mco_id,
       geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
       cov_time_day
@@ -391,11 +403,11 @@ load_stage.mcaid_elig_timevar_f <- function(conn = db_claims) {
       (a.geo_zip_clean = b.geo_zip_clean OR (a.geo_zip_clean IS NULL AND b.geo_zip_clean IS NULL))",
     .con = conn)
   
-  print("Running step 7: Join to geocodes and load to stage table")
+  print("Running step 7b: Join to geocodes and load to stage table")
   time_start <- Sys.time()
-  odbc::dbGetQuery(conn = db_claims, step7_sql)
+  odbc::dbGetQuery(conn = db_claims, step7b_sql)
   time_end <- Sys.time()
-  print(paste0("Step 7 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+  print(paste0("Step 7b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
                " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
                " mins)"))
 }
