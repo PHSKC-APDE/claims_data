@@ -126,7 +126,6 @@ if (rows_load_raw - rows_stage != 42) {
 
 
 #### QA CHECK: NULL IDs ####
-# Because of deduplication, should be 42 less than load_raw table
 null_ids <- as.numeric(dbGetQuery(db_claims, 
                                     "SELECT COUNT (*) FROM stage.mcaid_elig 
                                     WHERE MEDICAID_RECIPIENT_ID IS NULL"))
