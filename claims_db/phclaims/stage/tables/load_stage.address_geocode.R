@@ -341,7 +341,7 @@ stage_address_geocode_f <- function(full_refresh = F) {
     mutate_at(vars(geo_kcc_dist, geo_wa_legdist, geo_scc_dist),
               funs(as.integer(.))) %>%
     st_drop_geometry() %>%
-    mutate(last_run = Sys.Date())
+    mutate(last_run = Sys.time())
   
   
   #### LOAD TO SQL ####
