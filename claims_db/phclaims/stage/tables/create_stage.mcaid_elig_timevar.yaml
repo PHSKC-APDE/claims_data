@@ -8,7 +8,7 @@ vars:
     dual: TINYINT
     rac_code_1: SMALLINT
     rac_code_2: SMALLINT
-    mco_id: INT
+    mco_id: BIGINT
     tpl: TINYINT
     geo_add1_clean: VARCHAR(255)
     geo_add2_clean: VARCHAR(255)
