@@ -19,11 +19,10 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                                            "SELECT COUNT (*) FROM stage.mcaid_elig_demo"))
   
   
+  ### Pull out run date of stage.mcaid_elig_demo
+  last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_elig_demo")[[1]])
+  
   if (load_only == F) {
-    ### Pull out run date of stage.mcaid_elig_demo
-    last_run <- odbc::dbGetQuery(conn, "SELECT MAX (last_run) FROM stage.mcaid_elig_demo")
-    
-    
     #### COUNT NUMBER OF ROWS ####
     # Pull in the reference value
     previous_rows <- as.numeric(
@@ -115,7 +114,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
   #### LOAD VALUES TO QA_VALUES TABLE ####
   load_sql <- glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
                              (table_name, qa_item, qa_value, qa_date, note) 
-                             VALUES ('load_raw.mcaid_elig',
+                             VALUES ('stage.mcaid_elig_demo',
                                      'row_count', 
                                      {row_count}, 
                                      {Sys.time()}, 
