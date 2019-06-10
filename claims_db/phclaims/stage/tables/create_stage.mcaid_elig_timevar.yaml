@@ -1,0 +1,25 @@
+schema: stage
+table: mcaid_elig_timevar
+vars:
+    id_mcaid: VARCHAR(255)
+    from_date: DATE
+    to_date: DATE
+    contiguous: TINYINT
+    dual: TINYINT
+    rac_code_1: SMALLINT
+    rac_code_2: SMALLINT
+    mco_id: INT
+    tpl: TINYINT
+    geo_add1_clean: VARCHAR(255)
+    geo_add2_clean: VARCHAR(255)
+    geo_city_clean: VARCHAR(255)
+    geo_state_clean: VARCHAR(255)
+    geo_zip_clean: VARCHAR(255)
+    geo_zip_centroid: TINYINT
+    geo_street_centroid: TINYINT
+    geo_countyfp10: varchar(255)
+    geo_tractce10: VARCHAR(255)
+    geo_hra_id: SMALLINT
+    geo_school_geoid10: VARCHAR(255)
+    cov_time_day: SMALLINT
+    last_run: DATETIME
