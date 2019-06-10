@@ -43,7 +43,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
     
     if (row_diff < 0) {
       odbc::dbGetQuery(
-        conn = db_claims,
+        conn = conn,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
@@ -52,14 +52,14 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                    'FAIL', 
                    {Sys.time()}, 
                    'There were {row_diff} fewer rows in the most recent table 
-                       ({row_count} vs. {previous_rows}')",
+                       ({row_count} vs. {previous_rows})')",
                        .con = conn))
       
       stop(glue::glue("Fewer rows than found last time.  
                   Check metadata.qa_mcaid for details (last_run = {last_run}"))
     } else {
       odbc::dbGetQuery(
-        conn = db_claims,
+        conn = conn,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
@@ -68,7 +68,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                    'PASS', 
                    {Sys.time()}, 
                    'There were {row_diff} more rows in the most recent table 
-                       ({row_count} vs. {previous_rows}')",
+                       ({row_count} vs. {previous_rows})')",
                        .con = conn))
       
     }
@@ -81,7 +81,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
     
     if (id_count != row_count) {
       odbc::dbGetQuery(
-        conn = db_claims,
+        conn = conn,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({last_run}, 
@@ -89,14 +89,14 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                        'Number distinct IDs', 
                        'FAIL', 
                        {Sys.time()}, 
-                       'There were {id_count} distinct IDs but {row_count} rows (should be the same')",
+                       'There were {id_count} distinct IDs but {row_count} rows (should be the same)')",
                        .con = conn))
       
-      stop(glue::glue("Fewer rows than found last time.  
+      stop(glue::glue("Number of distinct IDs doesn't match the number of rows. 
                       Check metadata.qa_mcaid for details (last_run = {last_run}"))
     } else {
       odbc::dbGetQuery(
-        conn = db_claims,
+        conn = conn,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({last_run}, 
