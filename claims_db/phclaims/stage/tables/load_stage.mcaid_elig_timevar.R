@@ -89,7 +89,7 @@ step2b_sql <- glue::glue_sql(
     dual, tpl, rac_code_1, rac_code_2, mco_id, 
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
     CASE 
-    WHEN group_num >1  OR group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY id_mcaid ORDER BY calmonth) + 1
+    WHEN group_num > 1  OR group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY id_mcaid ORDER BY calmonth) + 1
     WHEN group_num = 1 OR group_num = 0 THEN NULL
     END AS group_num
     INTO ##timevar_02b
@@ -182,10 +182,12 @@ step4b_sql <- glue::glue_sql(
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     group_num,
     CASE 
+      WHEN fromdate IS NULL THEN startdate 
       WHEN startdate >= fromdate THEN startdate
       WHEN startdate < fromdate THEN fromdate
       ELSE null END AS from_date,	
     CASE 
+      WHEN todate IS NULL THEN enddate 
       WHEN enddate <= todate THEN enddate
       WHEN enddate > todate THEN todate
       ELSE null END AS to_date
@@ -197,7 +199,7 @@ print("Running step 4b: Incorporate submonth coverage")
 time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step4b_sql)
 time_end <- Sys.time()
-print(paste0("Step 5a took ", round(difftime(time_end, time_start, units = "secs"), 2),
+print(paste0("Step 4b took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
 
@@ -408,5 +410,27 @@ time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step7b_sql)
 time_end <- Sys.time()
 print(paste0("Step 7b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+             " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
+             " mins)"))
+
+
+#### STEP 8: REMOVE TEMPORARY TABLES ####
+print("Running step 8: Remove temporary tables")
+time_start <- Sys.time()
+try(odbc::dbRemoveTable(db_claims, "##timevar_01", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_02a", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_02b", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_02c", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_03", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_05a", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_05b", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_05c", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_06a", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_06b", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_06c", temporary = T))
+time_end <- Sys.time()
+print(paste0("Step 8 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
              " mins)"))
