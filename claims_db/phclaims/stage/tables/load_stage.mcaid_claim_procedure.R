@@ -19,6 +19,7 @@
 # ,[modifier_2]
 # ,[modifier_3]
 # ,[modifier_4]
+# ,[last_run]
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170)
@@ -65,7 +66,8 @@ insert into [stage].[mcaid_claim_procedure] with(tablock)
 ,[modifier_1]
 ,[modifier_2]
 ,[modifier_3]
-,[modifier_4])
+,[modifier_4]
+,[last_run])
 
 select distinct 
  id_mcaid
@@ -76,6 +78,7 @@ select distinct
 ,modifier_2
 ,modifier_3
 ,modifier_4
+,getdate() as last_run
 
 from 
 (
