@@ -59,7 +59,7 @@ create_table_f(conn = db_claims,
                overall = T, ind_yr = F)
 
 step2_sql <- glue::glue_sql("
-insert into [stage].[mcaid_claim_line]
+insert into [stage].[mcaid_claim_line] with (tablock)
 (id_mcaid
 ,claim_header_id
 ,claim_line_id
@@ -68,7 +68,7 @@ insert into [stage].[mcaid_claim_line]
 
 select 
 distinct
-top(100)
+--top(100)
  MEDICAID_RECIPIENT_ID as id_mcaid
 ,TCN as claim_header_id
 ,CLM_LINE_TCN as claim_line_id
