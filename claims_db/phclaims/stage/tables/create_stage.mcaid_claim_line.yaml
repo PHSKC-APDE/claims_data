@@ -1,8 +1,9 @@
 schema: stage
 table: mcaid_claim_line
 vars:
-    id_mcaid: VARCHAR(200)
-    claim_header_id: BIGINT
-    claim_line_id: BIGINT
-    rev_code: VARCHAR(200)
-    rac_code_line: INT
+    id_mcaid: varchar(200)
+    claim_header_id: bigint
+    claim_line_id: bigint
+    rev_code: varchar(200)
+    rac_code_line: int
+    last_run: datetime
