@@ -6,8 +6,8 @@
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05
 # Modified by: Philip Sylling, 2019-06-11
 # 
-# Data Pull Run time: 00:12:11
-# Create Index Run Time: 00:05:32
+# Data Pull Run time: 10 min
+# Create Index Run Time: 4 min
 # 
 # Returns
 #  [stage].[mcaid_claim_procedure]

@@ -9,3 +9,4 @@ vars:
     modifier_2: varchar(200)
     modifier_3: varchar(200)
     modifier_4: varchar(200)
+    last_run: datetime
