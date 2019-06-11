@@ -1,0 +1,32 @@
+from_schema: stage
+from_table: mcaid_elig_timevar
+to_schema: final
+to_table: mcaid_elig_timevar
+index_name: idx_cl_final_mcaid_elig_timevar_id_mcaid_from_date_to_date
+index:
+  - id_mcaid
+  - from_date
+  - to_date
+vars:
+  - id_mcaid
+  - from_date
+  - to_date
+  - contiguous
+  - dual
+  - tpl
+  - rac_code_1
+  - rac_code_2
+  - mco_id
+  - geo_add1_clean
+  - geo_add2_clean
+  - geo_city_clean
+  - geo_state_clean
+  - geo_zip_clean
+  - geo_zip_centroid
+  - geo_street_centroid
+  - geo_countyfp10
+  - geo_tractce10
+  - geo_hra_id
+  - geo_school_geoid10
+  - cov_time_day
+  - last_run
