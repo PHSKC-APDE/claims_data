@@ -5,4 +5,4 @@ vars:
     claim_header_id: BIGINT
     claim_line_id: BIGINT
     rev_code: VARCHAR(200)
-    rac_code_line: VARCHAR(200)
+    rac_code_line: INT
