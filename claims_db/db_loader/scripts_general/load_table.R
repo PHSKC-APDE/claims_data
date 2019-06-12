@@ -675,9 +675,8 @@ load_table_from_sql_f <- function(
   
   # Add index to the table (if desired)
   if (add_index == T) {
-    index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX {index_name} ON 
+    index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
                             {`to_schema`}.{`to_table_name`}({index_vars*})",
-                                index_name = dbQuoteString(conn, table_config$index_name),
                                 index_vars = dbQuoteIdentifier(conn, table_config$index),
                                 .con = conn)
     dbGetQuery(conn, index_sql)

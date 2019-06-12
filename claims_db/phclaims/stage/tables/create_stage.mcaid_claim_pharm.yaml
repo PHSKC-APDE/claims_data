@@ -1,0 +1,13 @@
+schema: stage
+table: mcaid_claim_pharm
+vars:
+    id_mcaid: varchar(255)
+    claim_header_id: bigint
+    ndc: varchar(255)
+    rx_days_supply: smallint
+    rx_quantity: numeric(19,3)
+    rx_fill_date: date
+    prescriber_id_format: varchar(10)
+    prescriber_id: varchar(255)
+    pharmacy_npi: bigint
+    last_run: datetime
