@@ -33,11 +33,21 @@ GO
 
 INSERT INTO [metadata].[mcaid_format_changes]
 VALUES
- ('dbo.mcaid_claim_line', 'id', '1', 'varchar(200)', 'final.mcaid_claim_line', 'id_mcaid', '1', 'varchar(200)')
+ ('dbo.mcaid_claim_dx', 'id', '1', 'varchar(200)', 'final.mcaid_claim_icdcm_header', 'id_mcaid', '1', 'varchar(255)')
+,('dbo.mcaid_claim_dx', 'tcn', '2', 'varchar(200)', 'final.mcaid_claim_icdcm_header', 'claim_header_id', '2', 'bigint')
+,('dbo.mcaid_claim_dx', 'dx_raw', '3', 'varchar(200)', 'final.mcaid_claim_icdcm_header', 'icdcm_raw', '3', 'varchar(255)')
+,('dbo.mcaid_claim_dx', 'dx_norm', '4', 'varchar(200)', 'final.mcaid_claim_icdcm_header', 'icdcm_norm', '4', 'varchar(255)')
+,('dbo.mcaid_claim_dx', 'dx_ver', '5', 'tinyint', 'final.mcaid_claim_icdcm_header', 'icdcm_version', '5', 'tinyint')
+,('dbo.mcaid_claim_dx', 'dx_number', '6', 'tinyint', 'final.mcaid_claim_icdcm_header', 'icdcm_number', '6', 'varchar(5)')
+,('NULL', 'NULL', 'NULL', 'NULL', 'final.mcaid_claim_icdcm_header', 'last_run', '7', 'datetime')
+
+,('dbo.mcaid_claim_line', 'id', '1', 'varchar(200)', 'final.mcaid_claim_line', 'id_mcaid', '1', 'varchar(200)')
 ,('dbo.mcaid_claim_line', 'tcn', '2', 'varchar(200)', 'final.mcaid_claim_line', 'claim_header_id', '2', 'bigint')
 ,('dbo.mcaid_claim_line', 'tcn_line', '3', 'varchar(200)', 'final.mcaid_claim_line', 'claim_line_id', '3', 'bigint')
 ,('dbo.mcaid_claim_line', 'rcode', '4', 'varchar(200)', 'final.mcaid_claim_line', 'rev_code', '4', 'varchar(200)')
 ,('dbo.mcaid_claim_line', 'rac_code_l', '5', 'varchar(200)', 'final.mcaid_claim_line', 'rac_code_line', '5', 'int')
+,('NULL', 'NULL', 'NULL', 'NULL', 'final.mcaid_claim_line', 'last_run', '6', 'datetime')
+
 ,('dbo.mcaid_claim_proc', 'id', '1', 'varchar(200)', 'mcaid_claim_procedure', 'id_mcaid', '1', 'varchar(200)')
 ,('dbo.mcaid_claim_proc', 'tcn', '2', 'varchar(200)', 'mcaid_claim_procedure', 'claim_header_id', '2', 'bigint')
 ,('dbo.mcaid_claim_proc', 'pcode', '3', 'varchar(200)', 'mcaid_claim_procedure', 'procedure_code', '3', 'varchar(200)')
@@ -46,6 +56,7 @@ VALUES
 ,('dbo.mcaid_claim_proc', 'pcode_mod_2', '6', 'varchar(200)', 'mcaid_claim_procedure', 'modifier_2', '6', 'varchar(200)')
 ,('dbo.mcaid_claim_proc', 'pcode_mod_3', '7', 'varchar(200)', 'mcaid_claim_procedure', 'modifier_3', '7', 'varchar(200)')
 ,('dbo.mcaid_claim_proc', 'pcode_mod_4', '8', 'varchar(200)', 'mcaid_claim_procedure', 'modifier_4', '8', 'varchar(200)')
+,('NULL', 'NULL', 'NULL', 'NULL', 'mcaid_claim_procedure', 'last_run', '9', 'datetime')
 
 SELECT * FROM [metadata].[mcaid_format_changes];
 
