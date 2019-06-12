@@ -41,7 +41,7 @@ library(tidyverse) # Manipulate data
 
 db_claims <- dbConnect(odbc(), "PHClaims")
 
-print("Creating stage.mcaid_claim_procedure: Data Pull Run time: 00:00:00, Create Index Run Time: 00:00:00")
+print("Creating stage.mcaid_claim_procedure")
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
