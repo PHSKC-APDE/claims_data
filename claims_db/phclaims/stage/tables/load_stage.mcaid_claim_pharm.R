@@ -1,24 +1,23 @@
 
-# This code creates table ([stage].[mcaid_claim_procedure]) to hold DISTINCT 
-# procedure codes in long format for Medicaid claims data
+# This code creates table ([stage].[mcaid_claim_pharm]) to hold DISTINCT 
+# pharmacy information
 # 
 # SQL script created by: Eli Kern, APDE, PHSKC, 2018-03-21
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05
 # Modified by: Philip Sylling, 2019-06-11
 # 
-# Data Pull Run time: 10 min
-# Create Index Run Time: 4 min
+# Data Pull Run time: 4 min
+# Create Index Run Time: 2 min
 # 
 # Returns
-#  [stage].[mcaid_claim_procedure]
+# [stage].[mcaid_claim_pharm]
 #  [id_mcaid]
 # ,[claim_header_id]
-# ,[procedure_code]
-# ,[procedure_code_number]
-# ,[modifier_1]
-# ,[modifier_2]
-# ,[modifier_3]
-# ,[modifier_4]
+# ,[ndc]
+# ,[rx_days_supply]
+# ,[rx_quantity]
+# ,[rx_fill_date]
+# ,[pharmacy_npi]
 # ,[last_run]
 
 #### Set up global parameter and call in libraries ####
@@ -41,75 +40,60 @@ library(tidyverse) # Manipulate data
 
 db_claims <- dbConnect(odbc(), "PHClaims")
 
-print("Creating stage.mcaid_claim_procedure")
+print("Creating stage.mcaid_claim_pharm")
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
 
 step1_sql <- glue::glue_sql("
-if object_id('[stage].[mcaid_claim_procedure]', 'U') is not null
-drop table [stage].[mcaid_claim_procedure];
+if object_id('[stage].[mcaid_claim_pharm]', 'U') is not null
+drop table [stage].[mcaid_claim_pharm];
 ", .con = conn)
 odbc::dbGetQuery(conn = db_claims, step1_sql)
 
 #### CREATE TABLE ####
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_procedure.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_pharm.yaml",
                overall = T, ind_yr = F)
 
 step2_sql <- glue::glue_sql("
-insert into [stage].[mcaid_claim_procedure] with(tablock)
+insert into [stage].[mcaid_claim_pharm] with (tablock)
 ([id_mcaid]
 ,[claim_header_id]
-,[procedure_code]
-,[procedure_code_number]
-,[modifier_1]
-,[modifier_2]
-,[modifier_3]
-,[modifier_4]
+,[ndc]
+,[rx_days_supply]
+,[rx_quantity]
+,[rx_fill_date]
+,[prescriber_id_format]
+,[prescriber_id]
+,[pharmacy_npi]
 ,[last_run])
 
 select distinct 
- id_mcaid
-,claim_header_id
-,procedure_code
-,cast(procedure_code_number as varchar(4)) as procedure_code_number
-,modifier_1
-,modifier_2
-,modifier_3
-,modifier_4
+ cast(MEDICAID_RECIPIENT_ID as varchar(255)) as id_mcaid
+,cast(TCN as bigint) as claim_header_id
+,cast(NDC as varchar(255)) as ndc
+,cast(DAYS_SUPPLY as smallint) as rx_days_supply
+,cast(SBMTD_DISPENSED_QUANTITY as numeric(19,3)) as rx_quantity
+,cast(PRSCRPTN_FILLED_DATE as date) as rx_fill_date
+
+,cast(case when (len([PRSCRBR_ID]) = 10 and isnumeric([PRSCRBR_ID]) = 1 and left([PRSCRBR_ID], 1) in (1,2)) then 'NPI'
+           when (len([PRSCRBR_ID]) = 9 and isnumeric(substring([PRSCRBR_ID], 1, 2)) = 0 and isnumeric(substring([PRSCRBR_ID], 3, 7)) = 1) then 'DEA'
+           when (len([PRSCRBR_ID]) = 6 and isnumeric(substring([PRSCRBR_ID], 1, 1)) = 0 and isnumeric(substring([PRSCRBR_ID], 2, 5)) = 1) then 'UPIN'
+	       when [PRSCRBR_ID] = '5123456787' then 'WA HCA'
+		   when [PRSCRBR_ID] is not null then 'UNKNOWN' end as varchar(10)) as prescriber_id_format
+
+,cast(case when (len([PRSCRBR_ID]) <> 10 or isnumeric([PRSCRBR_ID]) = 0 or left([PRSCRBR_ID], 1) not in (1,2)) then [PRSCRBR_ID] end as varchar(255)) as prescriber_id
+
+,cast(case when (len([PRSCRBR_ID]) = 10 and isnumeric([PRSCRBR_ID]) = 1 and left([PRSCRBR_ID], 1) in (1,2)) then [PRSCRBR_ID] end as bigint) as pharmacy_npi
+
 ,getdate() as last_run
 
-from 
-(
-select
---top(100)
- MEDICAID_RECIPIENT_ID as id_mcaid
-,TCN as claim_header_id
-,PRCDR_CODE_1 as [01]
-,PRCDR_CODE_2 as [02]
-,PRCDR_CODE_3 as [03]
-,PRCDR_CODE_4 as [04]
-,PRCDR_CODE_5 as [05]
-,PRCDR_CODE_6 as [06]
-,PRCDR_CODE_7 as [07]
-,PRCDR_CODE_8 as [08]
-,PRCDR_CODE_9 as [09]
-,PRCDR_CODE_10 as [10]
-,PRCDR_CODE_11 as [11]
-,PRCDR_CODE_12 as [12]
-,LINE_PRCDR_CODE as [line]
-,MDFR_CODE1 as [modifier_1]
-,MDFR_CODE2 as [modifier_2]
-,MDFR_CODE3 as [modifier_3]
-,MDFR_CODE4 as [modifier_4]
 from [stage].[mcaid_claim]
-) as a
-
-unpivot(procedure_code for procedure_code_number in ([01],[02],[03],[04],[05],[06],[07],[08],[09],[10],[11],[12],[line])) as procedure_code;
+where ndc is not null;
 ", .con = conn)
 
-print("Running step 2: Load to [stage].[mcaid_claim_procedure]")
+print("Running step 2: Load to [stage].[mcaid_claim_pharm]")
 time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step2_sql)
 time_end <- Sys.time()
@@ -118,10 +102,10 @@ print(paste0("Step 2 took ", round(difftime(time_end, time_start, units = "secs"
              " mins)"))
 
 step3_sql <- glue::glue_sql("
-create clustered index [idx_cl_stage_mcaid_claim_procedure_claim_header_id] 
-on [stage].[mcaid_claim_procedure]([claim_header_id]);
-create nonclustered index [idx_nc_stage_mcaid_claim_procedure_procedure_code] 
-on [stage].[mcaid_claim_procedure]([procedure_code]);
+create clustered index [idx_cl_stage_mcaid_claim_pharm_claim_header_id] 
+on [stage].[mcaid_claim_pharm]([claim_header_id]);
+create nonclustered index [idx_nc_stage_mcaid_claim_pharm_ndc] 
+on [stage].[mcaid_claim_pharm]([ndc]);
 ", .con = conn)
 
 print("Running step 3: Create Indexes")

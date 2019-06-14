@@ -58,7 +58,7 @@ create_table_f(conn = db_claims,
                overall = T, ind_yr = F)
 
 step2_sql <- glue::glue_sql("
-insert into [stage].[mcaid_claim_procedure] with(tablock)
+insert into [stage].[mcaid_claim_procedure] with (tablock)
 ([id_mcaid]
 ,[claim_header_id]
 ,[procedure_code]
