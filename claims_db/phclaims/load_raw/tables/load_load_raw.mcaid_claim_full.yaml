@@ -9,8 +9,7 @@ vars:
     - MEDICAID_RECIPIENT_ID
     - BABY_ON_MOM_IND
     - TCN
-    - CLM_LINE_TCN
-    - CLM_LINE
+    - CLM_LINE_TCN 
     - ORGNL_TCN
     - RAC_CODE_H
     - RAC_CODE_L
