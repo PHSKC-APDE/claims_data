@@ -66,7 +66,7 @@ table_2014:
     vars_2014: null
     field_term: \t
     row_term: \n
-    row_count: 4612489
+    row_count: 4612482
     date_min: 201401
     date_max: 201412
 table_2015:
@@ -74,7 +74,7 @@ table_2015:
     vars_2015: null
     field_term: \t
     row_term: \n
-    row_count: 5292677
+    row_count: 5292649
     date_min: 201501
     date_max: 201512
 table_2016:
@@ -82,7 +82,7 @@ table_2016:
     vars_2016: null
     field_term: \t
     row_term: \n
-    row_count: 5520950
+    row_count: 5521033
     date_min: 201601
     date_max: 201612
 table_2017:
@@ -90,7 +90,7 @@ table_2017:
     vars_2017: null
     field_term: \t
     row_term: \n
-    row_count: 5508484
+    row_count: 5508673
     date_min: 201701
     date_max: 201712
 table_2018:
@@ -98,7 +98,7 @@ table_2018:
     vars_2018: null
     field_term: \t
     row_term: \n
-    row_count: 5348820
+    row_count: 5349446
     date_min: 201801
     date_max: 201812
 combine_years:

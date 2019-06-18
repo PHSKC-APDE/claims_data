@@ -162,7 +162,7 @@ qa_column_order_f <- function(conn = NULL,
     tbl_name <- names(load_table)
     
     ### Compare names
-    name_check <- names(sql_name) == names(tbl_name)
+    name_check <- all(sql_name == tbl_name)
     
     if (name_check == T) {
       qa_result <- TRUE
@@ -193,7 +193,7 @@ qa_column_order_f <- function(conn = NULL,
       tbl_name <- names(load_table)
       
       # Compare names
-      name_check <- dplyr::all_equal(sql_name, tbl_name, ignore_col_order = F)
+      name_check <- all(sql_name == tbl_name)
       
       if (name_check == T) {
         qa_result <- TRUE
@@ -216,8 +216,8 @@ qa_column_order_f <- function(conn = NULL,
     result <- qa_results
   } else {
     outcome <- "FAIL"
-    note <- paste0("The following table(s) had mismatching columns: \n",
-                   paste(qa_results$source_year[qa_results$qa_result == F], sep = ", "))
+    note <- paste0("The following table(s) had mismatching columns: ",
+                   paste(qa_results$source_year[qa_results$qa_result == F], collapse = ", "))
     result <- qa_results
   }
   
@@ -228,7 +228,7 @@ qa_column_order_f <- function(conn = NULL,
 
 
 #### FUNCTION TO CHECK LOADED VS EXPECT ROW COUNTS IN SOURCE FILES ####
-qa_sql_row_count_f <- function(conn,
+qa_load_row_count_f <- function(conn,
                                config_url = NULL,
                                config_file = NULL,
                                overall = T,
