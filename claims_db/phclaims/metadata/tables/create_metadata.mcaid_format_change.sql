@@ -5,17 +5,18 @@ the analytic tables from the new Medicaid Extracts compared to the old [dbo]
 schema analytic tables.
 
 Created by: Philip Sylling, 2019-06-07
-Modified by: Philip Sylling, 2019-06-11
+Modified by: Philip Sylling, 2019-06-17
 
 Returns
  mcaid_format_change_id
 ,prior_table_name
 ,prior_column_name
+,prior_ordinal_position
 ,prior_data_type
 ,new_table_name
 ,new_column_name
+,new_ordinal_position
 ,new_data_type
-,any_change, Yes if any change occurred
 */
 
 IF OBJECT_ID('[metadata].[mcaid_format_change]', 'U') IS NOT NULL
@@ -44,6 +45,7 @@ INSERT INTO [metadata].[mcaid_format_change]
 ,new_data_type)
 
 VALUES
+
  ('dbo.mcaid_claim_dx', 'id', '1', 'varchar(200)', 'final.mcaid_claim_icdcm_header', 'id_mcaid', '1', 'varchar(255)')
 ,('dbo.mcaid_claim_dx', 'tcn', '2', 'varchar(200)', 'final.mcaid_claim_icdcm_header', 'claim_header_id', '2', 'bigint')
 ,('dbo.mcaid_claim_dx', 'dx_raw', '3', 'varchar(200)', 'final.mcaid_claim_icdcm_header', 'icdcm_raw', '3', 'varchar(255)')
