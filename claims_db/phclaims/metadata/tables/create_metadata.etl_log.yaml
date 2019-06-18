@@ -4,5 +4,7 @@ vars:
   etl_batch_id: INTEGER
   batch_type: VARCHAR(200)
   data_source: VARCHAR(200)
+  date_min: DATE
+  date_max: DATE
   delivery_date: DATE
   note: VARCHAR(2000)

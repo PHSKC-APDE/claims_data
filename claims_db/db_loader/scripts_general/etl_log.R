@@ -1,14 +1,25 @@
 #### FUNCTIONS TO LOAD DATA TO metadata.etl_log TABLE AND RETRIEVE DATA
 # Alastair Matheson
 # Created:        2019-05-07
-# Last modified:  2019-05-07
+# Last modified:  2019-06-18
+
+# Note: these functions are for claims data
+# Use https://github.com/PHSKC-APDE/DOHdata/blob/master/ETL/general/scripts_general/etl_log.R
+#  for non-claims data
+
+# auto_proceed = T allows skipping of checks against existing ETL entries. 
+# Use with caution to avoid creating duplicate entries.
+# Note that this will not overwrite checking for near-exact matches. 
 
 
 load_metadata_etl_log_f <- function(conn = NULL,
                                     batch_type = c("incremental", "full"),
                                     data_source = NULL,
+                                    date_min = NULL,
+                                    date_max = NULL,
                                     delivery_date = NULL,
-                                    note = NULL) {
+                                    note = NULL,
+                                    auto_proceed = F) {
   
   #### ERROR CHECKS ####
   if (is.null(conn)) {
@@ -25,13 +36,23 @@ load_metadata_etl_log_f <- function(conn = NULL,
     stop("Enter a data source (one of 'APCD', 'Medicaid', or 'Medicare'")
   }
   
+  if (is.null(date_min) | is.null(date_max)) {
+    stop("Both date_min and date_max must be entered. 
+         Use YYYY-01-01 and YYYY-12-31 for full-year data.")
+  }
+  
+  
   if (is.null(delivery_date)) {
     stop("Enter a delivery date")
   }
   
-  if (is.na(as.Date(as.character(delivery_date), format = "%Y-%m-%d"))) {
-    stop("Delivery date must be in YYYY-MM-DD format and in quotes")
+  
+  if (is.na(as.Date(as.character(date_min), format = "%Y-%m-%d")) |
+      is.na(as.Date(as.character(date_max), format = "%Y-%m-%d")) |
+      is.na(as.Date(as.character(date_delivery), format = "%Y-%m-%d"))) {
+    stop("Dates must be in YYYY-MM-DD format and in quotes")
   }
+  
   
   if (is.null(note)) {
     stop("Enter a note to describe this data")
@@ -41,6 +62,7 @@ load_metadata_etl_log_f <- function(conn = NULL,
   #### REDO batch_type VARIABLE ####
   batch_type <- ifelse(batch_type == "incremental", "Incremental refresh",
                        "Full refresh")
+  
   
   #### CHECK EXISTING ENTRIES ####
   latest <- odbc::dbGetQuery(conn, 
@@ -84,21 +106,25 @@ load_metadata_etl_log_f <- function(conn = NULL,
                               Do you still want to make a new entry?")
     proceed <- askYesNo(msg = proceed_msg)
   } else {
-    if (nrow(latest) > 0 & nrow(latest_source) > 0) {
+    if (nrow(latest) > 0 & nrow(latest_source) > 0 & auto_proceed == F) {
       proceed_msg <- glue::glue("
 The most recent entry in the etl_log is as follows:
 etl_batch_id: {latest[1]}
 batch_type: {latest[2]}
 data_source: {latest[3]}
-delivery_date: {latest[4]}
-note: {latest[5]}
+date_min: {latest[4]}
+date_max: {latest[5]}
+delivery_date: {latest[6]}
+note: {latest[7]}
 
 The most recent entry in the etl_log FOR THIS DATA SOURCE is as follows:
 etl_batch_id: {latest_source[1]}
 batch_type: {latest_source[2]}
 data_source: {latest_source[3]}
-delivery_date: {latest_source[4]}
-note: {latest_source[5]}
+date_min: {latest_source[4]}
+date_max: {latest_source[5]}
+delivery_date: {latest_source[6]}
+note: {latest_source[7]}
 
 Do you still want to make a new entry?",
                                 .con = conn)
@@ -108,17 +134,30 @@ Do you still want to make a new entry?",
     }
   }
  
-  if (proceed == F | is.na(proceed)) {
-    print("ETL log load cancelled at user request")
-  } else {
+  
+  if (is.na(proceed)) {
+    stop("ETL log load cancelled at user request")
+    
+  } else if (proceed == F & nrow(matches) > 0) {
+    reuse <- askYesNo(msg = "Would you like to reuse the most recent existing entry that matches?")
+    
+    if (reuse == T) {
+      etl_batch_id <- matches$etl_batch_id[1]
+      
+      print(glue::glue("Reusing ETL batch #{etl_batch_id}"))
+      return(etl_batch_id)
+      
+    } else {
+      stop("ETL log load cancelled at user request")
+    }
+  } else if (proceed == T) {
     sql_load <- glue::glue_sql(
       "INSERT INTO metadata.etl_log 
-      (etl_batch_id, batch_type, data_source, delivery_date, note) 
-      VALUES ({etl_batch_id}, {batch_type}, {data_source}, 
+      (etl_batch_id, batch_type, data_source, date_min, date_max, delivery_date, note) 
+      VALUES ({etl_batch_id}, {batch_type}, {data_source}, {date_min}, {date_max}, 
       {delivery_date}, {note})",
-      .con = conn
-    )
-    
+      .con = conn)
+  
     odbc::dbGetQuery(conn, sql_load)
     
     # Finish with a message and return the latest etl_batch_id
