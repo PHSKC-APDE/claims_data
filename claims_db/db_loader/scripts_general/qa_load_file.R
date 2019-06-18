@@ -162,7 +162,7 @@ qa_column_order_f <- function(conn = NULL,
     tbl_name <- names(load_table)
     
     ### Compare names
-    name_check <- names(sql_name) == names(tbl_name)
+    name_check <- all(sql_name == tbl_name)
     
     if (name_check == T) {
       qa_result <- TRUE
@@ -193,7 +193,7 @@ qa_column_order_f <- function(conn = NULL,
       tbl_name <- names(load_table)
       
       # Compare names
-      name_check <- dplyr::all_equal(sql_name, tbl_name, ignore_col_order = F)
+      name_check <- all(sql_name == tbl_name)
       
       if (name_check == T) {
         qa_result <- TRUE
