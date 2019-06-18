@@ -228,7 +228,7 @@ qa_column_order_f <- function(conn = NULL,
 
 
 #### FUNCTION TO CHECK LOADED VS EXPECT ROW COUNTS IN SOURCE FILES ####
-qa_sql_row_count_f <- function(conn,
+qa_load_row_count_f <- function(conn,
                                config_url = NULL,
                                config_file = NULL,
                                overall = T,
