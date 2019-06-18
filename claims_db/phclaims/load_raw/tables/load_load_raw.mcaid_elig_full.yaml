@@ -51,56 +51,56 @@ table_2012:
     field_term: \t
     row_term: \n
     row_count: 3277629
-    date_min: 2012-01-01
-    date_max: 2012-12-31
+    date_min: 201201
+    date_max: 201212
 table_2013:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2013.txt
     vars_2013: null
     field_term: \t
     row_term: \n
     row_count: 3317991
-    date_min: 2013-01-01
-    date_max: 2013-12-31
+    date_min: 201301
+    date_max: 201312
 table_2014:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2014.txt
     vars_2014: null
     field_term: \t
     row_term: \n
     row_count: 4612482
-    date_min: 2014-01-01
-    date_max: 2014-12-31
+    date_min: 201401
+    date_max: 201412
 table_2015:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2015.txt
     vars_2015: null
     field_term: \t
     row_term: \n
     row_count: 5292649
-    date_min: 2015-01-01
-    date_max: 2015-12-31
+    date_min: 201501
+    date_max: 201512
 table_2016:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2016.txt
     vars_2016: null
     field_term: \t
     row_term: \n
     row_count: 5521033
-    date_min: 2016-01-01
-    date_max: 2016-12-31
+    date_min: 201601
+    date_max: 201612
 table_2017:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2017.txt
     vars_2017: null
     field_term: \t
     row_term: \n
     row_count: 5508673
-    date_min: 2017-01-01
-    date_max: 2017-12-31
+    date_min: 201701
+    date_max: 201712
 table_2018:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2018.txt
     vars_2018: null
     field_term: \t
     row_term: \n
     row_count: 5349446
-    date_min: 2018-01-01
-    date_max: 2018-12-31
+    date_min: 201801
+    date_max: 201812
 combine_years:
     - 2012
     - 2013

@@ -17,6 +17,18 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
     stop("Enter a delivery date and note for the ETL batch ID function")
   }
   
+  
+  # Load ETL and QA functions if not already present
+  if (exists("load_metadata_etl_log_f") == F) {
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
+  }
+  
+  if (exists("qa_file_row_count_f") == F) {
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
+  }
+  
+  
+  
   #### SET UP BATCH ID ####
   # Eventually switch this function over to using glue_sql to stop unwanted SQL behavior
   current_batch_id <- load_metadata_etl_log_f(conn = db_claims, 
@@ -89,7 +101,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
   #### QA CHECK: ROW COUNTS MATCH SOURCE FILE COUNT ####
   print("Checking loaded row counts vs. expected")
   # Use the load config file for the list of tables to check and their expected row counts
-  qa_rows_sql <- qa_sql_row_count_f(conn = db_claims,
+  qa_rows_sql <- qa_load_row_count_f(conn = db_claims,
                                     config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_full.yaml",
                                     overall = F, ind_yr = T, combine_yr = T)
   
