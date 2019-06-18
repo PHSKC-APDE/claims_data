@@ -49,7 +49,7 @@ load_metadata_etl_log_f <- function(conn = NULL,
   
   if (is.na(as.Date(as.character(date_min), format = "%Y-%m-%d")) |
       is.na(as.Date(as.character(date_max), format = "%Y-%m-%d")) |
-      is.na(as.Date(as.character(date_delivery), format = "%Y-%m-%d"))) {
+      is.na(as.Date(as.character(delivery_date), format = "%Y-%m-%d"))) {
     stop("Dates must be in YYYY-MM-DD format and in quotes")
   }
   
