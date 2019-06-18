@@ -73,7 +73,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
   
   
 
-  #### QA CHECK: ORDER OF COLUMNS IN SOURCE FILE MATCH TABLE SHELLS IN SQL ###
+  #### QA CHECK: ORDER OF COLUMNS IN SOURCE FILE MATCH TABLE SHELLS IN SQL ####
   print("Checking column order")
   qa_column <- qa_column_order_f(conn = db_claims,
                                  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
