@@ -216,8 +216,8 @@ qa_column_order_f <- function(conn = NULL,
     result <- qa_results
   } else {
     outcome <- "FAIL"
-    note <- paste0("The following table(s) had mismatching columns: \n",
-                   paste(qa_results$source_year[qa_results$qa_result == F], sep = ", "))
+    note <- paste0("The following table(s) had mismatching columns: ",
+                   paste(qa_results$source_year[qa_results$qa_result == F], collapse = ", "))
     result <- qa_results
   }
   
