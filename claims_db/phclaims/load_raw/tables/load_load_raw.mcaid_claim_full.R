@@ -149,15 +149,19 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
   #### QA CHECK: COUNT OF DISTINCT ROWS (MINUS ADDRESS FIELDS) ####
   print("Running additional QA items")
   # Should be no duplicate TCNs once address fields are ignored
+  
+  # Currently fields are hard coded. Switch over to reading in YAML file and 
+  # excluding the address fields
+  
   distinct_rows <- as.numeric(dbGetQuery(
     db_claims,
     "SELECT COUNT (*) FROM
     (SELECT DISTINCT MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN, 
-      CLM_LINE, ORGNL_TCN, RAC_CODE_H, RAC_CODE_L, FROM_SRVC_DATE, TO_SRVC_DATE, 
+      ORGNL_TCN, RAC_CODE_H, RAC_CODE_L, FROM_SRVC_DATE, TO_SRVC_DATE, 
       BLNG_PRVDR_LCTN_IDNTFR, BLNG_NATIONAL_PRVDR_IDNTFR, BLNG_PRVDR_LCTN_TXNMY_CODE, 
       BLNG_PRVDR_TYPE_CODE, BLNG_PRVDR_SPCLTY_CODE, SRVCNG_PRVDR_LCTN_IDNTFR, 
       SRVCNG_NATIONAL_PRVDR_IDNTFR, SRVCNG_PRVDR_LCTN_TXNMY_CODE, 
-      SRVCNG_PRVDR_TYPE_CODE, SVRCNG_PRVDR_SPCLTY_CODE, CLM_TYPE_CID, CLM_TYPE_NAME, 
+      SRVCNG_PRVDR_TYPE_CODE, SRVCNG_PRVDR_SPCLTY_CODE, CLM_TYPE_CID, CLM_TYPE_NAME, 
       CLM_CTGRY_LKPCD, CLM_CTGRY_NAME, REVENUE_CODE, TYPE_OF_BILL, CLAIM_STATUS, 
       CLAIM_STATUS_DESC, DRG_CODE, DRG_NAME, UNIT_SRVC_H, UNIT_SRVC_L, 
       PRIMARY_DIAGNOSIS_CODE, DIAGNOSIS_CODE_2, DIAGNOSIS_CODE_3, DIAGNOSIS_CODE_4, 
@@ -181,11 +185,10 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
       SYSTEM_IN_DATE, TCN_DATE
       FROM load_raw.mcaid_claim) a"))
   
-  distinct_tcn <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT DISTINCT (TCN) FROM load_raw.mcaid_claim"))
+  distinct_tcn <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (DISTINCT CLM_LINE_TCN) FROM load_raw.mcaid_claim"))
   
   
   if (distinct_rows != distinct_tcn) {
-    
     odbc::dbGetQuery(conn = db_claims,
                      glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                     (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -194,7 +197,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                     'Distinct TCNs', 
                                     'FAIL',
                                     {Sys.time()},
-                                    'No. distinct TCNs didn't match rows even after excluding addresses)",
+                                    'No. distinct TCNs did not match rows even after excluding addresses')",
                                     .con = db_claims))
     stop("Number of distinct rows does not match total expected")
     } else {
