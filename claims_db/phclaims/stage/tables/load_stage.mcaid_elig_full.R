@@ -20,19 +20,19 @@ current_batch_id <- as.numeric(odbc::dbGetQuery(db_claims,
 # Use priority set out below (higher resaon score = higher priority)
 
 ### Call in config file to get vars
-table_config <- yaml::yaml.load(RCurl::getURL(
+table_config_stage_elig <- yaml::yaml.load(RCurl::getURL(
   "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_full.yaml"
 ))
 
-from_schema <- table_config$from_schema
-from_table <- table_config$from_table
-to_schema <- table_config$to_schema
-to_table <- table_config$to_table
-vars <- unlist(table_config$vars)
+from_schema <- table_config_stage_elig$from_schema
+from_table <- table_config_stage_elig$from_table
+to_schema <- table_config_stage_elig$to_schema
+to_table <- table_config_stage_elig$to_table
+vars <- unlist(table_config_stage_elig$vars)
 # Need to specify which temp table the vars come from
 # Can't handle this just with glue_sql
 # (see https://community.rstudio.com/t/using-glue-sql-s-collapse-with-table-name-identifiers/11633)
-var_names <- lapply(table_config$vars, 
+var_names <- lapply(table_config_stage_elig$vars, 
                     function(nme) DBI::Id(table = "a", column = nme))
 vars_dedup <- lapply(var_names, DBI::dbQuoteIdentifier, conn = db_claims)
 
@@ -145,10 +145,10 @@ if (null_ids != 0) {
 
 #### ADD INDEX ####
 print("Adding index")
-if (!is.null(table_config$index_name)) {
-  index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX [{`table_config$index_name`}] ON 
+if (!is.null(table_config_stage_elig$index_name)) {
+  index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX [{`table_config_stage_elig$index_name`}] ON 
                               {`to_schema`}.{`to_table`}({index_vars*})",
-                              index_vars = dbQuoteIdentifier(db_claims, table_config$index),
+                              index_vars = dbQuoteIdentifier(db_claims, table_config_stage_elig$index),
                               .con = db_claims)
   dbGetQuery(db_claims, index_sql)
 }
@@ -174,7 +174,6 @@ rm(dedup_sql)
 rm(vars, var_names, vars_dedup)
 rm(from_schema, from_table, to_schema, to_table)
 rm(rows_stage, rows_load_raw, null_ids)
-rm(table_config)
+rm(table_config_stage_elig)
 rm(index_sql)
-rm(list = ls(pattern = "_f$"))
 
