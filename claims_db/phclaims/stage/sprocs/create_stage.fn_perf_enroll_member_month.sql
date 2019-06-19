@@ -15,7 +15,7 @@ RETURN
 1. Create Age at beginning of month and end of month. This would correspond to age
 at Beginning of Measurement Year or End of Measurement Year (typical)
 2. Create enrollment gaps as ZERO rows by the following join
-[dbo].[mcaid_elig_demoever] CROSS JOIN [ref].[perf_year_month] LEFT JOIN [stage].[perf_elig_member_month]
+[stage].[mcaid_elig_demo] CROSS JOIN [ref].[perf_year_month] LEFT JOIN [stage].[perf_elig_member_month]
 The ZERO rows are used to track changing enrollment threshold over time.
 */
 
@@ -24,21 +24,22 @@ SELECT
 ,b.[month]
 ,b.[beg_month]
 ,b.[end_month]
-,a.[id]
-,a.[dobnew] AS [dob]
+,a.[id_mcaid]
+,a.[dob]
 
-,DATEDIFF(YEAR, a.[dobnew], b.[beg_month]) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, a.[dobnew], b.[beg_month]), a.[dobnew]) > b.[beg_month] THEN 1 ELSE 0 END AS [beg_month_age]
-,DATEDIFF(YEAR, a.[dobnew], b.[end_month]) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, a.[dobnew], b.[end_month]), a.[dobnew]) > b.[end_month] THEN 1 ELSE 0 END AS [end_month_age]
-,DATEDIFF(MONTH, a.[dobnew], b.[end_month]) - CASE WHEN DATEADD(MONTH, DATEDIFF(MONTH, a.[dobnew], b.[end_month]), a.[dobnew]) > b.[end_month] THEN 1 ELSE 0 END AS [age_in_months]
+,DATEDIFF(YEAR, a.[dob], b.[beg_month]) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, a.[dob], b.[beg_month]), a.[dob]) > b.[beg_month] THEN 1 ELSE 0 END AS [beg_month_age]
+,DATEDIFF(YEAR, a.[dob], b.[end_month]) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, a.[dob], b.[end_month]), a.[dob]) > b.[end_month] THEN 1 ELSE 0 END AS [end_month_age]
+,DATEDIFF(MONTH, a.[dob], b.[end_month]) - CASE WHEN DATEADD(MONTH, DATEDIFF(MONTH, a.[dob], b.[end_month]), a.[dob]) > b.[end_month] THEN 1 ELSE 0 END AS [age_in_months]
 
 ,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL THEN 1 ELSE 0 END AS [enrolled_any]
 ,CASE WHEN d.[full_benefit_flag] = 'Y' THEN 1 ELSE 0 END AS [full_benefit]
 ,CASE WHEN c.[DUAL_ELIG] = 'Y' THEN 1 ELSE 0 END AS [dual]
+,CASE WHEN c.[TPL_FULL_FLAG] = 'Y' THEN 1 ELSE 0 END AS [tpl]
 ,ISNULL(e.[hospice_flag], 0) AS [hospice]
-,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[full_benefit_flag] = 'Y' AND c.[DUAL_ELIG] = 'N' THEN 1 ELSE 0 END AS [full_criteria]
+,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[full_benefit_flag] = 'Y' AND c.[DUAL_ELIG] = 'N' AND c.[TPL_FULL_FLAG] = ' ' THEN 1 ELSE 0 END AS [full_criteria]
 ,b.[row_num]
 
-FROM [dbo].[mcaid_elig_demoever] AS a
+FROM [stage].[mcaid_elig_demo] AS a
 
 CROSS JOIN 
 (
@@ -49,14 +50,14 @@ WHERE [year_month] BETWEEN @start_date_int AND @end_date_int
 ) AS b
 
 LEFT JOIN [stage].[perf_elig_member_month] AS c
-ON a.[id] = c.[MEDICAID_RECIPIENT_ID]
+ON a.[id_mcaid] = c.[MEDICAID_RECIPIENT_ID]
 AND b.[year_month] = c.[CLNDR_YEAR_MNTH]
 
 LEFT JOIN [ref].[mcaid_rac_code] AS d
-ON c.[RAC_CODE] = d.[rac_code]
+ON c.[RPRTBL_RAC_CODE] = d.[rac_code]
 
 LEFT JOIN [stage].[v_perf_hospice_member_month] AS e
-ON a.[id] = e.[id]
+ON a.[id_mcaid] = e.[id_mcaid]
 AND b.[year_month] = e.[year_month];
 GO
 
