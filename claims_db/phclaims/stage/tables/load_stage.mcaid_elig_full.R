@@ -5,19 +5,8 @@
 #
 # 2019-05
 
-#### Set up global parameter and call in libraries ####
-options(max.print = 350, tibble.print_max = 50, warning.length = 8170)
-
-library(tidyverse) # Manipulate data
-library(odbc) # Read to and write from SQL
-library(RCurl) # Read files from Github
-library(configr) # Read in YAML files
-library(glue)
-
-db_claims <- dbConnect(odbc(), "PHClaims51")
-
-#### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+### Run from master_mcaid_full script
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
 
 
 #### FIND MOST RECENT BATCH ID FROM SOURCE (LOAD_RAW) ####
@@ -25,35 +14,31 @@ current_batch_id <- as.numeric(odbc::dbGetQuery(db_claims,
                                      "SELECT MAX(etl_batch_id) FROM load_raw.mcaid_elig"))
 
 
-#### CREATE TABLE ####
-# Note this is only used because this script is for a full refresh
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig.yaml",
-               overall = T, ind_yr = F)
-
-
 #### LOAD TABLE ####
 # Can't use default load function because some transformation is needed
+# Need to deduplicate rows (n=42) where there were two, differing, end reasons for a given month and RAC.
+# Use priority set out below (higher resaon score = higher priority)
 
 ### Call in config file to get vars
-table_config <- yaml::yaml.load(RCurl::getURL(
+table_config_stage_elig <- yaml::yaml.load(RCurl::getURL(
   "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_full.yaml"
 ))
 
-from_schema <- table_config$from_schema
-from_table <- table_config$from_table
-to_schema <- table_config$to_schema
-to_table <- table_config$to_table
-vars <- unlist(table_config$vars)
+from_schema <- table_config_stage_elig$from_schema
+from_table <- table_config_stage_elig$from_table
+to_schema <- table_config_stage_elig$to_schema
+to_table <- table_config_stage_elig$to_table
+vars <- unlist(table_config_stage_elig$vars)
 # Need to specify which temp table the vars come from
 # Can't handle this just with glue_sql
 # (see https://community.rstudio.com/t/using-glue-sql-s-collapse-with-table-name-identifiers/11633)
-var_names <- lapply(table_config$vars, 
+var_names <- lapply(table_config_stage_elig$vars, 
                     function(nme) DBI::Id(table = "a", column = nme))
 vars_dedup <- lapply(var_names, DBI::dbQuoteIdentifier, conn = db_claims)
 
 
 ### Set up temporary table
+print("Setting up a temp table to remove duplicate rows")
 # This can then be used to deduplicate rows with differing end reasons
 # Remove temp table if it exists
 try(odbc::dbRemoveTable(db_claims, "##mcaid_elig", temporary = T))
@@ -72,6 +57,7 @@ odbc::dbGetQuery(db_claims,
                                 .con = db_claims))
 
 ### Manipulate the temporary table to deduplicate and then insert into stage
+print("Deduplicating elig table and loading data to stage")
 dedup_sql <- glue::glue_sql(
   'INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
   SELECT {`vars_dedup`*} FROM
@@ -95,6 +81,7 @@ odbc::dbGetQuery(db_claims, dedup_sql)
 
 
 #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
+print("Running QA checks")
 # Because of deduplication, should be 42 less than load_raw table
 rows_stage <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.mcaid_elig"))
 rows_load_raw <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM load_raw.mcaid_elig"))
@@ -107,7 +94,7 @@ if (rows_load_raw - rows_stage != 42) {
                                   'stage.mcaid_elig',
                                   'Rows passed from load_raw to stage', 
                                   'FAIL',
-                                  {Sys.Date()},
+                                  {Sys.time()},
                                   'Issue even after accounting for the 42 people with duplicate rows. Investigate further.')",
                                   .con = db_claims))
   stop("Number of distinct rows does not match total expected")
@@ -119,7 +106,7 @@ if (rows_load_raw - rows_stage != 42) {
                                   'stage.mcaid_elig',
                                   'Rows passed from load_raw to stage', 
                                   'PASS',
-                                  {Sys.Date()},
+                                  {Sys.time()},
                                   'Number of rows in stage matches load_raw (minus deduplicated end_reason rows)')",
                                   .con = db_claims))
     }
@@ -138,7 +125,7 @@ if (null_ids != 0) {
                                   'stage.mcaid_elig',
                                   'Null Medicaid IDs', 
                                   'FAIL',
-                                  {Sys.Date()},
+                                  {Sys.time()},
                                   'Null IDs found. Investigate further.')",
                                   .con = db_claims))
   stop("Null Medicaid IDs found in stage.mcaid_elig")
@@ -150,17 +137,18 @@ if (null_ids != 0) {
                                   'stage.mcaid_elig',
                                   'Null Medicaid IDs', 
                                   'PASS',
-                                  {Sys.Date()},
+                                  {Sys.time()},
                                   'No null IDs found')",
                                   .con = db_claims))
 }
 
 
 #### ADD INDEX ####
-if (!is.null(table_config$index_name)) {
-  index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX [{`table_config$index_name`}] ON 
+print("Adding index")
+if (!is.null(table_config_stage_elig$index_name)) {
+  index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX [{`table_config_stage_elig$index_name`}] ON 
                               {`to_schema`}.{`to_table`}({index_vars*})",
-                              index_vars = dbQuoteIdentifier(db_claims, table_config$index),
+                              index_vars = dbQuoteIdentifier(db_claims, table_config_stage_elig$index),
                               .con = db_claims)
   dbGetQuery(db_claims, index_sql)
 }
@@ -174,7 +162,7 @@ odbc::dbGetQuery(
                    VALUES ('stage.mcaid_elig',
                    'row_count', 
                    '{rows_stage}', 
-                   {Sys.Date()}, 
+                   {Sys.time()}, 
                    'Count after full refresh')",
                  .con = db_claims))
 
@@ -186,7 +174,6 @@ rm(dedup_sql)
 rm(vars, var_names, vars_dedup)
 rm(from_schema, from_table, to_schema, to_table)
 rm(rows_stage, rows_load_raw, null_ids)
-rm(table_config)
+rm(table_config_stage_elig)
 rm(index_sql)
-rm(list = ls(pattern = "_f$"))
 

@@ -1,13 +1,5 @@
-schema: load_raw
+schema: stage
 table: mcaid_claim
-years:
-    - 2012
-    - 2013
-    - 2014
-    - 2015
-    - 2016
-    - 2017
-    - 2018
 vars:
     MBR_H_SID: INT
     MEDICAID_RECIPIENT_ID: VARCHAR(255)
@@ -91,6 +83,7 @@ vars:
     DAYS_SUPPLY: INT
     DRUG_DOSAGE: VARCHAR(255)
     PACKAGE_SIZE_UOM: VARCHAR(255)
+    SBMTD_DISPENSED_QUANTITY: NUMERIC(19,3)
     PRSCRBR_ID: VARCHAR(255)
     PRVDR_LCTN_H_SID: BIGINT
     NPI: BIGINT
@@ -127,3 +120,4 @@ vars:
     BILL_DATE: DATE
     SYSTEM_IN_DATE: DATE
     TCN_DATE: DATE
+    etl_batch_id: SMALLINT
