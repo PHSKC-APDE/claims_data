@@ -5,19 +5,8 @@
 #
 # 2019-05
 
-#### Set up global parameter and call in libraries ####
-options(max.print = 350, tibble.print_max = 50, warning.length = 8170)
-
-library(tidyverse) # Manipulate data
-library(odbc) # Read to and write from SQL
-library(RCurl) # Read files from Github
-library(configr) # Read in YAML files
-library(glue)
-
-db_claims <- dbConnect(odbc(), "PHClaims51")
-
-#### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+### Run from master_mcaid_full script
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
 
 
 #### FIND MOST RECENT BATCH ID FROM SOURCE (LOAD_RAW) ####
@@ -25,15 +14,10 @@ current_batch_id <- as.numeric(odbc::dbGetQuery(db_claims,
                                      "SELECT MAX(etl_batch_id) FROM load_raw.mcaid_elig"))
 
 
-#### CREATE TABLE ####
-# Note this is only used because this script is for a full refresh
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig.yaml",
-               overall = T, ind_yr = F)
-
-
 #### LOAD TABLE ####
 # Can't use default load function because some transformation is needed
+# Need to deduplicate rows (n=42) where there were two, differing, end reasons for a given month and RAC.
+# Use priority set out below (higher resaon score = higher priority)
 
 ### Call in config file to get vars
 table_config <- yaml::yaml.load(RCurl::getURL(
@@ -54,6 +38,7 @@ vars_dedup <- lapply(var_names, DBI::dbQuoteIdentifier, conn = db_claims)
 
 
 ### Set up temporary table
+print("Setting up a temp table to remove duplicate rows")
 # This can then be used to deduplicate rows with differing end reasons
 # Remove temp table if it exists
 try(odbc::dbRemoveTable(db_claims, "##mcaid_elig", temporary = T))
@@ -72,6 +57,7 @@ odbc::dbGetQuery(db_claims,
                                 .con = db_claims))
 
 ### Manipulate the temporary table to deduplicate and then insert into stage
+print("Deduplicating elig table and loading data to stage")
 dedup_sql <- glue::glue_sql(
   'INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
   SELECT {`vars_dedup`*} FROM
@@ -95,6 +81,7 @@ odbc::dbGetQuery(db_claims, dedup_sql)
 
 
 #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
+print("Running QA checks")
 # Because of deduplication, should be 42 less than load_raw table
 rows_stage <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.mcaid_elig"))
 rows_load_raw <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM load_raw.mcaid_elig"))
@@ -157,6 +144,7 @@ if (null_ids != 0) {
 
 
 #### ADD INDEX ####
+print("Adding index")
 if (!is.null(table_config$index_name)) {
   index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX [{`table_config$index_name`}] ON 
                               {`to_schema`}.{`to_table`}({index_vars*})",
