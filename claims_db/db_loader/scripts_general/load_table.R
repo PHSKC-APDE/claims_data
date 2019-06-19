@@ -333,6 +333,7 @@ load_table_from_file_f <- function(
       
       # Set up SQL code to load columns
       sql_combine <- glue::glue_sql("INSERT INTO {`schema`}.{`table_name`} WITH (TABLOCK) 
+                                    {`vars`*} 
                                     SELECT {`vars`*} FROM (", 
                                     .con = conn,
                                     vars = all_vars)
