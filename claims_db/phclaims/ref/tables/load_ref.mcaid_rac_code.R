@@ -1,4 +1,5 @@
 
+library("chron")
 library("dplyr")
 library("dbplyr")
 library("DBI")
@@ -18,10 +19,17 @@ db.connection <- dbConnect(odbc(), dsn)
 file.dir <- "L:/DCHSPHClaimsData/Analyses/Philip/99_Documentation/RDA/"
 
 input <- read.xlsx(paste0(file.dir, "Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS.xlsx"), sheet = 1)
-dbWriteTable(db.connection, "Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS-1", input, overwrite=TRUE)
+tbl <- Id(schema="tmp", table="Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS-1")
+dbWriteTable(db.connection, name=tbl, value=input, overwrite=TRUE)
 
 input <- read.xlsx(paste0(file.dir, "Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS.xlsx"), sheet = 2)
-dbWriteTable(db.connection, "Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS-2", input, overwrite=TRUE)
+tbl <- Id(schema="tmp", table="Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS-2")
+dbWriteTable(db.connection, name=tbl, value=input, overwrite=TRUE)
 
 input <- read.xlsx(paste0(file.dir, "Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS.xlsx"), sheet = 3)
-dbWriteTable(db.connection, "Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS-3", input, overwrite=TRUE)
+tbl <- Id(schema="tmp", table="Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS-3")
+dbWriteTable(db.connection, name=tbl, value=input, overwrite=TRUE)
+
+input <- read.xlsx(paste0(file.dir, "Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS.xlsx"), sheet = 4)
+tbl <- Id(schema="tmp", table="Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS-4")
+dbWriteTable(db.connection, name=tbl, value=input, overwrite=TRUE)
