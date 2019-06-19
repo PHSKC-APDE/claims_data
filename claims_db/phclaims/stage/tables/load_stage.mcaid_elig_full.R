@@ -94,7 +94,7 @@ if (rows_load_raw - rows_stage != 42) {
                                   'stage.mcaid_elig',
                                   'Rows passed from load_raw to stage', 
                                   'FAIL',
-                                  {Sys.Date()},
+                                  {Sys.time()},
                                   'Issue even after accounting for the 42 people with duplicate rows. Investigate further.')",
                                   .con = db_claims))
   stop("Number of distinct rows does not match total expected")
@@ -106,7 +106,7 @@ if (rows_load_raw - rows_stage != 42) {
                                   'stage.mcaid_elig',
                                   'Rows passed from load_raw to stage', 
                                   'PASS',
-                                  {Sys.Date()},
+                                  {Sys.time()},
                                   'Number of rows in stage matches load_raw (minus deduplicated end_reason rows)')",
                                   .con = db_claims))
     }
@@ -125,7 +125,7 @@ if (null_ids != 0) {
                                   'stage.mcaid_elig',
                                   'Null Medicaid IDs', 
                                   'FAIL',
-                                  {Sys.Date()},
+                                  {Sys.time()},
                                   'Null IDs found. Investigate further.')",
                                   .con = db_claims))
   stop("Null Medicaid IDs found in stage.mcaid_elig")
@@ -137,7 +137,7 @@ if (null_ids != 0) {
                                   'stage.mcaid_elig',
                                   'Null Medicaid IDs', 
                                   'PASS',
-                                  {Sys.Date()},
+                                  {Sys.time()},
                                   'No null IDs found')",
                                   .con = db_claims))
 }
@@ -162,7 +162,7 @@ odbc::dbGetQuery(
                    VALUES ('stage.mcaid_elig',
                    'row_count', 
                    '{rows_stage}', 
-                   {Sys.Date()}, 
+                   {Sys.time()}, 
                    'Count after full refresh')",
                  .con = db_claims))
 
