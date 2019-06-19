@@ -44,6 +44,10 @@ load_sql <- glue::glue_sql(
 )
 
 
+print("Loading to SQL")
+odbc::dbGetQuery(db_claims, load_sql)
+
+
 #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
 print("Running QA checks")
 # Because of deduplication, should be 42 less than load_raw table
@@ -59,7 +63,7 @@ if (rows_load_raw != rows_stage) {
                                   'Rows passed from load_raw to stage', 
                                   'FAIL',
                                   {Sys.time()},
-                                  'Number of rows in stage doesn't match load_raw)",
+                                  'Number of rows in stage does not match load_raw')",
                                   .con = db_claims))
   stop("Number of rows does not match total expected")
   } else {
