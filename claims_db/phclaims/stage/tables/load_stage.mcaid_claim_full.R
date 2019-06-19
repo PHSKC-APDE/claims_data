@@ -35,6 +35,7 @@ vars_truncated <- vars[!vars %in% c("MBR_H_SID", "MEDICAID_RECIPIENT_ID",
 
 load_sql <- glue::glue_sql(
   "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
+  {`vars`*} 
   SELECT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
   MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
   CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE,
