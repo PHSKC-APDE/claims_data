@@ -596,26 +596,38 @@ elig_demoever_final <- list(elig_dob, elig_gender_final, elig_race_final, elig_l
 
 
 ### Add in date for last run
-elig_demoever_final <- elig_demoever_final %>%
-  mutate(last_run = Sys.time())
+elig_demoever_final <- elig_demoever_final %>% mutate(last_run = Sys.time())
 
 
 #### Load to SQL server ####
 print("Loading to SQL")
+
+# Bring in table load config
+table_config_create <- yaml::yaml.load(getURL(
+  "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig_demo.yaml"))
+
+# Need to manually truncate table so can use overwrite = F below (so column types work)
+dbGetQuery(db_claims, "TRUNCATE TABLE stage.mcaid_elig_demo")
+
 # Set up table name
 tbl_id_meta <- DBI::Id(schema = "stage", table = "mcaid_elig_demo")
 
 # Write data
-dbWriteTable(db_claims, tbl_id_meta, 
-             value = as.data.frame(elig_demoever_final), overwrite = T)
+dbWriteTable(db_claims, tbl_id_meta, value = as.data.frame(elig_demoever_final),
+             overwrite = F, append = T,
+             field.types = paste(names(table_config_create$vars), 
+                                 table_config_create$vars, 
+                                 collapse = ", ", sep = " = "))
 
-#Drop individual tables
+
+#### CLEAN UP ####
+# Drop individual tables
 rm(elig_dob, elig_gender_final, elig_race_final, elig_lang_final, elig_demoever)
 rm(tbl_id_meta)
 rm(elig_demoever_final)
 rm(list = ls(pattern = "_txt"))
 rm(cols, origin)
-rm(create_table_f)
+rm(table_config_create)
 gc()
 
 print("load_stage.mcaid_elig_demo created")
