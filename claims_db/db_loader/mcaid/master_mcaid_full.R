@@ -72,6 +72,19 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_full.R")
 
 
+
+#### STAGE CLAIM ####
+### Create table
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim.yaml",
+               overall = T, ind_yr = F)
+
+### Load table
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_full.R")
+
+
+
+
 #### CREATE ELIG ANALYTIC TABLES ####
 #### MCAID_ELIG_DEMO ####
 # Create and load stage version
