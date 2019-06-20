@@ -9,16 +9,8 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
 
 
-#### FIND MOST RECENT BATCH ID FROM SOURCE (LOAD_RAW) ####
-current_batch_id <- as.numeric(odbc::dbGetQuery(db_claims,
-                                     "SELECT MAX(etl_batch_id) FROM load_raw.mcaid_claim"))
 
-
-#### LOAD TABLE ####
-# Can't use default load function because some transformation is needed
-# Need to make two new variables
-
-# Call in config file to get vars
+#### CALL IN CONFIG FILE TO GET VARS ####
 table_config_stage_claim <- yaml::yaml.load(RCurl::getURL(
   "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_full.yaml"
 ))
@@ -30,12 +22,25 @@ to_table <- table_config_stage_claim$to_table
 vars <- unlist(table_config_stage_claim$vars)
 
 # Need to keep only the vars that come after the named ones below
-vars_truncated <- vars[!vars %in% c("MBR_H_SID", "MEDICAID_RECIPIENT_ID",
-                                    "BABY_ON_MOM_IND", "TCN", "CLM_LINE_TCN")]
+vars_truncated <- vars[!vars %in% c("CLNDR_YEAR_MNTH", "MBR_H_SID", 
+                                    "MEDICAID_RECIPIENT_ID", "BABY_ON_MOM_IND", 
+                                    "TCN", "CLM_LINE_TCN", "CLM_LINE")]
 
+
+#### FIND MOST RECENT BATCH ID FROM SOURCE (LOAD_RAW) ####
+current_batch_id <- as.numeric(odbc::dbGetQuery(db_claims,
+                                     "SELECT MAX(etl_batch_id) FROM {`from_schema`}.{`from_table`}"))
+
+if (is.na(current_batch_id)) {
+  stop(glue::glue_sql("Missing etl_batch_id in {`from_schema`}.{`from_table`}"))
+}
+
+#### LOAD TABLE ####
+# Can't use default load function because some transformation is needed
+# Need to make two new variables
 load_sql <- glue::glue_sql(
   "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
-  {`vars`*} 
+  ({`vars`*}) 
   SELECT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
   MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
   CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE,

@@ -9,17 +9,7 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
 
 
-#### FIND MOST RECENT BATCH ID FROM SOURCE (LOAD_RAW) ####
-current_batch_id <- as.numeric(odbc::dbGetQuery(db_claims,
-                                     "SELECT MAX(etl_batch_id) FROM load_raw.mcaid_elig"))
-
-
-#### LOAD TABLE ####
-# Can't use default load function because some transformation is needed
-# Need to deduplicate rows (n=42) where there were two, differing, end reasons for a given month and RAC.
-# Use priority set out below (higher resaon score = higher priority)
-
-### Call in config file to get vars
+#### CALL IN CONFIG FILE TO GET VARS ####
 table_config_stage_elig <- yaml::yaml.load(RCurl::getURL(
   "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_full.yaml"
 ))
@@ -36,6 +26,20 @@ var_names <- lapply(table_config_stage_elig$vars,
                     function(nme) DBI::Id(table = "a", column = nme))
 vars_dedup <- lapply(var_names, DBI::dbQuoteIdentifier, conn = db_claims)
 
+
+#### FIND MOST RECENT BATCH ID FROM SOURCE (LOAD_RAW) ####
+current_batch_id <- as.numeric(odbc::dbGetQuery(db_claims,
+                                     "SELECT MAX(etl_batch_id) FROM load_raw.mcaid_elig"))
+
+if (is.na(current_batch_id)) {
+  stop(glue::glue_sql("Missing etl_batch_id in {`from_schema`}.{`from_table`}"))
+}
+
+
+#### LOAD TABLE ####
+# Can't use default load function because some transformation is needed
+# Need to deduplicate rows (n=42) where there were two, differing, end reasons for a given month and RAC.
+# Use priority set out below (higher resaon score = higher priority)
 
 ### Set up temporary table
 print("Setting up a temp table to remove duplicate rows")
