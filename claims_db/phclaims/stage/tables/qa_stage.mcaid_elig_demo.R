@@ -10,6 +10,7 @@
 qa_mcaid_elig_demo_f <- function(conn = db_claims,
                                  load_only = F) {
   
+  print("Running QA on stage.mcaid_elig_demo")
   # If this is the first time ever loading data, skip some checks.
   #   Otherwise, check against existing QA values
   
@@ -112,6 +113,8 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
   
   
   #### LOAD VALUES TO QA_VALUES TABLE ####
+  print("Loading values to metadata.qa_mcaid_values")
+  
   load_sql <- glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
                              (table_name, qa_item, qa_value, qa_date, note) 
                              VALUES ('stage.mcaid_elig_demo',
@@ -123,6 +126,8 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
   
   odbc::dbGetQuery(conn = conn, load_sql)
   
+  
+  print("QA complete")
   
 }
 
