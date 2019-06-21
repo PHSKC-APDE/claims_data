@@ -10,7 +10,6 @@ vars:
     geo_add1_clean: VARCHAR(255)
     geo_add2_clean: VARCHAR(255)
     geo_city_clean: VARCHAR(255)
-    geo_county_fips_clean: INTEGER
     geo_state_clean: VARCHAR(255)
     geo_zip_clean: VARCHAR(255)
     geo_source_mcaid: INTEGER
