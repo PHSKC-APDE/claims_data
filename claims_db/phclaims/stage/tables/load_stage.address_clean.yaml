@@ -5,7 +5,6 @@ to_table: address_clean
 index_name: 
 index:
 vars:
-  - id_mcaid
   - geo_add1_raw
   - geo_add2_raw
   - geo_add3_raw
