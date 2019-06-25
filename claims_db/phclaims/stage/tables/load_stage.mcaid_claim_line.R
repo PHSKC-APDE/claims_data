@@ -7,8 +7,8 @@
 # R functions created by Alastair Matheson, PHSKC (APDE), 2019-05
 # Modified by: Philip Sylling, 2019-06-11
 # 
-# Data Pull Run time: XX min
-# Create Index Run Time: XX min
+# Data Pull Run time: 7.68 min
+# Create Index Run Time: 7.2 min
 # 
 # Table 'mcaid_claim'. Scan count 3, logical reads 8955218, physical reads 0, read-ahead reads 8926013, lob logical reads 0, lob physical reads 0, lob read-ahead reads 0.
 # Table 'Worktable'. Scan count 0, logical reads 0, physical reads 0, read-ahead reads 621302, lob logical reads 0, lob physical reads 0, lob read-ahead reads 0.

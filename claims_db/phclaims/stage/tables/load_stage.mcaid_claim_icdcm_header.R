@@ -6,8 +6,8 @@
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05
 # Modified by: Philip Sylling, 2019-06-11
 # 
-# Data Pull Run time: XX min
-# Create Index Run Time: XX min
+# Data Pull Run time: 17.36 min
+# Create Index Run Time: 9.44 min
 # 
 # Returns
 # [stage].[mcaid_claim_icdcm_header]
