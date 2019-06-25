@@ -1,4 +1,4 @@
-schema: stage
+schema: archive
 table: address_clean
 vars:
     geo_add1_raw: VARCHAR(255)

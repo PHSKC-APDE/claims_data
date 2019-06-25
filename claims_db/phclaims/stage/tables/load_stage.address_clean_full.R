@@ -80,29 +80,6 @@ pha_add_full <- dbGetQuery(db_apde51,
                       FROM stage.pha_address_new")
 
 
-check <- pha_add_full %>%
-  distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw) %>%
-  mutate_all(funs(ifelse(. == "" | . == "NA", NA_character_, .))) %>%
-  anti_join(., bind_rows(pha_add, joint_add),
-            by = c("geo_add1_raw", "geo_add2_raw", "geo_city_raw", "geo_state_raw"))
-
-check <- pha_add_full %>%
-  #distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw) %>%
-  mutate_all(funs(ifelse(. == "", NA_character_, .))) %>%
-  anti_join(., bind_rows(pha_add, joint_add),
-            by = c("geo_add1_raw", "geo_add2_raw", "geo_city_raw", "geo_state_raw"))
-
-
-
-check2 <- inner_join(pha_add_full, check)
-
-
-check3 <- anti_join(pha_add, bind_rows(pha_add_bk, joint_add))
-
-
-
-
-
 # Subset to partially cleaned addresses and set missing add to NA to match Medicaid
 pha_add <- pha_add_full %>%
   distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw,

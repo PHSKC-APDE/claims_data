@@ -1,0 +1,21 @@
+from_schema: ref
+from_table: address_clean
+to_schema: stage
+to_table: address_clean
+index_name: 
+index:
+vars:
+  - geo_add1_raw
+  - geo_add2_raw
+  - geo_add3_raw
+  - geo_city_raw
+  - geo_state_raw
+  - geo_zip_raw
+  - geo_add1_clean
+  - geo_add2_clean
+  - geo_city_clean
+  - geo_state_clean
+  - geo_zip_clean
+  - geo_source_mcaid
+  - geo_source_pha
+  

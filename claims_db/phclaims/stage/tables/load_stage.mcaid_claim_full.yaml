@@ -6,11 +6,13 @@ index_name: idx_cl_load_raw_mcaid_claim_CLNDR_YEAR_MNTH
 index:
     - CLNDR_YEAR_MNTH
 vars:
+    - CLNDR_YEAR_MNTH
     - MBR_H_SID
     - MEDICAID_RECIPIENT_ID
     - BABY_ON_MOM_IND
     - TCN
     - CLM_LINE_TCN
+    - CLM_LINE
     - ORGNL_TCN
     - RAC_CODE_H
     - RAC_CODE_L

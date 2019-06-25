@@ -39,6 +39,9 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                               delivery_date = etl_delivery_date, 
                                               note = etl_note)
   
+  if (is.na(current_batch_id)) {
+    stop("No etl_batch_id. Check metadata.etl_log table")
+  }
   
   
   #### QA CHECK: ACTUAL VS EXPECTED ROW COUNTS ####
