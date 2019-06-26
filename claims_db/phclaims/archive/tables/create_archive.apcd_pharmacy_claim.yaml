@@ -1,0 +1,55 @@
+schema: archive
+table: apcd_pharmacy_claim
+vars:
+    pharmacy_claim_service_line_id: bigint
+    extract_id: int
+    submitter_id: int
+    internal_member_id: bigint
+    submitter_clm_control_num: varchar(272)
+    product_code_id: int
+    product_code: varchar(20)
+    gender_code: varchar(2)
+    age: int
+    age_in_months: int
+    subscriber_relationship_id: bigint
+    subscriber_relationship_code: varchar(10)
+    line_counter: int
+    prescription_filled_dt: date
+    first_paid_dt: date
+    last_paid_dt: date
+    national_drug_code: varchar(11)
+    drug_name: varchar(80)
+    claim_status_id: int
+    claim_status_code: varchar(20)
+    quantity: numeric(38, 2)
+    days_supply: int
+    thirty_day_equivalent: int
+    charge_amt: numeric(38, 2)
+    refill_number: int
+    generic_drug_ind_id: int
+    generic_drug_ind_code: varchar(10)
+    compound_drug_code_id: int
+    compound_drug_code: varchar(10)
+    dispense_as_written_id: int
+    dispense_as_written_code: varchar(20)
+    pharmacy_mail_order_code: varchar(2)
+    pharmacy_provider_id: int
+    pharmacy_internal_provider_id: int
+    prscrbing_provider_id: int
+    prscrbing_internal_provider_id: int
+    network_indicator_id: int
+    network_indicator_code: varchar(20)
+    city: varchar(100)
+    state: varchar(2)
+    zip: varchar(5)
+    age_65_flag: varchar(1)
+    out_of_state_flag: varchar(1)
+    orphaned_adjustment_flag: varchar(1)
+    denied_claim_flag: varchar(1)
+    dup_flag_pbm_tpa: varchar(1)
+    dup_flag_managed_care: varchar(1)
+    dup_flag_part_d: varchar(1)
+    medicaid_ffs_flag: varchar(2)
+    injury_dt: date
+    benefits_exhausted_dt: date
+
