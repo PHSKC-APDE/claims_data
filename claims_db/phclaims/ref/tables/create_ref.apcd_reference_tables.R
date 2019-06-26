@@ -5,6 +5,10 @@
 #### Import APCD data from Amazon S3 bucket to SQL Server - REFERENCE TABLES ####
 ## Update method: complete overwrite
 
+#### Note for extract_date table !!!! ####
+#OnPoint appears to have overwritten this table so that it only has the most current extract
+#Thus we should append the new records to the existing table rather than overwrite this reference table
+
 
 ##### Set up global parameters and call in libraries #####
 options(max.print = 350, tibble.print_max = 50, scipen = 999)
