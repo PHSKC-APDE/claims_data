@@ -1,0 +1,21 @@
+from_schema: stage
+from_table: apcd_provider_practice_roster
+to_schema: archive
+to_table: apcd_provider_practice_roster
+vars:
+  - npi
+  - first_name
+  - middle_name
+  - last_name
+  - professional_credential
+  - practice_organization_id
+  - primary_organization_ind
+  - affiliation_begin_dt
+  - affiliation_end_dt
+  - organization_name
+  - organization_type
+  - practice_street_address1
+  - practice_street_address2
+  - practice_city
+  - practice_state
+  - practice_zip
