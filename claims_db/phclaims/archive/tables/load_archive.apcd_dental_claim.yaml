@@ -3,7 +3,7 @@ from_table: apcd_dental_claim
 to_schema: archive
 to_table: apcd_dental_claim
 vars:
-  - [dental_claim_service_line_id
+  - dental_claim_service_line_id
   - extract_id
   - submitter_id
   - internal_member_id
