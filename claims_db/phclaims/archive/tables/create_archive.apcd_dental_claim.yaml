@@ -49,4 +49,3 @@ vars:
     orphaned_adjustment_flag: varchar(1)
     denied_claim_flag: varchar(1)
 
-
