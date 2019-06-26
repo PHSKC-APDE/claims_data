@@ -1,0 +1,21 @@
+schema: archive
+table: apcd_provider
+vars:
+    provider_id: bigint
+    extract_id: bigint
+    submitter_id: bigint
+    internal_provider_id: bigint
+    organization_name: varchar(100)
+    last_name: varchar(100)
+    first_name: varchar(35)
+    middle_name: varchar(25)
+    generation_suffix: varchar(5)
+    entity_type: varchar(20)
+    professional_credential_code: varchar(20)
+    orig_npi: varchar(20)
+    primary_specialty_id: bigint
+    primary_specialty_code: varchar(20)
+    city: varchar(100)
+    state: varchar(2)
+    zip: varchar(5)
+
