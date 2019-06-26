@@ -33,9 +33,20 @@ create_table_f(
   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/create_archive.apcd_cmsdrg_output_multi_ver.yaml",
   overall = T, ind_yr = F, overwrite = T)
 
-load_table_from_sql_f(
+system.time(load_table_from_sql_f(
   conn = db_claims,
   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.apcd_cmsdrg_output_multi_ver.yaml", 
-  truncate = T, truncate_date = F)
+  truncate = T, truncate_date = F))
+
+#### archive.apcd_dental_claim ####
+create_table_f(
+  conn = db_claims, 
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/create_archive.apcd_dental_claim.yaml",
+  overall = T, ind_yr = F, overwrite = T)
+
+system.time(load_table_from_sql_f(
+  conn = db_claims,
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.apcd_dental_claim.yaml", 
+  truncate = T, truncate_date = F))
 
 
