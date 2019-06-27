@@ -2,13 +2,7 @@
 # APDE, PHSKC
 # 2019-6-29
 
-#### Import APCD data from Amazon S3 bucket to SQL Server - REFERENCE TABLES ####
-## Update method: complete overwrite
-
-#### Note for extract_date table !!!! ####
-#OnPoint appears to have overwritten this table so that it only has the most current extract
-#Thus we should append the new records to the existing table rather than overwrite this reference table
-
+#### Import APCD data from Amazon S3 bucket to SQL Server - load_raw.apcd_member_month_detail ####
 
 ##### Set up global parameters and call in libraries #####
 options(max.print = 350, tibble.print_max = 50, scipen = 999)
@@ -44,6 +38,7 @@ bcp_load_f <- function(server = NULL, table = NULL, read_file = NULL, format_fil
   #print(bcp_args)
 }
 
+
 #### STEP 2: Set universal parameters ####
 write_path <- "\\\\phdata01/epe_data/APCD/Data_export/" ##Folder to save Amazon S3 files to
 s3_folder <- "\"s3://waae-kc-ext/apcd_export/\"" ##Name of S3 folder containing data and format files
@@ -53,53 +48,46 @@ sql_server_odbc_name = "PHClaims51"
 sql_database_conn <- dbConnect(odbc(), sql_server_odbc_name) ##Connect to SQL server
 sql_database_name <- "phclaims" ##Name of SQL database where table will be created
 
+
 #### STEP 3: Create SQL table shell ####
 
 ##Set parameters specific to tables
-sql_schema_name <- "ref" ##Name of schema where table will be created
-read_path <- paste0(write_path, "small_table_reference_export/")
-format_file_list <- as.list(list.files(path = file.path(read_path), pattern = "*format.xml", full.names = T))
+read_path <- paste0(write_path, "member_month_detail_export/")
+sql_schema_name <- "load_raw" ##Name of schema where table will be created
+apcd_format_file <- list.files(path = file.path(read_path), pattern = "*format.xml", full.names = T)
 long_file_list <- as.list(list.files(path = file.path(read_path), pattern = "*.csv", full.names = T))
 short_file_list <- as.list(gsub(".csv", "", list.files(path = file.path(read_path), pattern = "*.csv", full.names = F)))
 
 ##Create tables, looping over file list
-system.time(lapply(seq_along(format_file_list), y=format_file_list, function(y, i) {
+#Extract table name
+table_name_part <- gsub("_1", "", short_file_list[[1]])
+sql_table <- paste0("apcd_", table_name_part) ##Name of SQL table to be created and loaded to
 
-  #Extract table name
-  table_name_part <- short_file_list[[i]]
-  sql_table <- paste0("apcd_", table_name_part) ##Name of SQL table to be created and loaded to
+#Extract column names and types from XML format file
+format_xml <- xmlParse(apcd_format_file)
+format_df <- xmlToDataFrame(nodes = xmlChildren(xmlRoot(format_xml)[["data"]]))
+names <- xmlToDataFrame(nodes = xmlChildren(xmlRoot(format_xml)[["table-def"]]))
+colNames <- (names$'column-name'[!is.na(names$'column-name')])
+colnames(format_df) <- colNames
+format_vector <- deframe(select(arrange(format_df, as.numeric(as.character(POSITION))), COLUMN_NAME, DATA_TYPE))  
 
-  #Extract column names and types from XML format file
-  apcd_format_file <- y[[i]]
-  format_xml <- xmlParse(apcd_format_file)
-  format_df <- xmlToDataFrame(nodes = xmlChildren(xmlRoot(format_xml)[["data"]]))
-  names <- xmlToDataFrame(nodes = xmlChildren(xmlRoot(format_xml)[["table-def"]]))
-  colNames <- (names$'column-name'[!is.na(names$'column-name')])
-  colnames(format_df) <- colNames
-  format_vector <- deframe(select(arrange(format_df, as.numeric(as.character(POSITION))), COLUMN_NAME, DATA_TYPE))
+#Drop table if it exists
+if(dbExistsTable(sql_database_conn, name = DBI::Id(schema = sql_schema_name, table = sql_table)) == T) {
+  dbRemoveTable(sql_database_conn, name = DBI::SQL(paste0(sql_database_name, ".", sql_schema_name, ".", sql_table)))}
 
-  #Drop table if it exists
-  if(dbExistsTable(sql_database_conn, name = DBI::Id(schema = sql_schema_name, table = sql_table)) == T) {
-    dbRemoveTable(sql_database_conn, name = DBI::SQL(paste0(sql_database_name, ".", sql_schema_name, ".", sql_table)))}
+#Create table shell using format file from APCD
+dbCreateTable(sql_database_conn, name = DBI::SQL(paste0(sql_database_name, ".", sql_schema_name, ".", sql_table)), 
+              fields = format_vector, row.names = NULL)
 
-  #Create table shell using format file from APCD
-  dbCreateTable(sql_database_conn, name = DBI::SQL(paste0(sql_database_name, ".", sql_schema_name, ".", sql_table)),
-                fields = format_vector, row.names = NULL)
-}))
 
 #### STEP 4: Load data to SQL table using BCP ####
-#Run time for 11 tables: 4 sec
 
 ## Copy CSV data files to SQL Server, looping over all files
 system.time(lapply(seq_along(long_file_list), y=long_file_list, function(y, i) {
-
-  #Extract table name
-  table_name_part <- short_file_list[[i]]
-  sql_table <- paste0("apcd_", table_name_part) ##Name of SQL table to be created and loaded to
-  print(table_name_part)
-
+  
   #Load data using BCP
   file_name <- y[[i]]
+  print(file_name)
   bcp_load_f(server = sql_server, table = paste0(sql_database_name, ".", sql_schema_name, ".", sql_table), read_file = file_name)
 }))
 

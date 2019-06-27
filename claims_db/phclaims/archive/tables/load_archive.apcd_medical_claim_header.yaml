@@ -1,0 +1,33 @@
+from_schema: stage
+from_table: apcd_medical_claim_header
+to_schema: archive
+to_table: apcd_medical_claim_header
+index_name: idx_cl_archive_apcd_medical_claim_header_first_service_dt
+index:
+  - first_service_dt
+vars:
+  - medical_claim_header_id
+  - extract_id
+  - submitter_id
+  - internal_member_id
+  - internal_provider_id
+  - product_code_id
+  - product_code
+  - age
+  - first_service_dt
+  - last_service_dt
+  - first_paid_dt
+  - last_paid_dt
+  - charge_amt
+  - diagnosis_code
+  - icd_version_ind
+  - header_status
+  - denied_header_flag
+  - orphaned_header_flag
+  - claim_type_id
+  - type_of_setting_id
+  - place_of_setting_id
+  - type_of_bill_code
+  - emergency_room_flag
+  - operating_room_flag
+

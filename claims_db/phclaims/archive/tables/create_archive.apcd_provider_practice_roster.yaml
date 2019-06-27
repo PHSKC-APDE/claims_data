@@ -1,0 +1,20 @@
+schema: archive
+table: apcd_provider_practice_roster
+vars:
+    npi: numeric(38, 0)
+    first_name: varchar(100)
+    middle_name: varchar(100)
+    last_name: varchar(100)
+    professional_credential: varchar(100)
+    practice_organization_id: numeric(38, 0)
+    primary_organization_ind: numeric(1, 0)
+    affiliation_begin_dt: date
+    affiliation_end_dt: date
+    organization_name: varchar(400)
+    organization_type: varchar(100)
+    practice_street_address1: varchar(100)
+    practice_street_address2: varchar(100)
+    practice_city: varchar(100)
+    practice_state: varchar(2)
+    practice_zip: varchar(5)
+

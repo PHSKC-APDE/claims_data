@@ -1,0 +1,8 @@
+schema: archive
+table: apcd_medical_crosswalk
+vars:
+    medical_claim_service_line_id: bigint
+    extract_id: int
+    inpatient_discharge_id: int
+    medical_claim_header_id: bigint
+

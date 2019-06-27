@@ -1,0 +1,24 @@
+schema: archive
+table: apcd_member_month_detail
+vars:
+    internal_member_id: bigint
+    extract_id: int
+    year_month: int
+    medical_product_code_id: int
+    medical_product_code: varchar(20)
+    medical_submitter_id: int
+    medical_eligibility_id: bigint
+    med_commercial_eligibility_id: bigint
+    med_medicare_eligibility_id: bigint
+    med_medicaid_eligibility_id: bigint
+    pharmacy_product_code_id: int
+    pharmacy_product_code: varchar(20)
+    pharmacy_submitter_id: int
+    pharmacy_eligibility_id: bigint
+    rx_commercial_eligibility_id: bigint
+    rx_medicare_eligibility_id: bigint
+    rx_medicaid_eligibility_id: bigint
+    age: int
+    gender_code: varchar(1)
+    zip_code: varchar(10)
+

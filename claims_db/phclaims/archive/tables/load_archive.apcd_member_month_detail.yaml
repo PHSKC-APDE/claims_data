@@ -1,0 +1,25 @@
+from_schema: stage
+from_table: apcd_member_month_detail
+to_schema: archive
+to_table: apcd_member_month_detail
+vars:
+  - internal_member_id
+  - extract_id
+  - year_month
+  - medical_product_code_id
+  - medical_product_code
+  - medical_submitter_id
+  - medical_eligibility_id
+  - med_commercial_eligibility_id
+  - med_medicare_eligibility_id
+  - med_medicaid_eligibility_id
+  - pharmacy_product_code_id
+  - pharmacy_product_code
+  - pharmacy_submitter_id
+  - pharmacy_eligibility_id
+  - rx_commercial_eligibility_id
+  - rx_medicare_eligibility_id
+  - rx_medicaid_eligibility_id
+  - age
+  - gender_code
+  - zip_code

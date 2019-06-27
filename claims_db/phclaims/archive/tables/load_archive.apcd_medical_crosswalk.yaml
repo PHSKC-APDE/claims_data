@@ -1,0 +1,9 @@
+from_schema: stage
+from_table: apcd_medical_crosswalk
+to_schema: archive
+to_table: apcd_medical_crosswalk
+vars:
+  - medical_claim_service_line_id
+  - extract_id
+  - inpatient_discharge_id
+  - medical_claim_header_id
