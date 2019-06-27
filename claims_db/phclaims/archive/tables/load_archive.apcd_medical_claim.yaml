@@ -2,6 +2,9 @@ from_schema: stage
 from_table: apcd_medical_claim
 to_schema: archive
 to_table: apcd_medical_claim
+index_name: idx_cl_archive_apcd_medical_claim_first_service_dt
+index:
+  - first_service_dt
 vars:
   - medical_claim_service_line_id
   - extract_id

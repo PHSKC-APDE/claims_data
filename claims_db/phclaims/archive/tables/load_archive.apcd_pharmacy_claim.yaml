@@ -2,6 +2,9 @@ from_schema: stage
 from_table: apcd_pharmacy_claim
 to_schema: archive
 to_table: apcd_pharmacy_claim
+index_name: idx_cl_archive_apcd_pharmacy_claim_first_paid_dt
+index:
+  - first_paid_dt
 vars:
   - pharmacy_claim_service_line_id
   - extract_id
