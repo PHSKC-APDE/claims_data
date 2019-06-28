@@ -13,6 +13,8 @@
 # [stage].[mcaid_claim_icdcm_header]
 #  [id_mcaid]
 # ,[claim_header_id]
+# ,[first_service_date]
+# ,[last_service_date]
 # ,[icdcm_raw]
 # ,[icdcm_norm]
 # ,[icdcm_version]
@@ -59,6 +61,8 @@ step2_sql <- glue::glue_sql("
 insert into [stage].[mcaid_claim_icdcm_header] with (tablock)
 ([id_mcaid]
 ,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
 ,[icdcm_raw]
 ,[icdcm_norm]
 ,[icdcm_version]
@@ -68,6 +72,8 @@ insert into [stage].[mcaid_claim_icdcm_header] with (tablock)
 select distinct
  id_mcaid
 ,claim_header_id
+,first_service_date
+,last_service_date
 --original diagnosis codes without zero right-padding
 ,cast(diagnoses as varchar(200)) as icdcm_raw
 
@@ -79,10 +85,10 @@ select distinct
 			when (diagnoses like '[0-9]%' and len(diagnoses) = 4) then diagnoses + '0'
 			-- Both ICD-9 and ICD-10 codes have 'V' and 'E' prefixes
 			-- Diagnoses prior to 2015-10-01 are ICD-9
-			when (diagnoses like 'V%' and TO_SRVC_DATE < '2015-10-01' and len(diagnoses) = 3) then diagnoses + '00'
-			when (diagnoses like 'V%' and TO_SRVC_DATE < '2015-10-01' and len(diagnoses) = 4) then diagnoses + '0'
-			when (diagnoses like 'E%' and TO_SRVC_DATE < '2015-10-01' and len(diagnoses) = 3) then diagnoses + '00'
-			when (diagnoses like 'E%' and TO_SRVC_DATE < '2015-10-01' and len(diagnoses) = 4) then diagnoses + '0'
+			when (diagnoses like 'V%' and last_service_date < '2015-10-01' and len(diagnoses) = 3) then diagnoses + '00'
+			when (diagnoses like 'V%' and last_service_date < '2015-10-01' and len(diagnoses) = 4) then diagnoses + '0'
+			when (diagnoses like 'E%' and last_service_date < '2015-10-01' and len(diagnoses) = 3) then diagnoses + '00'
+			when (diagnoses like 'E%' and last_service_date < '2015-10-01' and len(diagnoses) = 4) then diagnoses + '0'
 			else diagnoses 
 		end 
 	as varchar(200)) as icdcm_norm
@@ -91,8 +97,8 @@ select distinct
 	cast(
 		case
 			when (diagnoses like '[0-9]%') then 9
-			when (diagnoses like 'V%' and TO_SRVC_DATE < '2015-10-01') then 9
-			when (diagnoses like 'E%' and TO_SRVC_DATE < '2015-10-01') then 9
+			when (diagnoses like 'V%' and last_service_date < '2015-10-01') then 9
+			when (diagnoses like 'E%' and last_service_date < '2015-10-01') then 9
 			else 10 
 		end 
 	as tinyint) as icdcm_version
@@ -106,7 +112,8 @@ select
  MEDICAID_RECIPIENT_ID as id_mcaid
 ,TCN as claim_header_id
 --,CLM_LINE_TCN
-,TO_SRVC_DATE
+,FROM_SRVC_DATE as first_service_date
+,TO_SRVC_DATE as last_service_date
 ,PRIMARY_DIAGNOSIS_CODE as [01]
 ,DIAGNOSIS_CODE_2 as [02]
 ,DIAGNOSIS_CODE_3 as [03]
@@ -140,6 +147,8 @@ create clustered index [idx_cl_stage_mcaid_claim_icdcm_header_claim_header_id_ic
 on [stage].[mcaid_claim_icdcm_header]([claim_header_id], [icdcm_number]);
 create nonclustered index [idx_nc_stage_mcaid_claim_icdcm_header_icdcm_version_icdcm_norm] 
 on [stage].[mcaid_claim_icdcm_header]([icdcm_version], [icdcm_norm]);
+create nonclustered index [idx_nc_stage_mcaid_claim_icdcm_header_first_service_date] 
+on [stage].[mcaid_claim_icdcm_header]([first_service_date]);
 ", .con = conn)
 
 print("Running step 3: Create Indexes")
