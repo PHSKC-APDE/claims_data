@@ -4,6 +4,8 @@ vars:
     id_mcaid: varchar(200)
     claim_header_id: bigint
     claim_line_id: bigint
+    first_service_date: date
+    last_service_date: date
     rev_code: varchar(200)
     rac_code_line: int
     last_run: datetime

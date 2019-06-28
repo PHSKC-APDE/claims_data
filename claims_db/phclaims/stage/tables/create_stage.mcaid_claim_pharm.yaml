@@ -3,6 +3,8 @@ table: mcaid_claim_pharm
 vars:
     id_mcaid: varchar(255)
     claim_header_id: bigint
+    first_service_date: date
+    last_service_date: date
     ndc: varchar(255)
     rx_days_supply: smallint
     rx_quantity: numeric(19,3)
