@@ -3,8 +3,8 @@ table: mcaid_claim_icdcm_header
 vars:
     id_mcaid: varchar(255)
     claim_header_id: bigint
-    first_service_date date
-    last_service_date date
+    first_service_date: date
+    last_service_date: date
     icdcm_raw: varchar(255)
     icdcm_norm: varchar(255)
     icdcm_version: tinyint
