@@ -3,6 +3,8 @@ table: mcaid_claim_procedure
 vars:
     id_mcaid: varchar(200)
     claim_header_id: bigint
+    first_service_date: date
+    last_service_date: date
     procedure_code: varchar(200)
     procedure_code_number: varchar(4)
     modifier_1: varchar(200)

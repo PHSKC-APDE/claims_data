@@ -13,6 +13,7 @@ select 1
 from [stage].[mcaid_elig_demo] as b
 where a.id_mcaid = b.id_mcaid
 );
+go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
 insert into [metadata].[qa_mcaid]
@@ -34,6 +35,7 @@ select 1
 from [stage].[mcaid_elig_timevar] as b
 where a.id_mcaid = b.id_mcaid
 );
+go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
 insert into [metadata].[qa_mcaid]
@@ -50,6 +52,7 @@ select
 select min(len(icdcm_norm)) as min_len, max(len(icdcm_norm)) as max_len
 from [stage].[mcaid_claim_icdcm_header]
 where icdcm_version = 9;
+go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
 insert into [metadata].[qa_mcaid]
@@ -67,6 +70,7 @@ select count(*)
 from [stage].[mcaid_claim_icdcm_header]
 where [icdcm_version] = 10
 and len([icdcm_norm]) not in (3,4,5,6,7);
+go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
 insert into [metadata].[qa_mcaid]
@@ -96,6 +100,7 @@ where [icdcm_number] not in
 ,'11'
 ,'12'
 ,'admit');
+go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
 insert into [metadata].[qa_mcaid]
@@ -119,6 +124,7 @@ select 1
 from [ref].[dx_lookup] as b
 where a.[icdcm_version] = b.[dx_ver] and a.[icdcm_norm] = b.[dx]
 );
+go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
 insert into [metadata].[qa_mcaid]
@@ -141,6 +147,7 @@ select
   from [stage].[mcaid_claim_icdcm_header]) as numeric) /
  (select count(distinct id_mcaid) as id_dcount
   from [stage].[mcaid_claim_header]);
+go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
 insert into [metadata].[qa_mcaid]
@@ -171,8 +178,6 @@ SELECT
  YEAR([first_service_date]) AS [claim_year]
 ,COUNT(*) AS [current_num_dx]
 FROM [stage].[mcaid_claim_icdcm_header] AS a
-INNER JOIN [stage].[mcaid_claim_header] AS b
-ON a.[claim_header_id] = b.[claim_header_id]
 GROUP BY YEAR([first_service_date])
 )
 
@@ -185,6 +190,7 @@ FROM [final] AS a
 FULL JOIN [stage] AS b
 ON a.[claim_year] = b.[claim_year]
 ORDER BY [claim_year];
+go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
 insert into [metadata].[qa_mcaid]

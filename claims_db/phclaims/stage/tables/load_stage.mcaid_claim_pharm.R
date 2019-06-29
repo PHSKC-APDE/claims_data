@@ -48,13 +48,25 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 step1_sql <- glue::glue_sql("
 if object_id('[stage].[mcaid_claim_pharm]', 'U') is not null
 drop table [stage].[mcaid_claim_pharm];
+create table [stage].[mcaid_claim_pharm]
+([id_mcaid] varchar(255)
+,[claim_header_id] bigint
+,[ndc] varchar(255)
+,[rx_days_supply] smallint
+,[rx_quantity] numeric(19,3)
+,[rx_fill_date] date
+,[prescriber_id_format] varchar(10)
+,[prescriber_id] varchar(255)
+,[pharmacy_npi] bigint
+,[last_run] datetime)
+on [PRIMARY];
 ", .con = conn)
 odbc::dbGetQuery(conn = db_claims, step1_sql)
 
 #### CREATE TABLE ####
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_pharm.yaml",
-               overall = T, ind_yr = F)
+# create_table_f(conn = db_claims, 
+#                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_pharm.yaml",
+#                overall = T, ind_yr = F)
 
 step2_sql <- glue::glue_sql("
 insert into [stage].[mcaid_claim_pharm] with (tablock)
@@ -106,6 +118,8 @@ create clustered index [idx_cl_stage_mcaid_claim_pharm_claim_header_id]
 on [stage].[mcaid_claim_pharm]([claim_header_id]);
 create nonclustered index [idx_nc_stage_mcaid_claim_pharm_ndc] 
 on [stage].[mcaid_claim_pharm]([ndc]);
+create nonclustered index [idx_nc_stage_mcaid_claim_pharm_rx_fill_date] 
+on [stage].[mcaid_claim_pharm]([rx_fill_date]);
 ", .con = conn)
 
 print("Running step 3: Create Indexes")
