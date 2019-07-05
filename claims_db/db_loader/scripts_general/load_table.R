@@ -329,11 +329,13 @@ load_table_from_file_f <- function(
         add_vars_name <- paste0("vars_", x)
         all_vars <<- c(all_vars, unlist(table_config[[table_name_new]][[add_vars_name]]))
       })
-      
+      # Make sure there are no duplicate variables
+	  all_vars <- unique(all_vars)
+	  
       
       # Set up SQL code to load columns
       sql_combine <- glue::glue_sql("INSERT INTO {`schema`}.{`table_name`} WITH (TABLOCK) 
-                                    {`vars`*} 
+                                    ({`vars`*}) 
                                     SELECT {`vars`*} FROM (", 
                                     .con = conn,
                                     vars = all_vars)
