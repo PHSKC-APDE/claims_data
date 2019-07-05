@@ -55,7 +55,7 @@ step1_sql <- glue::glue_sql(
 
 print("Running step 1: pull columns from raw and join to clean addresses")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step1_sql)
+odbc::dbGetQuery(conn = db_claims, step1_sql)
 time_end <- Sys.time()
 print(paste0("Step 1 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -84,7 +84,7 @@ step2a_sql <- glue::glue_sql(
 
 print("Running step 2a: calculate # months between each calmonth and previous calmonth")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step2a_sql)
+odbc::dbGetQuery(conn = db_claims, step2a_sql)
 time_end <- Sys.time()
 print(paste0("Step 2a took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -108,7 +108,7 @@ step2b_sql <- glue::glue_sql(
 
 print("Running step 2b: Generate unique ID for first date in contiguous series of dates")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step2b_sql)
+odbc::dbGetQuery(conn = db_claims, step2b_sql)
 time_end <- Sys.time()
 print(paste0("Step 2b took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -132,7 +132,7 @@ step2c_sql <- glue::glue_sql(
 
 print("Running step 2c: Replicate unique ID across contiguous dates")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step2c_sql)
+odbc::dbGetQuery(conn = db_claims, step2c_sql)
 time_end <- Sys.time()
 print(paste0("Step 2c took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -152,7 +152,7 @@ step3_sql <- glue::glue_sql(
 
 print("Running step 3: Remove duplicate rows")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step3_sql)
+odbc::dbGetQuery(conn = db_claims, step3_sql)
 time_end <- Sys.time()
 print(paste0("Step 3 took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -177,7 +177,7 @@ step4a_sql <- glue::glue_sql(
 
 print("Running step 4a: Make a start and end date for each month")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step4a_sql)
+odbc::dbGetQuery(conn = db_claims, step4a_sql)
 time_end <- Sys.time()
 print(paste0("Step 4a took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -207,7 +207,7 @@ step4b_sql <- glue::glue_sql(
 
 print("Running step 4b: Incorporate submonth coverage")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step4b_sql)
+odbc::dbGetQuery(conn = db_claims, step4b_sql)
 time_end <- Sys.time()
 print(paste0("Step 4b took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -236,7 +236,7 @@ step5a_sql <- glue::glue_sql(
 
 print("Running step 5a: Find the min/max dates for contiguous periods")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step5a_sql)
+odbc::dbGetQuery(conn = db_claims, step5a_sql)
 time_end <- Sys.time()
 print(paste0("Step 5a took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -271,7 +271,7 @@ step5b_sql <- glue::glue_sql(
 
 print("Running step 5b: Identify breaks in coverage")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step5b_sql)
+odbc::dbGetQuery(conn = db_claims, step5b_sql)
 time_end <- Sys.time()
 print(paste0("Step 5b took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -292,7 +292,7 @@ step5c_sql <- glue::glue_sql(
 
 print("Running step 5c: Create lagged variables to be used to identify additional nesting")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step5c_sql)
+odbc::dbGetQuery(conn = db_claims, step5c_sql)
 time_end <- Sys.time()
 print(paste0("Step 5c took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -316,7 +316,7 @@ step6a_sql <- glue::glue_sql(
 
 print("Running step 6a: Drop dates nested within other dates when they have the same start date")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step6a_sql)
+odbc::dbGetQuery(conn = db_claims, step6a_sql)
 time_end <- Sys.time()
 print(paste0("Step 6a took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -339,7 +339,7 @@ step6b_sql <- glue::glue_sql(
 
 print("Running step 6b: Identify rows that can be further collapsed")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step6b_sql)
+odbc::dbGetQuery(conn = db_claims, step6b_sql)
 time_end <- Sys.time()
 print(paste0("Step 6b took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -365,7 +365,7 @@ step6c_sql <- glue::glue_sql(
 
 print("Running step 6c: Collapse rows one last time and select variables for loading")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step6c_sql)
+odbc::dbGetQuery(conn = db_claims, step6c_sql)
 time_end <- Sys.time()
 print(paste0("Step 6c took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -376,7 +376,7 @@ print(paste0("Step 6c took ", round(difftime(time_end, time_start, units = "secs
 # Truncate stage.mcaid_elig_timevar (just in case)
 print("Running step 7a: Truncate stage table")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, "TRUNCATE TABLE stage.mcaid_elig_timevar")
+odbc::dbGetQuery(conn = db_claims, "TRUNCATE TABLE stage.mcaid_elig_timevar")
 time_end <- Sys.time()
 print(paste0("Step 7a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
@@ -417,7 +417,7 @@ step7b_sql <- glue::glue_sql(
 
 print("Running step 7b: Join to geocodes and load to stage table")
 time_start <- Sys.time()
-odbc::dbGetQuery(db_claims = db_claims, step7b_sql)
+odbc::dbGetQuery(conn = db_claims, step7b_sql)
 time_end <- Sys.time()
 print(paste0("Step 7b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
@@ -440,6 +440,7 @@ try(odbc::dbRemoveTable(db_claims, "##timevar_05c", temporary = T))
 try(odbc::dbRemoveTable(db_claims, "##timevar_06a", temporary = T))
 try(odbc::dbRemoveTable(db_claims, "##timevar_06b", temporary = T))
 try(odbc::dbRemoveTable(db_claims, "##timevar_06c", temporary = T))
+rm(list = ls(pattern = "step[0-9]{1, 2}_sql"))
 time_end <- Sys.time()
 print(paste0("Step 8 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
