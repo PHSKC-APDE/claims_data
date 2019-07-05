@@ -22,7 +22,7 @@ step1_sql <- glue::glue_sql(
   "SELECT DISTINCT a.id_mcaid, 
     CONVERT(DATE, CAST(a.CLNDR_YEAR_MNTH as varchar(200)) + '01', 112) AS calmonth, 
     a.fromdate, a.todate, a.dual, a.tpl,
-    a.rac_code_1, a.rac_code_2, a.mco_id,
+    a.rac_code_1, a.rac_code_2, a.rac_code_3, a.mco_id,
     b.geo_add1_clean, b.geo_add2_clean, b.geo_city_clean,
     b.geo_state_clean, b.geo_zip_clean,
     ROW_NUMBER() OVER(PARTITION BY a.id_mcaid, a.CLNDR_YEAR_MNTH 
@@ -392,7 +392,7 @@ step7b_sql <- glue::glue_sql(
       THEN 1 ELSE 0 END AS 'contiguous', 
     CASE WHEN a.dual = 'Y' THEN 1 ELSE 0 END AS dual,
     CASE WHEN a.tpl = 'Y' THEN 1 ELSE 0 END AS tpl,
-    a.rac_code_1, a.rac_code_2, a.mco_id,
+    a.rac_code_1, a.rac_code_2, a.rac_code_3, a.mco_id,
     a.geo_add1_clean, a.geo_add2_clean, a.geo_city_clean, a.geo_state_clean, a.geo_zip_clean,
     b.geo_zip_centroid, b.geo_street_centroid, b.geo_countyfp10, b.geo_tractce10, 
     b.geo_hra_id, b.geo_school_geoid10, a.cov_time_day,
