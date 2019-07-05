@@ -6,13 +6,15 @@
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05
 # Modified by: Philip Sylling, 2019-06-11
 # 
-# Data Pull Run time: 10 min
-# Create Index Run Time: 4 min
+# Data Pull Run time: 9.66 min
+# Create Index Run Time: 5.75 min
 # 
 # Returns
 #  [stage].[mcaid_claim_procedure]
 #  [id_mcaid]
 # ,[claim_header_id]
+# ,[first_service_date]
+# ,[last_service_date]
 # ,[procedure_code]
 # ,[procedure_code_number]
 # ,[modifier_1]
@@ -49,18 +51,32 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 step1_sql <- glue::glue_sql("
 if object_id('[stage].[mcaid_claim_procedure]', 'U') is not null
 drop table [stage].[mcaid_claim_procedure];
+create table [stage].[mcaid_claim_procedure]
+([id_mcaid] varchar(200)
+,[claim_header_id] bigint
+,[first_service_date] date
+,[last_service_date] date
+,[procedure_code] varchar(200)
+,[procedure_code_number] varchar(4)
+,[modifier_1] varchar(200)
+,[modifier_2] varchar(200)
+,[modifier_3] varchar(200)
+,[modifier_4] varchar(200)
+,[last_run] datetime);
 ", .con = conn)
 odbc::dbGetQuery(conn = db_claims, step1_sql)
 
 #### CREATE TABLE ####
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_procedure.yaml",
-               overall = T, ind_yr = F)
+# create_table_f(conn = db_claims, 
+#                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_procedure.yaml",
+#                overall = T, ind_yr = F)
 
 step2_sql <- glue::glue_sql("
 insert into [stage].[mcaid_claim_procedure] with (tablock)
 ([id_mcaid]
 ,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
 ,[procedure_code]
 ,[procedure_code_number]
 ,[modifier_1]
@@ -72,6 +88,8 @@ insert into [stage].[mcaid_claim_procedure] with (tablock)
 select distinct 
  id_mcaid
 ,claim_header_id
+,first_service_date
+,last_service_date
 ,procedure_code
 ,cast(procedure_code_number as varchar(4)) as procedure_code_number
 ,modifier_1
@@ -86,6 +104,8 @@ select
 --top(100)
  MEDICAID_RECIPIENT_ID as id_mcaid
 ,TCN as claim_header_id
+,FROM_SRVC_DATE as first_service_date
+,TO_SRVC_DATE as last_service_date
 ,PRCDR_CODE_1 as [01]
 ,PRCDR_CODE_2 as [02]
 ,PRCDR_CODE_3 as [03]
@@ -122,6 +142,8 @@ create clustered index [idx_cl_stage_mcaid_claim_procedure_claim_header_id]
 on [stage].[mcaid_claim_procedure]([claim_header_id]);
 create nonclustered index [idx_nc_stage_mcaid_claim_procedure_procedure_code] 
 on [stage].[mcaid_claim_procedure]([procedure_code]);
+create nonclustered index [idx_nc_stage_mcaid_claim_procedure_first_service_date] 
+on [stage].[mcaid_claim_procedure]([first_service_date]);
 ", .con = conn)
 
 print("Running step 3: Create Indexes")
