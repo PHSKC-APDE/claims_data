@@ -15,26 +15,22 @@ print("Creating stage.mcaid_elig_timevar. This will take ~25 minutes to run.")
 #### STEP 1: PULL COLUMNS FROM RAW DATA AND GET CLEAN ADDRESSES ####
 # Note, some people have 2 secondary RAC codes on separate rows.
 # Need to create third RAC code field and collapse to a single row.
-# In step #1, move RAC code and set up group_row.
-try(odbc::dbRemoveTable(db_claims, "##timevar_01", temporary = T))
+# First pull in relevant columns and set an index to speed later sorting
+try(odbc::dbRemoveTable(db_claims, "##timevar_01a", temporary = T))
 
-step1_sql <- glue::glue_sql(
+step1a_sql <- glue::glue_sql(
   "SELECT DISTINCT a.id_mcaid, 
     CONVERT(DATE, CAST(a.CLNDR_YEAR_MNTH as varchar(200)) + '01', 112) AS calmonth, 
     a.fromdate, a.todate, a.dual, a.tpl,
-    a.rac_code_1, a.rac_code_2, a.rac_code_3, a.mco_id,
+    a.rac_code_1, a.rac_code_2, a.mco_id,
     b.geo_add1_clean, b.geo_add2_clean, b.geo_city_clean,
-    b.geo_state_clean, b.geo_zip_clean,
-    ROW_NUMBER() OVER(PARTITION BY a.id_mcaid, a.CLNDR_YEAR_MNTH 
-                      ORDER BY a.id_mcaid, a.CLNDR_YEAR_MNTH) AS group_row
-    INTO ##timevar_01
+    b.geo_state_clean, b.geo_zip_clean
+    INTO ##timevar_01a 
     FROM
     (SELECT MEDICAID_RECIPIENT_ID AS 'id_mcaid', 
       CLNDR_YEAR_MNTH, FROM_DATE AS 'fromdate', TO_DATE AS 'todate',
       DUAL_ELIG AS 'dual', TPL_FULL_FLAG AS 'tpl', 
       RPRTBL_RAC_CODE AS 'rac_code_1', SECONDARY_RAC_CODE AS 'rac_code_2',
-      LEAD(a.rac_code_2) OVER (PARTITION BY a.id_mcaid, a.CLNDR_YEAR_MNTH 
-                               ORDER BY a.id_mcaid, a.CLNDR_YEAR_MNTH) AS rac_code_3,
       MC_PRVDR_ID AS 'mco_id', 
       RSDNTL_ADRS_LINE_1 AS 'geo_add1_raw', RSDNTL_ADRS_LINE_2 AS 'geo_add2_raw',
       RSDNTL_CITY_NAME as 'geo_city_raw', RSDNTL_STATE_CODE AS 'geo_state_raw', 
@@ -43,7 +39,8 @@ step1_sql <- glue::glue_sql(
       LEFT JOIN
       (SELECT geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw,
         geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean
-        FROM ref.address_clean) b
+        FROM ref.address_clean
+        WHERE geo_add3_raw IS NULL) b
       ON 
       (a.geo_add1_raw = b.geo_add1_raw OR (a.geo_add1_raw IS NULL AND b.geo_add1_raw IS NULL)) AND
       (a.geo_add2_raw = b.geo_add2_raw OR (a.geo_add2_raw IS NULL AND b.geo_add2_raw IS NULL)) AND 
@@ -52,14 +49,47 @@ step1_sql <- glue::glue_sql(
       (a.geo_zip_raw = b.geo_zip_raw OR (a.geo_zip_raw IS NULL AND b.geo_zip_raw IS NULL))",
   .con = db_claims)
 
-
-print("Running step 1: pull columns from raw and join to clean addresses")
+print("Running step 1a: pull columns from raw, join to clean addresses, and add index")
 time_start <- Sys.time()
-odbc::dbGetQuery(conn = db_claims, step1_sql)
+odbc::dbGetQuery(conn = db_claims, step1a_sql)
+
+
+# Add an index to the temp table to make ordering much faster
+odbc::dbGetQuery(conn = db_claims,
+           "CREATE CLUSTERED INDEX [timevar_01_idx] ON ##timevar_01a 
+           (id_mcaid, calmonth, rac_code_2)")
+
 time_end <- Sys.time()
-print(paste0("Step 1 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+print(paste0("Step 1a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
+
+
+# Create columns that help get secondary RAC codes onto one line
+try(odbc::dbRemoveTable(db_claims, "##timevar_01b", temporary = T))
+
+step1b_sql <- glue::glue_sql("SELECT id_mcaid, calmonth, fromdate, todate, dual, 
+                             tpl, rac_code_1, rac_code_2,
+                             LEAD(rac_code_2) OVER (PARTITION BY id_mcaid, calmonth 
+                                                    ORDER BY id_mcaid, calmonth, rac_code_2) AS rac_code_3,
+                             mco_id, geo_add1_clean, geo_add2_clean, geo_city_clean, 
+                             geo_state_clean, geo_zip_clean,
+                             ROW_NUMBER() OVER(PARTITION BY id_mcaid, calmonth 
+                                               ORDER BY id_mcaid, calmonth, rac_code_2) AS group_row
+                             INTO ##timevar_01b
+                             FROM ##timevar_01a",
+                             .con = db_claims)
+
+print("Running step 1b: add third RAC and group number columns")
+time_start <- Sys.time()
+
+### NB. Before running this, check how many secondary RAC codes exist (waiting on HCA to confirm)
+#odbc::dbGetQuery(conn = db_claims, step1b_sql)
+time_end <- Sys.time()
+print(paste0("Step 1b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
+             " mins)"))
+
 
 
 #### STEP 2: IDENTIFY CONTIGUOUS PERIODS ####
@@ -77,9 +107,9 @@ step2a_sql <- glue::glue_sql(
       geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean
       ORDER BY calmonth), calmonth) AS group_num
     INTO ##timevar_02a
-    FROM ##timevar_01
-    ORDER BY id_mcaid, calmonth
-    WHERE group_row = 1",
+    FROM ##timevar_01b
+    WHERE group_row = 1
+    ORDER BY id_mcaid, calmonth",
   .con = db_claims)
 
 print("Running step 2a: calculate # months between each calmonth and previous calmonth")
@@ -250,15 +280,16 @@ step5b_sql <- glue::glue_sql(
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     from_date, to_date,
     CASE
-      WHEN from_date - lag(to_date) OVER 
-      (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, rac_code_3, mco_id,
-        geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean
-        ORDER BY id_mcaid, from_date, to_date DESC) <= 1 THEN NULL
-    ELSE row_number() OVER 
-      (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, rac_code_3, mco_id,
-        geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean 
-        ORDER BY from_date, to_date DESC)
-    END AS group_num2,
+      WHEN DATEDIFF(day, lag(to_date) OVER 
+                    (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, rac_code_3, mco_id,
+                      geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean
+                      ORDER BY id_mcaid, from_date, to_date DESC),
+                    from_date) <= 1 THEN NULL
+      ELSE row_number() OVER 
+          (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, rac_code_3, mco_id,
+            geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean 
+            ORDER BY from_date, to_date DESC)
+      END AS group_num2,
     row_number() OVER 
       (PARTITION BY id_mcaid, dual, tpl, rac_code_1, rac_code_2, rac_code_3, mco_id,
         geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean 
@@ -427,20 +458,22 @@ print(paste0("Step 7b took ", round(difftime(time_end, time_start, units = "secs
 #### STEP 8: REMOVE TEMPORARY TABLES ####
 print("Running step 8: Remove temporary tables")
 time_start <- Sys.time()
-try(odbc::dbRemoveTable(db_claims, "##timevar_01", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_02a", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_02b", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_02c", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_03", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_05a", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_05b", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_05c", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_06a", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_06b", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_06c", temporary = T))
-rm(list = ls(pattern = "step[0-9]{1, 2}_sql"))
+try(odbc::dbRemoveTable(db_claims, "##timevar_01", temporary = T)) ######
+# try(odbc::dbRemoveTable(db_claims, "##timevar_01a", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_01b", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_02a", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_02b", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_02c", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_03", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_05a", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_05b", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_05c", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_06a", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_06b", temporary = T))
+# try(odbc::dbRemoveTable(db_claims, "##timevar_06c", temporary = T))
+rm(list = ls(pattern = "step[.]{1,2}_sql"))
 time_end <- Sys.time()
 print(paste0("Step 8 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
