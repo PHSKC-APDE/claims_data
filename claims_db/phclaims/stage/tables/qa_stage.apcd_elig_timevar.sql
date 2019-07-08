@@ -14,9 +14,9 @@ from phclaims.stage.apcd_elig_timevar;
 select count(distinct internal_member_id) as id_dcount_mm
 from phclaims.stage.apcd_member_month_detail;
 
---Member counts should match final.apcd_elig_demo table
+--Member counts should match stage.apcd_elig_demo table
 select count(distinct id_apcd) as id_dcount_demo
-from PHClaims.final.apcd_elig_demo;
+from PHClaims.stage.apcd_elig_demo;
   
 --All King people in 2016 using elig_covgrp
 select count(distinct id_apcd) as id_dcount_timevar
@@ -74,15 +74,16 @@ order by a.internal_member_id, a.year_month
 
 ----------------
 --INTERNAL CONSISTENCY: Member by member QA
+--Note that Medicare FFS eligibility segments appear to be added as monthly records to eligibility table
 ----------------
 --member with med_covgrp = 0: 12381222126
 --member with med_covgrp = 1: 11057531420
 --member with med_covgrp = 2: 12597524324
 --member with med_covgrp = 3: 11051242852
 --member with med_covgrp = 4: 12009284101, note it appears that reportable RAC is not being pulled, but rather all RAC codes
---member with med_covgrp = 5: 11268451439
+--member with med_covgrp = 5: 11050747064
 --member with med_covgrp = 6: 11050760757
---member with med_covgrp = 7: 11268450135
+--member with med_covgrp = 7: 11050747290
 --member with multiple ZIP codes and contiguous and non-contiguous rows: 11269028924
 
 select * from phclaims.stage.apcd_elig_timevar
