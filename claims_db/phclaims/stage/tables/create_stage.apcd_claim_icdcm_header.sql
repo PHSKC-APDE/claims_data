@@ -8,6 +8,8 @@ create table PHClaims.stage.apcd_claim_icdcm_header (
 	id_apcd bigint,
 	extract_id int,
 	claim_header_id bigint,
+	first_service_date date,
+	last_service_date date,
 	icdcm_raw varchar(200),
 	icdcm_norm varchar(200),
 	icdcm_version tinyint,
