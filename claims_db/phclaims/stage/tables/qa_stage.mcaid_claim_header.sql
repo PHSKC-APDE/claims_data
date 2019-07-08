@@ -1,36 +1,31 @@
---QA of stage.apcd_claim_header table
---4/29/19
---Eli Kern
 
+--QA of stage.mcaid_claim_header table
+--7/8/19
+--Philip Sylling
 
-------------------
---STEP 1: Prepare temp table that is copy of medical_claim_header table with denied and orphaned claims
---re-written using min of line-level values; then use this table for comparisons below
---Note that this temp table also excludes members with no elig information
---Run time: 42 min
-------------------
-if object_id('tempdb..#temp1') is not null drop table #temp1;
-select x.internal_member_id, x.medical_claim_header_id, x.internal_provider_id, x.icd_version_ind,
-	x.emergency_room_flag, x.operating_room_flag, y.denied_line_min, y.orphaned_line_min
-into #temp1
-from (select * from PHClaims.stage.apcd_medical_claim_header where internal_member_id not in (select id_apcd from PHClaims.ref.apcd_claim_no_elig)) as x
-left join (
-select a.medical_claim_header_id, min(case when b.denied_claim_flag = 'Y' then 1 else 0 end) as denied_line_min,
-	min(case when b.orphaned_adjustment_flag = 'Y' then 1 else 0 end) as orphaned_line_min
-from PHClaims.stage.apcd_medical_crosswalk as a
-left join PHClaims.stage.apcd_medical_claim as b
-on a.medical_claim_service_line_id = b.medical_claim_service_line_id
-group by a.medical_claim_header_id
-) as y
-on x.medical_claim_header_id = y.medical_claim_header_id;
+use PHClaims;
+go
 
----------------------
---STEP 2: Run QA
----------------------
+delete from [metadata].[qa_mcaid] where table_name = 'stage.mcaid_claim_header';
 
 --Confirm that claim header is distinct
 select count(distinct claim_header_id) as header_cnt
-from PHClaims.stage.apcd_claim_header;
+from [stage].[mcaid_claim_header];
+select count(claim_header_id) as header_cnt
+from [stage].[mcaid_claim_header];
+select count(*) as header_cnt
+from [stage].[mcaid_claim_header];
+
+--Confirm that claim header is distinct
+--66,356,431
+select count(distinct claim_header_id) as header_cnt
+from [tmp].[mcaid_claim_header];
+select count(claim_header_id) as header_cnt
+from [tmp].[mcaid_claim_header];
+select count(*) as header_cnt
+from [tmp].[mcaid_claim_header];
+select count(distinct TCN) as header_cnt
+from [stage].[mcaid_claim];
 
 select count(claim_header_id) as header_cnt
 from PHClaims.stage.apcd_claim_header;
