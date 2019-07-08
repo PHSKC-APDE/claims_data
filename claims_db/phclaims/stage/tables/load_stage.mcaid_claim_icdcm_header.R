@@ -49,13 +49,24 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 step1_sql <- glue::glue_sql("
 if object_id('[stage].[mcaid_claim_icdcm_header]', 'U') is not null
 drop table [stage].[mcaid_claim_icdcm_header];
+create table [stage].[mcaid_claim_icdcm_header]
+([id_mcaid] varchar(255)
+,[claim_header_id] bigint
+,[first_service_date] date
+,[last_service_date] date
+,[icdcm_raw] varchar(255)
+,[icdcm_norm] varchar(255)
+,[icdcm_version] tinyint
+,[icdcm_number] varchar(5)
+,[last_run] datetime)
+on [PRIMARY];
 ", .con = conn)
 odbc::dbGetQuery(conn = db_claims, step1_sql)
 
 #### CREATE TABLE ####
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_icdcm_header.yaml",
-               overall = T, ind_yr = F)
+# create_table_f(conn = db_claims, 
+#                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_icdcm_header.yaml",
+#                overall = T, ind_yr = F)
 
 step2_sql <- glue::glue_sql("
 insert into [stage].[mcaid_claim_icdcm_header] with (tablock)
@@ -143,11 +154,11 @@ print(paste0("Step 2 took ", round(difftime(time_end, time_start, units = "secs"
              " mins)"))
 
 step3_sql <- glue::glue_sql("
-create clustered index [idx_cl_stage_mcaid_claim_icdcm_header_claim_header_id_icdcm_number]
+create clustered index [idx_cl_mcaid_claim_icdcm_header_claim_header_id_icdcm_number]
 on [stage].[mcaid_claim_icdcm_header]([claim_header_id], [icdcm_number]);
-create nonclustered index [idx_nc_stage_mcaid_claim_icdcm_header_icdcm_version_icdcm_norm] 
+create nonclustered index [idx_nc_mcaid_claim_icdcm_header_icdcm_version_icdcm_norm] 
 on [stage].[mcaid_claim_icdcm_header]([icdcm_version], [icdcm_norm]);
-create nonclustered index [idx_nc_stage_mcaid_claim_icdcm_header_first_service_date] 
+create nonclustered index [idx_nc_mcaid_claim_icdcm_header_first_service_date] 
 on [stage].[mcaid_claim_icdcm_header]([first_service_date]);
 ", .con = conn)
 

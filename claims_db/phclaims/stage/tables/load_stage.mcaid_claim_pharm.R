@@ -114,11 +114,11 @@ print(paste0("Step 2 took ", round(difftime(time_end, time_start, units = "secs"
              " mins)"))
 
 step3_sql <- glue::glue_sql("
-create clustered index [idx_cl_stage_mcaid_claim_pharm_claim_header_id] 
+create clustered index [idx_cl_mcaid_claim_pharm_claim_header_id] 
 on [stage].[mcaid_claim_pharm]([claim_header_id]);
-create nonclustered index [idx_nc_stage_mcaid_claim_pharm_ndc] 
+create nonclustered index [idx_nc_mcaid_claim_pharm_ndc] 
 on [stage].[mcaid_claim_pharm]([ndc]);
-create nonclustered index [idx_nc_stage_mcaid_claim_pharm_rx_fill_date] 
+create nonclustered index [idx_nc_mcaid_claim_pharm_rx_fill_date] 
 on [stage].[mcaid_claim_pharm]([rx_fill_date]);
 ", .con = conn)
 

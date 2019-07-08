@@ -62,7 +62,8 @@ create table [stage].[mcaid_claim_procedure]
 ,[modifier_2] varchar(200)
 ,[modifier_3] varchar(200)
 ,[modifier_4] varchar(200)
-,[last_run] datetime);
+,[last_run] datetime)
+on [PRIMARY];
 ", .con = conn)
 odbc::dbGetQuery(conn = db_claims, step1_sql)
 
@@ -138,11 +139,11 @@ print(paste0("Step 2 took ", round(difftime(time_end, time_start, units = "secs"
              " mins)"))
 
 step3_sql <- glue::glue_sql("
-create clustered index [idx_cl_stage_mcaid_claim_procedure_claim_header_id] 
+create clustered index [idx_cl_mcaid_claim_procedure_claim_header_id] 
 on [stage].[mcaid_claim_procedure]([claim_header_id]);
-create nonclustered index [idx_nc_stage_mcaid_claim_procedure_procedure_code] 
+create nonclustered index [idx_nc_mcaid_claim_procedure_procedure_code] 
 on [stage].[mcaid_claim_procedure]([procedure_code]);
-create nonclustered index [idx_nc_stage_mcaid_claim_procedure_first_service_date] 
+create nonclustered index [idx_nc_mcaid_claim_procedure_first_service_date] 
 on [stage].[mcaid_claim_procedure]([first_service_date]);
 ", .con = conn)
 
