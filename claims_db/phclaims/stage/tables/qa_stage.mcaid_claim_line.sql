@@ -32,7 +32,7 @@ from [stage].[mcaid_claim_line] as a
 where not exists
 (
 select 1 
-from [stage].[mcaid_elig_timevar] as b
+from [final].[mcaid_elig_timevar] as b
 where a.id_mcaid = b.id_mcaid
 );
 go
