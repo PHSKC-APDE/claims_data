@@ -102,9 +102,9 @@ where denied_line_min = 0 and orphaned_line_min = 0;
 --Run time for this plus next block of code: 32 min
 select sum(a.ipt_flag) as ipt_count
 from (
-select id_apcd, discharge_dt, max(ipt_flag) as ipt_flag
+select id_apcd, discharge_date, max(ipt_flag) as ipt_flag
 from PHClaims.stage.apcd_claim_header
-group by id_apcd, discharge_dt
+group by id_apcd, discharge_date
 ) as a;
 
 --This code appears convoluted, but it's because it has to mimic process through which ipt claim lines are grouped by
@@ -136,7 +136,7 @@ from (
 ) as e;
 
 --Check an individual inpatient stay to make sure discharge date has come through correctly
-select id_apcd, claim_header_id, ipt_flag, discharge_dt
+select id_apcd, claim_header_id, ipt_flag, discharge_date
 from PHClaims.stage.apcd_claim_header
 where claim_header_id = 629250577489368;
 
@@ -159,10 +159,10 @@ where claim_header_id = 629250026243188;
 select distinct claim_type_id, claim_type_apcd_id
 from PHClaims.stage.apcd_claim_header;
 
---Should be no claims where ipt_flag = 1 and discharge_dt is null
+--Should be no claims where ipt_flag = 1 and discharge_date is null
 select count(*)
 from PHClaims.stage.apcd_claim_header
-where ipt_flag = 1 and discharge_dt is null;
+where ipt_flag = 1 and discharge_date is null;
 
 
 
@@ -173,7 +173,7 @@ where ipt_flag = 1 and discharge_dt is null;
 --It appears due to >1 discharge dates being linkd to a single header
 --Run time for these 3 temp tables: 10 min
 if object_id('tempdb..#temp2') is not null drop table #temp2;
-select distinct id_apcd, discharge_dt
+select distinct id_apcd, discharge_date
 into #temp2
 from PHClaims.stage.apcd_claim_header
 where ipt_flag = 1;

@@ -14,7 +14,7 @@
 --Set extract max date which is used to convert future dates
 ------------------
 declare @extract_date varchar(100);
-set @extract_date = '2018-09-30';
+set @extract_date = '2018-12-31';
 
 -------------------
 --STEP 1: Join distinct member IDs with year-month matrix

@@ -69,5 +69,11 @@ select
 ,[operating_room_flag]
 from PHclaims.load_raw.apcd_medical_claim_header;
 
+------------------
+--STEP 3: Create clustered index on medical_claim_header_id
+--Run time: X min
+-------------------
+create clustered index idx_cl_stage_apcd_medical_claim_header_medical_claim_header_id
+on phclaims.stage.apcd_medical_claim_header (medical_claim_header_id);
 
 

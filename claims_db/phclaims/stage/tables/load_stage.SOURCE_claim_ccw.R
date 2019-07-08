@@ -162,19 +162,19 @@ sql1 <- paste0(
   if object_id('tempdb..##header') IS NOT NULL drop table ##header;
   
   --apply CCW claim type criteria to define conditions 1 and 2
-  select header.id_", source_data, ", header.claim_header_id, header.claim_type_id, header.first_service_dt, diag_lookup.ccw_", ccw_abbrev, ", 
+  select header.id_", source_data, ", header.claim_header_id, header.claim_type_id, header.first_service_date, diag_lookup.ccw_", ccw_abbrev, ", 
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ',')) then 1 else 0 end as 'condition1',
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type2, "', ',')) then 1 else 0 end as 'condition2',
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type1, "', ','))
-    then header.first_service_dt else null end as 'condition_1_from_date',
+    then header.first_service_date else null end as 'condition_1_from_date',
   case when header.claim_type_id in (select * from PHClaims.dbo.Split('", claim_type2, "', ',')) 
-    then header.first_service_dt else null end as 'condition_2_from_date'
+    then header.first_service_date else null end as 'condition_2_from_date'
 
   into ##header
   
   --pull out claim type and service dates
   from (
-    select id_", source_data, ", claim_header_id, claim_type_id, first_service_dt
+    select id_", source_data, ", claim_header_id, claim_type_id, first_service_date
     from PHClaims.", from_table_claim_header, 
   ") header
   
@@ -283,7 +283,7 @@ sql3 <- paste0(
     
       from (
       --pull ID, time period and claim information, subset to ID x time period rows containing a relevant claim
-      select matrix.id_", source_data, ", matrix.start_window, matrix.end_window, cond.first_service_dt, cond.condition1,
+      select matrix.id_", source_data, ", matrix.start_window, matrix.end_window, cond.first_service_date, cond.condition1,
         cond.condition2, condition_2_from_date
       
       --pull in ID x time period matrix
@@ -294,12 +294,12 @@ sql3 <- paste0(
       
       --join to condition temp table
       left join (
-        select id_", source_data, ", first_service_dt, condition1, condition2, condition_2_from_date
+        select id_", source_data, ", first_service_date, condition1, condition2, condition_2_from_date
         from ##header
       ) as cond
       
       on matrix.id_", source_data, " = cond.id_", source_data, "
-      where cond.first_service_dt between matrix.start_window and matrix.end_window
+      where cond.first_service_date between matrix.start_window and matrix.end_window
     ) as a
     group by a.id_", source_data, ", a.start_window, a.end_window
   ) as b", "\n",

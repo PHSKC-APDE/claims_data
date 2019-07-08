@@ -3,7 +3,7 @@
 --value per claim header.
 --Eli Kern (PHSKC-APDE)
 --2019-4-26
---Run time: XXmin
+--Run time: 71 min
 
 ------------------
 --STEP 1: Transform medical_claim_header table, add all fields that do not require table joins
@@ -17,7 +17,7 @@ select internal_member_id as id_apcd,
 extract_id,
 medical_claim_header_id as claim_header_id,
 submitter_id,
-cast(internal_provider_id as bigint) as provider_id_apcd,
+cast(internal_provider_id as bigint) as billing_provider_id_apcd,
 product_code_id,
 first_service_dt,
 last_service_dt,
@@ -77,7 +77,7 @@ a.id_apcd,
 a.extract_id,
 a.claim_header_id,
 a.submitter_id,
-a.provider_id_apcd,
+a.billing_provider_id_apcd,
 a.product_code_id,
 a.first_service_dt,
 a.last_service_dt,
@@ -109,12 +109,12 @@ a.id_apcd,
 a.extract_id,
 a.claim_header_id,
 a.submitter_id,
-a.provider_id_apcd,
+a.billing_provider_id_apcd,
 a.product_code_id,
-a.first_service_dt,
-a.last_service_dt,
-a.first_paid_dt,
-a.last_paid_dt,
+a.first_service_dt as first_service_date,
+a.last_service_dt as last_service_date,
+a.first_paid_dt as first_paid_date,
+a.last_paid_dt as last_paid_date,
 a.charge_amt,
 a.primary_diagnosis,
 a.icdcm_version,
@@ -123,7 +123,7 @@ a.claim_type_apcd_id,
 cast(b.kc_clm_type_id as tinyint) as claim_type_id,
 a.type_of_bill_code,
 a.ipt_flag,
-a.discharge_dt,
+a.discharge_dt as discharge_date,
 a.ed_flag,
 a.or_flag
 from #temp3 as a
