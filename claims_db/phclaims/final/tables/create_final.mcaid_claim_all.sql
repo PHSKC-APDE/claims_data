@@ -71,7 +71,8 @@ create table [final].[mcaid_claim_header]
 ,ccs_mult2_plain_lang varchar(500)
 ,ccs_final_description varchar(500)
 ,ccs_final_plain_lang varchar(500)
-,last_run datetime);
+,last_run datetime)
+on [PHClaims_FG2];
 go
 
 --create indexes
