@@ -127,5 +127,5 @@ a.discharge_dt as discharge_date,
 a.ed_flag,
 a.or_flag
 from #temp3 as a
-left join (select * from PHClaims.ref.kc_claim_type_crosswalk where source_desc = 'WA-APCD') as b
+left join (select * from PHClaims.ref.kc_claim_type_crosswalk where source_desc = 'apcd') as b
 on a.claim_type_apcd_id = b.source_clm_type_id;

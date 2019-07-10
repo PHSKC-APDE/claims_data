@@ -1,19 +1,25 @@
 --QA of stage.apcd_claim_icdcm_header table
 --5/7/19
 --Eli Kern
---Run time: <1 hour?
+--Run time: 75 min
 
 
 --All members should be in elig_demo and elig_timevar tables
-select count(a.id_apcd) as id_dcount
+select count(distinct a.id_apcd) as id_dcount
 from PHClaims.stage.apcd_claim_icdcm_header as a
-left join PHClaims.final.apcd_elig_demo as b
+left join PHClaims.stage.apcd_elig_demo as b
 on a.id_apcd = b.id_apcd
 where b.id_apcd is null;
 
-select count(a.id_apcd) as id_dcount
+select count(distinct a.id_apcd) as id_dcount
 from PHClaims.stage.apcd_claim_icdcm_header as a
-left join PHClaims.final.apcd_elig_timevar as b
+left join PHClaims.stage.apcd_elig_timevar as b
+on a.id_apcd = b.id_apcd
+where b.id_apcd is null;
+
+select distinct a.id_apcd
+from PHClaims.stage.apcd_claim_icdcm_header as a
+left join PHClaims.stage.apcd_elig_demo as b
 on a.id_apcd = b.id_apcd
 where b.id_apcd is null;
 
@@ -65,5 +71,5 @@ select count(distinct id_apcd) as id_dcount
 from PHClaims.stage.apcd_claim_icdcm_header;
 
 select count(distinct id_apcd) as id_dcount
-from PHClaims.final.apcd_claim_header;
+from PHClaims.stage.apcd_claim_header;
 

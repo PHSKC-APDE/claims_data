@@ -11,6 +11,7 @@
 #10/15/18 update: Added final CCS categories
 #5/10/19 update: Added all remaining CCW conditions
 #7/7/2019 update: Added new ICD-CM codes from Medicare and new Medicaid data
+#7/9/2019 update: Added new ICD-CM-10 codes from APCD extract 159
 
 ####---
 
