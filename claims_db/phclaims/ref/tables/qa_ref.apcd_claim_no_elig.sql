@@ -1,6 +1,7 @@
 --QA of ref.apcd_claim_no_elig table
 --5/14/19
 --Eli Kern
+--Run time: 1.5 min
 
 --Check to make sure that there are no records in member_month_detail for IDs in this table
 select a.internal_member_id, a.year_month
