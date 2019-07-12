@@ -169,7 +169,8 @@ GROUP BY YEAR([from_date])
 SELECT
  YEAR([first_service_date]) AS [claim_year]
 ,SUM([inpatient]) AS [current_inpatient]
-FROM [stage].[mcaid_claim_header] AS a
+--FROM [stage].[mcaid_claim_header] AS a
+FROM [final].[mcaid_claim_header] AS a
 GROUP BY YEAR([first_service_date])
 )
 
