@@ -72,3 +72,20 @@ ALTER TABLE [stage].[perf_elig_member_month] ADD CONSTRAINT PK_stage_perf_elig_m
 
 END
 GO
+
+--EXEC [stage].[sp_perf_elig_member_month];
+
+/*
+SELECT NumRows
+	  ,COUNT(*)
+FROM
+(
+SELECT [MEDICAID_RECIPIENT_ID]
+	  ,[CLNDR_YEAR_MNTH]
+	  ,COUNT(*) AS NumRows
+FROM [stage].[perf_elig_member_month]
+GROUP BY [MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]
+) AS SubQuery
+GROUP BY NumRows
+ORDER BY NumRows;
+*/
