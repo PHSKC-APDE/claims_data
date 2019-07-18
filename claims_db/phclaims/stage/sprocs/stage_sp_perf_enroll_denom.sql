@@ -21,7 +21,7 @@ SELECT *
 INTO #temp
 FROM [stage].[fn_perf_enroll_member_month](' + CAST(@start_date_int AS NVARCHAR(20)) + ', ' + CAST(@end_date_int AS NVARCHAR(20)) + ');
 
-CREATE CLUSTERED INDEX [idx_cl_#temp_id_year_month] ON #temp([id], [year_month]);
+CREATE CLUSTERED INDEX [idx_cl_#temp_id_year_month] ON #temp([id_mcaid], [year_month]);
 
 IF OBJECT_ID(''[stage].[perf_enroll_denom]'',''U'') IS NOT NULL
 DROP TABLE [stage].[perf_enroll_denom];
@@ -103,15 +103,7 @@ AND [enrolled_any_t_12_m] >= 1;
 
 CREATE CLUSTERED INDEX [idx_cl_perf_enroll_denom_id_mcaid_year_month] ON [stage].[perf_enroll_denom]([id_mcaid], [year_month]);
 CREATE NONCLUSTERED INDEX [idx_nc_perf_enroll_denom_end_month_age] ON [stage].[perf_enroll_denom]([end_month_age]);
-CREATE NONCLUSTERED INDEX [idx_nc_perf_enroll_denom_age_in_months] ON [stage].[perf_enroll_denom]([age_in_months]);
-
-IF OBJECT_ID(''[stage].[perf_distinct_member]'',''U'') IS NOT NULL
-DROP TABLE [stage].[perf_distinct_member];
-SELECT DISTINCT [id_mcaid]
-INTO [stage].[perf_distinct_member]
-FROM [stage].[perf_enroll_denom];
-
-CREATE CLUSTERED INDEX [idx_cl_perf_distinct_member_id_mcaid] ON [stage].[perf_distinct_member]([id_mcaid]);'
+CREATE NONCLUSTERED INDEX [idx_nc_perf_enroll_denom_age_in_months] ON [stage].[perf_enroll_denom]([age_in_months]);'
 
 PRINT @SQL;
 END
@@ -129,7 +121,7 @@ If the last 12-month period ends 201712
 THESE PARAMETERS ARE INTEGERS
 This procedure will index the [stage].[perf_enroll_denom] table
 
-EXEC [stage].[sp_perf_enroll_denom] @start_date_int = 201201, @end_date_int = 201712;
+EXEC [stage].[sp_perf_enroll_denom] @start_date_int = 201202, @end_date_int = 201812;
 
 SELECT 
  [year_month]
@@ -138,25 +130,19 @@ FROM [stage].[perf_enroll_denom]
 GROUP BY [year_month]
 ORDER BY [year_month];
 
+-- Check Duplicates
 SELECT NumRows
       ,COUNT(*)
 FROM
 (
-SELECT [id]
+SELECT [id_mcaid]
       ,[year_month]
       ,COUNT(*) AS NumRows
 FROM [stage].[perf_enroll_denom]
-GROUP BY [id], [year_month]
+GROUP BY [id_mcaid], [year_month]
 ) AS SubQuery
 GROUP BY NumRows
 ORDER BY NumRows;
-
-SELECT b.[end_month], a.*
-FROM [stage].[perf_enroll_denom] AS a
-INNER JOIN [ref].[perf_year_month] AS b
-ON a.[year_month] = b.[year_month]
-WHERE [end_month_age] <= 2
-ORDER BY [id], [year_month];
 
 SELECT
  [end_month_age]
