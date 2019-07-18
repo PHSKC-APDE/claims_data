@@ -31,29 +31,32 @@ WITH CTE AS
 SELECT
  [year_month]
 ,[month]
-,[id]
+,[id_mcaid]
 ,[dob]
 ,[end_month_age]
 ,CASE WHEN [end_month_age] BETWEEN 0 AND 20 THEN [age_in_months] ELSE NULL END AS [age_in_months]
 
 ,[enrolled_any]
-,SUM([enrolled_any]) OVER(PARTITION BY [id] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [enrolled_any_t_12_m]
+,SUM([enrolled_any]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [enrolled_any_t_12_m]
 
 ,[full_benefit]
-,SUM([full_benefit]) OVER(PARTITION BY [id] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [full_benefit_t_12_m]
+,SUM([full_benefit]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [full_benefit_t_12_m]
 
 ,[dual]
-,SUM([dual]) OVER(PARTITION BY [id] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [dual_t_12_m]
+,SUM([dual]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [dual_t_12_m]
+
+,[tpl]
+,SUM([tpl]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [tpl_t_12_m]
 
 ,[hospice]
-,SUM([hospice]) OVER(PARTITION BY [id] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [hospice_t_12_m]
-,SUM([hospice]) OVER(PARTITION BY [id] ORDER BY [year_month] ROWS BETWEEN 23 PRECEDING AND 12 PRECEDING) AS [hospice_prior_t_12_m]
-,SUM([hospice]) OVER(PARTITION BY [id] ORDER BY [year_month] ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS [hospice_p_2_m]
+,SUM([hospice]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [hospice_t_12_m]
+,SUM([hospice]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 23 PRECEDING AND 12 PRECEDING) AS [hospice_prior_t_12_m]
+,SUM([hospice]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS [hospice_p_2_m]
 
 ,[full_criteria]
-,SUM([full_criteria]) OVER(PARTITION BY [id] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [full_criteria_t_12_m]
-,SUM([full_criteria]) OVER(PARTITION BY [id] ORDER BY [year_month] ROWS BETWEEN 23 PRECEDING AND 12 PRECEDING) AS [full_criteria_prior_t_12_m]
-,SUM([full_criteria]) OVER(PARTITION BY [id] ORDER BY [year_month] ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS [full_criteria_p_2_m]
+,SUM([full_criteria]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [full_criteria_t_12_m]
+,SUM([full_criteria]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 23 PRECEDING AND 12 PRECEDING) AS [full_criteria_prior_t_12_m]
+,SUM([full_criteria]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS [full_criteria_p_2_m]
 
 ,[row_num]
 FROM #temp
@@ -61,7 +64,7 @@ FROM #temp
 SELECT
  [year_month]
 ,CASE WHEN [month] IN (3, 6, 9, 12) THEN 1 ELSE 0 END AS [end_quarter]
-,[id]
+,[id_mcaid]
 ,[dob]
 ,[end_month_age]
 ,[age_in_months]
@@ -74,6 +77,9 @@ SELECT
 
 ,[dual]
 ,[dual_t_12_m]
+
+,[tpl]
+,[tpl_t_12_m]
 
 ,[hospice]
 ,[hospice_t_12_m]
@@ -95,17 +101,17 @@ AND [row_num] >= 12
 -- Include members enrolled at least one month
 AND [enrolled_any_t_12_m] >= 1;
 
-CREATE CLUSTERED INDEX [idx_cl_stage_perf_enroll_denom_id_year_month] ON [stage].[perf_enroll_denom]([id], [year_month]);
-CREATE NONCLUSTERED INDEX [idx_nc_stage_perf_enroll_denom_end_month_age] ON [stage].[perf_enroll_denom]([end_month_age]);
-CREATE NONCLUSTERED INDEX [idx_nc_stage_perf_enroll_denom_age_in_months] ON [stage].[perf_enroll_denom]([age_in_months]);
+CREATE CLUSTERED INDEX [idx_cl_perf_enroll_denom_id_mcaid_year_month] ON [stage].[perf_enroll_denom]([id_mcaid], [year_month]);
+CREATE NONCLUSTERED INDEX [idx_nc_perf_enroll_denom_end_month_age] ON [stage].[perf_enroll_denom]([end_month_age]);
+CREATE NONCLUSTERED INDEX [idx_nc_perf_enroll_denom_age_in_months] ON [stage].[perf_enroll_denom]([age_in_months]);
 
 IF OBJECT_ID(''[stage].[perf_distinct_member]'',''U'') IS NOT NULL
 DROP TABLE [stage].[perf_distinct_member];
-SELECT DISTINCT [id]
+SELECT DISTINCT [id_mcaid]
 INTO [stage].[perf_distinct_member]
 FROM [stage].[perf_enroll_denom];
 
-CREATE CLUSTERED INDEX [idx_cl_stage_perf_distinct_member_id] ON [stage].[perf_distinct_member]([id]);'
+CREATE CLUSTERED INDEX [idx_cl_perf_distinct_member_id_mcaid] ON [stage].[perf_distinct_member]([id_mcaid]);'
 
 PRINT @SQL;
 END
