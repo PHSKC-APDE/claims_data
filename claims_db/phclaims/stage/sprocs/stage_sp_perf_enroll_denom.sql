@@ -58,6 +58,11 @@ SELECT
 ,SUM([full_criteria]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 23 PRECEDING AND 12 PRECEDING) AS [full_criteria_prior_t_12_m]
 ,SUM([full_criteria]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS [full_criteria_p_2_m]
 
+,[full_criteria_without_tpl]
+,SUM([full_criteria_without_tpl]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [full_criteria_without_tpl_t_12_m]
+,SUM([full_criteria_without_tpl]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 23 PRECEDING AND 12 PRECEDING) AS [full_criteria_without_tpl_prior_t_12_m]
+,SUM([full_criteria_without_tpl]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS [full_criteria_without_tpl_p_2_m]
+
 ,[row_num]
 FROM #temp
 )
@@ -90,6 +95,11 @@ SELECT
 ,[full_criteria_t_12_m]
 ,[full_criteria_prior_t_12_m]
 ,[full_criteria_p_2_m]
+
+,[full_criteria_without_tpl]
+,[full_criteria_without_tpl_t_12_m]
+,[full_criteria_without_tpl_prior_t_12_m]
+,[full_criteria_without_tpl_p_2_m]
 
 INTO [stage].[perf_enroll_denom]
 FROM CTE

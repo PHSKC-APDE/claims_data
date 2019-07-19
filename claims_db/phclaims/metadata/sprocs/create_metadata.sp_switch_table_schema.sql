@@ -2,10 +2,10 @@
 USE [PHClaims];
 GO
 
-IF OBJECT_ID('[metadata].[sp_switch_table_schema]', 'P') IS NOT NULL
-DROP PROCEDURE [metadata].[sp_switch_table_schema];
+IF OBJECT_ID('[metadata].[sp_switch_table]', 'P') IS NOT NULL
+DROP PROCEDURE [metadata].[sp_switch_table];
 GO
-CREATE PROCEDURE [metadata].[sp_switch_table_schema]
+CREATE PROCEDURE [metadata].[sp_switch_table]
  @from_schema VARCHAR(255)
 ,@from_table VARCHAR(255)
 ,@to_schema VARCHAR(255)
@@ -39,22 +39,20 @@ EXEC sp_executeSQL
 GO
 
 /*
-EXEC [metadata].[sp_switch_table_schema]
+EXEC [metadata].[sp_switch_table]
  @from_schema='stage'
 ,@from_table='mcaid_claim_icdcm_header'
 ,@to_schema='final'
 ,@to_table='mcaid_claim_icdcm_header';
 
-
 SELECT COUNT(*) FROM [stage].[mcaid_claim_icdcm_header];
 SELECT COUNT(*) FROM [final].[mcaid_claim_icdcm_header];
 
-EXEC [metadata].[sp_switch_table_schema]
+EXEC [metadata].[sp_switch_table]
  @from_schema='final'
 ,@from_table='mcaid_claim_icdcm_header'
 ,@to_schema='stage'
 ,@to_table='mcaid_claim_icdcm_header';
-
 
 SELECT COUNT(*) FROM [stage].[mcaid_claim_icdcm_header];
 SELECT COUNT(*) FROM [final].[mcaid_claim_icdcm_header];

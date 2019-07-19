@@ -15,3 +15,11 @@ INTO [archive].[perf_distinct_member]
 FROM [stage].[perf_distinct_member];
 
 CREATE CLUSTERED INDEX [idx_cl_perf_distinct_member_id] ON [archive].[perf_distinct_member]([id]);
+
+SELECT * 
+INTO [archive].[perf_staging]
+FROM [stage].[perf_staging];
+
+SELECT * 
+INTO [archive].[perf_staging_event_date]
+FROM [stage].[perf_staging_event_date];
