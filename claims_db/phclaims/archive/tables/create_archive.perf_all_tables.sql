@@ -23,3 +23,7 @@ FROM [stage].[perf_staging];
 SELECT * 
 INTO [archive].[perf_staging_event_date]
 FROM [stage].[perf_staging_event_date];
+
+SELECT * 
+INTO [archive].[mcaid_perf_measure]
+FROM [stage].[mcaid_perf_measure];
