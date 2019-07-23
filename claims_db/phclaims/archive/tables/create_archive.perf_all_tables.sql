@@ -24,6 +24,9 @@ SELECT *
 INTO [archive].[perf_staging_event_date]
 FROM [stage].[perf_staging_event_date];
 
+IF OBJECT_ID('[archive].[mcaid_perf_measure]') IS NOT NULL
+DROP TABLE [archive].[mcaid_perf_measure];
 SELECT * 
 INTO [archive].[mcaid_perf_measure]
 FROM [stage].[mcaid_perf_measure];
+
