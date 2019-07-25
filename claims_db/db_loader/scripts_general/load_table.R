@@ -1,7 +1,7 @@
 #### FUNCTIONS TO LOAD DATA TO SQL TABLES
 # Alastair Matheson
 # Created:        2019-04-15
-# Last modified:  2019-05-06
+# Last modified:  2019-07-25
 
 
 ### Plans for future improvements:
@@ -39,7 +39,7 @@ load_table_from_file_f <- function(
   }
   
   if (!is.null(config_url)) {
-    print("Warning: YAML configs pulled from a URL are subject to fewer error checks")
+    warning("YAML configs pulled from a URL are subject to fewer error checks")
   }
   
   # Check that the yaml config file exists in the right format
@@ -50,8 +50,8 @@ load_table_from_file_f <- function(
     }
     
     if (is.yaml.file(config_file) == F) {
-      stop(paste0("Config file is not a YAML config file. \n", 
-                  "Check there are no duplicate variables listed"))
+      stop(glue("Config file is not a YAML config file. ", 
+                "Check there are no duplicate variables listed"))
     }
     
   }
@@ -76,19 +76,19 @@ load_table_from_file_f <- function(
   
   
   # Check that the yaml config file has necessary components
-  if (!"schema" %in% names(table_config) & test_mode == F) {
-    stop("YAML file is missing a schema section")
+  if (!max(c("schema", "to_schema") %in% names(table_config)) == 0 & test_mode == F) {
+    stop("YAML file is missing a schema")
   } else {
-    if (is.null(table_config$schema)) {
-      stop("Schema name is blank in config file")
+    if (is.null(table_config$schema) & is.null(table_config$to_schema)) {
+      stop("schema/to_schema is blank in config file")
     }
   }
   
-  if (!"table" %in% names(table_config)) {
-    stop("YAML file is missing a table name section")
+  if (!max(c("table", "to_table") %in% names(table_config)) == 0) {
+    stop("YAML file is missing a table name")
   } else {
-    if (is.null(table_config$table)) {
-      stop("Table name is blank in config file")
+    if (is.null(table_config$table) & is.null(table_config$to_table)) {
+      stop("table/to_table is blank in config file")
     }
   }
   
@@ -111,8 +111,7 @@ load_table_from_file_f <- function(
       warning("YAML file has details for an overall file. \n
               This will be ignored since ind_yr == T.")
     }
-    if (max(str_detect(names(table_config), 
-                       "table_20[0-9]{2}")) == 0) {
+    if (max(str_detect(names(table_config), "table_20[0-9]{2}")) == 0) {
       stop("YAML file is missing details for individual years")
     }
     if (combine_yr == T) {
@@ -131,7 +130,7 @@ load_table_from_file_f <- function(
 
   # Alert users they are in test mode
   if (test_mode == T) {
-    print("FUNCTION WILL BE RUN IN TEST MODE, WRITING TO TMP SCHEMA")
+    message("FUNCTION WILL BE RUN IN TEST MODE, WRITING TO TMP SCHEMA")
     test_msg <- " (function is in test mode, only 1,000 rows will be loaded)"
   } else {
     test_msg <- ""
@@ -139,17 +138,36 @@ load_table_from_file_f <- function(
   
   
   #### VARIABLES ####
-  table_name <- table_config$table
-  vars <- unlist(table_config$vars)
+  # Set up to work with both new and old way of using YAML files
+  if (!is.null(table_config$to_table)) {
+    table_name <- table_config$to_table
+  } else {
+    table_name <- table_config$table
+  }
+  
+  if (!is.null(names(table_config$vars))) {
+    vars <- unlist(names(table_config$vars))
+  } else {
+    vars <- unlist(table_config$vars)
+  }
   
   if (test_mode == T) {
     schema <- "tmp"
-    table_name <- paste0(table_config$schema, "_", table_name)
     load_rows <- " -L 1001 "
+    
+    if (!is.null(table_config$to_schema)) {
+      table_name <- glue("{table_config$to_schema}_{table_name}")
+    } else {
+      table_name <- glue("{table_config$schema}_{table_name}")
+    }
+  } else if (!is.null(table_config$to_schema)) {
+    schema <- table_config$to_schema
+    load_rows <- ""
   } else {
     schema <- table_config$schema
     load_rows <- ""
   }
+  
   
   if (ind_yr == T & combine_yr == T) {
     # Use unique in case variables are repeated
@@ -184,7 +202,7 @@ load_table_from_file_f <- function(
     }
 
     # Add message to user
-    print(glue('Loading {ind_yr_msg} [{schema_inner}].[{table_name_inner}] table(s) ',
+    message(glue('Loading {ind_yr_msg} [{schema_inner}].[{table_name_inner}] table(s) ',
                ' from {table_config_inner[[config_section]][["file_path"]]} {test_msg_inner}'))
     
     # Truncate existing table if desired
@@ -235,11 +253,10 @@ load_table_from_file_f <- function(
     }
 
     # Set up BCP arguments and run BCP
-    bcp_args <- c(glue(' PHclaims.{schema_inner}.{table_name_inner} IN '), 
-                  glue(' "{table_config_inner[[config_section]][["file_path"]]}" '),
-                  glue(' {field_term} {row_term} -C 65001 -F 2 '),
-                  glue(' -S KCITSQLUTPDBH51 -T -b 100000 '), 
-                  glue(' {load_rows_inner} -c ')) 
+    bcp_args <- c(glue(' PHclaims.{schema_inner}.{table_name_inner} IN ', 
+                       ' "{table_config_inner[[config_section]][["file_path"]]}" ',
+                       ' {field_term} {row_term} -C 65001 -F 2 ',
+                       ' -S KCITSQLUTPDBH51 -T -b 100000 {load_rows_inner} -c '))
     
     system2(command = "bcp", args = c(bcp_args))
   }
@@ -268,7 +285,7 @@ load_table_from_file_f <- function(
 
     lapply(years, function(x) {
       
-      table_name_new <- paste0(table_name, "_", str_sub(x, -4, -1))
+      table_name_new <- glue("{table_name}_{str_sub(x, -4, -1)}")
       
       # Run loading function
       loading_process_f(config_section = x, table_name_inner = table_name_new)
@@ -283,7 +300,7 @@ load_table_from_file_f <- function(
     
     # Combine individual years into a single table if desired
     if (combine_yr == T) {
-      print("Combining years into a single table")
+      message("Combining years into a single table")
       if (truncate == T) {
         # Remove data from existing combined table if desired
         dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`schema`}.{`table_name`}", 
@@ -322,12 +339,23 @@ load_table_from_file_f <- function(
       
       # Need to find all the columns that only exist in some years
       # First find common variables
-      all_vars <- unlist(table_config$vars)
+      # Set up to work with old and new YAML config styles
+      if (!is.null(names(table_config$vars))) {
+        all_vars <- unlist(names(table_config$vars))
+      } else {
+        all_vars <- unlist(table_config$vars)  
+      }
+      
       # Now find year-specific ones and add to main list
       lapply(combine_years, function(x) {
         table_name_new <- paste0("table_", x)
         add_vars_name <- paste0("vars_", x)
-        all_vars <<- c(all_vars, unlist(table_config[[table_name_new]][[add_vars_name]]))
+        
+        if (!is.null(names(table_config$vars))) {
+          all_vars <<- c(all_vars, unlist(names(table_config[[table_name_new]][[add_vars_name]])))
+        } else {
+          all_vars <<- c(all_vars, unlist(table_config[[table_name_new]][[add_vars_name]]))
+        }
       })
       # Make sure there are no duplicate variables
 	  all_vars <- unique(all_vars)
@@ -345,7 +373,12 @@ load_table_from_file_f <- function(
         table_name_new <- paste0(table_name, "_", combine_years[x])
         config_name_new <- paste0("table_", combine_years[x])
         add_vars_name <- paste0("vars_", combine_years[x])
-        year_vars <- c(unlist(table_config$vars), unlist(table_config[[config_name_new]][[add_vars_name]]))
+        if (!is.null(names(table_config$vars))) {
+          year_vars <- c(unlist(names(table_config$vars)), 
+                         unlist(names(table_config[[config_name_new]][[add_vars_name]])))
+        } else {
+          year_vars <- c(unlist(table_config$vars), unlist(table_config[[config_name_new]][[add_vars_name]]))
+        }
         
         matched_vars <- match(all_vars, year_vars)
         
@@ -417,7 +450,7 @@ load_table_from_sql_f <- function(
   }
   
   if (!is.null(config_url)) {
-    print("Warning: YAML configs pulled from a URL are subject to fewer error checks")
+    warning("YAML configs pulled from a URL are subject to fewer error checks")
   }
   
   # Check that the yaml config file exists in the right format
@@ -509,7 +542,7 @@ load_table_from_sql_f <- function(
   
   # Alert users they are in test mode
   if (test_mode == T) {
-    print("FUNCTION WILL BE RUN IN TEST MODE, WRITING TO TMP SCHEMA")
+    message("FUNCTION WILL BE RUN IN TEST MODE, WRITING TO TMP SCHEMA")
     test_msg <- " (function is in test mode, only 5,000 rows will be loaded)"
   } else {
     test_msg <- ""
@@ -519,15 +552,20 @@ load_table_from_sql_f <- function(
   #### VARIABLES ####
   from_table_name <- table_config$from_table
   to_table_name <- table_config$to_table
-  vars <- unlist(table_config$vars)
+  
+  if (!is.null(names(table_config$vars))) {
+    vars <- unlist(names(table_config$vars))
+  } else {
+    vars <- unlist(table_config$vars)
+  }
   
   if (test_mode == T) {
     from_schema <- "tmp"
     to_schema <- "tmp"
     archive_schema <- "tmp"
-    from_table_name <- paste0(table_config$from_schema, "_", from_table_name)
-    archive_table_name <- paste0("archive_", to_table_name)
-    to_table_name <- paste0(table_config$to_schema, "_", to_table_name)
+    from_table_name <- glue("{table_config$from_schema}_{from_table_name}")
+    archive_table_name <- glue("archive_{to_table_name}")
+    to_table_name <- glue("{table_config$to_schema}_{to_table_name}")
     load_rows <- " TOP (5000) " # Using 5,000 to better test data from multiple years
     archive_rows <- " TOP (4000) " # When unioning tables in test mode, ensure a mix from both
     new_rows <- " TOP (1000) " # When unioning tables in test mode, ensure a mix from both
@@ -557,7 +595,7 @@ load_table_from_sql_f <- function(
                                  FROM {`from_schema`}.{`from_table_name`}",
                                  .con = conn))
       
-      print(paste0("Most recent date found in the new data: ", max_date))
+      message(glue("Most recent date found in the new data: {max_date}"))
       
       # If using auto-date, assume the data run through to the end of the month
       #   even if the actual date does not
@@ -578,7 +616,7 @@ load_table_from_sql_f <- function(
       date_truncate <- table_config$date_truncate
     }
     
-    print(paste0("Date to truncate from: ", date_truncate))
+    message(glue("Date to truncate from: {date_truncate}"))
   }
 
   
@@ -590,27 +628,26 @@ load_table_from_sql_f <- function(
   
   # 'Truncate' from a given date if desired (really move existing data to archive then copy back)
   if (truncate == F & truncate_date == T) {
-    print("Archiving existing table")
-    # Check if the archive table exists and move table over. If not, show error.
+    message("Archiving existing table")
+    # Check if the archive table exists and move table over. If not, show message.
     tbl_id <- DBI::Id(catalog = "PHClaims", schema = archive_schema, table = to_table_name)
     if (dbExistsTable(conn, tbl_id)) {
       dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`archive_schema`}.{`archive_table_name`}", .con = conn))
-      
-      sql_archive <- glue::glue_sql("INSERT INTO {`archive_schema`}.{`archive_table_name`} WITH (TABLOCK) 
+    } else {
+      message(glue("Note: {archive_schema}.{archive_table_name} did not exist so was created"))
+    }
+    
+    sql_archive <- glue::glue_sql("INSERT INTO {`archive_schema`}.{`archive_table_name`} WITH (TABLOCK) 
                                 SELECT {`archive_rows`} {`vars`*} FROM 
                                 {`to_schema`}.{`to_table_name`}", .con = conn,
-                                     archive_rows = DBI::SQL(archive_rows))
-
-      dbGetQuery(conn, sql_archive)
-    } else {
-      stop(paste0(archive_schema, ".", archive_table_name, " does not exist. \n",
-                  " Create this table then rerun the load function."))
-    }
+                                  archive_rows = DBI::SQL(archive_rows))
+    
+    dbGetQuery(conn, sql_archive)
+    
     # Now truncate destination table
     dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`to_schema`}.{`to_table_name`}", .con = conn))
+    }
     
-  }
-  
   
   # Remove existing clustered index if a new one is to be added
   if (add_index == T) {
@@ -646,7 +683,7 @@ load_table_from_sql_f <- function(
 
   #### LOAD DATA TO TABLE ####
   # Add message to user
-  print(paste0("Loading to [", to_schema, "].[", to_table_name, "] table", test_msg))
+  message(glue("Loading to [{to_schema}].[{to_table_name} table", test_msg))
   
   # Run INSERT statement
   if (truncate_date == F) {
