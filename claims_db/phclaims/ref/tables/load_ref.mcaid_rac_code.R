@@ -33,3 +33,5 @@ dbWriteTable(db.connection, name=tbl, value=input, overwrite=TRUE)
 input <- read.xlsx(paste0(file.dir, "Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS.xlsx"), sheet = 4)
 tbl <- Id(schema="tmp", table="Medicaid_RAC_Codes_BSP_Group")
 dbWriteTable(db.connection, name=tbl, value=input, overwrite=TRUE)
+
+
