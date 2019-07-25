@@ -39,7 +39,7 @@ load_table_from_file_f <- function(
   }
   
   if (!is.null(config_url)) {
-    warning("YAML configs pulled from a URL are subject to fewer error checks")
+    message("Warning: YAML configs pulled from a URL are subject to fewer error checks")
   }
   
   # Check that the yaml config file exists in the right format
@@ -76,7 +76,7 @@ load_table_from_file_f <- function(
   
   
   # Check that the yaml config file has necessary components
-  if (!max(c("schema", "to_schema") %in% names(table_config)) == 0 & test_mode == F) {
+  if (max(c("schema", "to_schema") %in% names(table_config)) == 0 & test_mode == F) {
     stop("YAML file is missing a schema")
   } else {
     if (is.null(table_config$schema) & is.null(table_config$to_schema)) {
@@ -84,7 +84,7 @@ load_table_from_file_f <- function(
     }
   }
   
-  if (!max(c("table", "to_table") %in% names(table_config)) == 0) {
+  if (max(c("table", "to_table") %in% names(table_config)) == 0) {
     stop("YAML file is missing a table name")
   } else {
     if (is.null(table_config$table) & is.null(table_config$to_table)) {
@@ -450,7 +450,7 @@ load_table_from_sql_f <- function(
   }
   
   if (!is.null(config_url)) {
-    warning("YAML configs pulled from a URL are subject to fewer error checks")
+    message("Warning: YAML configs pulled from a URL are subject to fewer error checks")
   }
   
   # Check that the yaml config file exists in the right format
