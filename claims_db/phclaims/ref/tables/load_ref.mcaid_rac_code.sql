@@ -12,7 +12,22 @@ FROM [ref].[mcaid_rac_code];
 
 ALTER TABLE [tmp].[mcaid_rac_code] ADD CONSTRAINT PK_tmp_mcaid_rac_code PRIMARY KEY([rac_code]);
 GO
+
+-- Verify 1-1 mapping
+SELECT NumRows
+	  ,COUNT(*)
+FROM
+(
+SELECT [RAC.Code.4.Bytes], [BSP_GROUP_CID]
+	  ,COUNT(*) AS NumRows
+FROM (SELECT DISTINCT [RAC.Code.4.Bytes], [BSP_GROUP_CID] FROM [PHClaims].[tmp].[Medicaid_RAC_Codes_BSP_Group]) AS a
+GROUP BY [RAC.Code.4.Bytes], [BSP_GROUP_CID]
+) AS SubQuery
+GROUP BY NumRows
+ORDER BY NumRows;
 */
+
+TRUNCATE TABLE [ref].[mcaid_rac_code];
 
 WITH [BSP_GROUP_CID] AS
 (
@@ -51,6 +66,7 @@ SELECT
 ,CAST(b.[Elig.Value] AS INT) AS [elig_value]
 ,CAST(b.[Subelig.Value] AS INT) AS [sub_elig_value]
 
+-- Recode character MN â€“ Other (Family/Pregnancy)
 ,CAST(CASE WHEN b.[Elig.Value] = 14 THEN 'MN – Other (Family/Pregnancy)' ELSE c.[Category] END AS VARCHAR(255)) AS [category]
 ,CAST(c.[Title.XIX.Full.Benefit.Included.in.1519.Public.Reporting] AS CHAR(1)) AS [title_xix_full_benefit_1519_reporting]
 ,CAST(c.[Title.XIX.Limited.Benefit] AS CHAR(1)) AS [title_xix_limited_benefit]
@@ -86,7 +102,7 @@ ON CAST(a.[RAC_CODE] AS INT) = CAST(d.[RAC.Code.4.Bytes] AS INT)
 
 ORDER BY CAST(a.[RAC_CODE] AS INT);
 
-/*
+
 -- Validation Query
 SELECT 
  [rac_code]
@@ -109,5 +125,4 @@ WHERE 1 = 1
 --AND [rda_full_benefit_flag] IS NULL AND [core_full_benefit_flag] = 'Y'
 --AND [rda_full_benefit_flag] = 'N' AND [core_full_benefit_flag] IS NULL
 --AND [rda_full_benefit_flag] IS NULL AND [core_full_benefit_flag] = 'N'
---AND [rda_full_benefit_flag] IS NULL AND [core_full_benefit_flag] IS NULL
-*/
+AND [rda_full_benefit_flag] IS NULL AND [core_full_benefit_flag] IS NULL
