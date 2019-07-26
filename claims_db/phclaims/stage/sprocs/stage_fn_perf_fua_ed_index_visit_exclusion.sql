@@ -11,11 +11,11 @@ CREATE FUNCTION [stage].[fn_perf_fua_ed_index_visit_exclusion]
 ,@age INT
 ,@dx_value_set_name VARCHAR(100))
 RETURNS @ed_index_visit_exclusions TABLE
-([id] VARCHAR(200) NULL 
+([id_mcaid] VARCHAR(255) NULL 
 ,[age] INT NULL
-,[tcn] VARCHAR(200) NULL
-,[from_date] DATE NULL
-,[to_date] DATE NULL
+,[claim_header_id] BIGINT NULL
+,[first_service_date] DATE NULL
+,[last_service_date] DATE NULL
 ,[flag] INT NOT NULL
 ,[ed_within_30_day] INT NOT NULL
 ,[inpatient_within_30_day] INT NOT NULL)
@@ -23,76 +23,74 @@ RETURNS @ed_index_visit_exclusions TABLE
 BEGIN
 
 DECLARE @pre_sorted TABLE
-([id] VARCHAR(200) NULL 
+([id_mcaid] VARCHAR(255) NULL 
 ,[age] INT NULL
-,[tcn] VARCHAR(200) NULL
-,[from_date] DATE NULL
-,[to_date] DATE NULL
+,[claim_header_id] BIGINT NULL
+,[first_service_date] DATE NULL
+,[last_service_date] DATE NULL
 ,[flag] INT NOT NULL
 ,[increment] INT NOT NULL
 ,[rank] INT NOT NULL
 ,[drop] INT NOT NULL);
 
 DECLARE @post_sorted TABLE
-([id] VARCHAR(200) NULL 
+([id_mcaid] VARCHAR(255) NULL 
 ,[age] INT NULL
-,[tcn] VARCHAR(200) NULL
-,[from_date] DATE NULL
-,[to_date] DATE NULL
+,[claim_header_id] BIGINT NULL
+,[first_service_date] DATE NULL
+,[last_service_date] DATE NULL
 ,[flag] INT NOT NULL
 ,[increment] INT NOT NULL
 ,[rank] INT NOT NULL
 ,[drop] INT NOT NULL);
 
 DECLARE @inpatient_within_30_day TABLE
-([id] VARCHAR(200) NULL 
-,[tcn] VARCHAR(200) NULL
-,[from_date] DATE NULL
-,[to_date] DATE NULL
+([id_mcaid] VARCHAR(255) NULL 
+,[claim_header_id] BIGINT NULL
+,[first_service_date] DATE NULL
+,[last_service_date] DATE NULL
 ,[inpatient_within_30_day] INT NOT NULL
-,INDEX idx_cl_id_from_date CLUSTERED([id], [from_date]));
+,INDEX idx_cl_id_mcaid_first_service_date CLUSTERED([id_mcaid], [first_service_date]));
 
 INSERT INTO @inpatient_within_30_day
-([id]
-,[tcn]
-,[from_date]
-,[to_date]
+([id_mcaid]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
 ,[inpatient_within_30_day])
 
 SELECT 
- hd.[id]
-,hd.[tcn]
-,hd.[from_date]
-,hd.[to_date]
+ ln.[id_mcaid]
+,ln.[claim_header_id]
+,ln.[first_service_date]
+,ln.[last_service_date]
 ,1 AS [inpatient_within_30_day]
 
-FROM [dbo].[mcaid_claim_header] AS hd
-INNER JOIN [dbo].[mcaid_claim_line] AS ln
-ON hd.[tcn] = ln.[tcn]
-INNER JOIN [ref].[hedis_code_system] AS hed
+FROM [final].[mcaid_claim_line] AS ln
+INNER JOIN [archive].[hedis_code_system] AS hed
 ON [value_set_name] IN 
 ('Inpatient Stay')
 AND hed.[code_system] = 'UBREV'
-AND ln.[rcode] = hed.[code]
-WHERE hd.[from_date] BETWEEN @measurement_start_date AND @measurement_end_date;
+AND ln.[rev_code] = hed.[code]
+WHERE ln.[first_service_date] BETWEEN @measurement_start_date AND @measurement_end_date;
 
 INSERT INTO @pre_sorted
-([id]
+([id_mcaid]
 ,[age]
-,[tcn]
-,[from_date]
-,[to_date]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
 ,[flag]
 ,[increment]
 ,[rank]
 ,[drop])
 
 SELECT 
- [id]
+ [id_mcaid]
 ,[age]
-,[tcn]
-,[from_date]
-,[to_date]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
 ,[flag]
 ,0 AS [increment]
 ,0 AS [rank]
@@ -107,18 +105,18 @@ FROM
 (
 SELECT
  [increment]
-,ROW_NUMBER() OVER(PARTITION BY [drop], [id], [increment] ORDER BY [from_date], [to_date], [tcn]) AS [rank]
+,ROW_NUMBER() OVER(PARTITION BY [drop], [id_mcaid], [increment] ORDER BY [first_service_date], [last_service_date], [claim_header_id]) AS [rank]
 ,[drop]
 FROM 
 (
 SELECT 
- [id]
-,[tcn]
-,[from_date]
-,[to_date]
-,CASE WHEN ROW_NUMBER() OVER(PARTITION BY [drop], [id] ORDER BY [from_date], [to_date], [tcn]) = 1 THEN 0
-      WHEN DATEDIFF(DAY, LAG([from_date]) OVER(PARTITION BY [drop], [id] ORDER BY [from_date], [to_date], [tcn]), [from_date]) >= 31 THEN 0
-	  WHEN DATEDIFF(DAY, LAG([from_date]) OVER(PARTITION BY [drop], [id] ORDER BY [from_date], [to_date], [tcn]), [from_date]) < 31 THEN 1
+ [id_mcaid]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
+,CASE WHEN ROW_NUMBER() OVER(PARTITION BY [drop], [id_mcaid] ORDER BY [first_service_date], [last_service_date], [claim_header_id]) = 1 THEN 0
+      WHEN DATEDIFF(DAY, LAG([first_service_date]) OVER(PARTITION BY [drop], [id_mcaid] ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) >= 31 THEN 0
+	  WHEN DATEDIFF(DAY, LAG([first_service_date]) OVER(PARTITION BY [drop], [id_mcaid] ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) < 31 THEN 1
  END AS [increment]
 ,[rank]
 ,[drop]
@@ -137,19 +135,19 @@ DELETE FROM @post_sorted;
 WITH [increment] AS
 (
 SELECT 
- [id]
+ [id_mcaid]
 ,[age]
-,[tcn]
-,[from_date]
-,[to_date]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
 ,[flag]
 /*
-,ROW_NUMBER() OVER(PARTITION BY [id] ORDER BY [from_date], [to_date]) AS row_num
-,DATEDIFF(DAY, LAG([from_date]) OVER(PARTITION BY [id] ORDER BY [from_date], [to_date]), [from_date]) AS date_diff
+,ROW_NUMBER() OVER(PARTITION BY [id_mcaid] ORDER BY [first_service_date], [last_service_date]) AS row_num
+,DATEDIFF(DAY, LAG([first_service_date]) OVER(PARTITION BY [id_mcaid] ORDER BY [first_service_date], [last_service_date]), [first_service_date]) AS date_diff
 */
-,CASE WHEN ROW_NUMBER() OVER(PARTITION BY [drop], [id] ORDER BY [from_date], [to_date], [tcn]) = 1 THEN 0
-      WHEN DATEDIFF(DAY, LAG([from_date]) OVER(PARTITION BY [drop], [id] ORDER BY [from_date], [to_date], [tcn]), [from_date]) >= 31 THEN 0
-	  WHEN DATEDIFF(DAY, LAG([from_date]) OVER(PARTITION BY [drop], [id] ORDER BY [from_date], [to_date], [tcn]), [from_date]) < 31 THEN 1
+,CASE WHEN ROW_NUMBER() OVER(PARTITION BY [drop], [id_mcaid] ORDER BY [first_service_date], [last_service_date], [claim_header_id]) = 1 THEN 0
+      WHEN DATEDIFF(DAY, LAG([first_service_date]) OVER(PARTITION BY [drop], [id_mcaid] ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) >= 31 THEN 0
+	  WHEN DATEDIFF(DAY, LAG([first_service_date]) OVER(PARTITION BY [drop], [id_mcaid] ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) < 31 THEN 1
  END AS [increment]
 ,[rank]
 ,[drop]
@@ -158,47 +156,47 @@ FROM @pre_sorted
 )
 
 INSERT INTO @post_sorted
-([id]
+([id_mcaid]
 ,[age]
-,[tcn]
-,[from_date]
-,[to_date]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
 ,[flag]
 ,[increment]
 ,[rank]
 ,[drop])
 
 SELECT 
- [id]
+ [id_mcaid]
 ,[age]
-,[tcn]
-,[from_date]
-,[to_date]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
 ,[flag]
 ,[increment]
-,ROW_NUMBER() OVER(PARTITION BY [drop], [id], [increment] ORDER BY [from_date], [to_date], [tcn]) AS [rank]
-,CASE WHEN [increment] = 1 AND ROW_NUMBER() OVER(PARTITION BY [drop], [id], [increment] ORDER BY [from_date], [to_date], [tcn]) = 1 AND [drop] = 0 THEN 1 ELSE [drop] END AS [drop]
+,ROW_NUMBER() OVER(PARTITION BY [drop], [id_mcaid], [increment] ORDER BY [first_service_date], [last_service_date], [claim_header_id]) AS [rank]
+,CASE WHEN [increment] = 1 AND ROW_NUMBER() OVER(PARTITION BY [drop], [id_mcaid], [increment] ORDER BY [first_service_date], [last_service_date], [claim_header_id]) = 1 AND [drop] = 0 THEN 1 ELSE [drop] END AS [drop]
 FROM [increment];
 
 DELETE FROM @pre_sorted;
 
 INSERT INTO @pre_sorted
-([id]
+([id_mcaid]
 ,[age]
-,[tcn]
-,[from_date]
-,[to_date]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
 ,[flag]
 ,[increment]
 ,[rank]
 ,[drop])
 
 SELECT 
- [id]
+ [id_mcaid]
 ,[age]
-,[tcn]
-,[from_date]
-,[to_date]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
 ,[flag]
 ,[increment]
 ,[rank]
@@ -208,21 +206,21 @@ FROM @post_sorted;
 END;
 
 INSERT INTO @ed_index_visit_exclusions
-([id]
+([id_mcaid]
 ,[age]
-,[tcn]
-,[from_date]
-,[to_date]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
 ,[flag]
 ,[ed_within_30_day]
 ,[inpatient_within_30_day])
 
 SELECT DISTINCT
- a.[id]
+ a.[id_mcaid]
 ,a.[age]
-,a.[tcn]
-,a.[from_date]
-,a.[to_date]
+,a.[claim_header_id]
+,a.[first_service_date]
+,a.[last_service_date]
 ,[flag]
 ,[drop] AS [ed_within_30_day]
 ,ISNULL([inpatient_within_30_day], 0) AS [inpatient_within_30_day]
@@ -230,30 +228,28 @@ SELECT DISTINCT
 
 FROM @pre_sorted AS a
 LEFT JOIN @inpatient_within_30_day AS b
-ON a.[id] = b.[id]
-AND b.[from_date] BETWEEN a.[to_date] AND DATEADD(DAY, 30, a.[to_date]) OPTION(RECOMPILE);
+ON a.[id_mcaid] = b.[id_mcaid]
+AND b.[first_service_date] BETWEEN a.[last_service_date] AND DATEADD(DAY, 30, a.[last_service_date]) OPTION(RECOMPILE);
 
 /*
 LEFT JOIN 
 (
 SELECT 
- hd.[id]
-,hd.[tcn]
-,hd.[from_date]
-,hd.[to_date]
+ ln.[id_mcaid]
+,ln.[claim_header_id]
+,ln.[first_service_date]
+,ln.[last_service_date]
 ,1 AS [inpatient_within_30_day]
 
-FROM [dbo].[mcaid_claim_header] AS hd
-INNER JOIN [dbo].[mcaid_claim_line] AS ln
-ON hd.[tcn] = ln.[tcn]
-INNER JOIN [ref].[hedis_code_system] AS hed
+FROM [final].[mcaid_claim_line] AS ln
+INNER JOIN [archive].[hedis_code_system] AS hed
 ON [value_set_name] IN 
 ('Inpatient Stay')
 AND hed.[code_system] = 'UBREV'
-AND ln.[rcode] = hed.[code]
+AND ln.[rev_code] = hed.[code]
 ) AS b
-ON a.[id] = b.[id]
-AND b.[from_date] BETWEEN a.[to_date] AND DATEADD(DAY, 30, a.[to_date])
+ON a.[id_mcaid] = b.[id_mcaid]
+AND b.[first_service_date] BETWEEN a.[last_service_date] AND DATEADD(DAY, 30, a.[last_service_date])
 --AND a.[drop] = 0
 */
 
@@ -266,7 +262,7 @@ IF OBJECT_ID('tempdb..#temp', 'U') IS NOT NULL
 DROP TABLE #temp;
 SELECT * 
 INTO #temp
-FROM [stage].[fn_perf_fua_ed_index_visit_exclusion]('2017-01-01', '2017-12-31', 6, 'Mental Illness');
+FROM [stage].[fn_perf_fua_ed_index_visit_exclusion]('2018-01-01', '2018-12-31', 6, 'Mental Illness');
 
 SELECT TOP 1000 *
 FROM #temp;
@@ -282,7 +278,7 @@ IF OBJECT_ID('tempdb..#temp', 'U') IS NOT NULL
 DROP TABLE #temp;
 SELECT * 
 INTO #temp
-FROM [stage].[fn_perf_fua_ed_index_visit_exclusion]('2017-01-01', '2017-12-31', 13, 'AOD Abuse and Dependence');
+FROM [stage].[fn_perf_fua_ed_index_visit_exclusion]('2018-01-01', '2018-12-31', 13, 'AOD Abuse and Dependence');
 
 SELECT TOP 1000 *
 FROM #temp;
