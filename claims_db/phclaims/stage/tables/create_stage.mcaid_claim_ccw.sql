@@ -5,7 +5,7 @@
 
 if object_id('PHClaims.stage.mcaid_claim_ccw', 'U') is not null drop table PHClaims.stage.mcaid_claim_ccw;
 create table PHClaims.stage.mcaid_claim_ccw (
-	id_mcaid bigint,
+	id_mcaid varchar(255),
 	from_date date,
 	to_date date,
 	ccw_code tinyint,
