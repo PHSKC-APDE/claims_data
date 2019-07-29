@@ -17,12 +17,6 @@ left join PHClaims.stage.apcd_elig_timevar as b
 on a.id_apcd = b.id_apcd
 where b.id_apcd is null;
 
-select distinct a.id_apcd
-from PHClaims.stage.apcd_claim_icdcm_header as a
-left join PHClaims.stage.apcd_elig_demo as b
-on a.id_apcd = b.id_apcd
-where b.id_apcd is null;
-
 --Check that length of all ICD-9-CM is 5
 select min(len(icdcm_norm)) as min_len, max(len(icdcm_norm)) as max_len
 from PHClaims.stage.apcd_claim_icdcm_header
