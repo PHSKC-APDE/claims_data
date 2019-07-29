@@ -1,3 +1,4 @@
+
 /*
 This procedure aggregates numerator and denominator utilization for a 
 @measure_name between @start_month_int and @end_month_int.
@@ -43,7 +44,7 @@ EXEC [stage].[sp_perf_staging]
 --,@measure_name = 'Child and Adolescent Access to Primary Care';
 
 Author: Philip Sylling
-Last Modified: 2019-05-22
+Modified: 2019-07-19: Modified to utilize new analytic tables
 */
 
 USE PHClaims;
@@ -83,7 +84,7 @@ for measurement year.
 */
 INSERT INTO [stage].[perf_staging]
 ([year_month]
-,[id]
+,[id_mcaid]
 ,[measure_id]
 ,[num_denom]
 ,[measure_value]
@@ -91,7 +92,7 @@ INSERT INTO [stage].[perf_staging]
 
 SELECT
  [year_month]
-,[id]
+,[id_mcaid]
 ,b.[measure_id]
 ,''N'' AS [num_denom]
 ,SUM([ed_visit_num]) AS [measure_value]
@@ -101,8 +102,15 @@ FROM [stage].[v_perf_ed_visit_num] AS a
 LEFT JOIN [ref].[perf_measure] AS b
 ON b.[measure_name] = ''' + @measure_name + '''
 WHERE [year_month] BETWEEN ' + CAST(@start_month_int AS CHAR(6)) + ' AND ' + CAST(@end_month_int AS CHAR(6)) + '
-GROUP BY [year_month], [id], b.[measure_id];'
+GROUP BY [year_month], [id_mcaid], b.[measure_id];'
 END
+PRINT @SQL;
+END
+
+EXEC sp_executeSQL @statement=@SQL, 
+                   @params=N'@start_month_int INT, @end_month_int INT, @measure_name VARCHAR(200)',
+				   @start_month_int=@start_month_int, @end_month_int=@end_month_int, @measure_name=@measure_name;
+GO
 
 IF @measure_name = 'Acute Hospital Utilization'
 BEGIN

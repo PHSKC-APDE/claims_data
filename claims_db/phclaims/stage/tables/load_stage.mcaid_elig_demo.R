@@ -615,9 +615,7 @@ tbl_id_meta <- DBI::Id(schema = "stage", table = "mcaid_elig_demo")
 # Write data
 dbWriteTable(db_claims, tbl_id_meta, value = as.data.frame(elig_demoever_final),
              overwrite = F, append = T,
-             field.types = paste(names(table_config_create$vars), 
-                                 table_config_create$vars, 
-                                 collapse = ", ", sep = " = "))
+             field.types = unlist(table_config_create$vars))
 
 
 #### CLEAN UP ####

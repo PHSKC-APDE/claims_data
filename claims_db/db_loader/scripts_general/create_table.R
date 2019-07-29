@@ -1,7 +1,7 @@
 #### FUNCTION TO CREATE TABLES IN SQL
 # Alastair Matheson
 # Created:        2019-04-04
-# Last modified:  2019-04-26
+# Last modified:  2019-07-25
 
 
 ### Plans for future improvements:
@@ -37,7 +37,7 @@ create_table_f <- function(
   }
   
   if (!is.null(config_url)) {
-    print("Warning: YAML configs pulled from a URL are subject to fewer error checks")
+    message("Warning: YAML configs pulled from a URL are subject to fewer error checks")
   }
   
   if (!is.null(config_file)) {
@@ -47,10 +47,9 @@ create_table_f <- function(
     }
     
     if (is.yaml.file(config_file) == F) {
-      stop(paste0("Config file is not a YAML config file. \n", 
-                  "Check there are no duplicate variables listed"))
+      stop(glue("Config file is not a YAML config file. ", 
+                "Check there are no duplicate variables listed"))
     }
-
   }
   
   #### READ IN CONFIG FILE ####
@@ -62,21 +61,21 @@ create_table_f <- function(
 
   #### ERROR CHECKS AND OVERALL MESSAGES ####
   # Check that the yaml config file has necessary components
-  if (!"schema" %in% names(table_config) & test_mode == F) {
+  if (max(c("schema", "to_schema") %in% names(table_config)) == 0 & test_mode == F) {
     stop("YAML file is missing a schema")
-  } else {
-    if (is.null(table_config$schema)) {
-      stop("Schema name is blank in config file")
+    } else {
+      if (is.null(table_config$schema) & is.null(table_config$to_schema)) {
+        stop("schema/to_schema is blank in config file")
+        }
     }
-  }
   
-  if (!"table" %in% names(table_config)) {
+  if (max(c("table", "to_table") %in% names(table_config)) == 0) {
     stop("YAML file is missing a table name")
-  } else {
-    if (is.null(table_config$table)) {
-      stop("Table name is blank in config file")
+    } else {
+      if (is.null(table_config$table) & is.null(table_config$to_table)) {
+        stop("table/to_table is blank in config file")
+      }
     }
-  }
   
   if (!"vars" %in% names(table_config)) {
     stop("YAML file is missing a list of variables")
@@ -101,7 +100,7 @@ create_table_f <- function(
   
   # Alert users they are in test mode
   if (test_mode == T) {
-    print("FUNCTION WILL BE RUN IN TEST MODE, WRITING TO TMP SCHEMA")
+    message("FUNCTION WILL BE RUN IN TEST MODE, WRITING TO TMP SCHEMA")
     test_msg <- " (function is in test mode)"
   } else {
     test_msg <- ""
@@ -109,12 +108,26 @@ create_table_f <- function(
   
   
   #### VARIABLES ####
-  table_name <- table_config$table
-  vars <- unlist(table_config$vars)
+  # Set up to work with both new and old way of using YMAL files
+  if (!is.null(table_config$to_table)) {
+    table_name <- table_config$to_table
+  } else {
+    table_name <- table_config$table
+  }
+  
+  vars <- unlist(table_config$vars)  
+
   
   if (test_mode == T) {
     schema <- "tmp"
-    table_name <- paste0(table_config$schema, "_", table_name)
+    
+    if (!is.null(table_config$to_schema)) {
+      table_name <- glue("{table_config$to_schema}_{table_name}")
+    } else {
+      table_name <- glue("{table_config$schema}_{table_name}")
+    }
+  } else if (!is.null(table_config$to_schema)) {
+    schema <- table_config$to_schema
   } else {
     schema <- table_config$schema
   }
@@ -129,7 +142,7 @@ create_table_f <- function(
 
   #### OVERALL TABLE ####
   if (overall == T) {
-    print(paste0("Creating overall [", schema, "].[", table_name, "] table", test_msg))
+    message(glue("Creating overall [{schema}].[{table_name}] table", test_msg))
     
     tbl_name <- DBI::Id(schema = schema, table = table_name)
     
@@ -145,7 +158,7 @@ create_table_f <- function(
   
   #### CALENDAR YEAR TABLES ####
   if (ind_yr == T) {
-    print(paste0("Creating calendar year [", schema, "].[", table_name, "] tables", test_msg))
+    message(glue("Creating calendar year [{schema}].[{table_name}] tables", test_msg))
     
     lapply(years, function(x) {
       tbl_name <- DBI::Id(schema = schema, table = paste0(table_name, "_", x))
@@ -165,5 +178,4 @@ create_table_f <- function(
       DBI::dbCreateTable(conn, tbl_name, fields = vars)
     })
   }
-  
 }

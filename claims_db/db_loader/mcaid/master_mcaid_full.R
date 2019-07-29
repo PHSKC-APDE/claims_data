@@ -131,6 +131,84 @@ odbc::dbGetQuery(
                  .con = db_claims))
 
 
+#### ADDRESS CLEANING ####
+### Create stage table
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_clean.yaml",
+               overall = T, ind_yr = F, overwrite = T)
+
+### Call in and run load function
+# Note: using partial load because ref.address_clean already exists
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial.R")
+load_stage.address_clean_partial_f(informatica = F)
+
+#### QA (not sure what yet)
+
+
+### Move existing ref to archive?
+
+
+### Create and load to final
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.address_clean.yaml",
+               overall = T, ind_yr = F)
+
+
+load_table_from_sql_f(conn = db_claims, 
+                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
+                      truncate = T, truncate_date = F)
+
+
+
+#### MCAID_ELIG_TIMEVAR ####
+# Create and load stage version
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig_timevar.yaml",
+               overall = T, ind_yr = F, overwrite = T)
+
+time_start <- Sys.time()
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R")
+time_end <- Sys.time()
+print(paste0("stage.mcaid_elig_timevar took ", round(difftime(time_end, time_start, units = "mins"), 2), " mins to make"))
+
+
+# Pull out run date of stage.mcaid_elig_demo
+last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_elig_timevar")[[1]])
+
+# QA stage version
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
+qa_mcaid_elig_timevar_f(conn = db_claims, load_only = T)
+
+
+# Create and load final table
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/create_final.mcaid_elig_timevar.yaml",
+               overall = T, ind_yr = F, overwrite = T)
+
+load_table_from_sql_f(conn = db_claims,
+                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
+                      truncate = T, truncate_date = F)
+
+# QA final table
+qa_rows_final_elig_timevar <- qa_sql_row_count_f(
+  conn = db_claims,
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
+  overall = T, ind_yr = F)
+
+odbc::dbGetQuery(
+  conn = db_claims,
+  glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                 VALUES ({last_run_elig_timevar}, 
+                 'final.mcaid_elig_timevar',
+                 'Number final rows compared to stage', 
+                 {qa_rows_final_elig_timevar$qa_result}, 
+                 {Sys.time()}, 
+                 {qa_rows_final_elig_timevar$note})",
+                 .con = db_claims))
+
+
+
 #### GEOCODING SETUP ####
 library(sf) # Read shape files
 
@@ -183,52 +261,10 @@ odbc::dbGetQuery(
 
 
 
-#### MCAID_ELIG_TIMEVAR ####
-# Create and load stage version
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig_timevar.yaml",
-               overall = T, ind_yr = F, overwrite = T)
-
-time_start <- Sys.time()
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R")
-time_end <- Sys.time()
-print(paste0("stage.mcaid_elig_timevar took ", round(difftime(time_end, time_start, units = "mins"), 2), " mins to make"))
 
 
-# Pull out run date of stage.mcaid_elig_demo
-last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_elig_timevar")[[1]])
 
-# QA stage version
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
-qa_mcaid_elig_timevar_f(conn = db_claims, load_only = T)
-
-
-# Create and load final table
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/create_final.mcaid_elig_timevar.yaml",
-               overall = T, ind_yr = F, overwrite = T)
-
-load_table_from_sql_f(conn = db_claims,
-                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
-                      truncate = T, truncate_date = F)
-
-# QA final table
-qa_rows_final_elig_timevar <- qa_sql_row_count_f(
-  conn = db_claims,
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
-  overall = T, ind_yr = F)
-
-odbc::dbGetQuery(
-  conn = db_claims,
-  glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_elig_timevar}, 
-                 'final.mcaid_elig_timevar',
-                 'Number final rows compared to stage', 
-                 {qa_rows_final_elig_timevar$qa_result}, 
-                 {Sys.time()}, 
-                 {qa_rows_final_elig_timevar$note})",
-                 .con = db_claims))
+#### STAGE ANALYTIC TABLES ####
 
 
 

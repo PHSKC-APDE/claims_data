@@ -37,8 +37,8 @@ select count(*) from [final].[mcaid_claim_icdcm_header];
 select count(*) from [final].[mcaid_claim_line];
 select count(*) from [final].[mcaid_claim_pharm];
 select count(*) from [final].[mcaid_claim_procedure];
-select count(claim_header_id) from [stage].[mcaid_claim];
-select count(distinct claim_header_id) from [stage].[mcaid_claim];
+select count(TCN) from [stage].[mcaid_claim];
+select count(distinct TCN) from [stage].[mcaid_claim];
 
 if object_id('[stage].[mcaid_claim_header]', 'U') is not null
 drop table [stage].[mcaid_claim_header];
