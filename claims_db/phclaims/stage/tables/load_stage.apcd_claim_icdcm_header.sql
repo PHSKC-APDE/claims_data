@@ -2,7 +2,7 @@
 --ICD-CM diagnosis codes in long format at claim header level
 --Eli Kern (PHSKC-APDE)
 --2019-5-3
---Run time: Many hours
+--Run time: 6hr 44min
 
 ------------------
 --STEP 1: Create temp claim line table with exclusions applied
