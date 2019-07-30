@@ -11,6 +11,8 @@ select
 id_apcd,
 extract_id,
 claim_header_id,
+first_service_date,
+last_service_date,
 icdcm_raw,
 icdcm_norm,
 icdcm_version,

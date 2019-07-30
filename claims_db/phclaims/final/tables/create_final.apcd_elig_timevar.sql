@@ -5,7 +5,6 @@
 --Eli Kern (PHSKC-APDE)
 --2019-4-12
 
-
 IF object_id('PHClaims.final.apcd_elig_timevar', 'U') is not null DROP TABLE PHClaims.final.apcd_elig_timevar;
 CREATE TABLE PHClaims.final.apcd_elig_timevar (
 	id_apcd bigint,
