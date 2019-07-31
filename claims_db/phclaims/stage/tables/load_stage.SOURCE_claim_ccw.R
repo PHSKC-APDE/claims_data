@@ -14,7 +14,8 @@ top_rows <- "" #Use this parameter for script testing - set to "top 5000" for ex
 
 ## Select config file for desired data source
 #config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
-config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_ccw.yaml"
+#config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_ccw.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_claim_ccw.yaml"
 
 # ### ### ### ### ### ### ###
 #### Step 1: Load parameters from config file #### 
