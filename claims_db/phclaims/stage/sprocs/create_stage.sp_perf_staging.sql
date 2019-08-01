@@ -104,6 +104,95 @@ ON b.[measure_name] = ''' + @measure_name + '''
 WHERE [year_month] BETWEEN ' + CAST(@start_month_int AS CHAR(6)) + ' AND ' + CAST(@end_month_int AS CHAR(6)) + '
 GROUP BY [year_month], [id_mcaid], b.[measure_id];'
 END
+
+IF @measure_name = 'Follow-up ED visit for Alcohol/Drug Abuse'
+BEGIN
+
+DELETE FROM [stage].[perf_staging_event_date]
+FROM [stage].[perf_staging_event_date] AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON a.[measure_id] = b.[measure_id]
+WHERE b.[measure_name] LIKE @measure_name + '%'
+AND [year_month] >= @start_month_int
+AND [year_month] <= @end_month_int;
+
+SET @start_month_date = CAST(CAST(@start_month_int * 100 + 1 AS CHAR(8)) AS DATE);
+SET @end_month_date = EOMONTH(CAST(CAST(@end_month_int * 100 + 1 AS CHAR(8)) AS DATE));
+
+SET @SQL = @SQL + N'
+IF OBJECT_ID(''tempdb..#temp'', ''U'') IS NOT NULL
+DROP TABLE #temp;
+CREATE TABLE #temp
+([year_month] INT
+,[id_mcaid] VARCHAR(255)
+,[age] INT
+,[claim_header_id] BIGINT
+,[first_service_date] DATE
+,[last_service_date] DATE
+,[ed_index_visit] INT
+,[ed_within_30_day] INT
+,[inpatient_within_30_day] INT
+,[need_1_month_coverage] INT
+,[follow_up_7_day] INT
+,[follow_up_30_day] INT);
+
+INSERT INTO #temp
+EXEC [stage].[sp_perf_fua_join_step]
+ @measurement_start_date=''' + CAST(@start_month_date AS CHAR(10)) + '''
+,@measurement_end_date=''' + CAST(@end_month_date AS CHAR(10)) + '''
+,@age=13
+,@dx_value_set_name=''AOD Abuse and Dependence'';
+
+WITH CTE AS
+(
+--First, insert rows for 7-day measure
+SELECT
+ [year_month]
+,[first_service_date] AS [event_date]
+,[id_mcaid]
+,[measure_id]
+,[ed_index_visit] AS [denominator]
+,[follow_up_7_day] AS [numerator]
+,CAST(GETDATE() AS DATE) AS [load_date]
+FROM #temp AS a
+LEFT JOIN [ref].[perf_measure] AS b
+ON [measure_name] = ''Follow-up ED visit for Alcohol/Drug Abuse: 7 days''
+
+UNION ALL
+
+--Next, insert rows for 30-day measure
+SELECT
+ [year_month]
+,[first_service_date] AS [event_date]
+,[id_mcaid]
+,[measure_id]
+,[ed_index_visit] AS [denominator]
+,[follow_up_30_day] AS [numerator]
+,CAST(GETDATE() AS DATE) AS [load_date]
+FROM #temp AS a
+LEFT JOIN [ref].[perf_measure] AS b
+ON [measure_name] = ''Follow-up ED visit for Alcohol/Drug Abuse: 30 days''
+)
+
+INSERT INTO [stage].[perf_staging_event_date]
+([year_month]
+,[event_date]
+,[id_mcaid]
+,[measure_id]
+,[denominator]
+,[numerator]
+,[load_date])
+
+SELECT
+ [year_month]
+,[event_date]
+,[id_mcaid]
+,[measure_id]
+,[denominator]
+,[numerator]
+,[load_date]
+FROM [CTE]'
+END
 PRINT @SQL;
 END
 
@@ -152,94 +241,7 @@ WHERE [year_month] BETWEEN ' + CAST(@start_month_int AS CHAR(6)) + ' AND ' + CAS
 GROUP BY [year_month], [id], b.[measure_id];'
 END
 
-IF @measure_name = 'Follow-up ED visit for Alcohol/Drug Abuse'
-BEGIN
 
-DELETE FROM [stage].[perf_staging_event_date]
-FROM [stage].[perf_staging_event_date] AS a
-INNER JOIN [ref].[perf_measure] AS b
-ON a.[measure_id] = b.[measure_id]
-WHERE b.[measure_name] LIKE @measure_name + '%'
-AND [year_month] >= @start_month_int
-AND [year_month] <= @end_month_int;
-
-SET @start_month_date = CAST(CAST(@start_month_int * 100 + 1 AS CHAR(8)) AS DATE);
-SET @end_month_date = EOMONTH(CAST(CAST(@end_month_int * 100 + 1 AS CHAR(8)) AS DATE));
-
-SET @SQL = @SQL + N'
-IF OBJECT_ID(''tempdb..#temp'', ''U'') IS NOT NULL
-DROP TABLE #temp;
-CREATE TABLE #temp
-([year_month] INT
-,[id] VARCHAR(200)
-,[age] INT
-,[tcn] VARCHAR(200)
-,[from_date] DATE
-,[to_date] DATE
-,[ed_index_visit] INT
-,[ed_within_30_day] INT
-,[inpatient_within_30_day] INT
-,[need_1_month_coverage] INT
-,[follow_up_7_day] INT
-,[follow_up_30_day] INT);
-
-INSERT INTO #temp
-EXEC [stage].[sp_perf_fua_join_step]
- @measurement_start_date=''' + CAST(@start_month_date AS CHAR(10)) + '''
-,@measurement_end_date=''' + CAST(@end_month_date AS CHAR(10)) + '''
-,@age=13
-,@dx_value_set_name=''AOD Abuse and Dependence'';
-
-WITH CTE AS
-(
---First, insert rows for 7-day measure
-SELECT
- [year_month]
-,[from_date] AS [event_date]
-,[id]
-,[measure_id]
-,[ed_index_visit] AS [denominator]
-,[follow_up_7_day] AS [numerator]
-,CAST(GETDATE() AS DATE) AS [load_date]
-FROM #temp AS a
-LEFT JOIN [ref].[perf_measure] AS b
-ON [measure_name] = ''Follow-up ED visit for Alcohol/Drug Abuse: 7 days''
-
-UNION ALL
-
---Next, insert rows for 30-day measure
-SELECT
- [year_month]
-,[from_date] AS [event_date]
-,[id]
-,[measure_id]
-,[ed_index_visit] AS [denominator]
-,[follow_up_30_day] AS [numerator]
-,CAST(GETDATE() AS DATE) AS [load_date]
-FROM #temp AS a
-LEFT JOIN [ref].[perf_measure] AS b
-ON [measure_name] = ''Follow-up ED visit for Alcohol/Drug Abuse: 30 days''
-)
-
-INSERT INTO [stage].[perf_staging_event_date]
-([year_month]
-,[event_date]
-,[id]
-,[measure_id]
-,[denominator]
-,[numerator]
-,[load_date])
-
-SELECT
- [year_month]
-,[event_date]
-,[id]
-,[measure_id]
-,[denominator]
-,[numerator]
-,[load_date]
-FROM [CTE]'
-END
 
 IF @measure_name = 'Follow-up ED visit for Mental Illness'
 BEGIN
