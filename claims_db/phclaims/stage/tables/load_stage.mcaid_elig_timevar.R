@@ -84,8 +84,8 @@ step1b_sql <- glue::glue_sql("SELECT id_mcaid, calmonth, fromdate, todate, dual,
                                                     ORDER BY id_mcaid, calmonth, rac_code_2) AS rac_code_8,
                              mco_id, geo_add1_clean, geo_add2_clean, geo_city_clean, 
                              geo_state_clean, geo_zip_clean,
-                             ROW_NUMBER() OVER(PARTITION BY id_mcaid, calmonth 
-                                               ORDER BY id_mcaid, calmonth, rac_code_2) AS group_row
+                             ROW_NUMBER() OVER(PARTITION BY id_mcaid, calmonth, fromdate  
+                                               ORDER BY id_mcaid, calmonth, fromdate, rac_code_2) AS group_row
                              INTO ##timevar_01b
                              FROM ##timevar_01a",
                              .con = db_claims)
