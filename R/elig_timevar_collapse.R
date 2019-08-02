@@ -19,9 +19,17 @@
 # - cov_time_day = recalculate coverage time in the new period
 # - last_run = bring in the last run date
 
+### August 2019 update - Eli
+# 1) Adapted for APCD data
+
 elig_timevar_collapse <- function(conn,
                               source = c("mcaid", "mcare", "apcd"),
+                              #all-source columns
                               dual = F,
+                              cov_time_day = T,
+                              last_run = F,
+                              
+                              #mcaid columns
                               tpl = F,
                               rac_code_1 = F,
                               rac_code_2 = F,
@@ -33,6 +41,18 @@ elig_timevar_collapse <- function(conn,
                               rac_code_8 = F,
                               #cov_type = F, # Not yet in elig_timevar
                               mco_id = F,
+                              
+                              #apcd columns
+                              med_covgrp = F,
+                              pharm_covgrp = F,
+                              med_medicaid = F,
+                              med_medicare = F,
+                              med_commercial = F,
+                              pharm_medicaid = F,
+                              pharm_medicare = F,
+                              pharm_commercial = F,
+                              
+                              #mcaid geo columns
                               geo_add1_clean = F,
                               geo_add2_clean = F,
                               geo_city_clean = F,
@@ -44,22 +64,31 @@ elig_timevar_collapse <- function(conn,
                                                   "geo_tractce10",
                                                   "geo_hra_id", 
                                                   "geo_school_geoid10"),
-                              cov_time_day = T,
-                              last_run = F) {
+                              
+                              #apcd geo columns
+                              geo_zip_code = F,
+                              geo_county = F,
+                              geo_ach = F) {
   
   #### ERROR CHECKS ####
   cols <- sum(dual, tpl, rac_code_1, rac_code_2, rac_code_3, rac_code_4, 
               rac_code_5, rac_code_6, rac_code_7, rac_code_8, # cov_type, 
               mco_id, geo_add1_clean, geo_add2_clean, geo_city_clean,
-              geo_state_clean, geo_zip_clean)
+              geo_state_clean, geo_zip_clean, med_covgrp, pharm_covgrp, med_medicaid,
+              med_medicare, med_commercial, pharm_medicaid, pharm_medicare, pharm_commercial,
+              geo_zip_code, geo_county, geo_ach)
   
   # Make sure something is being selected
   if (cols == 0) {
     stop("Choose at least one column to collapse over")
   }
   
-  if (cols == 16) { # Change this once cov_type added in
-    stop("You have selected every time-varying column. Just use the elig_timevar table")
+  if (source == "mcaid" & cols == 16) { # Change this once cov_type added in
+    stop("You have selected every Medicaid time-varying column. Just use the mcaid.elig_timevar table")
+  }
+  
+  if (source == "apcd" & cols == 12) { # Change this once cov_type added in
+    stop("You have selected every APCD time-varying column. Just use the apcd.elig_timevar table")
   }
   
   # Make sure geocode_vars selected are legit
@@ -72,7 +101,7 @@ elig_timevar_collapse <- function(conn,
   
   #### SET UP VARIABLES ####
   source <- match.arg(source)
-  tbl <- glue("final.{source}_elig_timevar")
+  tbl <- glue("{source}_elig_timevar")
   
   id_name <- glue("id_{source}")
   
@@ -93,8 +122,12 @@ elig_timevar_collapse <- function(conn,
   } else if (source == "mcare") {
       
   } else if (source == "apcd") {
-      
-    }
+    vars_to_check <- list("dual" = dual, "med_covgrp" = med_covgrp, "pharm_covgrp" = pharm_covgrp, 
+                          "med_medicaid" = med_medicaid, "med_medicare" = med_medicare, 
+                          "med_commercial" = med_commercial, "pharm_medicaid" = pharm_medicaid, 
+                          "pharm_medicare" = pharm_medicare, "pharm_commercial" = pharm_commercial, 
+                          "geo_zip_code" = geo_zip_code, "geo_county" = geo_county, "geo_ach" = geo_ach)
+  }
 
   vars <- vector()
   
@@ -150,8 +183,8 @@ elig_timevar_collapse <- function(conn,
                 PARTITION BY a.{`id_name`}, {`vars_to_quote_a`*}
                 ORDER by from_date), a.from_date) as group_num 
               FROM 
-              (SELECT TOP (100) {`id_name`}, from_date, to_date, {`vars_combined`*} 
-              FROM {tbl}) a) b) c) d) e
+              (SELECT TOP (10000) {`id_name`}, from_date, to_date, {`vars_combined`*} 
+              FROM final.{`tbl`}) a) b) c) d) e
       ORDER BY {`id_name`}, from_date",
     vars_to_quote_a = lapply(vars_combined, function(nme) DBI::Id(table = "a", column = nme)),
     vars_to_quote_e = lapply(vars_combined, function(nme) DBI::Id(table = "e", column = nme)),
@@ -175,3 +208,11 @@ test_sql2 <- elig_timevar_collapse(conn = db_claims, source = "mcaid",
                                   dual = T, rac_code_4 = T,
                                   geocode_vars = list("geo_hra_id"),
                                   last_run = F)
+
+#### Eli's test ####
+library(odbc)
+library(glue)
+db.claims51 <- dbConnect(odbc(), "PHClaims51")
+test1 <- elig_timevar_collapse(conn = db.claims51, source = "apcd",
+                               dual = T, geo_county = T)
+
