@@ -77,7 +77,7 @@ elig_timevar_collapse <- function(conn,
   id_name <- glue("id_{source}")
   
   
-  vars <- vector()
+  
   
   if (source == "mcaid") {
     vars_to_check <- list("dual" = dual, "tpl" = tpl, "rac_code_1" = rac_code_1, 
@@ -96,6 +96,7 @@ elig_timevar_collapse <- function(conn,
       
     }
 
+  vars <- vector()
   
   lapply(seq_along(vars_to_check), n = names(vars_to_check), function(x, n) {
     if (vars_to_check[x] == T) {
@@ -108,7 +109,7 @@ elig_timevar_collapse <- function(conn,
   
   
   message("adding in geocode variables")
-  if (length(geocode_vars) > 0) {
+  if (source == "mcaid" & length(geocode_vars) > 0) {
     vars_geo <- unlist(geocode_vars)
   } else {
     vars_geo <- vector()
@@ -150,7 +151,7 @@ elig_timevar_collapse <- function(conn,
                 ORDER by from_date), a.from_date) as group_num 
               FROM 
               (SELECT TOP (100) {`id_name`}, from_date, to_date, {`vars_combined`*} 
-              FROM final.mcaid_elig_timevar) a) b) c) d) e
+              FROM {tbl}) a) b) c) d) e
       ORDER BY {`id_name`}, from_date",
     vars_to_quote_a = lapply(vars_combined, function(nme) DBI::Id(table = "a", column = nme)),
     vars_to_quote_e = lapply(vars_combined, function(nme) DBI::Id(table = "e", column = nme)),
