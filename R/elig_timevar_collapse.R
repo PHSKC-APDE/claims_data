@@ -74,18 +74,28 @@ elig_timevar_collapse <- function(conn,
   source <- match.arg(source)
   tbl <- glue("final.{source}_elig_timevar")
   
+  id_name <- glue("id_{source}")
+  
   
   vars <- vector()
-  vars_to_check <- list("dual" = dual, "tpl" = tpl, "rac_code_1" = rac_code_1, 
-                        "rac_code_2" = rac_code_2, "rac_code_3" = rac_code_3, 
-                        "rac_code_4" = rac_code_4, "rac_code_5" = rac_code_5, 
-                        "rac_code_6" = rac_code_6, "rac_code_7" = rac_code_7, 
-                        "rac_code_8" = rac_code_8, # "cov_type" = cov_type, 
-                        "mco_id" = mco_id, "geo_add1_clean" = geo_add1_clean, 
-                        "geo_add2_clean" = geo_add2_clean, 
-                        "geo_city_clean" = geo_city_clean,
-                        "geo_state_clean" = geo_state_clean,
-                        "geo_zip_clean" = geo_zip_clean)
+  
+  if (source == "mcaid") {
+    vars_to_check <- list("dual" = dual, "tpl" = tpl, "rac_code_1" = rac_code_1, 
+                          "rac_code_2" = rac_code_2, "rac_code_3" = rac_code_3, 
+                          "rac_code_4" = rac_code_4, "rac_code_5" = rac_code_5, 
+                          "rac_code_6" = rac_code_6, "rac_code_7" = rac_code_7, 
+                          "rac_code_8" = rac_code_8, # "cov_type" = cov_type, 
+                          "mco_id" = mco_id, "geo_add1_clean" = geo_add1_clean, 
+                          "geo_add2_clean" = geo_add2_clean, 
+                          "geo_city_clean" = geo_city_clean,
+                          "geo_state_clean" = geo_state_clean,
+                          "geo_zip_clean" = geo_zip_clean)
+  } else if (source == "mcare") {
+      
+  } else if (source == "apcd") {
+      
+    }
+
   
   lapply(seq_along(vars_to_check), n = names(vars_to_check), function(x, n) {
     if (vars_to_check[x] == T) {
@@ -110,43 +120,38 @@ elig_timevar_collapse <- function(conn,
     vars_date <- vector()
   }
   
-  print(vars)
-  print(vars_geo)
-  print(vars_date)
-  
   vars_combined <- c(vars, vars_geo, vars_date)
   
-
   sql_call <- glue_sql(
-    "SELECT DISTINCT e.id_mcaid, e.min_from AS from_date, e.max_to AS to_date,
+    "SELECT DISTINCT e.{`id_name`}, e.min_from AS from_date, e.max_to AS to_date,
     {`vars_to_quote_e`*}
       FROM
       (SELECT d.*,
         MIN(from_date) OVER 
-        (PARTITION BY id_mcaid, group_num3 
-          ORDER BY id_mcaid, from_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS [min_from],
+        (PARTITION BY {`id_name`}, group_num3 
+          ORDER BY {`id_name`}, from_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS [min_from],
         MAX(to_date) OVER 
-        (PARTITION BY id_mcaid, group_num3 
-          ORDER BY id_mcaid, from_date ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS [max_to]
+        (PARTITION BY {`id_name`}, group_num3 
+          ORDER BY {`id_name`}, from_date ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS [max_to]
         FROM
         (SELECT c.*,
           group_num3 = max(group_num2) OVER 
-          (PARTITION BY id_mcaid, {`vars`*} ORDER BY from_date)
+          (PARTITION BY {`id_name`}, {`vars`*} ORDER BY from_date)
           FROM
           (SELECT b.*, 
             CASE 
-            WHEN b.group_num > 1  OR b.group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY b.id_mcaid ORDER BY b.from_date) + 1
+            WHEN b.group_num > 1  OR b.group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY b.{`id_name`} ORDER BY b.from_date) + 1
             WHEN b.group_num = 1 OR b.group_num = 0 THEN NULL
             END AS group_num2
             FROM
-            (SELECT a.id_mcaid, a.from_date, a.to_date, {`vars_to_quote_a`*},
+            (SELECT a.{`id_name`}, a.from_date, a.to_date, {`vars_to_quote_a`*},
               datediff(day, lag(a.to_date) OVER (
-                PARTITION BY a.id_mcaid, {`vars_to_quote_a`*}
+                PARTITION BY a.{`id_name`}, {`vars_to_quote_a`*}
                 ORDER by from_date), a.from_date) as group_num 
               FROM 
-              (SELECT TOP (100) id_mcaid, from_date, to_date, {`vars_combined`*} 
+              (SELECT TOP (100) {`id_name`}, from_date, to_date, {`vars_combined`*} 
               FROM final.mcaid_elig_timevar) a) b) c) d) e
-      ORDER BY id_mcaid, from_date",
+      ORDER BY {`id_name`}, from_date",
     vars_to_quote_a = lapply(vars_combined, function(nme) DBI::Id(table = "a", column = nme)),
     vars_to_quote_e = lapply(vars_combined, function(nme) DBI::Id(table = "e", column = nme)),
     .con = conn)
