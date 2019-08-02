@@ -32,13 +32,13 @@ SELECT
 ,DATEDIFF(MONTH, a.[dob], b.[end_month]) - CASE WHEN DATEADD(MONTH, DATEDIFF(MONTH, a.[dob], b.[end_month]), a.[dob]) > b.[end_month] THEN 1 ELSE 0 END AS [age_in_months]
 
 ,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL THEN 1 ELSE 0 END AS [enrolled_any]
--- Use RDA Full Benefit Methodology until BSP is validated
-,CASE WHEN d.[rda_full_benefit_flag] = 'Y' THEN 1 ELSE 0 END AS [full_benefit]
+-- Use BSP Group Full Benefit Methodology from HCA/Providence CORE
+,CASE WHEN d.[full_benefit] = 'Y' THEN 1 ELSE 0 END AS [full_benefit]
 ,CASE WHEN c.[DUAL_ELIG] = 'Y' THEN 1 ELSE 0 END AS [dual]
 ,CASE WHEN c.[TPL_FULL_FLAG] = 'Y' THEN 1 ELSE 0 END AS [tpl]
 ,ISNULL(e.[hospice_flag], 0) AS [hospice]
-,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[rda_full_benefit_flag] = 'Y' AND c.[DUAL_ELIG] = 'N' AND c.[TPL_FULL_FLAG] = ' ' THEN 1 ELSE 0 END AS [full_criteria]
-,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[rda_full_benefit_flag] = 'Y' AND c.[DUAL_ELIG] = 'N' THEN 1 ELSE 0 END AS [full_criteria_without_tpl]
+,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[full_benefit] = 'Y' AND c.[DUAL_ELIG] = 'N' AND c.[TPL_FULL_FLAG] = ' ' THEN 1 ELSE 0 END AS [full_criteria]
+,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[full_benefit] = 'Y' AND c.[DUAL_ELIG] = 'N' THEN 1 ELSE 0 END AS [full_criteria_without_tpl]
 ,b.[row_num]
 
 FROM [final].[mcaid_elig_demo] AS a

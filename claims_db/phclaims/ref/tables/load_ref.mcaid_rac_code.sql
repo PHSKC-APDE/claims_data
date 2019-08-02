@@ -55,8 +55,8 @@ INSERT INTO [ref].[mcaid_rac_code]
 ,[bsp_group_cid]
 ,[bsp_group_abbrev]
 ,[bsp_group_name]
-,[rda_full_benefit_flag]
-,[core_full_benefit_flag])
+,[full_benefit]
+,[alternate_rda_full_benefit])
 
 SELECT
  CAST(a.[RAC_CODE] AS INT) AS [rac_code]
@@ -79,15 +79,15 @@ SELECT
 ,CAST(d.[BSP_GROUP_ABBREV] AS VARCHAR(255)) AS [bsp_group_abbrev]
 ,CAST(d.[BSP_GROUP_NAME] AS VARCHAR(255)) AS [bsp_group_name] 
 
-,CASE WHEN (c.[Title.XIX.Full.Benefit.Included.in.1519.Public.Reporting] = 'Y' OR c.[Title.XXI.Full.Benefit] = 'Y') THEN 'Y'
-      WHEN (b.[RAC_CODE] IS NOT NULL AND c.[Title.XIX.Full.Benefit.Included.in.1519.Public.Reporting] IS NULL AND c.[Title.XXI.Full.Benefit] IS NULL) THEN 'N'
-	  ELSE NULL
- END AS [rda_full_benefit_flag]
-
 ,CASE WHEN CAST(d.[BSP_GROUP_CID] AS INT) IN (1003960, 1003956, 10066833, 1003962) AND a.[FUND_SOURCE_CODE] IN ('Federal', 'Title XXI') THEN 'Y'
       WHEN d.[RAC.Code.4.Bytes] IS NOT NULL AND (CAST(d.[BSP_GROUP_CID] AS INT) NOT IN (1003960, 1003956, 10066833, 1003962) OR a.[FUND_SOURCE_CODE] NOT IN ('Federal', 'Title XXI')) THEN 'N'
 	  ELSE NULL
- END AS [core_full_benefit_flag]
+ END AS [full_benefit]
+ 
+,CASE WHEN (c.[Title.XIX.Full.Benefit.Included.in.1519.Public.Reporting] = 'Y' OR c.[Title.XXI.Full.Benefit] = 'Y') THEN 'Y'
+      WHEN (b.[RAC_CODE] IS NOT NULL AND c.[Title.XIX.Full.Benefit.Included.in.1519.Public.Reporting] IS NULL AND c.[Title.XXI.Full.Benefit] IS NULL) THEN 'N'
+	  ELSE NULL
+ END AS [alternate_rda_full_benefit]
 
 FROM [tmp].[Medicaid_RAC_Codes_Fund_Source] AS a
 
@@ -113,16 +113,17 @@ SELECT
 ,[title_xix_limited_benefit]
 ,[title_xxi_full_benefit]
 ,[bsp_group_cid]
-,[rda_full_benefit_flag]
-,[core_full_benefit_flag]
+,[full_benefit]
+,[alternate_rda_full_benefit]
+
 
 FROM [PHClaims].[ref].[mcaid_rac_code]
 WHERE 1 = 1
---AND [rda_full_benefit_flag] = 'Y' AND [core_full_benefit_flag] = 'Y'
---AND [rda_full_benefit_flag] = 'N' AND [core_full_benefit_flag] = 'N'
---AND ([rda_full_benefit_flag] = 'Y' AND [core_full_benefit_flag] = 'N') OR ([rda_full_benefit_flag] = 'N' AND [core_full_benefit_flag] = 'Y')
---AND [rda_full_benefit_flag] = 'Y' AND [core_full_benefit_flag] IS NULL
---AND [rda_full_benefit_flag] IS NULL AND [core_full_benefit_flag] = 'Y'
---AND [rda_full_benefit_flag] = 'N' AND [core_full_benefit_flag] IS NULL
---AND [rda_full_benefit_flag] IS NULL AND [core_full_benefit_flag] = 'N'
-AND [rda_full_benefit_flag] IS NULL AND [core_full_benefit_flag] IS NULL
+--AND [full_benefit] = 'Y' AND [alternate_rda_full_benefit] = 'Y'
+--AND [full_benefit] = 'N' AND [alternate_rda_full_benefit] = 'N'
+--AND ([full_benefit] = 'Y' AND [alternate_rda_full_benefit] = 'N') OR ([full_benefit] = 'N' AND [alternate_rda_full_benefit] = 'Y')
+--AND [full_benefit] = 'Y' AND [alternate_rda_full_benefit] IS NULL
+--AND [full_benefit] IS NULL AND [alternate_rda_full_benefit] = 'Y'
+--AND [full_benefit] = 'N' AND [alternate_rda_full_benefit] IS NULL
+--AND [full_benefit] IS NULL AND [alternate_rda_full_benefit] = 'N'
+AND [full_benefit] IS NULL AND [alternate_rda_full_benefit] IS NULL

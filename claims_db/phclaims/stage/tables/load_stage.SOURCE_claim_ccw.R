@@ -13,7 +13,9 @@ db.claims51 <- dbConnect(odbc(), "PHClaims51")
 top_rows <- "" #Use this parameter for script testing - set to "top 5000" for example
 
 ## Select config file for desired data source
-config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
+#config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"
+#config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_ccw.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_claim_ccw.yaml"
 
 # ### ### ### ### ### ### ###
 #### Step 1: Load parameters from config file #### 
@@ -323,7 +325,7 @@ dbClearResult(sql_result)
 sql4 <- paste0(
   "insert into PHClaims.", schema, ".", to_table, " with (tablock)
   select
-  id_apcd,
+  id_", source_data, ",
   from_date,
   to_date,
   ccw_code,

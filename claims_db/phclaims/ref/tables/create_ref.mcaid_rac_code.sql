@@ -20,8 +20,8 @@ CREATE TABLE [ref].[mcaid_rac_code]
 ,[bsp_group_cid] INT
 ,[bsp_group_abbrev] VARCHAR(255)
 ,[bsp_group_name] VARCHAR(255)
-,[rda_full_benefit_flag] CHAR(1)
-,[core_full_benefit_flag] CHAR(1)
+,[full_benefit] CHAR(1)
+,[alternate_rda_full_benefit] CHAR(1)
 ,CONSTRAINT [PK_ref_mcaid_rac_code] PRIMARY KEY CLUSTERED ([rac_code])
 );
 GO
