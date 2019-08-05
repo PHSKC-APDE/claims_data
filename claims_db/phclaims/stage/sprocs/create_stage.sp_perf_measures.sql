@@ -34,7 +34,7 @@ Author: Philip Sylling
 Modified: 2019-07-19: Modified to utilize new analytic tables
 */
 
-USE PHClaims;
+USE [PHClaims];
 GO
 
 IF OBJECT_ID('[stage].[sp_perf_measures]','P') IS NOT NULL
@@ -306,11 +306,11 @@ END
 
 PRINT @SQL;
 END
-/*
+
 EXEC sp_executeSQL @statement=@SQL, 
                    @params=N'@end_month_int INT, @measure_name VARCHAR(200)',
 				   @end_month_int=@end_month_int, @measure_name=@measure_name;
-*/
+
 GO
 
 

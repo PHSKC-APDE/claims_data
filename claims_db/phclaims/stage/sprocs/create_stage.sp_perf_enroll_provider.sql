@@ -159,6 +159,11 @@ SELECT COUNT(DISTINCT [id_mcaid])
 FROM [stage].[perf_enroll_provider] 
 WHERE [year_month] = 201812;
 
+SELECT COUNT(DISTINCT [id_mcaid]) 
+FROM [stage].[perf_enroll_denom] 
+WHERE [year_month] = 201812
+AND [enrolled_any_t_12_m] >= 1;
+
 SELECT COUNT(DISTINCT [MEDICAID_RECIPIENT_ID]) 
 FROM [stage].[perf_elig_member_month] 
 WHERE [CLNDR_YEAR_MNTH] BETWEEN 201801 AND 201812;
