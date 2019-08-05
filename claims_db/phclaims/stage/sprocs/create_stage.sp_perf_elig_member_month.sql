@@ -89,6 +89,7 @@ SELECT
 ,[MC_PRVDR_NAME]
 ,[DUAL_ELIG]
 ,[TPL_FULL_FLAG]
+,[RSDNTL_POSTAL_CODE]
 ,ROW_NUMBER() OVER(PARTITION BY [MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH] 
                    ORDER BY DATEDIFF(DAY, [FROM_DATE], [TO_DATE]) DESC) AS [row_num]
 FROM #temp
@@ -104,6 +105,7 @@ SELECT
 ,[MC_PRVDR_NAME]
 ,[DUAL_ELIG]
 ,[TPL_FULL_FLAG]
+,[RSDNTL_POSTAL_CODE]
 
 INTO [stage].[perf_elig_member_month]
 FROM CTE
@@ -112,8 +114,7 @@ AND [row_num] = 1;
 
 ALTER TABLE [stage].[perf_elig_member_month] ALTER COLUMN [CLNDR_YEAR_MNTH] INT NOT NULL;
 ALTER TABLE [stage].[perf_elig_member_month] ALTER COLUMN [MEDICAID_RECIPIENT_ID] VARCHAR(200) NOT NULL;
-ALTER TABLE [stage].[perf_elig_member_month] ADD CONSTRAINT PK_perf_elig_member_month PRIMARY KEY ([MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]);
-
+ALTER TABLE [stage].[perf_elig_member_month] ADD CONSTRAINT [PK_perf_elig_member_month] PRIMARY KEY ([MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]);
 END
 GO
 
