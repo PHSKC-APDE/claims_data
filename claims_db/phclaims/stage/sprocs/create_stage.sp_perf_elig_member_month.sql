@@ -33,7 +33,7 @@ SELECT
 INTO #temp
 FROM [stage].[mcaid_elig];
 
-CREATE NONCLUSTERED INDEX [idx_nc_#temp] 
+CREATE CLUSTERED INDEX [idx_cl_#temp] 
 ON #temp([MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]);
 
 /*
@@ -92,7 +92,10 @@ SELECT
 ,[RSDNTL_POSTAL_CODE]
 ,ROW_NUMBER() OVER(PARTITION BY [MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH] 
                    ORDER BY DATEDIFF(DAY, [FROM_DATE], [TO_DATE]) DESC) AS [row_num]
-FROM #temp
+FROM #temp AS a
+INNER JOIN [ref].[apcd_zip] AS b
+ON a.[RSDNTL_POSTAL_CODE] = b.[zip_code]
+WHERE b.[state] = 'WA' AND b.[county_name] = 'King'
 )
 
 SELECT

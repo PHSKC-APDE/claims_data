@@ -61,6 +61,7 @@ ON c.[RPRTBL_RAC_CODE] = d.[rac_code]
 LEFT JOIN [stage].[v_perf_hospice_member_month] AS e
 ON a.[id_mcaid] = e.[id_mcaid]
 AND b.[year_month] = e.[year_month];
+
 GO
 
 /*
