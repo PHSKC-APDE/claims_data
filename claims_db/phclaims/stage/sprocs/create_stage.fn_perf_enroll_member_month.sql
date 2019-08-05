@@ -39,6 +39,7 @@ SELECT
 ,ISNULL(e.[hospice_flag], 0) AS [hospice]
 ,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[full_benefit] = 'Y' AND c.[DUAL_ELIG] = 'N' AND c.[TPL_FULL_FLAG] = ' ' THEN 1 ELSE 0 END AS [full_criteria]
 ,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[full_benefit] = 'Y' AND c.[DUAL_ELIG] = 'N' THEN 1 ELSE 0 END AS [full_criteria_without_tpl]
+--,CASE WHEN [COVERAGE_TYPE_IND] = 'FFS' THEN 'FFS' ELSE [MC_PRVDR_NAME] END AS [mco_or_ffs]
 ,b.[row_num]
 
 FROM [final].[mcaid_elig_demo] AS a
@@ -61,6 +62,7 @@ ON c.[RPRTBL_RAC_CODE] = d.[rac_code]
 LEFT JOIN [stage].[v_perf_hospice_member_month] AS e
 ON a.[id_mcaid] = e.[id_mcaid]
 AND b.[year_month] = e.[year_month];
+
 GO
 
 /*

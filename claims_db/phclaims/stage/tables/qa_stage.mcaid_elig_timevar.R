@@ -76,7 +76,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   }
   
   
-  #### CHECK DISTINCT IDS = DISTINCT IN STAGE ####
+  #### CHECK DISTINCT IDS = DISTINCT IN STAGE.MCAID_ELIG ####
   id_count_timevar <- as.numeric(odbc::dbGetQuery(
     conn, "SELECT COUNT (DISTINCT id_mcaid) AS count FROM stage.mcaid_elig_timevar"))
   
@@ -119,7 +119,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     conn, 
     "SELECT COUNT (*) AS count FROM 
     (SELECT DISTINCT id_mcaid, from_date, to_date, 
-    dual, tpl, rac_code_1, rac_code_2, mco_id,
+    dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
     cov_time_day 
     FROM stage.mcaid_elig_timevar) a"))
@@ -207,6 +207,46 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                      from = dbQuoteIdentifier(conn, as.character(date_range_elig$from_date)),
                      to = dbQuoteIdentifier(conn, as.character(date_range_elig$to_date))
                      ))
+  }
+  
+  
+  
+  #### CHECK SPECIFIC INDIVIDUALS TO ENSURE THEIR DATES WORK ####
+  timevar_ind <- read.csv("//dchs-shares01/dchsdata/DCHSPHClaimsData/Data/QA_specific/stage.mcaid_elig_timevar_qa_ind.csv",
+                          stringsAsFactors = F)
+  
+  timevar_ind_sql <- glue::glue_sql("SELECT id_mcaid, from_date, to_date FROM stage.mcaid_elig_timevar 
+                                    WHERE id_mcaid IN ({ind_ids*})
+                                    ORDER BY id_mcaid, from_date",
+                                    ind_ids = unlist(distinct(timevar_ind, id_mcaid)),
+                                    .con = conn)
+  
+  timevar_ind_stage <- dbGetQuery(conn, timevar_ind_sql)
+  
+  if (all_equal(timevar_ind_stage, select(timevar_ind, -notes)) == FALSE) {
+    odbc::dbGetQuery(
+      conn = conn,
+      glue::glue_sql("INSERT INTO metadata.qa_mcaid 
+                     (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                     VALUES ({last_run}, 
+                             'stage.mcaid_elig_timevar',
+                             'Specific IDs',
+                             'FAIL',
+                             {Sys.time()}, 
+                             'Some from/to dates did not match expected results for specific IDs')",
+                     .con = conn))
+  } else {
+    odbc::dbGetQuery(
+      conn = conn,
+      glue::glue_sql("INSERT INTO metadata.qa_mcaid 
+                     (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                     VALUES ({last_run}, 
+                             'stage.mcaid_elig_timevar',
+                             'Specific IDs',
+                             'PASS',
+                             {Sys.time()}, 
+                             'All from/to dates matched expected results for specific IDs')",
+                     .con = conn))
   }
   
   

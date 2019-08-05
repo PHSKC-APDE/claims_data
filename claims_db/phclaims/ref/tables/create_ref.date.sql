@@ -37,7 +37,8 @@ SELECT
 ,[last_day_year]
 */
 
-USE PHClaims;
+--USE [PHClaims];
+USE [DCHS_Analytics];
 GO
 
 DECLARE @StartDate DATE = '19900101', @NumberOfYears INT = 40;
