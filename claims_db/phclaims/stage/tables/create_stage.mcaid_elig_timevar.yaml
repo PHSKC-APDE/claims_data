@@ -7,14 +7,9 @@ vars:
     contiguous: TINYINT
     dual: TINYINT
     tpl: TINYINT
-    rac_code_1: SMALLINT
-    rac_code_2: SMALLINT
-    rac_code_3: SMALLINT
-    rac_code_4: SMALLINT
-    rac_code_5: SMALLINT
-    rac_code_6: SMALLINT
-    rac_code_7: SMALLINT
-    rac_code_8: SMALLINT
+    bsp_group_name: VARCHAR(255)
+    full_benefit: TINYINT
+    cov_type: CHAR(3)
     mco_id: INT
     geo_add1_clean: VARCHAR(255)
     geo_add2_clean: VARCHAR(255)

@@ -182,7 +182,7 @@ qa_mcaid_elig_timevar_f(conn = db_claims, load_only = T)
 
 # Create and load final table
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/create_final.mcaid_elig_timevar.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
                overall = T, ind_yr = F, overwrite = T)
 
 load_table_from_sql_f(conn = db_claims,
