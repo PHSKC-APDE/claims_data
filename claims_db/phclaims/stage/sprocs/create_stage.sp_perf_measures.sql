@@ -306,9 +306,11 @@ END
 
 PRINT @SQL;
 END
+/*
 EXEC sp_executeSQL @statement=@SQL, 
                    @params=N'@end_month_int INT, @measure_name VARCHAR(200)',
 				   @end_month_int=@end_month_int, @measure_name=@measure_name;
+*/
 GO
 
 
