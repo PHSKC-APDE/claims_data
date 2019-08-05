@@ -270,7 +270,7 @@ sql3 <- paste0(
     
       --create a flag for a discontinuity in a person's disease status
       case
-        when datediff(month, lag(b.start_window) over (partition by b.id_", source_data, " order by b.id_", source_data, ", b.start_window), b.start_window) <= 1 then null
+        when datediff(month, lag(b.end_window) over (partition by b.id_", source_data, " order by b.id_", source_data, ", b.start_window), b.start_window) <= 1 then null
         when b.start_window < lag(b.end_window) over (partition by b.id_", source_data, " order by b.id_", source_data, ", b.start_window) then null
         when row_number() over (partition by b.id_", source_data, " order by b.id_", source_data, ", b.start_window) = 1 then null
         else row_number() over (partition by b.id_", source_data, " order by b.id_", source_data, ", b.start_window)
