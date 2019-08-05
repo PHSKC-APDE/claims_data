@@ -26,7 +26,7 @@ SELECT
 	  WHEN ([COVERAGE_TYPE_IND] = 'MC' AND [MC_PRVDR_NAME] IN ('Coordinated Care Corporation', 'Coordinated Care of Washington')) THEN 'CCW'
 	  WHEN ([COVERAGE_TYPE_IND] = 'MC' AND [MC_PRVDR_NAME] = 'Molina Healthcare of Washington Inc') THEN 'MHW'
 	  WHEN ([COVERAGE_TYPE_IND] = 'MC' AND [MC_PRVDR_NAME] = 'United Health Care Community Plan') THEN 'UHC'
-	  WHEN ([COVERAGE_TYPE_IND] = 'MC') THEN 'OTHER MCO'
+	  WHEN ([COVERAGE_TYPE_IND] = 'MC') THEN NULL
       ELSE NULL END AS [MC_PRVDR_NAME]
 ,[DUAL_ELIG]
 ,[TPL_FULL_FLAG]
