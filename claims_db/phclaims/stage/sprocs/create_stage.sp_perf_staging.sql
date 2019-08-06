@@ -105,6 +105,46 @@ WHERE [year_month] BETWEEN ' + CAST(@start_month_int AS CHAR(6)) + ' AND ' + CAS
 GROUP BY [year_month], [id_mcaid], b.[measure_id];'
 END
 
+IF @measure_name = 'Acute Hospital Utilization'
+BEGIN
+
+DELETE FROM [stage].[perf_staging]
+FROM [stage].[perf_staging] AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON a.[measure_id] = b.[measure_id]
+WHERE b.[measure_name] = @measure_name
+AND [year_month] >= @start_month_int
+AND [year_month] <= @end_month_int;
+
+SET @SQL = @SQL + N'
+/*
+Sum discharges within member-month
+*/
+INSERT INTO [stage].[perf_staging]
+([year_month]
+,[id_mcaid]
+,[measure_id]
+,[num_denom]
+,[measure_value]
+,[load_date])
+
+SELECT 
+ [year_month]
+,[id_mcaid]
+,b.[measure_id]
+,''N'' AS [num_denom]
+,SUM([total_discharges]) AS [measure_value]
+--,SUM([medicine]) AS [medicine]
+--,SUM([surgery]) AS [surgery]
+,CAST(GETDATE() AS DATE) AS [load_date]
+
+FROM [stage].[v_perf_ah_inpatient_numerator]
+LEFT JOIN [ref].[perf_measure] AS b
+ON b.[measure_name] = ''' + @measure_name + '''
+WHERE [year_month] BETWEEN ' + CAST(@start_month_int AS CHAR(6)) + ' AND ' + CAST(@end_month_int AS CHAR(6)) + '
+GROUP BY [year_month], [id_mcaid], b.[measure_id];'
+END
+
 IF @measure_name = 'Follow-up ED visit for Alcohol/Drug Abuse'
 BEGIN
 
@@ -203,45 +243,7 @@ EXEC sp_executeSQL @statement=@SQL,
 
 GO
 
-IF @measure_name = 'Acute Hospital Utilization'
-BEGIN
 
-DELETE FROM [stage].[perf_staging]
-FROM [stage].[perf_staging] AS a
-INNER JOIN [ref].[perf_measure] AS b
-ON a.[measure_id] = b.[measure_id]
-WHERE b.[measure_name] = @measure_name
-AND [year_month] >= @start_month_int
-AND [year_month] <= @end_month_int;
-
-SET @SQL = @SQL + N'
-/*
-Sum discharges within member-month
-*/
-INSERT INTO [stage].[perf_staging]
-([year_month]
-,[id]
-,[measure_id]
-,[num_denom]
-,[measure_value]
-,[load_date])
-
-SELECT 
- [year_month]
-,[id]
-,b.[measure_id]
-,''N'' AS [num_denom]
-,SUM([total_discharges]) AS [measure_value]
---,SUM([medicine]) AS [medicine]
---,SUM([surgery]) AS [surgery]
-,CAST(GETDATE() AS DATE) AS [load_date]
-
-FROM [stage].[v_perf_ah_inpatient_numerator]
-LEFT JOIN [ref].[perf_measure] AS b
-ON b.[measure_name] = ''' + @measure_name + '''
-WHERE [year_month] BETWEEN ' + CAST(@start_month_int AS CHAR(6)) + ' AND ' + CAST(@end_month_int AS CHAR(6)) + '
-GROUP BY [year_month], [id], b.[measure_id];'
-END
 
 
 
