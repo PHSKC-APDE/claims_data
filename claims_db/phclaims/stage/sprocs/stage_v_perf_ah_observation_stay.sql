@@ -16,71 +16,79 @@ for the inpatient stay occurs on the observation date of service or one calendar
 after. An observation visit billed on the same claim as an inpatient stay is 
 considered a visit that resulted in an inpatient stay.
 
+SELECT [value_set_name]
+      ,[code_system]
+      ,[code]
+      ,[definition]
+      ,[value_set_version]
+      ,[code_system_version]
+      ,[value_set_oid]
+      ,[code_system_oid]
+FROM [ref].[hedis_code_system]
+WHERE [value_set_name] = 'Observation';
+
 The UNION operator removes duplicates 
 */
 
 -- Get Observation Stays
 SELECT DISTINCT 
- hd.[id]
-,hd.[tcn]
-,[from_date]
-,[to_date]
-,[patient_status]
-,CASE WHEN [patient_status] = 'Expired' THEN 1 ELSE 0 END AS [death_during_stay]
+ hd.[id_mcaid]
+,hd.[claim_header_id]
+,hd.[first_service_date]
+,hd.[last_service_date]
+,hd.[patient_status]
+,CASE WHEN [patient_status] = '20' THEN 1 ELSE 0 END AS [death_during_stay]
 ,1 AS [observation_stay]
-FROM [dbo].[mcaid_claim_header] AS hd
-INNER JOIN [dbo].[mcaid_claim_proc] AS pr
-ON hd.[tcn] = pr.[tcn]
+FROM [final].[mcaid_claim_header] AS hd
+INNER JOIN [final].[mcaid_claim_procedure] AS pr
+ON hd.[claim_header_id] = pr.[claim_header_id]
 INNER JOIN [ref].[hedis_code_system] AS hed 
  ON hed.[value_set_name] = 'Observation'
 AND hed.[code_system] = 'CPT'
-AND pr.[pcode] = hed.[code]
+AND pr.[procedure_code] = hed.[code]
 
 /* Now, exclude observation stays that result in an inpatient stay */
-WHERE hd.[tcn] NOT IN
+WHERE hd.[claim_header_id] NOT IN
 (
 /* These are claims where an observation stay occurs on the same day as an acute inpatient 
-stay or where an observation stay occurs one day prior to an acute inpatient stay */
--- 1,273 Rows
-SELECT b.[tcn]
+stay or where an observation stay occurs one day prior to an acute inpatient stay (1,688 rows) */
+SELECT b.[claim_header_id]
 
-FROM [dbo].[mcaid_claim_header] AS a
+FROM [final].[mcaid_claim_header] AS a
 INNER JOIN
 (
 SELECT
- hd.[id]
-,hd.[tcn]
-,hd.[from_date]
-,hd.[to_date]
-FROM [dbo].[mcaid_claim_header] AS hd
-INNER JOIN [dbo].[mcaid_claim_proc] AS pr
-ON hd.[tcn] = pr.[tcn]
+ pr.[id_mcaid]
+,pr.[claim_header_id]
+,pr.[first_service_date]
+,pr.[last_service_date]
+FROM [final].[mcaid_claim_procedure] AS pr
 INNER JOIN [ref].[hedis_code_system] AS hed 
  ON hed.[value_set_name] = 'Observation'
 AND hed.[code_system] = 'CPT'
-AND pr.[pcode] = hed.[code]
+AND pr.[procedure_code] = hed.[code]
 ) AS b
-ON a.[id] = b.[id]
-AND DATEDIFF(DAY, b.[to_date], a.[from_date]) IN (0, 1)
-WHERE a.[clm_type_code] IN (31, 33)
+ON a.[id_mcaid] = b.[id_mcaid]
+AND DATEDIFF(DAY, b.[last_service_date], a.[first_service_date]) IN (0, 1)
+WHERE a.[clm_type_mcaid_id] IN (31, 33)
 
 UNION 
 
 (
 /* There were no Medicaid claims with an Acute Inpatient Stay and
-an Observation Stay on the same [tcn] (0 rows) */
-SELECT [tcn]
-FROM [dbo].[mcaid_claim_header]
-WHERE [clm_type_code] IN (31, 33)
+an Observation Stay on the same [claim_header_id] (0 rows) */
+SELECT [claim_header_id]
+FROM [final].[mcaid_claim_header]
+WHERE [clm_type_mcaid_id] IN (31, 33)
 
 INTERSECT
 
-SELECT pr.[tcn]
-FROM [dbo].[mcaid_claim_proc] AS pr
+SELECT pr.[claim_header_id]
+FROM [final].[mcaid_claim_procedure] AS pr
 INNER JOIN [ref].[hedis_code_system] AS hed 
  ON hed.[value_set_name] = 'Observation'
 AND hed.[code_system] = 'CPT'
-AND pr.[pcode] = hed.[code]
+AND pr.[procedure_code] = hed.[code]
 ));
 GO
 
