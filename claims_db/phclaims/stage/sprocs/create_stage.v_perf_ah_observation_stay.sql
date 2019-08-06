@@ -42,7 +42,7 @@ SELECT DISTINCT
 FROM [final].[mcaid_claim_header] AS hd
 INNER JOIN [final].[mcaid_claim_procedure] AS pr
 ON hd.[claim_header_id] = pr.[claim_header_id]
-INNER JOIN [ref].[hedis_code_system] AS hed 
+INNER JOIN [archive].[hedis_code_system] AS hed 
  ON hed.[value_set_name] = 'Observation'
 AND hed.[code_system] = 'CPT'
 AND pr.[procedure_code] = hed.[code]
@@ -63,7 +63,7 @@ SELECT
 ,pr.[first_service_date]
 ,pr.[last_service_date]
 FROM [final].[mcaid_claim_procedure] AS pr
-INNER JOIN [ref].[hedis_code_system] AS hed 
+INNER JOIN [archive].[hedis_code_system] AS hed 
  ON hed.[value_set_name] = 'Observation'
 AND hed.[code_system] = 'CPT'
 AND pr.[procedure_code] = hed.[code]
@@ -85,7 +85,7 @@ INTERSECT
 
 SELECT pr.[claim_header_id]
 FROM [final].[mcaid_claim_procedure] AS pr
-INNER JOIN [ref].[hedis_code_system] AS hed 
+INNER JOIN [archive].[hedis_code_system] AS hed 
  ON hed.[value_set_name] = 'Observation'
 AND hed.[code_system] = 'CPT'
 AND pr.[procedure_code] = hed.[code]
