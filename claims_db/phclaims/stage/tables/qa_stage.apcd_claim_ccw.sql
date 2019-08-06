@@ -10,7 +10,8 @@
 --Count number and percent of distinct people by condition
 select ccw_code, ccw_desc, count(distinct id_apcd) as id_dcount
 from PHClaims.stage.apcd_claim_ccw
-group by ccw_code, ccw_desc;
+group by ccw_code, ccw_desc
+order by ccw_code;
 
 select count(distinct id_apcd) as id_dcount
 from PHClaims.final.apcd_elig_demo;
