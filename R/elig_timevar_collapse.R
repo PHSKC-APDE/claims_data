@@ -31,15 +31,9 @@ elig_timevar_collapse <- function(conn,
                               
                               #mcaid columns
                               tpl = F,
-                              rac_code_1 = F,
-                              rac_code_2 = F,
-                              rac_code_3 = F,
-                              rac_code_4 = F,
-                              rac_code_5 = F,
-                              rac_code_6 = F,
-                              rac_code_7 = F,
-                              rac_code_8 = F,
-                              #cov_type = F, # Not yet in elig_timevar
+                              bsp_group_name = F,
+                              full_benefit = F,
+                              cov_type = F,
                               mco_id = F,
                               
                               #apcd columns
@@ -71,8 +65,7 @@ elig_timevar_collapse <- function(conn,
                               geo_ach = F) {
   
   #### ERROR CHECKS ####
-  cols <- sum(dual, tpl, rac_code_1, rac_code_2, rac_code_3, rac_code_4, 
-              rac_code_5, rac_code_6, rac_code_7, rac_code_8, # cov_type, 
+  cols <- sum(dual, tpl, bsp_group_name, full_benefit, cov_type, 
               mco_id, geo_add1_clean, geo_add2_clean, geo_city_clean,
               geo_state_clean, geo_zip_clean, med_covgrp, pharm_covgrp, med_medicaid,
               med_medicare, med_commercial, pharm_medicaid, pharm_medicare, pharm_commercial,
@@ -83,11 +76,11 @@ elig_timevar_collapse <- function(conn,
     stop("Choose at least one column to collapse over")
   }
   
-  if (source == "mcaid" & cols == 16) { # Change this once cov_type added in
+  if (source == "mcaid" & cols == 11) {
     stop("You have selected every Medicaid time-varying column. Just use the mcaid.elig_timevar table")
   }
   
-  if (source == "apcd" & cols == 12) { # Change this once cov_type added in
+  if (source == "apcd" & cols == 12) { 
     stop("You have selected every APCD time-varying column. Just use the apcd.elig_timevar table")
   }
   
@@ -109,11 +102,8 @@ elig_timevar_collapse <- function(conn,
   
   
   if (source == "mcaid") {
-    vars_to_check <- list("dual" = dual, "tpl" = tpl, "rac_code_1" = rac_code_1, 
-                          "rac_code_2" = rac_code_2, "rac_code_3" = rac_code_3, 
-                          "rac_code_4" = rac_code_4, "rac_code_5" = rac_code_5, 
-                          "rac_code_6" = rac_code_6, "rac_code_7" = rac_code_7, 
-                          "rac_code_8" = rac_code_8, # "cov_type" = cov_type, 
+    vars_to_check <- list("dual" = dual, "tpl" = tpl, "bsp_group_name" = bsp_group_name, 
+                          "full_benefit" = full_benefit, "cov_type" = cov_type, 
                           "mco_id" = mco_id, "geo_add1_clean" = geo_add1_clean, 
                           "geo_add2_clean" = geo_add2_clean, 
                           "geo_city_clean" = geo_city_clean,
@@ -183,7 +173,7 @@ elig_timevar_collapse <- function(conn,
                 PARTITION BY a.{`id_name`}, {`vars_to_quote_a`*}
                 ORDER by from_date), a.from_date) as group_num 
               FROM 
-              (SELECT TOP (10000) {`id_name`}, from_date, to_date, {`vars_combined`*} 
+              (SELECT {`id_name`}, from_date, to_date, {`vars_combined`*} 
               FROM final.{`tbl`}) a) b) c) d) e
       ORDER BY {`id_name`}, from_date",
     vars_to_quote_a = lapply(vars_combined, function(nme) DBI::Id(table = "a", column = nme)),
@@ -198,21 +188,21 @@ elig_timevar_collapse <- function(conn,
 
 #### TESTS #####
 
-elig_timevar_collapse(conn = db_claims, source = "mcaid",
-                      dual = T, rac_code_4 = T,
-                      geocode_vars = list("geo_hra_id"),
-                      last_run = F)
-
-
-test_sql2 <- elig_timevar_collapse(conn = db_claims, source = "mcaid",
-                                  dual = T, rac_code_4 = T,
-                                  geocode_vars = list("geo_hra_id"),
-                                  last_run = F)
+# elig_timevar_collapse(conn = db_claims, source = "mcaid",
+#                       dual = T, rac_code_4 = T,
+#                       geocode_vars = list("geo_hra_id"),
+#                       last_run = F)
+# 
+# 
+# test_sql2 <- elig_timevar_collapse(conn = db_claims, source = "mcaid",
+#                                   dual = T, rac_code_4 = T,
+#                                   geocode_vars = list("geo_hra_id"),
+#                                   last_run = F)
 
 #### Eli's test ####
-library(odbc)
-library(glue)
-db.claims51 <- dbConnect(odbc(), "PHClaims51")
-test1 <- elig_timevar_collapse(conn = db.claims51, source = "apcd",
-                               dual = T, geo_county = T)
+# library(odbc)
+# library(glue)
+# db.claims51 <- dbConnect(odbc(), "PHClaims51")
+# test1 <- elig_timevar_collapse(conn = db.claims51, source = "apcd",
+#                                dual = T, geo_county = T)
 
