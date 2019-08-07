@@ -127,10 +127,9 @@ elig_timevar_collapse <- function(conn,
     }
   })
   
-  message("Printing vars")
-  print(vars)
+  message(glue("Collapsing over the following vars: {vars*}"))
   
-  
+  # Add in other variables as desired
   message("adding in geocode variables")
   if (source == "mcaid" & length(geocode_vars) > 0) {
     vars_geo <- unlist(geocode_vars)
@@ -146,9 +145,17 @@ elig_timevar_collapse <- function(conn,
   
   vars_combined <- c(vars, vars_geo, vars_date)
   
+  # Set up cov_time code if needed
+  if (cov_time_day == T) {
+    cov_time_sql <- ", DATEDIFF(dd, e.min_from, e.max_to) + 1 as cov_time_day "
+  } else {
+    cov_time_sql <- ""
+  }
+  
+  message("Running collapse code")
   sql_call <- glue_sql(
     "SELECT DISTINCT e.{`id_name`}, e.min_from AS from_date, e.max_to AS to_date,
-    {`vars_to_quote_e`*}
+    {`vars_to_quote_e`*} {cov_time_sql} 
       FROM
       (SELECT d.*,
         MIN(from_date) OVER 
