@@ -99,8 +99,6 @@ elig_timevar_collapse <- function(conn,
   id_name <- glue("id_{source}")
   
   
-  
-  
   if (source == "mcaid") {
     vars_to_check <- list("dual" = dual, "tpl" = tpl, "bsp_group_name" = bsp_group_name, 
                           "full_benefit" = full_benefit, "cov_type" = cov_type, 
@@ -127,11 +125,11 @@ elig_timevar_collapse <- function(conn,
     }
   })
   
-  message(glue("Collapsing over the following vars: {vars*}"))
+  message(glue('Collapsing over the following vars: {glue_collapse(vars, sep = ", ")}'))
   
   # Add in other variables as desired
-  message("adding in geocode variables")
   if (source == "mcaid" & length(geocode_vars) > 0) {
+    message("Adding in geocode variables")
     vars_geo <- unlist(geocode_vars)
   } else {
     vars_geo <- vector()
@@ -196,9 +194,9 @@ elig_timevar_collapse <- function(conn,
 #### TESTS #####
 
 # elig_timevar_collapse(conn = db_claims, source = "mcaid",
-#                       dual = T, rac_code_4 = T,
+#                       dual = T, full_benefit = T,
 #                       geocode_vars = list("geo_hra_id"),
-#                       last_run = F)
+#                       last_run = F, cov_time_day = T)
 # 
 # 
 # test_sql2 <- elig_timevar_collapse(conn = db_claims, source = "mcaid",
