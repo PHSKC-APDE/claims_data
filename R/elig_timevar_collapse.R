@@ -129,8 +129,8 @@ elig_timevar_collapse <- function(conn,
   
   # Add in other variables as desired
   if (source == "mcaid" & length(geocode_vars) > 0) {
-    message("Adding in geocode variables")
     vars_geo <- unlist(geocode_vars)
+    message(glue('Adding in geocode variables: {glue_collapse(vars_geo, sep = ", ")}'))
   } else {
     vars_geo <- vector()
   }
@@ -145,7 +145,8 @@ elig_timevar_collapse <- function(conn,
   
   # Set up cov_time code if needed
   if (cov_time_day == T) {
-    cov_time_sql <- ", DATEDIFF(dd, e.min_from, e.max_to) + 1 as cov_time_day "
+    cov_time_sql <- glue_sql(", DATEDIFF(dd, e.min_from, e.max_to) + 1 AS cov_time_day ",
+                             .con = conn)
   } else {
     cov_time_sql <- ""
   }
@@ -184,6 +185,7 @@ elig_timevar_collapse <- function(conn,
     vars_to_quote_a = lapply(vars_combined, function(nme) DBI::Id(table = "a", column = nme)),
     vars_to_quote_e = lapply(vars_combined, function(nme) DBI::Id(table = "e", column = nme)),
     .con = conn)
+
   
   result <- dbGetQuery(conn, sql_call)
   
