@@ -1,3 +1,4 @@
+
 /*
 This function joins the exclusions in
 [stage].[fn_perf_fuh_inpatient_index_stay_readmit]
