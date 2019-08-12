@@ -6,8 +6,8 @@ to_table: mcaid_claim_ccw
 vars:
     id_mcaid: varchar(255)
     from_date: date
-    to_date: date,
-    ccw_code: tinyint,
+    to_date: date
+    ccw_code: tinyint
     ccw_desc: varchar(200)
     last_run: date
 cond_hypothyroid:

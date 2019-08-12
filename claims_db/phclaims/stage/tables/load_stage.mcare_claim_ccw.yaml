@@ -6,8 +6,8 @@ to_table: mcare_claim_ccw
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
     from_date: date
-    to_date: date,
-    ccw_code: tinyint,
+    to_date: date
+    ccw_code: tinyint
     ccw_desc: varchar(200)
     last_run: date
 cond_hypothyroid:
