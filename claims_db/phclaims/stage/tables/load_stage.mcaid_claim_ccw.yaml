@@ -1,6 +1,8 @@
 source_data: mcaid
-from_table_claim_header: final.mcaid_claim_header
-from_table_icdcm: final.mcaid_claim_icdcm_header
+claim_header_from_schema: final
+claim_header_from_table: mcaid_claim_header
+icdcm_from_schema: final
+icdcm_from_table: mcaid_claim_icdcm_header
 schema: stage
 to_table: mcaid_claim_ccw
 vars:
