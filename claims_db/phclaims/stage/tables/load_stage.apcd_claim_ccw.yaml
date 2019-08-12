@@ -5,11 +5,11 @@ schema: stage
 to_table: apcd_claim_ccw
 vars:
     id_apcd: varchar(255)
-	from_date: date
-	to_date: date,
-	ccw_code: tinyint,
-	ccw_desc: varchar(200)
-	last_run: date
+    from_date: date
+    to_date: date,
+    ccw_code: tinyint,
+    ccw_desc: varchar(200)
+    last_run: date
 cond_hypothyroid:
     ccw_code: 1
     ccw_desc: Acquired hypothyroidism
