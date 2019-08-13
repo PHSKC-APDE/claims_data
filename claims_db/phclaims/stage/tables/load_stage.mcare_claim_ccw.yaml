@@ -1,8 +1,17 @@
 source_data: mcare
-from_table_claim_header: tmp.mcare_claim_header
-from_table_icdcm: tmp.mcare_claim_icdcm_header
+claim_header_from_schema: tmp
+claim_header_from_table: mcare_claim_header
+icdcm_from_schema: tmp
+icdcm_from_table: mcare_claim_icdcm_header
 schema: tmp
 to_table: mcare_claim_ccw
+vars:
+    id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    from_date: date
+    to_date: date
+    ccw_code: tinyint
+    ccw_desc: varchar(200)
+    last_run: date
 cond_hypothyroid:
     ccw_code: 1
     ccw_desc: Acquired hypothyroidism
