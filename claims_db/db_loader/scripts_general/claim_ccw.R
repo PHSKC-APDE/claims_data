@@ -1,8 +1,8 @@
 ## Code to create stage.SOURCE_claim_ccw table
 ## Person-level CCW condition status by time period
 ## Eli Kern and Alastair Matheson (PHSKC-APDE)
-## 2019-08-12
-## Run time: 2h 30min
+## 2019-08-13
+## Run time: 20 mins (Medicaid) to 2h 30min (APCD) 
 
 load_ccw <- function(conn = NULL,
                      source = c("apcd", "mcaid", "mcare"),
@@ -111,14 +111,14 @@ load_ccw <- function(conn = NULL,
     condition_type <- table_config[[x]][["condition_type"]]
     
     if (is.null(table_config[[x]][["claim_type1"]])) {
-      claim1 <- DBI::SQL('')
+      claim1 <- ""
     } else {
       claim1 <- glue_sql('{as.character(table_config[[x]][["claim_type1"]])*}',
                          .con = conn)
     }
     
     if (is.null(table_config[[x]][["claim_type2"]])) {
-      claim2 <- DBI::SQL('')
+      claim2 <- ""
     } else {
       claim2 <- glue_sql('{as.character(table_config[[x]][["claim_type2"]])*}',
                          .con = conn)
