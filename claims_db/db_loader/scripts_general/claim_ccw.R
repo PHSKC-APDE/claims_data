@@ -51,7 +51,7 @@ load_ccw <- function(conn = NULL,
   
   # Set up test number of rows if needed
   if (is.null(test_rows)) {
-    top_rows = ""
+    top_rows = DBI::SQL('')
   } else {
     if (!is.integer(test_rows)) {
       stop("Select an integer number of test_rows")
