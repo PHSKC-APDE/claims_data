@@ -11,9 +11,9 @@ subject to:
 (2) Call [stage].[fn_perf_fua_follow_up_visit] to get follow-up visits
 
 (3) Join based on 
-[follow-up].[from_date] BETWEEN [ED].[last_service_date] AND DATEADD(DAY, 7, [ED].[last_service_date])
+[follow-up].[first_service_date] BETWEEN [ED].[last_service_date] AND DATEADD(DAY, 7, [ED].[last_service_date])
 or
-[follow-up].[from_date] BETWEEN [ED].[last_service_date] AND DATEADD(DAY, 30, [ED].[last_service_date])
+[follow-up].[first_service_date] BETWEEN [ED].[last_service_date] AND DATEADD(DAY, 30, [ED].[last_service_date])
 
 Author: Philip Sylling
 Created: 2019-04-24

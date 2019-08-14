@@ -259,8 +259,7 @@ load_ccw <- function(conn = NULL,
     select header.{`id_source`}, header.claim_header_id, header.claim_type_id, 
       header.first_service_date, diag_lookup.{`ccw_abbrev`},
       diag_lookup.{`id_source`} as id_source_tmp,  -- zero rows returned without this, unclear why
-      case when header.claim_type_id in ({claim1}) 
-        then 1 else 0 end as 'condition1',
+      case when header.claim_type_id in ({claim1}) then 1 else 0 end as 'condition1',
       case when header.claim_type_id in ({claim2}) then 1 else 0 end as 'condition2',
       case when header.claim_type_id in ({claim1}) 
         then header.first_service_date else null end as 'condition_1_from_date',
