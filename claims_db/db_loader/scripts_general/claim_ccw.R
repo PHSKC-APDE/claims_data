@@ -1,8 +1,8 @@
 ## Code to create stage.SOURCE_claim_ccw table
 ## Person-level CCW condition status by time period
 ## Eli Kern and Alastair Matheson (PHSKC-APDE)
-## 2019-08-12
-## Run time: 2h 30min
+## 2019-08-13
+## Run time: 20 mins (Medicaid) to 2h 30min (APCD) 
 
 load_ccw <- function(conn = NULL,
                      source = c("apcd", "mcaid", "mcare"),
@@ -80,13 +80,13 @@ load_ccw <- function(conn = NULL,
   # ### ### ### ### ### ### ###
   
   # Set up table name
-  tbl_name <- DBI::Id(schema = test_table$schema, table = test_table$to_table)
+  tbl_name <- DBI::Id(schema = schema, table = to_table)
   
   # Remove table if it exists
-  dbRemoveTable(conn, DBI::Id(schema = schema, table = to_table))
+  try(dbRemoveTable(conn, tbl_name))
   
   # Create table
-  DBI::dbCreateTable(db_claims, tbl_name, fields = test_table$vars)
+  DBI::dbCreateTable(conn, tbl_name, fields = table_config$vars)
   
   
   # ### ### ### ### ### ### ###
@@ -110,6 +110,19 @@ load_ccw <- function(conn = NULL,
     dx_exclude2_fields <- table_config[[x]][["dx_exclude2_fields"]]
     condition_type <- table_config[[x]][["condition_type"]]
     
+    if (is.null(table_config[[x]][["claim_type1"]])) {
+      claim1 <- ""
+    } else {
+      claim1 <- glue_sql('{as.character(table_config[[x]][["claim_type1"]])*}',
+                         .con = conn)
+    }
+    
+    if (is.null(table_config[[x]][["claim_type2"]])) {
+      claim2 <- ""
+    } else {
+      claim2 <- glue_sql('{as.character(table_config[[x]][["claim_type2"]])*}',
+                         .con = conn)
+    }
 
     ## Construct where statement for claim count requirements
     if (condition_type == 1) {
@@ -245,13 +258,13 @@ load_ccw <- function(conn = NULL,
     --apply CCW claim type criteria to define conditions 1 and 2
     select header.{`id_source`}, header.claim_header_id, header.claim_type_id, 
       header.first_service_date, diag_lookup.{`ccw_abbrev`},
-      diag_lookup.id_mcaid as id_mcaid2,  -- zero rows returned without this, unclear why
-      case when header.claim_type_id in ({claim1*}) 
+      diag_lookup.{`id_source`} as id_source_tmp,  -- zero rows returned without this, unclear why
+      case when header.claim_type_id in ({claim1}) 
         then 1 else 0 end as 'condition1',
-      case when header.claim_type_id in ({claim2*}) then 1 else 0 end as 'condition2',
-      case when header.claim_type_id in ({claim1*}) 
+      case when header.claim_type_id in ({claim2}) then 1 else 0 end as 'condition2',
+      case when header.claim_type_id in ({claim1}) 
         then header.first_service_date else null end as 'condition_1_from_date',
-      case when header.claim_type_id in ({claim2*})
+      case when header.claim_type_id in ({claim2})
         then header.first_service_date else null end as 'condition_2_from_date'
 
     into ##header
@@ -281,14 +294,7 @@ load_ccw <- function(conn = NULL,
   
       on header.claim_header_id = diag_lookup.claim_header_id 
     {dx_exclude_condition}",
-    .con = conn,
-    claim1 = ifelse(is.null(table_config[[x]][["claim_type1"]]),
-                            '',
-                            as.character(table_config[[x]][["claim_type1"]])),
-    claim2 = ifelse(is.null(table_config[[x]][["claim_type2"]]),
-                    '',
-                    as.character(table_config[[x]][["claim_type2"]]))
-    )
+    .con = conn)
 
     #Run SQL query
     dbGetQuery(conn = conn, sql1)

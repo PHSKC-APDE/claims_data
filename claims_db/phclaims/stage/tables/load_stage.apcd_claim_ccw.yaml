@@ -3,7 +3,7 @@ claim_header_from_schema: final
 claim_header_from_table: apcd_claim_header
 icdcm_from_schema: final
 icdcm_from_table: apcd_claim_icdcm_header
-schema: stage
+schema: tmp
 to_table: apcd_claim_ccw
 vars:
     id_apcd: varchar(255)
