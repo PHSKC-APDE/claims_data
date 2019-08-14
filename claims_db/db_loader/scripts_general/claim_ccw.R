@@ -258,7 +258,7 @@ load_ccw <- function(conn = NULL,
     --apply CCW claim type criteria to define conditions 1 and 2
     select header.{`id_source`}, header.claim_header_id, header.claim_type_id, 
       header.first_service_date, diag_lookup.{`ccw_abbrev`},
-      diag_lookup.id_mcaid as id_mcaid2,  -- zero rows returned without this, unclear why
+      diag_lookup.{`id_source`} as id_source_tmp,  -- zero rows returned without this, unclear why
       case when header.claim_type_id in ({claim1}) 
         then 1 else 0 end as 'condition1',
       case when header.claim_type_id in ({claim2}) then 1 else 0 end as 'condition2',
