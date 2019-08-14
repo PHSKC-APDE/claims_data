@@ -25,6 +25,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/claim_ccw.R")
 
 
 
@@ -265,7 +266,40 @@ odbc::dbGetQuery(
 
 
 #### STAGE ANALYTIC TABLES ####
+### CCW
+# Load table to SQL
+load_ccw(conn = db_claims, source = "mcaid")
 
+# QA table
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_ccw.R")
+
+# If QA passes, load to final table
+if (ccw_qa_result == "PASS") {
+  load_table_from_sql_f(
+    conn = db_claims,
+    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml", 
+    truncate = T, truncate_date = F)
+  
+  # QA final table
+  qa_rows_final_claim_ccw <- qa_sql_row_count_f(
+    conn = db_claims,
+    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml",
+    overall = T, ind_yr = F)
+  
+  odbc::dbGetQuery(
+    conn = db_claims,
+    glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                 VALUES ({last_run_claim_ccw}, 
+                 'final.mcaid_claim_ccw',
+                 'Number final rows compared to stage', 
+                 {qa_rows_final_claim_ccw$qa_result}, 
+                 {Sys.time()}, 
+                 {qa_rows_final_claim_ccw$note})",
+                   .con = db_claims))
+} else {
+  warning("CCW table failed QA and was not loaded to final schema")
+}
 
 
 
