@@ -86,7 +86,7 @@ load_ccw <- function(conn = NULL,
   try(dbRemoveTable(conn, tbl_name))
   
   # Create table
-  DBI::dbCreateTable(db_claims, tbl_name, fields = test_table$vars)
+  DBI::dbCreateTable(conn, tbl_name, fields = table_config$vars)
   
   
   # ### ### ### ### ### ### ###
