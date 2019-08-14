@@ -21,7 +21,7 @@ WITH CTE AS
 (
 SELECT
  a.*
-,CASE WHEN [episode_from_date] = [episode_to_date] THEN 1 ELSE 0 END AS [same_day_admit_discharge]
+,CASE WHEN [episode_first_service_date] = [episode_last_service_date] THEN 1 ELSE 0 END AS [same_day_admit_discharge]
 
 /*
 Exclude hospital stays for the following reasons:
@@ -32,7 +32,7 @@ use BOTH the original stay and the direct transfer stay to identify exclusions i
 THUS: aggregate b.[flag] over a.[episode_id]
 */
 
-,ISNULL(MAX(b.[flag]) OVER(PARTITION BY a.[id], a.[episode_id]), 0) AS [pregnancy_exclusion]
+,ISNULL(MAX(b.[flag]) OVER(PARTITION BY a.[id_mcaid], a.[episode_id]), 0) AS [pregnancy_exclusion]
 
 /*
 Exclude hospital stays if there was a planned hospital stay within 30 days after the acute inpatient discharge.
@@ -52,9 +52,9 @@ THUS: DO NOT aggregate c.[flag] over a.[episode_id]
 FROM [stage].[v_perf_pcr_inpatient_direct_transfer] AS a
 
 LEFT JOIN [stage].[v_perf_pcr_pregnancy_exclusion] AS b
-ON a.[tcn] = b.[tcn]
+ON a.[claim_header_id] = b.[claim_header_id]
 LEFT JOIN [stage].[v_perf_pcr_planned_exclusion] AS c
-ON a.[tcn] = c.[tcn]
+ON a.[claim_header_id] = c.[claim_header_id]
 AND a.[stay_id] = 1
 )
 
@@ -86,7 +86,7 @@ Step 4: Exclude pregnancy-related stays
 */
 AND [pregnancy_exclusion] = 0;
 
-CREATE CLUSTERED INDEX idx_cl_#index_hospital_stay ON #index_hospital_stay([id], [episode_from_date], [episode_to_date]);
+CREATE CLUSTERED INDEX idx_cl_#index_hospital_stay ON #index_hospital_stay([id_mcaid], [episode_first_service_date], [episode_last_service_date]);
 
 /*
 Step 5: Determine if there was a planned hospital stay within 30 days after the
@@ -100,44 +100,44 @@ Join #index_hospital_stay to itself.
 WITH CTE AS
 (
 SELECT
- a.[id]
+ a.[id_mcaid]
 ,a.[age]
 ,a.[episode_id]
-,a.[episode_from_date]
-,a.[episode_to_date]
+,a.[episode_first_service_date]
+,a.[episode_last_service_date]
 ,a.[stay_id] AS [inpatient_index_stay]
-,b.[episode_from_date] AS [readmission_from_date]
-,b.[episode_to_date] AS [readmission_to_date]
-,DATEDIFF(DAY, a.[episode_to_date], b.[episode_from_date]) AS [date_diff]
+,b.[episode_first_service_date] AS [readmission_first_service_date]
+,b.[episode_last_service_date] AS [readmission_last_service_date]
+,DATEDIFF(DAY, a.[episode_last_service_date], b.[episode_first_service_date]) AS [date_diff]
 ,b.[planned_exclusion] AS [planned_readmission]
 /*
 Exclude any hospital stay as an Index Hospital Stay if the admission date of 
 the FIRST stay within 30 days is a planned hospital stay.
 
-Check whether b.[episode_from_date] is for planned hospital stay where [row_num] = 1.
+Check whether b.[episode_first_service_date] is for planned hospital stay where [row_num] = 1.
 */
-,ROW_NUMBER() OVER(PARTITION BY a.[id], a.[episode_id] ORDER BY b.[episode_from_date]) AS [row_num]
+,ROW_NUMBER() OVER(PARTITION BY a.[id_mcaid], a.[episode_id] ORDER BY b.[episode_first_service_date]) AS [row_num]
 FROM #index_hospital_stay AS a
 LEFT JOIN #index_hospital_stay AS b
-ON a.[id] = b.[id]
-AND b.[episode_from_date] BETWEEN DATEADD(DAY, 1, a.[episode_to_date]) AND DATEADD(DAY, 30, a.[episode_to_date])
+ON a.[id_mcaid] = b.[id_mcaid]
+AND b.[episode_first_service_date] BETWEEN DATEADD(DAY, 1, a.[episode_last_service_date]) AND DATEADD(DAY, 30, a.[episode_last_service_date])
 )
 SELECT
  b.[year_month]
-,[id]
+,[id_mcaid]
 ,[age]
 ,[episode_id]
-,[episode_from_date]
-,[episode_to_date]
+,[episode_first_service_date]
+,[episode_last_service_date]
 ,[inpatient_index_stay]
-,[readmission_from_date]
-,[readmission_to_date]
-,CASE WHEN [readmission_from_date] IS NOT NULL THEN 1 ELSE 0 END AS [readmission_flag]
+,[readmission_first_service_date]
+,[readmission_last_service_date]
+,CASE WHEN [readmission_first_service_date] IS NOT NULL THEN 1 ELSE 0 END AS [readmission_flag]
 ,[date_diff]
 ,[planned_readmission]
 FROM CTE AS a
-INNER JOIN [ref].[perf_year_month] AS b
-ON a.[episode_from_date] BETWEEN b.[beg_month] AND b.[end_month]
+INNER JOIN [ref].[date] AS b
+ON a.[episode_first_service_date] = b.[date]
 WHERE 1 = 1
 AND [row_num] = 1
 AND ([planned_readmission] IS NULL OR [planned_readmission] = 0);'

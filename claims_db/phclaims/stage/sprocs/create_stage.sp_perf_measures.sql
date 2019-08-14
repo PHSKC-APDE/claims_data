@@ -1108,34 +1108,6 @@ AND [denominator] = 1
 AND [full_criteria_t_12_m] >= 11;'
 END
 
-PRINT @SQL;
-END
-
-EXEC sp_executeSQL @statement=@SQL, 
-                   @params=N'@end_month_int INT, @measure_name VARCHAR(200)',
-				   @end_month_int=@end_month_int, @measure_name=@measure_name;
-
-GO
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 IF @measure_name = 'Plan All-Cause Readmissions (30 days)'
 BEGIN
 
@@ -1155,7 +1127,7 @@ SELECT
  ym.[beg_measure_year_month] AS [beg_year_month]
 ,stg.[year_month] AS [end_year_month]
 ,den.[end_quarter]
-,stg.[id]
+,stg.[id_mcaid]
 
 /*
 [stage].[mcaid_perf_measure] requires one row per person per measurement year. 
@@ -1166,7 +1138,7 @@ for inclusion below by age at each index event [event_date_age].
 */
 ,MAX(DATEDIFF(YEAR, den.[dob], stg.[event_date]) - 
  CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, den.[dob], stg.[event_date]), den.[dob]) > 
- stg.[event_date] THEN 1 ELSE 0 END) OVER(PARTITION BY stg.[id]) AS [end_month_age]
+ stg.[event_date] THEN 1 ELSE 0 END) OVER(PARTITION BY stg.[id_mcaid]) AS [end_month_age]
 
 ,DATEDIFF(YEAR, den.[dob], stg.[event_date]) - 
  CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, den.[dob], stg.[event_date]), den.[dob]) > 
@@ -1213,7 +1185,7 @@ Backward-looking and forward-looking enrollment criteria at time of index event
 are joined to year_month of index event
 */
 LEFT JOIN [stage].[perf_enroll_denom] AS den
-ON stg.[id] = den.[id]
+ON stg.[id_mcaid] = den.[id_mcaid]
 AND stg.[year_month] = den.[year_month]
 
 WHERE stg.[event_date] >= (SELECT [12_month_prior] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ')
@@ -1230,7 +1202,7 @@ FROM CTE;
 INSERT INTO [stage].[mcaid_perf_measure]
 ([beg_year_month]
 ,[end_year_month]
-,[id]
+,[id_mcaid]
 ,[end_month_age]
 ,[age_grp]
 ,[measure_id]
@@ -1241,7 +1213,7 @@ INSERT INTO [stage].[mcaid_perf_measure]
 SELECT
  (SELECT [beg_measure_year_month] FROM [ref].[perf_year_month] WHERE [year_month] = ' + CAST(@end_month_int AS CHAR(6)) + ') AS [beg_year_month]
 ,' + CAST(@end_month_int AS CHAR(6)) + ' AS [end_year_month]
-,[id]
+,[id_mcaid]
 ,[end_month_age]
 ,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
       WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
@@ -1285,7 +1257,7 @@ AND [hospice] = 0
 AND (([need_1_month_coverage] = 1) OR ([full_criteria_p_2_m] = 2 AND [hospice_p_2_m] = 0))
 
 GROUP BY 
- [id]
+ [id_mcaid]
 ,[end_month_age]
 ,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
       WHEN ref.[age_group] = ''age_grp_2'' THEN age.[age_grp_2]
@@ -1404,7 +1376,9 @@ END
 
 PRINT @SQL;
 END
+
 EXEC sp_executeSQL @statement=@SQL, 
                    @params=N'@end_month_int INT, @measure_name VARCHAR(200)',
 				   @end_month_int=@end_month_int, @measure_name=@measure_name;
+
 GO
