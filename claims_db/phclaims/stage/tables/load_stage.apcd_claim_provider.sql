@@ -12,13 +12,17 @@ select distinct
 a.internal_member_id as id_apcd,
 a.extract_id,
 b.medical_claim_header_id as claim_header_id, 
+c.first_service_dt as first_service_date,
+c.last_service_dt as last_service_date,
 cast(a.billing_internal_provider_id as bigint) as billing_provider_id_apcd,
 cast(a.rendering_internal_provider_id as bigint) as rendering_provider_id_apcd,
 cast(a.attending_internal_provider_id as bigint) as attending_provider_id_apcd,
 cast(a.referring_internal_provider_id as bigint) as referring_provider_id_apcd
 from PHClaims.stage.apcd_medical_claim as a
 left join PHClaims.stage.apcd_medical_crosswalk as b
-on a.medical_claim_service_line_id = b.medical_claim_service_line_id;
+on a.medical_claim_service_line_id = b.medical_claim_service_line_id
+left join PHClaims.stage.apcd_medical_claim_header as c
+on b.medical_claim_header_id = c.medical_claim_header_id;
 
 
 
