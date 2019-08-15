@@ -259,15 +259,15 @@ top_causes_f <- function(cohort,
                           FROM ##temp_ids AS a
                           LEFT JOIN 
                           (SELECT id, from_date, tcn, ed, inpatient, ccs_description
-                          FROM PHClaims.dbo.mcaid_claim_summary
+                          FROM PHClaims.final.mcaid_claim_header
                           WHERE from_date >= '", from_date, "' AND from_date <= '", to_date, "' AND ",
                           flags,
                           "ccs_description IS NOT NULL) AS b
                           ON a.id = b.id
                           WHERE b.from_date >= a.from_date_ind AND b.from_date <= a.to_date_ind) AS c
-                          LEFT JOIN PHClaims.dbo.mcaid_claim_dx AS d
+                          LEFT JOIN PHClaims.final.mcaid_claim_icdcm_header AS d
                           ON c.tcn = d.tcn
-                          LEFT JOIN PHClaims.dbo.ref_dx_lookup AS e
+                          LEFT JOIN PHClaims.ref.dx_lookup AS e
                           ON d.dx_ver = e.dx_ver AND d.dx_norm = e.dx ",
                           dx_num,
                           " ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;")
@@ -277,14 +277,14 @@ top_causes_f <- function(cohort,
                           FROM ##temp_ids AS a
                           LEFT JOIN 
                           (SELECT id, from_date, tcn, ed, inpatient, ccs_description
-                          FROM PHClaims.dbo.mcaid_claim_summary
+                          FROM PHClaims.final.mcaid_claim_header
                           WHERE from_date >= '", from_date, "' AND from_date <= '", to_date, "' AND ",
                           flags,
                           "ccs_description IS NOT NULL) AS b
                           ON a.id = b.id) AS c
-                          LEFT JOIN PHClaims.dbo.mcaid_claim_dx AS d
+                          LEFT JOIN PHClaims.final.mcaid_claim_icdcm_header AS d
                           ON c.tcn = d.tcn
-                          LEFT JOIN PHClaims.dbo.ref_dx_lookup AS e
+                          LEFT JOIN PHClaims.ref.dx_lookup AS e
                           ON d.dx_ver = e.dx_ver AND d.dx_norm = e.dx ",
                           dx_num,
                           " ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;")

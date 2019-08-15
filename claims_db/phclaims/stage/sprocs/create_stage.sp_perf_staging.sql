@@ -649,37 +649,6 @@ ON a.[first_service_date] = ym.[date]
 GROUP BY ym.[year_month], a.[id_mcaid], b.[measure_id];'
 END
 
-PRINT @SQL;
-END
-
-EXEC sp_executeSQL @statement=@SQL, 
-                   @params=N'@start_month_int INT, @end_month_int INT, @measure_name VARCHAR(200)',
-				   @start_month_int=@start_month_int, @end_month_int=@end_month_int, @measure_name=@measure_name;
-
-GO
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 IF @measure_name = 'Plan All-Cause Readmissions (30 days)'
 BEGIN
 
@@ -696,14 +665,14 @@ IF OBJECT_ID(''tempdb..#temp'', ''U'') IS NOT NULL
 DROP TABLE #temp;
 CREATE TABLE #temp
 ([year_month] INT
-,[id] VARCHAR(200)
+,[id_mcaid] VARCHAR(255)
 ,[age] INT
 ,[episode_id] INT
-,[episode_from_date] DATE
-,[episode_to_date] DATE
+,[episode_first_service_date] DATE
+,[episode_last_service_date] DATE
 ,[inpatient_index_stay] INT
-,[readmission_from_date] DATE
-,[readmission_to_date] DATE
+,[readmission_first_service_date] DATE
+,[readmission_last_service_date] DATE
 ,[readmission_flag] INT
 ,[date_diff] INT
 ,[planned_readmission] INT);
@@ -714,7 +683,7 @@ EXEC [stage].[sp_perf_pcr_join_step];
 INSERT INTO [stage].[perf_staging_event_date]
 ([year_month]
 ,[event_date]
-,[id]
+,[id_mcaid]
 ,[measure_id]
 ,[denominator]
 ,[numerator]
@@ -722,8 +691,8 @@ INSERT INTO [stage].[perf_staging_event_date]
 
 SELECT
  [year_month]
-,[episode_to_date] AS [event_date]
-,[id]
+,[episode_last_service_date] AS [event_date]
+,[id_mcaid]
 ,[measure_id]
 ,[inpatient_index_stay] AS [denominator]
 ,[readmission_flag] AS [numerator]
@@ -753,7 +722,7 @@ window sum (depending on age) for measurement year.
 */
 INSERT INTO [stage].[perf_staging]
 ([year_month]
-,[id]
+,[id_mcaid]
 ,[measure_id]
 ,[num_denom]
 ,[measure_value]
@@ -761,7 +730,7 @@ INSERT INTO [stage].[perf_staging]
 
 SELECT
  [year_month]
-,[id]
+,[id_mcaid]
 ,b.[measure_id]
 ,''N'' AS [num_denom]
 ,SUM([flag]) AS [measure_value]
@@ -771,12 +740,14 @@ FROM [stage].[v_perf_cap_ambulatory_visit] AS a
 LEFT JOIN [ref].[perf_measure] AS b
 ON b.[measure_name] = ''' + @measure_name + '''
 WHERE [year_month] BETWEEN ' + CAST(@start_month_int AS CHAR(6)) + ' AND ' + CAST(@end_month_int AS CHAR(6)) + '
-GROUP BY [year_month], [id], b.[measure_id];'
+GROUP BY [year_month], [id_mcaid], b.[measure_id];'
 END
+
 PRINT @SQL;
 END
 
 EXEC sp_executeSQL @statement=@SQL, 
                    @params=N'@start_month_int INT, @end_month_int INT, @measure_name VARCHAR(200)',
 				   @start_month_int=@start_month_int, @end_month_int=@end_month_int, @measure_name=@measure_name;
+
 GO
