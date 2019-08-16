@@ -12,12 +12,12 @@
     pacman::p_load(odbc, glue)
 
 ## Connect to SQL server ----
-    db_apde <- dbConnect(odbc(), "PHClaims51") 
+    db_claims <- dbConnect(odbc(), "PHClaims51") 
 
 ## Create [PHClaims].[metadata].[qa_mcaid] ----
-    setDT(DBI::dbGetQuery(db_apde, "SELECT TOP 0 * INTO metadata.qa_mcare FROM metadata.qa_mcaid"))
+    setDT(DBI::dbGetQuery(db_claims, "SELECT TOP 0 * INTO metadata.qa_mcare FROM metadata.qa_mcaid"))
     
 ## Create [PHClaims].[metadata].[qa_mcaid_values] ----
-    setDT(DBI::dbGetQuery(db_apde, "SELECT TOP 0 * INTO metadata.qa_mcare_values FROM metadata.qa_mcaid_values"))  
+    setDT(DBI::dbGetQuery(db_claims, "SELECT TOP 0 * INTO metadata.qa_mcare_values FROM metadata.qa_mcaid_values"))  
     
 ## The end! 
