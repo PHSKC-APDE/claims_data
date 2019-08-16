@@ -8,6 +8,8 @@ create table PHClaims.final.apcd_claim_provider (
 	id_apcd bigint,
 	extract_id int,
 	claim_header_id bigint,
+	first_service_date date,
+	last_service_date date,
 	billing_provider_id_apcd bigint,
 	rendering_provider_id_apcd bigint,
 	attending_provider_id_apcd bigint,

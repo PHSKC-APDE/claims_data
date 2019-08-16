@@ -94,7 +94,7 @@ top_causes_f <- function(cohort,
       stop("Invalid from_date. Use YYYY-MM-DD format")
     } else {
       from_date <- as.Date(from_date)
-      print(paste0("Looking at claims starting from ", from_date))
+      message(glue::glue("Looking at claims starting from {from_date}"))
     }
   } else if (is.null(from_date)) {
     from_date <- as.Date(paste0(year(Sys.Date()) - 1, "-01-01"))
@@ -105,7 +105,7 @@ top_causes_f <- function(cohort,
       stop("Invalid to_date. Use YYYY-MM-DD format")
     } else {
       to_date <- as.Date(to_date)
-      print(paste0("Looking at claims through to ", to_date))
+      message(glue::glue("Looking at claims through to {to_date}"))
     }
   } else if (is.null(to_date)) {
     to_date <- as.Date(as.numeric(min(
@@ -116,52 +116,52 @@ top_causes_f <- function(cohort,
   
   # Process dx type flag
   if (primary_dx == T) {
-    dx_num <- "WHERE d.dx_number = 1"
+    dx_num <- glue::glue_sql("WHERE d.icdcm_number IN ('01', 'admit') ", .con = server)
   } else {
-    dx_num <- NULL
+    dx_num <- DBI::SQL('')
   }
   
   # Combine visit type flags together
   if (ed_all == F & ed_avoid_ny == F & ed_avoid_ca == F & inpatient == F) {
     if (override_all == T) {
-      flags <- NULL
+      flags <- DBI::SQL('')
     }
     else {
       stop("Warning: no flags selected so all visits will be pulled (slow). 
            Use override_all = T to confirm")
     }
   } else {
-    flags <- " ("
+    flags <- glue::glue_sql(" (", .con = server)
     
     if (ed_all == T) {
-      flags <- paste0(flags, "ed = 1")
+      flags <- glue::glue_sql("{flags} ed = 1", .con = server)
     }
     
     if (ed_avoid_ny == T) {
       if(nchar(flags) > 2) {
-        flags <- paste0(flags, " OR ", "ed_nonemergent_nyu = 1")
+        flags <- glue::glue_sql("{flags} OR ed_nonemergent_nyu = 1", .con = server)
       } else {
-        flags <- paste0(flags, "ed_nonemergent_nyu = 1")
+        flags <- glue::glue_sql("{flags} ed_nonemergent_nyu = 1", .con = server)
       }
     }
     
     if (ed_avoid_ca == T) {
       if(nchar(flags) > 2) {
-        flags <- paste0(flags, " OR ", "ed_avoid_ca = 1")
+        flags <- glue::glue_sql("{flags} OR ed_avoid_ca = 1", .con = server)
       } else {
-        flags <- paste0(flags, "ed_avoid_ca = 1")
+        flags <- glue::glue_sql("{flags} ed_avoid_ca = 1", .con = server)
       }
     }
     
     if (inpatient == T) {
       if(nchar(flags) > 2) {
-        flags <- paste0(flags, " OR ", "inpatient = 1")
+        flags <- glue::glue_sql("{flags} OR inpatient = 1", .con = server)
       } else {
-        flags <- paste0(flags, "inpatient = 1")
+        flags <- glue::glue_sql("{flags} inpatient = 1", .con = server)
       }
     }
     
-    flags <- paste0(flags, ") AND ")
+    flags <- glue::glue_sql("{flags} ) AND ", .con = server)
   }
   
   
@@ -184,7 +184,7 @@ top_causes_f <- function(cohort,
   # Can only write 1000 values at a time so may need to do multiple rounds
   num_ids <- nrow(ids)
   n_rounds <- ceiling(num_ids/1000)
-  id_lists <- as.list(paste0("id_list_", 1:n_rounds))
+  id_lists <- as.list(glue::glue("id_list_{1:n_rounds}"))
   
   ### Compose SQL query
   # 1) Add IDs to local temp table (if new IDs are needed)
@@ -193,15 +193,16 @@ top_causes_f <- function(cohort,
     list_end <- min(1000, num_ids)
     
     if (ind_dates == T) {
-      id_vars_create <- "(id VARCHAR(20), from_date_ind DATE, to_date_ind DATE) "
-      id_vars <- "(id, from_date_ind, to_date_ind) "
+      id_vars_create <- glue::glue_sql("(id VARCHAR(20), from_date_ind DATE, to_date_ind DATE) ",
+                                       .con = server)
+      id_vars <- glue::glue_sql("(id, from_date_ind, to_date_ind) ", .con = server)
     } else {
-      id_vars_create <- "(id VARCHAR(20)) "
-      id_vars <- "(id) "
+      id_vars_create <- glue::glue_sql("(id VARCHAR(20)) ", .con = server)
+      id_vars <- glue::glue_sql("(id) ", .con = server)
     }
     
     # Make progress bar
-    print(paste0("Loading ", n_rounds, " ID sets"))
+    print(glue("Loading {n_rounds} ID sets"))
     pb <- txtProgressBar(min = 0, max = n_rounds, style = 3)
     
     for (i in 1:n_rounds) {
@@ -254,40 +255,39 @@ top_causes_f <- function(cohort,
   # 4) Obtain DXs from claims
   # 5) Join DXs to DX lookup
   if (ind_dates == T) {
-    claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_final_plain_lang, e.ccs_catch_all
-                          FROM (SELECT a.id, a.from_date_ind, a.to_date_ind, b.from_date, b.tcn
-                          FROM ##temp_ids AS a
+    claim_query <- glue::glue_sql("SELECT DISTINCT c.id, c.from_date, e.ccs_final_plain_lang, e.ccs_catch_all
+                          FROM 
+                          (SELECT a.id, a.from_date_ind, a.to_date_ind, b.from_date, b.claim_header_id
+                            FROM ##temp_ids AS a
                           LEFT JOIN 
-                          (SELECT id, from_date, tcn, ed, inpatient, ccs_description
-                          FROM PHClaims.dbo.mcaid_claim_summary
-                          WHERE from_date >= '", from_date, "' AND from_date <= '", to_date, "' AND ",
-                          flags,
-                          "ccs_description IS NOT NULL) AS b
-                          ON a.id = b.id
+                            (SELECT id_mcaid, first_service_date AS from_date, claim_header_id, ed, inpatient, ccs_description
+                            FROM PHClaims.final.mcaid_claim_header
+                            WHERE first_service_date >= {from_date} AND first_service_date <= {to_date} AND 
+                            {flags} ccs_description IS NOT NULL) AS b
+                          ON a.id = b.id_mcaid
                           WHERE b.from_date >= a.from_date_ind AND b.from_date <= a.to_date_ind) AS c
-                          LEFT JOIN PHClaims.dbo.mcaid_claim_dx AS d
-                          ON c.tcn = d.tcn
-                          LEFT JOIN PHClaims.dbo.ref_dx_lookup AS e
-                          ON d.dx_ver = e.dx_ver AND d.dx_norm = e.dx ",
-                          dx_num,
-                          " ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;")
+                          LEFT JOIN PHClaims.final.mcaid_claim_icdcm_header AS d
+                          ON c.claim_header_id = d.claim_header_id
+                          LEFT JOIN PHClaims.ref.dx_lookup AS e
+                          ON d.icdcm_version = e.dx_ver AND d.icdcm_norm = e.dx {dx_num} 
+                          ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;",
+                                  .con = server)
   } else {
-    claim_query <- paste0("SELECT DISTINCT c.id, c.from_date, e.ccs_final_plain_lang, e.ccs_catch_all
-                          FROM (SELECT a.id, b.from_date, b.tcn
-                          FROM ##temp_ids AS a
+    claim_query <- glue::glue_sql("SELECT DISTINCT c.id, c.from_date, e.ccs_final_plain_lang, e.ccs_catch_all
+                          FROM 
+                          (SELECT a.id, b.from_date, b.claim_header_id FROM ##temp_ids AS a
                           LEFT JOIN 
-                          (SELECT id, from_date, tcn, ed, inpatient, ccs_description
-                          FROM PHClaims.dbo.mcaid_claim_summary
-                          WHERE from_date >= '", from_date, "' AND from_date <= '", to_date, "' AND ",
-                          flags,
-                          "ccs_description IS NOT NULL) AS b
-                          ON a.id = b.id) AS c
-                          LEFT JOIN PHClaims.dbo.mcaid_claim_dx AS d
-                          ON c.tcn = d.tcn
-                          LEFT JOIN PHClaims.dbo.ref_dx_lookup AS e
-                          ON d.dx_ver = e.dx_ver AND d.dx_norm = e.dx ",
-                          dx_num,
-                          " ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;")
+                            (SELECT id_mcaid, first_service_date AS from_date, claim_header_id, ed, inpatient, ccs_description
+                            FROM PHClaims.final.mcaid_claim_header
+                            WHERE first_service_date >= {from_date} AND first_service_date <= {to_date} AND 
+                            {flags} ccs_description IS NOT NULL) AS b
+                          ON a.id = b.id_mcaid) AS c
+                          LEFT JOIN PHClaims.final.mcaid_claim_icdcm_header AS d
+                          ON c.claim_header_id = d.claim_header_id
+                          LEFT JOIN PHClaims.ref.dx_lookup AS e
+                          ON d.icdcm_version = e.dx_ver AND d.icdcm_norm = e.dx {dx_num} 
+                          ORDER BY c.id, c.from_date, e.ccs_final_plain_lang;",
+                                  .con = server)
   }
   
   claims <- DBI::dbGetQuery(server, claim_query)
