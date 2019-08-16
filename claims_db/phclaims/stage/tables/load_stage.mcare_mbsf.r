@@ -93,7 +93,7 @@
     abcd[, (abcd.dates):= lapply(.SD, as.Date), .SDcols = abcd.dates]
 
 ## (4) Append MBSF AB & ABCD ----    
-    abcd <- rbind(abcd, ab)
+    abcd <- rbindlist(list(abcd, ab), fill = TRUE, use.names = TRUE)
     rm(ab)
     gc()
     
