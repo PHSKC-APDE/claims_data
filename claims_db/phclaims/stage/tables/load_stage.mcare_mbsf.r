@@ -13,6 +13,7 @@
 
 ## Set up environment ----
     rm(list=ls())
+    .libPaths("C:/Users/dcolombara/R.packages")
     pacman::p_load(data.table, dplyr, odbc, lubridate, glue, httr)
     start.time <- Sys.time()
     options("scipen"=999) # turn off scientific notation  
@@ -99,7 +100,7 @@
     
 ## (5) PUSH MBSF AB/ABCD ----
     # create last_run timestamp
-    last_run <- Sys.time()
+    abcd[, last_run := Sys.time()]
     
     # create table ID for SQL
     tbl_id <- DBI::Id(schema = table_config$schema, 
@@ -118,15 +119,20 @@
                  value = as.data.frame(abcd),
                  overwrite = T, append = F, 
                  field.types = unlist(table_config$vars))
+    
+    # Confirm that all rows were loaded to sql
+    stage.count <- as.numeric(odbc::dbGetQuery(db_claims, 
+                                                "SELECT COUNT (*) FROM stage.mcare_mbsf"))
+    if(stage.count != nrow(abcd))
+      stop("Mismatching row count, error reading in data")
 
 ## (6) QA MBSF ABCD ----
     # Extract staged data from SQL ----
       last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcare_mbsf")[[1]])
       
-      stage.count <- as.numeric(odbc::dbGetQuery(db_claims, 
-                                                  "SELECT COUNT (*) FROM stage.mcare_mbsf"))
+      raw.count <- ab.raw.count + abcd.raw.count
       
-      row_diff <- abcd.raw.count - stage.count
+      row_diff <- raw.count - stage.count
     
     # check that rows in stage are not more than rows in load_raw ----
     if(row_diff<0){
@@ -141,7 +147,7 @@
                        'FAIL', 
                        {Sys.time()}, 
                        'There were {row_diff} excess rows in the staged tables 
-                       ({stage.count} vs. {abcd.raw.count})')",
+                       ({stage.count} vs. {raw.count})')",
                        .con = db_claims))
 
       problem.raw.row.count <- glue::glue("Error: more rows in stage compared with load_raw.
@@ -157,7 +163,7 @@
                        'PASS', 
                        {Sys.time()}, 
                        'There were {row_diff} fewer rows in the staged vs. raw tables 
-                       ({stage.count} vs. {abcd.raw.count})')",
+                       ({stage.count} vs. {raw.count})')",
                        .con = db_claims))
       
       problem.raw.row.count <- glue::glue(" ") # no problem, so empty error message
