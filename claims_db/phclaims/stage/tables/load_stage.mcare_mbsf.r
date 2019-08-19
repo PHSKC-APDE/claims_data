@@ -3,11 +3,11 @@
     # 
     # R version: 3.5.3
     #
-    # Purpose: Simple processing of load_raw MBSF to staged MBSF
+    # Purpose: Processing of load_raw MBSF AB and ABCD to a single combined staged MBSF
     # 
-    # Notes: Medicare ids are case sensitive. Will have to deduplicate randomly (without regard to case sensitivity) becuase there
-    #        is no way to know which one we should keep for linkages with other datasets. Checked on 8/15/2019 and found that there 
-    #        were 378 IDs that would be dropped through this process
+    # Notes: Medicare ids are case sensitive. 
+    #        Will select distinct rows from load_raw in SQL (which hopefully will deduplicate most of the problems)
+    #        Will perform another check for duplicates in R
     #
     #        This code takes approximately 32 minutes to run under normal SQL server traffic conditions
 
@@ -98,7 +98,18 @@
     rm(ab)
     gc()
     
-## (5) PUSH MBSF AB/ABCD ----
+## (5) Identify potential duplicates ----
+    begin.time <- Sys.time()
+    abcd[, id_lowercase := tolower(bene_id)]
+    by.cols = setdiff(names(abcd), 'bene_id') # all columns, except original case sensitive id column
+    abcd[, dup := .N>1, by = by.cols] # create True false indicator for all duplicate rows (including the first copy of the duplicate)
+    mbsf.duplicates <- abcd[dup == TRUE] # save the potential duplicate data as a different data.table
+    setcolorder(mbsf.duplicates, c("bene_id", "id_lowercase"))
+    abcd[, c("id_lowercase", "dup") := NULL]
+    Sys.time() - begin.time
+    rm(begin.time)
+    
+## (6) PUSH MBSF combined AB/ABCD ----
     # create last_run timestamp
     abcd[, last_run := Sys.time()]
     
@@ -126,7 +137,7 @@
     if(stage.count != nrow(abcd))
       stop("Mismatching row count, error reading in data")
 
-## (6) QA MBSF ABCD ----
+## (7) QA combined MBSF ----
     # Extract staged data from SQL ----
       last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcare_mbsf")[[1]])
       
@@ -280,7 +291,7 @@
       rm(abcd, last_run, previous_rows, problem.ids, problem.raw.row.count, problem.row_diff, row_diff, tbl_id, table_config)
       gc()        
       
-## (7) Fill qa_mcare_values table ----
+## (8) Fill qa_mcare_values table ----
       qa.values <- glue::glue_sql("INSERT INTO metadata.qa_mcare_values
                              (table_name, qa_item, qa_value, qa_date, note) 
                                      VALUES ('stage.mcare_mbsf',
@@ -293,7 +304,7 @@
       odbc::dbGetQuery(conn = db_claims, qa.values)
       
       
-## (8) Print error messages ----
+## (9) Print error messages ----
       if(problems >1){
         message(glue::glue("WARNING ... MBSF ABCD FAILED AT LEAST ONE QA TEST", "\n",
                            "Summary of problems in MBSF ABCD: ", "\n", 
