@@ -5,15 +5,17 @@
     #
     # Purpose: Processing of load_raw MBSF AB and ABCD to a single combined staged MBSF
     # 
+    # WARNING: This is a memory intensive script ... please run on a machine with at least 32 GB RAM
+    #
     # Notes: Medicare ids are case sensitive. 
     #        Will select distinct rows from load_raw in SQL (which hopefully will deduplicate most of the problems)
     #        Will perform another check for duplicates in R
     #
-    #        This code takes approximately 32 minutes to run under normal SQL server traffic conditions
+    #        This code takes approximately 45 minutes to run under normal SQL server traffic conditions
 
 ## Set up environment ----
     rm(list=ls())
-    .libPaths("C:/Users/dcolombara/R.packages")
+    .libPaths("C:/Users/dcolombara/R.packages") # needed for 32 GB SAS computer.
     pacman::p_load(data.table, dplyr, odbc, lubridate, glue, httr)
     start.time <- Sys.time()
     options("scipen"=999) # turn off scientific notation  
