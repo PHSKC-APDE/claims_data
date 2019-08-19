@@ -90,12 +90,8 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
     conn, "SELECT COUNT(*)
     FROM
     (
-    SELECT bene_id
-    FROM stage.mcare_mbsf_ab
-    WHERE bene_id IS NOT NULL
-    UNION
-    SELECT bene_id
-    FROM stage.mcare_mbsf_abcd
+    SELECT DISTINCT(bene_id)
+    FROM stage.mcare_mbsf
     WHERE bene_id IS NOT NULL
     ) A;"))
 
