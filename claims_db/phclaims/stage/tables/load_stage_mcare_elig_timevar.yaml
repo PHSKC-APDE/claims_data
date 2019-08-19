@@ -1,0 +1,17 @@
+schema: stage
+table: mcare_elig_timevar
+years:
+vars:
+    id_mcare: CHAR(15) collate SQL_Latin1_General_Cp1_CS_AS
+    from_date: DATE
+    to_date: DATE
+    contiguous: TINYINT
+    dual: TINYINT
+    buyin: TINYINT
+    part_a: TINYINT
+    part_b: TINYINT
+    part_c: TINYINT
+    zip: CHAR(5)
+    kc: TINYINT
+    cov_time_day: SMALLINT
+    last_run: DATETIME
