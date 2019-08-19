@@ -1,13 +1,13 @@
 schema: stage
-table: mcare_mbsf_abcd
+table: mcare_mbsf
 years:
 vars:
-    bene_id: VARCHAR(15) collate SQL_Latin1_General_Cp1_CS_AS
+    bene_id: CHAR(15) collate SQL_Latin1_General_Cp1_CS_AS
     bene_enrollmt_ref_yr: SMALLINT
     enrl_src: VARCHAR(3)
     sample_group: TINYINT
-    five_percent_flag: VARCHAR(1)
-    enhanced_five_percent_flag: VARCHAR(1)
+    five_percent_flag: CHAR(1)
+    enhanced_five_percent_flag: CHAR(1)
     crnt_bic_cd: VARCHAR(2)
     state_code: VARCHAR(2)
     county_cd: VARCHAR(3)
@@ -26,7 +26,7 @@ vars:
     state_cnty_fips_cd_12: VARCHAR(5)
     age_at_end_ref_yr: TINYINT
     bene_birth_dt: DATE
-    valid_death_dt_sw: VARCHAR(1)
+    valid_death_dt_sw: CHAR(1)
     bene_death_dt: DATE
     ndi_death_dt: DATE
     sex_ident_cd: TINYINT
@@ -35,7 +35,7 @@ vars:
     covstart: DATE
     entlmt_rsn_orig: TINYINT
     entlmt_rsn_curr: TINYINT
-    esrd_ind: VARCHAR(1)
+    esrd_ind: CHAR(1)
     bene_mdcr_status_cd: TINYINT
     mdcr_status_code_01: TINYINT
     mdcr_status_code_02: TINYINT
@@ -58,30 +58,30 @@ vars:
     ptd_plan_cvrg_mons: TINYINT
     rds_cvrg_mons: TINYINT
     dual_elgbl_mons: TINYINT
-    mdcr_entlmt_buyin_ind_01: VARCHAR(1)
-    mdcr_entlmt_buyin_ind_02: VARCHAR(1)
-    mdcr_entlmt_buyin_ind_03: VARCHAR(1)
-    mdcr_entlmt_buyin_ind_04: VARCHAR(1)
-    mdcr_entlmt_buyin_ind_05: VARCHAR(1)
-    mdcr_entlmt_buyin_ind_06: VARCHAR(1)
-    mdcr_entlmt_buyin_ind_07: VARCHAR(1)
-    mdcr_entlmt_buyin_ind_08: VARCHAR(1)
-    mdcr_entlmt_buyin_ind_09: VARCHAR(1)
-    mdcr_entlmt_buyin_ind_10: VARCHAR(1)
-    mdcr_entlmt_buyin_ind_11: VARCHAR(1)
-    mdcr_entlmt_buyin_ind_12: VARCHAR(1)
-    hmo_ind_01: VARCHAR(1)
-    hmo_ind_02: VARCHAR(1)
-    hmo_ind_03: VARCHAR(1)
-    hmo_ind_04: VARCHAR(1)
-    hmo_ind_05: VARCHAR(1)
-    hmo_ind_06: VARCHAR(1)
-    hmo_ind_07: VARCHAR(1)
-    hmo_ind_08: VARCHAR(1)
-    hmo_ind_09: VARCHAR(1)
-    hmo_ind_10: VARCHAR(1)
-    hmo_ind_11: VARCHAR(1)
-    hmo_ind_12: VARCHAR(1)
+    mdcr_entlmt_buyin_ind_01: CHAR(1)
+    mdcr_entlmt_buyin_ind_02: CHAR(1)
+    mdcr_entlmt_buyin_ind_03: CHAR(1)
+    mdcr_entlmt_buyin_ind_04: CHAR(1)
+    mdcr_entlmt_buyin_ind_05: CHAR(1)
+    mdcr_entlmt_buyin_ind_06: CHAR(1)
+    mdcr_entlmt_buyin_ind_07: CHAR(1)
+    mdcr_entlmt_buyin_ind_08: CHAR(1)
+    mdcr_entlmt_buyin_ind_09: CHAR(1)
+    mdcr_entlmt_buyin_ind_10: CHAR(1)
+    mdcr_entlmt_buyin_ind_11: CHAR(1)
+    mdcr_entlmt_buyin_ind_12: CHAR(1)
+    hmo_ind_01: CHAR(1)
+    hmo_ind_02: CHAR(1)
+    hmo_ind_03: CHAR(1)
+    hmo_ind_04: CHAR(1)
+    hmo_ind_05: CHAR(1)
+    hmo_ind_06: CHAR(1)
+    hmo_ind_07: CHAR(1)
+    hmo_ind_08: CHAR(1)
+    hmo_ind_09: CHAR(1)
+    hmo_ind_10: CHAR(1)
+    hmo_ind_11: CHAR(1)
+    hmo_ind_12: CHAR(1)
     ptc_cntrct_id_01: VARCHAR(5)
     ptc_cntrct_id_02: VARCHAR(5)
     ptc_cntrct_id_03: VARCHAR(5)
@@ -154,18 +154,18 @@ vars:
     ptd_sgmt_id_10: TINYINT
     ptd_sgmt_id_11: TINYINT
     ptd_sgmt_id_12: TINYINT
-    rds_ind_01: VARCHAR(1)
-    rds_ind_02: VARCHAR(1)
-    rds_ind_03: VARCHAR(1)
-    rds_ind_04: VARCHAR(1)
-    rds_ind_05: VARCHAR(1)
-    rds_ind_06: VARCHAR(1)
-    rds_ind_07: VARCHAR(1)
-    rds_ind_08: VARCHAR(1)
-    rds_ind_09: VARCHAR(1)
-    rds_ind_10: VARCHAR(1)
-    rds_ind_11: VARCHAR(1)
-    rds_ind_12: VARCHAR(1)
+    rds_ind_01: CHAR(1)
+    rds_ind_02: CHAR(1)
+    rds_ind_03: CHAR(1)
+    rds_ind_04: CHAR(1)
+    rds_ind_05: CHAR(1)
+    rds_ind_06: CHAR(1)
+    rds_ind_07: CHAR(1)
+    rds_ind_08: CHAR(1)
+    rds_ind_09: CHAR(1)
+    rds_ind_10: CHAR(1)
+    rds_ind_11: CHAR(1)
+    rds_ind_12: CHAR(1)
     dual_stus_cd_01: TINYINT
     dual_stus_cd_02: TINYINT
     dual_stus_cd_03: TINYINT
