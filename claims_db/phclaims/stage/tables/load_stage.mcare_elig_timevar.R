@@ -111,13 +111,23 @@
       dt[, group := .GRP, by = timevar.vars] # create identifier for each unique block of data per id (except dates)
       dt[, group := cumsum( c(0, diff(group)!=0) )] # in situation like a:a:a:b:b:b:b:a:a:a, want to distinguish first set of "a" from second set of "a"
       
-## (8) Collapse rows where data chunks are constant and time is contiguous ----      
+## (8) Create unique ID for contiguous times within a given data chunk ----
+      dt[, prev_to_date := shift(to_date, 1L, type = "lag"), by = "group"] # create row with the previous 'to_date'
+      dt[, diff.prev := from_date - prev_to_date] # difference between from_date & prev_to_date will be 1 (day) if they are contiguous
+      dt[diff.prev != 1, diff.prev := NA] # set to NA if difference is not 1 day, i.e., it is not contiguous, i.e., it starts a new contiguous chunk
+      dt[is.na(diff.prev), contig.id := .I] # Give a unique number for each start of a new contiguous chunk (i.e., section starts with NA)
+      setkeyv(dt, c("group", "from_date")) # need to order the data so the following line will work.
+      dt[, contig.id := dt[!is.na(contig.id)][dt, contig.id, roll = T]] # Fill down values of contig.id to complete the identification of the contiguous segments
+      dt[, c("prev_to_date", "diff.prev") := NULL] # drop columns that were just intermediates
+
+## (9) Collapse rows where data chunks are constant and time is contiguous ----      
       # replace dates with their max and min within each group
-        dt[, from_date := min(from_date), by = "group"]
-        dt[, to_date := max(to_date), by = "group"]
+        dt[, from_date := min(from_date), by = c("group", "contig.id")]
+        dt[, to_date := max(to_date), by = c("group", "contig.id")]
         
-      # drop group variable b/c no longer needed
-        dt[, group := NULL]
+      # drop group & contig.id variables b/c no longer needed
+        # first confirmed that worked as planned.E.g., View(dt[id_mcare == "GGGGGGF6G6oFQuF"]) shows two separate contiguous periods within a given group id
+        dt[, c("group", "contig.id") := NULL]
       
       # collapse by dropping duplicate rows that were made when replacing dates with min/max
         dt <- unique(dt)
@@ -127,7 +137,7 @@
         dt <- dt[!(counter == 1 & dual == 0 & buyin == 0 & part_a == 0 & part_b == 0 & part_c == 0)] # drop when first row for each person is all zeros
         dt[, counter := NULL] 
         
-## (9) Identify contiguous periods ----
+## (10) Identify contiguous periods ----
         # If contiguous with the NEXT row, then it is marked as contiguous. This is the same as mcaid_elig_timevar
         dt[, prev_to_date := shift(to_date, 1L, type = "lag"), by = "id_mcare"]
         dt[, contiguous := 0]
@@ -142,7 +152,7 @@
         
         dt[, prev_to_date := NULL] # drop because no longer needed
         
-## (10) Add King County indicator & cov_time_day ----
+## (11) Add King County indicator & cov_time_day ----
         kc.zips <- fread(kc.zips.url)
         dt[, kc := 0]
         dt[zip %in% unique(as.character(kc.zips$zip)), kc := 1]
@@ -150,7 +160,7 @@
         
         dt[, cov_time_day := as.integer(to_date - from_date)]
         
-## (11) Load to SQL ----
+## (12) Load to SQL ----
     # Add date stamp to data
         dt[, last_run := Sys.time()]
             
@@ -172,7 +182,7 @@
                      field.types = unlist(table_config$vars))
         rm(table_config, tbl_id)
         
-## (12) Run QA function ----
+## (13) Run QA function ----
         source(qa.function.url)
 
         qa_mcare_elig_timevar_f(conn = db_claims, load_only = F)
