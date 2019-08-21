@@ -6,11 +6,12 @@ vars:
     from_date: DATE
     to_date: DATE
     contiguous: TINYINT
-    dual: TINYINT
-    buyin: TINYINT
     part_a: TINYINT
     part_b: TINYINT
     part_c: TINYINT
+    dual: TINYINT
+    partial: TINYINT
+    buyin: TINYINT
     zip: CHAR(5)
     kc: TINYINT
     cov_time_day: SMALLINT
