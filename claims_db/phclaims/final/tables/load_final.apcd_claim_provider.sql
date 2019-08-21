@@ -19,4 +19,10 @@ referring_provider_id_apcd
 from PHClaims.stage.apcd_claim_provider;
 
 
+------------------
+--STEP 2: Create clustered columnstore index (20 min)
+-------------------
+create clustered columnstore index idx_ccs_final_apcd_claim_provider on phclaims.final.apcd_claim_provider;
+
+
 

@@ -13,8 +13,8 @@
 --------------------------
 
 declare @from_date date, @to_date date;
-set @from_date = '2017-01-01';
-set @to_date = '2017-12-31';
+set @from_date = '2018-01-01';
+set @to_date = '2018-12-31';
 
 if object_id('tempdb..#cov1') is not null drop table #cov1;
 select distinct id_apcd, from_date, to_date,
@@ -396,10 +396,10 @@ from #cov1;
 --STEP 3: RAC-based full medical benefits definition
 --------------------------
 if object_id('tempdb..#rac') is not null drop table #rac;
-select a.id_apcd, sum(case when a.full_benefit_flag = 'Y' then a.rac_covd else 0 end) as dsrip_full_covd, sum(a.rac_covd) as rac_covd
+select a.id_apcd, sum(case when a.full_benefit = 'Y' then a.rac_covd else 0 end) as dsrip_full_covd, sum(a.rac_covd) as rac_covd
 into #rac
 from (
-  select a.id_apcd, a.from_date, a.to_date, a.rac_code, b.full_benefit_flag,
+  select a.id_apcd, a.from_date, a.to_date, a.rac_code, b.full_benefit,
 
   --calculate RAC coverage days
   case
@@ -623,7 +623,7 @@ on a.id = d.id_apcd;
 --------------------------
 --STEP 8: Create final coverage cohort variables and select into table shell
 --------------------------
-insert into PHClaims.stage.apcd_elig_plr_2017 with (tablock)
+insert into PHClaims.stage.apcd_elig_plr_2018 with (tablock)
 select id_apcd, 
 
 --coverage cohorts, state-level
@@ -653,6 +653,3 @@ pharm_total_covd, pharm_total_covper, pharm_medicaid_covd, pharm_medicare_covd, 
 pharm_medicare_covper, pharm_commercial_covper, pharm_total_ccovd_max, pharm_medicaid_ccovd_max, pharm_medicare_ccovd_max,
 pharm_commercial_ccovd_max, pharm_total_covgap_max, pharm_medicaid_covgap_max, pharm_medicare_covgap_max, pharm_commercial_covgap_max
 from #merge1;
-
-
-
