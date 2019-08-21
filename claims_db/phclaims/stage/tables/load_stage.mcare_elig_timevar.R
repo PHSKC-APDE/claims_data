@@ -70,29 +70,38 @@
       dt <- melt(dt, 
                 id.vars = c("id_mcare", "data_year", "zip"), 
                 measure = list(dual.cols, buyin.cols, hmo.cols), 
-                value.name = c("dual", "buyins", "hmo"), variable.name = c("month"))
+                value.name = c("duals", "buyins", "hmos"), variable.name = c("month"))
       
 ## (4) Recode / create indicators ----
-      dt[buyins %in% c("0", "1", "2", "3"), buyin := 0]
-      dt[buyins %in% c("A", "B", "C"), buyin := 1]
-      
+      # part a
       dt[buyins %in% c("1", "3", "A", "C"), part_a := 1]
       dt[buyins %in% c("0", "2", "B"), part_a := 0]
       
+      # part b
       dt[buyins %in% c("2", "3", "B", "C"), part_b := 1]
       dt[buyins %in% c("0", "1", "A"), part_b := 0]
       
-      dt[, buyins := NULL] # no longer needed
+      # part c
+      dt[hmos %in% c("1", "2", "A", "B", "C"), part_c := 1]
+      dt[hmos %in% c("0", "4"), part_c := 0] # https://www.resdac.org/articles/identifying-medicare-managed-care-beneficiaries-master-beneficiary-summary-or-denominator
       
-      dt[dual %in% c(0, 1, 3, 5, 6, 7, 9) | is.na(dual), dual := 0]
-      dt[dual %in% c(2, 4, 8), dual := 1]
-      dt[dual == 99, dual := NA]
-      dt[, dual := as.numeric(dual)]
+      # buyin
+      dt[buyins %in% c("0", "1", "2", "3"), buyin := 0]
+      dt[buyins %in% c("A", "B", "C"), buyin := 1]
       
-      dt[hmo %in% c("1", "2", "A", "B", "C"), part_c := 1]
-      dt[hmo %in% c("0", "4"), part_c := 0] # https://www.resdac.org/articles/identifying-medicare-managed-care-beneficiaries-master-beneficiary-summary-or-denominator
-      dt[, hmo := NULL]
+      # partial dual (can't define for 2011-2014, i.e., MBSF AB)
+      dt[data_year %in% c(2015:2016), partial := 0]
+      dt[data_year %in% c(2015:2016) & duals %in% c(1, 3, 5, 6), partial := 1]
+
+      # dual (defined differently for 2011-2014 & 2015+)
+      dt[data_year %in% c(2011:2014), dual := buyin]
       
+      dt[data_year %in% c(2015:2016), dual := 0]
+      dt[data_year %in% c(2015:2016) & duals %in% c(1, 2, 3, 4, 5, 6, 8), dual := 1]
+     
+      # drop vars no longer needed
+      dt[, c("buyins", "hmos", "duals") := NULL] 
+
 ## (5) Create start / end dates ----
       gc() # had memory problems, so added to see if it helps
       dt[, from_date := paste0(data_year, "-", month, "-01")] # from date is always first day of the month ... done step wise with hope helps with memory
