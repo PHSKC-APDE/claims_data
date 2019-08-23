@@ -40,13 +40,13 @@ where b.id_apcd is null;
 --All members should be in elig_demo and elig_timevar tables
 select count(a.id_apcd) as id_dcount
 from PHClaims.stage.apcd_claim_header as a
-left join PHClaims.stage.apcd_elig_demo as b
+left join PHClaims.final.apcd_elig_demo as b
 on a.id_apcd = b.id_apcd
 where b.id_apcd is null;
 
 select count(a.id_apcd) as id_dcount
 from PHClaims.stage.apcd_claim_header as a
-left join PHClaims.stage.apcd_elig_timevar as b
+left join PHClaims.final.apcd_elig_timevar as b
 on a.id_apcd = b.id_apcd
 where b.id_apcd is null;
 

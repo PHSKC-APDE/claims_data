@@ -32,4 +32,7 @@ or_flag
 from PHClaims.stage.apcd_claim_header;
 
 
-
+------------------
+--STEP 2: Create clustered columnstore index (18 min)
+-------------------
+create clustered columnstore index idx_ccs_final_apcd_claim_header on phclaims.final.apcd_claim_header;
