@@ -16,7 +16,7 @@ dsn <- "PHClaims"
 db.connection <- dbConnect(odbc(), dsn)
 
 # RAC Codes
-file.dir <- "L:/DCHSPHClaimsData/Analyses/Philip/99_Documentation/RDA/"
+file.dir <- "C:/Users/XXX/github/claims_data/claims_db/phclaims/ref/tables_data/"
 
 input <- read.xlsx(paste0(file.dir, "Medicaid-RAC-Codes-for-Inclusion-Criteria-and-Grouping DSHS.xlsx"), sheet = 1)
 tbl <- Id(schema="tmp", table="Medicaid_RAC_Codes_Grouping")

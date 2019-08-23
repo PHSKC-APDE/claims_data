@@ -1246,6 +1246,7 @@ WHERE 1 = 1
 Filter by age at time of index event
 */
 AND [event_date_age] BETWEEN 18 AND 64
+AND [end_month_age] BETWEEN 18 AND 64
 
 /*
 For readmission measure, members need coverage for 11/12 months prior to Index Discharge Date and for 30 days following Index Discharge Date
@@ -1289,7 +1290,7 @@ SELECT
  ym.[beg_measure_year_month] AS [beg_year_month]
 ,ym.[year_month] AS [end_year_month]
 ,den.[end_quarter]
-,mem.[id]
+,mem.[id_mcaid]
 ,den.[end_month_age]
 ,den.[age_in_months]
 ,CASE WHEN ref.[age_group] = ''age_grp_1'' THEN age.[age_grp_1]
@@ -1308,15 +1309,15 @@ SELECT
 ,den.[hospice_t_12_m]
 ,den.[hospice_prior_t_12_m]
 ,1 AS [denominator]
-,CASE WHEN MAX(ISNULL(stg.[measure_value], 0)) OVER(PARTITION BY mem.[id] ORDER BY ym.[year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) > 0 THEN 1 ELSE 0 END AS [numerator_t_12_m]
-,CASE WHEN MAX(ISNULL(stg.[measure_value], 0)) OVER(PARTITION BY mem.[id] ORDER BY ym.[year_month] ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) > 0 THEN 1 ELSE 0 END AS [numerator_t_24_m]
+,CASE WHEN MAX(ISNULL(stg.[measure_value], 0)) OVER(PARTITION BY mem.[id_mcaid] ORDER BY ym.[year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) > 0 THEN 1 ELSE 0 END AS [numerator_t_12_m]
+,CASE WHEN MAX(ISNULL(stg.[measure_value], 0)) OVER(PARTITION BY mem.[id_mcaid] ORDER BY ym.[year_month] ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) > 0 THEN 1 ELSE 0 END AS [numerator_t_24_m]
 
 FROM [ref].[perf_year_month] AS ym
 
 CROSS JOIN [stage].[perf_distinct_member] AS mem
 
 LEFT JOIN [stage].[perf_enroll_denom] AS den
-ON mem.[id] = den.[id]
+ON mem.[id_mcaid] = den.[id_mcaid]
 AND ym.[year_month] = den.[year_month]
 AND den.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
 
@@ -1327,7 +1328,7 @@ LEFT JOIN [ref].[age_grp] AS age
 ON den.[age_in_months] = age.[age]
 
 LEFT JOIN [stage].[perf_staging] AS stg
-ON mem.[id] = stg.[id]
+ON mem.[id_mcaid] = stg.[id_mcaid]
 AND ym.[year_month] = stg.[year_month]
 /*
 This JOIN condition gets only utilization rows for the relevant measure
@@ -1343,7 +1344,7 @@ AND ym.[year_month] <= ' + CAST(@end_month_int AS CHAR(6)) + '
 INSERT INTO [stage].[mcaid_perf_measure]
 ([beg_year_month]
 ,[end_year_month]
-,[id]
+,[id_mcaid]
 ,[end_month_age]
 ,[age_grp]
 ,[measure_id]
@@ -1354,7 +1355,7 @@ INSERT INTO [stage].[mcaid_perf_measure]
 SELECT
  [beg_year_month]
 ,[end_year_month]
-,[id]
+,[id_mcaid]
 ,[end_month_age]
 ,[age_grp]
 ,[measure_id]
