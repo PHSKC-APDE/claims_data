@@ -4,20 +4,12 @@
 --Run time: XX min
 
 --Compare min/max of provider ID variables with medical_claim table (12 min)
-select min(billing_provider_id_apcd) as billing_min, min(rendering_provider_id_apcd) as rendering_min,
-	min(attending_provider_id_apcd) as attending_min, min(referring_provider_id_apcd) as referring_min,
-	max(billing_provider_id_apcd) as billing_max, max(rendering_provider_id_apcd) as rendering_max,
-	max(attending_provider_id_apcd) as attending_max, max(referring_provider_id_apcd) as referring_max
-from PHClaims.stage.apcd_claim_provider;
+select min(provider_id_apcd) as rendering_min, max(provider_id_apcd) as rendering_max
+from PHClaims.stage.apcd_claim_provider
+where provider_type = 'rendering';
 
-select min(cast(billing_internal_provider_id as bigint)) as billing_min_raw,
-	min(cast(rendering_internal_provider_id as bigint)) as rendering_min_raw,
-	min(cast(attending_internal_provider_id as bigint)) as attending_min_raw,
-	min(cast(referring_internal_provider_id as bigint)) as referring_min_raw,
-	max(cast(billing_internal_provider_id as bigint)) as billing_max_raw,
-	max(cast(rendering_internal_provider_id as bigint)) as rendering_max_raw,
-	max(cast(attending_internal_provider_id as bigint)) as attending_max_raw,
-	max(cast(referring_internal_provider_id as bigint)) as referring_max_raw
+select min(cast(rendering_internal_provider_id as bigint)) as rendering_min_raw,
+	max(cast(rendering_internal_provider_id as bigint)) as rendering_max_raw
 from PHClaims.stage.apcd_medical_claim;
 
 --Check claim header ID for a single row

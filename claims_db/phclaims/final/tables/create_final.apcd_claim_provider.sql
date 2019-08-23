@@ -10,10 +10,8 @@ create table PHClaims.final.apcd_claim_provider (
 	claim_header_id bigint,
 	first_service_date date,
 	last_service_date date,
-	billing_provider_id_apcd bigint,
-	rendering_provider_id_apcd bigint,
-	attending_provider_id_apcd bigint,
-	referring_provider_id_apcd bigint
+	provider_id_apcd bigint,
+	provider_type varchar(255)
 );
 
 

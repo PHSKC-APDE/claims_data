@@ -19,4 +19,9 @@ select
 from PHClaims.stage.apcd_elig_demo;
 
 
+------------------
+--STEP 2: Create clustered columnstore index (0.5 min)
+-------------------
+create clustered columnstore index idx_ccs_final_apcd_elig_demo on phclaims.final.apcd_elig_demo;
+
 

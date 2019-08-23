@@ -32,4 +32,8 @@ cov_time_day
 from PHClaims.stage.apcd_elig_timevar;
 
 
+------------------
+--STEP 2: Create clustered columnstore index (1.5 min)
+-------------------
+create clustered columnstore index idx_ccs_final_apcd_elig_timevar on phclaims.final.apcd_elig_timevar;
 
