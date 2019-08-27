@@ -4,7 +4,51 @@ index_name: idx_cl_load_raw_mcaid_elig_CLNDR_YEAR_MNTH_MEDICAID_RECIPIENT_ID
 index:
     - CLNDR_YEAR_MNTH
     - MEDICAID_RECIPIENT_ID
+vars:
+    - CLNDR_YEAR_MNTH
+    - MEDICAID_RECIPIENT_ID
+    - HOH_ID
+    - SOCIAL_SECURITY_NMBR
+    - FIRST_NAME
+    - MIDDLE_NAME
+    - LAST_NAME
+    - GENDER
+    - RACE1_NAME
+    - RACE2_NAME
+    - RACE3_NAME
+    - RACE4_NAME
+    - HISPANIC_ORIGIN_NAME
+    - BIRTH_DATE
+    - SPOKEN_LNG_NAME
+    - WRTN_LNG_NAME
+    - PRGNCY_DUE_DATE
+    - RPRTBL_RAC_CODE
+    - RPRTBL_RAC_NAME
+    - RPRTBL_BSP_GROUP_CID
+    - RPRTBL_BSP_GROUP_NAME
+    - FROM_DATE
+    - TO_DATE
+    - END_REASON
+    - COVERAGE_TYPE_IND
+    - MC_PRVDR_ID
+    - MC_PRVDR_NAME
+    - DUAL_ELIG
+    - TPL_FULL_FLAG
+    - RSDNTL_ADRS_LINE_1
+    - RSDNTL_ADRS_LINE_2
+    - RSDNTL_CITY_NAME
+    - RSDNTL_STATE_CODE
+    - RSDNTL_POSTAL_CODE
+    - RSDNTL_COUNTY_CODE
+    - RSDNTL_COUNTY_NAME
+    - MBR_ACES_IDNTFR
+    - MBR_H_SID
+    - SECONDARY_RAC_CODE
+    - SECONDARY_RAC_NAME
 overall:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig_CY2014.txt # This is just a placeholder
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_ELIG_20190806.txt
     field_term: \t
     row_term: \n
+    row_count: 5695960
+    date_min: 201807
+    date_max: 201907
