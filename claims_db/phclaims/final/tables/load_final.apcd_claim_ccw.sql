@@ -15,4 +15,7 @@ ccw_desc
 from PHClaims.stage.apcd_claim_ccw;
 
 
-
+------------------
+--STEP 2: Create clustered columnstore index (XX min)
+-------------------
+create clustered columnstore index idx_ccs_final_apcd_claim_ccw on phclaims.final.apcd_claim_ccw;

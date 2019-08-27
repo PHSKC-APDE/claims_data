@@ -446,3 +446,7 @@ on a.medical_claim_service_line_id = b.medical_claim_service_line_id;
 -------------------
 drop table PHClaims.tmp.apcd_medical_claim;
 
+------------------
+--STEP 6: Create clustered columnstore index (5 hours)
+-------------------
+create clustered columnstore index idx_ccs_stage_apcd_medical_claim on phclaims.stage.apcd_medical_claim;

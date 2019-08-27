@@ -12,11 +12,15 @@ extract_id int,
 claim_header_id,
 first_service_date,
 last_service_date,
-billing_provider_id_apcd,
-rendering_provider_id_apcd,
-attending_provider_id_apcd,
-referring_provider_id_apcd
+provider_id_apcd,
+provider_type
 from PHClaims.stage.apcd_claim_provider;
+
+
+------------------
+--STEP 2: Create clustered columnstore index (20 min)
+-------------------
+create clustered columnstore index idx_ccs_final_apcd_claim_provider on phclaims.final.apcd_claim_provider;
 
 
 

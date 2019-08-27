@@ -11,7 +11,7 @@
 ------------------
 --STEP 1: Insert data that has passed QA in stage schema table
 -------------------
-insert into PHClaims.final.apcd_elig_plr_2017 with (tablock)
+insert into PHClaims.final.apcd_elig_plr_2018 with (tablock)
 select id_apcd
 ,geo_wa_resident
 ,overall_mcaid
@@ -70,7 +70,7 @@ select id_apcd
 ,pharm_medicaid_covgap_max
 ,pharm_medicare_covgap_max
 ,pharm_commercial_covgap_max
-from PHClaims.stage.apcd_elig_plr_2017;
+from PHClaims.stage.apcd_elig_plr_2018;
 
 
 

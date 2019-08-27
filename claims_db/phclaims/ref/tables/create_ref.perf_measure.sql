@@ -46,6 +46,8 @@ VALUES
 ,(25, 'SPC', 'Statin Therapy for Heart Disease', '', '', '', '')
 ,(26, 'INI', 'SUD Treatment Initiation', '', '', '', '')
 ,(27, 'ENG', 'SUD Treatment Engagement', '', '', '', '')
+,(28, 'INI_NM', 'SUD Treatment Initiation (No Modifiers)', '', '', '', '')
+,(29, 'ENG_NM', 'SUD Treatment Engagement (No Modifiers)', '', '', '', '');
 GO
 CREATE NONCLUSTERED INDEX idx_nc_ref_perf_measure_measure_name ON [ref].[perf_measure]([measure_name]) INCLUDE([measure_id]);
 GO
