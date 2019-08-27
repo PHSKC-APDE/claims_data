@@ -65,6 +65,11 @@ load_table_from_file_f <- function(
   
 
   #### ERROR CHECKS AND OVERALL MESSAGES ####
+  # Make sure a valid URL was found
+  if ('404' %in% names(table_config)) {
+    stop("Invalid URL for YAML file")
+  }
+  
   # Check that something will be run (but not both things)
   if (overall == F & ind_yr == F) {
     stop("At least one of 'overall and 'ind_yr' must be set to TRUE")
@@ -476,6 +481,11 @@ load_table_from_sql_f <- function(
   
   
   #### ERROR CHECKS AND OVERALL MESSAGES ####
+  # Make sure a valid URL was found
+  if ('404' %in% names(table_config)) {
+    stop("Invalid URL for YAML file")
+  }
+  
   # Check that the yaml config file has necessary components
   if (!"from_schema" %in% names(table_config) & test_mode == F) {
     stop("YAML file is missing a from_schema section")
