@@ -26,8 +26,6 @@ vars:
     - PRGNCY_DUE_DATE
     - RPRTBL_RAC_CODE
     - RPRTBL_RAC_NAME
-    - RAC_CODE
-    - RAC_NAME
     - RPRTBL_BSP_GROUP_CID
     - RPRTBL_BSP_GROUP_NAME
     - FROM_DATE
@@ -47,5 +45,8 @@ vars:
     - RSDNTL_COUNTY_NAME
     - MBR_ACES_IDNTFR
     - MBR_H_SID
+    - SECONDARY_RAC_CODE
+    - SECONDARY_RAC_NAME
+    - etl_batch_id
 date_var: CLNDR_YEAR_MNTH
-date_truncate: 201804
+date_truncate: 201807
