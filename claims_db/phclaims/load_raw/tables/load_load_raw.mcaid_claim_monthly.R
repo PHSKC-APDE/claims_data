@@ -80,7 +80,7 @@ load_load_raw.mcaid_claim_monthly_f <- function(etl_date_min = NULL,
   print("Checking column order")
   qa_column <- qa_column_order_f(conn = db_claims,
                                  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_monthly.yaml",
-                                 overall = F, ind_yr = T)
+                                 overall = T, ind_yr = F)
   
   # Report results out to SQL table
   odbc::dbGetQuery(conn = db_claims,
@@ -96,7 +96,7 @@ load_load_raw.mcaid_claim_monthly_f <- function(etl_date_min = NULL,
   
   if (qa_column$outcome == "FAIL") {
     stop(glue::glue("Mismatching column order between source file and SQL table. 
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id})"))
   }
   
   
@@ -249,23 +249,7 @@ load_load_raw.mcaid_claim_monthly_f <- function(etl_date_min = NULL,
                    DEFAULT {current_batch_id} WITH VALUES",
                      .con = db_claims))
   
-  
-  #### ADD VALUES TO QA_VALUES TABLE ####
-  print("Loading values to metadata value table")
-  
-  total_rows <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM load_raw.mcaid_claim"))
-  
-  odbc::dbGetQuery(
-    conn = db_claims,
-    glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
-                   (table_name, qa_item, qa_value, qa_date, note) 
-                   VALUES ('load_raw.mcaid_claim',
-                   'row_count', 
-                   '{total_rows}', 
-                   {Sys.time()}, 
-                   'Count after full refresh')",
-                   .con = db_claims))
-  
+
   print("All eligibility data loaded to SQL and QA checked")
 
 }
