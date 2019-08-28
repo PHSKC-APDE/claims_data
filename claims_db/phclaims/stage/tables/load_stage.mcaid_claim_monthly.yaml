@@ -129,3 +129,5 @@ vars:
     SYSTEM_IN_DATE: DATE
     TCN_DATE: DATE
     etl_batch_id: SMALLINT
+date_var: FROM_SRVC_DATE
+date_truncate: 2018-07-01

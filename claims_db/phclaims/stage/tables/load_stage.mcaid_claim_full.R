@@ -19,7 +19,7 @@ from_schema <- table_config_stage_claim$from_schema
 from_table <- table_config_stage_claim$from_table
 to_schema <- table_config_stage_claim$to_schema
 to_table <- table_config_stage_claim$to_table
-vars <- unlist(table_config_stage_claim$vars)
+vars <- unlist(names(table_config_stage_claim$vars))
 
 # Need to keep only the vars that come after the named ones below
 vars_truncated <- vars[!vars %in% c("CLNDR_YEAR_MNTH", "MBR_H_SID", 

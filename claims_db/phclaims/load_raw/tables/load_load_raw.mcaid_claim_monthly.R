@@ -219,17 +219,6 @@ load_load_raw.mcaid_claim_monthly_f <- function(etl_date_min = NULL,
                                         {Sys.time()},
                                         {qa_date_range$note[1]})",
                                   .con = db_claims))
-  # Report combined years result out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
-                   glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                                (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
-                                VALUES ({current_batch_id}, 
-                                'load_raw.mcaid_claim',
-                                'Actual vs. expected date range in combined SQL table', 
-                                {qa_date_range$outcome[2]},
-                                {Sys.time()},
-                                {qa_date_range$note[2]})",
-                                  .con = db_claims))
   
   if (qa_date_range$outcome[1] == "FAIL") {
     stop(glue::glue("Mismatching date range between source file and SQL table. 

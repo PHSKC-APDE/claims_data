@@ -5,7 +5,7 @@
 #
 # 2019-08
 
-### Run from master_mcaid_full script
+### Run from master_mcaid_monthly script
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_monthly.R
 
 
@@ -59,7 +59,7 @@ sql_archive <- glue::glue_sql("INSERT INTO archive.{`to_table`} WITH (TABLOCK)  
 odbc::dbGetQuery(db_claims, sql_archive)
 
 
-# Check that the full number of rows are in the acrhive table
+# Check that the full number of rows are in the archive table
 archive_row_cnt <- as.numeric(odbc::dbGetQuery(
   db_claims, glue::glue_sql("SELECT COUNT (*) FROM archive.{`to_table`}", .con = db_claims)))
 stage_row_cnt <- as.numeric(odbc::dbGetQuery(
@@ -270,4 +270,5 @@ rm(from_schema, from_table, to_schema, to_table)
 rm(rows_stage, rows_load_raw, rows_archive, null_ids)
 rm(table_config_stage_elig)
 rm(sql_combine, sql_archive, index_sql, index_name)
+rm(current_batch_id)
 
