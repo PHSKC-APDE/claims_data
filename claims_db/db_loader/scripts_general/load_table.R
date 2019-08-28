@@ -644,7 +644,14 @@ load_table_from_sql_f <- function(
     if (dbExistsTable(conn, tbl_id)) {
       dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`archive_schema`}.{`archive_table_name`}", .con = conn))
     } else {
-      message(glue("Note: {archive_schema}.{archive_table_name} did not exist so was created"))
+      # Note currently only set up to create table if using newer YAML format with vartypes
+      if (!is.null(names(table_config$vars))) {
+        message(glue("Note: {archive_schema}.{archive_table_name} did not exist so was created"))
+        DBI::dbCreateTable(conn, name = DBI::Id(schema = archive_schema, table = to_table_name), 
+                           fields = vars)
+      } else {
+        message(glue("Note: {archive_schema}.{archive_table_name} does not exist, please create it"))
+      }
     }
     
     sql_archive <- glue::glue_sql("INSERT INTO {`archive_schema`}.{`archive_table_name`} WITH (TABLOCK) 
