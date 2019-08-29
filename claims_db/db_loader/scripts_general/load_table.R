@@ -436,6 +436,7 @@ load_table_from_file_f <- function(
 #        The archive schema table must already exist or an error will be thrown.
 # auto_date = whether to automatically calculate date from which to truncate data
 # test_mode = write things to the tmp schema to test out functions (default is FALSE)
+# mcaid_claim = code specific to the Medicaid claims data, affects loading code
 
 
 load_table_from_sql_f <- function(
@@ -444,8 +445,9 @@ load_table_from_sql_f <- function(
   config_file = NULL,
   truncate = F,
   truncate_date = T,
-  auto_date = T,
-  test_mode = F
+  auto_date = F,
+  test_mode = F,
+  mcaid_claim = F # Specific recoding of Medicaid claims variables
   ) {
   
   #### INITIAL ERROR CHECK ####
@@ -560,8 +562,9 @@ load_table_from_sql_f <- function(
   
   
   #### VARIABLES ####
-  from_table_name <- table_config$from_table
-  to_table_name <- table_config$to_table
+  from_schema <- table_config$from_schema
+  from_table <- table_config$from_table
+  to_table <- table_config$to_table
   
   if (!is.null(names(table_config$vars))) {
     vars <- unlist(names(table_config$vars))
@@ -569,21 +572,25 @@ load_table_from_sql_f <- function(
     vars <- unlist(table_config$vars)
   }
   
+  if (mcaid_claim == T) {
+    # Need to keep only the vars that come after the named ones below
+    vars_truncated <- vars[!vars %in% c("CLNDR_YEAR_MNTH", "MBR_H_SID", 
+                                        "MEDICAID_RECIPIENT_ID", "BABY_ON_MOM_IND", 
+                                        "TCN", "CLM_LINE_TCN", "CLM_LINE")]
+  }
+  
   if (test_mode == T) {
-    from_schema <- "tmp"
     to_schema <- "tmp"
     archive_schema <- "tmp"
-    from_table_name <- glue("{table_config$from_schema}_{from_table_name}")
-    archive_table_name <- glue("archive_{to_table_name}")
-    to_table_name <- glue("{table_config$to_schema}_{to_table_name}")
+    archive_table_name <- glue("archive_{to_table}")
+    to_table <- glue("{table_config$to_schema}_{to_table}")
     load_rows <- " TOP (5000) " # Using 5,000 to better test data from multiple years
     archive_rows <- " TOP (4000) " # When unioning tables in test mode, ensure a mix from both
     new_rows <- " TOP (1000) " # When unioning tables in test mode, ensure a mix from both
   } else {
-    from_schema <- table_config$from_schema
     to_schema <- table_config$to_schema
     archive_schema <- "archive"
-    archive_table_name <- to_table_name
+    archive_table_name <- to_table
     load_rows <- ""
     archive_rows <- ""
     new_rows <- ""
@@ -601,8 +608,8 @@ load_table_from_sql_f <- function(
     
     if (auto_date == T) {
       # Find the most recent date in the new data
-      max_date <- dbGetQuery(conn, glue::glue_sql("SELECT MAX({`table_config$date_var`})
-                                 FROM {`from_schema`}.{`from_table_name`}",
+      max_date <- dbGetQuery(conn, glue::glue_sql("SELECT MAX({`date_var`})
+                                 FROM {`from_schema`}.{`from_table`}",
                                  .con = conn))
       
       message(glue("Most recent date found in the new data: {max_date}"))
@@ -623,7 +630,7 @@ load_table_from_sql_f <- function(
         stop("There was an error with the format of the date_var variable")
       }
     } else {
-      date_truncate <- table_config$date_truncate
+      date_truncate <- as.character(table_config$date_truncate)
     }
     
     message(glue("Date to truncate from: {date_truncate}"))
@@ -631,38 +638,63 @@ load_table_from_sql_f <- function(
 
   
   #### DEAL WITH EXISTING TABLE ####
+  # Make sure temp table exists if needed
+  if (test_mode == T) {
+    message("Checking that the temporary to_table exists")
+    if (dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table)) == F) {
+      DBI::dbCreateTable(conn, name = DBI::Id(schema = to_schema, table = to_table), 
+                         fields = table_config$vars)
+    }
+  }
+  
   # Truncate existing table if desired
   if (truncate == T) {
-    dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`to_schema`}.{`to_table_name`}", .con = conn))
+    dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`to_schema`}.{`to_table`}", .con = conn))
   }
   
   # 'Truncate' from a given date if desired (really move existing data to archive then copy back)
   if (truncate == F & truncate_date == T) {
-    message("Archiving existing table")
     # Check if the archive table exists and move table over. If not, show message.
-    tbl_id <- DBI::Id(catalog = "PHClaims", schema = archive_schema, table = to_table_name)
+    tbl_id <- DBI::Id(catalog = "PHClaims", schema = archive_schema, table = archive_table_name)
     if (dbExistsTable(conn, tbl_id)) {
+      message("Truncating existing archive table")
       dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`archive_schema`}.{`archive_table_name`}", .con = conn))
     } else {
       # Note currently only set up to create table if using newer YAML format with vartypes
       if (!is.null(names(table_config$vars))) {
         message(glue("Note: {archive_schema}.{archive_table_name} did not exist so was created"))
-        DBI::dbCreateTable(conn, name = DBI::Id(schema = archive_schema, table = to_table_name), 
-                           fields = vars)
+        DBI::dbCreateTable(conn, name = DBI::Id(schema = archive_schema, table = archive_table_name), 
+                           fields = table_config$vars)
       } else {
         message(glue("Note: {archive_schema}.{archive_table_name} does not exist, please create it"))
       }
     }
     
+    # Use real to_schema and to_table here to obtain actual data
     sql_archive <- glue::glue_sql("INSERT INTO {`archive_schema`}.{`archive_table_name`} WITH (TABLOCK) 
                                 SELECT {`archive_rows`} {`vars`*} FROM 
-                                {`to_schema`}.{`to_table_name`}", .con = conn,
+                                {`table_config$to_schema`}.{`table_config$to_table`}", 
+                                  .con = conn,
                                   archive_rows = DBI::SQL(archive_rows))
     
+    message("Archiving existing table")
     dbGetQuery(conn, sql_archive)
     
+    
+    # Check that the full number of rows are in the archive table
+    if (test_mode == F) {
+      archive_row_cnt <- as.numeric(odbc::dbGetQuery(
+        db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`archive_schema`}.{`archive_table_name`}", .con = conn)))
+      stage_row_cnt <- as.numeric(odbc::dbGetQuery(
+        db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`table_config$to_schema`}.{`table_config$to_table`}", .con = conn)))
+      
+      if (archive_row_cnt != stage_row_cnt) {
+        stop(glue("The number of rows differ between {`archive_schema`} and {`to_schema`} schemas"))
+      }
+    }
+    
     # Now truncate destination table
-    dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`to_schema`}.{`to_table_name`}", .con = conn))
+    dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`to_schema`}.{`to_table`}", .con = conn))
     }
     
   
@@ -684,7 +716,7 @@ load_table_from_sql_f <- function(
                                   WHERE name = {`schema`}) s
                                   ON t.schema_id = s.schema_id
                                   ) a", .con = conn,
-                                table = dbQuoteString(conn, to_table_name),
+                                table = dbQuoteString(conn, to_table),
                                 schema = dbQuoteString(conn, to_schema))
     
     
@@ -693,39 +725,62 @@ load_table_from_sql_f <- function(
     if (length(index_name) != 0) {
       dbGetQuery(conn,
                  glue::glue_sql("DROP INDEX {`index_name`} ON 
-                                {`to_schema`}.{`to_table_name`}", .con = conn))
+                                {`to_schema`}.{`to_table`}", .con = conn))
     }
   }
   
 
   #### LOAD DATA TO TABLE ####
   # Add message to user
-  message(glue("Loading to [{to_schema}].[{to_table_name}] table", test_msg))
+  message(glue("Loading to [{to_schema}].[{to_table}] table", test_msg))
   
   # Run INSERT statement
   if (truncate_date == F) {
-    sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table_name`} WITH (TABLOCK) 
-                                SELECT {load_rows} {vars*} FROM 
-                                {`from_schema`}.{`from_table_name`}", 
-                                  .con = conn,
-                                  load_rows = DBI::SQL(load_rows),
-                                  vars = dbQuoteIdentifier(conn, vars))
+    if (mcaid_claim == T) {
+      sql_combine <- glue::glue_sql(
+        "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
+        ({`vars`*}) 
+        SELECT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
+        MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
+        CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE,
+        {`vars_truncated`*}
+        FROM {`from_schema`}.{`from_table`}",
+        .con = db_claims
+      )
+    } else {
+      sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
+                                SELECT {load_rows} {`vars`*} FROM 
+                                {`from_schema`}.{`from_table`}", 
+                                    .con = conn,
+                                    load_rows = DBI::SQL(load_rows))
+    }
+
   } else if (truncate_date == T) {
-    sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table_name`} WITH (TABLOCK)
-                                  SELECT {archive_rows} {vars*} FROM 
-                                  {archive_schema}.{archive_table_name}
-                                  WHERE {date_var} < {date_truncate}  
-                                  UNION 
-                                  SELECT {new_rows} {vars*} FROM 
-                                  {from_schema}.{from_table_name}
-                                  WHERE {date_var} >= {date_truncate}",
-                                  .con = conn,
-                                  load_rows = DBI::SQL(load_rows),
-                                  archive_rows = DBI::SQL(archive_rows),
-                                  vars = dbQuoteIdentifier(conn, vars),
-                                  new_rows = DBI::SQL(new_rows),
-                                  date_var = dbQuoteIdentifier(conn, date_var),
-                                  date_truncate = dbQuoteString(conn, as.character(date_truncate)))
+    if (mcaid_claim == T) {
+      sql_combine <- glue::glue_sql(
+        "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
+        ({`vars`*}) 
+        SELECT {`vars`*} FROM {`archive_schema`}.{`archive_table_name`}
+          WHERE {`date_var`} < {date_truncate}
+        UNION
+        SELECT {load_rows} CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
+        MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
+        CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE, {`vars_truncated`*}
+        FROM {`from_schema`}.{`from_table`}",
+        .con = conn, load_rows = DBI::SQL(load_rows))
+    } else {
+      sql_combine <- glue::glue_sql(
+        "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
+        SELECT {`vars`*} FROM {`archive_schema`}.{`archive_table_name`}
+          WHERE {`date_var`} < {date_truncate}  
+        UNION 
+        SELECT {load_rows} {`vars`*} FROM {`from_schema`}.{`from_table`}
+        WHERE {`date_var`} >= {date_truncate}",
+        .con = conn,
+        date_var = table_config$date_var,
+        date_truncate = as.character(table_config$date_truncate),
+        load_rows = DBI::SQL(load_rows))
+    }
   }
   dbGetQuery(conn, sql_combine)
   
@@ -733,11 +788,12 @@ load_table_from_sql_f <- function(
   # Add index to the table (if desired)
   if (add_index == T) {
     index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                            {`to_schema`}.{`to_table_name`}({index_vars*})",
+                            {`to_schema`}.{`to_table`}({index_vars*})",
                                 index_vars = dbQuoteIdentifier(conn, table_config$index),
                                 .con = conn)
+    
+    message("Adding index")
     dbGetQuery(conn, index_sql)
   }
 }
-
 
