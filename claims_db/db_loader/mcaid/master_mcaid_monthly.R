@@ -79,17 +79,9 @@ load_load_raw.mcaid_claim_monthly_f(etl_date_min = load_mcaid_claim_config$overa
 
 
 #### STAGE ELIG ####
-### Load table
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_full.R")
-
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_monthly.R")
 
 
 #### STAGE CLAIM ####
-### Create table
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim.yaml",
-               overall = T, ind_yr = F)
-
-### Load table
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_monthly.R")
 

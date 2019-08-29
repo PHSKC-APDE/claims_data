@@ -185,7 +185,7 @@ if ((rows_archive + rows_load_raw) - rows_stage != 1) {
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
                                   'stage.mcaid_elig',
-                                  'Rows passed from load_raw to stage', 
+                                  'Rows passed from load_raw AND archive to stage', 
                                   'FAIL',
                                   {Sys.time()},
                                   'Issue even after accounting for the 1 duplicate row. Investigate further.')",
