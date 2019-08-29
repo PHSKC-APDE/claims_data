@@ -1,0 +1,33 @@
+schema: stage
+table: mcare_elig_demo
+years:
+vars:
+    id_mcare: CHAR(15) collate SQL_Latin1_General_Cp1_CS_AS
+    dob: DATE
+    kc: TINYINT
+    gender_female: TINYINT
+    gender_male: TINYINT
+    gender_me: VARCHAR(10)
+    gender_female_t: TINYINT
+    gender_male_t: TINYINT
+    race_white: TINYINT
+    race_black: TINYINT
+    race_other: TINYINT
+    race_asian: TINYINT
+    race_asian_pi: TINYINT
+    race_aian: TINYINT
+    race_nhpi: TINYINT
+    race_latino: TINYINT
+    race_unk: TINYINT
+    race_eth_me: VARCHAR(10)
+    race_me: VARCHAR(10)
+    race_white_t: TINYINT
+    race_black_t: TINYINT
+    race_asian_t: TINYINT
+    race_aian_t: TINYINT
+    race_asian_pi_t: TINYINT
+    race_nhpi_t: TINYINT
+    race_other_t: TINYINT
+    race_latino_t: TINYINT
+    race_unk_t: TINYINT
+    last_run: DATETIME
