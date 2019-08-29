@@ -30,4 +30,4 @@ vars:
     race_other_t: TINYINT
     race_latino_t: TINYINT
     race_unk_t: TINYINT
-    last_run: TINYINT
+    last_run: DATETIME
