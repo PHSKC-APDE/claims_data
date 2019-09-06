@@ -612,8 +612,8 @@ table_config_create <- yaml::yaml.load(getURL(
 
 # Write data
 dbWriteTable(db_claims, 
-             name = DBI::Id(schema = table_config_create$stage, 
-                            table = table_config_create$table), 
+             name = DBI::Id(schema = as.character(table_config_create$schema), 
+                            table = as.character(table_config_create$table)), 
              value = as.data.frame(elig_demoever_final),
              overwrite = T, append = F,
              field.types = unlist(table_config_create$vars))
@@ -625,8 +625,9 @@ rm(elig_dob, elig_gender_final, elig_race_final, elig_lang_final, elig_demoever)
 rm(elig_demoever_final)
 rm(list = ls(pattern = "_txt"))
 rm(cols, origin)
+
+message(glue::glue("{table_config_create$schema}.{table_config_create$table} created"))
 rm(table_config_create)
 gc()
 
-message(glue::glue("{table_config_create$stage}.{table_config_create$table} created"))
 

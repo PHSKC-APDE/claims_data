@@ -58,7 +58,7 @@ step1a_sql <- glue::glue_sql(
       (SELECT geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw,
         geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean
         FROM ref.address_clean
-        WHERE geo_add3_raw IS NULL) d
+        WHERE geo_source_mcaid = 1) d
       ON 
       (a.geo_add1_raw = d.geo_add1_raw OR (a.geo_add1_raw IS NULL AND d.geo_add1_raw IS NULL)) AND
       (a.geo_add2_raw = d.geo_add2_raw OR (a.geo_add2_raw IS NULL AND d.geo_add2_raw IS NULL)) AND 
