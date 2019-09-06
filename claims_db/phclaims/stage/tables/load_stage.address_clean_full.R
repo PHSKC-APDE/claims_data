@@ -44,9 +44,6 @@ manual_add <- manual_add %>%
 
 
 ### Bring in all Medicaid addresses
-# NB. WAITING ON NEW MCAID DATA TO MAKE STAGE SCHEMA TABLE
-# USING LOAD_RAW FOR NOW BUT SWITCH TO STAGE LATER
-
 # Seems slightly quicker to push addresses to a temp table than take distinct
 try(dbRemoveTable(db_claims, "##add_temp", temporary = T))
 dbGetQuery(db_claims, 
@@ -59,7 +56,7 @@ dbGetQuery(db_claims,
            1 AS geo_source_mcaid,
            NULL AS geo_source_pha 
            INTO ##add_temp 
-           FROM load_raw.mcaid_elig")
+           FROM stage.mcaid_elig")
 
 
 mcaid_add <- dbGetQuery(db_claims, 
@@ -159,11 +156,13 @@ write.csv(combined_add_out, paste0("//kcitetldepim001/Informatica/address/combin
 combined_add_in <- data.table::fread(file = "//kcitetldepim001/Informatica/address/cleaned_addresses_new.csv")
 
 
-### Convert missing to NA so joins work
+### Convert missing to NA so joins work and take distinct
 combined_add_in_clean <- combined_add_in %>%
   mutate_at(vars(add1, add2, po_box, city, state, zip, 
                  old_add1, old_add2, old_city, old_state, old_zip),
-            funs(ifelse(. == "" | . == "NA" | is.na(.), NA_character_, .)))
+            funs(ifelse(. == "" | . == "NA" | is.na(.), NA_character_, .))) %>%
+  select(-`#id`) %>%
+  distinct()
 
 ### Tidy up some PO box and other messiness
 combined_add_in_clean <- combined_add_in_clean %>%
