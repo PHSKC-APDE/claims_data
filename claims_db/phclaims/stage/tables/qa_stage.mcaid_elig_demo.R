@@ -28,7 +28,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
     # Pull in the reference value
     previous_rows <- as.numeric(
       odbc::dbGetQuery(conn, 
-                       "SELECT a.* FROM
+                       "SELECT a.qa_value FROM
                        (SELECT * FROM metadata.qa_mcaid_values
                          WHERE table_name = 'stage.mcaid_elig_demo' AND
                           qa_item = 'row_count') a
@@ -39,7 +39,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                           qa_item = 'row_count') b
                        ON a.qa_date = b.max_date"))
     
-    row_diff <- row_count < previous_rows
+    row_diff <- row_count - previous_rows
     
     if (row_diff < 0) {
       odbc::dbGetQuery(
@@ -55,7 +55,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                        ({row_count} vs. {previous_rows})')",
                        .con = conn))
       
-      stop(glue::glue("Fewer rows than found last time.  
+      message(glue::glue("Fewer rows than found last time.  
                   Check metadata.qa_mcaid for details (last_run = {last_run}"))
     } else {
       odbc::dbGetQuery(
@@ -93,7 +93,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                        'There were {id_count} distinct IDs but {row_count} rows (should be the same)')",
                      .con = conn))
     
-    stop(glue::glue("Number of distinct IDs doesn't match the number of rows. 
+    message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
                       Check metadata.qa_mcaid for details (last_run = {last_run}"))
   } else {
     odbc::dbGetQuery(
@@ -127,7 +127,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
   odbc::dbGetQuery(conn = conn, load_sql)
   
   
-  print("QA complete")
+  print("QA complete, see above for any error messages")
   
 }
 

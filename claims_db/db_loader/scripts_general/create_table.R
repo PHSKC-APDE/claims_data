@@ -60,6 +60,11 @@ create_table_f <- function(
   }
 
   #### ERROR CHECKS AND OVERALL MESSAGES ####
+  # Make sure a valid URL was found
+  if ('404' %in% names(table_config)) {
+    stop("Invalid URL for YAML file")
+  }
+  
   # Check that the yaml config file has necessary components
   if (max(c("schema", "to_schema") %in% names(table_config)) == 0 & test_mode == F) {
     stop("YAML file is missing a schema")

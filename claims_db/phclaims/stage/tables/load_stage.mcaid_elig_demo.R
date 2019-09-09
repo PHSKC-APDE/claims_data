@@ -24,6 +24,10 @@
 #  (i.e., packages and DB settings are assumed to already be loaded)
 # Added print statements to track progress
 
+## 2019-08-29 updates:
+# Changed print statements to message ones
+# Fixed SQL load so variable types work and can overwrite rather than append
+
 
 ###############################################################################
 
@@ -31,7 +35,7 @@
 #################################################################
 ##### Bring in Medicaid eligibility data for DOB processing #####
 #################################################################
-print("Bringing in DOB data")
+message("Bringing in DOB data")
 
 elig_dob <- dbGetQuery(
   db_claims,
@@ -68,7 +72,7 @@ elig_dob <- dbGetQuery(
 #################################################################
 
 ### Bring in Medicaid eligibility data
-print("Bringing in gender, race, and langauge data")
+message("Bringing in gender, race, and langauge data")
 system.time( # Times how long this query takes (~320s)
   elig_demoever <- dbGetQuery(
   db_claims,
@@ -114,7 +118,7 @@ elig_demoever[, (cols) :=
 #############################
 #### Process gender data ####
 #############################
-print("Processing gender data")
+message("Processing gender data")
 elig_gender <- elig_demoever[, c("id_mcaid", "calmo", "gender")]
 
 ### Create alone or in combination gender variables
@@ -200,7 +204,7 @@ gc()
 #############################
 #### Process race data ####
 #############################
-print("Processing race/ethnicity data")
+message("Processing race/ethnicity data")
 elig_race <- elig_demoever[, c("calmo", "id_mcaid", "race1", "race2", "race3", 
                                "race4", "hispanic")]
 
@@ -394,7 +398,7 @@ gc()
 ###############################
 #### Process language data ####
 ###############################
-print("Processing language data")
+message("Processing language data")
 elig_lang <- elig_demoever[, c("calmo", "id_mcaid", "slang", "wlang")]
 
 
@@ -590,7 +594,7 @@ gc()
 #############################
 #### Join all tables ####
 #############################
-print("Bringing it all together")
+message("Bringing it all together")
 elig_demoever_final <- list(elig_dob, elig_gender_final, elig_race_final, elig_lang_final) %>%
   Reduce(function(df1, df2) left_join(df1, df2, by = "id_mcaid"), .)
 
@@ -600,33 +604,30 @@ elig_demoever_final <- elig_demoever_final %>% mutate(last_run = Sys.time())
 
 
 #### Load to SQL server ####
-print("Loading to SQL")
+message("Loading to SQL")
 
 # Bring in table load config
 table_config_create <- yaml::yaml.load(getURL(
   "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig_demo.yaml"))
 
-# Need to manually truncate table so can use overwrite = F below (so column types work)
-dbGetQuery(db_claims, "TRUNCATE TABLE stage.mcaid_elig_demo")
-
-# Set up table name
-tbl_id_meta <- DBI::Id(schema = "stage", table = "mcaid_elig_demo")
-
 # Write data
-dbWriteTable(db_claims, tbl_id_meta, value = as.data.frame(elig_demoever_final),
-             overwrite = F, append = T,
+dbWriteTable(db_claims, 
+             name = DBI::Id(schema = as.character(table_config_create$schema), 
+                            table = as.character(table_config_create$table)), 
+             value = as.data.frame(elig_demoever_final),
+             overwrite = T, append = F,
              field.types = unlist(table_config_create$vars))
 
 
 #### CLEAN UP ####
 # Drop individual tables
 rm(elig_dob, elig_gender_final, elig_race_final, elig_lang_final, elig_demoever)
-rm(tbl_id_meta)
 rm(elig_demoever_final)
 rm(list = ls(pattern = "_txt"))
 rm(cols, origin)
+
+message(glue::glue("{table_config_create$schema}.{table_config_create$table} created"))
 rm(table_config_create)
 gc()
 
-print("load_stage.mcaid_elig_demo created")
 

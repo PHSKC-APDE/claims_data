@@ -31,9 +31,17 @@ qa_file_row_count_f <- function(config_url = NULL,
   
   
   #### VARIABLES ####
-  schema <- table_config$schema
-  table_name <- table_config$table
-
+  if (!is.null(table_config$to_schema)) {
+    schema <- table_config$to_schema
+  } else {
+    schema <- table_config$schema
+  }
+  
+  if (!is.null(table_config$to_table)) {
+    table_name <- table_config$to_table
+  } else {
+    table_name <- table_config$table
+  }
   
   
   if (overall == T) {
@@ -148,8 +156,17 @@ qa_column_order_f <- function(conn = NULL,
   
   
   #### VARIABLES ####
-  schema <- table_config$schema
-  table_name <- table_config$table
+  if (!is.null(table_config$to_schema)) {
+    schema <- table_config$to_schema
+  } else {
+    schema <- table_config$schema
+  }
+  
+  if (!is.null(table_config$to_table)) {
+    table_name <- table_config$to_table
+  } else {
+    table_name <- table_config$table
+  }
   
   
   if (overall == T) {
@@ -249,8 +266,17 @@ qa_load_row_count_f <- function(conn,
   }
   
   #### VARIABLES ####
-  schema <- table_config$schema
-  table_name <- table_config$table
+  if (!is.null(table_config$to_schema)) {
+    schema <- table_config$to_schema
+  } else {
+    schema <- table_config$schema
+  }
+  
+  if (!is.null(table_config$to_table)) {
+    table_name <- table_config$to_table
+  } else {
+    table_name <- table_config$table
+  }
   
   
   if (overall == T) {
@@ -439,8 +465,17 @@ qa_date_range_f <- function(conn,
   }
   
   #### VARIABLES ####
-  schema <- table_config$schema
-  table_name <- table_config$table
+  if (!is.null(table_config$to_schema)) {
+    schema <- table_config$to_schema
+  } else {
+    schema <- table_config$schema
+  }
+  
+  if (!is.null(table_config$to_table)) {
+    table_name <- table_config$to_table
+  } else {
+    table_name <- table_config$table
+  }
   
   
   if (overall == T) {
