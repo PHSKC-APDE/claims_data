@@ -156,6 +156,16 @@ write.csv(combined_add_out, paste0("//kcitetldepim001/Informatica/address/combin
 combined_add_in <- data.table::fread(file = "//kcitetldepim001/Informatica/address/cleaned_addresses_new.csv")
 
 
+
+#### FOR FUTURE FIXING HERE ####
+# 1) Load in multiple informatica output files
+# 2) Remove manually corrected addresses from Informatica results
+#   (some addresses were corrected after being run through Informatica)
+
+
+
+
+
 ### Convert missing to NA so joins work and take distinct
 combined_add_in_clean <- combined_add_in %>%
   mutate_at(vars(add1, add2, po_box, city, state, zip, 
