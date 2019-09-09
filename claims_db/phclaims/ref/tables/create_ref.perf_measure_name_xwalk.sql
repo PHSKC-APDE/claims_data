@@ -8,7 +8,7 @@ CREATE TABLE [ref].[perf_measure_name_xwalk]
 ([measure_name] VARCHAR(200) NOT NULL
 ,[age_group_desc] VARCHAR(200) NOT NULL
 ,[hca_measure_name] VARCHAR(200) NOT NULL
-,CONSTRAINT [PK_perf_measure_name_xwalk] PRIMARY KEY CLUSTERED ([measure_name], [age_group_desc])
+,CONSTRAINT [PK_perf_measure_name_xwalk] PRIMARY KEY CLUSTERED ([measure_name], [age_group_desc], [hca_measure_name])
 );
 
 INSERT INTO [ref].[perf_measure_name_xwalk]([measure_name], [age_group_desc], [hca_measure_name])
@@ -18,6 +18,7 @@ VALUES
 ,('All-Cause ED Visits', 'Age 0-17', 'MED_EDU_BROAD_0_17_ROLLING')
 ,('All-Cause ED Visits', 'Age 18-64', 'MED_EDU_BROAD_18to64_ROLLING')
 ,('All-Cause ED Visits', 'Age 65+', 'MED_EDU_BROAD_65Yplus_ROLLIN')
+,('All-Cause ED Visits', 'Age 65+', 'MED_EDU_BROAD_65Yplus_ROLLING')
 ,('All-Cause ED Visits', 'Overall', 'MED_EDU_BROAD_ROLLING')
 ,('Child and Adolescent Access to Primary Care', 'Age 12-19', 'MED_CAP12to19Y_ROLLING')
 ,('Child and Adolescent Access to Primary Care', 'Age 12-24 Months', 'MED_CAP12to24MO_ROLLING')
