@@ -1,17 +1,17 @@
 #### CODE TO CREATE STAGE MCAID ELIG TABLE
-# Monthly refresh version
+# Partial refresh version
 #
 # Alastair Matheson, PHSKC (APDE)
 #
 # 2019-08
 
-### Run from master_mcaid_monthly script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_monthly.R
+### Run from master_mcaid_partial script
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
 #### CALL IN CONFIG FILE TO GET VARS ####
 table_config_stage_elig <- yaml::yaml.load(RCurl::getURL(
-  "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_monthly.yaml"
+  "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_partial.yaml"
 ))
 
 from_schema <- table_config_stage_elig$from_schema

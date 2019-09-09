@@ -1,18 +1,18 @@
 #### CODE TO CREATE STAGE MCAID CLAIM TABLE
-# Monthly refresh version
+# Partial refresh version
 #
 # Alastair Matheson, PHSKC (APDE)
 #
 # 2019-05
 
-### Run from master_mcaid_monthly script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_monthly.R
+### Run from master_mcaid_partial script
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
 
 #### CALL IN CONFIG FILE TO GET VARS ####
 table_config_stage_claim <- yaml::yaml.load(RCurl::getURL(
-  "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_monthly.yaml"
+  "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_partial.yaml"
 ))
 
 from_schema <- table_config_stage_claim$from_schema
@@ -32,7 +32,7 @@ if (is.na(current_batch_id)) {
 
 #### LOAD TABLE ####
 load_table_from_sql_f(conn = db_claims,
-                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_monthly.yaml",
+                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_partial.yaml",
                       truncate = F, truncate_date = T, mcaid_claim = T)
 
 
@@ -121,7 +121,7 @@ odbc::dbGetQuery(
                    'row_count', 
                    '{rows_stage}', 
                    {Sys.time()}, 
-                   'Count after monthly refresh')",
+                   'Count after partial refresh')",
                  .con = db_claims))
 
 
