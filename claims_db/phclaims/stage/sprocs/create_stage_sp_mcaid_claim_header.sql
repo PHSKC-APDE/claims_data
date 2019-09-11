@@ -1,4 +1,16 @@
 
+USE [PHClaims];
+GO
+
+IF OBJECT_ID('[stage].[sp_mcaid_claim_header]','P') IS NOT NULL
+DROP PROCEDURE [stage].[sp_mcaid_claim_header];
+GO
+CREATE PROCEDURE [stage].[sp_mcaid_claim_header]
+AS
+SET NOCOUNT ON;
+DECLARE @SQL NVARCHAR(MAX) = '';
+
+BEGIN
 /*
 This code creates table ([tmp].[mcaid_claim_header]) to hold DISTINCT 
 header-level claim information in long format for Medicaid claims data
@@ -87,9 +99,6 @@ Returns
 ,[last_run]
 */
 
-use PHClaims;
-go
-
 if object_id('[tmp].[mcaid_claim_header]', 'U') is not null
 drop table [tmp].[mcaid_claim_header];
 
@@ -125,7 +134,6 @@ into [tmp].[mcaid_claim_header]
 from [stage].[mcaid_claim] as clm
 left join [ref].[kc_claim_type_crosswalk] as ref
 on cast(clm.[CLM_TYPE_CID] as varchar(20)) = ref.[source_clm_type_id];
-go
 
 --------------------------------------
 --STEP 0: Remove one duplicate row from [PHClaims].[ref].[dx_lookup]
@@ -143,7 +151,6 @@ into #dx_lookup
 from cte
 where [row_num] = 1;
 create unique clustered index idx_cl_dx_lookup on #dx_lookup(dx_ver, dx);
-go
 
 --------------------------------------
 --STEP 1: select header-level information needed for event flags
@@ -187,7 +194,6 @@ select
 into #header
 from [tmp].[mcaid_claim_header];
 create clustered index idx_cl_#header on #header(claim_header_id);
-go
 
 --------------------------------------
 --STEP 2: select line-level information needed for event flags
@@ -206,7 +212,6 @@ into #line
 from [stage].[mcaid_claim_line]
 group by claim_header_id;
 create clustered index idx_cl_#line on #line(claim_header_id);
-go
 
 --------------------------------------
 --STEP 3: select diagnosis code information needed for event flags
@@ -264,7 +269,6 @@ into #diag
 from [stage].[mcaid_claim_icdcm_header]
 group by claim_header_id;
 create clustered index idx_cl_#diag on #diag(claim_header_id);
-go
 
 --------------------------------------
 --STEP 4: select procedure code information needed for event flags
@@ -280,7 +284,6 @@ into #procedure_code
 from [stage].[mcaid_claim_procedure]
 group by claim_header_id;
 create clustered index idx_cl_#procedure_code on #procedure_code(claim_header_id);
-go
 
 --------------------------------------
 --STEP 5: create temp summary claims table with event-based flags
@@ -342,7 +345,6 @@ left join #diag as diag
 on header.claim_header_id = diag.claim_header_id
 left join #procedure_code as procedure_code 
 on header.claim_header_id = procedure_code.claim_header_id;
-go
 
 --------------------------------------
 --STEP 6: Avoidable ED visit flag, California algorithm
@@ -358,7 +360,6 @@ inner join (select claim_header_id, icdcm_norm, icdcm_version from [stage].[mcai
 on (a.dx_ver = b.icdcm_version) and (a.dx = b.icdcm_norm)
 group by b.claim_header_id;
 create clustered index [idx_cl_#avoid_ca] on #avoid_ca(claim_header_id);
-go
 
 --------------------------------------
 --STEP 7: ED visit classification, NYU algorithm
@@ -382,7 +383,6 @@ from #dx_lookup as a
 inner join (select claim_header_id, icdcm_norm, icdcm_version from [stage].[mcaid_claim_icdcm_header] where icdcm_number = '01') as b
 on (a.dx_ver = b.icdcm_version) and (a.dx = b.icdcm_norm);
 create clustered index [idx_cl_#avoid_nyu] on #avoid_nyu(claim_header_id);
-go
 
 --------------------------------------
 --STEP 8: CCS groupings (CCS, CCS-level 1, CCS-level 2), primary diagnosis, final categorization
@@ -408,7 +408,6 @@ from #dx_lookup as a
 inner join (select claim_header_id, icdcm_norm, icdcm_version from [stage].[mcaid_claim_icdcm_header] where icdcm_number = '01') as b
 on (a.dx_ver = b.icdcm_version) and (a.dx = b.icdcm_norm);
 create clustered index [idx_cl_#ccs] on #ccs(claim_header_id);
-go
 
 --------------------------------------
 --STEP 9: RDA Mental health and Substance use disorder diagnosis flags, any diagnosis
@@ -425,7 +424,6 @@ inner join [stage].[mcaid_claim_icdcm_header] as b
 on (a.dx_ver = b.icdcm_version) and (a.dx = b.icdcm_norm)
 group by b.claim_header_id;
 create clustered index [idx_cl_#rda] on #rda(claim_header_id);
-go
 
 --------------------------------------
 --STEP 10: Injury intent and mechanism, ICD9-CM
@@ -451,7 +449,6 @@ on (a.dx = b.icdcm_norm)
 ) as c
 --only keep the highest ranked external cause code per claim
 where c.diag_rank = 1;
-go
 
 --------------------------------------
 --STEP 11: Injury intent and mechanism, ICD10-CM
@@ -498,7 +495,6 @@ inner join #inj10_temp2 as b
 on a.dx = b.icdcm_norm
 ) as c
 where c.diag_rank = 1;
-go
 
 --------------------------------------
 --STEP 12: Union ICD9-CM and ICD10-CM injury tables
@@ -520,7 +516,6 @@ select
 ,mechanism 
 from #injury10cm;
 create clustered index [idx_cl_#injury] on #injury(claim_header_id);
-go
 
 /*
 --------------------------------------
@@ -619,7 +614,6 @@ left join (
 ) ed_nohosp
 on temp1.claim_header_id = ed_nohosp.claim_header_id;
 create clustered index [idx_cl_#temp2] on #temp2(claim_header_id);
-go
 
 --------------------------------------
 --STEP 14: create final table structure
@@ -694,7 +688,6 @@ create table [stage].[mcaid_claim_header]
 ,ccs_final_description varchar(500)
 ,ccs_final_plain_lang varchar(500)
 ,last_run datetime);
-go
 
 --------------------------------------
 --STEP 15: create final summary claims table with all event-based flags (temp table stage)
@@ -920,23 +913,5 @@ select
 
 --from #temp_final;
 from [temp_final];
-go
-
---------------------------------------
---STEP 17: create table indices
---------------------------------------
-create clustered index [idx_cl_mcaid_claim_header_claim_header_id] on [stage].[mcaid_claim_header]([claim_header_id]);
-create nonclustered index [idx_nc_mcaid_claim_header_type_of_bill_code] on [stage].[mcaid_claim_header]([type_of_bill_code]);
-create nonclustered index [idx_nc_mcaid_claim_header_clm_type_mcaid_id] on [stage].[mcaid_claim_header]([clm_type_mcaid_id]);
-create nonclustered index [idx_nc_mcaid_claim_header_drvd_drg_code] on [stage].[mcaid_claim_header]([drvd_drg_code]);
-create nonclustered index [idx_nc_mcaid_claim_header_first_service_date] on [stage].[mcaid_claim_header]([first_service_date]);
-create nonclustered index [idx_nc_mcaid_claim_header_id_mcaid] on [stage].[mcaid_claim_header]([id_mcaid]);
-create nonclustered index [idx_nc_mcaid_claim_header_place_of_service_code] on [stage].[mcaid_claim_header]([place_of_service_code]);
-
---------------------------------------
---STEP 18: cleanup
---------------------------------------
-/*
-if object_id('[tmp].[mcaid_claim_header]', 'U') is not null
-drop table [tmp].[mcaid_claim_header];
-*/
+END
+GO

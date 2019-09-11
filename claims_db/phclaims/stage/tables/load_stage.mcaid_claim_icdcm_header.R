@@ -62,12 +62,14 @@ create table [stage].[mcaid_claim_icdcm_header]
 on [PRIMARY];
 ", .con = conn)
 odbc::dbGetQuery(conn = db_claims, step1_sql)
+dbDisconnect(db_claims)
 
 #### CREATE TABLE ####
 # create_table_f(conn = db_claims, 
 #                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_icdcm_header.yaml",
 #                overall = T, ind_yr = F)
 
+db_claims <- dbConnect(odbc(), "PHClaims")
 step2_sql <- glue::glue_sql("
 insert into [stage].[mcaid_claim_icdcm_header] with (tablock)
 ([id_mcaid]
@@ -152,7 +154,9 @@ time_end <- Sys.time()
 print(paste0("Step 2 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
+dbDisconnect(db_claims)
 
+db_claims <- dbConnect(odbc(), "PHClaims")
 step3_sql <- glue::glue_sql("
 create clustered index [idx_cl_mcaid_claim_icdcm_header_claim_header_id_icdcm_number]
 on [stage].[mcaid_claim_icdcm_header]([claim_header_id], [icdcm_number]);
@@ -169,4 +173,5 @@ time_end <- Sys.time()
 print(paste0("Step 3 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
+dbDisconnect(db_claims)
 

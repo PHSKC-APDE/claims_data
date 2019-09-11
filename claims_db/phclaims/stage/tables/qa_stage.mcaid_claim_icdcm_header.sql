@@ -2,7 +2,7 @@
 use PHClaims;
 go
 
-delete from [metadata].[qa_mcaid] where table_name = 'stage.mcaid_claim_icdcm_header';
+--delete from [metadata].[qa_mcaid] where table_name = 'stage.mcaid_claim_icdcm_header';
 
 --All members should be in elig_demo and table
 select count(a.id_mcaid) as id_dcount
