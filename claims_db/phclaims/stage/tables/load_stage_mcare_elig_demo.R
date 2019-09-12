@@ -97,6 +97,7 @@
   death[, dup := 1:.N, by = "id_mcare"] # identify duplicates
   death <- death[dup == 1, ] # drop duplicates
   death <- death[, .(id_mcare, death_dt)]
+  death[, death_dt := as.Date(death_dt)]
   if(nrow(death) != length(unique(death$id_mcare))){stop("Repeated id_mcare in death data ... FIX before moving on!")}
   
 ## (8) Merge all data.tables ----
