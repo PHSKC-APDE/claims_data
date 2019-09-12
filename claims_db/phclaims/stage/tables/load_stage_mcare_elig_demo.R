@@ -17,8 +17,8 @@
   db_claims <- dbConnect(odbc(), "PHClaims51")   
   
 ## (2) Load data from SQL ----  
-  mbsf <- setDT(odbc::dbGetQuery(db_claims, "SELECT bene_id, bene_birth_dt, sex_ident_cd, bene_enrollmt_ref_yr, rti_race_cd,zip_cd FROM PHClaims.stage.mcare_mbsf"))
-  setnames(mbsf, names(mbsf), c("id_mcare", "dob", "sex", "year", "race", "zip_code"))  
+  mbsf <- setDT(odbc::dbGetQuery(db_claims, "SELECT bene_id, bene_birth_dt, bene_death_dt, sex_ident_cd, bene_enrollmt_ref_yr, rti_race_cd,zip_cd FROM PHClaims.stage.mcare_mbsf"))
+  setnames(mbsf, names(mbsf), c("id_mcare", "dob", "death_dt", "sex", "year", "race", "zip_code"))  
   
 ## (3) Create date of birth indicator as a data.table ----
   # Want to keep the most recent date b/c assume it is a correction in Medicare registration ... discussed with Eli/Alastair
@@ -91,7 +91,16 @@
     stop('non-unique id_mcare in race')
   } # confirm all id_mcare are unique
 
-## (7) Append all data.tables ----
+## (7) Create date of death as a data.table ----
+  death <- unique(mbsf[!is.na(death_dt) & death_dt != "1900-01-01", .(id_mcare, death_dt, year)]) # copy only death data
+  setorder(death, id_mcare, -year) # order by year so that when drop duplicate id_mcare below, will keep the most recent death date, which will be assumed to be a correction
+  death[, dup := 1:.N, by = "id_mcare"] # identify duplicates
+  death <- death[dup == 1, ] # drop duplicates
+  death <- death[, .(id_mcare, death_dt)]
+  death[, death_dt := as.Date(death_dt)]
+  if(nrow(death) != length(unique(death$id_mcare))){stop("Repeated id_mcare in death data ... FIX before moving on!")}
+  
+## (8) Merge all data.tables ----
   # tidy mbsf
   elig <- unique(mbsf[, "id_mcare"])
   # add on dob
@@ -102,11 +111,13 @@
   elig <- merge(elig, sex, by = "id_mcare", all = TRUE)
   # add on race
   elig <- merge(elig, race, by = "id_mcare", all = TRUE)
+  # add on death 
+  elig <- merge(elig, death, by = "id_mcare", all = TRUE)
   
-## (8) Add time stamp
+## (9) Add time stamp
   elig[, last_run := Sys.time()]  
 
-## (8) Write to SQL ----              
+## (10) Write to SQL ----              
   # set elig columns to proper type 
     elig[, dob := as.Date(dob)]
 
@@ -127,7 +138,7 @@
                  overwrite = T, append = F, 
                  field.types = unlist(table_config$vars))
 
-## (9) Simple QA ----
+## (11) Simple QA ----
     # Confirm that all rows were loaded to SQL ----
       stage.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.mcare_elig_demo"))
       if(stage.count != nrow(elig))
@@ -243,7 +254,7 @@
     
     
     
-## (10) Fill qa_mcare_values table ----
+## (12) Fill qa_mcare_values table ----
     qa.values <- glue::glue_sql("INSERT INTO metadata.qa_mcare_values
                                 (table_name, qa_item, qa_value, qa_date, note) 
                                 VALUES ('stage.mcare_elig_demo',
@@ -256,7 +267,7 @@
     odbc::dbGetQuery(conn = db_claims, qa.values)
 
 
-## (11) Print error messages ----
+## (13) Print error messages ----
     if(problems >1){
       message(glue::glue("WARNING ... MCARE_ELIG_DEMO FAILED AT LEAST ONE QA TEST", "\n",
                          "Summary of problems in MCARE_ELIG_DEMO: ", "\n", 
