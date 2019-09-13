@@ -387,8 +387,8 @@ try(odbc::dbRemoveTable(db_claims, "##timevar_03b", temporary = T))
 try(odbc::dbRemoveTable(db_claims, "##timevar_03c", temporary = T))
 try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T))
 try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T))
-rm(list = ls(pattern = "step[.]{1,2}_sql"))
+rm(list = ls(pattern = "step(.){1,2}_sql"))
 time_end <- Sys.time()
-print(paste0("Step 8 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+print(paste0("Step 6 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
              " mins)"))

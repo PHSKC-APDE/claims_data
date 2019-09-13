@@ -40,7 +40,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                           qa_item = 'row_count') b
                        ON a.qa_date = b.max_date"))
     
-    row_diff <- row_count < previous_rows
+    row_diff <- row_count - previous_rows
     
     if (row_diff < 0) {
       odbc::dbGetQuery(
