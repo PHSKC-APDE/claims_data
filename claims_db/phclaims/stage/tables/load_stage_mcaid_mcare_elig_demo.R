@@ -22,7 +22,7 @@
   
   mcare <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcare, dob, death_dt, kc, gender_female, gender_male, gender_me, 
                                   race_white, race_black, race_other, race_asian, race_asian_pi, race_aian, race_nhpi, race_latino, race_unk, race_eth_me, race_me 
-                                  FROM PHClaims.stage.mcaid_mcare_elig_demo"))
+                                  FROM PHClaims.stage.mcare_elig_demo"))
 
   mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, dob, gender_female, gender_male, gender_me, 
                                   race_me, race_eth_me, race_aian, race_asian, race_black, race_nhpi, race_white, race_latino 
@@ -79,6 +79,9 @@
       elig[, race_unk := 0]
       elig[race_aian==0 & race_asian==0 & race_asian_pi==0 & race_black==0 & race_latino==0 & race_nhpi==0 & race_white==0, race_unk := 1] 
   
+    # create time stamp
+      elig[, last_run := Sys.time()] 
+      
 ## (8) Write to SQL ----              
   # Pull YAML from GitHub
     table_config <- yaml::yaml.load(RCurl::getURL(yaml.url))
