@@ -121,7 +121,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                                      'row_count', 
                                      {row_count}, 
                                      {Sys.time()}, 
-                                     '')",
+                                     'Count after refresh')",
                              .con = conn)
   
   odbc::dbGetQuery(conn = conn, load_sql)
