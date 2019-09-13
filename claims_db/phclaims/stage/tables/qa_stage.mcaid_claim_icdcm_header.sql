@@ -2,7 +2,7 @@
 use PHClaims;
 go
 
---delete from [metadata].[qa_mcaid] where table_name = 'stage.mcaid_claim_icdcm_header';
+delete from [metadata].[qa_mcaid] where table_name = 'stage.mcaid_claim_icdcm_header';
 
 --All members should be in elig_demo and table
 select count(a.id_mcaid) as id_dcount
@@ -32,8 +32,10 @@ from [stage].[mcaid_claim_icdcm_header] as a
 where not exists
 (
 select 1 
-from [stage].[mcaid_elig_timevar] as b
-where a.id_mcaid = b.id_mcaid
+--from [final].[mcaid_elig_timevar] as b
+from [stage].[mcaid_elig] as b
+--where a.id_mcaid = b.id_mcaid
+where a.id_mcaid = b.MEDICAID_RECIPIENT_ID
 );
 go
 
@@ -43,10 +45,12 @@ select
  NULL
 ,@last_run
 ,'stage.mcaid_claim_icdcm_header'
-,'mcaid_elig_time_var.id_mcaid check'
+--,'mcaid_elig_time_var.id_mcaid check'
+,'mcaid_elig.MEDICAID_RECIPIENT_ID check'
 ,'PASS'
 ,getdate()
-,'All members in mcaid_claim_icdcm_header are in mcaid_elig_time_var';
+--,'All members in mcaid_claim_icdcm_header are in mcaid_elig_time_var';
+,'All members in mcaid_claim_icdcm_header are in mcaid_elig';
 
 --Check that length of all ICD-9-CM is 5
 select min(len(icdcm_norm)) as min_len, max(len(icdcm_norm)) as max_len
@@ -135,18 +139,18 @@ select
 ,'icdcm_norm foreign key check'
 ,'FAIL'
 ,getdate()
-,'151 dx codes not in [ref].[dx_lookup]';
+,'22 dx codes not in [ref].[dx_lookup]';
 
 --Compare number of people with claim_header table
 select
  (select count(distinct id_mcaid) as id_dcount
   from [stage].[mcaid_claim_icdcm_header])
 ,(select count(distinct id_mcaid) as id_dcount
-  from [stage].[mcaid_claim_header])
+  from [final].[mcaid_claim_header])
 ,cast((select count(distinct id_mcaid) as id_dcount
   from [stage].[mcaid_claim_icdcm_header]) as numeric) /
  (select count(distinct id_mcaid) as id_dcount
-  from [stage].[mcaid_claim_header]);
+  from [final].[mcaid_claim_header]);
 go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
@@ -164,12 +168,10 @@ select
 WITH [final] AS
 (
 SELECT
- YEAR([from_date]) AS [claim_year]
+ YEAR([first_service_date]) AS [claim_year]
 ,COUNT(*) AS [prior_num_dx]
-FROM [PHClaims].[dbo].[mcaid_claim_dx] AS a
-INNER JOIN [dbo].[mcaid_claim_header] AS b
-ON a.[tcn] = b.[tcn]
-GROUP BY YEAR([from_date])
+FROM [final].[mcaid_claim_icdcm_header] AS a
+GROUP BY YEAR([first_service_date])
 ),
 
 [stage] AS
@@ -201,7 +203,7 @@ select
 ,'Compare new-to-prior dx counts'
 ,'PASS'
 ,getdate()
-,'Ratio 1.04 to 1.07 from 2012-17';
+,'Match';
 
 SELECT [etl_batch_id]
       ,[last_run]

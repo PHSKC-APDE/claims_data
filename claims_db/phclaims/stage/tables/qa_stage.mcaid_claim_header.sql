@@ -56,8 +56,10 @@ from [stage].[mcaid_claim_header] as a
 where not exists
 (
 select 1 
-from [final].[mcaid_elig_timevar] as b
-where a.id_mcaid = b.id_mcaid
+--from [final].[mcaid_elig_timevar] as b
+from [stage].[mcaid_elig] as b
+--where a.id_mcaid = b.id_mcaid
+where a.id_mcaid = b.MEDICAID_RECIPIENT_ID
 );
 go
 
@@ -67,19 +69,21 @@ select
  NULL
 ,@last_run
 ,'stage.mcaid_claim_header'
-,'mcaid_elig_time_var.id_mcaid check'
+--,'mcaid_elig_time_var.id_mcaid check'
+,'mcaid_elig.MEDICAID_RECIPIENT_ID check'
 ,'PASS'
 ,getdate()
-,'All members in mcaid_claim_header are in mcaid_elig_time_var';
+--,'All members in mcaid_claim_header are in mcaid_elig_time_var';
+,'All members in mcaid_claim_header are in mcaid_elig';
 
 -- Compare number of claim headers in current vs. prior analytic tables
 WITH [final] AS
 (
 SELECT
- YEAR([from_date]) AS [claim_year]
-,COUNT([tcn]) AS [prior_claim_header]
-FROM [PHClaims].[dbo].[mcaid_claim_summary] AS a
-GROUP BY YEAR([from_date])
+ YEAR([first_service_date]) AS [claim_year]
+,COUNT([claim_header_id]) AS [prior_claim_header]
+FROM [final].[mcaid_claim_header] AS a
+GROUP BY YEAR([first_service_date])
 ),
 
 [stage] AS
@@ -108,19 +112,19 @@ select
  NULL
 ,@last_run
 ,'stage.mcaid_claim_header'
-,'Compare new-to-prior claim headers'
+,'Compare new stage-to-prior final claim headers'
 ,'PASS'
 ,getdate()
-,'Ratio 2%-4% more claim headers per year';
+,'0.1% increase in 2018';
 
 -- Compare number of ed visits in current vs. prior analytic tables
 WITH [final] AS
 (
 SELECT
- YEAR([from_date]) AS [claim_year]
+ YEAR([first_service_date]) AS [claim_year]
 ,SUM([ed]) AS [prior_ed]
-FROM [PHClaims].[dbo].[mcaid_claim_summary] AS a
-GROUP BY YEAR([from_date])
+FROM [final].[mcaid_claim_header] AS a
+GROUP BY YEAR([first_service_date])
 ),
 
 [stage] AS
@@ -152,49 +156,7 @@ select
 ,'Compare new-to-prior ed visits'
 ,'PASS'
 ,getdate()
-,'Very close - except 2017 ED visits dropped 3.5% in new extract';
-
--- Compare number of inpatient stays in current vs. prior analytic tables
-WITH [final] AS
-(
-SELECT
- YEAR([from_date]) AS [claim_year]
-,SUM([inpatient]) AS [prior_inpatient]
-FROM [PHClaims].[dbo].[mcaid_claim_summary] AS a
-GROUP BY YEAR([from_date])
-),
-
-[stage] AS
-(
-SELECT
- YEAR([first_service_date]) AS [claim_year]
-,SUM([inpatient]) AS [current_inpatient]
---FROM [stage].[mcaid_claim_header] AS a
-FROM [final].[mcaid_claim_header] AS a
-GROUP BY YEAR([first_service_date])
-)
-
-SELECT
- COALESCE(a.[claim_year], b.[claim_year]) AS [claim_year]
-,[prior_inpatient]
-,[current_inpatient]
-,CAST([current_inpatient] AS NUMERIC) / [prior_inpatient] AS [pct_change]
-FROM [final] AS a
-FULL JOIN [stage] AS b
-ON a.[claim_year] = b.[claim_year]
-ORDER BY [claim_year];
-GO
-
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_header]);
-insert into [metadata].[qa_mcaid]
-select 
- NULL
-,@last_run
-,'stage.mcaid_claim_header'
-,'Compare new-to-prior extract inpatient stays'
-,'PASS'
-,getdate()
-,'Generally 5% higher - except 2017 inpatient stays only 1% higher';
+,'Stable';
 
 SELECT [etl_batch_id]
       ,[last_run]

@@ -32,9 +32,12 @@ from [stage].[mcaid_claim_procedure] as a
 where not exists
 (
 select 1 
-from [final].[mcaid_elig_timevar] as b
-where a.id_mcaid = b.id_mcaid
+--from [final].[mcaid_elig_timevar] as b
+from [stage].[mcaid_elig] as b
+--where a.id_mcaid = b.id_mcaid
+where a.id_mcaid = b.MEDICAID_RECIPIENT_ID
 );
+go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_procedure]);
 insert into [metadata].[qa_mcaid]
@@ -42,10 +45,12 @@ select
  NULL
 ,@last_run
 ,'stage.mcaid_claim_procedure'
-,'mcaid_elig_time_var.id_mcaid foreign key check'
+--,'mcaid_elig_time_var.id_mcaid check'
+,'mcaid_elig.MEDICAID_RECIPIENT_ID check'
 ,'PASS'
 ,getdate()
-,'All members in mcaid_claim_procedure are in mcaid_elig_time_var';
+--,'All members in mcaid_claim_procedure are in mcaid_elig_time_var';
+,'All members in mcaid_claim_procedure are in mcaid_elig';
 
 --Check that procedure codes are properly formed type
 WITH CTE AS
@@ -141,7 +146,7 @@ select
 ,'procedure_code foreign key check'
 ,'FAIL'
 ,getdate()
-,'513 procedure codes not in [ref].[pcode]';
+,'611 procedure codes not in [ref].[pcode]';
 
 /*
 --procedure codes that do not join to reference table
@@ -190,11 +195,11 @@ select
  (select count(distinct id_mcaid) as id_dcount
   from [stage].[mcaid_claim_procedure])
 ,(select count(distinct id_mcaid) as id_dcount
-  from [stage].[mcaid_claim_header])
+  from [final].[mcaid_claim_header])
 ,cast((select count(distinct id_mcaid) as id_dcount
   from [stage].[mcaid_claim_procedure]) as numeric) /
  (select count(distinct id_mcaid) as id_dcount
-  from [stage].[mcaid_claim_header]);
+  from [final].[mcaid_claim_header]);
 go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_procedure]);
@@ -212,23 +217,19 @@ select
 WITH [final] AS
 (
 SELECT
- YEAR([from_date]) AS [claim_year]
+ YEAR([first_service_date]) AS [claim_year]
 ,COUNT(*) AS [prior_num_procedure]
-FROM [PHClaims].[dbo].[mcaid_claim_proc] AS a
-INNER JOIN [dbo].[mcaid_claim_header] AS b
-ON a.[tcn] = b.[tcn]
-GROUP BY YEAR([from_date])
+FROM [final].[mcaid_claim_procedure]
+GROUP BY YEAR([first_service_date])
 ),
 
 [stage] AS
 (
 SELECT
- YEAR(a.[first_service_date]) AS [claim_year]
+ YEAR([first_service_date]) AS [claim_year]
 ,COUNT(*) AS [current_num_procedure]
-FROM [stage].[mcaid_claim_procedure] AS a
-INNER JOIN [stage].[mcaid_claim_header] AS b
-ON a.[claim_header_id] = b.[claim_header_id]
-GROUP BY YEAR(a.[first_service_date])
+FROM [stage].[mcaid_claim_procedure]
+GROUP BY YEAR([first_service_date])
 )
 
 SELECT
@@ -251,7 +252,7 @@ select
 ,'Compare new-to-prior procedure counts'
 ,'PASS'
 ,getdate()
-,'Ratio ~1.02 from 2012-17';
+,'Stable';
 
 SELECT [etl_batch_id]
       ,[last_run]
