@@ -20,11 +20,11 @@
   apde <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_apde, id_mcare, id_mcaid 
                                  FROM PHClaims.stage.xwalk_apde_mcaid_mcare_pha"))
   
-  mcare <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcare, dob, death_dt, kc, gender_female, gender_male, gender_me, 
+  mcare <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcare, dob, death_dt, geo_kc, gender_female, gender_male, gender_me, gender_recent, race_eth_recent, race_recent,
                                   race_white, race_black, race_other, race_asian, race_asian_pi, race_aian, race_nhpi, race_latino, race_unk, race_eth_me, race_me 
                                   FROM PHClaims.stage.mcare_elig_demo"))
 
-  mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, dob, gender_female, gender_male, gender_me, 
+  mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, dob, gender_female, gender_male, gender_me, gender_recent, race_eth_recent, race_recent,
                                   race_me, race_eth_me, race_aian, race_asian, race_black, race_nhpi, race_white, race_latino 
                                   FROM PHClaims.stage.mcaid_elig_demo"))
 
@@ -56,7 +56,7 @@
     # race_asian_pi, death_dt, kc are only in Mcare 
   
   # loop to ascribe MCAID data to duals
-  for(i in c("gender_me", "gender_female", "gender_male", 
+  for(i in c("gender_me", "gender_female", "gender_male", "gender_recent", "race_eth_recent", "race_recent",
              "race_me", "race_eth_me", "race_aian", "race_asian", "race_black", "race_nhpi", "race_white", "race_latino")){
     dual[, paste0(i) := get(paste0(i, ".mcaid"))] # fill with Mcaid data
     dual[is.na(get(paste0(i))), paste0(i) := get(paste0(i, ".mcare"))] # If NA b/c missing Mcaid data, then fill with Mcare data
