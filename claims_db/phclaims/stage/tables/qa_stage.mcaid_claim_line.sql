@@ -32,8 +32,10 @@ from [stage].[mcaid_claim_line] as a
 where not exists
 (
 select 1 
-from [final].[mcaid_elig_timevar] as b
-where a.id_mcaid = b.id_mcaid
+--from [final].[mcaid_elig_timevar] as b
+from [stage].[mcaid_elig] as b
+--where a.id_mcaid = b.id_mcaid
+where a.id_mcaid = b.MEDICAID_RECIPIENT_ID
 );
 go
 
@@ -43,10 +45,12 @@ select
  NULL
 ,@last_run
 ,'stage.mcaid_claim_line'
-,'mcaid_elig_time_var.id_mcaid check'
+--,'mcaid_elig_time_var.id_mcaid check'
+,'mcaid_elig.MEDICAID_RECIPIENT_ID check'
 ,'PASS'
 ,getdate()
-,'All members in mcaid_claim_line are in mcaid_elig_time_var';
+--,'All members in mcaid_claim_line are in mcaid_elig_time_var';
+,'All members in mcaid_claim_line are in mcaid_elig';
 
 -- Same number claim lines in [stage].[mcaid_claim] and [stage].[mcaid_claim_line]
 select count(distinct [claim_line_id])
@@ -108,7 +112,7 @@ select
 ,'rac_code_line foreign key check'
 ,'FAIL'
 ,getdate()
-,'39 line rac codes (2000 or higher) not in [ref].[mcaid_rac_code]';
+,'40 line rac codes (2000 or higher) not in [ref].[mcaid_rac_code]';
 
 SELECT [etl_batch_id]
       ,[last_run]

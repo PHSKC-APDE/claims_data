@@ -32,9 +32,12 @@ from [stage].[mcaid_claim_pharm] as a
 where not exists
 (
 select 1 
-from [final].[mcaid_elig_timevar] as b
-where a.id_mcaid = b.id_mcaid
+--from [final].[mcaid_elig_timevar] as b
+from [stage].[mcaid_elig] as b
+--where a.id_mcaid = b.id_mcaid
+where a.id_mcaid = b.MEDICAID_RECIPIENT_ID
 );
+go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_pharm]);
 insert into [metadata].[qa_mcaid]
@@ -42,13 +45,15 @@ select
  NULL
 ,@last_run
 ,'stage.mcaid_claim_pharm'
-,'mcaid_elig_time_var.id_mcaid foreign key check'
+--,'mcaid_elig_time_var.id_mcaid check'
+,'mcaid_elig.MEDICAID_RECIPIENT_ID check'
 ,'PASS'
 ,getdate()
-,'All members in mcaid_claim_pharm are in mcaid_elig_time_var';
+--,'All members in mcaid_claim_pharm are in mcaid_elig_time_var';
+,'All members in mcaid_claim_pharm are in mcaid_elig';
 
 --Check that ndc codes are properly formed type
---23,853,275
+--25,968,547
 SELECT COUNT(*)
 FROM [PHClaims].[stage].[mcaid_claim_pharm]
 WHERE LEN([ndc]) <> 11
@@ -87,7 +92,7 @@ select
 ,'ndc_code foreign key check'
 ,'FAIL'
 ,getdate()
-,'2,543 ndc codes not in [ref].[pharm]';
+,'3,964 ndc codes not in [ref].[pharm]';
 
 /*
 --ndc codes that do not join to reference table
@@ -112,11 +117,11 @@ select
  (select count(distinct id_mcaid) as id_dcount
   from [stage].[mcaid_claim_pharm])
 ,(select count(distinct id_mcaid) as id_dcount
-  from [stage].[mcaid_claim_header])
+  from [final].[mcaid_claim_header])
 ,cast((select count(distinct id_mcaid) as id_dcount
   from [stage].[mcaid_claim_pharm]) as numeric) /
  (select count(distinct id_mcaid) as id_dcount
-  from [stage].[mcaid_claim_header]);
+  from [final].[mcaid_claim_header]);
 go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_pharm]);
@@ -128,18 +133,16 @@ select
 ,'Compare pharm to header (number of people)'
 ,'PASS'
 ,getdate()
-,'76.7% of people in pharm are in header';
+,'77.3% of people in pharm are in header';
 
 -- Compare number of ndc codes in current vs. prior analytic tables
 WITH [final] AS
 (
 SELECT
- YEAR([from_date]) AS [claim_year]
+ YEAR([rx_fill_date]) AS [claim_year]
 ,COUNT(*) AS [prior_num_pharm]
-FROM [PHClaims].[dbo].[mcaid_claim_pharm] AS a
-INNER JOIN [dbo].[mcaid_claim_header] AS b
-ON a.[tcn] = b.[tcn]
-GROUP BY YEAR([from_date])
+FROM [final].[mcaid_claim_pharm] AS a
+GROUP BY YEAR([rx_fill_date])
 ),
 
 [stage] AS
@@ -171,7 +174,7 @@ select
 ,'Compare new-to-prior pharm counts'
 ,'PASS'
 ,getdate()
-,'Ratio ~1.01 from 2012-17';
+,'Stable';
 
 SELECT [etl_batch_id]
       ,[last_run]

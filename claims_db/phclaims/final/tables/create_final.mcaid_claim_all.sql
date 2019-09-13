@@ -103,7 +103,8 @@ create table [final].[mcaid_claim_icdcm_header]
 ,[icdcm_version] tinyint
 ,[icdcm_number] varchar(5)
 ,[last_run] datetime)
-on [PHClaims_FG2];
+--on [PHClaims_FG2];
+on [PRIMARY];
 go
 
 --create indexes
@@ -153,7 +154,7 @@ create table [final].[mcaid_claim_procedure]
 ,[modifier_3] varchar(200)
 ,[modifier_4] varchar(200)
 ,[last_run] datetime)
-on [PHClaims_FG2];
+on [PRIMARY];
 go
 
 --create indexes

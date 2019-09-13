@@ -32,13 +32,20 @@ EXEC [metadata].[sp_switch_table_schema]
 ,@to_schema='final'
 ,@to_table='mcaid_claim_procedure';
 
-select count(*) from [final].[mcaid_claim_header];
-select count(*) from [final].[mcaid_claim_icdcm_header];
-select count(*) from [final].[mcaid_claim_line];
-select count(*) from [final].[mcaid_claim_pharm];
-select count(*) from [final].[mcaid_claim_procedure];
-select count(TCN) from [stage].[mcaid_claim];
-select count(distinct TCN) from [stage].[mcaid_claim];
+select top(1) [last_run] from [final].[mcaid_claim_header];
+select top(1) [last_run] from [stage].[mcaid_claim_header];
+
+select top(1) [last_run] from [final].[mcaid_claim_icdcm_header];
+select top(1) [last_run] from [stage].[mcaid_claim_icdcm_header];
+
+select top(1) [last_run] from [final].[mcaid_claim_line];
+select top(1) [last_run] from [stage].[mcaid_claim_line];
+
+select top(1) [last_run] from [final].[mcaid_claim_pharm];
+select top(1) [last_run] from [stage].[mcaid_claim_pharm];
+
+select top(1) [last_run] from [final].[mcaid_claim_procedure];
+select top(1) [last_run] from [stage].[mcaid_claim_procedure];
 
 if object_id('[stage].[mcaid_claim_header]', 'U') is not null
 drop table [stage].[mcaid_claim_header];
