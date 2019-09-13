@@ -7,7 +7,7 @@ vars:
     dob: DATE
     death_dt: DATE
     kc: TINYINT
-    gender_me: TINYINT
+    gender_me: VARCHAR(10)
     gender_female: TINYINT
     gender_male: TINYINT
     race_me: VARCHAR(10)
