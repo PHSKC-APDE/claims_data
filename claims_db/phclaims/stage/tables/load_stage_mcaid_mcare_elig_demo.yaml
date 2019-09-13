@@ -6,7 +6,7 @@ vars:
     dual: TINYINT
     dob: DATE
     death_dt: DATE
-    kc: TINYINT
+    geo_kc: TINYINT
     gender_me: VARCHAR(10)
     gender_recent: VARCHAR(10)    
     gender_female: TINYINT
