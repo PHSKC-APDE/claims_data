@@ -1,0 +1,23 @@
+schema: stage
+table: mcaid_mcare_elig_demo
+years:
+vars:
+    id_apde: INT
+    dob: DATE
+    death_dt: DATE
+    kc: TINYINT
+    gender_me: TINYINT
+    gender_female: TINYINT
+    gender_male: TINYINT
+    race_me: VARCHAR(10)
+    race_eth_me: VARCHAR(10)
+    race_aian: TINYINT
+    race_asian: TINYINT
+    race_asian_pi: TINYINT
+    race_black: TINYINT
+    race_latino: TINYINT
+    race_nhpi: TINYINT
+    race_white: TINYINT
+    race_other: TINYINT
+    race_unk: TINYINT
+    last_run: DATETIME
