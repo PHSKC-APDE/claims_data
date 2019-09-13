@@ -4,6 +4,7 @@ years:
 vars:
     id_mcare: CHAR(15) collate SQL_Latin1_General_Cp1_CS_AS
     dob: DATE
+    death_dt: DATE
     kc: TINYINT
     gender_female: TINYINT
     gender_male: TINYINT
