@@ -167,11 +167,7 @@
       # get count of unique id (each id should only appear once)
       stage.count.unique <- as.numeric(odbc::dbGetQuery(
         db_claims, "SELECT COUNT (*) 
-        FROM (Select id_mcare 
-        FROM stage.mcaid_mcare_elig_demo
-        GROUP BY id_mcare
-        )t;"
-            ))
+        FROM stage.mcaid_mcare_elig_demo"))
       
       if (stage.count.unique != stage.count) {
         odbc::dbGetQuery(
@@ -212,10 +208,7 @@
       problems <- glue::glue(
         problem.ids, "\n",
         problem.row_diff)
-    
-    
-    
-    
+
 ## (10) Fill qa_mcare_values table ----
     qa.values <- glue::glue_sql("INSERT INTO metadata.qa_mcare_values
                                 (table_name, qa_item, qa_value, qa_date, note) 
@@ -227,7 +220,6 @@
                                 .con = db_claims)
     
     odbc::dbGetQuery(conn = db_claims, qa.values)
-
 
 ## (11) Print error messages ----
     if(problems >1){
