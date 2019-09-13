@@ -8,10 +8,13 @@ vars:
     death_dt: DATE
     kc: TINYINT
     gender_me: VARCHAR(10)
+    gender_recent: VARCHAR(10)    
     gender_female: TINYINT
     gender_male: TINYINT
     race_me: VARCHAR(10)
     race_eth_me: VARCHAR(10)
+    race_recent: VARCHAR(10)
+    race_eth_recent: VARCHAR(10)
     race_aian: TINYINT
     race_asian: TINYINT
     race_asian_pi: TINYINT
