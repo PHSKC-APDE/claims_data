@@ -3,6 +3,7 @@ table: mcaid_mcare_elig_demo
 years:
 vars:
     id_apde: INT
+    dual: TINYINT
     dob: DATE
     death_dt: DATE
     kc: TINYINT
