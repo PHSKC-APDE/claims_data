@@ -18,6 +18,9 @@ db_claims <- dbConnect(odbc(), "PHClaims51")
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
 source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
 
+table_config <- yaml::yaml.load(getURL(
+    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
+
 
 #### INITAL ADDRESS_CLEAN SETUP ####
 # Take address data from all claims sources (Medicaid)
@@ -28,7 +31,7 @@ source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_d
 
 ### Create SQL table
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_clean.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml",
                overall = T, ind_yr = F)
 
 
@@ -403,12 +406,15 @@ combined_add_full2 <- combined_add_full2 %>%
 combined_add_full_load <- combined_add_full2 %>%
   distinct(geo_add1_raw, geo_add2_raw, geo_add3_raw, geo_city_raw, geo_state_raw, geo_zip_raw,
            geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
-           geo_source_mcaid, geo_source_pha)
+           geo_source_mcaid, geo_source_pha) %>%
+  mutate(last_run = Sys.time())
 
 
-tbl_id_meta <- DBI::Id(schema = "stage", table = "address_clean")
-
-dbWriteTable(db_claims, tbl_id_meta, combined_add_full_load, overwrite = T)
+dbWriteTable(db_claims,
+             name = DBI::Id(schema = as.character(table_config$schema), 
+                            table = as.character(table_config$table)), 
+             combined_add_full_load, overwrite = T,
+             field.types = unlist(table_config$vars))
 
 
 

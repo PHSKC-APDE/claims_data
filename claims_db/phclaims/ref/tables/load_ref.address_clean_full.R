@@ -26,7 +26,7 @@ source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_d
 
 ### Create SQL table
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.address_clean.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
                overall = T, ind_yr = F)
 
 
