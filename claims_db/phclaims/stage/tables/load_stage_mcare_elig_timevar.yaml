@@ -11,8 +11,8 @@ vars:
     part_c: TINYINT
     dual: TINYINT
     partial: TINYINT
-    buyin: TINYINT
-    zip: CHAR(5)
-    kc: TINYINT
+    buy_in: TINYINT
+    geo_zip: CHAR(5)
+    geo_kc: TINYINT
     cov_time_day: SMALLINT
     last_run: DATETIME

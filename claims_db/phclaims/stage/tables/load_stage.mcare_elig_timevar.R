@@ -12,7 +12,7 @@
 
 ## Set up environment ----
     rm(list=ls())
-    .libPaths("C:/Users/dcolombara/R.packages") # needed for 32 GB SAS computer.
+    #.libPaths("C:/Users/dcolombara/R.packages") # needed for 32 GB SAS computer.
     pacman::p_load(data.table, dplyr, odbc, lubridate, glue, httr)
     options("scipen"=10) # turn off scientific notation  
     options(warning.length = 8170) # get lengthy warnings, needed for SQL
@@ -63,12 +63,13 @@
           setnames(dt, 
                    old = paste0("hmo_ind_", formatC(1:12, width = 2, flag = "0")), 
                    new = hmo.cols)
-          setnames(dt, old = c("zip_cd", "bene_id", "bene_enrollmt_ref_yr"), new = c("zip", "id_mcare", "data_year"))
+          setnames(dt, old = c("zip_cd", "bene_id", "bene_enrollmt_ref_yr"), 
+                   new = c("geo_zip", "id_mcare", "data_year"))
 
 ## (3) Reshape wide to long ----
       # reshaping multiple unrelated columns simultaneously uses 'enhanced melt': https://cran.r-project.org/web/packages/data.table/vignettes/datatable-reshape.html
       dt <- melt(dt, 
-                id.vars = c("id_mcare", "data_year", "zip"), 
+                id.vars = c("id_mcare", "data_year", "geo_zip"), 
                 measure = list(dual.cols, buyin.cols, hmo.cols), 
                 value.name = c("duals", "buyins", "hmos"), variable.name = c("month"))
       
@@ -86,15 +87,15 @@
       dt[hmos %in% c("0", "4"), part_c := 0] # https://www.resdac.org/articles/identifying-medicare-managed-care-beneficiaries-master-beneficiary-summary-or-denominator
       
       # buyin
-      dt[buyins %in% c("0", "1", "2", "3"), buyin := 0]
-      dt[buyins %in% c("A", "B", "C"), buyin := 1]
+      dt[buyins %in% c("0", "1", "2", "3"), buy_in := 0]
+      dt[buyins %in% c("A", "B", "C"), buy_in := 1]
       
       # partial dual (can't define for 2011-2014, i.e., MBSF AB)
       dt[data_year %in% c(2015:2016), partial := 0]
       dt[data_year %in% c(2015:2016) & duals %in% c(1, 3, 5, 6), partial := 1]
 
       # dual (defined differently for 2011-2014 & 2015+)
-      dt[data_year %in% c(2011:2014), dual := buyin]
+      dt[data_year %in% c(2011:2014), dual := buy_in]
       
       dt[data_year %in% c(2015:2016), dual := 0]
       dt[data_year %in% c(2015:2016) & duals %in% c(1, 2, 3, 4, 5, 6, 8), dual := 1]
@@ -143,7 +144,7 @@
         
       # drop the first row per id if all values are zero (i.e., they were not enrolled during that time because didn't begin on January 1 of that year)
         dt[, counter := 1:.N, by = "id_mcare"] # create row numbers for each person
-        dt <- dt[!(counter == 1 & dual == 0 & buyin == 0 & part_a == 0 & part_b == 0 & part_c == 0)] # drop when first row for each person is all zeros
+        dt <- dt[!(counter == 1 & dual == 0 & buy_in == 0 & part_a == 0 & part_b == 0 & part_c == 0)] # drop when first row for each person is all zeros
         dt[, counter := NULL] 
         
 ## (10) Identify contiguous periods ----
@@ -163,8 +164,8 @@
         
 ## (11) Add King County indicator & cov_time_day ----
         kc.zips <- fread(kc.zips.url)
-        dt[, kc := 0]
-        dt[zip %in% unique(as.character(kc.zips$zip)), kc := 1]
+        dt[, geo_kc := 0]
+        dt[geo_zip %in% unique(as.character(kc.zips$zip)), geo_kc := 1]
         rm(kc.zips)
         
         dt[, cov_time_day := as.integer(to_date - from_date)]
