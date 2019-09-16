@@ -1,0 +1,34 @@
+schema: stage
+table: mcaid_mcare_elig_timevar
+vars:
+    id_apde: INT
+    from_date: DATE
+    to_date: DATE
+    contiguous: TINYINT
+    dual: TINYINT
+    part_a: TINYINT
+    part_b: TINYINT
+    part_c: TINYINT
+    dual: TINYINT
+    partial: TINYINT
+    buy_in: TINYINT
+    geo_zip: CHAR(5)
+    geo_kc: TINYINT
+    tpl: TINYINT
+    bsp_group_name: VARCHAR(255)
+    full_benefit: TINYINT
+    cov_type: CHAR(3)
+    mco_id: INT
+    geo_add1_clean: VARCHAR(255)
+    geo_add2_clean: VARCHAR(255)
+    geo_city_clean: VARCHAR(255)
+    geo_state_clean: VARCHAR(255)
+    geo_zip_clean: VARCHAR(255)
+    geo_zip_centroid: TINYINT
+    geo_street_centroid: TINYINT
+    geo_countyfp10: varchar(255)
+    geo_tractce10: VARCHAR(255)
+    geo_hra_id: SMALLINT
+    geo_school_geoid10: VARCHAR(255)
+    cov_time_day: SMALLINT
+    last_run: DATETIME
