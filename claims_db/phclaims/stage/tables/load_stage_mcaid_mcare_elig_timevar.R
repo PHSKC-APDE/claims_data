@@ -76,10 +76,12 @@
       setnames(duals, "value", "from_date")
       duals[, variable := NULL]
       duals <- unique(duals)
-      
-    # create the to_date by shifting the from_date up one row
       setkey(duals, id_apde, from_date) # sort from earliest to latest
-      duals[, to_date := shift(from_date, fill = NA, type = "lead"), by = "id_apde"]
+
+    # create the to_date by shifting the from_date up one row
+      setorder(duals, id_apde, -from_date) # need to reverse order because next line actually creates a "lag" and we need a "lead"
+      duals[, to_date := c(NA, from_date[-.N]), by = "id_apde"] # MUCH faster than the shift "lead" function in data.table (even with setorder 2x)
+      setorder(duals, id_apde, from_date) # return to proper ordering
       duals <- duals[!is.na(to_date)] # the last observation per id will be dropped because it is the final to_date
       duals[, counter := 1:.N, by = id_apde] # create indicator so we can know which interval is the first interval for each id_apde
       duals[counter != 1, from_date := as.integer(from_date + 1)] # add one to from_date so that it does not overlap with the previous interval
@@ -124,7 +126,7 @@
     
     # Create unique ID for contiguous times within a given data chunk ----
       setkey(timevar, id_apde, from_date)
-      timevar[, prev_to_date := shift(to_date, 1L, type = "lag"), by = "group"] # create row with the previous 'to_date'
+      timevar[, prev_to_date := c(NA, to_date[-.N]), by = "group"] # create row with the previous 'to_date', MUCH faster than the shift "lag" function in data.table
       timevar[, diff.prev := from_date - prev_to_date] # difference between from_date & prev_to_date will be 1 (day) if they are contiguous
       timevar[diff.prev != 1, diff.prev := NA] # set to NA if difference is not 1 day, i.e., it is not contiguous, i.e., it starts a new contiguous chunk
       timevar[is.na(diff.prev), contig.id := .I] # Give a unique number for each start of a new contiguous chunk (i.e., section starts with NA)
@@ -141,7 +143,7 @@
 ## (9) Prep for pushing to SQL ----
     # Create contiguous flag ----  
       # If contiguous with the PREVIOUS row, then it is marked as contiguous. This is the same as mcaid_elig_timevar
-      timevar[, prev_to_date := shift(to_date, 1L, type = "lag"), by = "id_apde"]
+      timevar[, prev_to_date := c(NA, to_date[-.N]), by = "id_apde"] # MUCH faster than the shift "lag" function in data.table
       timevar[, contiguous := 0]
       timevar[from_date - prev_to_date == 1, contiguous := 1]
       timevar[, prev_to_date := NULL] # drop because no longer needed
