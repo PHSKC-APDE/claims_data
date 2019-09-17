@@ -34,62 +34,92 @@
 ## (4) Create King County ever indicator (moment by moment KC status will be in timevar table) ----
   kc.zips <- fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv") #github file with KC zipcodes
   kc <- copy(mbsf[, c("id_mcare", "zip_code", "year")])
-  kc[, kc := as.numeric(as.integer(zip_code) %in% kc.zips$zip)] #creating the new var kc (a 0/1 var) 
-  kc <- unique(kc[, c("id_mcare", "kc", "year")])
-  kc <- kc[, lapply(.SD, sum, na.rm = TRUE), by = id_mcare, .SDcols = c("kc")] # sum/collapse/aggregate the kc variables by ID
-  kc[kc>1, kc := 1]# kc should be either 0 | 1, so if >1, replace with 1
+  kc[, geo_kc := as.numeric(as.integer(zip_code) %in% kc.zips$zip)] #creating the new var kc (a 0/1 var) 
+  kc <- unique(kc[, c("id_mcare", "geo_kc", "year")])
+  kc <- kc[, lapply(.SD, sum, na.rm = TRUE), by = id_mcare, .SDcols = c("geo_kc")] # sum/collapse/aggregate the kc variables by ID
+  kc[geo_kc>1, geo_kc := 1]# geo_kc should be either 0 | 1, so if >1, replace with 1
   if(nrow(kc) - length(unique(kc$id_mcare)) != 0){
-    stop('non-unique id_mcare in sex')
+    stop('non-unique id_mcare in kc')
   }  # confirm all id_mcare are unique
   rm(kc.zips)
 
 ## (5) Create sex indicator as a data.table ----
   sex <- unique(mbsf[, .(id_mcare, sex, year)])
-  sex[, gender_female:=0][sex==2, gender_female := 1] # identify females
-  sex[, gender_male:=0][sex==1, gender_male := 1] # identify males
-  sex <- sex[, lapply(.SD, sum, na.rm = TRUE), by = id_mcare, .SDcols = c("gender_female", "gender_male")] # sum/collapse/aggregate the sex variables by ID
-  sex[gender_female>1, gender_female := 1][gender_male>1, gender_male := 1] # female and male should be either 0 | 1, so if >1, replace with 1.
-  sex[gender_female==1 & gender_male == 0, gender_me := "Female"][gender_female==0 & gender_male == 1, gender_me := "Male"]
-  sex[gender_female==0 & gender_male == 0, gender_me := "Unknown"][gender_female==1 & gender_male == 1, gender_me := "Multiple"]
-  sex[, gender_female_t := NA_integer_] # in mcaid, this is the percent of time data show female. However, non-sensical for mcare
-  sex[, gender_male_t := NA_integer_] # in mcaid, this is the percent of time data show male. We decided not to do this for Medicare.
-  if(nrow(sex) - length(unique(sex$id_mcare)) != 0){
-    stop('non-unique id_mcare in sex')
-  } # confirm all id_mcare are unique
+  # identify the most recent gender for gender_recent
+      setorder(sex, id_mcare, -year) # sort so most recent year is first for each id
+      sex.recent <- copy(sex)
+      sex.recent[, ordering := 1:.N, by = id_mcare] # identify the most recent row for each id  
+      sex.recent <- sex.recent[ordering == 1, ]
+      sex.recent[sex==0, gender_recent := "Unknown"][sex==1, gender_recent := "Male"][sex==2, gender_recent := "Female"]
+      sex.recent[, c("sex", "year", "ordering") := NULL]
+  # back to processing all the sex data
+      sex[, gender_female:=0][sex==2, gender_female := 1] # identify females
+      sex[, gender_male:=0][sex==1, gender_male := 1] # identify males
+      sex <- sex[, lapply(.SD, sum, na.rm = TRUE), by = id_mcare, .SDcols = c("gender_female", "gender_male")] # sum/collapse/aggregate the sex variables by ID
+      sex[gender_female>1, gender_female := 1][gender_male>1, gender_male := 1] # female and male should be either 0 | 1, so if >1, replace with 1.
+      sex[gender_female==1 & gender_male == 0, gender_me := "Female"][gender_female==0 & gender_male == 1, gender_me := "Male"]
+      sex[gender_female==0 & gender_male == 0, gender_me := "Unknown"][gender_female==1 & gender_male == 1, gender_me := "Multiple"]
+      sex[, gender_female_t := NA_integer_] # in mcaid, this is the percent of time data show female. However, non-sensical for mcare
+      sex[, gender_male_t := NA_integer_] # in mcaid, this is the percent of time data show male. We decided not to do this for Medicare.
+  # merge on gender_recent
+      sex <- merge(sex, sex.recent, by = "id_mcare", all = TRUE)
+      rm(sex.recent)
+  # confirm all id_mcare are unique
+      if(nrow(sex) - length(unique(sex$id_mcare)) != 0){
+        stop('non-unique id_mcare in sex')
+      } 
 
 ## (6) Create race indicator as a data.table ----
   #For race, use RTI_RACE_CD rather than BENE_RACE_CD because better allocation of Hipanic and Asian
-  race <- unique(mbsf[, c("id_mcare", "race")])
-  race <- race[!is.na(id_mcare)]
-  race[race==0, race_unk := 1] 
-  race[race==1, race_white := 1] 
-  race[race==2, race_black := 1] 
-  race[race==3, race_other := 1] 
-  race[, race_asian:=0] 
-  race[race==4, race_asian_pi := 1] # RTI method groups asian and pacific islander, so there is no way to split them in our data 
-  race[race==5, race_latino := 1] 
-  race[race==6, race_aian := 1] 
-  race[, race_nhpi:=0] 
-  # sum/collapse/aggregate the race variables by ID
-  race <- race[, lapply(.SD, sum, na.rm = TRUE), by = id_mcare, .SDcols = paste0("race_", c("white", "black", "other", "asian", "asian_pi", "aian", "nhpi", "latino", "unk"))] 
-  # if collapsed data sums >1, replace with 1
-  race[race_white>1, race_white := 1][race_black>1, race_black := 1][race_other>1, race_other := 1]
-  race[race_asian>1, race_asian := 1][race_asian_pi>1, race_asian_pi := 1]
-  race[race_aian>1, race_aian := 1][race_nhpi>1, race_nhpi := 1][race_latino>1, race_latino := 1][race_unk>1, race_unk := 1]  
-  # create race/ethnicity var
-  race[race_white==1, race_eth_me := "White"][race_black==1, race_eth_me := "Black"][race_asian==1, race_eth_me := "Asian"]
-  race[race_asian_pi==1, race_eth_me := "Asian_PI"][race_aian==1, race_eth_me := "AIAN"][race_other==1, race_eth_me := "Other"]
-  race[(race_white + race_black + race_other + race_asian_pi + race_aian) > 1, race_eth_me := "Multiple"]
-  race[race_latino==1, race_eth_me := "Latino"] # code Latino last because supercedes other categories
-  race[race_unk==1, race_eth_me := "Unknown"]
-  # create race var
-  race[, race_me := NA_character_] # this cannot be calculated b/c we only use RTI race coding, which includes Hispanic as a race
+  # Prep race 
+      race <- unique(mbsf[, c("id_mcare", "race", "year")])
+      race <- race[!is.na(id_mcare)]
+      race[race==0, race_unk := 1] 
+      race[race==1, race_white := 1] 
+      race[race==2, race_black := 1] 
+      race[race==3, race_other := 1] 
+      race[, race_asian:=0] # RTI method cannot be used to identify Asian
+      race[race==4, race_asian_pi := 1] # RTI method groups asian and pacific islander, so there is no way to split them in our data 
+      race[race==5, race_latino := 1] 
+      race[race==6, race_aian := 1] 
+      race[, race_nhpi:=0] # RTI method cannot be used to identify NHPI
+  # identify the most recent race for race_recent
+      setorder(race, id_mcare, -year) # sort so most recent year is first for each id
+      race.recent <- copy(race)
+      race.recent[, ordering := 1:.N, by = id_mcare] # identify the most recent row for each id  
+      race.recent <- race.recent[ordering == 1, ]
+      race.recent[, race_eth_recent := as.character(factor(race, levels = c(0:6), labels = c("Unknown", "White", "Black", "Other", "Asian_PI", "Latino", "AIAN")))]
+      race.recent <- race.recent[, .(id_mcare, race_eth_recent)]
+      race.recent[, race_recent := NA_character_] # for medicare cannot separate Latino from race
+  # back to processing all the race data
+    # sum/collapse/aggregate the race variables by ID
+      race.vars <- paste0("race_", c("white", "black", "other", "asian", "asian_pi", "aian", "nhpi", "latino", "unk"))
+      race <- race[, lapply(.SD, sum, na.rm = TRUE), by = id_mcare, .SDcols = race.vars] 
+    # if collapsed data sums >1, replace with 1
+      race[race_white>1, race_white := 1][race_black>1, race_black := 1][race_other>1, race_other := 1]
+      race[race_asian>1, race_asian := 1][race_asian_pi>1, race_asian_pi := 1]
+      race[race_aian>1, race_aian := 1][race_nhpi>1, race_nhpi := 1][race_latino>1, race_latino := 1][race_unk>1, race_unk := 1]  
+    # create race_ethnicity var
+      race[race_unk==1, race_eth_me := "Unknown"]
+      race[race_white==1, race_eth_me := "White"]
+      race[race_black==1, race_eth_me := "Black"]
+      race[race_other==1, race_eth_me := "Other"]
+      race[race_asian_pi==1, race_eth_me := "Asian_PI"]
+      race[race_latino==1, race_eth_me := "Latino"]
+      race[race_aian==1, race_eth_me := "AIAN"]
+      race[(race_white + race_black + race_other + race_asian_pi + race_latino + race_aian + race_unk) > 1, race_eth_me := "Multiple"]
+    # create race_me
+      race[, race_me := NA_character_] # this cannot be calculated b/c we only use RTI race coding, which includes Hispanic as a race  
+  # merge on race_recent
+      race <- merge(race, race.recent, by = "id_mcare", all = TRUE)
+      rm(race.recent)      
+
   # create indicators for percent time as race (just to copy mcaid format)
-  race[, c("race_white_t", "race_black_t", "race_asian_t", "race_aian_t", "race_asian_pi_t", "race_nhpi_t", "race_other_t", "race_latino_t", "race_unk_t") := NA_integer_] # Unlike Medicaid, we decided not to do this for Medicare
-  
-  if(nrow(race) - length(unique(race$id_mcare)) != 0){
-    stop('non-unique id_mcare in race')
-  } # confirm all id_mcare are unique
+    race[, c("race_white_t", "race_black_t", "race_asian_t", "race_aian_t", "race_asian_pi_t", "race_nhpi_t", "race_other_t", "race_latino_t", "race_unk_t") := NA_integer_] # Unlike Medicaid, we decided not to do this for Medicare
+  # confirm all id_mcare are unique
+      if(nrow(race) - length(unique(race$id_mcare)) != 0){
+        stop('non-unique id_mcare in race')
+      } 
 
 ## (7) Create date of death as a data.table ----
   death <- unique(mbsf[!is.na(death_dt) & death_dt != "1900-01-01", .(id_mcare, death_dt, year)]) # copy only death data
@@ -114,7 +144,7 @@
   # add on death 
   elig <- merge(elig, death, by = "id_mcare", all = TRUE)
   
-## (9) Add time stamp
+## (9) Add time stamp ----
   elig[, last_run := Sys.time()]  
 
 ## (10) Write to SQL ----              

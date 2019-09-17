@@ -1,8 +1,9 @@
 schema: stage
-table: mcare_elig_demo
+table: mcaid_mcare_elig_demo
 years:
 vars:
-    id_mcare: CHAR(15) collate SQL_Latin1_General_Cp1_CS_AS
+    id_apde: INT
+    dual: TINYINT
     dob: DATE
     death_dt: DATE
     geo_kc: TINYINT
@@ -10,8 +11,6 @@ vars:
     gender_recent: VARCHAR(10)    
     gender_female: TINYINT
     gender_male: TINYINT
-    gender_female_t: TINYINT
-    gender_male_t: TINYINT
     race_me: VARCHAR(10)
     race_eth_me: VARCHAR(10)
     race_recent: VARCHAR(10)
@@ -20,18 +19,9 @@ vars:
     race_asian: TINYINT
     race_asian_pi: TINYINT
     race_black: TINYINT
+    race_latino: TINYINT
     race_nhpi: TINYINT
     race_white: TINYINT
-    race_latino: TINYINT
     race_other: TINYINT
     race_unk: TINYINT
-    race_aian_t: TINYINT
-    race_asian_t: TINYINT
-    race_asian_pi_t: TINYINT
-    race_black_t: TINYINT
-    race_nhpi_t: TINYINT
-    race_white_t: TINYINT
-    race_latino_t: TINYINT
-    race_other_t: TINYINT
-    race_unk_t: TINYINT
     last_run: DATETIME

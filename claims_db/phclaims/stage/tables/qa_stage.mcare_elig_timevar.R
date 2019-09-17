@@ -135,7 +135,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
   dup_row_count <- as.numeric(odbc::dbGetQuery(
     conn, 
     "SELECT COUNT (*) AS count FROM 
-    (SELECT DISTINCT id_mcare, from_date, to_date, contiguous, dual, buyin, part_a, part_b, part_c, zip, kc, cov_time_day
+    (SELECT DISTINCT id_mcare, from_date, to_date, contiguous, dual, buy_in, part_a, part_b, part_c, geo_zip, geo_kc, cov_time_day
     FROM stage.mcare_elig_timevar) a"))
   
   
