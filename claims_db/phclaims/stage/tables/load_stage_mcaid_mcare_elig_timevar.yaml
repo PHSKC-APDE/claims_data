@@ -9,7 +9,6 @@ vars:
     part_a: TINYINT
     part_b: TINYINT
     part_c: TINYINT
-    dual: TINYINT
     partial: TINYINT
     buy_in: TINYINT
     geo_zip: CHAR(5)

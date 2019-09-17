@@ -16,6 +16,8 @@
   
   start.time <- Sys.time()
   
+  kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv"
+  
   yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage_mcaid_mcare_elig_timevar.yaml"
   
 ## (1) Connect to SQL Server ----    
@@ -152,6 +154,12 @@
     # Select data from Medicare or Medicaid, as appropriate ----
       timevar[is.na(geo_zip_clean) & !is.na(geo_zip_mcare), geo_zip_clean := geo_zip_mcare]
       timevar[, geo_zip_mcare := NULL]
+      
+    # Add KC flag based on zip code ----  
+      kc.zips <- fread(kc.zips.url)
+      timevar[, geo_kc := 0]
+      timevar[geo_zip_clean %in% unique(as.character(kc.zips$zip)), geo_kc := 1]
+      rm(kc.zips)
       
     # create time stamp ----
       timevar[, last_run := Sys.time()] 
