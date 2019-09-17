@@ -6,12 +6,12 @@ vars:
     to_date: DATE
     contiguous: TINYINT
     dual: TINYINT
+    geo_kc: TINYINT
     part_a: TINYINT
     part_b: TINYINT
     part_c: TINYINT
     partial: TINYINT
     buy_in: TINYINT
-    geo_kc: TINYINT
     tpl: TINYINT
     bsp_group_name: VARCHAR(255)
     full_benefit: TINYINT
