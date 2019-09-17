@@ -148,7 +148,7 @@
         dt[, counter := NULL] 
         
 ## (10) Identify contiguous periods ----
-        # If contiguous with the NEXT row, then it is marked as contiguous. This is the same as mcaid_elig_timevar
+        # If contiguous with the PREVIOUS row, then it is marked as contiguous. This is the same as mcaid_elig_timevar
         dt[, prev_to_date := shift(to_date, 1L, type = "lag"), by = "id_mcare"]
         dt[, contiguous := 0]
         dt[from_date - prev_to_date == 1, contiguous := 1]
