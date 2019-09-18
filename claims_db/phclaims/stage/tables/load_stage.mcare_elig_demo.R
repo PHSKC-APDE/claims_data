@@ -11,7 +11,7 @@
   
   start.time <- Sys.time()
   
-  yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage_mcare_elig_demo.yaml"
+  yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.yaml"
   
 ## (1) Connect to SQL Server ----    
   db_claims <- dbConnect(odbc(), "PHClaims51")   

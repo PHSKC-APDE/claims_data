@@ -18,7 +18,7 @@
     options(warning.length = 8170) # get lengthy warnings, needed for SQL
     setwd("C:/temp/")
     kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv"
-    yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage_mcare_elig_timevar.yaml"
+    yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
     qa.function.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcare_elig_timevar.R"
     start.time <- Sys.time()
     
@@ -122,7 +122,7 @@
       dt[, group := cumsum( c(0, diff(group)!=0) )] # in situation like a:a:a:b:b:b:b:a:a:a, want to distinguish first set of "a" from second set of "a"
       
 ## (8) Create unique ID for contiguous times within a given data chunk ----
-      dt[, prev_to_date := shift(to_date, 1L, type = "lag"), by = "group"] # create row with the previous 'to_date'
+      dt[, prev_to_date := c(NA, to_date[-.N]), by = "group"] # MUCH faster than shift(..."lag") ... create row with the previous 'to_date'
       dt[, diff.prev := from_date - prev_to_date] # difference between from_date & prev_to_date will be 1 (day) if they are contiguous
       dt[diff.prev != 1, diff.prev := NA] # set to NA if difference is not 1 day, i.e., it is not contiguous, i.e., it starts a new contiguous chunk
       dt[is.na(diff.prev), contig.id := .I] # Give a unique number for each start of a new contiguous chunk (i.e., section starts with NA)
@@ -149,7 +149,7 @@
         
 ## (10) Identify contiguous periods ----
         # If contiguous with the PREVIOUS row, then it is marked as contiguous. This is the same as mcaid_elig_timevar
-        dt[, prev_to_date := shift(to_date, 1L, type = "lag"), by = "id_mcare"]
+        dt[, prev_to_date := c(NA, to_date[-.N]), by = "id_mcare"] # much faster than shift(..."lag") ... create row with the previous 'to_date'
         dt[, contiguous := 0]
         dt[from_date - prev_to_date == 1, contiguous := 1]
         
