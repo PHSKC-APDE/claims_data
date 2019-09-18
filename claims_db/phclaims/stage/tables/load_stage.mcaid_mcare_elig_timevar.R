@@ -18,7 +18,7 @@
   
   kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv"
   
-  yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage_mcaid_mcare_elig_timevar.yaml"
+  yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.yaml"
   
 ## (1) Connect to SQL Server ----    
   db_claims <- dbConnect(odbc(), "PHClaims51")   
@@ -282,7 +282,7 @@
                          'Number distinct IDs compared to most recent run', 
                          'FAIL', 
                          {Sys.time()}, 
-                         'There were {id_diff} fewer rows in the most recent table 
+                         'There were {id_diff} fewer IDs in the most recent table 
                          ({current.unique.id} vs. {previous.unique.id})')",
                          .con = db_claims))
         
@@ -299,7 +299,7 @@
                          'Number distinct IDs compared to most recent run', 
                          'PASS', 
                          {Sys.time()}, 
-                         'There were {id_diff} more rows in the most recent table 
+                         'There were {id_diff} more IDs in the most recent table 
                          ({current.unique.id} vs. {previous.unique.id})')",
                          .con = db_claims))
         
