@@ -275,6 +275,12 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 # If QA passes, load to final table
 if (ccw_qa_result == "PASS") {
+  
+  create_table_f(
+    conn = db_claims, 
+    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml",
+    overall = T, ind_yr = F, overwrite = T)
+  
   load_table_from_sql_f(
     conn = db_claims,
     config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml", 

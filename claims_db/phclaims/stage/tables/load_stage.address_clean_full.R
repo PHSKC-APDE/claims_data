@@ -409,6 +409,11 @@ combined_add_full_load <- combined_add_full2 %>%
            geo_source_mcaid, geo_source_pha) %>%
   mutate(last_run = Sys.time())
 
+### One last check that missing are actually NA
+combined_add_full_load <- combined_add_full_load %>%
+  mutate_all(., list( ~ ifelse(. %in% c("", "NA"), NA, .)))
+
+
 
 dbWriteTable(db_claims,
              name = DBI::Id(schema = as.character(table_config$schema), 

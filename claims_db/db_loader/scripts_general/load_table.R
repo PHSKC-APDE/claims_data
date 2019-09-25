@@ -49,7 +49,7 @@ load_table_from_file_f <- function(
       stop("Config file does not exist, check file name")
     }
     
-    if (is.yaml.file(config_file) == F) {
+    if (configr::is.yaml.file(config_file) == F) {
       stop(glue("Config file is not a YAML config file. ", 
                 "Check there are no duplicate variables listed"))
     }

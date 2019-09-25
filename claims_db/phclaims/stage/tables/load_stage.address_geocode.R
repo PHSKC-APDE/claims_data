@@ -337,9 +337,9 @@ stage_address_geocode_f <- function(full_refresh = F) {
                    geo_block_geoid10, geo_pumace10, geo_puma_geoid10, geo_puma_name,
                    geo_zcta5ce10, geo_zcta_geoid10, geo_hra, geo_region, 
                    geo_school_geoid10, geo_school),
-              funs(as.character(.))) %>%
+              list( ~ as.character(.))) %>%
     mutate_at(vars(geo_kcc_dist, geo_wa_legdist, geo_scc_dist),
-              funs(as.integer(.))) %>%
+              list( ~ as.integer(.))) %>%
     st_drop_geometry() %>%
     mutate(last_run = Sys.time())
   
