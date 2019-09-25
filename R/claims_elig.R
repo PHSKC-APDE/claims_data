@@ -19,7 +19,6 @@
 #' @param to_date End date for coverage period, "YYYY-MM-DD", 
 #' defaults to 6 months prior to today's date (A)
 #' @param cov_min Minimum coverage required during requested date range (percent scale), defaults to 0 (A)
-#' @param ccov_min Minimum continuous coverage required during requested date range (days), defaults to 1 (A)
 #' @param covgap_max Maximum gap in continuous coverage allowed during requested date range (days) (A)
 #' @param dual_min Minimum Medicare-Medicaid dual eligibility coverage allowed 
 #' during requested date range (percent scale) (A)
@@ -135,7 +134,6 @@ claims_elig <- function(conn,
                        from_date = Sys.Date() - months(18),
                        to_date = Sys.Date() - months(6),
                        cov_min = 0,
-                       ccov_min = 1,
                        covgap_max = NULL,
                        dual_min = NULL,
                        dual_max = NULL,
@@ -218,10 +216,6 @@ claims_elig <- function(conn,
   # Coverage checks
   if(!is.numeric(cov_min) | cov_min < 0 | cov_min > 100){
     stop("Coverage requirement must be numeric between 0 and 100")
-  }
-  
-  if(!is.numeric(ccov_min) | ccov_min < 1){
-    stop("Minimum continuous coverage days must be a positive number >= 1")
   }
   
   if(!is.null(covgap_max)){
@@ -505,25 +499,11 @@ claims_elig <- function(conn,
     geo_kc_ever_sql <- DBI::SQL('')
   }
 
-  
-  # Coverage time
-  ifelse(!is.null(cov_min),
-         cov_min_sql <- glue::glue_sql(" AND cov_pct >= {cov_min} ", .con = conn),
-         cov_min_sql <- DBI::SQL(''))
-  
-  ifelse(!is.null(ccov_min),
-         ccov_min_sql <- glue::glue_sql(" AND ccov_max >= {ccov_min} ", .con = conn),
-         ccov_min_sql <- DBI::SQL(''))
-  
-  ifelse(!is.null(covgap_max),
-         covgap_max_sql <- glue::glue_sql(" AND covgap_max >= {covgap_max} ", .con = conn),
-         covgap_max_sql <- DBI::SQL(''))
-  
-  
+
   #### ELIG_DEMO VARS ####
   if (source == "apcd") {
     demo_vars <- glue::glue_sql(
-      "id_apcd, dob, ninety_only, 
+      "{id_name}, dob, ninety_only, 
       CASE 
         WHEN (datediff(day, dob, {to_date}) + 1) >= 0 THEN 
           FLOOR((datediff(day, dob, {to_date}) + 1) / 365.25)
@@ -533,7 +513,7 @@ claims_elig <- function(conn,
       .con = conn)
   } else if (source == "mcaid") {
     demo_vars <- glue::glue_sql(
-      "id_mcaid, 
+      "{id_name}, 
       -- age vars
       dob, 
       CASE 
@@ -559,13 +539,13 @@ claims_elig <- function(conn,
       , .con = conn)
   } else if (source == "mcaid_mcare") {
     demo_vars <- glue::glue_sql(
-      "id_mcare, dob, 
+      "{id_name}, dob, 
       CASE 
         WHEN (datediff(day, dob, {to_date}) + 1) >= 0 THEN 
           FLOOR((datediff(day, dob, {to_date}) + 1) / 365.25)
         WHEN datediff(day, dob, {to_date}) < 0 then NULL
         END as 'age', death_dt, 
-      gender_me, gender_recent, gender_female, gender_male, gender_female_t, gender_male_t, 
+      gender_me, gender_recent, gender_female, gender_male, 
       race_me, race_eth_me, race_recent, race_eth_recent, 
       race_aian, race_asian, race_asian_pi, race_black, race_latino, 
       race_nhpi, race_other, race_white, race_unk,
@@ -574,7 +554,7 @@ claims_elig <- function(conn,
       .con = conn)
   } else if (source == "mcare") {
     demo_vars <- glue::glue_sql(
-      "id_mcare, dob, 
+      "{id_name}, dob, 
       CASE 
         WHEN (datediff(day, dob, {to_date}) + 1) >= 0 THEN 
           FLOOR((datediff(day, dob, {to_date}) + 1) / 365.25)
@@ -594,6 +574,15 @@ claims_elig <- function(conn,
   ### Determine length of requested period
   duration <- lubridate::interval(from_date, to_date) / lubridate::ddays(1) + 1
   
+  ### Set up coverage time restrictions
+  ifelse(!is.null(cov_min),
+         cov_min_sql <- glue::glue_sql(" AND c.cov_pct >= {cov_min} ", .con = conn),
+         cov_min_sql <- DBI::SQL(''))
+  
+  ifelse(!is.null(covgap_max),
+         covgap_max_sql <- glue::glue_sql(" AND c.covgap_max >= {covgap_max} ", .con = conn),
+         covgap_max_sql <- DBI::SQL(''))
+  
   ### Set up the denominator to be used in timevar percents
   if (timevar_denom == "duration") {
     denom_sql <- glue::glue_sql("duration")
@@ -608,7 +597,7 @@ claims_elig <- function(conn,
   
   ### Make part-way table to avoid calculating cov_days repeatedly in sub-queries
   timevar_part_sql <- glue::glue_sql(
-    "SELECT a.{id_name}, a.from_date, a.to_date, 
+    "SELECT a.{id_name}, a.from_date, a.to_date, a.contiguous, 
           CASE 
             WHEN a.from_date <= {from_date} AND a.to_date >= {to_date} 
               THEN datediff(day, {from_date}, {to_date}) + 1
@@ -640,7 +629,7 @@ claims_elig <- function(conn,
             END AS post_gap 
           INTO ##cov_time_part
           FROM 
-          (SELECT {id_name}, from_date, to_date FROM PHClaims.final.{`paste0(source, '_elig_timevar')`}
+          (SELECT {id_name}, from_date, to_date, contiguous FROM PHClaims.final.{`paste0(source, '_elig_timevar')`}
           WHERE from_date <= {to_date} AND to_date >= {from_date}) a",
     .con = conn)
   
@@ -660,19 +649,19 @@ claims_elig <- function(conn,
   
   ### Now make final table that is used for calculating percentages etc.
   timevar_tot_sql <- glue::glue_sql(
-    "SELECT b.{id_name}, MAX(b.cov_days) AS cov_days, MAX(duration) AS duration,
-      (MAX(b.cov_days) / MAX(duration) * 100.0) AS cov_pct, 
-      MAX(b.ccov_max) AS ccov_max, 
-      (SELECT MAX(v) FROM (VALUES (MAX(b.pre_gap)), (MAX(b.post_gap))) AS VALUE(v)) AS covgap_max
-    INTO ##cov_time_tot
-    FROM
-      (SELECT a.{id_name}, SUM(a.cov_days) AS cov_days, {duration} AS duration,
-        MAX(a.cov_days) AS ccov_max, 
-        MAX(a.pre_gap) AS pre_gap, MAX(a.post_gap) AS post_gap 
-      FROM 
-        (SELECT * FROM ##cov_time_part) a
-      GROUP BY {id_name}) b
-    GROUP BY {id_name}",
+    "SELECT c.* INTO ##cov_time_tot
+      FROM
+      (SELECT b.{id_name}, MAX(b.cov_days) AS cov_days, MAX(duration) AS duration,
+        CAST((MAX(b.cov_days) * 1.0) / MAX(duration) * 100 AS decimal(4, 1)) AS cov_pct,  
+        (SELECT MAX(v) FROM (VALUES (MAX(b.pre_gap)), (MAX(b.post_gap))) AS VALUE(v)) AS covgap_max
+      FROM
+        (SELECT a.{id_name}, SUM(a.cov_days) AS cov_days, {duration} AS duration, 
+          MAX(a.pre_gap) AS pre_gap, MAX(a.post_gap) AS post_gap 
+        FROM 
+          (SELECT * FROM ##cov_time_part) a
+        GROUP BY {id_name}) b
+      GROUP BY {id_name}) c
+    WHERE 1 = 1 {cov_min_sql} {covgap_max_sql}",
     .con = conn)
   
   # Get rid of the temp table if it already exists
@@ -695,59 +684,95 @@ claims_elig <- function(conn,
   timevar_gen_sql <- function(var, conn_inner = conn, source_inner = source,
                               pct = F) {
     
-    inner_name <- glue::glue("{var}_inner")
-    outer_name <- glue::glue("{var}_outer")
-    tot_name <- glue::glue("{var}_tot")
-    final_name <- glue::glue("{var}_final")
-    
-    var_days <- glue::glue("{var}_days")
-    var_pct <- glue::glue("{var}_pct")
-    
-    # Currently id_name seems to be being drawn from the parent environment
+    # Currently id_name and denom_sql seem to be being drawn from the parent environment
     # works ok but could also define in this function
     
     if (pct == T) {
-      pct_sql <- glue::glue_sql(
-        ", CAST({`outer_name`}.{`var_days`} * 1.0 / 
-             cov_tot.{denom_sql} * 100 AS decimal(4,1)) as {var_pct}",
-        .con = conn_inner)    
-      pct_sql_join <- glue::glue_sql(
+      # Table names
+      pt1_a <- glue::glue("{var}_pt1_a")
+      pt1_b <- glue::glue("{var}_pt1_b")
+      pt2_a <- glue::glue("{var}_pt2_a")
+      pt2_b <- glue::glue("{var}_pt2_b")
+      pt2_c <- glue::glue("{var}_pt2_c")
+      pt2_d <- glue::glue("{var}_pt2_d")
+      tbl_final <- glue::glue("{var}_final")
+      # Var names
+      var_pct_num <- glue::glue("{var}_pct_num")
+      var_pct <- glue::glue("{var}_pct")
+      
+      output_sql <- glue::glue_sql(
         "LEFT JOIN
-        (SELECT {id_name}, cov_days, duration FROM ##cov_time_tot) cov_tot
-          ON {`outer_name`}.{id_name} = cov_tot.{id_name} ",
-        .con = conn_inner
-      )
-    } else {
-      pct_sql <- DBI::SQL('')
-      pct_sql_join <- DBI::SQL('')
-    }
+        (SELECT {`pt1_b`}.{id_name}, {`pt1_b`}.{`var`}, {`pt2_d`}.{`var_pct`}
+          FROM
+          (SELECT {`pt1_a`}.{id_name}, {`pt1_a`}.{`var`}, 
+            ROW_NUMBER() OVER(PARTITION BY {`pt1_a`}.{id_name} 
+                              ORDER BY SUM(cov_time_part.cov_days) DESC, {`pt1_a`}.{`var`}) AS rk
+            FROM 
+            (SELECT {id_name}, {`var`}, from_date, to_date 
+              FROM PHClaims.final.{`paste0(source_inner, '_elig_timevar')`}) {`pt1_a`}
+            INNER JOIN
+            (SELECT {id_name}, from_date, to_date, cov_days FROM ##cov_time_part) cov_time_part
+            ON {`pt1_a`}.{id_name} = cov_time_part.{id_name} AND 
+               {`pt1_a`}.from_date = cov_time_part.from_date AND
+               {`pt1_a`}.to_date = cov_time_part.to_date 
+            GROUP BY {`pt1_a`}.{id_name}, {`pt1_a`}.{`var`}) {`pt1_b`}
+          
+            INNER JOIN
+            (SELECT {`pt2_c`}.{id_name}, 
+              CAST({`pt2_c`}.{`var_pct_num`} * 1.0 / cov_tot.{denom_sql} * 100 AS decimal(4,1)) AS {`var_pct`}
+              FROM
+              (SELECT {`pt2_b`}.{id_name}, MAX({`var_pct_num`}) AS {`var_pct_num`}
+                FROM
+                (SELECT {`pt2_a`}.{id_name}, SUM(cov_time_part.cov_days * {`pt2_a`}.{`var`}) AS {`var_pct_num`}
+                FROM 
+                  (SELECT {id_name}, {`var`}, from_date, to_date FROM 
+                    PHClaims.final.{`paste0(source_inner, '_elig_timevar')`}) {`pt2_a`}
+                INNER JOIN
+                  (SELECT {id_name}, from_date, to_date, cov_days FROM ##cov_time_part) cov_time_part
+                    ON {`pt2_a`}.{id_name} = cov_time_part.{id_name} AND 
+                      {`pt2_a`}.from_date = cov_time_part.from_date AND
+                      {`pt2_a`}.to_date = cov_time_part.to_date 
+                    GROUP BY {`pt2_a`}.{id_name}, {`pt2_a`}.{`var`}) {`pt2_b`}
+                GROUP BY {`pt2_b`}.{id_name}) {`pt2_c`}
+              INNER JOIN
+                (SELECT {id_name}, cov_days, duration FROM ##cov_time_tot) cov_tot
+              ON {`pt2_c`}.{id_name} = cov_tot.{id_name}) {`pt2_d`}
+            ON {`pt1_b`}.{id_name} = {`pt2_d`}.{id_name}
+            WHERE rk = 1) {`tbl_final`}
+          ON demo.{id_name} = {`tbl_final`}.{id_name} ",
+        .con = conn_inner)
 
-    output_sql <- glue::glue_sql(
-      "LEFT JOIN
-        (SELECT {`outer_name`}.{id_name}, {`outer_name`}.{`var`}, 
-          {`outer_name`}.{`var_days`} 
-          {pct_sql}
+    } else {
+      # Table names
+      tbl_a <- glue::glue("{var}_tbl_a")
+      tbl_b <- glue::glue("{var}_tbl_b")
+      tbl_final <- glue::glue("{var}_final") # Use final because of joins in core code below
+      # Var names
+      var_days <- glue::glue("{var}_days")
+      
+      output_sql <- glue::glue_sql(
+        "LEFT JOIN
+        (SELECT {`tbl_b`}.{id_name}, {`tbl_b`}.{`var`}, 
+          {`tbl_b`}.{`var_days`} 
         FROM
-          (SELECT {`inner_name`}.{id_name}, {`inner_name`}.{`var`}, 
+          (SELECT {`tbl_a`}.{id_name}, {`tbl_a`}.{`var`}, 
             SUM(cov_time_part.cov_days) AS {var_days}, 
-            ROW_NUMBER() OVER(PARTITION BY {`inner_name`}.{id_name} 
-                              ORDER BY SUM(cov_time_part.cov_days) DESC, {`inner_name`}.{`var`}) AS rk
+            ROW_NUMBER() OVER(PARTITION BY {`tbl_a`}.{id_name} 
+                              ORDER BY SUM(cov_time_part.cov_days) DESC, {`tbl_a`}.{`var`}) AS rk
           FROM 
             (SELECT {id_name}, {`var`}, from_date, to_date 
-              FROM PHClaims.final.{`paste0(source_inner, '_elig_timevar')`}
-              WHERE from_date <= {to_date} AND to_date >= {from_date}) {`inner_name`}
-            LEFT JOIN
+              FROM PHClaims.final.{`paste0(source_inner, '_elig_timevar')`}) {`tbl_a`}
+            INNER JOIN
             (SELECT {id_name}, from_date, to_date, cov_days
               FROM ##cov_time_part) cov_time_part
-            ON {`inner_name`}.{id_name} = cov_time_part.{id_name} AND 
-              {`inner_name`}.from_date = cov_time_part.from_date AND
-              {`inner_name`}.to_date = cov_time_part.to_date 
-            GROUP BY {`inner_name`}.{id_name}, {`inner_name`}.{`var`}) {`outer_name`}
-          {pct_sql_join} 
-        WHERE rk = 1) {`final_name`}
-      ON demo.{id_name} = {`final_name`}.{id_name} ",
-      .con = conn_inner)
-    
+            ON {`tbl_a`}.{id_name} = cov_time_part.{id_name} AND 
+              {`tbl_a`}.from_date = cov_time_part.from_date AND
+              {`tbl_a`}.to_date = cov_time_part.to_date 
+            GROUP BY {`tbl_a`}.{id_name}, {`tbl_a`}.{`var`}) {`tbl_b`}
+        WHERE rk = 1) {`tbl_final`}
+      ON demo.{id_name} = {`tbl_final`}.{id_name} ",
+        .con = conn_inner)
+    }
     return(output_sql)
   }
   
@@ -757,11 +782,11 @@ claims_elig <- function(conn,
   
   if (!is.null(dual_min) | !is.null(dual_max)) {
     ifelse(!is.null(dual_min),
-           dual_min_sql <- glue::glue_sql(" AND (dual_final.dual = 0 OR dual_final.dual_pct >= {dual_min}) ", 
+           dual_min_sql <- glue::glue_sql(" AND dual_final.dual_pct >= {dual_min} ", 
                                           .con = conn),
            dual_min_sql <- DBI::SQL(''))
     ifelse(!is.null(dual_max),
-           dual_max_sql <- glue::glue_sql(" AND (dual_final.dual = 0 OR dual_final.dual_pct <= {dual_max}) ", 
+           dual_max_sql <- glue::glue_sql(" AND dual_final.dual_pct <= {dual_max} ", 
                                           .con = conn),
            dual_max_sql <- DBI::SQL(''))
     
@@ -1029,9 +1054,9 @@ claims_elig <- function(conn,
       .con = conn)
   } else if (source == "mcaid") {
     timevar_vars <- glue::glue_sql(
-      " dual_final.dual, dual_final.dual_days, dual_final.dual_pct, 
+      " dual_final.dual, dual_final.dual_pct, 
       bsp_group_name_final.bsp_group_name, bsp_group_name_final.bsp_group_name_days, 
-      full_benefit_final.full_benefit, full_benefit_final.full_benefit_days, full_benefit_final.full_benefit_pct, 
+      full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
       cov_type_final.cov_type, cov_type_final.cov_type_days, 
       mco_id_final.mco_id, mco_id_final.mco_id_days, 
       geo_zip_final.geo_zip, geo_zip_final.geo_zip_days, 
@@ -1040,29 +1065,29 @@ claims_elig <- function(conn,
       , .con = conn)
   } else if (source == "mcaid_mcare") {
     timevar_vars <- glue::glue_sql(
-      " dual_final.dual, dual_final.dual_days, dual_final.dual_pct, 
+      " dual_final.dual, dual_final.dual_pct, 
       bsp_group_name_final.bsp_group_name, bsp_group_name_final.bsp_group_name_days, 
-      full_benefit_final.full_benefit, full_benefit_final.full_benefit_days, full_benefit_final.full_benefit_pct, 
+      full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
       cov_type_final.cov_type, cov_type_final.cov_type_days, 
       mco_id_final.mco_id, mco_id_final.mco_id_days, 
-      part_a_final.part_a, part_a_final.part_a_days, part_a_final.part_a_pct, 
-      part_b_final.part_b, part_b_final.part_b_days, part_b_final.part_b_pct, 
-      part_c_final.part_c, part_c_final.part_c_days, part_c_final.part_c_pct, 
-      buy_in_final.buy_in, buy_in_final.buy_in_days, buy_in_final.buy_in_pct, 
+      part_a_final.part_a, part_a_final.part_a_pct, 
+      part_b_final.part_b, part_b_final.part_b_pct, 
+      part_c_final.part_c, part_c_final.part_c_pct, 
+      buy_in_final.buy_in, buy_in_final.buy_in_pct, 
       geo_zip_final.geo_zip, geo_zip_final.geo_zip_days, 
-      geo_hra_final.geo_hra, geo_hra_final.geo_hra_days, 
-      geo_county_final.geo_county, geo_county_final.geo_county_days, 
-      geo_kc_final.geo_kc, geo_kc_final.geo_kc_days, geo_kc_final.geo_kc_pct, " 
+      geo_hra_code_final.geo_hra_code, geo_hra_code_final.geo_hra_code_days,  
+      geo_county_code_final.geo_county_code, geo_county_code_final.geo_county_code_days, 
+      geo_kc_final.geo_kc, geo_kc_final.geo_kc_pct, " 
       , .con = conn)
   } else if (source == "mcare") {
     timevar_vars <- glue::glue_sql(
-      " dual_final.dual, dual_final.dual_days, dual_final.dual_pct, 
-      part_a_final.part_a, part_a_final.part_a_days, part_a_final.part_a_pct, 
-      part_b_final.part_b, part_b_final.part_b_days, part_b_final.part_b_pct, 
-      part_c_final.part_c, part_c_final.part_c_days, part_c_final.part_c_pct, 
-      buy_in_final.buy_in, buy_in_final.buy_in_days, buy_in_final.buy_in_pct, 
+      " dual_final.dual, dual_final.dual_pct, 
+      part_a_final.part_a, part_a_final.part_a_pct, 
+      part_b_final.part_b, part_b_final.part_b_pct, 
+      part_c_final.part_c, part_c_final.part_c_pct, 
+      buy_in_final.buy_in, buy_in_final.buy_in_pct,  
       geo_zip_final.geo_zip, geo_zip_final.geo_zip_days, 
-      geo_kc_final.geo_kc, geo_kc_final.geo_kc_days, geo_kc_final.geo_kc_pct, " 
+      geo_kc_final.geo_kc, geo_kc_final.geo_kc_pct, " 
       , .con = conn)
   }
   
@@ -1070,8 +1095,7 @@ claims_elig <- function(conn,
   core_sql <- glue::glue_sql(
     "SELECT demo.*,
       {timevar_vars} 
-      timevar.cov_days, timevar.duration, timevar.cov_pct, 
-      timevar.ccov_max, timevar.covgap_max 
+      timevar.cov_days, timevar.duration, timevar.cov_pct, timevar.covgap_max 
       FROM
       (SELECT DISTINCT {demo_vars}
         from PHClaims.final.{`paste0(source, '_elig_demo')`}
@@ -1087,10 +1111,8 @@ claims_elig <- function(conn,
         {geo_kc_ever_sql}
       ) demo
       INNER JOIN
-      (SELECT {id_name}, cov_days, duration, cov_pct, ccov_max, covgap_max 
-        FROM ##cov_time_tot
-        WHERE 1 = 1 {cov_min_sql} {ccov_min_sql} {covgap_max_sql} 
-        ) timevar
+      (SELECT {id_name}, cov_days, duration, cov_pct, covgap_max 
+        FROM ##cov_time_tot) timevar
         ON demo.{id_name} = timevar.{id_name}
       {dual_sql} {bsp_group_name_sql} {full_benefit_sql} {cov_type_sql} 
       {mco_id_sql} {part_a_sql} {part_b_sql} {part_c_sql} {buy_in_sql} 
