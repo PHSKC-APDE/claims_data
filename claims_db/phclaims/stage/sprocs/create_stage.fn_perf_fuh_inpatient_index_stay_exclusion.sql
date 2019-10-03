@@ -1,11 +1,15 @@
 
 /*
-This function joins the exclusions in
-[stage].[fn_perf_fuh_inpatient_index_stay_readmit]
-to the inpatient index stays in
-[stage].[fn_perf_fuh_inpatient_index_stay]
+This function:
+(1)
+combines discharges from 
+[stage].[v_perf_fuh_inpatient_index_stay] WHERE [value_set_name] = 'Mental Illness'
+and [stage].[v_perf_fuh_inpatient_index_stay] WHERE [value_set_name] = 'Mental Health Diagnosis'
+and takes the LAST discharge date.
+(2) Of the remaining discharges, those with a subsequent admission in
+[stage].[v_perf_fuh_inpatient_index_stay_readmit] are identified.
 
-This is done inside this function to allow indexes
+This is done inside this MULTI-STATEMENT SQL function to allow indexes
 
 LOGIC:
 [flag] = 1 and [inpatient_within_30_day] = 0
@@ -34,8 +38,7 @@ DROP FUNCTION [stage].[fn_perf_fuh_inpatient_index_stay_exclusion];
 GO
 CREATE FUNCTION [stage].[fn_perf_fuh_inpatient_index_stay_exclusion]
 (@measurement_start_date DATE
-,@measurement_end_date DATE
-,@age INT)
+,@measurement_end_date DATE)
 
 RETURNS @inpatient_index_stay_exclusion TABLE
 ([id_mcaid] VARCHAR(255) NULL 
@@ -57,20 +60,6 @@ DECLARE @index_stay TABLE
 ,[flag] INT NOT NULL
 ,INDEX idx_cl_index_stay_id_mcaid_discharge_date CLUSTERED([id_mcaid], [discharge_date]));
 
-INSERT INTO @index_stay
-([id_mcaid]
-,[age]
-,[claim_header_id]
-,[admit_date]
-,[discharge_date]
-,[flag])
-
-SELECT 
- a.[id_mcaid]
-,a.[age]
-,a.[claim_header_id]
-,a.[admit_date]
---,a.[discharge_date]
 /*
 Acute readmission or direct transfer:
 If the discharge is followed by readmission or direct transfer to an acute 
@@ -80,24 +69,62 @@ discharge. Exclude both the initial discharge and the readmission/direct
 transfer discharge if the last discharge occurs after December 1 of the 
 measurement year.
 */
-,ISNULL(MAX(b.[discharge_date]), a.[discharge_date]) AS [discharge_date]
-,a.[flag]
---,MAX(b.[admit_date]) AS [next_admit_date]
---,MAX(b.[discharge_date]) AS [next_discharge_date]
+WITH CTE AS
+(
+SELECT
+/*
+If a discharge joins to a another discharge within 30 days,
+retain claim details for the later discharge.
+*/
+ COALESCE(b.[value_set_name], a.[value_set_name]) AS [value_set_name]
+,COALESCE(b.[id_mcaid], a.[id_mcaid]) AS [id_mcaid]
+,COALESCE(b.[age], a.[age]) AS [age]
+,COALESCE(b.[claim_header_id], a.[claim_header_id]) AS [claim_header_id]
+,COALESCE(b.[admit_date], a.[admit_date]) AS [admit_date]
+,COALESCE(b.[discharge_date], a.[discharge_date]) AS [discharge_date]
+,COALESCE(b.[first_service_date], a.[first_service_date]) AS [first_service_date]
+,COALESCE(b.[last_service_date], a.[last_service_date]) AS [last_service_date]
+,COALESCE(b.[flag], a.[flag]) AS [flag]
+/*
+If a discharge joins to multiple discharges within 30 days,
+retain the last claim, ORDER BY b.[discharge_date] DESC.
+*/
+,ROW_NUMBER() OVER(PARTITION BY a.[claim_header_id] ORDER BY b.[discharge_date] DESC) AS [row_num]
 
-FROM [stage].[fn_perf_fuh_inpatient_index_stay]
-(@measurement_start_date, @measurement_end_date, @age, 'Mental Illness') AS a
-LEFT JOIN [stage].[fn_perf_fuh_inpatient_index_stay]
-(@measurement_start_date, @measurement_end_date, @age, 'Mental Health Diagnosis') AS b
-ON a.[id_mcaid] = b.[id_mcaid]
-AND b.[admit_date] BETWEEN DATEADD(DAY, 1, a.[discharge_date]) AND DATEADD(DAY, 30, a.[discharge_date])
-GROUP BY
- a.[id_mcaid]
-,a.[age]
-,a.[claim_header_id]
-,a.[admit_date]
-,a.[discharge_date]
-,a.[flag]
+FROM [stage].[v_perf_fuh_inpatient_index_stay] AS a
+LEFT JOIN [stage].[v_perf_fuh_inpatient_index_stay] AS b
+ON b.[value_set_name] = 'Mental Health Diagnosis'
+AND b.[discharge_date] BETWEEN @measurement_start_date AND @measurement_end_date
+AND a.[id_mcaid] = b.[id_mcaid]
+AND b.[discharge_date] BETWEEN DATEADD(DAY, 1, a.[discharge_date]) AND DATEADD(DAY, 30, a.[discharge_date])
+
+WHERE 1 = 1
+AND a.[value_set_name] = 'Mental Illness'
+AND a.[discharge_date] BETWEEN @measurement_start_date AND @measurement_end_date
+
+--ORDER BY a.[claim_header_id], b.[discharge_date]
+)
+
+INSERT INTO @index_stay
+([id_mcaid]
+,[age]
+,[claim_header_id]
+,[admit_date]
+,[discharge_date]
+,[flag])
+
+SELECT
+ [value_set_name]
+,[id_mcaid]
+,[age]
+,[claim_header_id]
+,[admit_date]
+,[discharge_date]
+,[first_service_date]
+,[last_service_date]
+,[flag]
+FROM CTE 
+WHERE [row_num] = 1
 ORDER BY [id_mcaid], [discharge_date];
 
 DECLARE @readmit TABLE
@@ -124,8 +151,8 @@ SELECT
 ,[discharge_date]
 ,[acuity]
 ,[flag]
-FROM [stage].[fn_perf_fuh_inpatient_index_stay_readmit]
-(@measurement_start_date, @measurement_end_date)
+FROM [stage].[v_perf_fuh_inpatient_index_stay_readmit]
+WHERE [admit_date] BETWEEN @measurement_start_date AND @measurement_end_date
 ORDER BY [id_mcaid], [admit_date];
 
 INSERT INTO @inpatient_index_stay_exclusion
