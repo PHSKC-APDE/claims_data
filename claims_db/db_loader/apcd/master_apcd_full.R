@@ -43,6 +43,7 @@ load_load_raw.apcd_dental_claim_full_f(etl_date_min = "2014-01-01", etl_date_max
 
 
 #### LOAD_RAW PROVIDER PRACTICE ROSTER ####
+#Run time: 1 min
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_practice_roster_full.yaml",
