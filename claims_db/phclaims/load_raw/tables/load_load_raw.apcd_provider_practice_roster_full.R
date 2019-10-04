@@ -51,4 +51,14 @@ load_load_raw.apcd_provider_practice_roster_full_f <- function(etl_date_min = NU
                          overall = T, ind_yr = F, combine_yr = F)
   
   
+  #### ADD BATCH ID COLUMN ####
+  print("Adding batch ID to SQL table")
+  # Add column to the SQL table and set current batch to the default
+  odbc::dbGetQuery(db_claims,
+                   glue::glue_sql(
+                     "ALTER TABLE load_raw.apcd_provider_practice_roster
+                   ADD etl_batch_id INTEGER 
+                   DEFAULT {current_batch_id} WITH VALUES",
+                     .con = db_claims))
+  
   }
