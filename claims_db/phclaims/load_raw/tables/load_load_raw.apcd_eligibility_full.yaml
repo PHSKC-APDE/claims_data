@@ -80,3 +80,14 @@ table_eligibility_9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_9.csv
     field_term: \t
     row_term: \n
+combine_years:
+    - eligibility_1
+    - eligibility_10
+    - eligibility_2
+    - eligibility_3
+    - eligibility_4
+    - eligibility_5
+    - eligibility_6
+    - eligibility_7
+    - eligibility_8
+    - eligibility_9

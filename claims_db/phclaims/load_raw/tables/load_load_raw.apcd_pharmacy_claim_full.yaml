@@ -174,3 +174,38 @@ table_pharmacy_claim_9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_9.csv
     field_term: \t
     row_term: \n
+combine_years:
+    - pharmacy_claim_1
+    - pharmacy_claim_10
+    - pharmacy_claim_11
+    - pharmacy_claim_12
+    - pharmacy_claim_13
+    - pharmacy_claim_14
+    - pharmacy_claim_15
+    - pharmacy_claim_16
+    - pharmacy_claim_17
+    - pharmacy_claim_18
+    - pharmacy_claim_19
+    - pharmacy_claim_2
+    - pharmacy_claim_20
+    - pharmacy_claim_21
+    - pharmacy_claim_22
+    - pharmacy_claim_23
+    - pharmacy_claim_24
+    - pharmacy_claim_25
+    - pharmacy_claim_26
+    - pharmacy_claim_27
+    - pharmacy_claim_28
+    - pharmacy_claim_29
+    - pharmacy_claim_3
+    - pharmacy_claim_30
+    - pharmacy_claim_31
+    - pharmacy_claim_32
+    - pharmacy_claim_33
+    - pharmacy_claim_34
+    - pharmacy_claim_4
+    - pharmacy_claim_5
+    - pharmacy_claim_6
+    - pharmacy_claim_7
+    - pharmacy_claim_8
+    - pharmacy_claim_9

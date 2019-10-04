@@ -144,3 +144,35 @@ table_member_month_detail_9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_9.csv
     field_term: \t
     row_term: \n
+combine_years:
+    - member_month_detail_1
+    - member_month_detail_10
+    - member_month_detail_11
+    - member_month_detail_12
+    - member_month_detail_13
+    - member_month_detail_14
+    - member_month_detail_15
+    - member_month_detail_16
+    - member_month_detail_17
+    - member_month_detail_18
+    - member_month_detail_19
+    - member_month_detail_2
+    - member_month_detail_20
+    - member_month_detail_21
+    - member_month_detail_22
+    - member_month_detail_23
+    - member_month_detail_24
+    - member_month_detail_25
+    - member_month_detail_26
+    - member_month_detail_27
+    - member_month_detail_28
+    - member_month_detail_29
+    - member_month_detail_3
+    - member_month_detail_30
+    - member_month_detail_31
+    - member_month_detail_4
+    - member_month_detail_5
+    - member_month_detail_6
+    - member_month_detail_7
+    - member_month_detail_8
+    - member_month_detail_9

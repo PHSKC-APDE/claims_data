@@ -51,6 +51,12 @@ lapply(table_list, function(table_list) {
     names(file_list) <- "overall"
   }
   
+  #For tables with multiple chunks, create list of table chunk suffixes
+  if (length(long_file_list) > 1) {
+    combine_years <- list(combine_years = short_file_list)
+    file_list <- append(file_list, combine_years[1])
+  }
+  
   #Extract column names, positions and data types from XML format file, convert to YAML and write to file
   apcd_format_file <- list.files(path = file.path(table_path), pattern = "*format.xml", full.names = T)
   format_xml <- XML::xmlParse(apcd_format_file)
@@ -60,12 +66,8 @@ lapply(table_list, function(table_list) {
   colnames(format_df) <- colNames
   vars_list <- as.list(deframe(select(arrange(format_df, as.numeric(as.character(POSITION))), COLUMN_NAME, DATA_TYPE)))
   format_list <- list("schema" = sql_schema_name, "table" = sql_table, "vars" = vars_list)
-  yaml::write_yaml(append(format_list, file_list), glue(write_path, "load_", sql_schema_name, ".", sql_table, "_full", ".yaml"), indent = 4)
+  yaml::write_yaml(append(format_list, file_list), glue(write_path, "load_", sql_schema_name, ".", sql_table, "_full", ".yaml"), indent = 4,
+                   indent.mapping.sequence = T)
   
   glue(sql_table, " format file successfully converted to YAML file")
 })
-
-
-
-
-
