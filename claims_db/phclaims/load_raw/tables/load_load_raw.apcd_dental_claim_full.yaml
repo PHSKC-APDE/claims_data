@@ -36,39 +36,39 @@ vars:
     row_number: bigint
 table_part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_1.csv
-    field_term: ','
+    field_term: ,
     row_term: \n
 table_part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_2.csv
-    field_term: ','
+    field_term: ,
     row_term: \n
 table_part3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_3.csv
-    field_term: ','
+    field_term: ,
     row_term: \n
 table_part4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_4.csv
-    field_term: ','
+    field_term: ,
     row_term: \n
 table_part5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_5.csv
-    field_term: ','
+    field_term: ,
     row_term: \n
 table_part6:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_6.csv
-    field_term: ','
+    field_term: ,
     row_term: \n
 table_part7:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_7.csv
-    field_term: ','
+    field_term: ,
     row_term: \n
 table_part8:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_8.csv
-    field_term: ','
+    field_term: ,
     row_term: \n
 table_part9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_9.csv
-    field_term: ','
+    field_term: ,
     row_term: \n
 years:
     - part1
