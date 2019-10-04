@@ -50,5 +50,14 @@ load_load_raw.apcd_dental_claim_full_f <- function(etl_date_min = NULL,
                          config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
                          overall = F, ind_yr = T, combine_yr = T)
   
+  #### ADD BATCH ID COLUMN ####
+  print("Adding batch ID to SQL table")
+  # Add column to the SQL table and set current batch to the default
+  odbc::dbGetQuery(db_claims,
+                   glue::glue_sql(
+                     "ALTER TABLE load_raw.apcd_dental_claim
+                   ADD etl_batch_id INTEGER 
+                   DEFAULT {current_batch_id} WITH VALUES",
+                     .con = db_claims))
   
   }
