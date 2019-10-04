@@ -144,7 +144,7 @@ table_member_month_detail_9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_9.csv
     field_term: \t
     row_term: \n
-combine_years:
+years:
     - member_month_detail_1
     - member_month_detail_10
     - member_month_detail_11

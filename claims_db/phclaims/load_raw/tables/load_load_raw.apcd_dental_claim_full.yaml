@@ -70,7 +70,7 @@ table_dental_claim_9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_9.csv
     field_term: \t
     row_term: \n
-combine_years:
+years:
     - dental_claim_1
     - dental_claim_2
     - dental_claim_3

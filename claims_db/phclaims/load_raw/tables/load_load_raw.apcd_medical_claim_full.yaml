@@ -379,7 +379,7 @@ table_medical_claim_9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_9.csv
     field_term: \t
     row_term: \n
-combine_years:
+years:
     - medical_claim_1
     - medical_claim_10
     - medical_claim_11

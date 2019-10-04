@@ -27,6 +27,6 @@ table_provider_2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_2.csv
     field_term: \t
     row_term: \n
-combine_years:
+years:
     - provider_1
     - provider_2

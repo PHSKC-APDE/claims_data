@@ -174,7 +174,7 @@ table_pharmacy_claim_9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_9.csv
     field_term: \t
     row_term: \n
-combine_years:
+years:
     - pharmacy_claim_1
     - pharmacy_claim_10
     - pharmacy_claim_11

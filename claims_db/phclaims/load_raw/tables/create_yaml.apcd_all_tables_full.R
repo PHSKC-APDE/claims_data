@@ -53,7 +53,7 @@ lapply(table_list, function(table_list) {
   
   #For tables with multiple chunks, create list of table chunk suffixes
   if (length(long_file_list) > 1) {
-    combine_years <- list(combine_years = short_file_list)
+    combine_years <- list(years = short_file_list)
     file_list <- append(file_list, combine_years[1])
   }
   
