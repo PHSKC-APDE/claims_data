@@ -60,7 +60,7 @@ lapply(table_list, function(table_list) {
   colnames(format_df) <- colNames
   vars_list <- as.list(deframe(select(arrange(format_df, as.numeric(as.character(POSITION))), COLUMN_NAME, DATA_TYPE)))
   format_list <- list("schema" = sql_schema_name, "table" = sql_table, "vars" = vars_list)
-  yaml::write_yaml(append(format_list, file_list), glue(write_path, "load_", sql_schema_name, ".", sql_table, ".yaml"), indent = 4)
+  yaml::write_yaml(append(format_list, file_list), glue(write_path, "load_", sql_schema_name, ".", sql_table, "_full", ".yaml"), indent = 4)
   
   glue(sql_table, " format file successfully converted to YAML file")
 })
