@@ -205,7 +205,7 @@ load_table_from_file_f <- function(
     } else {
       ind_yr_msg <- "overall"
     }
-
+    
     # Add message to user
     message(glue('Loading {ind_yr_msg} [{schema_inner}].[{table_name_inner}] table(s) ',
                ' from {table_config_inner[[config_section]][["file_path"]]} {test_msg_inner}'))
@@ -290,7 +290,8 @@ load_table_from_file_f <- function(
 
     lapply(years, function(x) {
       
-      table_name_new <- glue("{table_name}_{str_sub(x, -4, -1)}")
+      #table_name_new <- glue("{table_name}_{str_sub(x, -4, -1)}")
+      table_name_new <- glue("{table_name}_{gsub('table_','',x)}")
       
       # Run loading function
       loading_process_f(config_section = x, table_name_inner = table_name_new)
