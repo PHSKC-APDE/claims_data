@@ -24,10 +24,10 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 
 
-#### LOAD_RAW ELIGIBILITY ####
+#### LOAD_RAW DENTAL CLAIMS ####
 ### Create tables
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/create_load_raw.mcaid_elig.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim.yaml",
                overall = T, ind_yr = T, overwrite = T)
 
 
