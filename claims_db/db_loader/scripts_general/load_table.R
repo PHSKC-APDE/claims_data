@@ -29,7 +29,7 @@ load_table_from_file_f <- function(
   ind_yr = F,
   combine_yr = T,
   test_mode = F
-  ) {
+) {
   
   
   #### INITIAL ERROR CHECK ####
@@ -63,7 +63,7 @@ load_table_from_file_f <- function(
     table_config <- yaml::read_yaml(config_file)
   }
   
-
+  
   #### ERROR CHECKS AND OVERALL MESSAGES ####
   # Make sure a valid URL was found
   if ('404' %in% names(table_config)) {
@@ -131,8 +131,8 @@ load_table_from_file_f <- function(
       }
     }
   }
-
-
+  
+  
   # Alert users they are in test mode
   if (test_mode == T) {
     message("FUNCTION WILL BE RUN IN TEST MODE, WRITING TO TMP SCHEMA")
@@ -184,8 +184,8 @@ load_table_from_file_f <- function(
   } else {
     add_index <- FALSE
   }
-
-
+  
+  
   #### SET UP A FUNCTION FOR COMMON ACTIONS ####
   # Both the overall load and year-specific loads use a similar set of code
   loading_process_f <- function(conn_inner = conn,
@@ -208,7 +208,7 @@ load_table_from_file_f <- function(
     
     # Add message to user
     message(glue('Loading {ind_yr_msg} [{schema_inner}].[{table_name_inner}] table(s) ',
-               ' from {table_config_inner[[config_section]][["file_path"]]} {test_msg_inner}'))
+                 ' from {table_config_inner[[config_section]][["file_path"]]} {test_msg_inner}'))
     
     # Truncate existing table if desired
     if (truncate_inner == T) {
@@ -234,16 +234,16 @@ load_table_from_file_f <- function(
                                   WHERE name = {`schema`}) s
                                   ON t.schema_id = s.schema_id
                                   ) a", .con = conn_inner,
-                                table = dbQuoteString(conn_inner, table_name_inner),
-                                schema = dbQuoteString(conn_inner, schema_inner)))[[1]]
-
+                                                          table = dbQuoteString(conn_inner, table_name_inner),
+                                                          schema = dbQuoteString(conn_inner, schema_inner)))[[1]]
+      
       if (length(index_name) != 0) {
         dbGetQuery(conn_inner,
                    glue::glue_sql("DROP INDEX {`index_name`} ON 
                                   {`schema_inner`}.{`table_name_inner`}", .con = conn_inner))
       }
     }
-
+    
     # Pull out parameters for BCP load
     if (!is.null(table_config_inner[[config_section]][["field_term"]])) {
       field_term <- paste0("-t ", table_config_inner[[config_section]][["field_term"]])
@@ -256,7 +256,7 @@ load_table_from_file_f <- function(
     } else {
       row_term <- ""
     }
-
+    
     # Set up BCP arguments and run BCP
     bcp_args <- c(glue(' PHclaims.{schema_inner}.{table_name_inner} IN ', 
                        ' "{table_config_inner[[config_section]][["file_path"]]}" ',
@@ -267,12 +267,12 @@ load_table_from_file_f <- function(
   }
   
   
-
+  
   #### OVERALL TABLE ####
   if (overall == T) {
     # Run loading function
     loading_process_f(config_section = "overall")
-
+    
     if (add_index == T) {
       # Add index to the table
       dbGetQuery(conn,
@@ -287,7 +287,7 @@ load_table_from_file_f <- function(
   if (ind_yr == T) {
     # Find which years have details
     years <- as.list(names(table_config)[str_detect(names(table_config), "table_")])
-
+    
     lapply(years, function(x) {
       
       #table_name_new <- glue("{table_name}_{str_sub(x, -4, -1)}")
@@ -296,12 +296,14 @@ load_table_from_file_f <- function(
       # Run loading function
       loading_process_f(config_section = x, table_name_inner = table_name_new)
       
+      if (add_index == T) {
       # Add index to the table
       dbGetQuery(conn,
                  glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
                                 {`schema`}.{`table_name_new`}({`index_vars`*})",
                                 index_vars = table_config$index,
                                 .con = conn))
+      }
     })
     
     # Combine individual years into a single table if desired
@@ -310,7 +312,7 @@ load_table_from_file_f <- function(
       if (truncate == T) {
         # Remove data from existing combined table if desired
         dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`schema`}.{`table_name`}", 
-                                              .con = conn))
+                                        .con = conn))
       }
       
       if (add_index == T) {
@@ -364,8 +366,8 @@ load_table_from_file_f <- function(
         }
       })
       # Make sure there are no duplicate variables
-	  all_vars <- unique(all_vars)
-	  
+      all_vars <- unique(all_vars)
+      
       
       # Set up SQL code to load columns
       sql_combine <- glue::glue_sql("INSERT INTO {`schema`}.{`table_name`} WITH (TABLOCK) 
@@ -449,7 +451,7 @@ load_table_from_sql_f <- function(
   auto_date = F,
   test_mode = F,
   mcaid_claim = F # Specific recoding of Medicaid claims variables
-  ) {
+) {
   
   #### INITIAL ERROR CHECK ####
   # Check if the config provided is a local file or on a webpage
@@ -529,7 +531,7 @@ load_table_from_sql_f <- function(
       stop("No variables specified in config file")
     }
   }
-
+  
   if (truncate == T & truncate_date == T) {
     print("Warning: truncate and truncate_date both set to TRUE. \n
           Entire table will be truncated.")
@@ -611,7 +613,7 @@ load_table_from_sql_f <- function(
       # Find the most recent date in the new data
       max_date <- dbGetQuery(conn, glue::glue_sql("SELECT MAX({`date_var`})
                                  FROM {`from_schema`}.{`from_table`}",
-                                 .con = conn))
+                                                  .con = conn))
       
       message(glue("Most recent date found in the new data: {max_date}"))
       
@@ -636,7 +638,7 @@ load_table_from_sql_f <- function(
     
     message(glue("Date to truncate from: {date_truncate}"))
   }
-
+  
   
   #### DEAL WITH EXISTING TABLE ####
   # Make sure temp table exists if needed
@@ -696,8 +698,8 @@ load_table_from_sql_f <- function(
     
     # Now truncate destination table
     dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`to_schema`}.{`to_table`}", .con = conn))
-    }
-    
+  }
+  
   
   # Remove existing clustered index if a new one is to be added
   if (add_index == T) {
@@ -730,7 +732,7 @@ load_table_from_sql_f <- function(
     }
   }
   
-
+  
   #### LOAD DATA TO TABLE ####
   # Add message to user
   message(glue("Loading to [{to_schema}].[{to_table}] table", test_msg))
@@ -755,7 +757,7 @@ load_table_from_sql_f <- function(
                                     .con = conn,
                                     load_rows = DBI::SQL(load_rows))
     }
-
+    
   } else if (truncate_date == T) {
     if (mcaid_claim == T) {
       sql_combine <- glue::glue_sql(
@@ -797,4 +799,3 @@ load_table_from_sql_f <- function(
     dbGetQuery(conn, index_sql)
   }
 }
-
