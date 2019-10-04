@@ -20,127 +20,127 @@ vars:
     gender_code: varchar(1)
     zip_code: varchar(10)
     row_number: bigint
-table_member_month_detail_1:
+table_1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_1.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_10:
+table_10:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_10.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_11:
+table_11:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_11.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_12:
+table_12:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_12.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_13:
+table_13:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_13.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_14:
+table_14:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_14.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_15:
+table_15:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_15.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_16:
+table_16:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_16.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_17:
+table_17:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_17.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_18:
+table_18:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_18.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_19:
+table_19:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_19.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_2:
+table_2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_2.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_20:
+table_20:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_20.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_21:
+table_21:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_21.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_22:
+table_22:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_22.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_23:
+table_23:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_23.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_24:
+table_24:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_24.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_25:
+table_25:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_25.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_26:
+table_26:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_26.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_27:
+table_27:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_27.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_28:
+table_28:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_28.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_29:
+table_29:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_29.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_3:
+table_3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_3.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_30:
+table_30:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_30.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_31:
+table_31:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_31.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_4:
+table_4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_4.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_5:
+table_5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_5.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_6:
+table_6:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_6.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_7:
+table_7:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_7.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_8:
+table_8:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_8.csv
     field_term: \t
     row_term: \n
-table_member_month_detail_9:
+table_9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_9.csv
     field_term: \t
     row_term: \n

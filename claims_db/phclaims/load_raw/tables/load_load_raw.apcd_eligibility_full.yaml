@@ -40,43 +40,43 @@ vars:
     dup_flag_managed_care: varchar(1)
     dup_flag_part_d: varchar(1)
     row_number: bigint
-table_eligibility_1:
+table_1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_1.csv
     field_term: \t
     row_term: \n
-table_eligibility_10:
+table_10:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_10.csv
     field_term: \t
     row_term: \n
-table_eligibility_2:
+table_2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_2.csv
     field_term: \t
     row_term: \n
-table_eligibility_3:
+table_3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_3.csv
     field_term: \t
     row_term: \n
-table_eligibility_4:
+table_4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_4.csv
     field_term: \t
     row_term: \n
-table_eligibility_5:
+table_5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_5.csv
     field_term: \t
     row_term: \n
-table_eligibility_6:
+table_6:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_6.csv
     field_term: \t
     row_term: \n
-table_eligibility_7:
+table_7:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_7.csv
     field_term: \t
     row_term: \n
-table_eligibility_8:
+table_8:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_8.csv
     field_term: \t
     row_term: \n
-table_eligibility_9:
+table_9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_9.csv
     field_term: \t
     row_term: \n

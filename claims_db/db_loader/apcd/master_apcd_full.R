@@ -16,7 +16,8 @@ db_claims <- dbConnect(odbc(), "PHClaims51")
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/eli/claims_db/db_loader/scripts_general/load_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
@@ -27,17 +28,25 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 #### LOAD_RAW DENTAL CLAIMS ####
 ### Create tables
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
                overall = T, ind_yr = T, overwrite = T)
-
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.R")
 
-load_load_raw.mcaid_elig_full_f(etl_date_min = "2012-01-01", etl_date_max = "2018-12-31",
-                                etl_delivery_date = "2019-06-12", 
-                                etl_note = "Updated elig tables to accompany corrected claims data")
+load_load_raw.apcd_dental_claim_full_f(etl_date_min = "2014-01-01", etl_date_max = "2019-03-31",
+                                etl_delivery_date = "2019-10-01", 
+                                etl_note = "Full refresh of APCD data using extract 187")
+
+
+
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml"
+table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+names(table_config)
+
+
+
 
 
 

@@ -38,139 +38,139 @@ vars:
     injury_dt: date
     benefits_exhausted_dt: date
     row_number: bigint
-table_pharmacy_claim_1:
+table_1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_1.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_10:
+table_10:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_10.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_11:
+table_11:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_11.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_12:
+table_12:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_12.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_13:
+table_13:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_13.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_14:
+table_14:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_14.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_15:
+table_15:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_15.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_16:
+table_16:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_16.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_17:
+table_17:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_17.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_18:
+table_18:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_18.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_19:
+table_19:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_19.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_2:
+table_2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_2.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_20:
+table_20:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_20.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_21:
+table_21:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_21.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_22:
+table_22:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_22.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_23:
+table_23:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_23.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_24:
+table_24:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_24.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_25:
+table_25:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_25.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_26:
+table_26:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_26.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_27:
+table_27:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_27.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_28:
+table_28:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_28.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_29:
+table_29:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_29.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_3:
+table_3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_3.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_30:
+table_30:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_30.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_31:
+table_31:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_31.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_32:
+table_32:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_32.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_33:
+table_33:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_33.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_34:
+table_34:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_34.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_4:
+table_4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_4.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_5:
+table_5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_5.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_6:
+table_6:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_6.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_7:
+table_7:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_7.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_8:
+table_8:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_8.csv
     field_term: \t
     row_term: \n
-table_pharmacy_claim_9:
+table_9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_9.csv
     field_term: \t
     row_term: \n
