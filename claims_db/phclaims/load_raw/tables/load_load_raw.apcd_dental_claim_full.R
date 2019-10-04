@@ -33,7 +33,7 @@ load_load_raw.apcd_dental_claim_full_f <- function(etl_date_min = NULL,
   # Eventually switch this function over to using glue_sql to stop unwanted SQL behavior
   current_batch_id <- load_metadata_etl_log_f(conn = db_claims, 
                                               batch_type = "full", 
-                                              data_source = "apcd", 
+                                              data_source = "APCD", 
                                               date_min = etl_date_min,
                                               date_max = etl_date_max,
                                               delivery_date = etl_delivery_date, 
