@@ -29,7 +29,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
-               overall = T, ind_yr = T, overwrite = T)
+               overall = F, ind_yr = T, overwrite = T)
 
 ### Load tables
 # Call in function

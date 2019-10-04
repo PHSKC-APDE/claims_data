@@ -107,344 +107,344 @@ vars:
     medicaid_ffs_flag: varchar(2)
     submitted_claim_type_id: integer
     row_number: bigint
-table_1:
+table_part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_1.csv
     field_term: \t
     row_term: \n
-table_10:
+table_part10:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_10.csv
     field_term: \t
     row_term: \n
-table_11:
+table_part11:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_11.csv
     field_term: \t
     row_term: \n
-table_12:
+table_part12:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_12.csv
     field_term: \t
     row_term: \n
-table_13:
+table_part13:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_13.csv
     field_term: \t
     row_term: \n
-table_14:
+table_part14:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_14.csv
     field_term: \t
     row_term: \n
-table_15:
+table_part15:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_15.csv
     field_term: \t
     row_term: \n
-table_16:
+table_part16:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_16.csv
     field_term: \t
     row_term: \n
-table_17:
+table_part17:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_17.csv
     field_term: \t
     row_term: \n
-table_18:
+table_part18:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_18.csv
     field_term: \t
     row_term: \n
-table_19:
+table_part19:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_19.csv
     field_term: \t
     row_term: \n
-table_2:
+table_part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_2.csv
     field_term: \t
     row_term: \n
-table_20:
+table_part20:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_20.csv
     field_term: \t
     row_term: \n
-table_21:
+table_part21:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_21.csv
     field_term: \t
     row_term: \n
-table_22:
+table_part22:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_22.csv
     field_term: \t
     row_term: \n
-table_23:
+table_part23:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_23.csv
     field_term: \t
     row_term: \n
-table_24:
+table_part24:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_24.csv
     field_term: \t
     row_term: \n
-table_25:
+table_part25:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_25.csv
     field_term: \t
     row_term: \n
-table_26:
+table_part26:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_26.csv
     field_term: \t
     row_term: \n
-table_27:
+table_part27:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_27.csv
     field_term: \t
     row_term: \n
-table_28:
+table_part28:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_28.csv
     field_term: \t
     row_term: \n
-table_29:
+table_part29:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_29.csv
     field_term: \t
     row_term: \n
-table_3:
+table_part3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_3.csv
     field_term: \t
     row_term: \n
-table_30:
+table_part30:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_30.csv
     field_term: \t
     row_term: \n
-table_31:
+table_part31:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_31.csv
     field_term: \t
     row_term: \n
-table_32:
+table_part32:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_32.csv
     field_term: \t
     row_term: \n
-table_33:
+table_part33:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_33.csv
     field_term: \t
     row_term: \n
-table_34:
+table_part34:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_34.csv
     field_term: \t
     row_term: \n
-table_35:
+table_part35:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_35.csv
     field_term: \t
     row_term: \n
-table_36:
+table_part36:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_36.csv
     field_term: \t
     row_term: \n
-table_37:
+table_part37:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_37.csv
     field_term: \t
     row_term: \n
-table_38:
+table_part38:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_38.csv
     field_term: \t
     row_term: \n
-table_39:
+table_part39:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_39.csv
     field_term: \t
     row_term: \n
-table_4:
+table_part4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_4.csv
     field_term: \t
     row_term: \n
-table_40:
+table_part40:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_40.csv
     field_term: \t
     row_term: \n
-table_41:
+table_part41:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_41.csv
     field_term: \t
     row_term: \n
-table_42:
+table_part42:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_42.csv
     field_term: \t
     row_term: \n
-table_43:
+table_part43:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_43.csv
     field_term: \t
     row_term: \n
-table_44:
+table_part44:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_44.csv
     field_term: \t
     row_term: \n
-table_45:
+table_part45:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_45.csv
     field_term: \t
     row_term: \n
-table_46:
+table_part46:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_46.csv
     field_term: \t
     row_term: \n
-table_47:
+table_part47:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_47.csv
     field_term: \t
     row_term: \n
-table_48:
+table_part48:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_48.csv
     field_term: \t
     row_term: \n
-table_49:
+table_part49:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_49.csv
     field_term: \t
     row_term: \n
-table_5:
+table_part5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_5.csv
     field_term: \t
     row_term: \n
-table_50:
+table_part50:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_50.csv
     field_term: \t
     row_term: \n
-table_51:
+table_part51:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_51.csv
     field_term: \t
     row_term: \n
-table_52:
+table_part52:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_52.csv
     field_term: \t
     row_term: \n
-table_53:
+table_part53:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_53.csv
     field_term: \t
     row_term: \n
-table_54:
+table_part54:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_54.csv
     field_term: \t
     row_term: \n
-table_55:
+table_part55:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_55.csv
     field_term: \t
     row_term: \n
-table_56:
+table_part56:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_56.csv
     field_term: \t
     row_term: \n
-table_57:
+table_part57:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_57.csv
     field_term: \t
     row_term: \n
-table_58:
+table_part58:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_58.csv
     field_term: \t
     row_term: \n
-table_59:
+table_part59:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_59.csv
     field_term: \t
     row_term: \n
-table_6:
+table_part6:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_6.csv
     field_term: \t
     row_term: \n
-table_60:
+table_part60:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_60.csv
     field_term: \t
     row_term: \n
-table_61:
+table_part61:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_61.csv
     field_term: \t
     row_term: \n
-table_62:
+table_part62:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_62.csv
     field_term: \t
     row_term: \n
-table_63:
+table_part63:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_63.csv
     field_term: \t
     row_term: \n
-table_64:
+table_part64:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_64.csv
     field_term: \t
     row_term: \n
-table_65:
+table_part65:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_65.csv
     field_term: \t
     row_term: \n
-table_66:
+table_part66:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_66.csv
     field_term: \t
     row_term: \n
-table_67:
+table_part67:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_67.csv
     field_term: \t
     row_term: \n
-table_68:
+table_part68:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_68.csv
     field_term: \t
     row_term: \n
-table_7:
+table_part7:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_7.csv
     field_term: \t
     row_term: \n
-table_8:
+table_part8:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_8.csv
     field_term: \t
     row_term: \n
-table_9:
+table_part9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_export/medical_claim_9.csv
     field_term: \t
     row_term: \n
 years:
-    - medical_claim_1
-    - medical_claim_10
-    - medical_claim_11
-    - medical_claim_12
-    - medical_claim_13
-    - medical_claim_14
-    - medical_claim_15
-    - medical_claim_16
-    - medical_claim_17
-    - medical_claim_18
-    - medical_claim_19
-    - medical_claim_2
-    - medical_claim_20
-    - medical_claim_21
-    - medical_claim_22
-    - medical_claim_23
-    - medical_claim_24
-    - medical_claim_25
-    - medical_claim_26
-    - medical_claim_27
-    - medical_claim_28
-    - medical_claim_29
-    - medical_claim_3
-    - medical_claim_30
-    - medical_claim_31
-    - medical_claim_32
-    - medical_claim_33
-    - medical_claim_34
-    - medical_claim_35
-    - medical_claim_36
-    - medical_claim_37
-    - medical_claim_38
-    - medical_claim_39
-    - medical_claim_4
-    - medical_claim_40
-    - medical_claim_41
-    - medical_claim_42
-    - medical_claim_43
-    - medical_claim_44
-    - medical_claim_45
-    - medical_claim_46
-    - medical_claim_47
-    - medical_claim_48
-    - medical_claim_49
-    - medical_claim_5
-    - medical_claim_50
-    - medical_claim_51
-    - medical_claim_52
-    - medical_claim_53
-    - medical_claim_54
-    - medical_claim_55
-    - medical_claim_56
-    - medical_claim_57
-    - medical_claim_58
-    - medical_claim_59
-    - medical_claim_6
-    - medical_claim_60
-    - medical_claim_61
-    - medical_claim_62
-    - medical_claim_63
-    - medical_claim_64
-    - medical_claim_65
-    - medical_claim_66
-    - medical_claim_67
-    - medical_claim_68
-    - medical_claim_7
-    - medical_claim_8
-    - medical_claim_9
+    - part1
+    - part10
+    - part11
+    - part12
+    - part13
+    - part14
+    - part15
+    - part16
+    - part17
+    - part18
+    - part19
+    - part2
+    - part20
+    - part21
+    - part22
+    - part23
+    - part24
+    - part25
+    - part26
+    - part27
+    - part28
+    - part29
+    - part3
+    - part30
+    - part31
+    - part32
+    - part33
+    - part34
+    - part35
+    - part36
+    - part37
+    - part38
+    - part39
+    - part4
+    - part40
+    - part41
+    - part42
+    - part43
+    - part44
+    - part45
+    - part46
+    - part47
+    - part48
+    - part49
+    - part5
+    - part50
+    - part51
+    - part52
+    - part53
+    - part54
+    - part55
+    - part56
+    - part57
+    - part58
+    - part59
+    - part6
+    - part60
+    - part61
+    - part62
+    - part63
+    - part64
+    - part65
+    - part66
+    - part67
+    - part68
+    - part7
+    - part8
+    - part9
