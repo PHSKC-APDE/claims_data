@@ -21,11 +21,11 @@ vars:
     row_number: bigint
 table_part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_1.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 table_part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_2.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 years:
     - part1

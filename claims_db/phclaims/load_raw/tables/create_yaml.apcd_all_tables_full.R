@@ -43,7 +43,7 @@ lapply(table_list, function(table_list) {
   #Add additional levels (lists) to specify other parameters for YAML file
   file_list <- lapply(file_list, function(x) { 
     list(file_path = x,
-         field_term = "\\t",
+         field_term = ',',
          row_term = "\\n")
   }) 
   

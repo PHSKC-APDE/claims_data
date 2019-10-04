@@ -26,5 +26,5 @@ vars:
     ach_region_physical: varchar(100)
 overall:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_master_export/provider_master.csv
-    field_term: \t
+    field_term: ','
     row_term: \n

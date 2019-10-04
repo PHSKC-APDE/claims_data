@@ -19,5 +19,5 @@ vars:
     practice_zip: varchar(5)
 overall:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_practice_roster_export/provider_practice_roster.csv
-    field_term: \t
+    field_term: ','
     row_term: \n

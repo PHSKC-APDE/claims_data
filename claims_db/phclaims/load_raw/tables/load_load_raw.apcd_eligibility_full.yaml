@@ -42,43 +42,43 @@ vars:
     row_number: bigint
 table_part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_1.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 table_part10:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_10.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 table_part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_2.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 table_part3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_3.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 table_part4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_4.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 table_part5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_5.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 table_part6:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_6.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 table_part7:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_7.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 table_part8:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_8.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 table_part9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_9.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 years:
     - part1
