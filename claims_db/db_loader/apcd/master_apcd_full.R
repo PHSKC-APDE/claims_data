@@ -70,7 +70,7 @@ create_table_f(conn = db_claims,
                overall = T,
                ind_yr = T,
                overwrite = T,
-               test_mode = T)
+               test_mode = F)
 
 ### Load tables
 # Call in function
