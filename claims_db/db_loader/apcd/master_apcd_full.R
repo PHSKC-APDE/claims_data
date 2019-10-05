@@ -29,15 +29,18 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
-               overall = F, ind_yr = T, overwrite = T)
+               overall = T,
+               ind_yr = T,
+               overwrite = T)
 
 ### Load tables
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.R")
 
-load_load_raw.apcd_dental_claim_full_f(etl_date_min = "2014-01-01", etl_date_max = "2019-03-31",
-                                etl_delivery_date = "2019-10-01", 
-                                etl_note = "Full refresh of APCD data using extract 187")
+load_load_raw.apcd_dental_claim_full_f(etl_date_min = "2014-01-01",
+                                       etl_date_max = "2019-03-31",
+                                       etl_delivery_date = "2019-10-01", 
+                                       etl_note = "Full refresh of APCD data using extract 187")
 
 
 #### LOAD_RAW ELIGIBILITY ####
@@ -45,15 +48,18 @@ load_load_raw.apcd_dental_claim_full_f(etl_date_min = "2014-01-01", etl_date_max
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml",
-               overall = F, ind_yr = T, overwrite = T)
+               overall = T,
+               ind_yr = T,
+               overwrite = T)
 
 ### Load tables
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.R")
 
-load_load_raw.apcd_eligibility_full_f(etl_date_min = "2014-01-01", etl_date_max = "2019-03-31",
-                                                   etl_delivery_date = "2019-10-01", 
-                                                   etl_note = "Full refresh of APCD data using extract 187")
+load_load_raw.apcd_eligibility_full_f(etl_date_min = "2014-01-01",
+                                      etl_date_max = "2019-03-31",
+                                      etl_delivery_date = "2019-10-01", 
+                                      etl_note = "Full refresh of APCD data using extract 187")
 
 
 #### LOAD_RAW PROVIDER PRACTICE ROSTER ####
@@ -67,9 +73,10 @@ create_table_f(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_practice_roster_full.R")
 
-load_load_raw.apcd_provider_practice_roster_full_f(etl_date_min = "2014-01-01", etl_date_max = "2019-03-31",
-                                       etl_delivery_date = "2019-10-01", 
-                                       etl_note = "Full refresh of APCD data using extract 187")
+load_load_raw.apcd_provider_practice_roster_full_f(etl_date_min = "2014-01-01",
+                                                   etl_date_max = "2019-03-31",
+                                                   etl_delivery_date = "2019-10-01", 
+                                                   etl_note = "Full refresh of APCD data using extract 187")
 
 
 
