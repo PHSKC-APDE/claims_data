@@ -69,7 +69,8 @@ create_table_f(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.yaml",
                overall = T,
                ind_yr = T,
-               overwrite = T)
+               overwrite = T,
+               test_mode = T)
 
 ### Load tables
 # Call in function
