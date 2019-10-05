@@ -56,7 +56,7 @@ load_load_raw.apcd_provider_full_f <- function(etl_date_min = NULL,
   # Add column to the SQL table and set current batch to the default
   odbc::dbGetQuery(db_claims,
                    glue::glue_sql(
-                     "ALTER TABLE tmp.apcd_provider
+                     "ALTER TABLE tmp.load_raw_apcd_provider
                    ADD etl_batch_id INTEGER 
                    DEFAULT {current_batch_id} WITH VALUES",
                      .con = db_claims))
