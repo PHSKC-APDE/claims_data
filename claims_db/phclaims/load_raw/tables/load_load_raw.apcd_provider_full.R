@@ -48,7 +48,7 @@ load_load_raw.apcd_provider_full_f <- function(etl_date_min = NULL,
   print("Loading tables to SQL")
   load_table_from_file_f(conn = db_claims,
                          config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.yaml",
-                         overall = F, ind_yr = T, combine_yr = T)
+                         overall = F, ind_yr = T, combine_yr = T, test_mode = T)
   
   
   #### ADD BATCH ID COLUMN ####
