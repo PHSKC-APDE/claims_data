@@ -176,7 +176,8 @@ load_table_from_file_f <- function(
   
   if (ind_yr == T & combine_yr == T) {
     # Use unique in case variables are repeated
-    combine_years <- as.list(sort(unique(table_config$combine_years)))
+    #combine_years <- as.list(sort(unique(table_config$combine_years)))
+    combine_years <- as.list(sort(unique(table_config$years)))
   }
   
   if (!is.null(table_config$index_name)) {
