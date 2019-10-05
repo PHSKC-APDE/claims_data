@@ -61,4 +61,19 @@ load_load_raw.apcd_eligibility_full_f <- function(etl_date_min = NULL,
                    DEFAULT {current_batch_id} WITH VALUES",
                      .con = db_claims))
   
+  
+  #### DROP TABLE CHUNKS ####
+  config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml"
+  if (!is.null(config_url)) {
+    table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+  } else {
+    table_config <- yaml::read_yaml(config_file)
+  }
+  
+  if (length(table_config$years) > 1) {
+    lapply(table_config$years, function(x) {
+      odbc::dbGetQuery(db_claims, paste0("DROP TABLE load_raw.apcd_eligibility_", x))
+    })
+  }
+  
 }
