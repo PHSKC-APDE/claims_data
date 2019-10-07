@@ -48,7 +48,7 @@ load_load_raw.apcd_eligibility_full_f <- function(etl_date_min = NULL,
   print("Loading tables to SQL")
   load_table_from_file_f(conn = db_claims,
                          config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml",
-                         overall = F, ind_yr = T, combine_yr = T)
+                         overall = F, ind_yr = T, combine_yr = T, test_mode = F)
   
   
   #### ADD BATCH ID COLUMN ####
@@ -62,7 +62,7 @@ load_load_raw.apcd_eligibility_full_f <- function(etl_date_min = NULL,
                      .con = db_claims))
   
   
-  #### DROP TABLE CHUNKS ####
+  #### LOAD YAML CONFIG FILE FOR FINAL COMMANDS ####
   config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml"
   if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
@@ -70,10 +70,17 @@ load_load_raw.apcd_eligibility_full_f <- function(etl_date_min = NULL,
     table_config <- yaml::read_yaml(config_file)
   }
   
+  #### DROP ROW_NUMBER COLUMN FROM FINAL TABLE ####
+  odbc::dbGetQuery(db_claims, glue::glue_sql(
+    "ALTER TABLE load_raw.apcd_eligibility
+    DROP COLUMN row_number",
+    .con = db_claims))
+  
+  #### DROP TABLE CHUNKS ####
   if (length(table_config$years) > 1) {
     lapply(table_config$years, function(x) {
-      odbc::dbGetQuery(db_claims, paste0("DROP TABLE load_raw.apcd_eligibility_", x))
+      table_name <- glue::glue("load_raw.apcd_eligibility_", x)
+      odbc::dbGetQuery(db_claims, glue::glue_sql("DROP TABLE {`table_name`}", .con = db_claims))
     })
   }
-  
 }

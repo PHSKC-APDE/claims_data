@@ -79,8 +79,8 @@ load_load_raw.apcd_provider_full_f <- function(etl_date_min = NULL,
   #### DROP TABLE CHUNKS ####
   if (length(table_config$years) > 1) {
     lapply(table_config$years, function(x) {
-      table_name <- glue::glue("load_raw.apcd_provider_", x)
-      odbc::dbGetQuery(db_claims, glue::glue_sql("DROP TABLE {`table_name`}", .con = db_claims))
+      table_name <- glue::glue("apcd_provider_", x)
+      odbc::dbGetQuery(db_claims, glue::glue_sql("DROP TABLE {`table_config$schema`}.{`table_name`}", .con = db_claims))
       })
     }
 }
