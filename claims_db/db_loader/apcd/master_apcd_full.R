@@ -45,7 +45,6 @@ system.time(load_load_raw.apcd_dental_claim_full_f(etl_date_min = "2014-01-01",
 
 
 #### LOAD_RAW ELIGIBILITY ####
-#Run time: X min
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml",
@@ -65,7 +64,6 @@ system.time(load_load_raw.apcd_eligibility_full_f(etl_date_min = "2014-01-01",
 
 
 #### LOAD_RAW PROVIDER ####
-#Run time: 10 min
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.yaml",
@@ -85,7 +83,6 @@ system.time(load_load_raw.apcd_provider_full_f(etl_date_min = "2014-01-01",
 
 
 #### LOAD_RAW PROVIDER PRACTICE ROSTER ####
-#Run time: 1 min
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_practice_roster_full.yaml",
