@@ -156,7 +156,13 @@ system.time(load_load_raw.apcd_provider_practice_roster_full_f(etl_date_min = "2
                                                    etl_delivery_date = "2019-10-01", 
                                                    etl_note = "Full refresh of APCD data using extract 187"))
 
+
+#### REF APCD REFERENCE TABLES ####
+system.time(load_ref.apcd_reference_tables_full_f())
+
+
 #### LOAD_RAW MEDICAL_CLAIM ####
+#Run last and overnight because this takes the most time
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_full.yaml",
