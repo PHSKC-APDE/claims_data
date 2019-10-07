@@ -7,7 +7,7 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/apcd/master_apcd_full.R
 
 
-load_load_raw.apcd_provider_practice_roster_full_f <- function(etl_date_min = NULL,
+load_load_raw.apcd_provider_master_full_f <- function(etl_date_min = NULL,
                                             etl_date_max = NULL,
                                             etl_delivery_date = NULL,
                                             etl_note = NULL) {
@@ -47,7 +47,7 @@ load_load_raw.apcd_provider_practice_roster_full_f <- function(etl_date_min = NU
   #### LOAD TABLES ####
   print("Loading tables to SQL")
   load_table_from_file_f(conn = db_claims,
-                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_practice_roster_full.yaml",
+                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_master_full.yaml",
                          overall = T, ind_yr = F, combine_yr = F)
   
   
@@ -56,7 +56,7 @@ load_load_raw.apcd_provider_practice_roster_full_f <- function(etl_date_min = NU
   # Add column to the SQL table and set current batch to the default
   odbc::dbGetQuery(db_claims,
                    glue::glue_sql(
-                     "ALTER TABLE load_raw.apcd_provider_practice_roster
+                     "ALTER TABLE load_raw.apcd_provider_master
                    ADD etl_batch_id INTEGER 
                    DEFAULT {current_batch_id} WITH VALUES",
                      .con = db_claims))
