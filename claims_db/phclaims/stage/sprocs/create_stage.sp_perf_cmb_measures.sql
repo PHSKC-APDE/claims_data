@@ -177,7 +177,7 @@ AND [full_criteria] = 1
 AND [hospice] = 0
 AND (([need_1_month_coverage] = 1) OR ([full_criteria_p_2_m] = 2 AND [hospice_p_2_m] = 0))
 -- For ACH regional attribution, ANY enrollment is used as a proxy for King County residence
-AND [enrolled_any_t_12_m] >= 11
+--AND [enrolled_any_t_12_m] >= 11
 
 GROUP BY 
  [id_mcaid]
