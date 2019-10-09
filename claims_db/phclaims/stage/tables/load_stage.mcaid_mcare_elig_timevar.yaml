@@ -23,12 +23,12 @@ vars:
     geo_add2_clean: VARCHAR(255)
     geo_city_clean: VARCHAR(255)
     geo_state_clean: VARCHAR(255)
-    geo_zip_clean: VARCHAR(255)
+    geo_zip: VARCHAR(255)
     geo_zip_centroid: TINYINT
     geo_street_centroid: TINYINT
-    geo_countyfp10: varchar(255)
+    geo_county_code: varchar(255)
     geo_tractce10: VARCHAR(255)
-    geo_hra_id: SMALLINT
-    geo_school_geoid10: VARCHAR(255)
+    geo_hra_code: SMALLINT
+    geo_school_code: VARCHAR(255)
     cov_time_day: SMALLINT
     last_run: DATETIME
