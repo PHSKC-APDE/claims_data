@@ -38,6 +38,9 @@
                                   FROM PHClaims.final.mcaid_elig_timevar"))
           mcaid[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
           mcaid[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
+          # Ensure new geography naming conventions are followed ----
+          setnames(mcaid, grep("_clean$", names(timevar), value = T), gsub("_clean", "", grep("_clean$", names(timevar), value = T)) )
+          setnames(mcaid, "geo_tractce10", "geo_tract_code")
   
 ## (3) Merge on dual status ----
   mcare <- merge(apde[, .(id_apde, id_mcare)], mcare, by = "id_mcare", all.x = FALSE, all.y = TRUE)
