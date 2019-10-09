@@ -5,6 +5,8 @@ vars:
     from_date: DATE
     to_date: DATE
     contiguous: TINYINT
+    mcaid: TINYINT
+    mcare: TINYINT
     dual: TINYINT
     geo_kc: TINYINT
     part_a: TINYINT
