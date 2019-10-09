@@ -221,7 +221,7 @@ CREATE TABLE ##perf_cmb_measure
 GO
 
 EXEC [stage].[sp_perf_cmb_measures]
- @end_month_int = 201812
+ @end_month_int = 201809
 ,@measure_name = 'Follow-up Hospitalization for Mental Illness';
 
 SELECT
