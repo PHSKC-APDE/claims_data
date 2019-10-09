@@ -34,10 +34,10 @@
 ## (4) Create King County ever indicator (moment by moment KC status will be in timevar table) ----
   kc.zips <- fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv") #github file with KC zipcodes
   kc <- copy(mbsf[, c("id_mcare", "zip_code", "year")])
-  kc[, geo_kc := as.numeric(as.integer(zip_code) %in% kc.zips$zip)] #creating the new var kc (a 0/1 var) 
-  kc <- unique(kc[, c("id_mcare", "geo_kc", "year")])
-  kc <- kc[, lapply(.SD, sum, na.rm = TRUE), by = id_mcare, .SDcols = c("geo_kc")] # sum/collapse/aggregate the kc variables by ID
-  kc[geo_kc>1, geo_kc := 1]# geo_kc should be either 0 | 1, so if >1, replace with 1
+  kc[, geo_kc_ever := as.numeric(as.integer(zip_code) %in% kc.zips$zip)] #creating the new var kc (a 0/1 var) 
+  kc <- unique(kc[, c("id_mcare", "geo_kc_ever", "year")])
+  kc <- kc[, lapply(.SD, sum, na.rm = TRUE), by = id_mcare, .SDcols = c("geo_kc_ever")] # sum/collapse/aggregate the kc variables by ID
+  kc[geo_kc_ever>1, geo_kc_ever := 1]# geo_kc_ever should be either 0 | 1, so if >1, replace with 1
   if(nrow(kc) - length(unique(kc$id_mcare)) != 0){
     stop('non-unique id_mcare in kc')
   }  # confirm all id_mcare are unique
