@@ -25,17 +25,16 @@
   
 ## (2) Load data from SQL ----  
   apde <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_apde, id_mcare, id_mcaid
-                                 FROM PHClaims.stage.xwalk_apde_mcaid_mcare_pha"))
+                                 FROM PHClaims.final.xwalk_apde_mcaid_mcare_pha"))
   
   mcare <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcare, from_date, to_date, part_a, part_b, part_c, partial, buy_in, geo_zip 
-                                  FROM PHClaims.stage.mcare_elig_timevar"))
-           setnames(mcare, "geo_zip", "geo_zip_clean")
+                                  FROM PHClaims.final.mcare_elig_timevar"))
            mcare[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
            mcare[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
            
   mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, from_date, to_date, tpl, bsp_group_name, full_benefit, cov_type, mco_id, 
-                                  geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, geo_zip_centroid, 
-                                  geo_street_centroid, geo_countyfp10, geo_tractce10, geo_hra_id, geo_school_geoid10
+                                  geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip, geo_zip_centroid, 
+                                  geo_street_centroid, geo_county_code, geo_tractce10, geo_hra_code, geo_school_code
                                   FROM PHClaims.final.mcaid_elig_timevar"))
           mcaid[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
           mcaid[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
@@ -56,14 +55,12 @@
   mcaid.dual <- mcaid[id_apde %in% dual.id]
   mcare.dual <- mcare[id_apde %in% dual.id]
   
-  # for the duals, change the "_clean" suffix for address info to mcare so we can more easily pick and choose data to keep with Mcaid data
-    setnames(mcare.dual, 
-             grep("_clean$", names(mcare.dual), value = TRUE), # identify columns with "_clean" suffix
-             gsub("_clean$", "_mcare", grep("_clean$", names(mcare.dual), value = TRUE))) # replace "_clean" with "_mcare"
-  
+  # for the duals, add _mcare suffix to differentiate common varnames from Mcaid data
+    setnames(mcare.dual, "geo_zip", "geo_zip_mcare")
+
   # drop main original datasets that are no longer needed
-  rm(mcaid, mcare)
-  gc()
+    rm(mcaid, mcare)
+    gc()
 
 ## (5) Duals: Create master list of time intervals ----
     # melt data (wide to long) so start and end dates are in same column, regardless of original source
@@ -115,7 +112,6 @@
       
 ## (7) Append duals and non-duals data ----
       timevar <- rbindlist(list(duals, mcare.solo, mcaid.solo), use.names = TRUE, fill = TRUE)
-      timevar[, dual := 0][id_apde %in% dual.id, dual := 1] # add dual flag
       setkey(timevar, id_apde, from_date) # order dual data
       
 ## (8) Collapse data if dates are contiguous and all data is the same ----
@@ -141,6 +137,11 @@
       timevar <- unique(timevar)
     
 ## (9) Prep for pushing to SQL ----
+    # Create mcare, mcaid, & dual flags ----
+      timevar[, mcare := 0][part_a==1 | part_b == 1 | part_c==1, mcare := 1]
+      timevar[, mcaid := 0][!is.na(bsp_group_name), mcaid := 1]
+      timevar[, dual := 0][mcare == 1 & mcaid == 1, dual := 1]
+
     # Create contiguous flag ----  
       # If contiguous with the PREVIOUS row, then it is marked as contiguous. This is the same as mcaid_elig_timevar
       timevar[, prev_to_date := c(NA, to_date[-.N]), by = "id_apde"] # MUCH faster than the shift "lag" function in data.table
@@ -155,13 +156,13 @@
       timevar[, c("from_date", "to_date") := lapply(.SD, as.Date, origin = "1970-01-01"), .SDcols =  c("from_date", "to_date")] 
 
     # Select data from Medicare or Medicaid, as appropriate ----
-      timevar[is.na(geo_zip_clean) & !is.na(geo_zip_mcare), geo_zip_clean := geo_zip_mcare]
+      timevar[is.na(geo_zip) & !is.na(geo_zip_mcare), geo_zip := geo_zip_mcare]
       timevar[, geo_zip_mcare := NULL]
       
     # Add KC flag based on zip code ----  
       kc.zips <- fread(kc.zips.url)
       timevar[, geo_kc := 0]
-      timevar[geo_zip_clean %in% unique(as.character(kc.zips$zip)), geo_kc := 1]
+      timevar[geo_zip %in% unique(as.character(kc.zips$zip)), geo_kc := 1]
       rm(kc.zips)
       
     # create time stamp ----
@@ -185,7 +186,7 @@
                  overwrite = T, append = F, 
                  field.types = unlist(table_config$vars))
 
-## (9) Simple QA ----
+## (11) Simple QA ----
     # Confirm that all rows were loaded to SQL ----
       stage.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.mcaid_mcare_elig_timevar"))
       if(stage.count != nrow(timevar))
@@ -311,7 +312,7 @@
         problem.row_diff, "\n",
         problem.id_diff)
 
-## (10) Fill qa_mcare_values table ----
+## (12) Fill qa_mcare_values table ----
     qa.values <- glue::glue_sql("INSERT INTO metadata.qa_mcare_values
                                 (table_name, qa_item, qa_value, qa_date, note) 
                                 VALUES ('stage.mcaid_mcare_elig_timevar',
@@ -335,7 +336,7 @@
     odbc::dbGetQuery(conn = db_claims, qa.values2)
     
 
-## (11) Print error messages ----
+## (13) Print error messages ----
     if(problems >1){
       message(glue::glue("WARNING ... MCAID_MCARE_ELIG_TIMEVAR FAILED AT LEAST ONE QA TEST", "\n",
                          "Summary of problems in MCAID_MCARE_ELIG_TIMEVAR: ", "\n", 
