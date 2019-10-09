@@ -29,7 +29,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     # Pull in the reference value
     previous_rows <- as.numeric(
       odbc::dbGetQuery(conn, 
-                       "SELECT a.* FROM
+                       "SELECT a.qa_value FROM
                        (SELECT * FROM metadata.qa_mcaid_values
                          WHERE table_name = 'stage.mcaid_elig_timevar' AND
                           qa_item = 'row_count') a
@@ -52,7 +52,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                    'Number new rows compared to most recent run', 
                    'FAIL', 
                    {Sys.time()}, 
-                   'There were {row_diff} fewer rows in the most recent table 
+                   'There were {row_diff} fewer rows in the most recent table \\
                        ({row_count} vs. {previous_rows})')",
                        .con = conn))
       
@@ -68,7 +68,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                    'Number new rows compared to most recent run', 
                    'PASS', 
                    {Sys.time()}, 
-                   'There were {row_diff} more rows in the most recent table 
+                   'There were {row_diff} more rows in the most recent table \\
                        ({row_count} vs. {previous_rows})')",
                        .con = conn))
       
@@ -135,7 +135,8 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        'Duplicate rows', 
                        'FAIL', 
                        {Sys.time()}, 
-                       'There were {dup_row_count} distinct rows (excl. ref_geo vars) but {row_count} rows overall (should be the same)')",
+                       'There were {dup_row_count} distinct rows (excl. ref_geo vars) \\
+                    but {row_count} rows overall (should be the same)')",
                      .con = conn))
     
     stop(glue::glue("There appear to be duplicate rows. 
@@ -150,7 +151,8 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        'Duplicate rows', 
                        'PASS', 
                        {Sys.time()}, 
-                       'The number of distinct rows (excl. ref_geo vars) matched number total rows ({row_count})')",
+                       'The number of distinct rows (excl. ref_geo vars) \\
+                     matched number total rows ({row_count})')",
                      .con = conn))
   }
   
@@ -182,7 +184,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              'Date range',
                              'FAIL',
                              {Sys.time()}, 
-                             'Some from/to dates fell outside the CLNDR_YEAR_MNTH range 
+                             'Some from/to dates fell outside the CLNDR_YEAR_MNTH range \\
                              (min: {`from`}, max: {`to`})')",
                      .con = conn,
                      from = dbQuoteIdentifier(conn, as.character(date_range_timevar$from_date)),
@@ -201,7 +203,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              'Date range',
                              'PASS',
                              {Sys.time()}, 
-                             'All from/to dates fell within the CLNDR_YEAR_MNTH range 
+                             'All from/to dates fell within the CLNDR_YEAR_MNTH range \\
                              (min: {`from`}, max: {`to`})')",
                      .con = conn,
                      from = dbQuoteIdentifier(conn, as.character(date_range_elig$from_date)),

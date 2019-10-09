@@ -33,4 +33,9 @@ select
 from PHclaims.load_raw.apcd_provider_master;
 
 
+------------------
+--STEP 2: Create clustered columnstore index (1 min)
+-------------------
+create clustered columnstore index idx_ccs_stage_apcd_provider_master on phclaims.stage.apcd_provider_master;
+
 

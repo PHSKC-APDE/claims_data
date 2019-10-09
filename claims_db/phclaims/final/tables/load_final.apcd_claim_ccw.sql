@@ -11,7 +11,8 @@ id_apcd,
 from_date,
 to_date,
 ccw_code,
-ccw_desc
+ccw_desc,
+last_run
 from PHClaims.stage.apcd_claim_ccw;
 
 
