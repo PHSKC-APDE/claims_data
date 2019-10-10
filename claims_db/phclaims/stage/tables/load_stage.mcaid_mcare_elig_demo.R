@@ -18,15 +18,15 @@
   
 ## (2) Load data from SQL ----  
   apde <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_apde, id_mcare, id_mcaid 
-                                 FROM PHClaims.stage.xwalk_apde_mcaid_mcare_pha"))
+                                 FROM PHClaims.final.xwalk_apde_mcaid_mcare_pha"))
   
-  mcare <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcare, dob, death_dt, geo_kc, gender_female, gender_male, gender_me, gender_recent, race_eth_recent, race_recent,
+  mcare <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcare, dob, death_dt, geo_kc_ever, gender_female, gender_male, gender_me, gender_recent, race_eth_recent, race_recent,
                                   race_white, race_black, race_other, race_asian, race_asian_pi, race_aian, race_nhpi, race_latino, race_unk, race_eth_me, race_me 
-                                  FROM PHClaims.stage.mcare_elig_demo"))
+                                  FROM PHClaims.final.mcare_elig_demo"))
 
   mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, dob, gender_female, gender_male, gender_me, gender_recent, race_eth_recent, race_recent,
                                   race_me, race_eth_me, race_aian, race_asian, race_black, race_nhpi, race_white, race_latino 
-                                  FROM PHClaims.stage.mcaid_elig_demo"))
+                                  FROM PHClaims.final.mcaid_elig_demo"))
 
 ## (3) Merge on apde id ----
   mcare <- merge(apde[, .(id_apde, id_mcare)], mcare, by = "id_mcare", all.x = FALSE, all.y = TRUE)

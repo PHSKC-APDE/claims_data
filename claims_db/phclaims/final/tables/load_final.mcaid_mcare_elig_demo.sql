@@ -17,12 +17,12 @@
 	SELECT COUNT(*) FROM [PHClaims].[stage].[mcaid_mcare_elig_demo]
 	SELECT COUNT(*) FROM [PHClaims].[final].[mcaid_mcare_elig_demo]
 
-	SELECT geo_kc, 
+	SELECT geo_kc_ever, 
 	count(*) FROM [PHClaims].[stage].[mcaid_mcare_elig_demo]
-	  GROUP BY geo_kc
+	  GROUP BY geo_kc_ever
 	  ORDER BY -count(*)
 
-	 SELECT geo_kc, 
+	 SELECT geo_kc_ever, 
 	count(*) FROM [PHClaims].[final].[mcaid_mcare_elig_demo]
-	  GROUP BY geo_kc
+	  GROUP BY geo_kc_ever
 	  ORDER BY -count(*)

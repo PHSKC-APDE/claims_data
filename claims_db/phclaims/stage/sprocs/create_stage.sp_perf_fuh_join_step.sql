@@ -116,8 +116,7 @@ SELECT
 ,a.[last_service_date]
 ,a.[flag]
 /* 
-Discharges after the index stay are flagged by 
-[stage].[fn_perf_fuh_inpatient_index_stay_exclusion]
+Discharges after the index stay are flagged if
 EXCLUDE BELOW
 Exclude discharges followed by readmission or direct transfer to a nonacute 
 inpatient care setting within the 30-day follow-up period, regardless of 
