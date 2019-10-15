@@ -189,7 +189,7 @@
 		  arrange(id_apde, from_date, to_date, from_date_mcare, from_date_mcaid, 
 		          to_date_mcare, to_date_mcaid, overlap_type)
 
-	#-- label and clean summary interval data ----
+	#-- Label and clean summary interval data ----
 		temp_ext <- temp_ext %>%
 		 mutate(
 		    # Identify which type of enrollment this row represents
@@ -337,6 +337,8 @@
       timevar[, mcare := 0][part_a==1 | part_b == 1 | part_c==1, mcare := 1]
       timevar[, mcaid := 0][!is.na(bsp_group_name), mcaid := 1]
       timevar[, dual := 0][mcare == 1 & mcaid == 1, dual := 1]
+      timevar[, enroll_type := NULL] # kept until now for comparison with the dual flag
+      timevar <- timevar[!(mcare==0 & mcaid==0)]
 
     # Create contiguous flag ----  
       # If contiguous with the PREVIOUS row, then it is marked as contiguous. This is the same as mcaid_elig_timevar
