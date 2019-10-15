@@ -777,6 +777,11 @@ claims_elig <- function(conn,
   }
   
   
+  #### SET UP COVERAGE TYPE (MCAID/MCARE COMBINED) ####
+  mcaid_cov_sql <- timevar_gen_sql(var = "mcaid", pct = F)
+  mcare_cov_sql <- timevar_gen_sql(var = "mcare", pct = F)
+  
+  
   #### SET UP DUAL CODE (ALL) ####
   dual_sql <- timevar_gen_sql(var = "dual", pct = T)
   
@@ -1065,7 +1070,8 @@ claims_elig <- function(conn,
       , .con = conn)
   } else if (source == "mcaid_mcare") {
     timevar_vars <- glue::glue_sql(
-      " dual_final.dual, dual_final.dual_pct, 
+      " dual_final.dual, dual_final.dual_pct, mcaid_final.mcaid, mcaid_final.mcaid_days,
+      mcare_final.mcare, mcare_final.mcare_days,
       bsp_group_name_final.bsp_group_name, bsp_group_name_final.bsp_group_name_days, 
       full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
       cov_type_final.cov_type, cov_type_final.cov_type_days, 
@@ -1114,7 +1120,7 @@ claims_elig <- function(conn,
       (SELECT {id_name}, cov_days, duration, cov_pct, covgap_max 
         FROM ##cov_time_tot) timevar
         ON demo.{id_name} = timevar.{id_name}
-      {dual_sql} {bsp_group_name_sql} {full_benefit_sql} {cov_type_sql} 
+      {dual_sql} {mcaid_cov_sql} {mcare_cov_sql} {bsp_group_name_sql} {full_benefit_sql} {cov_type_sql} 
       {mco_id_sql} {part_a_sql} {part_b_sql} {part_c_sql} {buy_in_sql} 
       {geo_zip_sql} {geo_hra_code_sql} {geo_school_code_sql} 
       {geo_county_code_sql} {geo_ach_code_sql} {geo_kc_sql}
