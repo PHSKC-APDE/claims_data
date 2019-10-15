@@ -550,7 +550,7 @@ claims_elig <- function(conn,
       race_aian, race_asian, race_asian_pi, race_black, race_latino, 
       race_nhpi, race_other, race_white, race_unk,
       --dual AS dual_ever -- do we want this to come in?
-      geo_kc AS geo_kc_ever ",
+      geo_kc_ever ",
       .con = conn)
   } else if (source == "mcare") {
     demo_vars <- glue::glue_sql(
@@ -565,7 +565,7 @@ claims_elig <- function(conn,
       race_aian, race_asian, race_asian_pi, race_black, race_latino, 
       race_nhpi, race_other, race_white, race_unk,
       race_aian_t, race_asian_t, race_asian_pi_t, race_black_t, race_nhpi_t, 
-      race_white_t, race_latino_t, race_other_t, race_unk_t, geo_kc AS geo_kc_ever",
+      race_white_t, race_latino_t, race_other_t, race_unk_t, geo_kc_ever",
       .con = conn)
   }
   
