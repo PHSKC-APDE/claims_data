@@ -26,6 +26,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 
 #### LOAD_RAW DENTAL CLAIMS ####
+#######################--ERROR IN DATA FILE--#########################
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
@@ -158,7 +159,7 @@ system.time(load_load_raw.apcd_provider_practice_roster_full_f(etl_date_min = "2
 
 
 #### REF APCD REFERENCE TABLES ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_reference_tables_full.R")
 
 system.time(load_ref.apcd_reference_tables_full_f())
 

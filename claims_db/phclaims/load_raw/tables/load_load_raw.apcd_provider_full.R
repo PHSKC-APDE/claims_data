@@ -56,7 +56,7 @@ load_load_raw.apcd_provider_full_f <- function(etl_date_min = NULL,
   # Add column to the SQL table and set current batch to the default
   odbc::dbGetQuery(db_claims,
                    glue::glue_sql(
-                     "ALTER TABLE load_raw.apcd_provider
+                   "ALTER TABLE load_raw.apcd_provider
                    ADD etl_batch_id INTEGER 
                    DEFAULT {current_batch_id} WITH VALUES",
                      .con = db_claims))
@@ -70,13 +70,16 @@ load_load_raw.apcd_provider_full_f <- function(etl_date_min = NULL,
     table_config <- yaml::read_yaml(config_file)
   }
   
+  
   #### DROP ROW_NUMBER COLUMN FROM FINAL TABLE ####
   odbc::dbGetQuery(db_claims, glue::glue_sql(
     "ALTER TABLE load_raw.apcd_provider
     DROP COLUMN row_number",
     .con = db_claims))
   
-  #### DROP TABLE CHUNKS ####
+  
+
+    #### DROP TABLE CHUNKS ####
   if (length(table_config$years) > 1) {
     lapply(table_config$years, function(x) {
       table_name <- glue::glue("apcd_provider_", x)

@@ -70,11 +70,13 @@ load_load_raw.apcd_eligibility_full_f <- function(etl_date_min = NULL,
     table_config <- yaml::read_yaml(config_file)
   }
   
+  
   #### DROP ROW_NUMBER COLUMN FROM FINAL TABLE ####
   odbc::dbGetQuery(db_claims, glue::glue_sql(
     "ALTER TABLE load_raw.apcd_eligibility
     DROP COLUMN row_number",
     .con = db_claims))
+  
   
   #### DROP TABLE CHUNKS ####
   if (length(table_config$years) > 1) {
