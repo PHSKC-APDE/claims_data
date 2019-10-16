@@ -77,14 +77,6 @@ load_load_raw.apcd_eligibility_full_f <- function(etl_date_min = NULL,
     DROP COLUMN row_number",
     .con = db_claims))
   
-  #### COUNT ROWS PER TABLE CHUNK AND REPORT OUT ####
-  if (length(table_config$years) > 1) {
-    lapply(table_config$years, function(x) {
-      table_name <- glue::glue("apcd_provider_", x)
-      row_count <- odbc::dbGetQuery(db_claims, glue::glue_sql("SELECT COUNT(*) FROM {`table_config$schema`}.{`table_name`}", .con = db_claims))
-      print(glue("{table_name} loaded to SQL row count: {row_count}"))
-    })
-  }
   
   #### DROP TABLE CHUNKS ####
   if (length(table_config$years) > 1) {
