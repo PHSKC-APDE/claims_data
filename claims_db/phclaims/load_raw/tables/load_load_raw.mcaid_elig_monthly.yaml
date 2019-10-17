@@ -1,9 +1,7 @@
 schema: load_raw
 table: mcaid_elig
-index_name: idx_cl_load_raw_mcaid_elig_CLNDR_YEAR_MNTH_MEDICAID_RECIPIENT_ID
-index:
-    - CLNDR_YEAR_MNTH
-    - MEDICAID_RECIPIENT_ID
+index_type: ccs
+index_name: idx_ccs_load_raw_mcaid_elig
 vars:
     CLNDR_YEAR_MNTH: INTEGER
     MEDICAID_RECIPIENT_ID: VARCHAR(200)
@@ -46,10 +44,10 @@ vars:
     SECONDARY_RAC_CODE: INTEGER
     SECONDARY_RAC_NAME: VARCHAR(200)
 overall:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_ELIG_20190806.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_ELIG_20190919.txt
     field_term: \t
     row_term: \n
-    row_count: 5695960
-    date_min: 201807
-    date_max: 201907
-    date_delivery: 2019-08-07
+    row_count: 5243010
+    date_min: 201809
+    date_max: 201908
+    date_delivery: 2019-09-19
