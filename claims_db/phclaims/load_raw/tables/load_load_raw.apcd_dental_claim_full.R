@@ -87,7 +87,6 @@ load_load_raw.apcd_dental_claim_full_f <- function(etl_date_min = NULL,
     lapply(table_config$years, function(x) {
       table_name <- glue::glue(table_name_part, "_", x)
       odbc::dbGetQuery(db_claims, glue::glue_sql("DROP TABLE {`table_config$schema`}.{`table_name`}", .con = db_claims))
-    })
-  }
-  
-  }
+      })
+    }
+}

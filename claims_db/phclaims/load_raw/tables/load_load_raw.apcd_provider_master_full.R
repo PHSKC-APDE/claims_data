@@ -12,6 +12,10 @@ load_load_raw.apcd_provider_master_full_f <- function(etl_date_min = NULL,
                                             etl_delivery_date = NULL,
                                             etl_note = NULL) {
   
+  ### Set table name part
+  table_name_part <- "apcd_provider_master"
+  
+  
   ### Check entries are in place for ETL function
   if (is.null(etl_delivery_date) | is.null(etl_note)) {
     stop("Enter a delivery date and note for the ETL batch ID function")
@@ -47,7 +51,8 @@ load_load_raw.apcd_provider_master_full_f <- function(etl_date_min = NULL,
   #### LOAD TABLES ####
   print("Loading tables to SQL")
   load_table_from_file_f(conn = db_claims,
-                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_master_full.yaml",
+                         config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.",
+                                             table_name_part, "_full.yaml"),
                          overall = T, ind_yr = F, combine_yr = F)
   
   
@@ -56,7 +61,7 @@ load_load_raw.apcd_provider_master_full_f <- function(etl_date_min = NULL,
   # Add column to the SQL table and set current batch to the default
   odbc::dbGetQuery(db_claims,
                    glue::glue_sql(
-                     "ALTER TABLE load_raw.apcd_provider_master
+                     "ALTER TABLE load_raw.{`table_name_part`}
                    ADD etl_batch_id INTEGER 
                    DEFAULT {current_batch_id} WITH VALUES",
                      .con = db_claims))
