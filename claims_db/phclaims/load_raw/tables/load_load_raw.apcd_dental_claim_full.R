@@ -51,8 +51,9 @@ load_load_raw.apcd_dental_claim_full_f <- function(etl_date_min = NULL,
   print("Loading tables to SQL")
   load_table_from_file_f(conn = db_claims,
                          config_url = glue("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.",
-                           table_name_part, "full.yaml"),
+                                           table_name_part, "full.yaml"),
                          overall = F, ind_yr = T, combine_yr = T, test_mode = F)
+  
   
   #### ADD BATCH ID COLUMN ####
   print("Adding batch ID to SQL table")
