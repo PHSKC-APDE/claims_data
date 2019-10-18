@@ -323,8 +323,9 @@ load_table_from_file_f <- function(
                               {`schema`}.{`table_name`}({`index_vars`*})",
                                   index_vars = table_config$index,
                                   .con = conn))
-      }
-    })
+        }
+        }
+      })
     
     # Combine individual years into a single table if desired
     if (combine_yr == T) {
