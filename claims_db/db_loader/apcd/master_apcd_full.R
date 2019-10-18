@@ -1,5 +1,10 @@
 #### MASTER CODE TO RUN A FULL APCD DATA REFRESH
 #
+# Loads and QAs new raw data to load_raw schema
+# Loads and QAs new reference tables to ref schema
+# Changes schema of existing stage tables to archive
+# Changes schema of new load_raw tables to stage
+#
 # Eli Kern, PHSKC (APDE)
 # Adapted from Alastair Matheson's Medicaid script
 #
@@ -16,17 +21,18 @@ db_claims <- dbConnect(odbc(), "PHClaims51")
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/eli/claims_db/db_loader/scripts_general/load_table.R") #use eli branch for now
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/claim_ccw.R")
 
-
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### STEP 1: Load and QA new raw data to load_raw schema, and reference tables to ref schema ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 #### LOAD_RAW DENTAL CLAIMS ####
-#######################--ERROR IN DATA FILE--#########################
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
@@ -207,3 +213,32 @@ qa_result <- odbc::dbGetQuery(db_claims,
                     order by schema_name, table_name;",
                    .con = db_claims))
 
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### STEP 2: Change schema of existing stage tables to archive schema ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_dental_claim")
+alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_eligibility")
+alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_medical_claim")
+alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_medical_claim_header")
+alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_medical_crosswalk")
+alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_member_month_detail")
+alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_pharmacy_claim")
+alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_provider")
+alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_provider_master")
+alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_provider_practice_roster")
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### STEP 3: Change schema of new load_raw tables to stage schema ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_dental_claim")
+alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_eligibility")
+alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_medical_claim")
+alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_member_month_detail")
+alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_pharmacy_claim")
+alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_provider")
+alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_provider_master")
+alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_provider_practice_roster")
