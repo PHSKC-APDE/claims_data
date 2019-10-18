@@ -2,6 +2,7 @@ from_schema: load_raw
 from_table: mcaid_elig
 to_schema: stage
 to_table: mcaid_elig
+archive_schema: archive
 index_name: idx_cl_load_raw_mcaid_elig_CLNDR_YEAR_MNTH_MEDICAID_RECIPIENT_ID
 index:
     - CLNDR_YEAR_MNTH
