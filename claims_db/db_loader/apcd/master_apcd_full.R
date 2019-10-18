@@ -202,8 +202,8 @@ qa_result <- odbc::dbGetQuery(db_claims,
                     left outer join sys.schemas s on t.schema_id = s.schema_id
                     left join information_schema.columns c on t.name = c.TABLE_NAME and s.name = c.TABLE_SCHEMA
                     where t.NAME NOT LIKE 'dt%' and t.is_ms_shipped = 0 and i.OBJECT_ID > 255
-                    	and left(t.name, 4) = 'apcd' and s.name = 'load_raw'
+                    	and left(t.name, 4) = 'apcd' and s.name in ('load_raw', 'ref')
                     group by s.Name, t.Name
-                    order by table_name;",
+                    order by schema_name, table_name;",
                    .con = db_claims))
 
