@@ -39,6 +39,7 @@ load_elig_date_max <- as.Date(paste0(str_sub(load_mcaid_elig_config$overall$date
                                      "01"), format = "%Y-%m-%d")
 
 ### Create tables
+# Need to do this each time because of the etl_batch_id variable
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml",
                overall = T, ind_yr = F, overwrite = T)

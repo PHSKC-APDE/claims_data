@@ -19,14 +19,14 @@ vars:
     state: varchar(2)
     zip: varchar(5)
     row_number: bigint
-table_provider_1:
+table_part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_1.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
-table_provider_2:
+table_part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_2.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 years:
-    - provider_1
-    - provider_2
+    - part1
+    - part2

@@ -34,49 +34,49 @@ vars:
     orphaned_adjustment_flag: varchar(1)
     denied_claim_flag: varchar(1)
     row_number: bigint
-table_dental_claim_1:
+table_part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_1.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
-table_dental_claim_2:
+table_part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_2.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
-table_dental_claim_3:
+table_part3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_3.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
-table_dental_claim_4:
+table_part4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_4.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
-table_dental_claim_5:
+table_part5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_5.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
-table_dental_claim_6:
+table_part6:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_6.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
-table_dental_claim_7:
+table_part7:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_7.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
-table_dental_claim_8:
+table_part8:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_8.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
-table_dental_claim_9:
+table_part9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_9.csv
-    field_term: \t
+    field_term: ','
     row_term: \n
 years:
-    - dental_claim_1
-    - dental_claim_2
-    - dental_claim_3
-    - dental_claim_4
-    - dental_claim_5
-    - dental_claim_6
-    - dental_claim_7
-    - dental_claim_8
-    - dental_claim_9
+    - part1
+    - part2
+    - part3
+    - part4
+    - part5
+    - part6
+    - part7
+    - part8
+    - part9

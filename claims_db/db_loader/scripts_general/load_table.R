@@ -97,10 +97,12 @@ load_table_from_file_f <- function(
     }
   }
   
-  if (!is.null(table_config$index_name) & is.null(table_config$index)) {
-    stop("YAML file has an index name but no index columns")
+  if (!is.null(table_config$index_name)) {
+    if (is.null(table_config$index) & is.null(table_config$index_type)) {
+      stop("YAML file has an index name but no index columns or an index_type = ccs")
+    }
   }
-  
+
   if (overall == T) {
     if (!"overall" %in% names(table_config)) {
       stop("YAML file is missing details for overall file")
@@ -217,15 +219,15 @@ load_table_from_file_f <- function(
                                             .con = conn_inner))
     }
     
-    # Remove existing clustered index if desired (and an index exists)
+    # Remove existing index if desired (and an index exists)
     if (drop_index == T) {
-      # This code pulls out the clustered index name
+      # This code pulls out the index name
       index_name <- dbGetQuery(conn_inner, glue::glue_sql("SELECT DISTINCT a.index_name
                                   FROM
                                   (SELECT ind.name AS index_name
                                   FROM
                                   (SELECT object_id, name, type_desc FROM sys.indexes
-                                  WHERE type_desc = 'CLUSTERED') ind
+                                  WHERE type_desc LIKE 'CLUSTERED%') ind
                                   INNER JOIN
                                   (SELECT name, schema_id, object_id FROM sys.tables
                                   WHERE name = {`table`}) t
@@ -276,11 +278,20 @@ load_table_from_file_f <- function(
     
     if (add_index == T) {
       # Add index to the table
-      dbGetQuery(conn,
-                 glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
+      if (!is.null(table_config$index_type) & table_config$index_type == 'ccs') {
+        # Clustered columnstore index
+        dbGetQuery(conn,
+                   glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
+                              {`schema`}.{`table_name`}",
+                                  .con = conn))
+      } else {
+        # Clustered index
+        dbGetQuery(conn,
+                   glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
                               {`schema`}.{`table_name`}({`index_vars`*})",
-                                index_vars = table_config$index,
-                                .con = conn))
+                                  index_vars = table_config$index,
+                                  .con = conn))
+      }
     }
   }
   
@@ -299,11 +310,19 @@ load_table_from_file_f <- function(
       
       if (add_index == T) {
       # Add index to the table
-      dbGetQuery(conn,
-                 glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                                {`schema`}.{`table_name_new`}({`index_vars`*})",
-                                index_vars = table_config$index,
-                                .con = conn))
+      if (!is.null(table_config$index_type) & table_config$index_type == 'ccs') {
+        # Clustered columnstore index
+        dbGetQuery(conn,
+                   glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
+                              {`schema`}.{`table_name`}",
+                                  .con = conn))
+      } else {
+        # Clustered index
+        dbGetQuery(conn,
+                   glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
+                              {`schema`}.{`table_name`}({`index_vars`*})",
+                                  index_vars = table_config$index,
+                                  .con = conn))
       }
     })
     
@@ -325,7 +344,7 @@ load_table_from_file_f <- function(
                                                 (SELECT ind.name AS index_name
                                                   FROM
                                                   (SELECT object_id, name, type_desc FROM sys.indexes
-                                                    WHERE type_desc = 'CLUSTERED') ind
+                                                    WHERE type_desc LIKE 'CLUSTERED%') ind
                                                   INNER JOIN
                                                   (SELECT name, schema_id, object_id FROM sys.tables
                                                     WHERE name = {`table`}) t
@@ -418,11 +437,20 @@ load_table_from_file_f <- function(
       
       if (add_index == T) {
         # Add index to the table
-        dbGetQuery(conn,
-                   glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
+        if (!is.null(table_config$index_type) & table_config$index_type == 'ccs') {
+          # Clustered columnstore index
+          dbGetQuery(conn,
+                     glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
+                              {`schema`}.{`table_name`}",
+                                    .con = conn))
+        } else {
+          # Clustered index
+          dbGetQuery(conn,
+                     glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
                               {`schema`}.{`table_name`}({`index_vars`*})",
-                                  index_vars = table_config$index,
-                                  .con = conn))
+                                    index_vars = table_config$index,
+                                    .con = conn))
+        }
       }
     }
   }
@@ -710,7 +738,7 @@ load_table_from_sql_f <- function(
                                   (SELECT ind.name AS index_name
                                   FROM
                                   (SELECT object_id, name, type_desc FROM sys.indexes
-                                  WHERE type_desc = 'CLUSTERED') ind
+                                  WHERE type_desc LIKE 'CLUSTERED%') ind
                                   INNER JOIN
                                   (SELECT name, schema_id, object_id FROM sys.tables
                                   WHERE name = {`table`}) t
@@ -791,10 +819,20 @@ load_table_from_sql_f <- function(
   
   # Add index to the table (if desired)
   if (add_index == T) {
-    index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                            {`to_schema`}.{`to_table`}({index_vars*})",
-                                index_vars = dbQuoteIdentifier(conn, table_config$index),
-                                .con = conn)
+    if (!is.null(table_config$index_type) & table_config$index_type == 'ccs') {
+      # Clustered columnstore index
+      dbGetQuery(conn,
+                 glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
+                              {`schema`}.{`table_name`}",
+                                .con = conn))
+    } else {
+      # Clustered index
+      dbGetQuery(conn,
+                 glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
+                              {`schema`}.{`table_name`}({`index_vars`*})",
+                                index_vars = table_config$index,
+                                .con = conn))
+    }
     
     message("Adding index")
     dbGetQuery(conn, index_sql)

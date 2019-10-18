@@ -3,14 +3,14 @@
 #
 # 2019-08
 
-### Run from master_mcaid_full script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_monthly.R
+### Run from master_mcaid_partial script
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
-load_load_raw.mcaid_elig_monthly_f <- function(etl_date_min = NULL,
-                                            etl_date_max = NULL,
-                                            etl_delivery_date = NULL,
-                                            etl_note = NULL) {
+load_load_raw.mcaid_elig_partial_f <- function(etl_date_min = NULL,
+                                               etl_date_max = NULL,
+                                               etl_delivery_date = NULL,
+                                               etl_note = NULL) {
   
   ### Check entries are in place for ETL function
   if (is.null(etl_delivery_date) | is.null(etl_note)) {
@@ -47,7 +47,7 @@ load_load_raw.mcaid_elig_monthly_f <- function(etl_date_min = NULL,
   #### QA CHECK: ACTUAL VS EXPECTED ROW COUNTS ####
   print("Checking expected vs. actual row counts")
   # Use the load config file for the list of tables to check and their expected row counts
-  qa_rows_file <- qa_file_row_count_f(config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_monthly.yaml",
+  qa_rows_file <- qa_file_row_count_f(config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml",
                                       overall = T, ind_yr = F)
   
   # Report results out to SQL table
@@ -72,7 +72,7 @@ load_load_raw.mcaid_elig_monthly_f <- function(etl_date_min = NULL,
   #### QA CHECK: ORDER OF COLUMNS IN SOURCE FILE MATCH TABLE SHELLS IN SQL ###
   print("Checking column order")
   qa_column <- qa_column_order_f(conn = db_claims,
-                                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_monthly.yaml",
+                                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml",
                                  overall = T, ind_yr = F)
   
   # Report results out to SQL table
@@ -97,7 +97,7 @@ load_load_raw.mcaid_elig_monthly_f <- function(etl_date_min = NULL,
   #### LOAD TABLES ####
   print("Loading tables to SQL")
   load_table_from_file_f(conn = db_claims,
-                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_monthly.yaml",
+                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml",
                          overall = T, ind_yr = F, combine_yr = F)
   
   
@@ -105,7 +105,7 @@ load_load_raw.mcaid_elig_monthly_f <- function(etl_date_min = NULL,
   print("Checking loaded row counts vs. expected")
   # Use the load config file for the list of tables to check and their expected row counts
   qa_rows_sql <- qa_load_row_count_f(conn = db_claims,
-                                    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_monthly.yaml",
+                                    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml",
                                     overall = T, ind_yr = F, combine_yr = F)
   
   # Report individual results out to SQL table
@@ -170,7 +170,7 @@ load_load_raw.mcaid_elig_monthly_f <- function(etl_date_min = NULL,
   
   #### QA CHECK: DATE RANGE MATCHES EXPECTED RANGE ####
   qa_date_range <- qa_date_range_f(conn = db_claims,
-                                   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_monthly.yaml",
+                                   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml",
                                    overall = T, ind_yr = F, combine_yr = F,
                                    date_var = "CLNDR_YEAR_MNTH")
   
