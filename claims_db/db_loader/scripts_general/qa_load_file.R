@@ -135,10 +135,11 @@ qa_file_row_count_f <- function(config_url = NULL,
 
 #### FUNCTION TO CHECK COLUMNS MATCH SQL TABLES ####
 qa_column_order_f <- function(conn = NULL,
-                           config_url = NULL,
-                           config_file = NULL,
-                           overall = T,
-                           ind_yr = F) {
+                              config_url = NULL,
+                              config_file = NULL,
+                              overall = T,
+                              ind_yr = F,
+                              drop_etl = T) {
   
   #### BASIC ERROR CHECKS ####
   qa_error_check_f(config_url_chk = config_url,
@@ -174,9 +175,19 @@ qa_column_order_f <- function(conn = NULL,
     sql_name <- names(odbc::dbGetQuery(conn, glue::glue_sql(
       "SELECT TOP(0) * FROM {`schema`}.{`table_name`}", .con = conn)))
     
+    if (drop_etl == T) {
+      ### Remove etl_batch_id as this is not likely to be in the YAML
+      sql_name <- sql_name[! sql_name %in% c("etl_batch_id")]
+    }
+    
     ### Pull in first few rows of the data to be loaded and get names
     load_table <- data.table::fread(table_config$overall$file_path, nrow = 10)
     tbl_name <- names(load_table)
+    
+    if (drop_etl == T) {
+      ### Remove etl_batch_id from this table just in case it's there
+      tbl_name <- tbl_name[! tbl_name %in% c("etl_batch_id")]
+    }
     
     ### Compare names
     name_check <- all(sql_name == tbl_name)
@@ -205,9 +216,15 @@ qa_column_order_f <- function(conn = NULL,
       sql_name <- names(odbc::dbGetQuery(conn, glue::glue_sql(
         "SELECT TOP(0) * FROM {`schema`}.{`table_name_new`}", .con = conn)))
       
+      # Remove etl_batch_id as this is not likely to be in the YAML
+      sql_name <- sql_name[! sql_name %in% c("etl_batch_id")]
+      
       # Pull in first few rows of the data to be loaded and get names
       load_table <- data.table::fread(table_config[[x]][["file_path"]], nrow = 10)
       tbl_name <- names(load_table)
+      
+      # Remove etl_batch_id from this table just in case it's there
+      tbl_name <- tbl_name[! tbl_name %in% c("etl_batch_id")]
       
       # Compare names
       name_check <- all(sql_name == tbl_name)
