@@ -4,6 +4,7 @@
 # Loads and QAs new reference tables to ref schema
 # Changes schema of existing stage tables to archive
 # Changes schema of new load_raw tables to stage
+# Adds clustered columnstore indexes to new stage tables
 #
 # Eli Kern, PHSKC (APDE)
 # Adapted from Alastair Matheson's Medicaid script
@@ -218,27 +219,33 @@ qa_result <- odbc::dbGetQuery(db_claims,
 #### STEP 2: Change schema of existing stage tables to archive schema ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_dental_claim")
-alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_eligibility")
-alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_medical_claim")
-alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_medical_claim_header")
-alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_medical_crosswalk")
-alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_member_month_detail")
-alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_pharmacy_claim")
-alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_provider")
-alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_provider_master")
-alter_schema_f(conn, from_schema = "stage", to_schema = "archive", table_name = "apcd_provider_practice_roster")
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "apcd_dental_claim")
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "apcd_eligibility")
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "apcd_medical_claim")
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "apcd_medical_claim_header")
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "apcd_medical_crosswalk")
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "apcd_member_month_detail")
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "apcd_pharmacy_claim")
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "apcd_provider")
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "apcd_provider_master")
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "apcd_provider_practice_roster")
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### STEP 3: Change schema of new load_raw tables to stage schema ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_dental_claim")
-alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_eligibility")
-alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_medical_claim")
-alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_member_month_detail")
-alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_pharmacy_claim")
-alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_provider")
-alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_provider_master")
-alter_schema_f(conn, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_provider_practice_roster")
+alter_schema_f(conn = db_claims, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_dental_claim")
+alter_schema_f(conn = db_claims, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_eligibility")
+alter_schema_f(conn = db_claims, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_medical_claim")
+alter_schema_f(conn = db_claims, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_member_month_detail")
+alter_schema_f(conn = db_claims, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_pharmacy_claim")
+alter_schema_f(conn = db_claims, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_provider")
+alter_schema_f(conn = db_claims, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_provider_master")
+alter_schema_f(conn = db_claims, from_schema = "load_raw", to_schema = "stage", table_name = "apcd_provider_practice_roster")
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### STEP 4: Create clustered columnstore indexes on each new stage table ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+system.time(odbc::dbSendQuery(conn = db_claims, glue::glue_sql("create clustered columnstore index idx_ccs_stage_apcd_dental_claim on stage.apcd_dental_claim")))
