@@ -3,10 +3,8 @@ from_table: mcaid_claim
 to_schema: stage
 to_table: mcaid_claim
 archive_schema: archive
-index_name: idx_cl_load_raw_mcaid_claim_MEDICAID_RECIPIENT_ID_CLNDR_YEAR_MNTH
-index:
-    - MEDICAID_RECIPIENT_ID
-    - CLNDR_YEAR_MNTH
+index_type: ccs
+index_name: idx_ccs_stage_mcaid_claim
 vars:
     CLNDR_YEAR_MNTH: INT
     MBR_H_SID: INT
@@ -131,4 +129,3 @@ vars:
     TCN_DATE: DATE
     etl_batch_id: SMALLINT
 date_var: FROM_SRVC_DATE
-date_truncate: 2018-07-01
