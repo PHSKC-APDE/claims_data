@@ -11,7 +11,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
   
   ### Require extract_end_date
   if (is.null(extract_end_date)) {
-    stop("Enter the end date for this APCD extract")
+    stop("Enter the end date for this APCD extract: \"YYYY-MM-DD\"")
   }
   
   ### Run SQL query
@@ -28,13 +28,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     --Note for dental coverage: can't do same thing with dental coverage because there is no dental coverage information in member_month_detail
     -- Takes 94 min to run
     
-    ------------------
-    --Set extract max date which is used to convert future dates
-    --Add as function parameter to R function
-    ------------------
-    declare @extract_date varchar(100);
-    set @extract_date = '2019-03-31';
-    
+
     -------------------
     --STEP 1: Join distinct member IDs with year-month matrix
     -------------------
@@ -47,7 +41,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     select a.internal_member_id, b.first_day_month, b.last_day_month
     into #id_month
     from #id as a
-    full join (select first_day_month, last_day_month, 1 as flag from phclaims.ref.date where first_day_month >= '2014-01-01' and last_day_month <= @extract_date) as b
+    full join (select first_day_month, last_day_month, 1 as flag from phclaims.ref.date where first_day_month >= '2014-01-01' and last_day_month <= {extract_end_date}) as b
     on a.flag = b.flag;
     
     
@@ -62,7 +56,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
       select internal_member_id, eligibility_start_dt,
       --set ongoing eligibility end dates to latest extract end date 
       case 
-        when eligibility_end_dt > @extract_date then @extract_date
+        when eligibility_end_dt > {extract_end_date} then {extract_end_date}
         else eligibility_end_dt
       end as eligibility_end_dt,
       --convert dual information to binary numeric flag
