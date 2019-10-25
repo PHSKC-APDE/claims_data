@@ -3,8 +3,8 @@ table: mcaid_mcare_claim_header
 vars:
     id_apde: bigint
     claim_header_id: varchar(255) collate SQL_Latin1_General_CP1_CS_AS
-    clm_type_mcaid_id: varchar(255)
-    clm_type_mcare_id: varchar(255)
+    claim_type_mcaid_id: varchar(255)
+    claim_type_mcare_id: varchar(255)
     claim_type_id: tinyint
     file_type_mcare: tinyint
     first_service_date: date
