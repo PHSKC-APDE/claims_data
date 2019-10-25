@@ -1,5 +1,5 @@
 schema: stage
-table: mcaid_mcare_icdcm_claim_header
+table: mcaid_mcare_claim_icdcm_header
 vars:
     id_apde: varchar(255)
     claim_header_id: bigint
