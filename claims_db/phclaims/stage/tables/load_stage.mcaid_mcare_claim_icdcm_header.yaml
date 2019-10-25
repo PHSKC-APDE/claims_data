@@ -11,4 +11,3 @@ vars:
     icdcm_number: varchar(255)
     file_type_mcare: tinyint
     last_run: datetime
-	
