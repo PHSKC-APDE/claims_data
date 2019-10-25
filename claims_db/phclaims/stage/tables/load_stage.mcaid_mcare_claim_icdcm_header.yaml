@@ -2,7 +2,7 @@ schema: stage
 table: mcaid_mcare_claim_icdcm_header
 vars:
     id_apde: bigint
-    claim_header_id: varchar(255)
+    claim_header_id: varchar(255) collate SQL_Latin1_General_CP1_CS_AS
     first_service_date: date
     last_service_date: date
     icdcm_raw: varchar(255)
