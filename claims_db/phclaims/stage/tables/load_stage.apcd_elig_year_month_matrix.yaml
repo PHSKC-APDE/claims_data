@@ -1,5 +1,5 @@
-schema: ref
-table: apcd_id_year_month_matrix
+schema: stage
+table: apcd_elig_year_month_matrix
 vars:
     id_apcd: varchar(255)
     first_day_month: date
