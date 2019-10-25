@@ -18,28 +18,12 @@ declare @extract_date varchar(100);
 set @extract_date = '2019-03-31';
 
 -------------------
---STEP 1: Join distinct member IDs with year-month matrix
--------------------
-if object_id('tempdb..#id') is not null drop table #id;
-select distinct internal_member_id, 1 as flag
-into #id
-from phclaims.stage.apcd_member_month_detail;
-
-if object_id('tempdb..#id_month') is not null drop table #id_month;
-select a.internal_member_id, b.first_day_month, b.last_day_month
-into #id_month
-from #id as a
-full join (select first_day_month, last_day_month, 1 as flag from phclaims.ref.date where first_day_month >= '2014-01-01' and last_day_month <= @extract_date) as b
-on a.flag = b.flag;
-
-
--------------------
 --STEP 2: Join with eligibility table by member ID
 -------------------
 if object_id('tempdb..#temp1') is not null drop table #temp1;
 select a.internal_member_id, a.first_day_month, a.last_day_month, b.eligibility_start_dt, b.eligibility_end_dt, b.dual_flag, b.rac_code_id
 into #temp1
-from #id_month as a
+from PHClaims.ref.apcd_id_year_month_matrix as a
 left join (
   select internal_member_id, eligibility_start_dt,
   --set ongoing eligibility end dates to latest extract end date 
