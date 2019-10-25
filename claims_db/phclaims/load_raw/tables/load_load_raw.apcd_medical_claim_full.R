@@ -12,6 +12,10 @@ load_load_raw.apcd_medical_claim_full_f <- function(etl_date_min = NULL,
                                                                etl_delivery_date = NULL,
                                                                etl_note = NULL) {
   
+  ### Set table name part
+  table_name_part <- "apcd_medical_claim"
+  
+  
   ### Check entries are in place for ETL function
   if (is.null(etl_delivery_date) | is.null(etl_note)) {
     stop("Enter a delivery date and note for the ETL batch ID function")
@@ -47,7 +51,8 @@ load_load_raw.apcd_medical_claim_full_f <- function(etl_date_min = NULL,
   #### LOAD TABLES ####
   print("Loading tables to SQL")
   load_table_from_file_f(conn = db_claims,
-                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_full.yaml",
+                         config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.",
+                                             table_name_part, "_full.yaml"),
                          overall = F, ind_yr = T, combine_yr = T, test_mode = F)
   
   
@@ -56,30 +61,32 @@ load_load_raw.apcd_medical_claim_full_f <- function(etl_date_min = NULL,
   # Add column to the SQL table and set current batch to the default
   odbc::dbGetQuery(db_claims,
                    glue::glue_sql(
-                     "ALTER TABLE load_raw.apcd_medical_claim
+                     "ALTER TABLE load_raw.{`table_name_part`}
                    ADD etl_batch_id INTEGER 
                    DEFAULT {current_batch_id} WITH VALUES",
                      .con = db_claims))
   
   
   #### LOAD YAML CONFIG FILE FOR FINAL COMMANDS ####
-  config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_full.yaml"
+  config_url <- paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.", table_name_part, "_full.yaml")
   if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
   } else {
     table_config <- yaml::read_yaml(config_file)
   }
   
+  
   #### DROP ROW_NUMBER COLUMN FROM FINAL TABLE ####
   odbc::dbGetQuery(db_claims, glue::glue_sql(
-    "ALTER TABLE load_raw.apcd_medical_claim
+    "ALTER TABLE load_raw.{`table_name_part`}
     DROP COLUMN row_number",
     .con = db_claims))
   
+
   #### DROP TABLE CHUNKS ####
   if (length(table_config$years) > 1) {
     lapply(table_config$years, function(x) {
-      table_name <- glue::glue("apcd_medical_claim_", x)
+      table_name <- glue::glue(table_name_part, "_", x)
       odbc::dbGetQuery(db_claims, glue::glue_sql("DROP TABLE {`table_config$schema`}.{`table_name`}", .con = db_claims))
       })
     }

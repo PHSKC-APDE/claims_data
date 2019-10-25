@@ -1,0 +1,8 @@
+schema: ref
+table: apcd_id_year_month_matrix
+vars:
+    id_apcd: varchar(255)
+    first_day_month: date
+    last_day_month: date
+    last_run: datetime
+

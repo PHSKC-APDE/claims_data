@@ -1,4 +1,4 @@
-#### CODE TO LOAD APCD PROVIDER_MASTER TABLES
+#### CODE TO LOAD APCD PROVIDER_PRACTICE_ROSTER TABLES
 # Eli Kern, PHSKC (APDE)
 #
 # 2019-10
@@ -11,6 +11,10 @@ load_load_raw.apcd_provider_practice_roster_full_f <- function(etl_date_min = NU
                                             etl_date_max = NULL,
                                             etl_delivery_date = NULL,
                                             etl_note = NULL) {
+  
+  ### Set table name part
+  table_name_part <- "apcd_provider_practice_roster"
+  
   
   ### Check entries are in place for ETL function
   if (is.null(etl_delivery_date) | is.null(etl_note)) {
@@ -47,7 +51,8 @@ load_load_raw.apcd_provider_practice_roster_full_f <- function(etl_date_min = NU
   #### LOAD TABLES ####
   print("Loading tables to SQL")
   load_table_from_file_f(conn = db_claims,
-                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_practice_roster_full.yaml",
+                         config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.",
+                                             table_name_part, "_full.yaml"),
                          overall = T, ind_yr = F, combine_yr = F)
   
   
@@ -56,7 +61,7 @@ load_load_raw.apcd_provider_practice_roster_full_f <- function(etl_date_min = NU
   # Add column to the SQL table and set current batch to the default
   odbc::dbGetQuery(db_claims,
                    glue::glue_sql(
-                     "ALTER TABLE load_raw.apcd_provider_practice_roster
+                     "ALTER TABLE load_raw.{`table_name_part`}
                    ADD etl_batch_id INTEGER 
                    DEFAULT {current_batch_id} WITH VALUES",
                      .con = db_claims))
