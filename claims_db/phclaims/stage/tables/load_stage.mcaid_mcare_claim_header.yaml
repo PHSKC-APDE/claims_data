@@ -1,7 +1,7 @@
 schema: stage
 table: mcaid_mcare_claim_header
 vars:
-    id_apde: varchar(255)
+    id_apde: bigint
     claim_header_id: bigint
     clm_type_mcaid_id: varchar(255)
     clm_type_mcare_id: varchar(255)
