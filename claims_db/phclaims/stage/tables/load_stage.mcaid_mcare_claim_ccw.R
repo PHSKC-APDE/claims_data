@@ -4,6 +4,7 @@
 # 2019-10
 
 ### Eventually run from master analytic script
+# Run time: 113 min
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
