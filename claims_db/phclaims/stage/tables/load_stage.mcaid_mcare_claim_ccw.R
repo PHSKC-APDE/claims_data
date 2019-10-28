@@ -29,22 +29,19 @@ system.time(load_ccw(conn = db_claims,
                      test_rows = 1000L))
 
 
-
-
-
 ### Run QA
-system.time(qa_mcaid_mcare_claim_icdcm_header <- qa_stage.mcaid_mcare_claim_icdcm_header_f())
+# Adapt script at https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_tmp.mcare_claim_ccw.sql
 
 
 #### Archive current table ####
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcaid_mcare_claim_icdcm_header")
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcaid_mcare_claim_ccw")
 
 
 #### Alter schema ####
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcaid_mcare_claim_icdcm_header")
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcaid_mcare_claim_ccw")
 
 
 #### Create clustered columnstore index ####
-# Run time: 18 min
+# Run time: X min
 system.time(dbSendQuery(conn = db_claims, glue_sql(
-  "create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_icdcm_header on final.mcaid_mcare_claim_icdcm_header")))
+  "create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_ccw on final.mcaid_mcare_claim_ccw")))
