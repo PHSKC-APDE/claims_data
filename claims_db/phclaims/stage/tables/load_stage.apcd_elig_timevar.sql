@@ -16,36 +16,38 @@
 ------------------
 declare @extract_date varchar(100);
 set @extract_date = '2019-03-31';
+declare @extract_yearmo varchar(100);
+set @extract_yearmo = 201903;
 
 -------------------
---STEP 2: Join with eligibility table by member ID
+--STEP 1: Convert eligibility table to 1 month per row format
 -------------------
 if object_id('tempdb..#temp1') is not null drop table #temp1;
-select a.internal_member_id, a.first_day_month, a.last_day_month, b.eligibility_start_dt, b.eligibility_end_dt, b.dual_flag, b.rac_code_id
+select a.internal_member_id, b.first_day_month, b.last_day_month, a.dual_flag, a.rac_code_id
 into #temp1
-from PHClaims.ref.apcd_id_year_month_matrix as a
-left join (
-  select internal_member_id, eligibility_start_dt,
-  --set ongoing eligibility end dates to latest extract end date 
-  case 
-    when eligibility_end_dt > @extract_date then @extract_date
-    else eligibility_end_dt
-  end as eligibility_end_dt,
-  --convert dual information to binary numeric flag
-  case 
-    when dual_eligibility_code_id in (-2,-1,5,6,7,15,16,29) then 0
-    when dual_eligibility_code_id in (8,9,10,11,12,13,14,28) then 1
-    else null
-  end as dual_flag,
-  cast(aid_category_id as int) as rac_code_id
-  from phclaims.stage.apcd_eligibility
-) as b
-on a.internal_member_id = b.internal_member_id
-where b.eligibility_start_dt <= a.last_day_month and b.eligibility_end_dt >= a.first_day_month;
+from (
+	select internal_member_id, eligibility_start_dt,
+	--set ongoing eligibility end dates to latest extract end date 
+	case 
+	when eligibility_end_dt > @extract_date then @extract_date
+	else eligibility_end_dt
+	end as eligibility_end_dt,
+	--convert dual information to binary numeric flag
+	case 
+	when dual_eligibility_code_id in (-2,-1,5,6,7,15,16,29) then 0
+	when dual_eligibility_code_id in (8,9,10,11,12,13,14,28) then 1
+	else null
+	end as dual_flag,
+	cast(aid_category_id as int) as rac_code_id
+	from phclaims.stage.apcd_eligibility
+) as a
+inner join (select distinct year_month, first_day_month, last_day_month from PHClaims.ref.date) as b
+on (a.eligibility_start_dt <= b.last_day_month) and (a.eligibility_end_dt >= b.first_day_month)
+where b.year_month between 201401 and @extract_yearmo;
 
 
 -------------------
---STEP 3: Group by member month and select one dual flag, one RAC code
+--STEP 2: Group by member month and select one dual flag, one RAC code
 --Convert RAC codes to BSP codes, and add full benefit flag (based on RAC)
 --Some Medicaid members have more than 1 RAC for an eligibility period (as we know), but as RACs
 --are not desginated primary, we have to choose one
@@ -68,7 +70,7 @@ group by x.internal_member_id, x.first_day_month, x.last_day_month;
 
 
 -------------------
---STEP 4: Join eligibility-based dual and RAC info to member_month_detail table and create coverage group variables
+--STEP 3: Join eligibility-based dual and RAC info to member_month_detail table and create coverage group variables
 -------------------
 if object_id('tempdb..#temp3') is not null drop table #temp3;
 select a.internal_member_id, a.first_day_month as from_date,
@@ -107,7 +109,7 @@ on a.internal_member_id = b.internal_member_id and a.first_day_month = b.first_d
 
 
 ------------
---STEP 5: Assign a group number to each set of contiguous months by person, covgrp, dual_flag, BSP code, and full benefit flag, and ZIP code
+--STEP 4: Assign a group number to each set of contiguous months by person, covgrp, dual_flag, BSP code, and full benefit flag, and ZIP code
 ----------------
 if object_id('tempdb..#temp4') is not null drop table #temp4;
 select distinct internal_member_id, from_date, to_date, zip_code, med_covgrp, pharm_covgrp, dual_flag, bsp_group_cid, full_benefit,
@@ -118,7 +120,7 @@ from #temp3;
 
 
 ------------
---STEP 6: Taking the max and min of each contiguous period, collapse to one row
+--STEP 5: Taking the max and min of each contiguous period, collapse to one row
 ----------------
 if object_id('tempdb..#temp5') is not null drop table #temp5;
 select internal_member_id, zip_code, med_covgrp, pharm_covgrp, dual_flag, bsp_group_cid, full_benefit, min(from_date) as from_date, max(to_date) as to_date,
@@ -129,7 +131,7 @@ group by internal_member_id, zip_code, med_covgrp, pharm_covgrp, dual_flag, bsp_
 
 
 ------------
---STEP 7: Add additional coverage flag and geographic variables and insert data into table shell
+--STEP 6: Add additional coverage flag and geographic variables and insert data into table shell
 ----------------
 insert into PHClaims.stage.apcd_elig_timevar with (tablock)
 select 
