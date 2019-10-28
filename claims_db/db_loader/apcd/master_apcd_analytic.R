@@ -73,6 +73,7 @@ create_table_f(conn = db_claims,
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
 
 ### C) Load tables
+# Run time: 4.5 hours --> results in zero rows written to table
 system.time(load_stage.apcd_elig_year_month_matrix_full_f(extract_end_date = "2019-03-31"))
 #Placeholder for partial refresh function
 
