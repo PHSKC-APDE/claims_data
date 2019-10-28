@@ -422,7 +422,7 @@ load_ccw <- function(conn = NULL,
       "insert into PHClaims.{`schema`}.{`to_table`} with (tablock)
       select
       {`id_source`}, from_date, to_date, ccw_code, ccw_desc, 
-      {Sys.Date()}
+      getdate() as last_run
       from {`ccw_abbrev_table`}",
       .con = conn,
       ccw_abbrev_table = glue("##{ccw_abbrev}"))
