@@ -24,9 +24,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/eli/claims_db/db_loader/scripts_general/claim_ccw.R") ##eli branch
 
 #### Load script ####
-system.time(load_ccw(conn = db_claims,
-                     source = "mcaid_mcare",
-                     test_rows = 1000L))
+system.time(load_ccw(conn = db_claims, source = "mcaid_mcare"))
 
 
 ### Run QA
