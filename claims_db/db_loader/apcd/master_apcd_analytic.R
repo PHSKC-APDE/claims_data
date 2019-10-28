@@ -73,3 +73,8 @@ create_table_f(conn = db_claims,
 
 ### C) Load tables
 system.time(load_stage.apcd_elig_timevar_f(extract_end_date = "2019-03-31"))
+
+### D) Table-level QA
+system.time(apcd_timevar_qa1 <- qa_stage.apcd_elig_timevar_f())
+rm(apcd_timevar_qa1)
+
