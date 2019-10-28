@@ -2,7 +2,7 @@
 --Union of mcaid and mcare claim header tables
 --Eli Kern (PHSKC-APDE)
 --2019-10
---Run time: X min
+--Run time: 62 min
 
 -------------------
 --STEP 1: Union mcaid and mcare claim header tables and insert into table shell
@@ -12,7 +12,8 @@ insert into PHClaims.stage.mcaid_mcare_claim_header with (tablock)
 --Medicaid claim header
 select
 b.id_apde
-,a.claim_header_id
+,'mcaid' as source_desc
+,cast(a.claim_header_id as varchar(255)) --because mcare uses alpha characters
 ,a.clm_type_mcaid_id --note to normalize column name
 ,claim_type_mcare_id = null
 ,a.claim_type_id
@@ -89,11 +90,12 @@ union
 --Medicare claim header
 select
 b.id_apde
+,'mcare' as source_desc
 ,a.claim_header_id
 ,clm_type_mcaid_id = null --note to normalize column name
 ,a.claim_type_mcare_id
 ,a.claim_type_id
-,a.filetype as file_type_mcare
+,a.file_type_mcare
 ,a.first_service_date
 ,a.last_service_date
 ,patient_status = null
