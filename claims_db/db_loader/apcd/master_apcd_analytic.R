@@ -60,30 +60,7 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 2: ref.apcd_id_year_month_matrix ####
-# Modify script later to only add new IDs as this table takes a while to run
-## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-
-### A) Call in functions
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_elig_year_month_matrix.R")
-
-### B) Create table
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_elig_year_month_matrix.yaml",
-               overall = T, ind_yr = F, overwrite = T, test_mode = F)
-
-### C) Load tables
-# Run time: 4.5 hours --> results in zero rows written to table
-system.time(load_stage.apcd_elig_year_month_matrix_full_f(extract_end_date = "2019-03-31"))
-#Placeholder for partial refresh function
-
-### D) Table-level QA
-system.time(apcd_elig_matrix_qa1 <- qa_stage.apcd_elig_year_month_matrix_f())
-rm(apcd_elig_matrix_qa1)
-
-
-## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 3: apcd_elig_timevar ####
+#### Table 2: apcd_elig_timevar ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
