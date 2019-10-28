@@ -5,7 +5,7 @@
 ## Run time: 20 mins (Medicaid) to 2h 30min (APCD) 
 
 load_ccw <- function(conn = NULL,
-                     source = c("apcd", "mcaid", "mcare"),
+                     source = c("apcd", "mcaid", "mcare", "mcaid_mcare"),
                      test_rows = NULL) {
   
   # Check libraries are called in and load if not
@@ -46,6 +46,9 @@ load_ccw <- function(conn = NULL,
   } else if (source == "mcare") {
     id_source <- "id_mcare"
     config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_claim_ccw.yaml"
+  } else if (source == "mcaid_mcare") {
+    id_source <- "id_mcaid_mcare"
+    config_url <- ""
   }
   
   
