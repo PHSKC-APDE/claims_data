@@ -47,7 +47,7 @@ load_ccw <- function(conn = NULL,
     id_source <- "id_mcare"
     config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_claim_ccw.yaml"
   } else if (source == "mcaid_mcare") {
-    id_source <- "id_mcaid_mcare"
+    id_source <- "id_apde"
     config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_ccw.yaml"
   }
   
