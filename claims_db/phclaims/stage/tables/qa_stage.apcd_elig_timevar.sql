@@ -22,7 +22,7 @@ from PHClaims.final.apcd_elig_demo;
 select count(distinct id_apcd) as id_dcount_timevar
 from phclaims.stage.apcd_elig_timevar
 where from_date <= '2016-12-31' and to_date >= '2016-01-01'
-  and geo_ach = 'King';
+  and geo_ach = 'HealthierHere';
   
 --All King people in 2016 using member_month_detail
 select count(distinct internal_member_id) as id_dcount_mm
