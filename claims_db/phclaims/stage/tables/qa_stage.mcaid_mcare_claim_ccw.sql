@@ -114,5 +114,5 @@ left join PHClaims.ref.dx_lookup as c
 on b.icdcm_norm = c.dx and b.icdcm_version = c.dx_ver
 where a.claim_type_id in (select * from PHClaims.dbo.Split(@clm_type, ','))
 and a.id_apde = @id
-and c.ccw_hypothyroid = 1s
+and c.ccw_hypothyroid = 1
 order by a.first_service_date;
