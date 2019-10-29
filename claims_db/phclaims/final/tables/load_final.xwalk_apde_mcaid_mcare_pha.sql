@@ -4,7 +4,7 @@
 
 	SELECT *
 		INTO [PHClaims].[final].[xwalk_apde_mcaid_mcare_pha]	
-		FROM [PHClaims].[stage].[xwalk_06_linkage_xwalk_apde_mcaid_mcare_pha]
+		FROM [PHClaims].[stage].[xwalk_apde_mcaid_mcare_pha]
 
 
 /****** ADD COLUMSTORE CLUSTERED INDEX ******/
