@@ -25,7 +25,7 @@
   # 8) Drop all temporary SQL tables 
 
 ## SET UP R ENVIRONMENT ----
-    rm(list=ls())  # clear memory
+    rm(list=ls()) # clear memory
     pacman::p_load(data.table, tidyverse, odbc, DBI, tidyr, RecordLinkage, lubridate) # load packages
     options("scipen"=999) # turn off scientific notation  
     options(warning.length = 8170) # get lengthy warnings, needed for SQL
@@ -176,6 +176,9 @@
         return(score)
       }
     
+## Identify objects/function to keep throughout entire process ----    
+      keep.me <- c(ls(), "keep.me") # everything created above should be permanent
+      
 #### ----------------- ####
 #### Prep MCAID DATA   ####   
 #### ----------------- ####    
@@ -341,7 +344,7 @@
     
   ## (6) Close ODBC connection & drop temporary files ----
       dbDisconnect(db_claims51)        
-      rm(list=ls())
+      rm(list=(setdiff(ls(), keep.me)))
       gc()
       
 #### ----------------- ####
@@ -462,7 +465,7 @@
         
   ## (7) Close ODBC connection and drop temporary files ----
         dbDisconnect(db_claims51)
-        rm(list=ls())
+        rm(list=(setdiff(ls(), keep.me)))
         gc()
         
 #### ----------------- ####
@@ -549,7 +552,7 @@
         
   ## (6) Close OBDC connection and drop temporary files ----
         dbDisconnect(db_apde51)
-        rm(list=ls())
+        rm(list=(setdiff(ls(), keep.me)))
         gc()
         
 #### ----------------- ####
@@ -935,7 +938,7 @@
       
   ## (7) Close ODBC connection and drop temporary files ----    
       dbDisconnect(db_claims51)      
-      rm(list=ls())
+      rm(list=(setdiff(ls(), keep.me)))
       gc()
 
 #### ----------------- ####
@@ -1363,7 +1366,7 @@
   ## (5) Close ODBC connection and drop temporary files ----    
       dbDisconnect(db_apde51) 
       dbDisconnect(db_claims51)      
-      rm(list=ls())
+      rm(list=(setdiff(ls(), keep.me)))
       gc()
       
 #### ----------------- ####
@@ -1550,7 +1553,7 @@
   ## (5) Close ODBC connection and drop temporary files ----    
       dbDisconnect(db_apde51) 
       dbDisconnect(db_claims51)      
-      rm(list=ls())
+      rm(list=(setdiff(ls(), keep.me)))
       gc()
       
 #### ------------------------ ####
@@ -1777,4 +1780,6 @@
 ## The end! ----      
     run.time <- Sys.time() - start.time  
     print(run.time)
+    
+    Sys.time() - start.time
     
