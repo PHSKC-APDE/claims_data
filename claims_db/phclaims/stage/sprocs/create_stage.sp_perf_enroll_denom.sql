@@ -135,7 +135,7 @@ If the last 12-month period ends 201712
 THESE PARAMETERS ARE INTEGERS
 This procedure will index the [stage].[perf_enroll_denom] table
 
-EXEC [stage].[sp_perf_enroll_denom] @start_date_int = 201202, @end_date_int = 201812;
+EXEC [stage].[sp_perf_enroll_denom] @start_date_int = 201601, @end_date_int = 201812;
 
 SELECT 
  [year_month]

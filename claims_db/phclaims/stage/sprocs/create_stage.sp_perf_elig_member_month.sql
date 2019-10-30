@@ -118,7 +118,8 @@ AND [row_num] = 1;
 
 ALTER TABLE [stage].[perf_elig_member_month] ALTER COLUMN [CLNDR_YEAR_MNTH] INT NOT NULL;
 ALTER TABLE [stage].[perf_elig_member_month] ALTER COLUMN [MEDICAID_RECIPIENT_ID] VARCHAR(200) NOT NULL;
-ALTER TABLE [stage].[perf_elig_member_month] ADD CONSTRAINT [PK_perf_elig_member_month] PRIMARY KEY ([MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]);
+ALTER TABLE [stage].[perf_elig_member_month] 
+ADD CONSTRAINT [pk_perf_elig_member_month_MEDICAID_RECIPIENT_ID_CLNDR_YEAR_MNTH] PRIMARY KEY ([MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]);
 END
 GO
 
