@@ -78,3 +78,13 @@ system.time(load_stage.apcd_elig_timevar_f(extract_end_date = "2019-03-31"))
 system.time(apcd_timevar_qa1 <- qa_stage.apcd_elig_timevar_f())
 rm(apcd_timevar_qa1)
 
+### E) Run line-level QA script at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.apcd_elig_timevar.sql
+
+### F) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_timevar")
+
+### G) Alter schema on new table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_elig_timevar")
+
+### H) Create clustered columnstore index
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_timevar on final.apcd_elig_timevar")))
