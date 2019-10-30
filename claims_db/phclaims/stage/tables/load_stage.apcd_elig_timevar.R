@@ -24,7 +24,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     --STEP 1: Convert eligibility table to 1 month per row format
     -------------------
     if object_id('tempdb..#temp1') is not null drop table #temp1;
-    select a.internal_member_id, b.first_day_month, b.last_day_month, a.dual_flag, a.rac_code_id
+    select a.internal_member_id, b.first_day_month, b.last_day_month, a.dual_flag, a.rac_code_id, a.product_code_id
     into #temp1
     from (
     	select internal_member_id, eligibility_start_dt,
@@ -39,7 +39,8 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     	when dual_eligibility_code_id in (8,9,10,11,12,13,14,28) then 1
     	else null
     	end as dual_flag,
-    	cast(aid_category_id as int) as rac_code_id
+    	cast(aid_category_id as int) as rac_code_id,
+    	product_code_id
     	from phclaims.stage.apcd_eligibility
     ) as a
     inner join (select distinct year_month, first_day_month, last_day_month from PHClaims.ref.date) as b
@@ -60,7 +61,14 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     into #temp2
     from (
     select a.internal_member_id, a.first_day_month, a.last_day_month, a.dual_flag, c.bsp_group_cid,
-    	case when c.full_benefit = 'Y' then 1 else 0 end as full_benefit
+    	case
+    		--when Medicaid coverage and RAC code is present check if full benefit
+    		when a.product_code_id = 14 and a.rac_code_id > 0 and c.full_benefit = 'Y' then 1
+    		--when Medicaid coverage and RAC code is missing (likely MCO) assume full benefit
+    		when a.product_code_id = 14 and (a.rac_code_id < 0 or a.rac_code_id is null) then 1
+    		--otherwise set as not full-benefit
+    		else 0
+    	end as full_benefit
     from #temp1 as a
     left join PHClaims.ref.apcd_aid_category as b
     on a.rac_code_id = b.aid_category_id
