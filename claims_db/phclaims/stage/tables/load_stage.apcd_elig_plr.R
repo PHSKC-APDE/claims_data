@@ -335,9 +335,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL) {
     
     into #cov1
     from phclaims.final.apcd_elig_timevar
-    where from_date <= {to_date} and to_date >= {from_date}
-    --testing
-    and id_apcd = 11238254351;
+    where from_date <= {to_date} and to_date >= {from_date};
      
     
     --------------------------
@@ -528,8 +526,6 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL) {
         		end as covd
           from phclaims.final.apcd_elig_timevar
           where from_date <= {to_date} and to_date >= {from_date}
-    	  --testing
-    	  and id_apcd = 11238254351
     			) as a
     			group by a.id, a.geo_zip
         ) as b
