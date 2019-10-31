@@ -633,7 +633,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL) {
     case when (geo_county is not null and pharm_medicaid_covd >= 1) then 1 else 0 end as overall_mcaid_pharm,
     case when geo_county is not null and full_benefit_covper >= 91.7 and dual_covper < 8.3 and med_commercial_covper < 8.3
     	then 1 else 0 end as performance_11_wa,
-    case when geo_county is not null and full_benefit_covd >= 58.3 and dual_covper < 41.7 and med_commercial_covper < 41.7
+    case when geo_county is not null and full_benefit_covper >= 58.3 and dual_covper < 41.7 and med_commercial_covper < 41.7
     	then 1 else 0 end as performance_7_wa,
       
     --coverage cohorts, ach-level
