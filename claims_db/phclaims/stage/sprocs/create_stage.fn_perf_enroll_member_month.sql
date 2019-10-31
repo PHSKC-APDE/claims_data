@@ -40,6 +40,7 @@ SELECT
 ,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[full_benefit] = 'Y' AND c.[DUAL_ELIG] = 'N' AND c.[TPL_FULL_FLAG] = ' ' THEN 1 ELSE 0 END AS [full_criteria]
 ,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[full_benefit] = 'Y' AND c.[DUAL_ELIG] = 'N' THEN 1 ELSE 0 END AS [full_criteria_without_tpl]
 --,CASE WHEN [COVERAGE_TYPE_IND] = 'FFS' THEN 'FFS' ELSE [MC_PRVDR_NAME] END AS [mco_or_ffs]
+,c.[RSDNTL_POSTAL_CODE] AS [zip_code]
 ,b.[row_num]
 
 FROM [final].[mcaid_elig_demo] AS a
