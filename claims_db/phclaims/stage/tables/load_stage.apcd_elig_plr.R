@@ -658,8 +658,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL) {
 qa_stage.apcd_elig_plr_f <- function(year = NULL) {
   
   table_name <- paste0("apcd_elig_plr_", year)
-  table_name_text <- paste0("stage.", table_name)
-  
+
   #all members are distinct
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.{`table_name`}' as 'table', '# members with >1 row, expect 0' as qa_type, count(a.id_apcd) as qa
