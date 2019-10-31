@@ -271,7 +271,7 @@
     
   ## (4) Clean merged Mcaid dataset ----
     # without ssn, dob, and last name, there is no hope of matching
-      mcaid.dt <- mcaid.dt[!(is.na(ssn) & is.na(dob) & is.na(name_srnm) ), ] 
+      mcaid.dt <- mcaid.dt[!(is.na(ssn) & is.na(dob.year) & is.na(name_srnm) ), ] 
       
     # fill in missing SSN when dob, sex, and complete name are an exact match
       ssn.ok <- mcaid.dt[!is.na(ssn), ]
@@ -404,7 +404,7 @@
         mcare.dt <- prep.sex(mcare.dt)
         
         # without ssn, dob, and last name, there is no hope of matching
-        mcare.dt <- mcare.dt[!(is.na(ssn) & is.na(dob) & is.na(name_srnm) ), ] 
+        mcare.dt <- mcare.dt[!(is.na(ssn) & is.na(dob.year) & is.na(name_srnm) ), ] 
         
   ## (5) Deduplicate when all information is the same (name, SSN, dob, & gender) except id_mcare ----
         # eventually the integrated datahub will identify when people have multiple ids. For now, just try to keep the most recent id for linkage.
@@ -441,7 +441,7 @@
                           table = "xwalk_mcare_prepped")  
         
         # column types for SQL
-        sql.columns <- c("id_mcare" = "CHAR(15)", "ssn" = "char(9)", 
+        sql.columns <- c("id_mcare" = "CHAR(15) collate SQL_Latin1_General_Cp1_CS_AS", "ssn" = "char(9)", 
                          "dob.year" = "char(4)", "dob.month" = "char(2)", "dob.day" = "char(2)",
                          "name_srnm" = "varchar(255)", "name_gvn" = "varchar(255)", "name_mdl" = "varchar(255)", 
                          "gender_me" = "varchar(1)", "gender_female" = "integer", "gender_male" = "integer", 
@@ -474,7 +474,7 @@
   ## (1) Load data from SQL ----
         db_apde51 <- dbConnect(odbc(), "PH_APDEStore51")
         
-        pha.dt <- setDT(odbc::dbGetQuery(db_apde51, "SELECT pid, ssn_id_m6, name_srnm_m6, name_gvn_m6, name_mdl_m6, 
+        pha.dt <- setDT(odbc::dbGetQuery(db_apde51, "SELECT pid, ssn_id_m6, lname_new_m6, fname_new_m6, mname_new_m6, 
              dob_m6, gender_new_m6, enddate FROM stage.pha"))
         
   ## (2) Tidy PHA data ----
@@ -482,15 +482,15 @@
         # Filter if person's most recent enddate is <2011 since they can't match to Medicare
         pha.dt <- setDT(pha.dt %>%
           filter(year(enddate) >= 2012) %>%
-          distinct(pid, ssn_id_m6, name_srnm_m6, name_gvn_m6, name_mdl_m6, 
+          distinct(pid, ssn_id_m6, lname_new_m6, fname_new_m6, mname_new_m6, 
                    dob_m6, gender_new_m6, enddate) %>%
-          arrange(pid, ssn_id_m6, name_srnm_m6, name_gvn_m6, name_mdl_m6, 
+          arrange(pid, ssn_id_m6, lname_new_m6, fname_new_m6, mname_new_m6, 
                   dob_m6, gender_new_m6, enddate) %>%
-          group_by(pid, ssn_id_m6, name_srnm_m6, name_gvn_m6, dob_m6) %>%
+          group_by(pid, ssn_id_m6, lname_new_m6, fname_new_m6, dob_m6) %>%
           slice(n()) %>%
           ungroup() %>%
-          rename(ssn = ssn_id_m6, name_srnm = name_srnm_m6, 
-                 name_gvn = name_gvn_m6, name_mdl = name_mdl_m6, 
+          rename(ssn = ssn_id_m6, name_srnm = lname_new_m6, 
+                 name_gvn = fname_new_m6, name_mdl = mname_new_m6, 
                  dob = dob_m6, gender = gender_new_m6) %>%
           select(-(enddate)))
         
@@ -512,7 +512,7 @@
         # do not run prep.sex because sex was coded differently in PHA
         
         # without ssn, dob, and last name, there is no hope of matching
-        pha.dt <- pha.dt[!(is.na(ssn) & is.na(dob) & is.na(name_srnm) ), ] 
+        pha.dt <- pha.dt[!(is.na(ssn) & is.na(dob.year) & is.na(name_srnm) ), ] 
         
   ## (4) Check for duplicate SSN ----
         pha.dt[!is.na(ssn), dup:=.N, by = "ssn"]
@@ -1628,21 +1628,16 @@
         mcare.mcaid_mcaid.pha <- merge(mcare.mcaid, mcaid.pha, by = "id_mcaid", all.x = TRUE, all.y = FALSE)
         
       # Append mcare.mcaid_mcare.pha & mcare.mcaid_mcaid.pha ----
-        mcaid.mcare.pha <- unique(rbind(mcare.mcaid_mcare.pha, mcare.mcaid_mcaid.pha))
+        mcaid.mcare.pha <- merge(mcare.mcaid_mcare.pha, mcare.mcaid_mcaid.pha, by = c("id_mcare", "id_mcaid"))
+
+      # Clean up mcaid.mcare.pha ----
+        mcaid.mcare.pha[!is.na(pid.x) & is.na(pid.y), pid := pid.x] # keep pid from mcare when pid from mcaid is missing
+        mcaid.mcare.pha[is.na(pid.x) & !is.na(pid.y), pid := pid.y] # keep pid from mcaid when pid from mcare is missing
+        mcaid.mcare.pha[!is.na(pid.x) & !is.na(pid.y) & pid.x == pid.y, pid := pid.y] # when both mcare and mcare linked to same pid, chose the one from Mcaid
+        mcaid.mcare.pha[!is.na(pid.x) & !is.na(pid.y) & pid.x != pid.y, pid := pid.y] # when mcare and mcare linked to different pid, chose the one form Mcaid
+        mcaid.mcare.pha[, c("pid.y", "pid.x") := NULL]
         
-      # Clean up / deduplicate mcaid.mcare.pha ----
-       # drop if mcare/mcaid combo exists already and missing PID 
-        mcaid.mcare.pha[, dup.mcare.mcaid := .N, by = c("id_mcaid", "id_mcare")]
-        mcaid.mcare.pha <- mcaid.mcare.pha[!(dup.mcare.mcaid !=1 & is.na(pid))] 
-        mcaid.mcare.pha[, dup.mcare.mcaid := NULL]
-        
-        # keeper larger PID if >1 PID matches with a unique mcare/mcaid combination 
-        setorder(mcaid.mcare.pha, -pid) 
-        mcaid.mcare.pha[, dup.mcare.mcaid := 1:.N, by = c("id_mcare", "id_mcaid")]
-        mcaid.mcare.pha <- mcaid.mcare.pha[dup.mcare.mcaid==1]
-        mcaid.mcare.pha[, dup.mcare.mcaid := NULL]
-        
-        # check if there are remaining duplicate IDs (to assess whether can progress) 
+        # check if there are duplicate IDs (shouldn't be, but just in case!)
         if(sum(duplicated(mcaid.mcare.pha[!is.na(id_mcaid)]$id_mcaid)) > 0) 
           stop("Fix duplicate id_mcaid")
         
@@ -1651,51 +1646,50 @@
 
         if(sum(duplicated(mcaid.mcare.pha[!is.na(pid)]$pid)) > 0)
           stop("Fix duplicate pid")
-
-  ## (4) Add mcare.mcaid that are not already in mcaid.mcare.pha  ----
-        # don't expect anything here, but added for sake of completeness
-        mcaid.mcare.pha <- rbind(
-          mcaid.mcare.pha,
-          mcare.mcaid[!id_mcare %in% mcaid.mcare.pha$id_mcare & !id_mcaid %in% mcaid.mcare.pha$id_mcaid, ], 
-          fill = TRUE
-        )
         
-  ## (5) Add mcare.pha that are not already in mcaid.mcare.pha ----
+        mcaid.mcare.pha
+
+  ## (4) Add mcare.pha that are not already in mcaid.mcare.pha ----
         mcaid.mcare.pha <- rbind(
           mcaid.mcare.pha,
           mcare.pha[!id_mcare %in% mcaid.mcare.pha$id_mcare & !pid %in% mcaid.mcare.pha$pid],
           fill = TRUE
         )
+        nrow(mcaid.mcare.pha)
         
-  ## (6) Add mcaid.pha that are not already in mcaid.mcare.pha ----
+  ## (5) Add mcaid.pha that are not already in mcaid.mcare.pha ----
         mcaid.mcare.pha <- rbind(
           mcaid.mcare.pha,
           mcaid.pha[!id_mcaid %in% mcaid.mcare.pha$id_mcaid & !pid %in% mcaid.mcare.pha$pid],
           fill = TRUE
         )     
+        nrow(mcaid.mcare.pha)
         
-  ## (7) Add mcare.only that are not already in mcaid.mcare.pha ----
+  ## (6) Add mcare.only that are not already in mcaid.mcare.pha ----
         mcaid.mcare.pha <- rbind(
           mcaid.mcare.pha,
           mcare.only[!id_mcare %in% mcaid.mcare.pha$id_mcare],
           fill = TRUE
         )  
+        nrow(mcaid.mcare.pha)
         
-  ## (8) Add mcaid.only that are not already in mcaid.mcare.pha ----
+  ## (7) Add mcaid.only that are not already in mcaid.mcare.pha ----
         mcaid.mcare.pha <- rbind(
           mcaid.mcare.pha,
           mcaid.only[!id_mcaid %in% mcaid.mcare.pha$id_mcaid],
           fill = TRUE
         )  
+        nrow(mcaid.mcare.pha)
         
-  ## (9) Add pha.only that are not already in mcaid.mcare.pha ----
+  ## (8) Add pha.only that are not already in mcaid.mcare.pha ----
         mcaid.mcare.pha <- rbind(
           mcaid.mcare.pha,
           pha.only[!pid %in% mcaid.mcare.pha$pid],
           fill = TRUE
         )  
+        nrow(mcaid.mcare.pha)
         
-  ## (10) Confirm that every ID is accounted for ----
+  ## (9) Confirm that every ID is accounted for ----
         # Check Mcare
         extra.mcare <- setdiff(mcaid.mcare.pha[!is.na(id_mcare)]$id_mcare, mcare.only[!is.na(id_mcare)]$id_mcare) 
         missing.mcare <- setdiff(mcare.only[!is.na(id_mcare)]$id_mcare, mcaid.mcare.pha[!is.na(id_mcare)]$id_mcare) 
@@ -1714,14 +1708,14 @@
         length(extra.pid) # should be zero
         length(missing.pid) # should be zero
 
-  ## (11) Confirm that there are no duplicates in the final mcaid.mcare.pha linkage ----      
+  ## (10) Confirm that there are no duplicates in the final mcaid.mcare.pha linkage ----      
         if(
           sum(duplicated(mcaid.mcare.pha[!is.na(id_mcare)]$id_mcare)) + 
           sum(duplicated(mcaid.mcare.pha[!is.na(id_mcaid)]$id_mcaid)) + 
           sum(duplicated(mcaid.mcare.pha[!is.na(pid)]$pid)) > 0)
           stop("There should be no duplicates in this final linked data.table")
         
-  ## (12) Generate id_apde ----
+  ## (11) Generate id_apde ----
         set.seed(98104) # set starting point for randomization of ordering
         mcaid.mcare.pha[, random.number := runif(nrow(mcaid.mcare.pha))] # create column of random numbers to be used for sorting
         setorder(mcaid.mcare.pha, random.number)
@@ -1729,7 +1723,7 @@
         mcaid.mcare.pha[, id_apde := .I]
         setcolorder(mcaid.mcare.pha, c("id_apde", "id_mcare", "id_mcaid", "pid"))
 
-  ## (13) Load mcaid.mcare.pha table to SQL ----
+  ## (12) Load mcaid.mcare.pha table to SQL ----
       # create last_run timestamp
       mcaid.mcare.pha[, last_run := Sys.time()]
       
