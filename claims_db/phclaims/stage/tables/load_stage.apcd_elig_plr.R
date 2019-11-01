@@ -758,5 +758,19 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
       where performance_7_wa = 1 and geo_county is null;",
     .con = db_claims))
   
+  #number of 11-month cohort members who are in ACH but not state cohort
+  res14 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.{`table_name`}' as 'table', '# of 11-month cohort members in ACH but not state cohort, expect 0' as qa_type, count(id_apcd) as qa
+      from stage.{`table_name`}
+      where performance_11_wa = 0 and performance_11_ach = 1;",
+    .con = db_claims))
+  
+  #number of 7-month cohort members who are in ACH but not state cohort
+  res15 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.{`table_name`}' as 'table', '# of 7-month cohort members in ACH but not state cohort, expect 0' as qa_type, count(id_apcd) as qa
+      from stage.{`table_name`}
+      where performance_7_wa = 0 and performance_7_ach = 1;",
+    .con = db_claims))
+  
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }
