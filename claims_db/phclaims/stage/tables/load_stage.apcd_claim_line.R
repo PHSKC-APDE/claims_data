@@ -37,4 +37,53 @@ load_stage.apcd_claim_line_f <- function() {
 #### Table-level QA script ####
 qa_stage.apcd_claim_line_f <- function() {
   
+  #compare sum of member ID and claim_line ID columns
+  res1 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_line' as 'table', 'sum of member ID' as qa_type,
+    sum(cast(id_apcd as decimal(38,0))) as qa
+    from PHClaims.stage.apcd_claim_line;",
+    .con = db_claims))
+  
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_line' as 'table', 'sum of claim line ID' as qa_type,
+    sum(cast(claim_line_id as decimal(38,0))) as qa
+    from PHClaims.stage.apcd_claim_line;",
+    .con = db_claims))
+  
+  res3 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_medical_claim' as 'table', 'sum of member ID' as qa_type,
+    sum(cast(internal_member_id as decimal(38,0))) as qa
+    from PHClaims.stage.apcd_medical_claim
+    where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';",
+    .con = db_claims))
+  
+  res4 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_medical_claim' as 'table', 'sum of claim line ID' as qa_type,
+    sum(cast(medical_claim_service_line_id as decimal(38,0))) as qa
+    from PHClaims.stage.apcd_medical_claim
+    where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';",
+    .con = db_claims))
+  
+  #make sure everyone is in elig_demo
+  res5 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_line' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+    count(a.id_apcd) as qa
+    from PHClaims.stage.apcd_claim_line as a
+    left join PHClaims.final.apcd_elig_demo as b
+    on a.id_apcd = b.id_apcd
+    where b.id_apcd is null;",
+    .con = db_claims))
+  
+  #make sure everyone is in elig_timevar
+  res6 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_line' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
+    count(a.id_apcd) as qa
+    from PHClaims.stage.apcd_claim_line as a
+    left join PHClaims.final.apcd_elig_timevar as b
+    on a.id_apcd = b.id_apcd
+    where b.id_apcd is null;",
+    .con = db_claims))
+  
+  res_final <- mget(ls(pattern="^res")) %>% bind_rows()
+  
 }
