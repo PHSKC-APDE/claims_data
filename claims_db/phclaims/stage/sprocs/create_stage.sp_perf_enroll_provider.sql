@@ -139,7 +139,7 @@ If the last 12-month period ends 201712
 THESE PARAMETERS ARE INTEGERS
 This procedure will index the [stage].[perf_enroll_provider] table
 
-EXEC [stage].[sp_perf_enroll_provider] @start_date_int = 201702, @end_date_int = 201812;
+EXEC [stage].[sp_perf_enroll_provider] @start_date_int = 201801, @end_date_int = 201812;
 
 -- Check Duplicates
 SELECT NumRows

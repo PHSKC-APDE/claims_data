@@ -15,7 +15,9 @@ BEGIN
 SET @SQL = @SQL + N'
 IF OBJECT_ID(''[stage].[perf_distinct_member]'',''U'') IS NOT NULL
 DROP TABLE [stage].[perf_distinct_member];
-SELECT DISTINCT [id_mcaid]
+SELECT DISTINCT
+ [id_mcaid]
+,CAST(GETDATE() AS DATE) AS [load_date]
 INTO [stage].[perf_distinct_member]
 FROM [stage].[perf_enroll_denom];
 

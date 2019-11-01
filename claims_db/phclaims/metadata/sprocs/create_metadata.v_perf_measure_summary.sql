@@ -9,6 +9,30 @@ CREATE VIEW [metadata].[v_perf_measure_summary]
 AS
 
 SELECT 
+ '[stage].[perf_elig_member_month]' AS [Table]
+,'N/A' AS [Measure Name]
+,'N/A' AS [Component]
+,NULL AS [Load Date]
+,CAST(MIN([CLNDR_YEAR_MNTH]) AS VARCHAR(6)) AS [First Measurement Period]
+,CAST(MAX([CLNDR_YEAR_MNTH]) AS VARCHAR(6)) AS [Last Measurement Period]
+,COUNT(*) AS [Row Count]
+FROM [stage].[perf_elig_member_month]
+
+UNION ALL
+
+SELECT 
+ '[stage].[perf_enroll_denom]' AS [Table]
+,'N/A' AS [Measure Name]
+,'N/A' AS [Component]
+,NULL AS [Load Date]
+,CAST(MIN([year_month]) AS VARCHAR(6)) AS [First Measurement Period]
+,CAST(MAX([year_month]) AS VARCHAR(6)) AS [Last Measurement Period]
+,COUNT(*) AS [Row Count]
+FROM [stage].[perf_enroll_denom]
+
+UNION ALL
+
+SELECT 
  '[stage].[mcaid_perf_measure]' AS [Table]
 ,[measure_name] AS [Measure Name]
 ,'Measure' AS [Component]

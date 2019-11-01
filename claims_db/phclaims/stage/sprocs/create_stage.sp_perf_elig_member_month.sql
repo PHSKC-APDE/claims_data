@@ -110,6 +110,7 @@ SELECT
 ,[DUAL_ELIG]
 ,[TPL_FULL_FLAG]
 ,[RSDNTL_POSTAL_CODE]
+,CAST(GETDATE() AS DATE) AS [load_date]
 
 INTO [stage].[perf_elig_member_month]
 FROM CTE
@@ -126,13 +127,15 @@ GO
 --EXEC [stage].[sp_perf_elig_member_month];
 
 /*
-SELECT NumRows
-	  ,COUNT(*)
+SELECT 
+ NumRows
+,COUNT(*)
 FROM
 (
-SELECT [MEDICAID_RECIPIENT_ID]
-	  ,[CLNDR_YEAR_MNTH]
-	  ,COUNT(*) AS NumRows
+SELECT 
+ [MEDICAID_RECIPIENT_ID]
+,[CLNDR_YEAR_MNTH]
+,COUNT(*) AS NumRows
 FROM [stage].[perf_elig_member_month]
 GROUP BY [MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]
 ) AS SubQuery
