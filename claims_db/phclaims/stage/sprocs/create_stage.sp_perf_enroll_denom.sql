@@ -10,24 +10,36 @@ CREATE PROCEDURE [stage].[sp_perf_enroll_denom]
 ,@end_date_int INT = 201712
 AS
 SET NOCOUNT ON;
+DECLARE @look_back_date_int INT;
 DECLARE @SQL NVARCHAR(MAX) = '';
 
 BEGIN
 
+DELETE FROM [stage].[perf_enroll_denom]
+WHERE [year_month] >= @start_date_int
+AND [year_month] <= @end_date_int;
+
+IF EXISTS(SELECT * FROM sys.indexes WHERE [name] = 'idx_nc_perf_enroll_denom_age_in_months')
+DROP INDEX [idx_nc_perf_enroll_denom_age_in_months] ON [stage].[perf_enroll_denom];
+IF EXISTS(SELECT * FROM sys.indexes WHERE [name] = 'idx_nc_perf_enroll_denom_end_month_age')
+DROP INDEX [idx_nc_perf_enroll_denom_end_month_age] ON [stage].[perf_enroll_denom];
+IF EXISTS(SELECT * FROM sys.indexes WHERE [name] = 'idx_cl_perf_enroll_denom_id_mcaid_year_month')
+DROP INDEX [idx_cl_perf_enroll_denom_id_mcaid_year_month] ON [stage].[perf_enroll_denom];
+
+SET @look_back_date_int = (SELECT YEAR([24_month_prior]) * 100 + MONTH([24_month_prior]) FROM [ref].[perf_year_month] WHERE [year_month] = @end_date_int);
+
 SET @SQL = @SQL + N'
+
 IF OBJECT_ID(''tempdb..#temp'', ''U'') IS NOT NULL
 DROP TABLE #temp;
 SELECT *
 INTO #temp
-FROM [stage].[fn_perf_enroll_member_month](' + CAST(@start_date_int AS NVARCHAR(20)) + ', ' + CAST(@end_date_int AS NVARCHAR(20)) + ');
+FROM [stage].[fn_perf_enroll_member_month](' + CAST(@look_back_date_int AS VARCHAR(20)) + ', ' + CAST(@end_date_int AS VARCHAR(20)) + ');
 
-CREATE CLUSTERED INDEX [idx_cl_#temp_id_year_month] ON #temp([id_mcaid], [year_month]);
+CREATE CLUSTERED INDEX [idx_cl_#temp_id_mcaid_year_month] ON #temp([id_mcaid], [year_month]);
 
-IF OBJECT_ID(''[stage].[perf_enroll_denom]'',''U'') IS NOT NULL
-DROP TABLE [stage].[perf_enroll_denom];
-
-WITH CTE AS
-(
+IF OBJECT_ID(''tempdb..#perf_enroll_denom'',''U'') IS NOT NULL
+DROP TABLE #perf_enroll_denom;
 SELECT
  [year_month]
 ,[month]
@@ -58,17 +70,51 @@ SELECT
 ,SUM([full_criteria]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 23 PRECEDING AND 12 PRECEDING) AS [full_criteria_prior_t_12_m]
 ,SUM([full_criteria]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS [full_criteria_p_2_m]
 
-/*
-The flags below were used for comparison purposes, no longer necessary
-,[full_criteria_without_tpl]
-,SUM([full_criteria_without_tpl]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [full_criteria_without_tpl_t_12_m]
-,SUM([full_criteria_without_tpl]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 23 PRECEDING AND 12 PRECEDING) AS [full_criteria_without_tpl_prior_t_12_m]
-,SUM([full_criteria_without_tpl]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS [full_criteria_without_tpl_p_2_m]
-*/
-
+,[zip_code]
 ,[row_num]
-FROM #temp
-)
+INTO #perf_enroll_denom
+FROM #temp;
+
+CREATE CLUSTERED INDEX [idx_cl_#perf_enroll_denom_id_mcaid_year_month] ON #perf_enroll_denom([id_mcaid], [year_month]);
+
+IF OBJECT_ID(''tempdb..#last_year_month'') IS NOT NULL
+DROP TABLE #last_year_month;
+SELECT
+ [year_month]
+,[month]
+,[id_mcaid]
+,[dob]
+,[end_month_age]
+,[age_in_months]
+,[enrolled_any]
+,[enrolled_any_t_12_m]
+,[full_benefit]
+,[full_benefit_t_12_m]
+,[dual]
+,[dual_t_12_m]
+,[tpl]
+,[tpl_t_12_m]
+,[hospice]
+,[hospice_t_12_m]
+,[hospice_prior_t_12_m]
+,[hospice_p_2_m]
+,[full_criteria]
+,[full_criteria_t_12_m]
+,[full_criteria_prior_t_12_m]
+,[full_criteria_p_2_m]
+,[zip_code]
+,[relevant_year_month]
+,MAX([relevant_year_month]) OVER(PARTITION BY [id_mcaid] ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [last_year_month]
+,[row_num]
+
+INTO #last_year_month
+FROM #perf_enroll_denom
+CROSS APPLY(VALUES(CASE WHEN [zip_code] IS NOT NULL THEN [year_month] END)) AS a([relevant_year_month]);
+
+CREATE CLUSTERED INDEX idx_cl_#last_year_month ON #last_year_month([id_mcaid], [last_year_month]);
+
+WITH CTE AS
+(
 SELECT
  [year_month]
 ,CASE WHEN [month] IN (3, 6, 9, 12) THEN 1 ELSE 0 END AS [end_quarter]
@@ -76,43 +122,34 @@ SELECT
 ,[dob]
 ,[end_month_age]
 ,[age_in_months]
-
+,MAX([zip_code]) OVER(PARTITION BY [id_mcaid], [last_year_month]) AS [last_zip_code]
 ,[enrolled_any]
 ,[enrolled_any_t_12_m]
-
 ,[full_benefit]
 ,[full_benefit_t_12_m]
-
 ,[dual]
 ,[dual_t_12_m]
-
 ,[tpl]
 ,[tpl_t_12_m]
-
 ,[hospice]
 ,[hospice_t_12_m]
 ,[hospice_prior_t_12_m]
 ,[hospice_p_2_m]
-
 ,[full_criteria]
 ,[full_criteria_t_12_m]
 ,[full_criteria_prior_t_12_m]
 ,[full_criteria_p_2_m]
-
---,[full_criteria_without_tpl]
---,[full_criteria_without_tpl_t_12_m]
---,[full_criteria_without_tpl_prior_t_12_m]
---,[full_criteria_without_tpl_p_2_m]
-
-INTO [stage].[perf_enroll_denom]
+,CAST(GETDATE() AS DATE) AS [load_date]
+FROM #last_year_month
+)
+INSERT INTO [stage].[perf_enroll_denom]
+SELECT *
 FROM CTE
 WHERE 1 = 1
--- Months with at least 23 prior months
---AND [row_num] >= 24
--- Months with at least 11 prior months
-AND [row_num] >= 12
--- Include members enrolled at least one month
-AND [enrolled_any_t_12_m] >= 1;
+AND [year_month] >= ' + CAST(@start_date_int AS VARCHAR(20)) + '
+AND [year_month] <= ' + CAST(@end_date_int AS VARCHAR(20)) + '
+AND [enrolled_any_t_12_m] >= 1
+ORDER BY [id_mcaid], [year_month];
 
 CREATE CLUSTERED INDEX [idx_cl_perf_enroll_denom_id_mcaid_year_month] ON [stage].[perf_enroll_denom]([id_mcaid], [year_month]);
 CREATE NONCLUSTERED INDEX [idx_nc_perf_enroll_denom_end_month_age] ON [stage].[perf_enroll_denom]([end_month_age]);
@@ -128,41 +165,35 @@ EXEC sp_executeSQL @statement=@SQL,
 GO
 
 /*
-If the first 12-month period ends 201303
-@start_date_int = 201204 to get the full 12 months
-If the last 12-month period ends 201712
-@end_date_int = 201712
-THESE PARAMETERS ARE INTEGERS
-This procedure will index the [stage].[perf_enroll_denom] table
-
-EXEC [stage].[sp_perf_enroll_denom] @start_date_int = 201601, @end_date_int = 201812;
+EXEC [stage].[sp_perf_enroll_denom] @start_date_int = 201601, @end_date_int = 201712;
 
 SELECT 
  [year_month]
+,[load_date]
 ,COUNT(*)
 FROM [stage].[perf_enroll_denom]
-GROUP BY [year_month]
-ORDER BY [year_month];
+GROUP BY [year_month], [load_date]
+ORDER BY [year_month], [load_date];
+
+SELECT COUNT(DISTINCT [MEDICAID_RECIPIENT_ID])
+FROM [stage].[perf_elig_member_month] AS a
+INNER JOIN [final].[mcaid_elig_demo] AS b
+ON a.[MEDICAID_RECIPIENT_ID] = b.[id_mcaid]
+WHERE a.[CLNDR_YEAR_MNTH] BETWEEN 201702 AND 201801;
 
 -- Check Duplicates
-SELECT NumRows
-      ,COUNT(*)
+SELECT 
+ NumRows
+,COUNT(*)
 FROM
 (
-SELECT [id_mcaid]
-      ,[year_month]
-      ,COUNT(*) AS NumRows
+SELECT 
+ [id_mcaid]
+,[year_month]
+,COUNT(*) AS NumRows
 FROM [stage].[perf_enroll_denom]
 GROUP BY [id_mcaid], [year_month]
 ) AS SubQuery
 GROUP BY NumRows
 ORDER BY NumRows;
-
-SELECT
- [end_month_age]
-,[age_in_months]
-,COUNT(*)
-FROM [PHClaims].[stage].[perf_enroll_denom]
-GROUP BY [end_month_age], [age_in_months]
-ORDER BY [end_month_age], [age_in_months];
 */
