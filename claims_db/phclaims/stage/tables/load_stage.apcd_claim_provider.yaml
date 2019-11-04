@@ -7,5 +7,4 @@ vars:
     last_service_date: date
     provider_id_apcd: bigint
     provider_type: varchar(255)
-    billing_npi_mcare_carrier: bigint
     last_run: datetime
