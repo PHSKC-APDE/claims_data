@@ -72,6 +72,48 @@ load_stage.apcd_claim_procedure_f <- function() {
 #### Table-level QA script ####
 qa_stage.apcd_claim_procedure_f <- function() {
   
+  #all members should be in elig_demo and elig_timevar tables
+  res1 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_procedure' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+    count(distinct a.id_apcd) as qa
+    from stage.apcd_claim_procedure as a
+    left join final.apcd_elig_demo as b
+    on a.id_apcd = b.id_apcd
+    where b.id_apcd is null;",
+    .con = db_claims))
+  
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_procedure' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
+    count(distinct a.id_apcd) as qa
+    from stage.apcd_claim_procedure as a
+    left join final.apcd_elig_timevar as b
+    on a.id_apcd = b.id_apcd
+    where b.id_apcd is null;",
+    .con = db_claims))
+  
+  #no null diagnoses
+  res3 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_procedure' as 'table', '# of null procedure codes, expect 0' as qa_type,
+    count(*) as qa
+    from stage.apcd_claim_procedure
+    where procedure_code is null;",
+    .con = db_claims))
+  
+  #count distinct claim header IDs that have a 25th diagnosis code
+  res4 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_procedure' as 'table', '# of claims with 25th procedure code' as qa_type,
+    count(distinct claim_header_id) as qa
+    from stage.apcd_claim_procedure
+    where procedure_code_number = '25';",
+    .con = db_claims))
+  
+  res5 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_medical_claim' as 'table', '# of claims with 25th procedure code' as qa_type,
+    count(distinct medical_claim_header_id) as qa
+    from stage.apcd_medical_claim
+    where icd_procedure_code_24 is not null and denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';",
+    .con = db_claims))
+  
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()
   
 }
