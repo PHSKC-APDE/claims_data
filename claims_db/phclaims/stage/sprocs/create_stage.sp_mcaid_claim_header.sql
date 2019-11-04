@@ -687,7 +687,8 @@ create table [stage].[mcaid_claim_header]
 ,ccs_mult2_plain_lang varchar(500)
 ,ccs_final_description varchar(500)
 ,ccs_final_plain_lang varchar(500)
-,last_run datetime);
+,last_run datetime)
+ON [PRIMARY];
 
 --------------------------------------
 --STEP 15: create final summary claims table with all event-based flags (temp table stage)
