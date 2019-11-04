@@ -1,0 +1,11 @@
+schema: stage
+table: apcd_claim_provider
+vars:
+    id_apcd: bigint,
+    claim_header_id: bigint,
+    first_service_date: date,
+    last_service_date: date,
+    provider_id_apcd: bigint,
+    provider_type: varchar(255),
+    billing_npi_mcare_carrier: bigint,
+    last_run: datetime
