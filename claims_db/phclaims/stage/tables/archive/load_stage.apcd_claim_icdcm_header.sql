@@ -10,7 +10,8 @@
 --Run time: XX min
 -------------------
 if object_id('tempdb..#temp1') is not null drop table #temp1;
-select distinct internal_member_id as 'id_apcd', medical_claim_header_id, 
+select distinct 
+	internal_member_id as 'id_apcd', medical_claim_header_id, 
 	min(first_service_dt) over(partition by medical_claim_header_id) as first_service_date,
 	max(last_service_dt) over(partition by medical_claim_header_id) as last_service_date,
 	icd_version_ind,
@@ -56,6 +57,8 @@ unpivot(diagnoses for icdcm_number in(dxadmit, dx01, dx02, dx03, dx04, dx05, dx0
 --exclude all diagnoses that are empty
 where diagnoses is not null;
 
+--drop 1st temp table to free memory
+drop table #temp1;
 
 ------------------
 --STEP 3: Assemble final table and insert into table shell 

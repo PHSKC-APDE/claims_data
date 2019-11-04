@@ -8,15 +8,15 @@
     # 
     # Notes: Type the <Alt> + <o> at the same time to collapse the code and view the structure
     #
-    #         Run time is approximately 22 minutes
+    #        Need at least 32 GB of RAM to run
+    #
+    #        Run time is approximately 22 minutes
 
 ## Set up environment ----
     rm(list=ls())
-    #.libPaths("C:/Users/dcolombara/R.packages") # needed for 32 GB SAS computer.
     pacman::p_load(data.table, dplyr, odbc, lubridate, glue, httr)
     options("scipen"=10) # turn off scientific notation  
     options(warning.length = 8170) # get lengthy warnings, needed for SQL
-    setwd("C:/temp/")
     kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv"
     yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
     qa.function.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcare_elig_timevar.R"
@@ -26,34 +26,51 @@
     # Connect to SQL server
       db_claims <- dbConnect(odbc(), "PHClaims51") 
   
-    # Identify variables of interest   
-      mbsf.vars <- paste(
-        c("bene_id", "bene_enrollmt_ref_yr", "zip_cd",
-          paste0("dual_stus_cd_", formatC(1:12, width = 2, flag = "0")), 
-          paste0("mdcr_entlmt_buyin_ind_", formatC(1:12, width = 2, flag = "0")), 
-          paste0("hmo_ind_", formatC(1:12, width = 2, flag = "0"))),
-        collapse = ", ")
-      
-    # Create query strings 
-      query.string <- glue_sql ("SELECT ", mbsf.vars, " FROM stage.mcare_mbsf")
+    ## Death date ----
+        # Create query strings 
+        query.string <- glue::glue_sql ("SELECT id_mcare, death_dt FROM final.mcare_elig_demo")
     
-    # Pull data and save as data.table object
-      dt <- setDT(DBI::dbGetQuery(db_claims, query.string))
+        # Pull data and save as data.table object
+        death <- setDT(DBI::dbGetQuery(db_claims, query.string))
+
+        # Ensure that the complete number of rows were downloaded
+        # count rows in load_raw 
+        sql.row.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM final.mcare_elig_demo"))
+        if(sql.row.count != nrow(death))
+          stop("Mismatching row count, error reading in data")
+        
+        # only keep rows with death dates
+        death <- death[!is.na(death_dt)]
+        
+    ## MBSF data ----
+        # Identify variables of interest   
+          mbsf.vars <- paste(
+            c("bene_id", "bene_enrollmt_ref_yr", "zip_cd",
+              paste0("dual_stus_cd_", formatC(1:12, width = 2, flag = "0")), 
+              paste0("mdcr_entlmt_buyin_ind_", formatC(1:12, width = 2, flag = "0")), 
+              paste0("hmo_ind_", formatC(1:12, width = 2, flag = "0"))),
+            collapse = ", ")
+          
+        # Create query strings 
+          query.string <- glue_sql ("SELECT ", mbsf.vars, " FROM stage.mcare_mbsf")
+        
+        # Pull data and save as data.table object
+          dt <- setDT(DBI::dbGetQuery(db_claims, query.string))
+          
+        # Ensure that the complete number of rows were downloaded
+          # count rows in load_raw 
+          sql.row.count <- as.numeric(odbc::dbGetQuery(db_claims, 
+                                                      "SELECT COUNT (*) FROM stage.mcare_mbsf"))
+          if(sql.row.count != nrow(dt))
+            stop("Mismatching row count, error reading in data")
       
-    # Ensure that the complete number of rows were downloaded
-      # count rows in load_raw 
-      sql.row.count <- as.numeric(odbc::dbGetQuery(db_claims, 
-                                                  "SELECT COUNT (*) FROM stage.mcare_mbsf"))
-      if(sql.row.count != nrow(dt))
-        stop("Mismatching row count, error reading in data")
-      
-## (2) Rename columns ---- 
-     # create column names for renaming / reshaping ----
+## (2) Rename columns in MBSF ---- 
+    ## create column names for renaming / reshaping ----
           dual.cols <- paste0("dual_", formatC(1:12, width = 2, flag = "0"))
           buyin.cols <- paste0("buyin_", formatC(1:12, width = 2, flag = "0"))
           hmo.cols <- paste0("hmo_", formatC(1:12, width = 2, flag = "0"))
       
-      # rename columns ----
+    ## rename columns ----
           setnames(dt, 
                    old = paste0("dual_stus_cd_", formatC(1:12, width = 2, flag = "0")), 
                    new = dual.cols)
@@ -104,13 +121,29 @@
       dt[, c("buyins", "hmos", "duals") := NULL] 
 
 ## (5) Create start / end dates ----
-      gc() # had memory problems, so added to see if it helps
+      ## Clear memory because computer is wimpy ----
+      gc() 
+      
+      ## Create from_date ----
       dt[, from_date := paste0(data_year, "-", month, "-01")] # from date is always first day of the month ... done step wise with hope helps with memory
-      dt[, from_date := ymd(from_date)] # from date is always first day of the month
+      dt[, from_date := ymd(from_date)] # set from_date to class Date
+      
+      ## Create to_date ----
       dt[, to_date := days_in_month(from_date)] # identify last day of month (adapts for Leap years)
       dt[, to_date := paste0(data_year, "-", month, "-", to_date)] # again, piecewise with hope it helps with memory
       dt[, to_date := ymd(to_date)]
-      dt[, c("data_year", "month") := NULL]
+      
+      ## Merge on death date ----
+      dt <- merge(dt, death, by= "id_mcare", all.x = TRUE, all.y = FALSE)            
+      gc()
+      
+      ## Truncate data based on death_dt ----
+      dt <- dt[!(!is.na(death_dt) & from_date > death_dt)]  # drop rows when from_date is after death
+      dt[to_date > death_dt, to_date := death_dt]
+
+      ## Clean up ----
+      dt[, c("data_year", "month", "death_dt") := NULL] # drop vars no longer needed
+      dt <- dt[!(part_a == 0 & part_b == 0 & part_c == 0), ] # drop rows where not enrolled in Mcare
       gc()
       
 ## (6) Set the key to order the data ----      
