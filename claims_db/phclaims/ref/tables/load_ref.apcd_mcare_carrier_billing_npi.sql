@@ -29,3 +29,14 @@ from (
 left join PHClaims.stage.mcare_bcarrier_claims as b
 on a.submitter_clm_control_num = b.clm_id;
 
+------------------
+--QA: Verify that there are no claims that have submitted claim type other than Medicare carrier
+--Note that this turns out to not be true because OnPoint clusters multiple Resdac headers into a single header in Enclave
+--As a temporary solution until OnPoint fixes their data issue, this is good enough
+-------------------
+select 'ref.apcd_mcare_carrier_billing_npi' as 'table', '# claims not having carrier claim type, expect 0' as 'qa_type',
+	count(a.claim_header_id) as qa
+from phclaims.ref.apcd_mcare_carrier_billing_npi as a
+left join PHClaims.stage.apcd_medical_claim as b
+on a.claim_header_id = b.medical_claim_header_id
+where b.submitted_claim_type_id not in (24,25);
