@@ -914,5 +914,8 @@ select
 
 --from #temp_final;
 from [temp_final];
+
+if object_id('[tmp].[mcaid_claim_header]', 'U') is not null
+drop table [tmp].[mcaid_claim_header];
 END
 GO

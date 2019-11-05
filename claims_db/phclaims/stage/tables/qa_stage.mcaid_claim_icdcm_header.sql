@@ -1,8 +1,21 @@
 
-use PHClaims;
+SELECT * FROM [PHClaims].[metadata].[qa_mcaid]
+
+use [PHClaims];
 go
 
-delete from [metadata].[qa_mcaid] where table_name = 'stage.mcaid_claim_icdcm_header';
+/*
+stage.mcaid_claim_header
+stage.mcaid_claim_icdcm_header
+stage.mcaid_claim_line
+stage.mcaid_claim_pharm
+stage.mcaid_claim_procedure
+
+SELECT * FROM [PHClaims].[metadata].[qa_mcaid];
+*/
+
+delete from [metadata].[qa_mcaid] 
+where [table_name] = 'stage.mcaid_claim_icdcm_header';
 
 --All members should be in elig_demo and table
 select count(a.id_mcaid) as id_dcount
@@ -10,7 +23,7 @@ from [stage].[mcaid_claim_icdcm_header] as a
 where not exists
 (
 select 1 
-from [stage].[mcaid_elig_demo] as b
+from [stage].[mcaid_elig][stage].[mcaid_elig_demo] as b
 where a.id_mcaid = b.id_mcaid
 );
 go
