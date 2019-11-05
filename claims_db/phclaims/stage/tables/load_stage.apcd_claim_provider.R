@@ -38,6 +38,21 @@ load_stage.apcd_claim_provider_f <- function() {
 #### Table-level QA script ####
 qa_stage.apcd_claim_provider_f <- function() {
   
+  #compare min/max of provider ID variables with medical_claim table
+  res1 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_provider' as 'table', 'qa1 = min/ qa2 = max of rendering provider ID' as qa_type,
+    min(provider_id_apcd) as qa1, max(provider_id_apcd) as qa2
+    from stage.apcd_claim_provider
+    where provider_type = 'rendering';",
+        .con = db_claims))
+  
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_medical_claim' as 'table', 'qa1 = min/ qa2 = max of rendering provider ID' as qa_type,
+    min(cast(rendering_internal_provider_id as bigint)) as qa1,
+  	max(cast(rendering_internal_provider_id as bigint)) as qa2
+    from stage.apcd_medical_claim;",
+    .con = db_claims))
+  
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()
   
 }
