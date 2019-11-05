@@ -67,13 +67,20 @@
     gc()
 
 ## (5) Duals Part 1: Create master list of time intervals by ID ----
-    # After many failed attempts using different methods, I adapted Alaister Matheson's method from 
+    # Originally from ... 
     # https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_pha_mcaid_join.R
+    # confirmed on 11/4/2019 that the results are 100% the same as an alternate method where
+    # a giant table is made with every possible day for each ID, followed by checking for the intersection
+    # of the data with each individual day, followed by collapsing the data for contiguous time periods
+    # The comparison method is 100% guaranteed to be accurate, but is much slower (~12 minutes vs 39 seconds)
+    # so we decided to stick with Alastair Matheson's method
 
   #-- create all possible permutations of date interval combinations from mcare and mcaid for each id ----
-    duals <- setDT(mutate(mcare.dual[, .(id_apde, from_date, to_date)]) %>% full_join(., mcaid.dual[, .(id_apde, from_date, to_date)], by = c("id_apde")) )
-		setnames(duals, names(duals), c("id_apde", "from_date_mcare", "to_date_mcare", "from_date_mcaid", "to_date_mcaid"))
-
+    duals <- merge(mcare.dual[, .(id_apde, from_date, to_date)], mcaid.dual[, .(id_apde, from_date, to_date)], by = "id_apde", allow.cartesian = TRUE)
+    
+    setnames(duals, grep("\\.x$", names(duals), value = T), gsub(".x", "_mcare", grep("\\.x$", names(duals), value = T)))
+    setnames(duals, grep("\\.y$", names(duals), value = T), gsub(".y", "_mcaid", grep("\\.y$", names(duals), value = T)))
+    
 	#-- Identify the type of overlaps & number of duplicate rows needed ----
 		temp <- duals %>%
 		  mutate(overlap_type = case_when(
@@ -293,17 +300,17 @@
       mcaid.dual[, c("from_date", "to_date") := lapply(.SD, as.integer), .SDcols = c("from_date", "to_date")] # ensure type==integer for foverlaps()
       setkey(mcaid.dual, id_apde, from_date, to_date)
       
-      # join on the Medicaid duals data
+      # join on the Medicaid duals data (using foverlaps ... https://github.com/Rdatatable/data.table/blob/master/man/foverlaps.Rd)
       duals <- foverlaps(duals, mcaid.dual, type = "any", mult = "all")
-      duals[, from_date := i.from_date] # when mcaid.dual didn't match, the from_date is NA. Need to replace it with the data saved in the i.from_date
-      duals[, to_date := i.to_date] # when mcaid.dual didn't match, the from_date is NA. Need to replace it with the data saved in the i.from_date
+      duals[, from_date := i.from_date] # the complete set of proper from_dates are in i.from_date
+      duals[, to_date := i.to_date] # the complete set of proper to_dates are in i.to_date
       duals[, c("i.from_date", "i.to_date") := NULL] # no longer needed
       setkey(duals, id_apde, from_date, to_date)
       
       # join on the Medicare duals data
       duals <- foverlaps(duals, mcare.dual, type = "any", mult = "all")
-      duals[, from_date := i.from_date] # when mcare.dual didn't match, the from_date is NA. Need to replace it with the data saved in the i.from_date
-      duals[, to_date := i.to_date] # when mcare.dual didn't match, the from_date is NA. Need to replace it with the data saved in the i.from_date
+      duals[, from_date := i.from_date] # the complete set of proper from_dates are in i.from_date
+      duals[, to_date := i.to_date] # the complete set of proper to_dates are in i.to_date
       duals[, c("i.from_date", "i.to_date") := NULL] # no longer needed    
 
 ## (7) Append duals and non-duals data ----
@@ -335,8 +342,8 @@
 ## (9) Prep for pushing to SQL ----
     # Create mcare, mcaid, & dual flags ----
       timevar[, mcare := 0][part_a==1 | part_b == 1 | part_c==1, mcare := 1]
-      timevar[, mcaid := 0][!is.na(bsp_group_name), mcaid := 1]
-      timevar[, dual := 0][mcare == 1 & mcaid == 1, dual := 1]
+      timevar[, mcaid := 0][!is.na(cov_type), mcaid := 1]
+      timevar[, apde_dual := 0][mcare == 1 & mcaid == 1, apde_dual := 1]
       timevar[, enroll_type := NULL] # kept until now for comparison with the dual flag
       timevar <- timevar[!(mcare==0 & mcaid==0)]
 
