@@ -1,5 +1,5 @@
---Code to load data to ref.apcd_provider_master
---A table holding NPI, entity type, ZIP code of practice, and primary and secondary specialties for all APCD providers in medical claims
+--Code to load data to ref.king_provider_master
+--A table holding NPI, entity type, ZIP code of practice, and primary and secondary specialties for all (APCD) providers in medical claims
 --For providers that are in provider_master table, only take info from there
 --For all other providers, take most common entity type, and ZIP code, and most common two specialties (sorting alphabetically for ties)
 --Eli Kern (PHSKC-APDE)
@@ -14,7 +14,7 @@ select distinct cast(npi as bigint) as npi, entity_type,
 case when len(zip_physical) = 5 then zip_physical else null end as geo_zip_practice,
 case when primary_taxonomy in ('-1','-2') then null else primary_taxonomy end as primary_taxonomy, 
 case when secondary_taxonomy in ('-1','-2') then null else secondary_taxonomy end as secondary_taxonomy, 
-1 as provider_master_flag
+1 as apcd_provider_master_flag
 into #provider_master
 from PHClaims.stage.apcd_provider_master;
 
@@ -96,7 +96,7 @@ where taxonomy_rank = 2;
 --subset to NPIs not in provider_master table above
 if object_id('tempdb..#provider') is not null drop table #provider;
 select cast(a.npi as bigint) as npi, b.entity_type, c.geo_zip_practice, d.primary_taxonomy, e.secondary_taxonomy,
-	0 as provider_master_flag
+	0 as apcd_provider_master_flag
 into #provider
 --select distinct NPIs that are not in provider master table
 from (
@@ -104,7 +104,7 @@ from (
 	from #temp1 as x
 	left join #provider_master as y
 	on x.npi = y.npi
-	where y.provider_master_flag is null
+	where y.apcd_provider_master_flag is null
 ) as a
 left join #entity_rank as b
 on a.npi = b.npi
@@ -121,15 +121,9 @@ where a.npi is not null;
 ------------------
 --STEP 3: Join provider_master and provider table rows and insert into table shell
 -------------------
-insert into PHClaims.ref.apcd_provider_master with (tablock)
-select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, provider_master_flag
+insert into PHClaims.ref.kc_provider_master with (tablock)
+select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, apcd_provider_master_flag, getdate() as last_run
 from #provider_master
 union
-select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, provider_master_flag
+select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, apcd_provider_master_flag, getdate() as last_run
 from #provider;
-
-
-------------------
---STEP 4: Create clustered columnstore index (1 min)
--------------------
-create clustered columnstore index idx_ccs_ref_apcd_provider_master on phclaims.ref.apcd_provider_master;

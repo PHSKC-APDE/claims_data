@@ -1,9 +1,9 @@
 --QA of stage.apcd_claim_provider
 --7/7/19
 --Eli Kern
---Run time: XX min
+--Run time: 5 min
 
---Compare min/max of provider ID variables with medical_claim table (12 min)
+--Compare min/max of provider ID variables with medical_claim table
 select min(provider_id_apcd) as rendering_min, max(provider_id_apcd) as rendering_max
 from PHClaims.stage.apcd_claim_provider
 where provider_type = 'rendering';
@@ -16,11 +16,9 @@ from PHClaims.stage.apcd_medical_claim;
 select * from PHClaims.stage.apcd_claim_provider
 where claim_header_id = 629250074914541;
 
-select a.medical_claim_service_line_id, a.billing_internal_provider_id, a.rendering_internal_provider_id, 
-	a.attending_internal_provider_id, a.referring_internal_provider_id, a.first_service_dt, a.last_service_dt
-from PHClaims.stage.apcd_medical_claim as a
-left join PHClaims.stage.apcd_medical_crosswalk as b
-on a.medical_claim_service_line_id = b.medical_claim_service_line_id
-where b.medical_claim_header_id = 629250074914541;
+select medical_claim_service_line_id, billing_provider_internal_id, rendering_internal_provider_id, 
+	attending_internal_provider_id, referring_internal_provider_id, first_service_dt, last_service_dt
+from PHClaims.stage.apcd_medical_claim
+where medical_claim_header_id = 629250074914541;
 
 

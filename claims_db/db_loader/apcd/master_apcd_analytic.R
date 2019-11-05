@@ -245,3 +245,58 @@ alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", tab
 
 ### H) Create clustered columnstore index
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_claim_procedure on final.apcd_claim_procedure")))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 6: ref.apcd_provider_npi ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_provider_npi.R")
+
+### B) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "ref", to_schema = "archive", table_name = "apcd_provider_npi")
+
+### C) Create table
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_provider_npi.yaml",
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### D) Load tables
+system.time(load_ref.apcd_provider_npi_f())
+
+### E) Table-level QA
+system.time(apcd_provider_npi_qa1 <- qa_ref.apcd_provider_npi_f())
+rm(apcd_provider_npi_qa1)
+
+### F) Create clustered columnstore index
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_ref_apcd_provider_npi on ref.apcd_provider_npi")))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 6: apcd_claim_provider ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_provider.R")
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_provider.yaml",
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.apcd_claim_provider_f())
+
+### D) Table-level QA
+system.time(apcd_provider_qa1 <- qa_stage.apcd_claim_provider_f())
+rm(apcd_provider_qa1)
+
+### F) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_provider")
+
+### G) Alter schema on new table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_provider")
+
+### H) Create clustered columnstore index
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_claim_provider on final.apcd_claim_provider")))
