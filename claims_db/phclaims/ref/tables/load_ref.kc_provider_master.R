@@ -1,4 +1,4 @@
-#### CODE TO LOAD & TABLE-LEVEL QA REF.KING_PROVIDER_MASTER
+#### CODE TO LOAD & TABLE-LEVEL QA REF.KC_PROVIDER_MASTER
 # Eli Kern, PHSKC (APDE)
 #
 # 2019-11
@@ -7,7 +7,7 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/apcd/master_apcd_analytic.R
 
 #### Load script ####
-load_ref.king_provider_master_f <- function() {
+load_ref.kc_provider_master_f <- function() {
   
   ### Run SQL query
   odbc::dbGetQuery(db_claims, glue::glue_sql(
@@ -127,7 +127,7 @@ load_ref.king_provider_master_f <- function() {
     ------------------
     --STEP 3: Join provider_master and provider table rows and insert into table shell
     -------------------
-    insert into PHClaims.ref.apcd_provider_master with (tablock)
+    insert into PHClaims.ref.kc_provider_master with (tablock)
     select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, apcd_provider_master_flag
     from #provider_master
     union
@@ -137,15 +137,15 @@ load_ref.king_provider_master_f <- function() {
 }
 
 #### Table-level QA script ####
-qa_ref.king_provider_master_f <- function() {
+qa_ref.kc_provider_master_f <- function() {
   
     #no NPI should have more than 1 row
     res1 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'ref.king_provider_master' as 'table', '# of NPIs with >1 row, expect 0' as qa_type,
+      "select 'ref.kc_provider_master' as 'table', '# of NPIs with >1 row, expect 0' as qa_type,
       count(*) as qa
       from (
       	select npi, count(*) as row_count
-      	FROM ref.king_provider_master
+      	FROM ref.kc_provider_master
       	group by npi
       ) as a
       where a.row_count >1;",
@@ -153,33 +153,33 @@ qa_ref.king_provider_master_f <- function() {
     
     #no NPI should be any length other than 10 digits
     res2 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'ref.king_provider_master' as 'table', '# of NPIs with length != 10, expect 0' as qa_type,
+      "select 'ref.kc_provider_master' as 'table', '# of NPIs with length != 10, expect 0' as qa_type,
       count(*) as qa
-      from ref.king_provider_master
+      from ref.kc_provider_master
       where len(npi) != 10;",
       .con = db_claims))
     
     #all NPIs should have an entity type
     res3 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'ref.king_provider_master' as 'table', '# of NPIs with no entity type, expect 0' as qa_type,
+      "select 'ref.kc_provider_master' as 'table', '# of NPIs with no entity type, expect 0' as qa_type,
       count(*) as qa
-      from ref.king_provider_master
+      from ref.kc_provider_master
       where entity_type is null;",
       .con = db_claims))
     
     #taxonomy should be 10 digits long
     res4 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'ref.king_provider_master' as 'table', '# of taxonomies with length != 10, expect 0' as qa_type,
+      "select 'ref.kc_provider_master' as 'table', '# of taxonomies with length != 10, expect 0' as qa_type,
       count(*) as qa
-      from ref.king_provider_master
+      from ref.kc_provider_master
       where len(primary_taxonomy) != 10 or len(secondary_taxonomy) != 10;",
       .con = db_claims))
     
     #ZIP codes should be 5 digits long
     res5 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'ref.king_provider_master' as 'table', '# of ZIP codes with length != 5, expect 0' as qa_type,
+      "select 'ref.kc_provider_master' as 'table', '# of ZIP codes with length != 5, expect 0' as qa_type,
       count(*) as qa
-      from ref.king_provider_master
+      from ref.kc_provider_master
       where len(geo_zip_practice) != 5;",
       .con = db_claims))
   

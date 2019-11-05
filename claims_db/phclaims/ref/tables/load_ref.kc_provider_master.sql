@@ -121,7 +121,7 @@ where a.npi is not null;
 ------------------
 --STEP 3: Join provider_master and provider table rows and insert into table shell
 -------------------
-insert into PHClaims.ref.apcd_provider_master with (tablock)
+insert into PHClaims.ref.kc_provider_master with (tablock)
 select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, apcd_provider_master_flag
 from #provider_master
 union
