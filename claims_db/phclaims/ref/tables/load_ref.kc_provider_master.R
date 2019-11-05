@@ -128,10 +128,10 @@ load_ref.kc_provider_master_f <- function() {
     --STEP 3: Join provider_master and provider table rows and insert into table shell
     -------------------
     insert into PHClaims.ref.kc_provider_master with (tablock)
-    select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, apcd_provider_master_flag
+    select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, apcd_provider_master_flag, getdate() as last_run
     from #provider_master
     union
-    select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, apcd_provider_master_flag
+    select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, apcd_provider_master_flag, getdate() as last_run
     from #provider;",
     .con = db_claims))
 }
