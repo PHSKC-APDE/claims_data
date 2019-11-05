@@ -1,0 +1,10 @@
+schema: ref
+table: kc_provider_master
+vars:
+    npi: bigint
+    entity_type: varchar(255)
+    geo_zip_practice: varchar(255)
+    primary_taxonomy: varchar(255)
+    secondary_taxonomy: varchar(255)
+    apcd_provider_master_flag: tinyint
+    last_run: datetime
