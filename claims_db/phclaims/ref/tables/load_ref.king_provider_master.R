@@ -139,6 +139,50 @@ load_ref.king_provider_master_f <- function() {
 #### Table-level QA script ####
 qa_ref.king_provider_master_f <- function() {
   
+    #no NPI should have more than 1 row
+    res1 <- dbGetQuery(conn = db_claims, glue_sql(
+      "select 'ref.king_provider_master' as 'table', '# of NPIs with >1 row, expect 0' as qa_type,
+      count(*) as qa
+      from (
+      	select npi, count(*) as row_count
+      	FROM ref.king_provider_master
+      	group by npi
+      ) as a
+      where a.row_count >1;",
+      .con = db_claims))
+    
+    #no NPI should be any length other than 10 digits
+    res2 <- dbGetQuery(conn = db_claims, glue_sql(
+      "select 'ref.king_provider_master' as 'table', '# of NPIs with length != 10, expect 0' as qa_type,
+      count(*) as qa
+      from ref.king_provider_master
+      where len(npi) != 10;",
+      .con = db_claims))
+    
+    #all NPIs should have an entity type
+    res3 <- dbGetQuery(conn = db_claims, glue_sql(
+      "select 'ref.king_provider_master' as 'table', '# of NPIs with no entity type, expect 0' as qa_type,
+      count(*) as qa
+      from ref.king_provider_master
+      where entity_type is null;",
+      .con = db_claims))
+    
+    #taxonomy should be 10 digits long
+    res4 <- dbGetQuery(conn = db_claims, glue_sql(
+      "select 'ref.king_provider_master' as 'table', '# of taxonomies with length != 10, expect 0' as qa_type,
+      count(*) as qa
+      from ref.king_provider_master
+      where len(primary_taxonomy) != 10 or len(secondary_taxonomy) != 10;",
+      .con = db_claims))
+    
+    #ZIP codes should be 5 digits long
+    res5 <- dbGetQuery(conn = db_claims, glue_sql(
+      "select 'ref.king_provider_master' as 'table', '# of ZIP codes with length != 5, expect 0' as qa_type,
+      count(*) as qa
+      from ref.king_provider_master
+      where len(geo_zip_practice) != 5;",
+      .con = db_claims))
+  
     res_final <- mget(ls(pattern="^res")) %>% bind_rows()
   
 }
