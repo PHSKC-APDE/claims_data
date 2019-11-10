@@ -17,16 +17,91 @@ SELECT * FROM [PHClaims].[metadata].[qa_mcaid];
 delete from [metadata].[qa_mcaid] 
 where [table_name] = 'stage.mcaid_claim_icdcm_header';
 
---All members should be in elig_demo and table
-select count(a.id_mcaid) as id_dcount
+declare @last_run as datetime;
+declare @mcaid_elig_check as varchar(255);
+declare @mcaid_elig_demo_check as varchar(255);
+declare @icd9cm_len_check as varchar(255);
+declare @icd10cm_len_check as varchar(255);
+declare @icdcm_number_check as varchar(255);
+
+set @last_run = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
+
+--All members should be in [mcaid_elig] table
+set @mcaid_elig_check = 
+(
+select count(distinct a.id_mcaid) as id_dcount
 from [stage].[mcaid_claim_icdcm_header] as a
 where not exists
 (
 select 1 
-from [stage].[mcaid_elig][stage].[mcaid_elig_demo] as b
+from [stage].[mcaid_elig] as b
+where a.id_mcaid = b.MEDICAID_RECIPIENT_ID
+));
+
+--All members should be in [mcaid_elig_demo] table
+set @mcaid_elig_demo_check = 
+(
+select count(distinct a.id_mcaid) as id_dcount
+from [stage].[mcaid_claim_icdcm_header] as a
+where not exists
+(
+select 1 
+from (SELECT [id_mcaid] FROM [final].[mcaid_elig_demo] UNION SELECT [id_mcaid] FROM [stage].[mcaid_elig_demo]) as b
 where a.id_mcaid = b.id_mcaid
+));
+
+--Check that ICD-9-CM length in (5)
+set @icd9cm_len_check =
+(
+select count(*)
+from [stage].[mcaid_claim_icdcm_header]
+where icdcm_version = 9
+and len([icdcm_norm]) not in (5)
+);
+
+--Check that ICD-10-CM length in (3,4,5,6,7)
+set @icd10cm_len_check = 
+(
+select count(*)
+from [stage].[mcaid_claim_icdcm_header]
+where [icdcm_version] = 10
+and len([icdcm_norm]) not in (3,4,5,6,7)
+);
+
+--Check that icdcm_number in ('01','02','03','04','05','06','07','08','09','10','11','12','admit')
+set @icdcm_number_check = 
+(
+select count([icdcm_number])
+from [stage].[mcaid_claim_icdcm_header]
+where [icdcm_number] not in 
+('01'
+,'02'
+,'03'
+,'04'
+,'05'
+,'06'
+,'07'
+,'08'
+,'09'
+,'10'
+,'11'
+,'12'
+,'admit')
+);
+
+--Check if any diagnosis codes do not join to ICD-CM reference table
+select distinct 
+ [icdcm_version]
+,[icdcm_norm]
+from [stage].[mcaid_claim_icdcm_header] as a
+where not exists
+(
+select 1
+from [ref].[dx_lookup] as b
+where a.[icdcm_version] = b.[dx_ver] and a.[icdcm_norm] = b.[dx]
 );
 go
+
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
 insert into [metadata].[qa_mcaid]
@@ -38,6 +113,7 @@ select
 ,'PASS'
 ,getdate()
 ,'All members in mcaid_claim_icdcm_header are in mcaid_elig_demo';
+
 
 --All members should be in elig_timevar table
 select count(a.id_mcaid) as id_dcount
@@ -65,11 +141,7 @@ select
 --,'All members in mcaid_claim_icdcm_header are in mcaid_elig_time_var';
 ,'All members in mcaid_claim_icdcm_header are in mcaid_elig';
 
---Check that length of all ICD-9-CM is 5
-select min(len(icdcm_norm)) as min_len, max(len(icdcm_norm)) as max_len
-from [stage].[mcaid_claim_icdcm_header]
-where icdcm_version = 9;
-go
+
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
 insert into [metadata].[qa_mcaid]
@@ -82,12 +154,7 @@ select
 ,getdate()
 ,'Min/Max Length of icdcm_norm = 5';
 
--- Check that ICD-10-CM length in (3,4,5,6,7)
-select count(*)
-from [stage].[mcaid_claim_icdcm_header]
-where [icdcm_version] = 10
-and len([icdcm_norm]) not in (3,4,5,6,7);
-go
+
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
 insert into [metadata].[qa_mcaid]
@@ -100,23 +167,7 @@ select
 ,getdate()
 ,'All lengths in (3,4,5,6,7)';
 
---Check that icdcm_number within ('01','02','03','04','05','06','07','08','09','10','11','12','admit')
-select count([icdcm_number])
-from [stage].[mcaid_claim_icdcm_header]
-where [icdcm_number] not in 
-('01'
-,'02'
-,'03'
-,'04'
-,'05'
-,'06'
-,'07'
-,'08'
-,'09'
-,'10'
-,'11'
-,'12'
-,'admit');
+
 go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
@@ -130,17 +181,7 @@ select
 ,getdate()
 ,'All values in (01,02,03,04,05,06,07,08,09,10,11,12,admit)';
 
---Count diagnosis codes that do not join to ICD-CM reference table
-select distinct 
- [icdcm_version]
-,[icdcm_norm]
-from [stage].[mcaid_claim_icdcm_header] as a
-where not exists
-(
-select 1
-from [ref].[dx_lookup] as b
-where a.[icdcm_version] = b.[dx_ver] and a.[icdcm_norm] = b.[dx]
-);
+
 go
 
 declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_icdcm_header]);
