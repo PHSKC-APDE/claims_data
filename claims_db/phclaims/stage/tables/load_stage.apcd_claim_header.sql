@@ -17,117 +17,170 @@
 --A non-duplicate opt ED visit, member ID: 11268509776, claim header ID: 629250583076077
 --A non-duplicate ipt ED visit, member ID: 11277972181, claim header ID: 629250037572856
 
+
 ------------------
---STEP 1: Do all line-level transformations per OnPoint logic
+--STEP 1: Do all line-level transformations that don't require ICD-CM, procedure, or provider information
 --Exclude all denied and orphaned claim lines
 --Acute inpatient stay defined through Susan Hernandez's work and dialogue with OnPoint
 --Max of discharge dt grouped by claim header will take latest discharge date when >1 discharge dt
+--Run time: ~30-40 min
 -------------------
 if object_id('tempdb..#temp1') is not null drop table #temp1;
-select a.internal_member_id as id_apcd, 
-a.medical_claim_header_id as claim_header_id,
-min(case when a.product_code_id in (-1,-2) then null else a.product_code_id end) as product_code_id,
-min(a.first_service_dt) as first_service_date,
-max(a.last_service_dt) as last_service_date,
-min(a.first_paid_dt) as first_paid_date,
-max(a.last_paid_dt) as last_paid_date,
-min(case when a.claim_status_id in (-1,-2) then null else a.claim_status_id end) as claim_status_id,
-min(case when a.type_of_bill_code in (-1,-2) then null else a.type_of_bill_code end) as type_of_bill_code,
+select internal_member_id as id_apcd, 
+medical_claim_header_id as claim_header_id,
+min(case when product_code_id in (-1,-2) then null else product_code_id end) as product_code_id,
+min(first_service_dt) as first_service_date,
+max(last_service_dt) as last_service_date,
+min(first_paid_dt) as first_paid_date,
+max(last_paid_dt) as last_paid_date,
+min(case when claim_status_id in (-1,-2) then null else claim_status_id end) as claim_status_id,
+min(case when type_of_bill_code in (-1,-2) then null else type_of_bill_code end) as type_of_bill_code,
 
 --concatenate claim type variables
-cast(convert(varchar(100), max(a.claim_type_id))
-	+ '.' + convert(varchar(100), max(a.type_of_setting_id))
-	+ '.' + convert(varchar(100), min(case when a.place_of_setting_id in (-1,-2) then null else a.place_of_setting_id end))
+cast(convert(varchar(100), max(claim_type_id))
+	+ '.' + convert(varchar(100), max(type_of_setting_id))
+	+ '.' + convert(varchar(100), min(case when place_of_setting_id in (-1,-2) then null else place_of_setting_id end))
 as varchar(100)) as claim_type_apcd_id,
 
 --ED performance temp flags (RDA measure)
-cast(max(case when a.emergency_room_flag = 'Y' then 1 else 0 end) as tinyint) as ed_perform_temp,
+cast(max(case when emergency_room_flag = 'Y' then 1 else 0 end) as tinyint) as ed_perform_temp,
 
 --ED population health temp flags (Yale measure)
-max(case when a.place_of_service_code = '23' then 1 else 0 end) as ed_pos_temp,
-max(case when a.revenue_code like '045[01269]' or a.revenue_code = '0981' then 1 else 0 end) as ed_revenue_code_temp,
-max(case when b.procedure_code like '9928[12345]' or b.procedure_code = '99291' then 1 else 0 end) as ed_procedure_code_temp,
+max(case when place_of_service_code = '23' then 1 else 0 end) as ed_pos_temp,
+max(case when revenue_code like '045[01269]' or revenue_code = '0981' then 1 else 0 end) as ed_revenue_code_temp,
 
 --inpatient visit
-max(case when a.claim_type_id = '1' and a.type_of_setting_id = '1' and a.place_of_setting_id = '1'
-	and a.claim_status_id in (-1, -2, 1, 5, 2, 6) -- only include primary and secondary claims
-	and a.discharge_dt is not null
+max(case when claim_type_id = '1' and type_of_setting_id = '1' and place_of_setting_id = '1'
+	and claim_status_id in (-1, -2, 1, 5, 2, 6) -- only include primary and secondary claims
+	and discharge_dt is not null
 then 1 else 0 end) as ipt_flag,
-max(a.discharge_dt) as discharge_date,
-
---primary care visit temp flags
-max(case when d.code is not null then 1 else 0 end) as pc_procedure_temp,
-max(case when e.code is not null then 1 else 0 end) as pc_zcode_temp,
-max(case when i.code is not null then 1 
-	when (h.primary_taxonomy is null and h.secondary_taxonomy is null) then null
-	else 0 
-end) as pc_taxonomy_temp
+max(discharge_dt) as discharge_date
 
 into #temp1
-from (select * from PHClaims.stage.apcd_medical_claim
-	where internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287)) as a
---procedure code table
-left join PHClaims.final.apcd_claim_procedure as b
-on a.medical_claim_header_id = b.claim_header_id
---ICD-CM table
-left join PHClaims.final.apcd_claim_icdcm_header as c
-on a.medical_claim_header_id = c.claim_header_id
---primary care-relevant procedure codes
-left join (select code from PHClaims.ref.pc_visit_oregon where code_system in ('cpt', 'hcpcs')) as d
-on b.procedure_code = d.code
---primary care-relevant ICD-10-CM codes
-left join (select code from PHClaims.ref.pc_visit_oregon where code_system = 'icd10cm') as e
-on (c.icdcm_norm = e.code) and (c.icdcm_version = 10)
---rendering and attending providers
-left join (select * from PHClaims.final.apcd_claim_provider where provider_type in ('rendering', 'attending')) as f
-on a.medical_claim_header_id = f.claim_header_id
---NPIs for each provider
-left join PHClaims.ref.apcd_provider_npi as g
-on f.provider_id_apcd = g.provider_id_apcd
---taxonomy codes for rendering and attending providers
-left join PHClaims.ref.kc_provider_master as h
-on g.npi = h.npi
---primary care-relevant provider taxonomy codes
-left join (select code from PHClaims.ref.pc_visit_oregon where code_system = 'provider_taxonomy') as i
-on (h.primary_taxonomy = i.code) or (h.secondary_taxonomy = i.code)
+from PHClaims.stage.apcd_medical_claim
 --exclusions
-where a.denied_claim_flag = 'N' and a.orphaned_adjustment_flag = 'N'
+where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N'
+--internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287)
 --grouping statement for consolidation to person-header level
-group by a.internal_member_id, a.medical_claim_header_id;
+group by internal_member_id, medical_claim_header_id;
 
 
 ------------------
---STEP 2: Prepare header-level charge_amt separately as denied and orphaned amounts must be included in sum
+--STEP 2: Procedure code query for ED visits
+--Subset to relevant claims as last step to minimize temp table size
+--Run time: 15 min
+-------------------
+if object_id('tempdb..#ed_procedure_code') is not null drop table #ed_procedure_code;
+select x.medical_claim_header_id, x.ed_procedure_code_temp
+into #ed_procedure_code
+from (
+select a.medical_claim_header_id,
+	max(case when b.procedure_code like '9928[12345]' or b.procedure_code = '99291' then 1 else 0 end) as ed_procedure_code_temp
+from PHClaims.stage.apcd_medical_claim as a
+--procedure code table
+left join PHClaims.final.apcd_claim_procedure as b
+on a.medical_claim_header_id = b.claim_header_id
+--exclusions
+where a.denied_claim_flag = 'N' and a.orphaned_adjustment_flag = 'N'
+--cluster to claim header
+group by a.medical_claim_header_id
+) as x
+where x.ed_procedure_code_temp = 1;
+
+
+------------------
+--STEP 3: Primary care visit query
+--Run time: 7 min (failed after 1 hour before I separated out joins as inner joins)
+-------------------
+if object_id('tempdb..#pc_visit') is not null drop table #pc_visit;
+select x.medical_claim_header_id, x.pc_procedure_temp, x.pc_taxonomy_temp, x.pc_zcode_temp
+into #pc_visit
+from (
+select a.medical_claim_header_id,
+--primary care visit temp flags
+max(case when b.code is not null then 1 else 0 end) as pc_procedure_temp,
+max(case when c.code is not null then 1 else 0 end) as pc_zcode_temp,
+max(case when d.code is not null then 1 else 0 end) as pc_taxonomy_temp
+from PHClaims.stage.apcd_medical_claim as a
+
+--procedure codes
+left join (
+	select b1.claim_header_id, b2.code
+	--procedure code table
+	from PHClaims.final.apcd_claim_procedure as b1
+	--primary care-relevant procedure codes
+	inner join (select code from PHClaims.ref.pc_visit_oregon where code_system in ('cpt', 'hcpcs')) as b2
+	on b1.procedure_code = b2.code
+) as b
+on a.medical_claim_header_id = b.claim_header_id
+
+--ICD-CM codes
+left join (
+	select c1.claim_header_id, c2.code
+	--ICD-CM table
+	from PHClaims.final.apcd_claim_icdcm_header as c1
+	--primary care-relevant ICD-10-CM codes
+	inner join (select code from PHClaims.ref.pc_visit_oregon where code_system = 'icd10cm') as c2
+	on (c1.icdcm_norm = c2.code) and (c1.icdcm_version = 10)
+) as c
+on a.medical_claim_header_id = c.claim_header_id
+
+--provider taxonomies
+left join (
+	select d1.claim_header_id, d4.code
+	--rendering and attending providers
+	from (select * from PHClaims.final.apcd_claim_provider where provider_type in ('rendering', 'attending')) as d1
+	--NPIs for each provider
+	inner join PHClaims.ref.apcd_provider_npi as d2
+	on d1.provider_id_apcd = d2.provider_id_apcd
+	--taxonomy codes for rendering and attending providers
+	inner join PHClaims.ref.kc_provider_master as d3
+	on d2.npi = d3.npi
+	--primary care-relevant provider taxonomy codes
+	inner join (select code from PHClaims.ref.pc_visit_oregon where code_system = 'provider_taxonomy') as d4
+	on (d3.primary_taxonomy = d4.code) or (d3.secondary_taxonomy = d4.code)
+) as d
+on a.medical_claim_header_id = d.claim_header_id
+
+--exclusions
+where a.denied_claim_flag = 'N' and a.orphaned_adjustment_flag = 'N'
+--cluster to claim header
+group by a.medical_claim_header_id
+) as x
+where (x.pc_procedure_temp = 1 or x.pc_zcode_temp = 1) and x.pc_taxonomy_temp = 1;
+
+
+------------------
+--STEP 4: Prepare header-level charge_amt separately as denied and orphaned amounts must be included in sum
+--Run time: 4 min
 -------------------
 if object_id('tempdb..#charge') is not null drop table #charge;
 select medical_claim_header_id, sum(charge_amt) as charge_amt
 into #charge
 from PHClaims.stage.apcd_medical_claim
-where internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287)
+--where internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287)
 group by medical_claim_header_id;
 
 
 ------------------
---STEP 3: Prepare primary diagnosis separately as line ID sorting is needed
---Exclude rows where primary diagnosis is null
+--STEP 5: Extract primary diagnosis, take first ordered ICD-CM code when >1 primary per header
+--Run time: 20 min
 ------------------
 if object_id('tempdb..#icd1') is not null drop table #icd1;
-select distinct medical_claim_header_id,
-first_value(principal_diagnosis_code)
-	over (partition by medical_claim_header_id order by medical_claim_service_line_id)
-	as primary_diagnosis,
-first_value(case when icd_version_ind = '9' then 9 when icd_version_ind = '0' then 10 end)
-	over (partition by medical_claim_header_id order by medical_claim_service_line_id)
-	as icdcm_version
+select claim_header_id,
+min(icdcm_norm) as primary_diagnosis,
+min(icdcm_version) as icdcm_version
 into #icd1
-from PHClaims.stage.apcd_medical_claim
-where principal_diagnosis_code is not null
-	and internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287);
+from PHClaims.final.apcd_claim_icdcm_header
+where icdcm_number = '01'
+group by claim_header_id;
+--and internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287);
 
 
 ------------------
---STEP 4: Prepare header-level concepts using analytic claim tables
+--STEP 6: Prepare header-level concepts using analytic claim tables
 --Add in charge amounts and principal diagnosis
+--Run time: 55 min
 -------------------
 if object_id('tempdb..#temp2') is not null drop table #temp2;
 select distinct a.id_apcd, 
@@ -149,7 +202,7 @@ a.type_of_bill_code,
 case when a.ed_perform_temp = 1 and b.kc_clm_type_id = 4 then 1 else 0 end as ed_perform,
 
 --ED population health (Yale measure)
-case when b.kc_clm_type_id = 5 and a.ed_procedure_code_temp = 1 and a.ed_pos_temp = 1 then 1 else 0 end as ed_yale_carrier,
+case when b.kc_clm_type_id = 5 and e.ed_procedure_code_temp = 1 and a.ed_pos_temp = 1 then 1 else 0 end as ed_yale_carrier,
 case when b.kc_clm_type_id = 4 and a.ed_revenue_code_temp = 1 then 1 else 0 end as ed_yale_opt,
 case when b.kc_clm_type_id = 1 and a.ed_revenue_code_temp = 1 then 1 else 0 end as ed_yale_ipt,
 
@@ -158,7 +211,7 @@ ipt_flag as inpatient,
 discharge_date,
 
 --Primary care visit (Oregon)
-case when (a.pc_procedure_temp = 1 or a.pc_zcode_temp = 1) and a.pc_taxonomy_temp = 1
+case when (f.pc_procedure_temp = 1 or f.pc_zcode_temp = 1) and f.pc_taxonomy_temp = 1
 	and a.claim_type_apcd_id not in ('1.1.1', '1.1.2', '2.3.8', '2.3.2', '1.2.8') --exclude inpatient, swing bed, free-standing ambulatory
 	and a.claim_status_id in (-1, -2, 1, 5, 2, 6) -- only include primary and secondary claim headers
 	then 1 else 0
@@ -171,12 +224,23 @@ on a.claim_type_apcd_id = b.source_clm_type_id
 left join #charge as c
 on a.claim_header_id = c.medical_claim_header_id
 left join #icd1 as d
-on a.claim_header_id = d.medical_claim_header_id;
+on a.claim_header_id = d.claim_header_id
+left join #ed_procedure_code as e
+on a.claim_header_id = e.medical_claim_header_id
+left join #pc_visit as f
+on a.claim_header_id = f.medical_claim_header_id;
+
+--drop other temp tables to make space
+if object_id('tempdb..#temp1') is not null drop table #temp1;
+if object_id('tempdb..#charge') is not null drop table #charge;
+if object_id('tempdb..#icd1') is not null drop table #icd1;
+if object_id('tempdb..#ed_procedure_code') is not null drop table #ed_procedure_code;
+if object_id('tempdb..#pc_visit') is not null drop table #pc_visit;
 
 
 ------------------
---STEP 5: Assign unique ID to healthcare utilization concepts that are grouped by person, service date
---To test this code, finds members (not claims) that have duplicate visits on same day
+--STEP 7: Assign unique ID to healthcare utilization concepts that are grouped by person, service date
+--Run time: 39 min
 -------------------
 if object_id('tempdb..#temp3') is not null drop table #temp3;
 select *,
@@ -203,9 +267,13 @@ end as ed_perform_id
 into #temp3
 from #temp2;
 
+--drop other temp tables to make space
+if object_id('tempdb..#temp2') is not null drop table #temp2;
+
 
 ------------------
---STEP 6: Conduct overlap and clustering for ED population health measure (Yale measure)
+--STEP 8: Conduct overlap and clustering for ED population health measure (Yale measure)
+--Run time: 12 min
 -------------------
 
 --Set date of service matching window
@@ -321,9 +389,20 @@ from (
 	from #ed_yale_8
 ) as a;
 
+--drop other temp tables to make space
+if object_id('tempdb..#ed_yale_1') is not null drop table #ed_yale_1;
+if object_id('tempdb..#ed_yale_2') is not null drop table #ed_yale_2;
+if object_id('tempdb..#ed_yale_3') is not null drop table #ed_yale_3;
+if object_id('tempdb..#ed_yale_4') is not null drop table #ed_yale_4;
+if object_id('tempdb..#ed_yale_5') is not null drop table #ed_yale_5;
+if object_id('tempdb..#ed_yale_6') is not null drop table #ed_yale_6;
+if object_id('tempdb..#ed_yale_7') is not null drop table #ed_yale_7;
+if object_id('tempdb..#ed_yale_8') is not null drop table #ed_yale_8;
+
 
 ------------------
---STEP 7: Join back Yale table with header table on claim header ID
+--STEP 9: Join back Yale table with header table on claim header ID
+--Run time: 19 min
 -------------------
 insert into PHClaims.stage.apcd_claim_header with (tablock)
 select distinct
