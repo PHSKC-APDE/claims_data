@@ -54,7 +54,6 @@ load_stage.apcd_claim_header_f <- function() {
     from PHClaims.stage.apcd_medical_claim
     --exclusions
     where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N'
-    --internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287)
     --grouping statement for consolidation to person-header level
     group by internal_member_id, medical_claim_header_id;
     
@@ -152,7 +151,6 @@ load_stage.apcd_claim_header_f <- function() {
     select medical_claim_header_id, sum(charge_amt) as charge_amt
     into #charge
     from PHClaims.stage.apcd_medical_claim
-    --where internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287)
     group by medical_claim_header_id;
     
     
@@ -168,7 +166,6 @@ load_stage.apcd_claim_header_f <- function() {
     from PHClaims.final.apcd_claim_icdcm_header
     where icdcm_number = '01'
     group by claim_header_id;
-    --and internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287);
     
     
     ------------------
@@ -206,7 +203,7 @@ load_stage.apcd_claim_header_f <- function() {
     
     --Primary care visit (Oregon)
     case when (f.pc_procedure_temp = 1 or f.pc_zcode_temp = 1) and f.pc_taxonomy_temp = 1
-    	and a.claim_type_apcd_id not in ('1.1.1', '1.1.2', '2.3.8', '2.3.2', '1.2.8') --exclude inpatient, swing bed, free-standing ambulatory
+	    and a.claim_type_apcd_id not in ('1.1.1', '1.1.14', '1.1.2', '2.3.8', '2.3.2', '1.2.8') --exclude inpatient, swing bed, free-standing ambulatory
     	and a.claim_status_id in (-1, -2, 1, 5, 2, 6) -- only include primary and secondary claim headers
     	then 1 else 0
     end as pc_visit
@@ -428,6 +425,87 @@ load_stage.apcd_claim_header_f <- function() {
 
 #### Table-level QA script ####
 qa_stage.apcd_claim_header_f <- function() {
+  
+  #confirm that claim header is distinct
+  res1 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of non-distinct headers, expect 0' as qa_type,
+    count(a.claim_header_id) as qa1, qa2 = null
+    from (
+      select claim_header_id, count(*) as header_cnt
+      from PHClaims.stage.apcd_claim_header
+      group by claim_header_id
+    ) as a
+    where a.header_cnt > 1;",
+    .con = db_claims))
+  
+  #compare member and claim header counts wth raw data
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', 'qa1 = distinct IDs, qa2 = distinct headers' as qa_type,
+    count(distinct id_apcd) as qa1, count(distinct claim_header_id) as qa2
+    from PHClaims.stage.apcd_claim_header;",
+    .con = db_claims))
+  
+  res3 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_medical_claim' as 'table', 'qa1 = distinct IDs, qa2 = distinct headers' as qa_type,
+    count(distinct internal_member_id) as qa1, count(distinct medical_claim_header_id) as qa2
+    from PHClaims.stage.apcd_medical_claim
+    where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';",
+    .con = db_claims))
+  
+  #all members should be in elig_demo table
+  res4 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of members not in elig_demo, expect 0' as qa_type,
+    count(a.id_apcd) as qa1, qa2 = null
+    from PHClaims.stage.apcd_claim_header as a
+    left join PHClaims.final.apcd_elig_demo as b
+    on a.id_apcd = b.id_apcd
+    where b.id_apcd is null;",
+    .con = db_claims))
+  
+  #all members should be in elig_timevar table
+  res5 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of members not in elig_timevar, expect 0' as qa_type,
+    count(a.id_apcd) as qa1, qa2 = null
+    from PHClaims.stage.apcd_claim_header as a
+    left join PHClaims.final.apcd_elig_timevar as b
+    on a.id_apcd = b.id_apcd
+    where b.id_apcd is null;",
+    .con = db_claims))
+  
+  #count unmatched claim types
+  res6 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of claims with unmatched claim type, expect 0' as qa_type,
+    count(*) as qa1, qa2 = null
+    from PHClaims.stage.apcd_claim_header
+    where claim_type_id is null or claim_type_apcd_id is null;",
+    .con = db_claims))
+  
+  #verify that all inpatient stays have discharge date
+  res7 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of ipt stays with no discharge date, expect 0' as qa_type,
+    count(*) as qa1, qa2 = null
+    from PHClaims.stage.apcd_claim_header
+    where inpatient_id is not null and discharge_date is null;",
+    .con = db_claims))
+  
+  #verify that no ed_pophealth_id value is used for more than one person
+  res8 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of ed_pophealth_id values used for >1 person, expect 0' as qa_type,
+    count(a.ed_pophealth_id) as qa1, qa2 = null
+    from (
+      select ed_pophealth_id, count(distinct id_apcd) as id_dcount
+      from PHClaims.stage.apcd_claim_header
+      group by ed_pophealth_id
+    ) as a
+    where a.id_dcount > 1;",
+    .con = db_claims))
+  
+  #verify that ed_pophealth_id does not skip any values
+  res9 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', 'qa1 = distinct ed_pophealth_id, qa2 = max - min + 1' as qa_type,
+    count(distinct ed_pophealth_id) as qa1, max(ed_pophealth_id) - min(ed_pophealth_id) + 1 as q1
+    from PHClaims.stage.apcd_claim_header;",
+    .con = db_claims))
   
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()
   
