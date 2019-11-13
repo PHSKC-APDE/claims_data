@@ -5,10 +5,11 @@
 #' @details LARGELY FOR INTERNAL USE
 #' This function builds and sends a SQL query to return a member cohort with 
 #' specified parameters, including coverage time period, coverage characteristics 
-#' (e.g., Medicare dual eligibility), and member demographics. Can be used on three
-#' data sources: APCD, Medicaid, and Medicare (also Medicaid/Medicare combined).
-#' Parameters below have the following key to indicator which data source they 
-#' can be used against: A = All sources, AP = APCD, MD = Medicaid, ME = Medicare
+#' (e.g., Medicare dual eligibility), and member demographics. Can be used on five
+#' data sources: APCD, Medicaid, and Medicare Medicaid/Medicare combined, & 
+#' Medicaid/Medicare/Housing combined.
+#' Parameters below have the following key to indicate which data source they 
+#' can be used against: A = All sources, AP = APCD, MD = Medicaid, ME = Medicare, & PHA = Housing 
 #' Most parameters default to NULL, which means that all values are included for
 #' that field.
 #' 
@@ -48,7 +49,13 @@
 #' period (percent scale) (ME)
 #' @param buy_in_max Maximum time with state buy in during the requested time
 #' period (percent scale) (ME)
-#' @param id Restrict to these specific APCD/Medicaid/Medicare IDs (A)
+#' @param pha_agency Most frequently reported housing agency name (PHA) during the dates requested
+#' @param pha_subsidy Most frequently reported housing subsidy type (hard vs soft) during the 
+#' requested date range (PHA)
+#' @param pha_voucher Most frequently reported housing voucher type during the requested date range (PHA)
+#' @param pha_operator Most frequently reported housing operator type during the requested date range (PHA)
+#' @param pha_portfolio Most frequently reported housing portfolio type during the requested date range (PHA)
+#' @param id Restrict to these specific APCD/Medicaid/Medicare/Housing IDs (A)
 #' @param age_min Minimum age for cohort (integer), age is calculated as of 
 #' last day of requested date range, defaults to 0 (A)
 #' @param age_max Maximum age for cohort (integer), age is calculated as of 
@@ -114,9 +121,9 @@
 #'
 #' @examples
 #' \dontrun{
-#' claims_elig(server = db.claims51, source = "apcd", 
+#' claims_elig(conn = db.claims51, source = "apcd", 
 #'   from_date = "2017-01-01", to_date = "2017-06-30")
-#' claims_elig(server = db.claims51, source = "mcaid", 
+#' claims_elig(conn = db.claims51, source = "mcaid", 
 #'   from_date = "2017-01-01", to_date = "2017-06-30", age_min = 18, 
 #'   age_max = 64, lang_me = c("ARABIC", "SOMALI"), zip = c("98103", "98105"))
 #' }
@@ -129,7 +136,7 @@
 
 #### Create function ####
 claims_elig <- function(conn,
-                       source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
+                       source = c("apcd", "mcaid", "mcaid_mcare", "mcare", "mcaid_mcare_pha"),
                        # Coverage time and type
                        from_date = Sys.Date() - months(18),
                        to_date = Sys.Date() - months(6),
@@ -151,6 +158,11 @@ claims_elig <- function(conn,
                        part_c_max = NULL,
                        buy_in_min = NULL,
                        buy_in_max = NULL,
+                       pha_agency = NULL,
+                       pha_subsidy = NULL,
+                       pha_voucher = NULL,
+                       pha_operator = NULL,
+                       pha_portfolio = NULL,
                        # Demographics
                        id = NULL,
                        age_min = NULL,
@@ -247,6 +259,15 @@ claims_elig <- function(conn,
   
   # Add in part_a/b/c checks
   
+  # Housing agency checks
+  if(!is.null(pha_agency)){
+    if(!toupper(pha_agency) %in% c("SHA", "KCHA")){
+      stop("pha_agency must be 'SHA' or 'KCHA'")
+    }
+  }
+  
+  # Add pha_subsidy, pha_voucher, pha_operator, pha_portfolio checks??
+  
   # Age checks
   if (!is.null(age_min)) {
     if(!is.numeric(age_min)) {
@@ -334,6 +355,13 @@ claims_elig <- function(conn,
   timevar_denom <- match.arg(timevar_denom)
   
   
+  #### SQL DATABASE SETUP ####
+  if(source == "mcaid_mcare_pha"){
+    sql_db_name <- "PH_APDEStore"
+  } else {
+    sql_db_name <- "PHClaims"
+  }
+  
   #### ID SETUP ####
   # ID var name
   if (source == "apcd") {
@@ -342,6 +370,8 @@ claims_elig <- function(conn,
     id_name <- glue::glue_sql("id_mcaid", .con = conn)
   } else if (source == "mcaid_mcare") {
     id_name <- glue::glue_sql("id_apde", .con = conn)
+  } else if (source == "mcaid_mcare_pha") {
+    id_name <- glue::glue_sql("id_apde", .con = conn)  
   } else if (source == "mcare") {
     id_name <- glue::glue_sql("id_mcare", .con = conn)
   } else {
@@ -379,14 +409,14 @@ claims_elig <- function(conn,
          gender_recent_sql <- DBI::SQL(''))
   
   # Race
-  if (source %in% c("mcaid", "mcaid_mcare", "mcare")) {
+  if (source %in% c("mcaid", "mcaid_mcare", "mcaid_mcare_pha", "mcare")) {
     ifelse(!is.null(race_aian), 
            race_aian_sql <- glue::glue_sql(" AND race_aian = {race_aian} ", .con = conn),
            race_aian_sql <- DBI::SQL(''))
     ifelse(!is.null(race_asian), 
            race_asian_sql <- glue::glue_sql(" AND race_asian = {race_asian} ", .con = conn),
            race_asian_sql <- DBI::SQL(''))
-    if (source %in% c("mcaid_mcare", "mcare")) {
+    if (source %in% c("mcaid_mcare", "mcaid_mcare_pha", "mcare")) {
       ifelse(!is.null(race_asian_pi), 
              race_asian_pi_sql <- glue::glue_sql(" AND race_asian_pi = {race_asian_pi} ", .con = conn),
              race_asian_pi_sql <- DBI::SQL(''))
@@ -437,7 +467,7 @@ claims_elig <- function(conn,
 
   
   # Language
-  if (source %in% c("mcaid", "mcaid_mcare")) {
+  if (source %in% c("mcaid", "mcaid_mcare", "mcaid_mcare_pha")) {
     ifelse(!is.null(lang_amharic), 
            lang_amharic_sql <- glue::glue_sql(" AND lang_amharic = {lang_amharic} ", .con = conn),
            lang_amharic_sql <- DBI::SQL(''))
@@ -491,7 +521,7 @@ claims_elig <- function(conn,
 
   
   # Geography
-  if (source %in% c("mcaid_mcare", "mcaid")) {
+  if (source %in% c("mcaid_mcare", "mcaid_mcare_pha", "mcaid")) {
     ifelse(!is.null(geo_kc_ever),
            geo_kc_ever_sql <- glue::glue_sql(" AND geo_kc_ever = {geo_kc_ever} ", .con = conn),
            geo_kc_ever_sql <- DBI::SQL(''))
@@ -549,7 +579,22 @@ claims_elig <- function(conn,
       race_me, race_eth_me, race_recent, race_eth_recent, 
       race_aian, race_asian, race_asian_pi, race_black, race_latino, 
       race_nhpi, race_other, race_white, race_unk,
-      --dual AS dual_ever -- do we want this to come in?
+      apde_dual AS dual_ever,
+      geo_kc_ever ",
+      .con = conn)
+  } else if (source == "mcaid_mcare_pha") {
+    demo_vars <- glue::glue_sql(
+      "{id_name}, dob, 
+      CASE 
+      WHEN (datediff(day, dob, {to_date}) + 1) >= 0 THEN 
+      FLOOR((datediff(day, dob, {to_date}) + 1) / 365.25)
+      WHEN datediff(day, dob, {to_date}) < 0 then NULL
+      END as 'age', death_dt, 
+      gender_me, gender_recent, gender_female, gender_male, 
+      race_me, race_eth_me, race_recent, race_eth_recent, 
+      race_aian, race_asian, race_asian_pi, race_black, race_latino, 
+      race_nhpi, race_other, race_white, race_unk,
+      apde_dual AS dual_ever,
       geo_kc_ever ",
       .con = conn)
   } else if (source == "mcare") {
@@ -629,7 +674,7 @@ claims_elig <- function(conn,
             END AS post_gap 
           INTO ##cov_time_part
           FROM 
-          (SELECT {id_name}, from_date, to_date, contiguous FROM PHClaims.final.{`paste0(source, '_elig_timevar')`}
+          (SELECT {id_name}, from_date, to_date, contiguous FROM {`sql_db_name`}.final.{`paste0(source, '_elig_timevar')`}
           WHERE from_date <= {to_date} AND to_date >= {from_date}) a",
     .con = conn)
   
@@ -709,7 +754,7 @@ claims_elig <- function(conn,
                               ORDER BY SUM(cov_time_part.cov_days) DESC, {`pt1_a`}.{`var`}) AS rk
             FROM 
             (SELECT {id_name}, {`var`}, from_date, to_date 
-              FROM PHClaims.final.{`paste0(source_inner, '_elig_timevar')`}) {`pt1_a`}
+              FROM {`sql_db_name`}.final.{`paste0(source_inner, '_elig_timevar')`}) {`pt1_a`}
             INNER JOIN
             (SELECT {id_name}, from_date, to_date, cov_days FROM ##cov_time_part) cov_time_part
             ON {`pt1_a`}.{id_name} = cov_time_part.{id_name} AND 
@@ -726,7 +771,7 @@ claims_elig <- function(conn,
                 (SELECT {`pt2_a`}.{id_name}, SUM(cov_time_part.cov_days * {`pt2_a`}.{`var`}) AS {`var_pct_num`}
                 FROM 
                   (SELECT {id_name}, {`var`}, from_date, to_date FROM 
-                    PHClaims.final.{`paste0(source_inner, '_elig_timevar')`}) {`pt2_a`}
+                    {`sql_db_name`}.final.{`paste0(source_inner, '_elig_timevar')`}) {`pt2_a`}
                 INNER JOIN
                   (SELECT {id_name}, from_date, to_date, cov_days FROM ##cov_time_part) cov_time_part
                     ON {`pt2_a`}.{id_name} = cov_time_part.{id_name} AND 
@@ -761,7 +806,7 @@ claims_elig <- function(conn,
                               ORDER BY SUM(cov_time_part.cov_days) DESC, {`tbl_a`}.{`var`}) AS rk
           FROM 
             (SELECT {id_name}, {`var`}, from_date, to_date 
-              FROM PHClaims.final.{`paste0(source_inner, '_elig_timevar')`}) {`tbl_a`}
+              FROM {`sql_db_name`}.final.{`paste0(source_inner, '_elig_timevar')`}) {`tbl_a`}
             INNER JOIN
             (SELECT {id_name}, from_date, to_date, cov_days
               FROM ##cov_time_part) cov_time_part
@@ -777,38 +822,133 @@ claims_elig <- function(conn,
   }
   
   
-  #### SET UP COVERAGE TYPE (MCAID/MCARE COMBINED) ####
-  mcaid_cov_sql <- timevar_gen_sql(var = "mcaid", pct = F)
-  mcare_cov_sql <- timevar_gen_sql(var = "mcare", pct = F)
+  #### SET UP COVERAGE TYPE (MCAID/MCARE/PHA COMBINATIONS) ####
+  if(source %in% c("mcaid_mcare", "mcaid_mcare_pha")){
+    mcaid_cov_sql <- timevar_gen_sql(var = "mcaid", pct = F)
+    mcare_cov_sql <- timevar_gen_sql(var = "mcare", pct = F)
+  } else{
+    mcaid_cov_sql <- DBI::SQL('')
+    mcare_cov_sql <- DBI::SQL('')
+  }
+  if(source == "mcaid_mcare_pha"){
+    pha_cov_sql <- timevar_gen_sql(var = "pha", pct = F)
+  } else {pha_cov_sql <- DBI::SQL('')}
   
   
   #### SET UP DUAL CODE (ALL) ####
-  dual_sql <- timevar_gen_sql(var = "dual", pct = T)
-  
-  if (!is.null(dual_min) | !is.null(dual_max)) {
-    ifelse(!is.null(dual_min),
-           dual_min_sql <- glue::glue_sql(" AND dual_final.dual_pct >= {dual_min} ", 
-                                          .con = conn),
-           dual_min_sql <- DBI::SQL(''))
-    ifelse(!is.null(dual_max),
-           dual_max_sql <- glue::glue_sql(" AND dual_final.dual_pct <= {dual_max} ", 
-                                          .con = conn),
-           dual_max_sql <- DBI::SQL(''))
-    
-    dual_where_sql <- glue::glue_sql(
-      " {dual_min_sql} {dual_max_sql}",
-      .con = conn)
-  } else {
-    dual_where_sql <- DBI::SQL('')
+  if (source %in% c("mcaid_mcare", "mcaid_mcare_pha")){
+    dual_sql <- timevar_gen_sql(var = "apde_dual", pct = T)
+    if (!is.null(dual_min) | !is.null(dual_max)) {
+      ifelse(!is.null(dual_min),
+             dual_min_sql <- glue::glue_sql(" AND apde_dual_final.dual_pct >= {dual_min} ", 
+                                            .con = conn),
+             dual_min_sql <- DBI::SQL(''))
+      ifelse(!is.null(dual_max),
+             dual_max_sql <- glue::glue_sql(" AND apde_dual_final.dual_pct <= {dual_max} ", 
+                                            .con = conn),
+             dual_max_sql <- DBI::SQL(''))
+      
+      dual_where_sql <- glue::glue_sql(
+        " {dual_min_sql} {dual_max_sql}",
+        .con = conn)
+    } else {
+      dual_where_sql <- DBI::SQL('')
+    }
+  } else {dual_sql <- timevar_gen_sql(var = "dual", pct = T)
+    if (!is.null(dual_min) | !is.null(dual_max)) {
+      ifelse(!is.null(dual_min),
+             dual_min_sql <- glue::glue_sql(" AND dual_final.dual_pct >= {dual_min} ", 
+                                            .con = conn),
+             dual_min_sql <- DBI::SQL(''))
+      ifelse(!is.null(dual_max),
+             dual_max_sql <- glue::glue_sql(" AND dual_final.dual_pct <= {dual_max} ", 
+                                            .con = conn),
+             dual_max_sql <- DBI::SQL(''))
+      
+      dual_where_sql <- glue::glue_sql(
+        " {dual_min_sql} {dual_max_sql}",
+        .con = conn)
+    } else {
+      dual_where_sql <- DBI::SQL('')
+    }
   }
-  
   
   #### SET UP COVERAGE GROUP TYPES CODE (APCD) ####
   # To come, add in code for med_covgrp and pharm_covgrp
   
   
+  #### SET UP HOUSING ENROLLMENT TYPES (PHA) ####
+  if (source %in% c("mcaid_mcare_pha")) {
+    # Agency name
+    pha_agency_sql <- timevar_gen_sql(var = "pha_agency", pct = F)
+    
+    if (!is.null(pha_agency)) {
+      pha_agency_where_sql <- glue::glue_sql(
+        " AND LOWER(pha_agency_final.pha_agency) IN ({tolower(pha_agency)*})",
+        .con = conn)
+    } else {
+      pha_agency_where_sql <- DBI::SQL('')
+    }
+    
+    # Subsidy type
+    pha_subsidy_sql <- timevar_gen_sql(var = "pha_subsidy", pct = F)
+    
+    if (!is.null(pha_subsidy)) {
+      pha_subsidy_where_sql <- glue::glue_sql(
+        " AND LOWER(pha_subsidy_final.pha_subsidy) IN ({tolower(pha_subsidy)*})",
+        .con = conn)
+    } else {
+      pha_subsidy_where_sql <- DBI::SQL('')
+    }
+    
+    # Voucher type
+    pha_voucher_sql <- timevar_gen_sql(var = "pha_voucher", pct = F)
+    
+    if (!is.null(pha_voucher)) {
+      pha_voucher_where_sql <- glue::glue_sql(
+        " AND LOWER(pha_voucher_final.pha_voucher) IN ({tolower(pha_voucher)*})",
+        .con = conn)
+    } else {
+      pha_voucher_where_sql <- DBI::SQL('')
+    }
+    
+    # Operator type
+    pha_operator_sql <- timevar_gen_sql(var = "pha_operator", pct = F)
+    
+    if (!is.null(pha_operator)) {
+      pha_operator_where_sql <- glue::glue_sql(
+        " AND LOWER(pha_operator_final.pha_operator) IN ({tolower(pha_operator)*})",
+        .con = conn)
+    } else {
+      pha_operator_where_sql <- DBI::SQL('')
+    }
+    
+    # Portfolio type
+    pha_portfolio_sql <- timevar_gen_sql(var = "pha_portfolio", pct = F)
+    
+    if (!is.null(pha_portfolio)) {
+      pha_portfolio_where_sql <- glue::glue_sql(
+        " AND LOWER(pha_portfolio_final.pha_portfolio) IN ({tolower(pha_portfolio)*})",
+        .con = conn)
+    } else {
+      pha_portfolio_where_sql <- DBI::SQL('')
+    }
+    
+  } else {
+    pha_agency_sql <- DBI::SQL('')
+    pha_subsidy_sql <- DBI::SQL('')
+    pha_voucher_sql <- DBI::SQL('')
+    pha_operator_sql <- DBI::SQL('')
+    pha_portfolio_sql <- DBI::SQL('')
+    pha_agency_where_sql <- DBI::SQL('')
+    pha_subsidy_where_sql <- DBI::SQL('')
+    pha_voucher_where_sql <- DBI::SQL('')
+    pha_operator_where_sql <- DBI::SQL('')
+    pha_portfolio_where_sql <- DBI::SQL('')
+  }
+  
   #### SET UP MEDICAID COVERAGE TYPES AND MCO ID CODE (MCAID) ####
-  if (source %in% c("mcaid", "mcaid_mcare")) {
+  if (source %in% c("mcaid", "mcaid_mcare", "mcaid_mcare_pha")) {
     # BSP group name
     bsp_group_name_sql <- timevar_gen_sql(var = "bsp_group_name", pct = F)
     
@@ -866,7 +1006,7 @@ claims_elig <- function(conn,
   
   
   #### SET UP MEDICARE COVERAGE TYPES CODE (MCARE) ####
-  if (source %in% c("mcaid_mcare", "mcare")) {
+  if (source %in% c("mcaid_mcare", "mcaid_mcare_pha", "mcare")) {
     # Part A
     part_a_sql <- timevar_gen_sql(var = "part_a", pct = T)
     
@@ -930,7 +1070,7 @@ claims_elig <- function(conn,
   }
 
   #### SET UP BUY_IN CODE (MCARE) ####
-  if (source %in% c("mcaid_mcare", "mcare")) {
+  if (source %in% c("mcaid_mcare", "mcaid_mcare_pha", "mcare")) {
     buy_in_sql <- timevar_gen_sql(var = "buy_in", pct = T)
     
     if (!is.null(buy_in_min) | !is.null(buy_in_max)) {
@@ -966,7 +1106,7 @@ claims_elig <- function(conn,
   }
   
   # HRA (MCAID)
-  if (source %in% c("mcaid", "mcaid_mcare")) {
+  if (source %in% c("mcaid", "mcaid_mcare", "mcaid_mcare_pha")) {
     geo_hra_code_sql <- timevar_gen_sql(var = "geo_hra_code", pct = F)
     
     if (!is.null(geo_hra_code)) {
@@ -982,7 +1122,7 @@ claims_elig <- function(conn,
   }
   
   # School district
-  if (source %in% c("mcaid", "mcaid_mcare")) {
+  if (source %in% c("mcaid", "mcaid_mcare", "mcaid_mcare_pha")) {
     geo_school_code_sql <- timevar_gen_sql(var = "geo_school_code", pct = F)
     
     if (!is.null(geo_school_code)) {
@@ -1002,7 +1142,7 @@ claims_elig <- function(conn,
   
   
   # County (APCD/MCAID)
-  if (source %in% c("apcd", "mcaid", "mcaid_mcare")) {
+  if (source %in% c("apcd", "mcaid", "mcaid_mcare", "mcaid_mcare_pha")) {
     geo_county_code_sql <- timevar_gen_sql(var = "geo_county_code", pct = F)
     
     if (!is.null(geo_county_code)) {
@@ -1034,7 +1174,7 @@ claims_elig <- function(conn,
   }
   
   # King County (APCD/MCARE)
-  if (source %in% c("mcaid_mcare", "mcare")) {
+  if (source %in% c("mcaid_mcare", "mcare", "mcaid_mcare_pha")) {
     geo_kc_sql <- timevar_gen_sql(var = "geo_kc", pct = T)
     
     if (!is.null(geo_kc_min)) {
@@ -1070,7 +1210,7 @@ claims_elig <- function(conn,
       , .con = conn)
   } else if (source == "mcaid_mcare") {
     timevar_vars <- glue::glue_sql(
-      " dual_final.dual, dual_final.dual_pct, mcaid_final.mcaid, mcaid_final.mcaid_days,
+      " apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct, mcaid_final.mcaid, mcaid_final.mcaid_days,
       mcare_final.mcare, mcare_final.mcare_days,
       bsp_group_name_final.bsp_group_name, bsp_group_name_final.bsp_group_name_days, 
       full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
@@ -1080,6 +1220,28 @@ claims_elig <- function(conn,
       part_b_final.part_b, part_b_final.part_b_pct, 
       part_c_final.part_c, part_c_final.part_c_pct, 
       buy_in_final.buy_in, buy_in_final.buy_in_pct, 
+      geo_zip_final.geo_zip, geo_zip_final.geo_zip_days, 
+      geo_hra_code_final.geo_hra_code, geo_hra_code_final.geo_hra_code_days,  
+      geo_county_code_final.geo_county_code, geo_county_code_final.geo_county_code_days, 
+      geo_kc_final.geo_kc, geo_kc_final.geo_kc_pct, " 
+      , .con = conn)
+  } else if (source == "mcaid_mcare_pha") {
+    timevar_vars <- glue::glue_sql(
+      " apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct, mcaid_final.mcaid, mcaid_final.mcaid_days,
+      mcare_final.mcare, mcare_final.mcare_days, pha_final.pha, pha_final.pha_days,
+      bsp_group_name_final.bsp_group_name, bsp_group_name_final.bsp_group_name_days, 
+      full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
+      cov_type_final.cov_type, cov_type_final.cov_type_days, 
+      mco_id_final.mco_id, mco_id_final.mco_id_days, 
+      part_a_final.part_a, part_a_final.part_a_pct, 
+      part_b_final.part_b, part_b_final.part_b_pct, 
+      part_c_final.part_c, part_c_final.part_c_pct, 
+      buy_in_final.buy_in, buy_in_final.buy_in_pct, 
+      pha_agency_final.pha_agency, pha_agency_final.pha_agency_days, 
+      pha_subsidy_final.pha_subsidy, pha_subsidy_final.pha_subsidy_days, 
+      pha_voucher_final.pha_voucher, pha_voucher_final.pha_voucher_days, 
+      pha_operator_final.pha_operator, pha_operator_final.pha_operator_days, 
+      pha_portfolio_final.pha_portfolio, pha_portfolio_final.pha_portfolio_days, 
       geo_zip_final.geo_zip, geo_zip_final.geo_zip_days, 
       geo_hra_code_final.geo_hra_code, geo_hra_code_final.geo_hra_code_days,  
       geo_county_code_final.geo_county_code, geo_county_code_final.geo_county_code_days, 
@@ -1104,7 +1266,7 @@ claims_elig <- function(conn,
       timevar.cov_days, timevar.duration, timevar.cov_pct, timevar.covgap_max 
       FROM
       (SELECT DISTINCT {demo_vars}
-        from PHClaims.final.{`paste0(source, '_elig_demo')`}
+        from {`sql_db_name`}.final.{`paste0(source, '_elig_demo')`}
         WHERE 1 = 1 {id_sql} 
         {age_min_sql} {age_max_sql} 
         {female_sql} {male_sql} {gender_me_sql} {gender_recent_sql} 
@@ -1120,14 +1282,19 @@ claims_elig <- function(conn,
       (SELECT {id_name}, cov_days, duration, cov_pct, covgap_max 
         FROM ##cov_time_tot) timevar
         ON demo.{id_name} = timevar.{id_name}
-      {dual_sql} {mcaid_cov_sql} {mcare_cov_sql} {bsp_group_name_sql} {full_benefit_sql} {cov_type_sql} 
+      {dual_sql} {mcaid_cov_sql} {mcare_cov_sql} {pha_cov_sql} 
+      {bsp_group_name_sql} {full_benefit_sql} {cov_type_sql} 
       {mco_id_sql} {part_a_sql} {part_b_sql} {part_c_sql} {buy_in_sql} 
+      {pha_agency_sql} {pha_subsidy_sql} {pha_voucher_sql} 
+      {pha_operator_sql} {pha_portfolio_sql}
       {geo_zip_sql} {geo_hra_code_sql} {geo_school_code_sql} 
       {geo_county_code_sql} {geo_ach_code_sql} {geo_kc_sql}
       WHERE 1 = 1 
       {dual_where_sql} {bsp_group_name_where_sql} {full_benefit_where_sql}
       {cov_type_where_sql} {mco_id_where_sql} {part_a_where_sql} 
       {part_b_where_sql} {part_c_where_sql} {buy_in_where_sql}
+      {pha_agency_where_sql} {pha_subsidy_where_sql} {pha_voucher_where_sql} 
+      {pha_operator_where_sql} {pha_portfolio_where_sql}
       {geo_zip_where_sql} {geo_hra_code_where_sql} {geo_school_code_where_sql}
       {geo_county_code_where_sql} {geo_ach_code_where_sql} {geo_kc_where_sql}"
     , .con = conn)
@@ -1138,6 +1305,17 @@ claims_elig <- function(conn,
   
   
   output <- dbGetQuery(conn, core_sql)
+
+  #### Add on geography names ####
+  county.names <- odbc::dbGetQuery(conn = conn, "SELECT DISTINCT county_name as geo_county_name, countyfp as geo_county_code FROM [PHClaims].[ref].[geo_county_code_wa]")
+  output <- merge(output, county.names, by = "geo_county_code", all.x = TRUE, all.y = FALSE)
+
+  hra.names <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/hra_vid_region.csv",
+                                 select = c("hra", "vid"))
+  setnames(hra.names, c("hra", "vid"), c("geo_hra_name", "geo_hra_code"))
+  output <- merge(output, hra.names, by = "geo_hra_code", all.x = TRUE, all.y = FALSE)
+
+  # return complete dataset
   return(output)
   
 }
