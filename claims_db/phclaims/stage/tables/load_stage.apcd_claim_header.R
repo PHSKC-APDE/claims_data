@@ -54,7 +54,6 @@ load_stage.apcd_claim_header_f <- function() {
     from PHClaims.stage.apcd_medical_claim
     --exclusions
     where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N'
-    --internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287)
     --grouping statement for consolidation to person-header level
     group by internal_member_id, medical_claim_header_id;
     
@@ -152,7 +151,6 @@ load_stage.apcd_claim_header_f <- function() {
     select medical_claim_header_id, sum(charge_amt) as charge_amt
     into #charge
     from PHClaims.stage.apcd_medical_claim
-    --where internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287)
     group by medical_claim_header_id;
     
     
@@ -168,7 +166,6 @@ load_stage.apcd_claim_header_f <- function() {
     from PHClaims.final.apcd_claim_icdcm_header
     where icdcm_number = '01'
     group by claim_header_id;
-    --and internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287);
     
     
     ------------------
