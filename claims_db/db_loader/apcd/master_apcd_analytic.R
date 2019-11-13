@@ -342,3 +342,18 @@ create_table_f(conn = db_claims,
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_header_f())
+
+### D) Table-level QA
+system.time(apcd_claim_header_qa1 <- qa_stage.apcd_claim_header_f())
+rm(apcd_claim_header_qa1)
+
+### E) Run line-level QA script at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.apcd_claim_header.sql             
+
+### F) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_header")
+
+### G) Alter schema on new table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_header")
+
+### H) Create clustered columnstore index
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_claim_header on final.apcd_claim_header")))
