@@ -23,10 +23,10 @@ db.claims51 <- dbConnect(odbc(), "PHClaims51")
 
 #### STEP 1: Create table shell ####
 create_table_f(conn = db.claims51, 
-               config_file = file.path(git_path, "claims_data/claims_db/phclaims/ref/tables", "create_ref.kc_claim_type_crosswalk.yaml"),
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.kc_claim_type_crosswalk.yaml",
                overall = T, ind_yr = F, test_mode = F)
 
 #### STEP 2: Load data from CSV ####
 load_table_from_file_f(conn = db.claims51, 
-                       config_file = file.path(git_path, "claims_data/claims_db/phclaims/ref/tables", "load_ref.kc_claim_type_crosswalk.yaml"),
+                       config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.kc_claim_type_crosswalk.yaml",
                        overall = T, ind_yr = F, test_mode = F)
