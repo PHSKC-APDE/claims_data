@@ -1455,7 +1455,7 @@ AND ym.[year_month] <= ' + CAST(@end_month_int AS CHAR(6)) + '
 SELECT *
 INTO #temp
 FROM CTE;
-CREATE CLUSTERED INDEX idx_cl_#temp ON #temp([id_mcaid], [end_year_month]);
+CREATE CLUSTERED INDEX idx_cl_#temp ON #temp([id_mcaid], [measure_id], [end_year_month]);
 
 WITH CTE AS
 (
@@ -1468,9 +1468,9 @@ SELECT
 ,[measure_id]
 ,[enrolled_any_t_12_m]
 -- 24-month identification period for denominator
-,MAX(ISNULL([denominator], 0)) OVER(PARTITION BY [id_mcaid] ORDER BY [end_year_month] ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) AS [denominator]
+,MAX(ISNULL([denominator], 0)) OVER(PARTITION BY [id_mcaid], [measure_id] ORDER BY [end_year_month] ROWS BETWEEN 23 PRECEDING AND CURRENT ROW) AS [denominator]
 -- 12-month identification period for numerator
-,MAX(ISNULL([numerator], 0)) OVER(PARTITION BY [id_mcaid] ORDER BY [end_year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [numerator]
+,MAX(ISNULL([numerator], 0)) OVER(PARTITION BY [id_mcaid], [measure_id] ORDER BY [end_year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [numerator]
 FROM #temp
 )
 
@@ -1499,7 +1499,7 @@ SELECT
 FROM CTE
 
 WHERE 1 = 1
---AND [denominator] = 1
+AND [denominator] = 1
 -- [enrolled_any_t_12_m] will be NULL in all rows except were [end_year_month] = @end_month_int
 AND [enrolled_any_t_12_m] >= 1;'
 END
