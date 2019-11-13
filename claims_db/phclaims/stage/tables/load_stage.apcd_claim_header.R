@@ -426,6 +426,87 @@ load_stage.apcd_claim_header_f <- function() {
 #### Table-level QA script ####
 qa_stage.apcd_claim_header_f <- function() {
   
+  #confirm that claim header is distinct
+  res1 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of non-distinct headers, expect 0' as qa_type,
+    count(a.claim_header_id) as qa1, qa2 = null
+    from (
+      select claim_header_id, count(*) as header_cnt
+      from PHClaims.stage.apcd_claim_header
+      group by claim_header_id
+    ) as a
+    where a.header_cnt > 1;",
+    .con = db_claims))
+  
+  #compare member and claim header counts wth raw data
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', 'qa1 = distinct IDs, qa2 = distinct headers' as qa_type,
+    count(distinct id_apcd) as qa1, count(distinct claim_header_id) as qa2
+    from PHClaims.stage.apcd_claim_header;",
+    .con = db_claims))
+  
+  res3 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_medical_claim' as 'table', 'qa1 = distinct IDs, qa2 = distinct headers' as qa_type,
+    count(distinct internal_member_id) as qa1, count(distinct medical_claim_header_id) as qa2
+    from PHClaims.stage.apcd_medical_claim
+    where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';",
+    .con = db_claims))
+  
+  #all members should be in elig_demo table
+  res4 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of members not in elig_demo, expect 0' as qa_type,
+    count(a.id_apcd) as qa1, qa2 = null
+    from PHClaims.stage.apcd_claim_header as a
+    left join PHClaims.final.apcd_elig_demo as b
+    on a.id_apcd = b.id_apcd
+    where b.id_apcd is null;",
+    .con = db_claims))
+  
+  #all members should be in elig_timevar table
+  res5 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of members not in elig_timevar, expect 0' as qa_type,
+    count(a.id_apcd) as qa1, qa2 = null
+    from PHClaims.stage.apcd_claim_header as a
+    left join PHClaims.final.apcd_elig_timevar as b
+    on a.id_apcd = b.id_apcd
+    where b.id_apcd is null;",
+    .con = db_claims))
+  
+  #count unmatched claim types
+  res6 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of claims with unmatched claim type, expect 0' as qa_type,
+    count(*) as qa1, qa2 = null
+    from PHClaims.stage.apcd_claim_header
+    where claim_type_id is null or claim_type_apcd_id is null;",
+    .con = db_claims))
+  
+  #verify that all inpatient stays have discharge date
+  res7 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of ipt stays with no discharge date, expect 0' as qa_type,
+    count(*) as qa1, qa2 = null
+    from PHClaims.stage.apcd_claim_header
+    where inpatient_id is not null and discharge_date is null;",
+    .con = db_claims))
+  
+  #verify that no ed_pophealth_id value is used for more than one person
+  res8 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', '# of ed_pophealth_id values used for >1 person, expect 0' as qa_type,
+    count(a.ed_pophealth_id) as qa1, qa2 = null
+    from (
+      select ed_pophealth_id, count(distinct id_apcd) as id_dcount
+      from PHClaims.stage.apcd_claim_header
+      group by ed_pophealth_id
+    ) as a
+    where a.id_dcount > 1;",
+    .con = db_claims))
+  
+  #verify that ed_pophealth_id does not skip any values
+  res9 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_claim_header' as 'table', 'qa1 = distinct ed_pophealth_id, qa2 = max - min + 1' as qa_type,
+    count(distinct ed_pophealth_id) as qa1, max(ed_pophealth_id) - min(ed_pophealth_id) + 1 as q1
+    from PHClaims.stage.apcd_claim_header;",
+    .con = db_claims))
+  
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()
   
 }
