@@ -3,20 +3,7 @@
 --value per claim header.
 --Eli Kern (PHSKC-APDE)
 --2019-11
---Run time: XX min
-
---claim and member IDs for testing
---ED visit claim header ID: 629246101504331
---PC visit claim header ID: 629242808655786
---More than 1 PC visit on a day, member ID: 11059447694
---More than 1 ED visit within Yale match window, member ID: 12761029412
---More than claim header per discharge date, 2017-10-12, member ID: 11307944287
-
---1 carrier ED visit on 4/4/2016, 1 opt ED visit on 4/5/2016, member ID: 11268493312, claims: 629244347021368, 629244347880044
---An inpatient and outpatient ED visit on 1/28/16, no carrier duplicate, member ID: 11061932071, claims: 629244169970243, 629244165767711
---A non-duplicate opt ED visit, member ID: 11268509776, claim header ID: 629250583076077
---A non-duplicate ipt ED visit, member ID: 11277972181, claim header ID: 629250037572856
-
+--Run time: 3 hours
 
 ------------------
 --STEP 1: Do all line-level transformations that don't require ICD-CM, procedure, or provider information
@@ -60,7 +47,6 @@ into #temp1
 from PHClaims.stage.apcd_medical_claim
 --exclusions
 where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N'
---internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287)
 --grouping statement for consolidation to person-header level
 group by internal_member_id, medical_claim_header_id;
 
@@ -158,7 +144,6 @@ if object_id('tempdb..#charge') is not null drop table #charge;
 select medical_claim_header_id, sum(charge_amt) as charge_amt
 into #charge
 from PHClaims.stage.apcd_medical_claim
---where internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287)
 group by medical_claim_header_id;
 
 
@@ -174,7 +159,6 @@ into #icd1
 from PHClaims.final.apcd_claim_icdcm_header
 where icdcm_number = '01'
 group by claim_header_id;
---and internal_member_id in (11059447694, 12761029412, 11268493312, 11061932071, 11268509776, 11277972181, 11307944287);
 
 
 ------------------
@@ -212,7 +196,7 @@ discharge_date,
 
 --Primary care visit (Oregon)
 case when (f.pc_procedure_temp = 1 or f.pc_zcode_temp = 1) and f.pc_taxonomy_temp = 1
-	and a.claim_type_apcd_id not in ('1.1.1', '1.1.2', '2.3.8', '2.3.2', '1.2.8') --exclude inpatient, swing bed, free-standing ambulatory
+	and a.claim_type_apcd_id not in ('1.1.1', '1.1.14', '1.1.2', '2.3.8', '2.3.2', '1.2.8') --exclude inpatient, swing bed, free-standing ambulatory
 	and a.claim_status_id in (-1, -2, 1, 5, 2, 6) -- only include primary and secondary claim headers
 	then 1 else 0
 end as pc_visit
@@ -429,15 +413,3 @@ getdate() as last_run
 from #temp3 as a
 left join #ed_yale_final as b
 on a.claim_header_id = b.claim_header_id;
-
---NEXT STEPS:
---then, run on full data
-
---once i run this on the full data, QA items should include:
---verify that no ed_yale_id value is used for more than 1 person
---verify that no values are skipped in ed_yale_id
---verify that logic works for 1st and last ed visits in ordered table
-
---sort order for QAing ED pop health ID assignment:
---select * from #ed_yale_final
---order by id_apcd, first_service_date, ed_yale_dup, ed_type;
