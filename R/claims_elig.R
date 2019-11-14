@@ -873,7 +873,6 @@ claims_elig <- function(conn,
     }
   }
   
-  
   #### SET UP COVERAGE GROUP TYPES CODE (APCD) ####
   # To come, add in code for med_covgrp and pharm_covgrp
   
@@ -1267,7 +1266,7 @@ claims_elig <- function(conn,
       timevar.cov_days, timevar.duration, timevar.cov_pct, timevar.covgap_max 
       FROM
       (SELECT DISTINCT {demo_vars}
-        from PHClaims.final.{`paste0(source, '_elig_demo')`}
+        from {`sql_db_name`}.final.{`paste0(source, '_elig_demo')`}
         WHERE 1 = 1 {id_sql} 
         {age_min_sql} {age_max_sql} 
         {female_sql} {male_sql} {gender_me_sql} {gender_recent_sql} 
