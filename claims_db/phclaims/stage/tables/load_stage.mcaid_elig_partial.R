@@ -91,13 +91,13 @@ if (duplicate_check != total_rows) {
 # try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_temp", temporary = T))
 # 
 # odbc::dbGetQuery(db_claims,
-#                  glue::glue_sql("SELECT {`vars`*}, 
-#                                 CASE WHEN END_REASON IS NULL THEN 1 
-#                                   WHEN END_REASON = 'Other' THEN 2 
-#                                   WHEN END_REASON = 'Other - For User Generation Only' THEN 3 
-#                                   WHEN END_REASON = 'Review Not Complete' THEN 4 
-#                                   WHEN END_REASON = 'No Eligible Household Members' THEN 5 
-#                                   WHEN END_REASON = 'Already Eligible for Program in Different AU' THEN 6 
+#                  glue::glue_sql("SELECT {`vars`*},
+#                                 CASE WHEN END_REASON IS NULL THEN 1
+#                                   WHEN END_REASON = 'Other' THEN 2
+#                                   WHEN END_REASON = 'Other - For User Generation Only' THEN 3
+#                                   WHEN END_REASON = 'Review Not Complete' THEN 4
+#                                   WHEN END_REASON = 'No Eligible Household Members' THEN 5
+#                                   WHEN END_REASON = 'Already Eligible for Program in Different AU' THEN 6
 #                                   ELSE 7 END AS reason_score
 #                                 INTO ##mcaid_elig_temp
 #                                 FROM {`from_schema`}.{`from_table`}",
@@ -113,22 +113,24 @@ if (duplicate_check != total_rows) {
 # try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_dedup", temporary = T))
 # 
 # dedup_sql <- glue::glue_sql(
-#   'SELECT {`vars_dedup`*} 
-#   INTO ##mcaid_elig_dedup 
+#   'SELECT {`vars_dedup`*}
+#   INTO ##mcaid_elig_dedup
 #   FROM
 #     (SELECT {`vars`*}, reason_score FROM ##mcaid_elig_temp) a
 #   LEFT JOIN
-#     (SELECT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
-#       TO_DATE, SECONDARY_RAC_CODE, MAX(reason_score) AS max_score 
+#     (SELECT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE,
+#       TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, MAX(reason_score) AS max_score
 #     FROM ##mcaid_elig_temp
-#     GROUP BY CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
-#     TO_DATE, SECONDARY_RAC_CODE) b
-#   ON a.CLNDR_YEAR_MNTH = b.CLNDR_YEAR_MNTH AND 
-#     a.MEDICAID_RECIPIENT_ID = b.MEDICAID_RECIPIENT_ID AND 
-#     (a.FROM_DATE = b.FROM_DATE OR (a.FROM_DATE IS NULL AND b.FROM_DATE IS NULL)) AND 
-#     (a.TO_DATE = b.TO_DATE OR (a.TO_DATE IS NULL AND b.TO_DATE IS NULL)) AND 
-#     (a.SECONDARY_RAC_CODE = b.SECONDARY_RAC_CODE OR 
-#       a.SECONDARY_RAC_CODE IS NULL AND b.SECONDARY_RAC_CODE IS NULL) 
+#     GROUP BY CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE,
+#     TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE) b
+#   ON a.CLNDR_YEAR_MNTH = b.CLNDR_YEAR_MNTH AND
+#     a.MEDICAID_RECIPIENT_ID = b.MEDICAID_RECIPIENT_ID AND
+#     (a.FROM_DATE = b.FROM_DATE OR (a.FROM_DATE IS NULL AND b.FROM_DATE IS NULL)) AND
+#     (a.TO_DATE = b.TO_DATE OR (a.TO_DATE IS NULL AND b.TO_DATE IS NULL)) AND
+#     (a.RPRTBL_RAC_CODE = b.RPRTBL_RAC_CODE OR
+#       (a.RPRTBL_RAC_CODE IS NULL AND b.RPRTBL_RAC_CODE IS NULL)) AND
+#     (a.SECONDARY_RAC_CODE = b.SECONDARY_RAC_CODE OR
+#       (a.SECONDARY_RAC_CODE IS NULL AND b.SECONDARY_RAC_CODE IS NULL))
 #   WHERE a.reason_score = b.max_score',
 #     .con = db_claims)
 # 
@@ -137,19 +139,24 @@ if (duplicate_check != total_rows) {
 # temp_rows_02 <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM ##mcaid_elig_dedup"))
 # message(glue::glue("The ##mcaid_elig_dedup table has {temp_rows_02} rows"))
 # 
+# 
 # ### Combine relevant part of archive table and deduplicated temp data
 # sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
-#                                   SELECT {`vars`*} FROM 
+#                                   SELECT {`vars`*} FROM
 #                                   archive.{`to_table`}
-#                                   WHERE {`date_var`} < {date_truncate}  
-#                                   UNION 
-#                                   SELECT {`vars`*} FROM 
+#                                   WHERE {`date_var`} < {date_truncate}
+#                                   UNION
+#                                   SELECT {`vars`*} FROM
 #                                   ##mcaid_elig_dedup
 #                                   WHERE {`date_var`} >= {date_truncate}",
 #                               .con = db_claims,
 #                               date_var = table_config_stage_elig$date_var)
 # 
 # odbc::dbGetQuery(db_claims, sql_combine)
+# 
+# # Keep track of how the difference in rows expected
+# dedup_row_diff <- temp_rows_01 - temp_rows_02
+
 
 
 ### Combine relevant parts of archive and new data
@@ -186,13 +193,14 @@ rows_archive <- as.numeric(dbGetQuery(
                             WHERE {`table_config_stage_elig$date_var`} < {date_truncate}",
                             .con = db_claims)))
 
-as.numeric(dbGetQuery(
-  db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`archive_schema`}.{`to_table`}
-                                  WHERE {`date_var`} < {date_truncate}", 
-                            .con = db_claims, date_var = table_config_stage_elig$date_var)))
+if (exists("dedup_row_diff")) {
+  row_diff = rows_stage - (rows_archive + rows_load_raw) - dedup_row_diff
+} else {
+  row_diff = rows_stage - (rows_archive + rows_load_raw)
+}
 
 
-if ((rows_archive + rows_load_raw) - rows_stage != 0) {
+if (row_diff != 0) {
   odbc::dbGetQuery(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -201,7 +209,7 @@ if ((rows_archive + rows_load_raw) - rows_stage != 0) {
                                   'Rows passed from load_raw AND archive to stage', 
                                   'FAIL',
                                   {Sys.time()},
-                                  'Issue even after accounting for the 1 duplicate row. Investigate further.')",
+                                  'Issue even after accounting for the duplicate rows. Investigate further.')",
                                   .con = db_claims))
   stop("Number of distinct rows does not match total expected")
   } else {
@@ -213,7 +221,7 @@ if ((rows_archive + rows_load_raw) - rows_stage != 0) {
                                   'Rows passed from load_raw AND archive to stage', 
                                   'PASS',
                                   {Sys.time()},
-                                  'Number of rows in stage matches load_raw and archive (n = {rows_stage})')",
+                                  'Number of rows in stage matches expected (n = {rows_stage})')",
                                   .con = db_claims))
     }
 
