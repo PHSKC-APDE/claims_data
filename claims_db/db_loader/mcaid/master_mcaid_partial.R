@@ -35,8 +35,8 @@ load_elig_date_min <- as.Date(paste0(str_sub(load_mcaid_elig_config$overall$date
                                      str_sub(load_mcaid_elig_config$overall$date_min, 5, 6), "-",
                                      "01"), format = "%Y-%m-%d")
 load_elig_date_max <- as.Date(paste0(str_sub(load_mcaid_elig_config$overall$date_max, 1, 4), "-",
-                                     str_sub(load_mcaid_elig_config$overall$date_max, 5, 6), "-",
-                                     "01"), format = "%Y-%m-%d")
+                                     (as.numeric(str_sub(load_mcaid_elig_config$overall$date_max, 5, 6)) + 1), "-",
+                                     "01"), format = "%Y-%m-%d") - lubridate::days(1)
 
 ### Create tables
 # Need to do this each time because of the etl_batch_id variable
