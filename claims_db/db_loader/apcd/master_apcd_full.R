@@ -248,4 +248,11 @@ alter_schema_f(conn = db_claims, from_schema = "load_raw", to_schema = "stage", 
 #### STEP 4: Create clustered columnstore indexes on each new stage table ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-system.time(odbc::dbSendQuery(conn = db_claims, glue::glue_sql("create clustered columnstore index idx_ccs_stage_apcd_dental_claim on stage.apcd_dental_claim")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_apcd_dental_claim on stage.apcd_dental_claim")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_apcd_eligibility on stage.apcd_eligibility")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_apcd_medical_claim on stage.apcd_medical_claim")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_apcd_member_month_detail on stage.apcd_member_month_detail")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_apcd_pharmacy_claim on stage.apcd_pharmacy_claim")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_apcd_provider on stage.apcd_provider")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_apcd_provider_master on stage.apcd_provider_master")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_apcd_provider_practice_roster on stage.apcd_provider_practice_roster")))

@@ -10,7 +10,8 @@
 
 ## Set up R Environment ----
   rm(list=ls())  # clear memory
-  pacman::p_load(data.table, odbc, DBI, lubridate) # load packages
+  start.time <- Sys.time()
+  pacman::p_load(data.table, dplyr, odbc, DBI, lubridate) # load packages
   options("scipen"=999) # turn off scientific notation  
   options(warning.length = 8170) # get lengthy warnings, needed for SQL
   
@@ -39,7 +40,7 @@
           mcaid[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
           mcaid[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
           # Ensure new geography naming conventions are followed ----
-          setnames(mcaid, grep("_clean$", names(timevar), value = T), gsub("_clean", "", grep("_clean$", names(timevar), value = T)) )
+          setnames(mcaid, grep("_clean$", names(mcaid), value = T), gsub("_clean", "", grep("_clean$", names(mcaid), value = T)) )
           setnames(mcaid, "geo_tractce10", "geo_tract_code")
   
 ## (3) Merge on dual status ----
@@ -65,54 +66,253 @@
     rm(mcaid, mcare)
     gc()
 
-## (5) Duals: Create master list of time intervals ----
-    # melt data (wide to long) so start and end dates are in same column, regardless of original source
-      duals <- rbind(
-          melt(mcaid.dual[, c("id_apde", "from_date", "to_date")], id.vars = "id_apde"), 
-          melt(mcare.dual[, c("id_apde", "from_date", "to_date")], id.vars = "id_apde")
-        )
-  
-    # call the combined from_date/to_date column the "from_date" column
-      setnames(duals, "value", "from_date")
-      duals[, variable := NULL]
-      duals <- unique(duals)
-      setkey(duals, id_apde, from_date) # sort from earliest to latest
+## (5) Duals Part 1: Create master list of time intervals by ID ----
+    # Originally from ... 
+    # https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_pha_mcaid_join.R
+    # confirmed on 11/4/2019 that the results are 100% the same as an alternate method where
+    # a giant table is made with every possible day for each ID, followed by checking for the intersection
+    # of the data with each individual day, followed by collapsing the data for contiguous time periods
+    # The comparison method is 100% guaranteed to be accurate, but is much slower (~12 minutes vs 39 seconds)
+    # so we decided to stick with Alastair Matheson's method
 
-    # create the to_date by shifting the from_date up one row
-      setorder(duals, id_apde, -from_date) # need to reverse order because next line actually creates a "lag" and we need a "lead"
-      duals[, to_date := c(NA, from_date[-.N]), by = "id_apde"] # MUCH faster than the shift "lead" function in data.table (even with setorder 2x)
-      setorder(duals, id_apde, from_date) # return to proper ordering
-      duals <- duals[!is.na(to_date)] # the last observation per id will be dropped because it is the final to_date
-      duals[, counter := 1:.N, by = id_apde] # create indicator so we can know which interval is the first interval for each id_apde
-      duals[counter != 1, from_date := as.integer(from_date + 1)] # add one to from_date so that it does not overlap with the previous interval
-      duals[, counter := NULL]
-      
-    # drop duplicate rows if they exist (they shouldn't, but just in case)
-      duals <- unique(duals)
+  #-- create all possible permutations of date interval combinations from mcare and mcaid for each id ----
+    duals <- merge(mcare.dual[, .(id_apde, from_date, to_date)], mcaid.dual[, .(id_apde, from_date, to_date)], by = "id_apde", allow.cartesian = TRUE)
+    
+    setnames(duals, grep("\\.x$", names(duals), value = T), gsub(".x", "_mcare", grep("\\.x$", names(duals), value = T)))
+    setnames(duals, grep("\\.y$", names(duals), value = T), gsub(".y", "_mcaid", grep("\\.y$", names(duals), value = T)))
+    
+	#-- Identify the type of overlaps & number of duplicate rows needed ----
+		temp <- duals %>%
+		  mutate(overlap_type = case_when(
+		    # First ID the non-matches
+		    is.na(from_date_mcare) | is.na(from_date_mcaid) ~ 0,
+		    # Then figure out which overlapping date comes first
+		    # Exactly the same dates
+		    from_date_mcare == from_date_mcaid & to_date_mcare == to_date_mcaid ~ 1,
+		    # mcare before mcaid (or exactly the same dates)
+		    from_date_mcare <= from_date_mcaid & from_date_mcaid <= to_date_mcare & 
+		      to_date_mcare <= to_date_mcaid ~ 2,
+		    # mcaid before mcare
+		    from_date_mcaid <= from_date_mcare & from_date_mcare <= to_date_mcaid & 
+		      to_date_mcaid <= to_date_mcare ~ 3,
+		    # mcaid dates competely within mcare dates or vice versa
+		    from_date_mcaid >= from_date_mcare & to_date_mcaid <= to_date_mcare ~ 4,
+		    from_date_mcare >= from_date_mcaid & to_date_mcare <= to_date_mcaid ~ 5,
+		    # mcare coverage only before mcaid (or mcaid only after mcare)
+		    from_date_mcare < from_date_mcaid & to_date_mcare < from_date_mcaid ~ 6,
+		    # mcare coverage only after mcaid (or mcaid only before mcare)
+		    from_date_mcare > to_date_mcaid & to_date_mcare > to_date_mcaid ~ 7,
+		    # Anyone rows that are left
+		    TRUE ~ 8),
+		    # Calculate overlapping dates
+		    from_date_o = as.Date(case_when(
+		      overlap_type %in% c(1, 2, 4) ~ from_date_mcaid,
+		      overlap_type %in% c(3, 5) ~ from_date_mcare), origin = "1970-01-01"),
+		    to_date_o = as.Date(ifelse(overlap_type %in% c(1:5),
+		                               pmin(to_date_mcaid, to_date_mcare),
+		                               NA), origin = "1970-01-01"),
+		    # Need to duplicate rows to separate out non-overlapping mcare and mcaid periods
+		    repnum = case_when(
+		      overlap_type %in% c(2:5) ~ 3,
+		      overlap_type %in% c(6:7) ~ 2,
+		      TRUE ~ 1)
+		  ) %>%
+		  select(id_apde, from_date_mcare, to_date_mcare, from_date_mcaid, to_date_mcaid, 
+		         from_date_o, to_date_o, overlap_type, repnum) %>%
+		  arrange(id_apde, from_date_mcare, from_date_mcaid, from_date_o, 
+		          to_date_mcare, to_date_mcaid, to_date_o)
 
-## (6) Duals: join mcare/mcaid data based on ID & overlapping time periods ----      
+	#-- Expand out rows to separate out overlaps ----
+		temp_ext <- temp[rep(seq(nrow(temp)), temp$repnum), 1:ncol(temp)]
+
+	#-- Process the expanded data ----
+		temp_ext <- temp_ext %>% 
+		  group_by(id_apde, from_date_mcare, to_date_mcare, from_date_mcaid, to_date_mcaid) %>% 
+		  mutate(rownum_temp = row_number()) %>%
+		  ungroup() %>%
+		  arrange(id_apde, from_date_mcare, to_date_mcare, from_date_mcaid, to_date_mcaid, from_date_o, 
+		          to_date_o, overlap_type, rownum_temp) %>%
+		  mutate(
+		    # Remove non-overlapping dates
+		    from_date_mcare = as.Date(ifelse((overlap_type == 6 & rownum_temp == 2) | 
+		                                   (overlap_type == 7 & rownum_temp == 1), 
+		                                 NA, from_date_mcare), origin = "1970-01-01"), 
+		    to_date_mcare = as.Date(ifelse((overlap_type == 6 & rownum_temp == 2) | 
+		                                 (overlap_type == 7 & rownum_temp == 1), 
+		                               NA, to_date_mcare), origin = "1970-01-01"),
+		    from_date_mcaid = as.Date(ifelse((overlap_type == 6 & rownum_temp == 1) | 
+		                                   (overlap_type == 7 & rownum_temp == 2), 
+		                                 NA, from_date_mcaid), origin = "1970-01-01"), 
+		    to_date_mcaid = as.Date(ifelse((overlap_type == 6 & rownum_temp == 1) | 
+		                                 (overlap_type == 7 & rownum_temp == 2), 
+		                               NA, to_date_mcaid), origin = "1970-01-01")) %>%
+		  distinct(id_apde, from_date_mcare, to_date_mcare, from_date_mcaid, to_date_mcaid, from_date_o, 
+		           to_date_o, overlap_type, rownum_temp, .keep_all = TRUE) %>%
+		  # Remove first row if start dates are the same or mcare is only one day
+		  filter(!(overlap_type %in% c(2:5) & rownum_temp == 1 & 
+		             (from_date_mcare == from_date_mcaid | from_date_mcare == to_date_mcare))) %>%
+		  # Remove third row if to_dates are the same
+		  filter(!(overlap_type %in% c(2:5) & rownum_temp == 3 & to_date_mcare == to_date_mcaid))
+
+	#-- Calculate the finalized date columms----
+		temp_ext <- temp_ext %>%
+		  # Set up combined dates
+		  mutate(
+		    # Start with rows with only mcare or mcaid, or when both sets of dates are identical
+		    from_date = as.Date(
+		      case_when(
+		        (!is.na(from_date_mcare) & is.na(from_date_mcaid)) | overlap_type == 1 ~ from_date_mcare,
+		        !is.na(from_date_mcaid) & is.na(from_date_mcare) ~ from_date_mcaid), origin = "1970-01-01"),
+		    to_date = as.Date(
+		      case_when(
+		        (!is.na(to_date_mcare) & is.na(to_date_mcaid)) | overlap_type == 1 ~ to_date_mcare,
+		        !is.na(to_date_mcaid) & is.na(to_date_mcare) ~ to_date_mcaid), origin = "1970-01-01"),
+		    # Now look at overlapping rows and rows completely contained within the other data's dates
+		    from_date = as.Date(
+		      case_when(
+		        overlap_type %in% c(2, 4) & rownum_temp == 1 ~ from_date_mcare,
+		        overlap_type %in% c(3, 5) & rownum_temp == 1 ~ from_date_mcaid,
+		        overlap_type %in% c(2:5) & rownum_temp == 2 ~ from_date_o,
+		        overlap_type %in% c(2:5) & rownum_temp == 3 ~ to_date_o + 1,
+		        TRUE ~ from_date), origin = "1970-01-01"),
+		    to_date = as.Date(
+		      case_when(
+		        overlap_type %in% c(2:5) & rownum_temp == 1 ~ lead(from_date_o, 1) - 1,
+		        overlap_type %in% c(2:5) & rownum_temp == 2 ~ to_date_o,
+		        overlap_type %in% c(2, 5) & rownum_temp == 3 ~ to_date_mcaid,
+		        overlap_type %in% c(3, 4) & rownum_temp == 3 ~ to_date_mcare,
+		        TRUE ~ to_date), origin = "1970-01-01"),
+		    # Deal with the last line for each person if it's part of an overlap
+		    from_date = as.Date(ifelse((id_apde != lead(id_apde, 1) | is.na(lead(id_apde, 1))) &
+		                                   overlap_type %in% c(2:5) & 
+		                                   to_date_mcare != to_date_mcaid, 
+		                                 lag(to_date_o, 1) + 1, 
+		                                 from_date), origin = "1970-01-01"),
+		    to_date = as.Date(ifelse((id_apde != lead(id_apde, 1) | is.na(lead(id_apde, 1))) &
+		                                 overlap_type %in% c(2:5), 
+		                               pmax(to_date_mcare, to_date_mcaid, na.rm = TRUE), 
+		                               to_date), origin = "1970-01-01")
+		  ) %>%
+		  arrange(id_apde, from_date, to_date, from_date_mcare, from_date_mcaid, 
+		          to_date_mcare, to_date_mcaid, overlap_type)
+
+	#-- Label and clean summary interval data ----
+		temp_ext <- temp_ext %>%
+		 mutate(
+		    # Identify which type of enrollment this row represents
+		    enroll_type = 
+		      case_when(
+		        (overlap_type == 2 & rownum_temp == 1) | 
+		          (overlap_type == 3 & rownum_temp == 3) |
+		          (overlap_type == 6 & rownum_temp == 1) | 
+		          (overlap_type == 7 & rownum_temp == 2) |
+		          (overlap_type == 4 & rownum_temp %in% c(1, 3)) |
+		          (overlap_type == 0 & is.na(from_date_mcaid)) ~ "mcare",
+		        (overlap_type == 3 & rownum_temp == 1) | 
+		          (overlap_type == 2 & rownum_temp == 3) |
+		          (overlap_type == 6 & rownum_temp == 2) | 
+		          (overlap_type == 7 & rownum_temp == 1) | 
+		          (overlap_type == 5 & rownum_temp %in% c(1, 3)) |
+		          (overlap_type == 0 & is.na(from_date_mcare)) ~ "mcaid",
+		        overlap_type == 1 | (overlap_type %in% c(2:5) & rownum_temp == 2) ~ "both",
+		        TRUE ~ "x"
+		      ),
+		    # Drop rows from enroll_type == h/m when they are fully covered by an enroll_type == b
+		    drop = 
+		      case_when(
+		        id_apde == lag(id_apde, 1) & !is.na(lag(id_apde, 1)) & 
+		          from_date == lag(from_date, 1) & !is.na(lag(from_date, 1)) &
+		          to_date >= lag(to_date, 1) & !is.na(lag(to_date, 1)) & 
+		          # Fix up quirk from mcare data where two rows present for the same day
+		          !(lag(enroll_type, 1) != "mcaid" & lag(to_date_mcare, 1) == lag(from_date_mcare, 1)) &
+		          enroll_type != "both" ~ 1,
+		        id_apde == lead(id_apde, 1) & !is.na(lead(id_apde, 1)) & 
+		          from_date == lead(from_date, 1) & !is.na(lead(from_date, 1)) &
+		          to_date <= lead(to_date, 1) & !is.na(lead(to_date, 1)) & 
+		          # Fix up quirk from mcare data where two rows present for the same day
+		          !(lead(enroll_type, 1) != "mcaid" & lead(to_date_mcare, 1) == lead(from_date_mcare, 1)) &
+		          enroll_type != "both" & lead(enroll_type, 1) == "both" ~ 1,
+		        # Fix up other oddities when the date range is only one day
+		        id_apde == lag(id_apde, 1) & !is.na(lag(id_apde, 1)) & 
+		          from_date == lag(from_date, 1) & !is.na(lag(from_date, 1)) &
+		          from_date == to_date & !is.na(from_date) & 
+		          ((enroll_type == "mcaid" & lag(enroll_type, 1) %in% c("both", "mcare")) |
+		             (enroll_type == "mcare" & lag(enroll_type, 1) %in% c("both", "mcaid"))) ~ 1,
+		        id_apde == lag(id_apde, 1) & !is.na(lag(id_apde, 1)) & 
+		          from_date == lag(from_date, 1) & !is.na(lag(from_date, 1)) &
+		          from_date == to_date & !is.na(from_date) &
+		          from_date_mcare == lag(from_date_mcare, 1) & to_date_mcare == lag(to_date_mcare, 1) &
+		          !is.na(from_date_mcare) & !is.na(lag(from_date_mcare, 1)) &
+		          enroll_type != "both" ~ 1,
+		        id_apde == lead(id_apde, 1) & !is.na(lead(id_apde, 1)) & 
+		          from_date == lead(from_date, 1) & !is.na(lead(from_date, 1)) &
+		          from_date == to_date & !is.na(from_date) &
+		          ((enroll_type == "mcaid" & lead(enroll_type, 1) %in% c("both", "mcare")) |
+		             (enroll_type == "mcare" & lead(enroll_type, 1) %in% c("both", "mcaid"))) ~ 1,
+		        # Drop rows where the to_date < from_date due to 
+		        # both data sources' dates ending at the same time
+		        to_date < from_date ~ 1,
+		        TRUE ~ 0
+		      )
+		  ) %>%
+		  filter(drop == 0 | is.na(drop)) %>%
+		  # Truncate remaining overlapping end dates
+		  mutate(to_date = as.Date(
+		    ifelse(id_apde == lead(id_apde, 1) & !is.na(lead(from_date, 1)) &
+		             from_date < lead(from_date, 1) &
+		             to_date >= lead(to_date, 1),
+		           lead(from_date, 1) - 1,
+		           to_date),
+		    origin = "1970-01-01")
+		  ) %>%
+		  select(-drop, -repnum, -rownum_temp) %>%
+		  # With rows truncated, now additional rows with enroll_type == h/m that 
+		  # are fully covered by an enroll_type == b
+		  # Also catches single day rows that now have to_date < from_date
+		  mutate(
+		    drop = case_when(
+		      id_apde == lag(id_apde, 1) & from_date == lag(from_date, 1) &
+		        to_date == lag(to_date, 1) & lag(enroll_type, 1) == "both" & 
+		        enroll_type != "both" ~ 1,
+		      id_apde == lead(id_apde, 1) & from_date == lead(from_date, 1) &
+		        to_date <= lead(to_date, 1) & lead(enroll_type, 1) == "both" ~ 1,
+		      id_apde == lag(id_apde, 1) & from_date >= lag(from_date, 1) &
+		        to_date <= lag(to_date, 1) & enroll_type != "both" &
+		        lag(enroll_type, 1) == "both" ~ 1,
+		      id_apde == lead(id_apde, 1) & from_date >= lead(from_date, 1) &
+		        to_date <= lead(to_date, 1) & enroll_type != "both" &
+		        lead(enroll_type, 1) == "both" ~ 1,
+		      TRUE ~ 0)
+		  ) %>%
+		  filter(drop == 0 | is.na(drop)) %>%
+		  select(id_apde, from_date, to_date, enroll_type)
+		
+		duals <- setDT(copy(temp_ext))
+		rm(temp, temp_ext)
+
+## (6) Duals Part 2: join mcare/mcaid data based on ID & overlapping time periods ----      
       duals[, c("from_date", "to_date") := lapply(.SD, as.integer), .SDcols = c("from_date", "to_date")] # ensure type==integer for foverlaps()
       setkey(duals, id_apde, from_date, to_date)    
       
       mcare.dual[, c("from_date", "to_date") := lapply(.SD, as.integer), .SDcols = c("from_date", "to_date")] # ensure type==integer for foverlaps()
       setkey(mcare.dual, id_apde, from_date, to_date)
-
+      
       mcaid.dual[, c("from_date", "to_date") := lapply(.SD, as.integer), .SDcols = c("from_date", "to_date")] # ensure type==integer for foverlaps()
       setkey(mcaid.dual, id_apde, from_date, to_date)
       
-      # join on the Medicaid duals data
+      # join on the Medicaid duals data (using foverlaps ... https://github.com/Rdatatable/data.table/blob/master/man/foverlaps.Rd)
       duals <- foverlaps(duals, mcaid.dual, type = "any", mult = "all")
-      duals[, from_date := i.from_date] # when mcaid.dual didn't match, the from_date is NA. Need to replace it with the data saved in the i.from_date
-      duals[, to_date := i.to_date] # when mcaid.dual didn't match, the from_date is NA. Need to replace it with the data saved in the i.from_date
+      duals[, from_date := i.from_date] # the complete set of proper from_dates are in i.from_date
+      duals[, to_date := i.to_date] # the complete set of proper to_dates are in i.to_date
       duals[, c("i.from_date", "i.to_date") := NULL] # no longer needed
       setkey(duals, id_apde, from_date, to_date)
       
       # join on the Medicare duals data
       duals <- foverlaps(duals, mcare.dual, type = "any", mult = "all")
-      duals[, from_date := i.from_date] # when mcare.dual didn't match, the from_date is NA. Need to replace it with the data saved in the i.from_date
-      duals[, to_date := i.to_date] # when mcare.dual didn't match, the from_date is NA. Need to replace it with the data saved in the i.from_date
-      duals[, c("i.from_date", "i.to_date") := NULL] # no longer needed
-      
+      duals[, from_date := i.from_date] # the complete set of proper from_dates are in i.from_date
+      duals[, to_date := i.to_date] # the complete set of proper to_dates are in i.to_date
+      duals[, c("i.from_date", "i.to_date") := NULL] # no longer needed    
+
 ## (7) Append duals and non-duals data ----
       timevar <- rbindlist(list(duals, mcare.solo, mcaid.solo), use.names = TRUE, fill = TRUE)
       setkey(timevar, id_apde, from_date) # order dual data
@@ -142,8 +342,10 @@
 ## (9) Prep for pushing to SQL ----
     # Create mcare, mcaid, & dual flags ----
       timevar[, mcare := 0][part_a==1 | part_b == 1 | part_c==1, mcare := 1]
-      timevar[, mcaid := 0][!is.na(bsp_group_name), mcaid := 1]
-      timevar[, dual := 0][mcare == 1 & mcaid == 1, dual := 1]
+      timevar[, mcaid := 0][!is.na(cov_type), mcaid := 1]
+      timevar[, apde_dual := 0][mcare == 1 & mcaid == 1, apde_dual := 1]
+      timevar[, enroll_type := NULL] # kept until now for comparison with the dual flag
+      timevar <- timevar[!(mcare==0 & mcaid==0)]
 
     # Create contiguous flag ----  
       # If contiguous with the PREVIOUS row, then it is marked as contiguous. This is the same as mcaid_elig_timevar

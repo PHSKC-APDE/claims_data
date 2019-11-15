@@ -743,6 +743,109 @@ WHERE [year_month] BETWEEN ' + CAST(@start_month_int AS CHAR(6)) + ' AND ' + CAS
 GROUP BY [year_month], [id_mcaid], b.[measure_id];'
 END
 
+IF @measure_name = 'MH Treatment Penetration by Diagnosis'
+BEGIN
+
+DELETE FROM [stage].[perf_staging]
+FROM [stage].[perf_staging] AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON a.[measure_id] = b.[measure_id]
+WHERE b.[measure_etl_name] = @measure_name
+AND [year_month] >= @start_month_int
+AND [year_month] <= @end_month_int;
+
+SET @start_month_date = CAST(CAST(@start_month_int * 100 + 1 AS CHAR(8)) AS DATE);
+SET @end_month_date = EOMONTH(CAST(CAST(@end_month_int * 100 + 1 AS CHAR(8)) AS DATE));
+
+SET @SQL = @SQL + N'
+
+IF OBJECT_ID(''tempdb..#v_perf_tpm_by_dx_numerator'') IS NOT NULL
+DROP TABLE #v_perf_tpm_by_dx_numerator
+SELECT *
+INTO #v_perf_tpm_by_dx_numerator
+FROM [stage].[v_perf_tpm_by_dx_numerator]
+WHERE [first_service_date] BETWEEN ''' + CAST(@start_month_date AS CHAR(10)) + ''' AND ''' + CAST(@end_month_date AS CHAR(10)) + ''';
+CREATE CLUSTERED INDEX idx_cl_#v_perf_tpm_by_dx_numerator ON #v_perf_tpm_by_dx_numerator([sub_group], [first_service_date]);
+
+IF OBJECT_ID(''tempdb..#v_perf_tpm_by_dx_denominator'') IS NOT NULL
+DROP TABLE #v_perf_tpm_by_dx_denominator
+SELECT *
+INTO #v_perf_tpm_by_dx_denominator
+FROM [stage].[v_perf_tpm_by_dx_denominator]
+WHERE [first_service_date] BETWEEN ''' + CAST(@start_month_date AS CHAR(10)) + ''' AND ''' + CAST(@end_month_date AS CHAR(10)) + ''';
+CREATE CLUSTERED INDEX idx_cl_#v_perf_tpm_by_dx_denominator ON #v_perf_tpm_by_dx_denominator([sub_group], [first_service_date]);
+
+INSERT INTO [stage].[perf_staging]
+([year_month]
+,[id_mcaid]
+,[measure_id]
+,[num_denom]
+,[measure_value]
+,[load_date])
+
+SELECT 
+ ym.[year_month]
+,a.[id_mcaid]
+,b.[measure_id]
+,''N'' AS [num_denom]
+,MAX(a.[flag]) AS [measure_value]
+,CAST(GETDATE() AS DATE) AS [load_date]
+
+FROM #v_perf_tpm_by_dx_numerator AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON b.[measure_name] = 
+CASE
+WHEN a.[sub_group] = ''ADHD'' THEN ''MH Treatment Penetration: ADHD''
+WHEN a.[sub_group] = ''Adjustment'' THEN ''MH Treatment Penetration: Adjustment''
+WHEN a.[sub_group] = ''Anxiety'' THEN ''MH Treatment Penetration: Anxiety''
+WHEN a.[sub_group] = ''Depression'' THEN ''MH Treatment Penetration: Depression''
+WHEN a.[sub_group] = ''Disrup/Impulse/Conduct'' THEN ''MH Treatment Penetration: Disrup/Impulse/Conduct''
+WHEN a.[sub_group] = ''Mania/Bipolar'' THEN ''MH Treatment Penetration: Mania/Bipolar''
+WHEN a.[sub_group] = ''Psychotic'' THEN ''MH Treatment Penetration: Psychotic''
+END
+INNER JOIN [ref].[date] AS ym
+ON a.[first_service_date] = ym.[date]
+GROUP BY 
+ ym.[year_month]
+,a.[id_mcaid]
+,b.[measure_id];
+
+INSERT INTO [stage].[perf_staging]
+([year_month]
+,[id_mcaid]
+,[measure_id]
+,[num_denom]
+,[measure_value]
+,[load_date])
+
+SELECT 
+ ym.[year_month]
+,a.[id_mcaid]
+,b.[measure_id]
+,''D'' AS [num_denom]
+,MAX(a.[flag]) AS [measure_value]
+,CAST(GETDATE() AS DATE) AS [load_date]
+
+FROM #v_perf_tpm_by_dx_denominator AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON b.[measure_name] = 
+CASE
+WHEN a.[sub_group] = ''ADHD'' THEN ''MH Treatment Penetration: ADHD''
+WHEN a.[sub_group] = ''Adjustment'' THEN ''MH Treatment Penetration: Adjustment''
+WHEN a.[sub_group] = ''Anxiety'' THEN ''MH Treatment Penetration: Anxiety''
+WHEN a.[sub_group] = ''Depression'' THEN ''MH Treatment Penetration: Depression''
+WHEN a.[sub_group] = ''Disrup/Impulse/Conduct'' THEN ''MH Treatment Penetration: Disrup/Impulse/Conduct''
+WHEN a.[sub_group] = ''Mania/Bipolar'' THEN ''MH Treatment Penetration: Mania/Bipolar''
+WHEN a.[sub_group] = ''Psychotic'' THEN ''MH Treatment Penetration: Psychotic''
+END
+INNER JOIN [ref].[date] AS ym
+ON a.[first_service_date] = ym.[date]
+GROUP BY 
+ ym.[year_month]
+,a.[id_mcaid]
+,b.[measure_id];'
+END
+
 PRINT @SQL;
 END
 
@@ -751,3 +854,20 @@ EXEC sp_executeSQL @statement=@SQL,
 				   @start_month_int=@start_month_int, @end_month_int=@end_month_int, @measure_name=@measure_name;
 
 GO
+
+/*
+EXEC [stage].[sp_perf_staging]
+ @start_month_int = 201501
+,@end_month_int = 201906
+--,@measure_name = 'All-Cause ED Visits';
+--,@measure_name = 'Acute Hospital Utilization';
+--,@measure_name = 'Follow-up ED visit for Alcohol/Drug Abuse';
+--,@measure_name = 'Follow-up ED visit for Mental Illness';
+--,@measure_name = 'Follow-up Hospitalization for Mental Illness';
+--,@measure_name = 'Mental Health Treatment Penetration';
+--,@measure_name = 'SUD Treatment Penetration';
+--,@measure_name = 'SUD Treatment Penetration (Opioid)';
+--,@measure_name = 'Plan All-Cause Readmissions (30 days)';
+--,@measure_name = 'Child and Adolescent Access to Primary Care'
+,@measure_name = 'MH Treatment Penetration by Diagnosis';
+*/

@@ -1,0 +1,6 @@
+schema: ref
+table: apcd_provider_npi
+vars:
+    provider_id_apcd: bigint
+    npi: bigint
+    provider_master_flag: tinyint
