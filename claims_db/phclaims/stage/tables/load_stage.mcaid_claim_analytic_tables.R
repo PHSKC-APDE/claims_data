@@ -32,3 +32,9 @@ source("C:/Users/psylling/github/claims_data/claims_db/phclaims/stage/tables/loa
 #
 print("Creating stage.mcaid_claim_header")
 source("C:/Users/psylling/github/claims_data/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.R")
+
+#
+# Building the stage.mcaid_claim_value_set table depends on the analytic tables created above
+#
+print("Loading stage.mcaid_claim_value_set")
+source("C:/Users/psylling/github/claims_data/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_value_set.R")

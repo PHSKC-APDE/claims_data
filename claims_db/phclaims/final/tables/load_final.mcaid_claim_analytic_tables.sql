@@ -3,11 +3,24 @@ USE [PHClaims];
 GO
 
 /*
-[mcaid_claim_icdcm_header]
-
-SELECT COUNT(*) FROM [archive].[mcaid_claim_icdcm_header];
-SELECT COUNT(*) FROM [final].[mcaid_claim_icdcm_header];
-SELECT COUNT(*) FROM [stage].[mcaid_claim_icdcm_header];
+SELECT 
+ sc.[name]
+,ob.[name]
+,CAST(ob.[create_date] AS DATE) AS [create_date]
+,pt.[rows]
+FROM sys.partitions AS pt
+INNER JOIN sys.objects AS ob
+ON pt.[object_id] = ob.[object_id]
+INNER JOIN sys.schemas AS sc
+ON ob.[schema_id] = sc.[schema_id]
+WHERE ob.[name] IN
+('mcaid_claim_icdcm_header'
+,'mcaid_claim_line'
+,'mcaid_claim_pharm'
+,'mcaid_claim_procedure'
+,'mcaid_claim_header')
+AND pt.[index_id] = 1
+ORDER BY ob.[name], sc.[name];
 */
 
 EXEC [metadata].[sp_switch_table_schema]
@@ -22,14 +35,6 @@ EXEC [metadata].[sp_switch_table_schema]
 ,@to_schema='final'
 ,@to_table='mcaid_claim_icdcm_header';
 
-/*
-[mcaid_claim_line]
-
-SELECT COUNT(*) FROM [archive].[mcaid_claim_line];
-SELECT COUNT(*) FROM [final].[mcaid_claim_line];
-SELECT COUNT(*) FROM [stage].[mcaid_claim_line];
-*/
-
 EXEC [metadata].[sp_switch_table_schema]
  @from_schema='final'
 ,@from_table='mcaid_claim_line'
@@ -41,14 +46,6 @@ EXEC [metadata].[sp_switch_table_schema]
 ,@from_table='mcaid_claim_line'
 ,@to_schema='final'
 ,@to_table='mcaid_claim_line';
-
-/*
-[mcaid_claim_pharm]
-
-SELECT COUNT(*) FROM [archive].[mcaid_claim_pharm];
-SELECT COUNT(*) FROM [final].[mcaid_claim_pharm];
-SELECT COUNT(*) FROM [stage].[mcaid_claim_pharm];
-*/
 
 EXEC [metadata].[sp_switch_table_schema]
  @from_schema='final'
@@ -62,14 +59,6 @@ EXEC [metadata].[sp_switch_table_schema]
 ,@to_schema='final'
 ,@to_table='mcaid_claim_pharm';
 
-/*
-[mcaid_claim_pharm]
-
-SELECT COUNT(*) FROM [archive].[mcaid_claim_procedure];
-SELECT COUNT(*) FROM [final].[mcaid_claim_procedure];
-SELECT COUNT(*) FROM [stage].[mcaid_claim_procedure];
-*/
-
 EXEC [metadata].[sp_switch_table_schema]
  @from_schema='final'
 ,@from_table='mcaid_claim_procedure'
@@ -81,6 +70,18 @@ EXEC [metadata].[sp_switch_table_schema]
 ,@from_table='mcaid_claim_procedure'
 ,@to_schema='final'
 ,@to_table='mcaid_claim_procedure';
+
+EXEC [metadata].[sp_switch_table_schema]
+ @from_schema='final'
+,@from_table='mcaid_claim_header'
+,@to_schema='archive'
+,@to_table='mcaid_claim_header';
+
+EXEC [metadata].[sp_switch_table_schema]
+ @from_schema='stage'
+,@from_table='mcaid_claim_header'
+,@to_schema='final'
+,@to_table='mcaid_claim_header';
 
 /*
 SELECT 
@@ -98,5 +99,6 @@ ON i.data_space_id=ds.data_space_id
 INNER JOIN sys.partitions p 
 ON i.object_id=p.object_id 
 AND i.index_id=p.index_id
-ORDER BY t.name, i.index_id;
+WHERE t.name LIKE 'mcaid%'
+ORDER BY OBJECT_SCHEMA_NAME(t.object_id), t.name, i.index_id;
 */
