@@ -19,7 +19,7 @@ load_stage.apcd_claim_line_f <- function() {
     insert into PHClaims.stage.apcd_claim_line with (tablock)
     select distinct
     internal_member_id as id_apcd,
-    medical_claim_header_id as claim_header_id,
+    a.medical_claim_header_id as claim_header_id,
     medical_claim_service_line_id as claim_line_id,
     line_counter,
     first_service_dt as first_service_date,
@@ -28,9 +28,11 @@ load_stage.apcd_claim_line_f <- function() {
     revenue_code,
     place_of_service_code,
     getdate() as last_run
-    from PHClaims.stage.apcd_medical_claim
+    from PHClaims.stage.apcd_medical_claim as a
     --exclude denined/orphaned claims
-    where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';",
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where b.denied_header_min = 0 and b.orphaned_header_min = 0;",
     .con = db_claims))
 }
 
@@ -53,15 +55,21 @@ qa_stage.apcd_claim_line_f <- function() {
   res3 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_medical_claim' as 'table', 'sum of member ID' as qa_type,
     sum(cast(internal_member_id as decimal(38,0))) as qa
-    from stage.apcd_medical_claim
-    where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';",
+    from PHClaims.stage.apcd_medical_claim as a
+    --exclude denined/orphaned claims
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where b.denied_header_min = 0 and b.orphaned_header_min = 0;",
     .con = db_claims))
   
   res4 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_medical_claim' as 'table', 'sum of claim line ID' as qa_type,
     sum(cast(medical_claim_service_line_id as decimal(38,0))) as qa
-    from stage.apcd_medical_claim
-    where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';",
+    from PHClaims.stage.apcd_medical_claim as a
+    --exclude denined/orphaned claims
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where b.denied_header_min = 0 and b.orphaned_header_min = 0;",
     .con = db_claims))
   
   #make sure everyone is in elig_demo

@@ -51,11 +51,13 @@ load_stage.apcd_claim_header_f <- function() {
     max(discharge_dt) as discharge_date
     
     into #temp1
-    from PHClaims.stage.apcd_medical_claim
-    --exclusions
-    where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N'
+    from PHClaims.stage.apcd_medical_claim as a
+    --exclude denined/orphaned claims
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where b.denied_header_min = 0 and b.orphaned_header_min = 0
     --grouping statement for consolidation to person-header level
-    group by internal_member_id, medical_claim_header_id;
+    group by a.internal_member_id, a.medical_claim_header_id;
     
     
     ------------------
@@ -67,16 +69,18 @@ load_stage.apcd_claim_header_f <- function() {
     select x.medical_claim_header_id, x.ed_procedure_code_temp
     into #ed_procedure_code
     from (
-    select a.medical_claim_header_id,
-    	max(case when b.procedure_code like '9928[12345]' or b.procedure_code = '99291' then 1 else 0 end) as ed_procedure_code_temp
-    from PHClaims.stage.apcd_medical_claim as a
-    --procedure code table
-    left join PHClaims.final.apcd_claim_procedure as b
-    on a.medical_claim_header_id = b.claim_header_id
-    --exclusions
-    where a.denied_claim_flag = 'N' and a.orphaned_adjustment_flag = 'N'
-    --cluster to claim header
-    group by a.medical_claim_header_id
+      select a.medical_claim_header_id,
+      	max(case when b.procedure_code like '9928[12345]' or b.procedure_code = '99291' then 1 else 0 end) as ed_procedure_code_temp
+      from PHClaims.stage.apcd_medical_claim as a
+      --procedure code table
+      left join PHClaims.final.apcd_claim_procedure as b
+      on a.medical_claim_header_id = b.claim_header_id
+      --exclude denined/orphaned claims
+      left join PHClaims.ref.apcd_denied_orphaned_header as c
+      on a.medical_claim_header_id = c.claim_header_id
+      where b.denied_header_min = 0 and b.orphaned_header_min = 0
+      --cluster to claim header
+      group by a.medical_claim_header_id
     ) as x
     where x.ed_procedure_code_temp = 1;
     
@@ -135,8 +139,11 @@ load_stage.apcd_claim_header_f <- function() {
     ) as d
     on a.medical_claim_header_id = d.claim_header_id
     
-    --exclusions
-    where a.denied_claim_flag = 'N' and a.orphaned_adjustment_flag = 'N'
+    --exclude denined/orphaned claims
+    left join PHClaims.ref.apcd_denied_orphaned_header as e
+    on a.medical_claim_header_id = e.claim_header_id
+    where e.denied_header_min = 0 and e.orphaned_header_min = 0
+    
     --cluster to claim header
     group by a.medical_claim_header_id
     ) as x
@@ -150,8 +157,12 @@ load_stage.apcd_claim_header_f <- function() {
     if object_id('tempdb..#charge') is not null drop table #charge;
     select medical_claim_header_id, sum(charge_amt) as charge_amt
     into #charge
-    from PHClaims.stage.apcd_medical_claim
-    group by medical_claim_header_id;
+    from PHClaims.stage.apcd_medical_claim as a
+    --exclude denined/orphaned claims
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where b.denied_header_min = 0 and b.orphaned_header_min = 0
+    group by a.medical_claim_header_id;
     
     
     ------------------
@@ -448,8 +459,11 @@ qa_stage.apcd_claim_header_f <- function() {
   res3 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_medical_claim' as 'table', 'qa1 = distinct IDs, qa2 = distinct headers' as qa_type,
     count(distinct internal_member_id) as qa1, count(distinct medical_claim_header_id) as qa2
-    from PHClaims.stage.apcd_medical_claim
-    where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';",
+    from PHClaims.stage.apcd_medical_claim as a
+    --exclude denined/orphaned claims
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where b.denied_header_min = 0 and b.orphaned_header_min = 0;",
     .con = db_claims))
   
   #all members should be in elig_demo table

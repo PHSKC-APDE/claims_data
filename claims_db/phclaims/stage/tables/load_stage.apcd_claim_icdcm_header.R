@@ -15,7 +15,6 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
     ------------------
     --STEP 1: Create temp header-level table
     --Exclude all denied and orphaned claim lines
-    --Run time: XX min
     -------------------
     if object_id('tempdb..#temp1') is not null drop table #temp1;
     select distinct 
@@ -34,9 +33,11 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
         diagnosis_code_other_22 as dx23, diagnosis_code_other_23 as dx24, diagnosis_code_other_24 as dx25,
     	eci_diagnosis as dxecode
     into #temp1
-    from PHClaims.stage.apcd_medical_claim
-    --exclude denied and orphaned claim lines
-    where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';
+    from PHClaims.stage.apcd_medical_claim as a
+    --exclude denined/orphaned claims
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where b.denied_header_min = 0 and b.orphaned_header_min = 0;
     
     
     ------------------
@@ -70,7 +71,6 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
     
     ------------------
     --STEP 3: Assemble final table and insert into table shell 
-    --Run time: XX min
     -------------------
     insert into PHClaims.stage.apcd_claim_icdcm_header with (tablock)
     select distinct id_apcd, medical_claim_header_id as 'claim_header_id', first_service_date, last_service_date,
@@ -135,8 +135,12 @@ qa_stage.apcd_claim_icdcm_header_f <- function() {
   res7 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_medical_claim' as 'table', '# of claims with 25th diagnosis' as qa_type,
     count(distinct medical_claim_header_id) as qa
-    from stage.apcd_medical_claim
-    where diagnosis_code_other_24 is not null and denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';",
+    from PHClaims.stage.apcd_medical_claim as a
+    --exclude denined/orphaned claims
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where a.diagnosis_code_other_24 is not null
+      and b.denied_header_min = 0 and b.orphaned_header_min = 0;",
     .con = db_claims))
   
   #count distinct ICD-CM codes that do not join to dx lookup table
