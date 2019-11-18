@@ -26,6 +26,19 @@ load_ref.apcd_denied_orphaned_header_f <- function() {
 #### Table-level QA script ####
 qa_ref.apcd_denied_orphaned_header_f <- function() {
   
-    res_final <- mget(ls(pattern="^res")) %>% bind_rows()
+  #count of headers
+  res1 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'ref.apcd_denied_orphaned_header' as 'table', 'count of header claims' as qa_type,
+      count(*) as qa
+      from ref.apcd_denied_orphaned_header;",
+    .con = db_claims))
+  
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_medical_claim' as 'table', 'count of header claims' as qa_type,
+      count(distinct medical_claim_header_id) as qa
+      from stage.apcd_medical_claim;",
+    .con = db_claims))
+  
+  res_final <- mget(ls(pattern="^res")) %>% bind_rows()
   
 }
