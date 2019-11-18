@@ -3,6 +3,6 @@ table: apcd_denied_orphaned_header
 vars:
     claim_header_id: bigint
     denied_header_min: tinyint
-    denied_header_max: tinyinty
+    denied_header_max: tinyint
     orphaned_header_min: tinyint
     orphaned_header_max: tinyint
