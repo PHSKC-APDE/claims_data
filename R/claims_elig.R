@@ -22,7 +22,11 @@
 #' @param covgap_max Maximum gap in continuous coverage allowed during requested date range (days) (A)
 #' @param mcaid_min Minimum Medicaid coverage allowed during requested date
 #' range (percent scale) (MD/ME)
+#' @param mcaid_max Maximum Medicaid coverage allowed during requested date
+#' range (percent scale) (MD/ME)
 #' @param mcare_min Minimum Medicare coverage allowed during requested date
+#' range (percent scale) (MD/ME)
+#' @param mcare_max Maximum Medicare coverage allowed during requested date
 #' range (percent scale) (MD/ME)
 #' @param dual_min Minimum Medicare-Medicaid dual eligibility coverage allowed 
 #' during requested date range (percent scale) (A)
@@ -140,7 +144,9 @@ claims_elig <- function(conn,
                        cov_min = 0,
                        covgap_max = NULL,
                        mcaid_min = NULL,
+                       mcaid_max = NULL,
                        mcare_min = NULL,
+                       mcare_max = NULL,
                        dual_min = NULL,
                        dual_max = NULL,
                        med_covgrp = NULL,
@@ -800,9 +806,17 @@ claims_elig <- function(conn,
   if (source == "mcaid_mcare") {
     mcaid_cov_sql <- timevar_gen_sql(var = "mcaid", pct = T)
     
-    if (!is.null(mcaid_min)) {
-      mcaid_where_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct >= {mcaid_min} ",
-                                        .con = conn)
+    if (!is.null(mcaid_min) | !is.null(mcaid_max)) {
+      ifelse(!is.null(mcaid_min),
+             mcaid_min_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct >= {mcaid_min} ", 
+                                            .con = conn),
+             mcaid_min_sql <- DBI::SQL(''))
+      ifelse(!is.null(mcaid_max),
+             mcaid_max_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct <= {mcaid_max} ", 
+                                            .con = conn),
+             mcaid_max_sql <- DBI::SQL(''))
+      
+      mcaid_where_sql <- glue::glue_sql(" {mcaid_min_sql} {mcaid_max_sql}", .con = conn)
     } else {
       mcaid_where_sql <- DBI::SQL('')
     }
@@ -815,9 +829,17 @@ claims_elig <- function(conn,
   if (source == "mcaid_mcare") {
     mcare_cov_sql <- timevar_gen_sql(var = "mcare", pct = T)
     
-    if (!is.null(mcaid_min)) {
-      mcare_where_sql <- glue::glue_sql(" AND mcare_final.mcare_pct >= {mcare_min} ",
-                                        .con = conn)
+    if (!is.null(mcare_min) | !is.null(mcare_max)) {
+      ifelse(!is.null(mcare_min),
+             mcare_min_sql <- glue::glue_sql(" AND mcare_final.mcare_pct >= {mcare_min} ", 
+                                             .con = conn),
+             mcare_min_sql <- DBI::SQL(''))
+      ifelse(!is.null(mcare_max),
+             mcare_max_sql <- glue::glue_sql(" AND mcare_final.mcare_pct <= {mcare_max} ", 
+                                             .con = conn),
+             mcare_max_sql <- DBI::SQL(''))
+      
+      mcare_where_sql <- glue::glue_sql(" {mcare_min_sql} {mcare_max_sql}", .con = conn)
     } else {
       mcare_where_sql <- DBI::SQL('')
     }
@@ -1182,7 +1204,8 @@ claims_elig <- function(conn,
       {geo_zip_sql} {geo_hra_code_sql} {geo_school_code_sql} 
       {geo_county_code_sql} {geo_ach_code_sql} {geo_kc_sql}
       WHERE 1 = 1 
-      {dual_where_sql} {bsp_group_name_where_sql} {full_benefit_where_sql}
+      {mcaid_where_sql} {mcare_where_sql} {dual_where_sql} 
+      {bsp_group_name_where_sql} {full_benefit_where_sql}
       {cov_type_where_sql} {mco_id_where_sql} {part_a_where_sql} 
       {part_b_where_sql} {part_c_where_sql} {buy_in_where_sql}
       {geo_zip_where_sql} {geo_hra_code_where_sql} {geo_school_code_where_sql}
