@@ -78,7 +78,7 @@ load_stage.apcd_claim_header_f <- function() {
       --exclude denined/orphaned claims
       left join PHClaims.ref.apcd_denied_orphaned_header as c
       on a.medical_claim_header_id = c.claim_header_id
-      where b.denied_header_min = 0 and b.orphaned_header_min = 0
+      where c.denied_header_min = 0 and c.orphaned_header_min = 0
       --cluster to claim header
       group by a.medical_claim_header_id
     ) as x
