@@ -155,14 +155,14 @@ qa_stage.apcd_claim_icdcm_header_f <- function() {
   
   #length of ICD-10-CM between 3 and 7
   res9 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_claim_icdcm_header' as 'table', 'minimum length of ICD-9-CM, expect >=3' as qa_type,
+    "select 'stage.apcd_claim_icdcm_header' as 'table', 'minimum length of ICD-10-CM, expect >=3' as qa_type,
     min(len(icdcm_norm)) as qa
     from stage.apcd_claim_icdcm_header
     where icdcm_version = 10;",
     .con = db_claims))
   
   res10 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_claim_icdcm_header' as 'table', 'maximum length of ICD-9-CM, expect <=7' as qa_type,
+    "select 'stage.apcd_claim_icdcm_header' as 'table', 'maximum length of ICD-10-CM, expect <=7' as qa_type,
     max(len(icdcm_norm)) as qa
     from stage.apcd_claim_icdcm_header
     where icdcm_version = 10;",
