@@ -31,7 +31,7 @@ load_stage.apcd_claim_provider_f <- function() {
       --exclude denined/orphaned claims
       left join PHClaims.ref.apcd_denied_orphaned_header as y
       on x.medical_claim_header_id = y.claim_header_id
-      where y.denied_header_min = 0 and y.orphaned_header_min = 0;
+      where y.denied_header_min = 0 and y.orphaned_header_min = 0
     ) as a
     unpivot(providers for provider_type in(billing, rendering, attending, referring)) as providers
     where providers is not null;",
