@@ -14,7 +14,7 @@ load_stage.apcd_claim_header_f <- function() {
     "
     ------------------
     --STEP 1: Do all line-level transformations that don't require ICD-CM, procedure, or provider information
-    --Exclude all denied and orphaned claim lines
+    --Exclude all denied and orphaned claim headers
     --Acute inpatient stay defined through Susan Hernandez's work and dialogue with OnPoint
     --Max of discharge dt grouped by claim header will take latest discharge date when >1 discharge dt
     --Run time: ~30-40 min
@@ -517,7 +517,7 @@ qa_stage.apcd_claim_header_f <- function() {
   #verify that ed_pophealth_id does not skip any values
   res9 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_claim_header' as 'table', 'qa1 = distinct ed_pophealth_id, qa2 = max - min + 1' as qa_type,
-    count(distinct ed_pophealth_id) as qa1, max(ed_pophealth_id) - min(ed_pophealth_id) + 1 as q1
+    count(distinct ed_pophealth_id) as qa1, max(ed_pophealth_id) - min(ed_pophealth_id) + 1 as qa2
     from PHClaims.stage.apcd_claim_header;",
     .con = db_claims))
   
