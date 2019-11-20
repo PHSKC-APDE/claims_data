@@ -136,7 +136,7 @@ load_load_raw.mcaid_elig_partial_f <- function(etl_date_min = NULL,
                                          "SELECT COUNT (*) FROM
                                          (SELECT DISTINCT CLNDR_YEAR_MNTH, 
                                          MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE,
-                                         SECONDARY_RAC_CODE, END_REASON 
+                                         RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, END_REASON 
                                          FROM load_raw.mcaid_elig) a"))
   
   total_rows <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM load_raw.mcaid_elig"))
@@ -148,19 +148,19 @@ load_load_raw.mcaid_elig_partial_f <- function(etl_date_min = NULL,
                                     (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                     VALUES ({current_batch_id}, 
                                     'load_raw.mcaid_elig',
-                                    'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, SECONDARY RAC, END_REASON)', 
+                                    'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON)', 
                                     'FAIL',
                                     {Sys.time()},
                                     'Number distinct rows ({distinct_rows}) != total rows ({total_rows})')",
                                     .con = db_claims))
-    stop(glue("Number of distinct rows ({distinct_rows}) does not match total expected ({total_rows})"))
+    warning(glue("Number of distinct rows ({distinct_rows}) does not match total expected ({total_rows})"))
   } else {
     odbc::dbGetQuery(conn = db_claims,
                      glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
                                   'load_raw.mcaid_elig',
-                                  'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, SECONDARY RAC, END_REASON)', 
+                                  'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON)', 
                                   'PASS',
                                   {Sys.time()},
                                   'Number of distinct rows equals total # rows ({total_rows})')",
@@ -312,7 +312,7 @@ load_load_raw.mcaid_elig_partial_f <- function(etl_date_min = NULL,
                      .con = db_claims))
   }
   
-  print("All QA items passed, see results in metadata.qa_mcaid")
+  message("All QA items complete, see results in metadata.qa_mcaid")
   
   #### ADD BATCH ID COLUMN ####
   print("Adding batch ID to SQL table")
