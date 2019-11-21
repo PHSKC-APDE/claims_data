@@ -765,7 +765,7 @@ load_table_from_sql_f <- function(
   
   #### LOAD DATA TO TABLE ####
   # Add message to user
-  message(glue("Loading to [{to_schema}].[{to_table}] table", test_msg))
+  message(glue("Loading to [{to_schema}].[{to_table}] from [from_schema}].[from_table] table ", test_msg))
   
   # Run INSERT statement
   if (truncate_date == F) {
