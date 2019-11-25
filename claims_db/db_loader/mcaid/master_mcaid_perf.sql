@@ -1,5 +1,5 @@
 
-USE PHClaims;
+USE [PHClaims];
 GO
 
 /*
