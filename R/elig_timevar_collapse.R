@@ -9,18 +9,26 @@
 # 1) Add the contiguous column back in
 # 2) Have a Shiny interface to just check the boxes of desired columns
 # 3) Format this function to fit into a package
+# 4) Update column names for mcaid_mcare and add mcare-only columns
 
 # Most of the options in the function just specify if that column should be 
 # included in the collapsed data frame
 # Exceptions:
-# - geocode_vars = will bring in desired geocded data elements 
-#    (geo_zip_centroid, geo_street_centroid, geo_countyfp10, geo_tractce10,
-#     geo_hra_id, geo_school_geoid10)
+# - ids = restrict to specified IDs. Use format c("<id1>", "<id2>")
+# - geocode_vars = will bring in all geocded data elements 
+#    (geo_zip_centroid, geo_street_centroid, geo_county_code, geo_tractce10,
+#     geo_hra_code, geo_school_code)
 # - cov_time_day = recalculate coverage time in the new period
 # - last_run = bring in the last run date
 
 ### August 2019 update - Eli
 # 1) Adapted for APCD data
+
+### December 2019 updates - Alastair
+# 1) Updated mcaid columns
+# 2) Made geocode columns all or nothing
+# 3) Added option to restrict to specific IDs
+
 
 elig_timevar_collapse <- function(conn,
                               source = c("mcaid", "mcare", "apcd"),
@@ -28,6 +36,7 @@ elig_timevar_collapse <- function(conn,
                               dual = F,
                               cov_time_day = T,
                               last_run = F,
+                              ids = NULL, 
                               
                               #mcaid columns
                               tpl = F,
@@ -52,12 +61,7 @@ elig_timevar_collapse <- function(conn,
                               geo_city_clean = F,
                               geo_state_clean = F,
                               geo_zip_clean = F,
-                              geocode_vars = list("geo_zip_centroid", 
-                                                  "geo_street_centroid", 
-                                                  "geo_countyfp10", 
-                                                  "geo_tractce10",
-                                                  "geo_hra_id", 
-                                                  "geo_school_geoid10"),
+                              geocode_vars = F,
                               
                               #apcd geo columns
                               geo_zip_code = F,
@@ -67,8 +71,9 @@ elig_timevar_collapse <- function(conn,
   #### ERROR CHECKS ####
   cols <- sum(dual, tpl, bsp_group_name, full_benefit, cov_type, 
               mco_id, geo_add1_clean, geo_add2_clean, geo_city_clean,
-              geo_state_clean, geo_zip_clean, med_covgrp, pharm_covgrp, med_medicaid,
-              med_medicare, med_commercial, pharm_medicaid, pharm_medicare, pharm_commercial,
+              geo_state_clean, geo_zip_clean, geocode_vars, 
+              med_covgrp, pharm_covgrp, med_medicaid, med_medicare, 
+              med_commercial, pharm_medicaid, pharm_medicare, pharm_commercial,
               geo_zip_code, geo_county, geo_ach)
   
   # Make sure something is being selected
@@ -76,7 +81,7 @@ elig_timevar_collapse <- function(conn,
     stop("Choose at least one column to collapse over")
   }
   
-  if (source == "mcaid" & cols == 11) {
+  if (source == "mcaid" & cols == 12) {
     stop("You have selected every Medicaid time-varying column. Just use the mcaid.elig_timevar table")
   }
   
@@ -84,19 +89,12 @@ elig_timevar_collapse <- function(conn,
     stop("You have selected every APCD time-varying column. Just use the apcd.elig_timevar table")
   }
   
-  # Make sure geocode_vars selected are legit
-  if (min(geocode_vars %in% list("geo_zip_centroid", "geo_street_centroid", 
-                             "geo_countyfp10", "geo_tractce10", "geo_hra_id", 
-                             "geo_school_geoid10")) == 0) {
-    stop("You have chosen a geocode_var that does not exist. Check spelling.")
-  }
-  
-  
+
   #### SET UP VARIABLES ####
   source <- match.arg(source)
-  tbl <- glue("{source}_elig_timevar")
+  tbl <- glue::glue("{source}_elig_timevar")
   
-  id_name <- glue("id_{source}")
+  id_name <- glue::glue("id_{source}")
   
   
   if (source == "mcaid") {
@@ -125,12 +123,18 @@ elig_timevar_collapse <- function(conn,
     }
   })
   
-  message(glue('Collapsing over the following vars: {glue_collapse(vars, sep = ", ")}'))
+  message(glue::glue('Collapsing over the following vars: {glue_collapse(vars, sep = ", ")}'))
   
   # Add in other variables as desired
-  if (source == "mcaid" & length(geocode_vars) > 0) {
-    vars_geo <- unlist(geocode_vars)
-    message(glue('Adding in geocode variables: {glue_collapse(vars_geo, sep = ", ")}'))
+  if (source == "mcaid" & geocode_vars == T) {
+    vars_geo <- c("geo_zip_centroid", 
+                  "geo_street_centroid", 
+                  "geo_county_code", 
+                  "geo_tractce10",
+                  "geo_hra_code", 
+                  "geo_school_code")
+    
+    message(glue::glue('Adding in geocode variables: {glue_collapse(vars_geo, sep = ", ")}'))
   } else {
     vars_geo <- vector()
   }
@@ -145,14 +149,32 @@ elig_timevar_collapse <- function(conn,
   
   # Set up cov_time code if needed
   if (cov_time_day == T) {
-    cov_time_sql <- glue_sql(", DATEDIFF(dd, e.min_from, e.max_to) + 1 AS cov_time_day ",
+    cov_time_sql <- glue::glue_sql(", DATEDIFF(dd, e.min_from, e.max_to) + 1 AS cov_time_day ",
                              .con = conn)
   } else {
-    cov_time_sql <- ""
+    cov_time_sql <- DBI::SQL('')
+  }
+  
+  # Restrict to specific IDs if desired
+  if (!missing(ids)) {
+    id_sql <- glue::glue_sql(" WHERE {`id_name`} IN ({ids*})", .con = conn)
+  } else {
+    id_sql <- DBI::SQL('')
+  }
+  
+
+  #### SET UP AND RUN SQL CODE ####
+  # Set up components of SQL that need a prefix
+  if (length(vars_combined) > 1) {
+    vars_to_quote_a <- lapply(vars_combined, function(nme) DBI::Id(table = "a", column = nme))
+    vars_to_quote_e <- lapply(vars_combined, function(nme) DBI::Id(table = "e", column = nme))
+  } else {
+    vars_to_quote_a <- glue::glue_sql("a.{`vars_combined`}", .con = conn)
+    vars_to_quote_e <- glue::glue_sql("e.{`vars_combined`}", .con = conn)
   }
   
   message("Running collapse code")
-  sql_call <- glue_sql(
+  sql_call <- glue::glue_sql(
     "SELECT DISTINCT e.{`id_name`}, e.min_from AS from_date, e.max_to AS to_date,
     {`vars_to_quote_e`*} {cov_time_sql} 
       FROM
@@ -180,14 +202,12 @@ elig_timevar_collapse <- function(conn,
                 ORDER by from_date), a.from_date) as group_num 
               FROM 
               (SELECT {`id_name`}, from_date, to_date, {`vars_combined`*} 
-              FROM final.{`tbl`}) a) b) c) d) e
+              FROM final.{`tbl`} {id_sql}) a) b) c) d) e
       ORDER BY {`id_name`}, from_date",
-    vars_to_quote_a = lapply(vars_combined, function(nme) DBI::Id(table = "a", column = nme)),
-    vars_to_quote_e = lapply(vars_combined, function(nme) DBI::Id(table = "e", column = nme)),
     .con = conn)
 
   
-  result <- dbGetQuery(conn, sql_call)
+  result <- DBI::dbGetQuery(conn, sql_call)
   
   return(result)
 }
@@ -197,13 +217,13 @@ elig_timevar_collapse <- function(conn,
 
 # elig_timevar_collapse(conn = db_claims, source = "mcaid",
 #                       dual = T, full_benefit = T,
-#                       geocode_vars = list("geo_hra_id"),
+#                       geocode_vars = list("geo_hra_code"),
 #                       last_run = F, cov_time_day = T)
 # 
 # 
 # test_sql2 <- elig_timevar_collapse(conn = db_claims, source = "mcaid",
 #                                   dual = T, rac_code_4 = T,
-#                                   geocode_vars = list("geo_hra_id"),
+#                                   geocode_vars = list("geo_hra_code"),
 #                                   last_run = F)
 
 #### Eli's test ####
