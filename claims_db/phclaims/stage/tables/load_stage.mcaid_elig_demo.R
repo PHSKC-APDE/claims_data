@@ -608,7 +608,12 @@ message("Loading to SQL")
 
 # Bring in table load config
 table_config_create <- yaml::yaml.load(getURL(
-  "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig_demo.yaml"))
+  "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.yaml"))
+
+# Check that something was loaded
+if (table_config_create[[1]] == "Not Found") {
+  stop("Error loading the YAML file for stage.mcaid_elig_demo. Check the URL.")
+}
 
 # Write data
 dbWriteTable(db_claims, 
