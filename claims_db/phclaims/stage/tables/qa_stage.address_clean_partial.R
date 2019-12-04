@@ -72,5 +72,5 @@ if (min(names_stage == names_ref) == 0) {
 
 
 ### Clean up
-rm(rows_stage, rows_ref)
+# rm(rows_stage, rows_ref) # Keep this to make sure the correct # rows are loaded to ref
 rm(names_stage, names_ref)

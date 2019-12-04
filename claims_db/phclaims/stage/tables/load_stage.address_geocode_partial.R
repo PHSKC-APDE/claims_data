@@ -356,6 +356,14 @@ dbWriteTable(db_claims,
 row_load_ref_geo <- nrow(adds_coded_load)
 stage_rows_after <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.address_geocode"))
 
-if (stage_rows_before + row_load_ref_geo == stage_rows_after == F) {
+if ((stage_rows_before + row_load_ref_geo == stage_rows_after) == F) {
   warning("Number of rows added to stage.address_geocode now expected value")
 }
+
+
+#### CLEAN UP ####
+rm(block, puma, zcta, hra, region, school, kcc_dist, wa_dist, scc_dist)
+rm(stage_rows_before, stage_rows_after, row_load_ref_geo)
+rm(geocode_files, geocode_path, s_shapes, g_shapes)
+rm(geocode_here_f, i, here_url, startindex, app_id, app_code, result)
+rm(list = ls(pattern = "^adds_coded"), adds_here, adds_to_code)
