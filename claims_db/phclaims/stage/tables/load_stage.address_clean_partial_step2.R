@@ -45,7 +45,7 @@ new_add_in <- data.table::fread(
 new_add_in <- new_add_in %>%
   mutate_at(vars(add1, add2, po_box, city, state, zip, 
                  old_add1, old_add2, old_city, old_state, old_zip),
-            funs(ifelse(. == "" | . == "NA" | is.na(.), NA_character_, .))) %>%
+            list( ~ ifelse(. == "" | . == "NA" | is.na(.), NA_character_, .))) %>%
   select(-`#id`, -mailabilty_score) %>%
   distinct()
 
