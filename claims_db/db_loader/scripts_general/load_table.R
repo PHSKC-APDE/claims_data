@@ -277,21 +277,11 @@ load_table_from_file_f <- function(
     loading_process_f(config_section = "overall")
     
     if (add_index == T) {
-      # Add index to the table
-      if (!is.null(table_config$index_type) & table_config$index_type == 'ccs') {
-        # Clustered columnstore index
-        dbGetQuery(conn,
-                   glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}",
-                                  .con = conn))
-      } else {
-        # Clustered index
-        dbGetQuery(conn,
-                   glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}({`index_vars`*})",
-                                  index_vars = table_config$index,
-                                  .con = conn))
+      if (!exists("add_index_f")) {
+        devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
       }
+      message("Adding index")
+      add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
     }
   }
   
@@ -437,21 +427,11 @@ load_table_from_file_f <- function(
       dbGetQuery(conn, sql_combine)
       
       if (add_index == T) {
-        # Add index to the table
-        if (!is.null(table_config$index_type) & table_config$index_type == 'ccs') {
-          # Clustered columnstore index
-          dbGetQuery(conn,
-                     glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}",
-                                    .con = conn))
-        } else {
-          # Clustered index
-          dbGetQuery(conn,
-                     glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}({`index_vars`*})",
-                                    index_vars = table_config$index,
-                                    .con = conn))
+        if (!exists("add_index_f")) {
+          devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
         }
+        message("Adding index")
+        add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
       }
     }
   }
@@ -563,7 +543,7 @@ load_table_from_sql_f <- function(
   }
   
   if (truncate == T & truncate_date == T) {
-    print("Warning: truncate and truncate_date both set to TRUE. \n
+    message("Warning: truncate and truncate_date both set to TRUE. \n
           Entire table will be truncated.")
   }
   
@@ -820,22 +800,10 @@ load_table_from_sql_f <- function(
   
   # Add index to the table (if desired)
   if (add_index == T) {
-    if (!is.null(table_config$index_type) & table_config$index_type == 'ccs') {
-      # Clustered columnstore index
-      dbGetQuery(conn,
-                 glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}",
-                                .con = conn))
-    } else {
-      # Clustered index
-      dbGetQuery(conn,
-                 glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}({`index_vars`*})",
-                                index_vars = table_config$index,
-                                .con = conn))
+    if (!exists("add_index_f")) {
+      devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
     }
-    
     message("Adding index")
-    dbGetQuery(conn, index_sql)
+    add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
   }
 }

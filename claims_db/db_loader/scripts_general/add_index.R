@@ -15,7 +15,7 @@
 # Config must also include schema/to_schema and table/to_table fields.
 # drop_index = remove any existing clustered or clustered columnstore indices
 
-add_index_f <- function(conn, table_config, drop_index = T) {
+add_index_f <- function(conn, table_config, drop_index = T, test_mode = F) {
   
   ### Error check
   if (is.null(table_config$index_name)) {
@@ -41,22 +41,34 @@ add_index_f <- function(conn, table_config, drop_index = T) {
 
   
   ### Pull out schema and table names
-  if (!is.null(table_config$to_schema)) {
-    schema <- table_config$to_schema
-  } else if (!is.null(table_config$schema)) {
-    schema <- table_config$schema
+  if (test_mode == T) {
+    message("FUNCTION WILL BE RUN IN TEST MODE, INDEXING TABLE IN TMP SCHEMA")
+    schema <- "tmp"
+    
+    if (!is.null(table_config$to_schema) & !is.null(table_config$to_table)) {
+      table_name <- glue("{table_config$to_schema}_{table_config$to_table}")
+    } else if (!is.null(table_config$schema) & !is.null(table_config$table)) {
+      table_name <- glue("{table_config$schema}_{table_config$table}")
+    }
   } else {
-    stop("schema field not found in config")
+    if (!is.null(table_config$to_schema)) {
+      schema <- table_config$to_schema
+    } else if (!is.null(table_config$schema)) {
+      schema <- table_config$schema
+    } else {
+      stop("schema field not found in config")
+    }
+    
+    if (!is.null(table_config$to_table)) {
+      table_name <- table_config$to_table
+    } else if (!is.null(table_config$table)) {
+      table_name <- table_config$table
+    } else {
+      stop("table field not found in config")
+    }
   }
   
-  if (!is.null(table_config$to_table)) {
-    table_name <- table_config$to_table
-  } else if (!is.null(table_config$table)) {
-    table_name <- table_config$table
-  } else {
-    stop("table field not found in config")
-  }
-  
+
   
   # Remove existing index if desired (and an index exists)
   if (drop_index == T) {
