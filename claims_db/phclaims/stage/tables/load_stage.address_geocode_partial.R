@@ -340,6 +340,15 @@ adds_coded_load <- adds_coded_joined %>%
   mutate(last_run = Sys.time())
 
 
+#### RENAME FIELDS ####
+# Not currently doing this. Think through more.
+# If doing, need to finish renames here and change YAML file
+# adds_coded_load <- adds_coded_joined %>%
+#   rename(geo_statefp10 = geo_state_code, geo_countyfp10 = geo_county_code,
+#          geo_tractce10 = geo_tract_code, geo_blockce10 = geo_block_code,
+#          geo_block_geoid10 = geo_block_fullcode)
+
+
 #### LOAD TO SQL ####
 # Check how many rows are already in the stage table
 stage_rows_before <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.address_geocode"))
