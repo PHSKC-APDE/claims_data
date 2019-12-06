@@ -809,16 +809,17 @@ claims_elig <- function(conn,
     if (!is.null(mcaid_min) | !is.null(mcaid_max)) {
       ifelse(!is.null(mcaid_min),
              mcaid_min_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct >= {mcaid_min} ", 
-                                            .con = conn),
+                                             .con = conn),
              mcaid_min_sql <- DBI::SQL(''))
       ifelse(!is.null(mcaid_max),
              mcaid_max_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct <= {mcaid_max} ", 
-                                            .con = conn),
+                                             .con = conn),
              mcaid_max_sql <- DBI::SQL(''))
       
-      mcaid_where_sql <- glue::glue_sql(" {mcaid_min_sql} {mcaid_max_sql}", .con = conn)
+      mcaid_cov_where_sql <- glue::glue_sql(" {mcaid_min_sql} {mcaid_max_sql}", .con = conn)
+
     } else {
-      mcaid_where_sql <- DBI::SQL('')
+      mcaid_cov_where_sql <- DBI::SQL('')
     }
     
   } else {
@@ -839,11 +840,11 @@ claims_elig <- function(conn,
                                              .con = conn),
              mcare_max_sql <- DBI::SQL(''))
       
-      mcare_where_sql <- glue::glue_sql(" {mcare_min_sql} {mcare_max_sql}", .con = conn)
+      mcare_cov_where_sql <- glue::glue_sql(" {mcare_min_sql} {mcare_max_sql}", .con = conn)
     } else {
-      mcare_where_sql <- DBI::SQL('')
+      mcare_cov_where_sql <- DBI::SQL('')
     }
-  
+    
   } else {
     mcare_cov_sql <- DBI::SQL('')
     mcare_cov_where_sql <- DBI::SQL('')
@@ -1204,7 +1205,7 @@ claims_elig <- function(conn,
       {geo_zip_sql} {geo_hra_code_sql} {geo_school_code_sql} 
       {geo_county_code_sql} {geo_ach_code_sql} {geo_kc_sql}
       WHERE 1 = 1 
-      {mcaid_where_sql} {mcare_where_sql} {dual_where_sql} 
+      {mcaid_cov_where_sql} {mcare_cov_where_sql} {dual_where_sql} 
       {bsp_group_name_where_sql} {full_benefit_where_sql}
       {cov_type_where_sql} {mco_id_where_sql} {part_a_where_sql} 
       {part_b_where_sql} {part_c_where_sql} {buy_in_where_sql}
