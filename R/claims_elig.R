@@ -21,6 +21,14 @@
 #' defaults to 6 months prior to today's date (A)
 #' @param cov_min Minimum coverage required during requested date range (percent scale), defaults to 0 (A)
 #' @param covgap_max Maximum gap in continuous coverage allowed during requested date range (days) (A)
+#' @param mcaid_min Minimum Medicaid coverage allowed during requested date
+#' range (percent scale) (MD/ME)
+#' @param mcaid_max Maximum Medicaid coverage allowed during requested date
+#' range (percent scale) (MD/ME)
+#' @param mcare_min Minimum Medicare coverage allowed during requested date
+#' range (percent scale) (MD/ME)
+#' @param mcare_max Maximum Medicare coverage allowed during requested date
+#' range (percent scale) (MD/ME)
 #' @param dual_min Minimum Medicare-Medicaid dual eligibility coverage allowed 
 #' during requested date range (percent scale) (A)
 #' @param dual_max Maximum Medicare-Medicaid dual eligibility coverage allowed 
@@ -142,6 +150,10 @@ claims_elig <- function(conn,
                        to_date = Sys.Date() - months(6),
                        cov_min = 0,
                        covgap_max = NULL,
+                       mcaid_min = NULL,
+                       mcaid_max = NULL,
+                       mcare_min = NULL,
+                       mcare_max = NULL,
                        dual_min = NULL,
                        dual_max = NULL,
                        med_covgrp = NULL,
@@ -233,6 +245,19 @@ claims_elig <- function(conn,
   if(!is.null(covgap_max)){
     if (!is.numeric(covgap_max) | covgap_max < 0) {
       stop("Maximum continuous coverage gap must be a positive number")  
+    }
+  }
+  
+  # Mcaid and Mcare min checks
+  if (!is.null(mcaid_min)) {
+    if(!is.numeric(mcaid_min) | mcaid_min < 0 | mcaid_min > 100){
+      stop("Minimum time on Medicaid  must be numeric between 0 and 100")
+    }
+  }
+  
+  if (!is.null(mcare_min)) {
+    if(!is.numeric(mcare_min) | mcare_min < 0 | mcare_min > 100){
+      stop("Minimum time on Medicare  must be numeric between 0 and 100")
     }
   }
 
@@ -822,39 +847,62 @@ claims_elig <- function(conn,
   }
   
   
-  #### SET UP COVERAGE TYPE (MCAID/MCARE/PHA COMBINATIONS) ####
-  if(source %in% c("mcaid_mcare", "mcaid_mcare_pha")){
-    mcaid_cov_sql <- timevar_gen_sql(var = "mcaid", pct = F)
-    mcare_cov_sql <- timevar_gen_sql(var = "mcare", pct = F)
-  } else{
+  #### SET UP COVERAGE TYPE (MCAID/MCARE COMBINED) ####
+  if (source %in% c("mcaid_mcare", "mcaid_mcare_pha")) {
+    mcaid_cov_sql <- timevar_gen_sql(var = "mcaid", pct = T)
+    
+    if (!is.null(mcaid_min) | !is.null(mcaid_max)) {
+      ifelse(!is.null(mcaid_min),
+             mcaid_min_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct >= {mcaid_min} ", 
+                                            .con = conn),
+             mcaid_min_sql <- DBI::SQL(''))
+      ifelse(!is.null(mcaid_max),
+             mcaid_max_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct <= {mcaid_max} ", 
+                                            .con = conn),
+             mcaid_max_sql <- DBI::SQL(''))
+      
+      mcaid_where_sql <- glue::glue_sql(" {mcaid_min_sql} {mcaid_max_sql}", .con = conn)
+    } else {
+      mcaid_where_sql <- DBI::SQL('')
+    }
+    
+  } else {
     mcaid_cov_sql <- DBI::SQL('')
-    mcare_cov_sql <- DBI::SQL('')
+    mcaid_cov_where_sql <- DBI::SQL('')
   }
+  
+  if (source %in% c("mcaid_mcare", "mcaid_mcare_pha")) {
+    mcare_cov_sql <- timevar_gen_sql(var = "mcare", pct = T)
+    
+    if (!is.null(mcare_min) | !is.null(mcare_max)) {
+      ifelse(!is.null(mcare_min),
+             mcare_min_sql <- glue::glue_sql(" AND mcare_final.mcare_pct >= {mcare_min} ", 
+                                             .con = conn),
+             mcare_min_sql <- DBI::SQL(''))
+      ifelse(!is.null(mcare_max),
+             mcare_max_sql <- glue::glue_sql(" AND mcare_final.mcare_pct <= {mcare_max} ", 
+                                             .con = conn),
+             mcare_max_sql <- DBI::SQL(''))
+      
+      mcare_where_sql <- glue::glue_sql(" {mcare_min_sql} {mcare_max_sql}", .con = conn)
+    } else {
+      mcare_where_sql <- DBI::SQL('')
+    }
+  
+  } else {
+    mcare_cov_sql <- DBI::SQL('')
+    mcare_cov_where_sql <- DBI::SQL('')
+  }
+
   if(source == "mcaid_mcare_pha"){
     pha_cov_sql <- timevar_gen_sql(var = "pha", pct = F)
   } else {pha_cov_sql <- DBI::SQL('')}
   
   
   #### SET UP DUAL CODE (ALL) ####
-  if (source %in% c("mcaid_mcare", "mcaid_mcare_pha")){
-    dual_sql <- timevar_gen_sql(var = "apde_dual", pct = T)
-    if (!is.null(dual_min) | !is.null(dual_max)) {
-      ifelse(!is.null(dual_min),
-             dual_min_sql <- glue::glue_sql(" AND apde_dual_final.dual_pct >= {dual_min} ", 
-                                            .con = conn),
-             dual_min_sql <- DBI::SQL(''))
-      ifelse(!is.null(dual_max),
-             dual_max_sql <- glue::glue_sql(" AND apde_dual_final.dual_pct <= {dual_max} ", 
-                                            .con = conn),
-             dual_max_sql <- DBI::SQL(''))
-      
-      dual_where_sql <- glue::glue_sql(
-        " {dual_min_sql} {dual_max_sql}",
-        .con = conn)
-    } else {
-      dual_where_sql <- DBI::SQL('')
-    }
-  } else {dual_sql <- timevar_gen_sql(var = "dual", pct = T)
+  if (source == "mcaid") {
+    dual_sql <- timevar_gen_sql(var = "dual", pct = T)
+    
     if (!is.null(dual_min) | !is.null(dual_max)) {
       ifelse(!is.null(dual_min),
              dual_min_sql <- glue::glue_sql(" AND dual_final.dual_pct >= {dual_min} ", 
@@ -865,14 +913,30 @@ claims_elig <- function(conn,
                                             .con = conn),
              dual_max_sql <- DBI::SQL(''))
       
-      dual_where_sql <- glue::glue_sql(
-        " {dual_min_sql} {dual_max_sql}",
-        .con = conn)
+      dual_where_sql <- glue::glue_sql(" {dual_min_sql} {dual_max_sql}", .con = conn)
+    } else {
+      dual_where_sql <- DBI::SQL('')
+    }
+  } else if (source %in% c("mcaid_mcare", "mcaid_mcare_pha")) {
+    dual_sql <- timevar_gen_sql(var = "apde_dual", pct = T)
+    
+    if (!is.null(dual_min) | !is.null(dual_max)) {
+      ifelse(!is.null(dual_min),
+             dual_min_sql <- glue::glue_sql(" AND apde_dual_final.apde_dual_pct >= {dual_min} ", 
+                                            .con = conn),
+             dual_min_sql <- DBI::SQL(''))
+      ifelse(!is.null(dual_max),
+             dual_max_sql <- glue::glue_sql(" AND apde_dual_final.apde_dual_pct <= {dual_max} ", 
+                                            .con = conn),
+             dual_max_sql <- DBI::SQL(''))
+      
+      dual_where_sql <- glue::glue_sql(" {dual_min_sql} {dual_max_sql}", .con = conn)
     } else {
       dual_where_sql <- DBI::SQL('')
     }
   }
   
+
   #### SET UP COVERAGE GROUP TYPES CODE (APCD) ####
   # To come, add in code for med_covgrp and pharm_covgrp
   
@@ -1018,9 +1082,7 @@ claims_elig <- function(conn,
              part_a_max_sql <- glue::glue_sql(" AND part_a_final.part_a_pct <= {part_a_max} ", .con = conn),
              part_a_max_sql <- DBI::SQL(''))
       
-      part_a_where_sql <- glue::glue_sql(
-        " {part_a_min_sql} {part_a_max_sql}",
-        .con = conn)
+      part_a_where_sql <- glue::glue_sql(" {part_a_min_sql} {part_a_max_sql}", .con = conn)
     } else {
       part_a_where_sql <- DBI::SQL('')
     }
@@ -1036,9 +1098,7 @@ claims_elig <- function(conn,
              part_b_max_sql <- glue::glue_sql(" AND part_b_final.part_b_pct <= {part_b_max} ", .con = conn),
              part_b_max_sql <- DBI::SQL(''))
       
-      part_b_where_sql <- glue::glue_sql(
-        " {part_b_min_sql} {part_b_max_sql}",
-        .con = conn)
+      part_b_where_sql <- glue::glue_sql(" {part_b_min_sql} {part_b_max_sql}", .con = conn)
     } else {
       part_b_where_sql <- DBI::SQL('')
     }
@@ -1054,9 +1114,7 @@ claims_elig <- function(conn,
              part_c_max_sql <- glue::glue_sql(" AND part_c_final.part_c_pct <= {part_c_max} ", .con = conn),
              part_c_max_sql <- DBI::SQL(''))
       
-      part_c_where_sql <- glue::glue_sql(
-        " {part_c_min_sql} {part_c_max_sql}",
-        .con = conn)
+      part_c_where_sql <- glue::glue_sql(" {part_c_min_sql} {part_c_max_sql}", .con = conn)
     } else {
       part_c_where_sql <- DBI::SQL('')
     }
@@ -1081,9 +1139,7 @@ claims_elig <- function(conn,
              buy_in_max_sql <- glue::glue_sql(" AND buy_in_final.buy_in_pct <= {buy_in_max} ", .con = conn),
              buy_in_max_sql <- DBI::SQL(''))
       
-      buy_in_where_sql <- glue::glue_sql(
-        " {buy_in_min_sql} {buy_in_max_sql}",
-        .con = conn)
+      buy_in_where_sql <- glue::glue_sql(" {buy_in_min_sql} {buy_in_max_sql}", .con = conn)
     } else {
       buy_in_where_sql <- DBI::SQL('')
     }
@@ -1098,9 +1154,7 @@ claims_elig <- function(conn,
   geo_zip_sql <- timevar_gen_sql(var = "geo_zip", pct = F)
   
   if (!is.null(geo_zip)) {
-    geo_zip_where_sql <- glue::glue_sql(
-      " AND geo_zip_final.geo_zip IN ({geo_zip*})",
-      .con = conn)
+    geo_zip_where_sql <- glue::glue_sql(" AND geo_zip_final.geo_zip IN ({geo_zip*})", .con = conn)
   } else {
     geo_zip_where_sql <- DBI::SQL('')
   }
@@ -1210,8 +1264,9 @@ claims_elig <- function(conn,
       , .con = conn)
   } else if (source == "mcaid_mcare") {
     timevar_vars <- glue::glue_sql(
-      " apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct, mcaid_final.mcaid, mcaid_final.mcaid_days,
-      mcare_final.mcare, mcare_final.mcare_days,
+      " mcaid_final.mcaid, mcaid_final.mcaid_pct,
+      mcare_final.mcare, mcare_final.mcare_pct,
+      apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct,
       bsp_group_name_final.bsp_group_name, bsp_group_name_final.bsp_group_name_days, 
       full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
       cov_type_final.cov_type, cov_type_final.cov_type_days, 
@@ -1282,15 +1337,16 @@ claims_elig <- function(conn,
       (SELECT {id_name}, cov_days, duration, cov_pct, covgap_max 
         FROM ##cov_time_tot) timevar
         ON demo.{id_name} = timevar.{id_name}
-      {dual_sql} {mcaid_cov_sql} {mcare_cov_sql} {pha_cov_sql} 
-      {bsp_group_name_sql} {full_benefit_sql} {cov_type_sql} 
-      {mco_id_sql} {part_a_sql} {part_b_sql} {part_c_sql} {buy_in_sql} 
-      {pha_agency_sql} {pha_subsidy_sql} {pha_voucher_sql} 
+      {mcaid_cov_sql} {mcare_cov_sql} {dual_sql} {bsp_group_name_sql} 
+      {full_benefit_sql} {cov_type_sql} {mco_id_sql} 
+      {part_a_sql} {part_b_sql} {part_c_sql} {buy_in_sql} 
+      {pha_cov_sql} {pha_agency_sql} {pha_subsidy_sql} {pha_voucher_sql} 
       {pha_operator_sql} {pha_portfolio_sql}
       {geo_zip_sql} {geo_hra_code_sql} {geo_school_code_sql} 
       {geo_county_code_sql} {geo_ach_code_sql} {geo_kc_sql}
       WHERE 1 = 1 
-      {dual_where_sql} {bsp_group_name_where_sql} {full_benefit_where_sql}
+      {mcaid_where_sql} {mcare_where_sql} {dual_where_sql} 
+      {bsp_group_name_where_sql} {full_benefit_where_sql}
       {cov_type_where_sql} {mco_id_where_sql} {part_a_where_sql} 
       {part_b_where_sql} {part_c_where_sql} {buy_in_where_sql}
       {pha_agency_where_sql} {pha_subsidy_where_sql} {pha_voucher_where_sql} 
@@ -1299,7 +1355,7 @@ claims_elig <- function(conn,
       {geo_county_code_where_sql} {geo_ach_code_where_sql} {geo_kc_where_sql}"
     , .con = conn)
   
-  if (show_query== T) {
+  if (show_query == T) {
     print(core_sql)
   }
   
