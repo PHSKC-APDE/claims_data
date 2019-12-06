@@ -161,7 +161,35 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 4: apcd_claim_line ####
+#### Table 4: ref_apcd_denied_orphaned_header ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_denied_orphaned_header.R")
+
+### B) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "ref", to_schema = "archive", table_name = "apcd_denied_orphaned_header")
+
+### C) Create table
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_denied_orphaned_header.yaml",
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### D) Load tables
+system.time(load_ref.apcd_denied_orphaned_header_f())
+
+### E) Table-level QA
+system.time(apcd_denied_orphaned_header_qa1 <- qa_ref.apcd_denied_orphaned_header_f())
+rm(apcd_denied_orphaned_header_qa1)
+
+### F) Run line-level QA script on a single year only at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_ref.apcd_denied_orphaned_header.sql
+
+### F) Create a clustered index on claim header ID
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered index idx_c_ref_apcd_denied_orphaned_header on ref.apcd_denied_orphaned_header (claim_header_id)")))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 5: apcd_claim_line ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -190,7 +218,7 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 4: apcd_claim_icdcm_header ####
+#### Table 6: apcd_claim_icdcm_header ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -219,7 +247,7 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 5: apcd_claim_procedure ####
+#### Table 7: apcd_claim_procedure ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -248,7 +276,7 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 6: ref.apcd_provider_npi ####
+#### Table 8: ref.apcd_provider_npi ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -274,7 +302,7 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 6: apcd_claim_provider ####
+#### Table 9: apcd_claim_provider ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -303,7 +331,7 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 7: ref.king_provider_master ####
+#### Table 10: ref.kc_provider_master ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -329,7 +357,7 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 8: apcd_claim_header ####
+#### Table 11: apcd_claim_header ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions

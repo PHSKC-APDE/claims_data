@@ -286,7 +286,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                    'Count after full refresh')",
                    .con = db_claims))
   
-  print("All eligibility data loaded to SQL and QA checked")
+  print("All claims data loaded to SQL and QA checked")
 
 }
 

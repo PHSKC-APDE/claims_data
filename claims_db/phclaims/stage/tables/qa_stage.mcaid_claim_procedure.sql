@@ -1,56 +1,69 @@
 
-use PHClaims;
+use [PHClaims];
 go
 
-delete from [metadata].[qa_mcaid] where table_name = 'stage.mcaid_claim_procedure';
+delete from [metadata].[qa_mcaid] 
+where [table_name] = 'stage.mcaid_claim_procedure';
 
---All members should be in elig_demo and table
-select count(a.id_mcaid) as id_dcount
+declare @last_run as datetime;
+declare @mcaid_elig_check as varchar(255);
+declare @mcaid_elig_demo_check as varchar(255);
+declare @procedure_code_len_check as varchar(255);
+declare @procedure_code_number_check as varchar(255);
+declare @pcode_lookup_check as varchar(255);
+
+
+
+
+declare @pct_claim_header_id_with_dx as varchar(255);
+declare @compare_current_prior_min as varchar(255);
+declare @compare_current_prior_max as varchar(255);
+
+set @last_run = (select max(last_run) from [stage].[mcaid_claim_procedure]);
+
+--All members should be in [mcaid_elig] table
+set @mcaid_elig_check = 
+(
+select count(distinct a.id_mcaid) as id_dcount
 from [stage].[mcaid_claim_procedure] as a
 where not exists
 (
 select 1 
-from [stage].[mcaid_elig_demo] as b
-where a.id_mcaid = b.id_mcaid
-);
-
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_procedure]);
-insert into [metadata].[qa_mcaid]
-select 
- NULL
-,@last_run
-,'stage.mcaid_claim_procedure'
-,'mcaid_elig_demo.id_mcaid foreign key check'
-,'PASS'
-,getdate()
-,'All members in mcaid_claim_procedure are in mcaid_elig_demo';
-go
-
---All members should be in elig_timevar table
-select count(a.id_mcaid) as id_dcount
-from [stage].[mcaid_claim_procedure] as a
-where not exists
-(
-select 1 
---from [final].[mcaid_elig_timevar] as b
 from [stage].[mcaid_elig] as b
---where a.id_mcaid = b.id_mcaid
 where a.id_mcaid = b.MEDICAID_RECIPIENT_ID
-);
-go
+));
 
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_procedure]);
 insert into [metadata].[qa_mcaid]
 select 
  NULL
 ,@last_run
 ,'stage.mcaid_claim_procedure'
---,'mcaid_elig_time_var.id_mcaid check'
-,'mcaid_elig.MEDICAID_RECIPIENT_ID check'
-,'PASS'
+,'All members should be in [mcaid_elig] table'
+,CASE WHEN @mcaid_elig_check = '0' THEN 'PASS' ELSE 'FAIL' END
 ,getdate()
---,'All members in mcaid_claim_procedure are in mcaid_elig_time_var';
-,'All members in mcaid_claim_procedure are in mcaid_elig';
+,@mcaid_elig_check + ' members in mcaid_claim_procedure and are not in [mcaid_elig]';
+
+--All members should be in [mcaid_elig_demo] table
+set @mcaid_elig_demo_check = 
+(
+select count(distinct a.id_mcaid) as id_dcount
+from [stage].[mcaid_claim_procedure] as a
+where not exists
+(
+select 1 
+from (SELECT [id_mcaid] FROM [final].[mcaid_elig_demo] UNION SELECT [id_mcaid] FROM [stage].[mcaid_elig_demo]) as b
+where a.id_mcaid = b.id_mcaid
+));
+
+insert into [metadata].[qa_mcaid]
+select 
+ NULL
+,@last_run
+,'stage.mcaid_claim_procedure'
+,'All members should be in [mcaid_elig_demo] table'
+,CASE WHEN @mcaid_elig_demo_check = '0' THEN 'PASS' ELSE 'FAIL' END
+,getdate()
+,@mcaid_elig_demo_check + ' members in mcaid_claim_procedure and are not in [mcaid_elig_demo]';
 
 --Check that procedure codes are properly formed type
 WITH CTE AS
@@ -65,36 +78,26 @@ SELECT
       WHEN LEN([procedure_code]) = 7 THEN 'ICD-10-PCS'
 	  ELSE 'UNKNOWN' END AS [code_system]
 ,*
-FROM [PHClaims].[stage].[mcaid_claim_procedure]
+FROM [stage].[mcaid_claim_procedure]
 )
 
-SELECT 
-DISTINCT [procedure_code]
+SELECT @procedure_code_len_check = COUNT(DISTINCT [procedure_code])
 FROM CTE
-WHERE [code_system] = 'UNKNOWN'
-ORDER BY [procedure_code];
+WHERE [code_system] = 'UNKNOWN';
 
-/*
-SELECT 
- [code_system]
-,COUNT(*)
-FROM CTE
-GROUP BY [code_system];
-*/
-GO
-
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_procedure]);
 insert into [metadata].[qa_mcaid]
 select 
  NULL
 ,@last_run
 ,'stage.mcaid_claim_procedure'
 ,'Check procedure code digit structure'
-,'PASS'
+,CASE WHEN @procedure_code_len_check = '0' THEN 'PASS' ELSE 'FAIL' END
 ,getdate()
-,'There are 4 improper 2-digit codes (13, 14, 60, 72)';
+,@procedure_code_len_check + ' procedure codes are not defined';
 
---Check that icdcm_number within ('01','02','03','04','05','06','07','08','09','10','11','12','line')
+--Check that [procedure_code_number] in ('01','02','03','04','05','06','07','08','09','10','11','12','line')
+set @procedure_code_number_check = 
+(
 select count([procedure_code_number])
 from [stage].[mcaid_claim_procedure]
 where [procedure_code_number] not in 
@@ -110,116 +113,47 @@ where [procedure_code_number] not in
 ,'10'
 ,'11'
 ,'12'
-,'line');
-go
+,'line'));
 
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_procedure]);
 insert into [metadata].[qa_mcaid]
 select 
  NULL
 ,@last_run
 ,'stage.mcaid_claim_procedure'
-,'Check values of [procedure_code_number]'
-,'PASS'
+,'Check that procedure_code_number in 01-12 or admit'
+,CASE WHEN @procedure_code_number_check = '0' THEN 'PASS' ELSE 'FAIL' END
 ,getdate()
-,'All values in (01,02,03,04,05,06,07,08,09,10,11,12,line)';
+,@procedure_code_number_check + ' procedure codes have an incorrect procedure code number';
 
-
---Count procedure codes that do not join to reference table
-select distinct
- [procedure_code]
+--Check if any procedure codes do not join to the reference table
+set @pcode_lookup_check =
+(
+select count(distinct [procedure_code])
 from [stage].[mcaid_claim_procedure] as a
 where not exists
 (
 select 1
 from [ref].[pcode] as b
 where a.[procedure_code] = b.[pcode]
-);
-go
+));
 
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_procedure]);
 insert into [metadata].[qa_mcaid]
 select 
  NULL
 ,@last_run
 ,'stage.mcaid_claim_procedure'
-,'procedure_code foreign key check'
-,'FAIL'
+,'Check if any procedure codes do not join to the reference table'
+,CASE WHEN @pcode_lookup_check = '0' THEN 'PASS' ELSE 'FAIL' END
 ,getdate()
-,'611 procedure codes not in [ref].[pcode]';
+,@pcode_lookup_check + ' procedure codes are not in [ref].[pcode]';
 
-/*
---procedure codes that do not join to reference table
-select
- CASE WHEN LEN([procedure_code]) = 5 AND ISNUMERIC([procedure_code]) = 1 THEN 'CPT Category I'
-      WHEN LEN([procedure_code]) = 5 AND ISNUMERIC(SUBSTRING([procedure_code], 1, 4)) = 1 AND SUBSTRING([procedure_code], 5, 1) = 'F' THEN 'CPT Category II'
-      WHEN LEN([procedure_code]) = 5 AND ISNUMERIC(SUBSTRING([procedure_code], 1, 4)) = 1 AND SUBSTRING([procedure_code], 5, 1) = 'T' THEN 'CPT Category III'
-      WHEN LEN([procedure_code]) = 5 AND ISNUMERIC(SUBSTRING([procedure_code], 1, 4)) = 1 AND SUBSTRING([procedure_code], 5, 1) IN ('M', 'U') THEN 'CPT Other'
-      WHEN LEN([procedure_code]) = 5 AND SUBSTRING([procedure_code], 1, 1) LIKE '[A-Z]' AND ISNUMERIC(SUBSTRING([procedure_code], 2, 4)) = 1 THEN 'HCPCS'
-      WHEN LEN([procedure_code]) IN (3, 4) AND ISNUMERIC([procedure_code]) = 1 THEN 'ICD-9-PCS'
-      WHEN LEN([procedure_code]) = 7 THEN 'ICD-10-PCS'
-	  ELSE 'UNKNOWN' END AS [code_system]
-,[procedure_code]
-,count(*)
-from [stage].[mcaid_claim_procedure] as a
-where not exists
-(
-select 1
-from [ref].[pcode] as b
-where a.[procedure_code] = b.[pcode]
-)
-GROUP BY
- CASE WHEN LEN([procedure_code]) = 5 AND ISNUMERIC([procedure_code]) = 1 THEN 'CPT Category I'
-      WHEN LEN([procedure_code]) = 5 AND ISNUMERIC(SUBSTRING([procedure_code], 1, 4)) = 1 AND SUBSTRING([procedure_code], 5, 1) = 'F' THEN 'CPT Category II'
-      WHEN LEN([procedure_code]) = 5 AND ISNUMERIC(SUBSTRING([procedure_code], 1, 4)) = 1 AND SUBSTRING([procedure_code], 5, 1) = 'T' THEN 'CPT Category III'
-      WHEN LEN([procedure_code]) = 5 AND ISNUMERIC(SUBSTRING([procedure_code], 1, 4)) = 1 AND SUBSTRING([procedure_code], 5, 1) IN ('M', 'U') THEN 'CPT Other'
-      WHEN LEN([procedure_code]) = 5 AND SUBSTRING([procedure_code], 1, 1) LIKE '[A-Z]' AND ISNUMERIC(SUBSTRING([procedure_code], 2, 4)) = 1 THEN 'HCPCS'
-      WHEN LEN([procedure_code]) IN (3, 4) AND ISNUMERIC([procedure_code]) = 1 THEN 'ICD-9-PCS'
-      WHEN LEN([procedure_code]) = 7 THEN 'ICD-10-PCS'
-	  ELSE 'UNKNOWN' END
-,[procedure_code]
-ORDER BY
- CASE WHEN LEN([procedure_code]) = 5 AND ISNUMERIC([procedure_code]) = 1 THEN 'CPT Category I'
-      WHEN LEN([procedure_code]) = 5 AND ISNUMERIC(SUBSTRING([procedure_code], 1, 4)) = 1 AND SUBSTRING([procedure_code], 5, 1) = 'F' THEN 'CPT Category II'
-      WHEN LEN([procedure_code]) = 5 AND ISNUMERIC(SUBSTRING([procedure_code], 1, 4)) = 1 AND SUBSTRING([procedure_code], 5, 1) = 'T' THEN 'CPT Category III'
-      WHEN LEN([procedure_code]) = 5 AND ISNUMERIC(SUBSTRING([procedure_code], 1, 4)) = 1 AND SUBSTRING([procedure_code], 5, 1) IN ('M', 'U') THEN 'CPT Other'
-      WHEN LEN([procedure_code]) = 5 AND SUBSTRING([procedure_code], 1, 1) LIKE '[A-Z]' AND ISNUMERIC(SUBSTRING([procedure_code], 2, 4)) = 1 THEN 'HCPCS'
-      WHEN LEN([procedure_code]) IN (3, 4) AND ISNUMERIC([procedure_code]) = 1 THEN 'ICD-9-PCS'
-      WHEN LEN([procedure_code]) = 7 THEN 'ICD-10-PCS'
-	  ELSE 'UNKNOWN' END
-,[procedure_code];
-*/
-
---Compare number of people with claim_header table
-select
- (select count(distinct id_mcaid) as id_dcount
-  from [stage].[mcaid_claim_procedure])
-,(select count(distinct id_mcaid) as id_dcount
-  from [final].[mcaid_claim_header])
-,cast((select count(distinct id_mcaid) as id_dcount
-  from [stage].[mcaid_claim_procedure]) as numeric) /
- (select count(distinct id_mcaid) as id_dcount
-  from [final].[mcaid_claim_header]);
-go
-
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_procedure]);
-insert into [metadata].[qa_mcaid]
-select 
- NULL
-,@last_run
-,'stage.mcaid_claim_procedure'
-,'Compare procedure to header (number of people)'
-,'PASS'
-,getdate()
-,'98.3% of people in procedure are in header';
-
--- Compare number of dx codes in current vs. prior analytic tables
+--Compare number of procedure codes in current vs. prior analytic tables
 WITH [final] AS
 (
 SELECT
  YEAR([first_service_date]) AS [claim_year]
-,COUNT(*) AS [prior_num_procedure]
-FROM [final].[mcaid_claim_procedure]
+,COUNT(*) AS [prior_num_pcode]
+FROM [final].[mcaid_claim_procedure] AS a
 GROUP BY YEAR([first_service_date])
 ),
 
@@ -227,39 +161,55 @@ GROUP BY YEAR([first_service_date])
 (
 SELECT
  YEAR([first_service_date]) AS [claim_year]
-,COUNT(*) AS [current_num_procedure]
-FROM [stage].[mcaid_claim_procedure]
+,COUNT(*) AS [current_num_pcode]
+FROM [stage].[mcaid_claim_procedure] AS a
 GROUP BY YEAR([first_service_date])
-)
+),
 
+[compare] AS
+(
 SELECT
  COALESCE(a.[claim_year], b.[claim_year]) AS [claim_year]
-,[prior_num_procedure]
-,[current_num_procedure]
-,CAST([current_num_procedure] AS NUMERIC) / [prior_num_procedure] AS [pct_change]
+,[prior_num_pcode]
+,[current_num_pcode]
+,CAST([current_num_pcode] AS NUMERIC) / [prior_num_pcode] AS [pct_change]
 FROM [final] AS a
 FULL JOIN [stage] AS b
 ON a.[claim_year] = b.[claim_year]
-ORDER BY [claim_year];
-GO
+)
 
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_procedure]);
+SELECT 
+ @compare_current_prior_min = MIN([pct_change])
+,@compare_current_prior_max = MAX([pct_change])
+FROM [compare]
+WHERE [claim_year] >= YEAR(GETDATE()) - 3;
+
 insert into [metadata].[qa_mcaid]
 select 
  NULL
 ,@last_run
 ,'stage.mcaid_claim_procedure'
-,'Compare new-to-prior procedure counts'
-,'PASS'
+,'Compare current vs. prior analytic tables'
+,NULL
 ,getdate()
-,'Stable';
+,'Min: ' + @compare_current_prior_min + ', Max: ' + @compare_current_prior_max + ' ratio of current to prior rows';
 
-SELECT [etl_batch_id]
-      ,[last_run]
-      ,[table_name]
-      ,[qa_item]
-      ,[qa_result]
-      ,[qa_date]
-      ,[note]
+/*
+SELECT
+ [last_run]
+,[table_name]
+,[qa_item]
+,[qa_result]
+,[qa_date]
+,[note]
 FROM [PHClaims].[metadata].[qa_mcaid]
-WHERE [table_name] = 'stage.mcaid_claim_procedure';
+WHERE [table_name] IN
+('stage.mcaid_claim_icdcm_header'
+,'stage.mcaid_claim_line'
+,'stage.mcaid_claim_pharm'
+,'stage.mcaid_claim_procedure'
+,'stage.mcaid_claim_header')
+ORDER BY 
+ [table_name]
+,[qa_item];
+*/

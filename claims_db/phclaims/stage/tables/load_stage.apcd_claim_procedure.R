@@ -15,7 +15,6 @@ load_stage.apcd_claim_procedure_f <- function() {
     ------------------
     --STEP 1: Create temp claim header-level table with exclusions applied
     --Exclude all denied and orphaned claim lines
-    --Run time: XX min
     -------------------
     if object_id('tempdb..#temp1') is not null drop table #temp1;
     select distinct internal_member_id as 'id_apcd', medical_claim_header_id,
@@ -33,15 +32,16 @@ load_stage.apcd_claim_procedure_f <- function() {
     	procedure_modifier_code_1 as modifier_1, procedure_modifier_code_2 as modifier_2,
     	procedure_modifier_code_3 as modifier_3, procedure_modifier_code_4 as modifier_4
     into #temp1
-    from PHClaims.stage.apcd_medical_claim
-    --exclude denied and orphaned claim lines
-    where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';
+    from PHClaims.stage.apcd_medical_claim as a
+    --exclude denined/orphaned claims
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where b.denied_header_min = 0 and b.orphaned_header_min = 0;
     
     
     ------------------
     --STEP 2: Reshape diagnosis codes from wide to long
     --Exclude all missing procedure codes
-    --Run time: XX min
     -------------------
     if object_id('tempdb..#temp2') is not null drop table #temp2;
     select distinct id_apcd, medical_claim_header_id, first_service_date, last_service_date, cast(pcodes as varchar(255)) as procedure_code,
@@ -59,7 +59,6 @@ load_stage.apcd_claim_procedure_f <- function() {
     
     ------------------
     --STEP 3: Assemble final table and insert into table shell 
-    --Run time: XX min
     -------------------
     insert into PHClaims.stage.apcd_claim_procedure with (tablock)
     select distinct id_apcd, medical_claim_header_id as claim_header_id,
@@ -110,8 +109,12 @@ qa_stage.apcd_claim_procedure_f <- function() {
   res5 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_medical_claim' as 'table', '# of claims with 25th procedure code' as qa_type,
     count(distinct medical_claim_header_id) as qa
-    from stage.apcd_medical_claim
-    where icd_procedure_code_24 is not null and denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N';",
+    from PHClaims.stage.apcd_medical_claim as a
+    --exclude denined/orphaned claims
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where a.icd_procedure_code_24 is not null and 
+      b.denied_header_min = 0 and b.orphaned_header_min = 0;",
     .con = db_claims))
   
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()

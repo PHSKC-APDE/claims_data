@@ -64,6 +64,22 @@ GROUP BY b.[measure_id], [measure_name], [load_date]
 UNION ALL
 
 SELECT 
+ '[stage].[perf_staging]' AS [Table]
+,[measure_name] AS [Measure Name]
+,'Numerator' AS [Component]
+,[load_date] AS [Load Date]
+,CAST(MIN([year_month]) AS VARCHAR(6)) AS [First Measurement Period]
+,CAST(MAX([year_month]) AS VARCHAR(6)) AS [Last Measurement Period]
+,COUNT(*)
+FROM [stage].[perf_staging] AS a
+INNER JOIN [ref].[perf_measure] AS b
+ON a.[measure_id] = b.[measure_id]
+WHERE [num_denom] = 'N'
+GROUP BY b.[measure_id], [measure_name], [load_date]
+
+UNION ALL
+
+SELECT 
  '[stage].[perf_staging_event_date]' AS [Table]
 ,[measure_name] AS [Measure Name]
 ,'Measure' AS [Component]
