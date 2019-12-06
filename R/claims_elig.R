@@ -809,16 +809,17 @@ claims_elig <- function(conn,
     if (!is.null(mcaid_min) | !is.null(mcaid_max)) {
       ifelse(!is.null(mcaid_min),
              mcaid_min_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct >= {mcaid_min} ", 
-                                            .con = conn),
+                                             .con = conn),
              mcaid_min_sql <- DBI::SQL(''))
       ifelse(!is.null(mcaid_max),
              mcaid_max_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct <= {mcaid_max} ", 
-                                            .con = conn),
+                                             .con = conn),
              mcaid_max_sql <- DBI::SQL(''))
       
-      mcaid_where_sql <- glue::glue_sql(" {mcaid_min_sql} {mcaid_max_sql}", .con = conn)
+      mcaid_cov_where_sql <- glue::glue_sql(" {mcaid_min_sql} {mcaid_max_sql}", .con = conn)
+
     } else {
-      mcaid_where_sql <- DBI::SQL('')
+      mcaid_cov_where_sql <- DBI::SQL('')
     }
     
   } else {
@@ -839,11 +840,11 @@ claims_elig <- function(conn,
                                              .con = conn),
              mcare_max_sql <- DBI::SQL(''))
       
-      mcare_where_sql <- glue::glue_sql(" {mcare_min_sql} {mcare_max_sql}", .con = conn)
+      mcare_cov_where_sql <- glue::glue_sql(" {mcare_min_sql} {mcare_max_sql}", .con = conn)
     } else {
-      mcare_where_sql <- DBI::SQL('')
+      mcare_cov_where_sql <- DBI::SQL('')
     }
-  
+    
   } else {
     mcare_cov_sql <- DBI::SQL('')
     mcare_cov_where_sql <- DBI::SQL('')
