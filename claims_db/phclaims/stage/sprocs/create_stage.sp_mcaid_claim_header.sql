@@ -618,6 +618,10 @@ create clustered index [idx_cl_#temp2] on #temp2(claim_header_id);
 --------------------------------------
 --STEP 14: create final table structure
 --------------------------------------
+
+--------------------------------------
+--STEP 14: create final table structure
+--------------------------------------
 IF object_id('[stage].[mcaid_claim_header]', 'U') is not null 
 drop table [stage].[mcaid_claim_header]
 create table [stage].[mcaid_claim_header]
