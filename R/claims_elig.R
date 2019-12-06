@@ -33,6 +33,10 @@
 #' during requested date range (percent scale) (A)
 #' @param dual_max Maximum Medicare-Medicaid dual eligibility coverage allowed 
 #' during requested date range (percent scale) (A)
+#' @param pha_min Minimum Medicare-Medicaid pha eligibility coverage allowed 
+#' during requested date range (percent scale) (PHA)
+#' @param pha_max Maximum Medicare-Medicaid pha eligibility coverage allowed 
+#' during requested date range (percent scale) (PHA) 
 #' @param med_covgrp Medical coverage group type in APCD data (AP)
 #' @param pharm_covgrp Pharmacy coverage group type in APCD data (AP)
 #' @param bsp_group_name Most frequently reported BSP group during requested date
@@ -156,6 +160,8 @@ claims_elig <- function(conn,
                        mcare_max = NULL,
                        dual_min = NULL,
                        dual_max = NULL,
+                       pha_min = NULL,
+                       pha_max = NULL,
                        med_covgrp = NULL,
                        pharm_covgrp = NULL,
                        bsp_group_name = NULL,
@@ -279,6 +285,13 @@ claims_elig <- function(conn,
       stop("dual_min must be <= dual_max (or one should be NULL)")  
     }
   }
+  
+  # PHA min checks
+  if (!is.null(pha_min)) {
+    if(!is.numeric(pha_min) | pha_min < 0 | pha_min > 100){
+      stop("Minimum time on Medicaid  must be numeric between 0 and 100")
+    }
+  }  
   
   # Add in med_covgrp and pharm_covgrp checks
   
@@ -895,10 +908,28 @@ claims_elig <- function(conn,
   }
 
   if(source == "mcaid_mcare_pha"){
-    pha_cov_sql <- timevar_gen_sql(var = "pha", pct = F)
-  } else {pha_cov_sql <- DBI::SQL('')}
+  pha_cov_sql <- timevar_gen_sql(var = "pha", pct = T)
   
+  if (!is.null(pha_min) | !is.null(pha_max)) {
+    ifelse(!is.null(pha_min),
+           pha_min_sql <- glue::glue_sql(" AND pha_final.pha_pct >= {pha_min} ", 
+                                           .con = conn),
+           pha_min_sql <- DBI::SQL(''))
+    ifelse(!is.null(pha_max),
+           pha_max_sql <- glue::glue_sql(" AND pha_final.pha_pct <= {pha_max} ", 
+                                           .con = conn),
+           pha_max_sql <- DBI::SQL(''))
+    
+    pha_where_sql <- glue::glue_sql(" {pha_min_sql} {pha_max_sql}", .con = conn)
+  } else {
+    pha_where_sql <- DBI::SQL('')
+  }
   
+} else {
+  pha_cov_sql <- DBI::SQL('')
+  pha_cov_where_sql <- DBI::SQL('')
+}
+
   #### SET UP DUAL CODE (ALL) ####
   if (source == "mcaid") {
     dual_sql <- timevar_gen_sql(var = "dual", pct = T)
@@ -1282,8 +1313,10 @@ claims_elig <- function(conn,
       , .con = conn)
   } else if (source == "mcaid_mcare_pha") {
     timevar_vars <- glue::glue_sql(
-      " apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct, mcaid_final.mcaid, mcaid_final.mcaid_days,
-      mcare_final.mcare, mcare_final.mcare_days, pha_final.pha, pha_final.pha_days,
+      " mcaid_final.mcaid, mcaid_final.mcaid_pct,
+      mcare_final.mcare, mcare_final.mcare_pct, 
+      apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct, 
+      pha_final.pha, pha_final.pha_pct,
       bsp_group_name_final.bsp_group_name, bsp_group_name_final.bsp_group_name_days, 
       full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
       cov_type_final.cov_type, cov_type_final.cov_type_days, 
