@@ -800,11 +800,19 @@ claims_elig <- function(conn,
   if (source == "mcaid_mcare") {
     mcaid_cov_sql <- timevar_gen_sql(var = "mcaid", pct = T)
     
-    if (!is.null(mcaid_min)) {
-      mcaid_where_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct >= {mcaid_min} ",
-                                        .con = conn)
+    if (!is.null(mcaid_min) | !is.null(mcaid_max)) {
+      ifelse(!is.null(mcaid_min),
+             mcaid_min_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct >= {mcaid_min} ", 
+                                             .con = conn),
+             mcaid_min_sql <- DBI::SQL(''))
+      ifelse(!is.null(mcaid_max),
+             mcaid_max_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct <= {mcaid_max} ", 
+                                             .con = conn),
+             mcaid_max_sql <- DBI::SQL(''))
+      
+      mcaid_cov_where_sql <- glue::glue_sql(" {mcaid_min_sql} {mcaid_max_sql}", .con = conn)
     } else {
-      mcaid_where_sql <- DBI::SQL('')
+      mcaid_cov_where_sql <- DBI::SQL('')
     }
     
   } else {
@@ -815,13 +823,21 @@ claims_elig <- function(conn,
   if (source == "mcaid_mcare") {
     mcare_cov_sql <- timevar_gen_sql(var = "mcare", pct = T)
     
-    if (!is.null(mcaid_min)) {
-      mcare_where_sql <- glue::glue_sql(" AND mcare_final.mcare_pct >= {mcare_min} ",
-                                        .con = conn)
+    if (!is.null(mcare_min) | !is.null(mcare_max)) {
+      ifelse(!is.null(mcare_min),
+             mcare_min_sql <- glue::glue_sql(" AND mcare_final.mcare_pct >= {mcare_min} ", 
+                                             .con = conn),
+             mcare_min_sql <- DBI::SQL(''))
+      ifelse(!is.null(mcare_max),
+             mcare_max_sql <- glue::glue_sql(" AND mcare_final.mcare_pct <= {mcare_max} ", 
+                                             .con = conn),
+             mcare_max_sql <- DBI::SQL(''))
+      
+      mcare_cov_where_sql <- glue::glue_sql(" {mcare_min_sql} {mcare_max_sql}", .con = conn)
     } else {
-      mcare_where_sql <- DBI::SQL('')
+      mcare_cov_where_sql <- DBI::SQL('')
     }
-  
+    
   } else {
     mcare_cov_sql <- DBI::SQL('')
     mcare_cov_where_sql <- DBI::SQL('')
