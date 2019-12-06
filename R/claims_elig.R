@@ -1205,7 +1205,7 @@ claims_elig <- function(conn,
       {geo_zip_sql} {geo_hra_code_sql} {geo_school_code_sql} 
       {geo_county_code_sql} {geo_ach_code_sql} {geo_kc_sql}
       WHERE 1 = 1 
-      {mcaid_where_sql} {mcare_where_sql} {dual_where_sql} 
+      {mcaid_cov_where_sql} {mcare_cov_where_sql} {dual_where_sql} 
       {bsp_group_name_where_sql} {full_benefit_where_sql}
       {cov_type_where_sql} {mco_id_where_sql} {part_a_where_sql} 
       {part_b_where_sql} {part_c_where_sql} {buy_in_where_sql}
