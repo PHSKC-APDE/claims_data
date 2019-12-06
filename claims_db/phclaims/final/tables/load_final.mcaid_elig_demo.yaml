@@ -2,9 +2,8 @@ from_schema: stage
 from_table: mcaid_elig_demo
 to_schema: final
 to_table: mcaid_elig_demo
-index_name: idx_cl_final_mcaid_elig_demo_id_mcaid
-index:
-  - id_mcaid
+index_name: idx_ccs_final_mcaid_elig_demo
+index_type: ccs
 vars:
   - id_mcaid
   - dob
@@ -24,6 +23,8 @@ vars:
   - race_latino
   - race_nhpi
   - race_white
+  - race_unk
+  - race_eth_unk
   - race_aian_t
   - race_asian_t
   - race_black_t
