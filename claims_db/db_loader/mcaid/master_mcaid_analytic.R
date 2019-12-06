@@ -39,7 +39,7 @@ last_run_elig_demo <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_r
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
 qa_mcaid_elig_demo_f(conn = db_claims, load_only = F)
 
-# Create and load final table
+# Load final table (assumes no changes to table structure)
 load_table_from_sql_f(
   conn = db_claims,
   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml", 

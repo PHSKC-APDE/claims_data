@@ -19,6 +19,8 @@ vars:
     race_latino: TINYINT
     race_nhpi: TINYINT
     race_white: TINYINT
+    race_unk: TINYINT
+    race_eth_unk: TINYINT
     race_aian_t: NUMERIC
     race_asian_t: NUMERIC
     race_black_t: NUMERIC
