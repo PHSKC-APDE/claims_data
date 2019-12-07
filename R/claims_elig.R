@@ -864,21 +864,21 @@ claims_elig <- function(conn,
   if (source %in% c("mcaid_mcare", "mcaid_mcare_pha")) {
     mcaid_cov_sql <- timevar_gen_sql(var = "mcaid", pct = T)
     
-    if (!is.null(mcaid_min) | !is.null(mcaid_max)) {
-      ifelse(!is.null(mcaid_min),
-             mcaid_min_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct >= {mcaid_min} ", 
-                                             .con = conn),
-             mcaid_min_sql <- DBI::SQL(''))
-      ifelse(!is.null(mcaid_max),
-             mcaid_max_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct <= {mcaid_max} ", 
-                                             .con = conn),
-             mcaid_max_sql <- DBI::SQL(''))
-      
-      mcaid_cov_where_sql <- glue::glue_sql(" {mcaid_min_sql} {mcaid_max_sql}", .con = conn)
-
-    } else {
-      mcaid_cov_where_sql <- DBI::SQL('')
-    }
+      if (!is.null(mcaid_min) | !is.null(mcaid_max)) {
+        ifelse(!is.null(mcaid_min),
+               mcaid_min_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct >= {mcaid_min} ", 
+                                               .con = conn),
+               mcaid_min_sql <- DBI::SQL(''))
+        ifelse(!is.null(mcaid_max),
+               mcaid_max_sql <- glue::glue_sql(" AND mcaid_final.mcaid_pct <= {mcaid_max} ", 
+                                               .con = conn),
+               mcaid_max_sql <- DBI::SQL(''))
+        
+        mcaid_cov_where_sql <- glue::glue_sql(" {mcaid_min_sql} {mcaid_max_sql}", .con = conn)
+  
+      } else {
+        mcaid_cov_where_sql <- DBI::SQL('')
+      }
     
   } else {
     mcaid_cov_sql <- DBI::SQL('')
@@ -888,42 +888,48 @@ claims_elig <- function(conn,
   if (source %in% c("mcaid_mcare", "mcaid_mcare_pha")) {
     mcare_cov_sql <- timevar_gen_sql(var = "mcare", pct = T)
     
-    if (!is.null(mcare_min) | !is.null(mcare_max)) {
-      ifelse(!is.null(mcare_min),
-             mcare_min_sql <- glue::glue_sql(" AND mcare_final.mcare_pct >= {mcare_min} ", 
-                                             .con = conn),
-             mcare_min_sql <- DBI::SQL(''))
-      ifelse(!is.null(mcare_max),
-             mcare_max_sql <- glue::glue_sql(" AND mcare_final.mcare_pct <= {mcare_max} ", 
-                                             .con = conn),
-             mcare_max_sql <- DBI::SQL(''))
-      
-      mcare_cov_where_sql <- glue::glue_sql(" {mcare_min_sql} {mcare_max_sql}", .con = conn)
-    } else {
-      mcare_cov_where_sql <- DBI::SQL('')
-    }
+      if (!is.null(mcare_min) | !is.null(mcare_max)) {
+        ifelse(!is.null(mcare_min),
+               mcare_min_sql <- glue::glue_sql(" AND mcare_final.mcare_pct >= {mcare_min} ", 
+                                               .con = conn),
+               mcare_min_sql <- DBI::SQL(''))
+        ifelse(!is.null(mcare_max),
+               mcare_max_sql <- glue::glue_sql(" AND mcare_final.mcare_pct <= {mcare_max} ", 
+                                               .con = conn),
+               mcare_max_sql <- DBI::SQL(''))
+        
+        mcare_cov_where_sql <- glue::glue_sql(" {mcare_min_sql} {mcare_max_sql}", .con = conn)
+      } else {
+        mcare_cov_where_sql <- DBI::SQL('')
+      }
     
   } else {
     mcare_cov_sql <- DBI::SQL('')
     mcare_cov_where_sql <- DBI::SQL('')
   }
     
-   if(source == "mcaid_mcare_pha"){
-  pha_cov_sql <- timevar_gen_sql(var = "pha", pct = T)
-  
-  if (!is.null(pha_min) | !is.null(pha_max)) {
-    ifelse(!is.null(pha_min),
-           pha_min_sql <- glue::glue_sql(" AND pha_final.pha_pct >= {pha_min} ", 
-                                           .con = conn),
-           pha_min_sql <- DBI::SQL(''))
-    ifelse(!is.null(pha_max),
-           pha_max_sql <- glue::glue_sql(" AND pha_final.pha_pct <= {pha_max} ", 
-                                           .con = conn),
-           pha_max_sql <- DBI::SQL(''))
+  if(source == "mcaid_mcare_pha"){
+    pha_cov_sql <- timevar_gen_sql(var = "pha", pct = T)
     
-    pha_where_sql <- glue::glue_sql(" {pha_min_sql} {pha_max_sql}", .con = conn)
+    if (!is.null(pha_min) | !is.null(pha_max)) {
+      ifelse(!is.null(pha_min),
+             pha_min_sql <- glue::glue_sql(" AND pha_final.pha_pct >= {pha_min} ", 
+                                           .con = conn),
+             pha_min_sql <- DBI::SQL(''))
+      ifelse(!is.null(pha_max),
+             pha_max_sql <- glue::glue_sql(" AND pha_final.pha_pct <= {pha_max} ", 
+                                           .con = conn),
+             pha_max_sql <- DBI::SQL(''))
+      
+      pha_cov_where_sql <- glue::glue_sql(" {pha_min_sql} {pha_max_sql}", .con = conn)
+    } else {
+      pha_cov_where_sql <- DBI::SQL('')
+    }
+    
   } else {
-    pha_where_sql <- DBI::SQL('')
+    pha_cov_sql <- DBI::SQL('')
+    pha_cov_where_sql <- DBI::SQL('')
+  }
 
   #### SET UP DUAL CODE (ALL) ####
   if (source == "mcaid") {
