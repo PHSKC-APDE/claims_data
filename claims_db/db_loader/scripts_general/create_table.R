@@ -47,8 +47,8 @@ create_table_f <- function(
     }
     
     if (is.yaml.file(config_file) == F) {
-      stop(glue("Config file is not a YAML config file. ", 
-                "Check there are no duplicate variables listed"))
+      stop(glue::glue("Config file is not a YAML config file. ", 
+                      "Check there are no duplicate variables listed"))
     }
   }
   
@@ -127,9 +127,9 @@ create_table_f <- function(
     schema <- "tmp"
     
     if (!is.null(table_config$to_schema)) {
-      table_name <- glue("{table_config$to_schema}_{table_name}")
+      table_name <- glue::glue("{table_config$to_schema}_{table_name}")
     } else {
-      table_name <- glue("{table_config$schema}_{table_name}")
+      table_name <- glue::glue("{table_config$schema}_{table_name}")
     }
   } else if (!is.null(table_config$to_schema)) {
     schema <- table_config$to_schema
@@ -147,7 +147,7 @@ create_table_f <- function(
 
   #### OVERALL TABLE ####
   if (overall == T) {
-    message(glue("Creating overall [{schema}].[{table_name}] table", test_msg))
+    message(glue::glue("Creating overall [{schema}].[{table_name}] table", test_msg))
     
     tbl_name <- DBI::Id(schema = schema, table = table_name)
     
@@ -163,7 +163,7 @@ create_table_f <- function(
   
   #### CALENDAR YEAR TABLES ####
   if (ind_yr == T) {
-    message(glue("Creating calendar year [{schema}].[{table_name}] tables", test_msg))
+    message(glue::glue("Creating calendar year [{schema}].[{table_name}] tables", test_msg))
     
     lapply(years, function(x) {
       tbl_name <- DBI::Id(schema = schema, table = paste0(table_name, "_", x))
