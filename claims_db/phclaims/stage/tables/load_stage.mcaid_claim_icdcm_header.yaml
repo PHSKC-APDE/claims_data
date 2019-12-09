@@ -5,8 +5,6 @@ index_name: idx_ccs_stage_mcaid_claim_icdcm_header
 vars:
     id_mcaid: VARCHAR(255)
     claim_header_id: BIGINT
-    clm_type_mcaid_id: VARCHAR(20)
-    claim_type_id: TINYINT
     first_service_date: DATE
     last_service_date: DATE
     icdcm_raw: VARCHAR(255)

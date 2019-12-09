@@ -44,7 +44,7 @@ table_config_claim_icdcm_header <- yaml::yaml.load(
 
 #### STEP 1: CREATE TABLE ####
 create_table_f(conn = db_claims,
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_icdcm_header.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.yaml",
                overall = T, ind_yr = F)
 
 
