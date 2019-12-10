@@ -523,6 +523,154 @@ DBI::dbExecute(db_claims,
 # Add index
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##injury] on ##injury(claim_header_id)")
 
+#### STEP 13: CREATE YALE ED MEASURE ####
+
+# Get relevant claims for Yale-ED-Measure
+
+# Logic:
+
+# IF [claim_type_id] = 5 (Provider/Professional) 
+# AND [procedure_code] IN ('99281','99282','99283','99284','99285','99291')
+# AND [place_of_service_code] = '23'
+# THEN [ed_type] = 'Carrier'
+
+# IF [claim_type_id] = 4 (Outpatient Facility)
+# AND [rev_code] IN ('0450','0451','0452','0456','0459','0981')
+# THEN [ed_type] = 'Outpatient'
+
+# IF [claim_type_id] = 1 (Inpatient Facility)
+# AND [rev_code] IN ('0450','0451','0452','0456','0459','0981')
+# THEN [ed_type] = 'Inpatient'
+
+try(DBI::dbRemoveTable(db_claims, "##ed_yale_step_1", temporary = T))
+DBI::dbExecute(db_claims,"
+select
+ [id_mcaid]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
+,'Carrier' as [ed_type]
+into ##ed_yale_step_1
+from [stage].[mcaid_claim_procedure]
+where [procedure_code] in ('99281','99282','99283','99284','99285','99291')
+and [claim_header_id] in 
+(
+select [claim_header_id]
+from [tmp].[mcaid_claim_header]
+where [place_of_service_code] = '23'
+-- [claim_type_id] = 5, Provider/Professional
+and [claim_type_id] = 5
+)
+
+union
+
+select
+ [id_mcaid]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
+,'Outpatient' as [ed_type]
+from [stage].[mcaid_claim_line]
+where [rev_code] in ('0450','0451','0452','0456','0459','0981')
+and [claim_header_id] in 
+(
+select [claim_header_id]
+from [tmp].[mcaid_claim_header]
+-- [claim_type_id] = 4, Outpatient Facility
+where [claim_type_id] = 4
+)
+
+union
+
+select
+ [id_mcaid]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
+,'Inpatient' as [ed_type]
+from [stage].[mcaid_claim_line]
+where [rev_code] in ('0450','0451','0452','0456','0459','0981')
+and [claim_header_id] in 
+(
+select [claim_header_id]
+from [tmp].[mcaid_claim_header]
+-- [claim_type_id] = 1, Inpatient Facility
+where [claim_type_id] = 1
+");
+
+# Label duplicate/adjacent visits with a single [ed_pophealth_id]
+try(DBI::dbRemoveTable(db_claims, "##ed_yale_final", temporary = T))
+DBI::dbExecute(db_claims,"
+WITH [increment_stays_by_person] AS
+(
+SELECT
+ [id_mcaid]
+,[claim_header_id]
+-- If [prior_first_service_date] IS NULL, then it is the first chronological [first_service_date] for the person
+,LAG([first_service_date]) OVER(PARTITION BY [id_mcaid] ORDER BY [first_service_date], [last_service_date], [claim_header_id]) AS [prior_first_service_date]
+,[first_service_date]
+,[last_service_date]
+,[ed_type]
+-- Number of days between consecutive rows
+,DATEDIFF(DAY, LAG([first_service_date]) OVER(PARTITION BY [id_mcaid] 
+ ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) AS [date_diff]
+/*
+Create a chronological (0, 1) indicator column.
+If 0, it is the first ED visit for the person OR the ED visit appears to be a duplicate
+(overlapping service dates) of the prior visit.
+If 1, the prior ED visit appears to be distinct from the following stay.
+This indicator column will be summed to create an episode_id.
+*/
+,CASE WHEN ROW_NUMBER() OVER(PARTITION BY [id_mcaid] 
+      ORDER BY [first_service_date], [last_service_date], [claim_header_id]) = 1 THEN 0
+      WHEN DATEDIFF(DAY, LAG([first_service_date]) OVER(PARTITION BY [id_mcaid]
+	  ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) <= 1 THEN 0
+	  WHEN DATEDIFF(DAY, LAG(first_service_date) OVER(PARTITION BY [id_mcaid]
+	  ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) > 1 THEN 1
+ END AS [increment]
+FROM ##ed_yale_step_1
+--ORDER BY [id_mcaid], [first_service_date], [last_service_date], [claim_header_id]
+),
+
+/*
+Sum [increment] column (Cumulative Sum) within person to create an stay_id that
+combines duplicate/overlapping ED visits.
+*/
+[create_within_person_stay_id] AS
+(
+SELECT
+ [id_mcaid]
+,[claim_header_id]
+,[prior_first_service_date]
+,[first_service_date]
+,[last_service_date]
+,[ed_type]
+,[date_diff]
+,[increment]
+,SUM([increment]) OVER(PARTITION BY [id_mcaid] ORDER BY [first_service_date], [last_service_date], [claim_header_id] ROWS UNBOUNDED PRECEDING) + 1 AS [within_person_stay_id]
+FROM [increment_stays_by_person]
+--ORDER BY [id_mcaid], [first_service_date], [last_service_date], [claim_header_id]
+)
+
+SELECT
+ [id_mcaid]
+,[claim_header_id]
+,[prior_first_service_date]
+,[first_service_date]
+,[last_service_date]
+,[ed_type]
+,[date_diff]
+,[increment]
+,[within_person_stay_id]
+,DENSE_RANK() OVER(ORDER BY [id_mcaid], [within_person_stay_id]) AS [ed_pophealth_id]
+INTO ##ed_yale_final
+FROM [create_within_person_stay_id]
+ORDER BY [id_mcaid], [first_service_date], [last_service_date], [claim_header_id];
+");
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##ed_yale_final] on ##ed_yale_final(claim_header_id)")            
+
 
 #### STEP 13: CREATE FLAGS THAT REQUIRE COMPARISON OF PREVIOUSLY CREATED EVENT-BASED FLAGS ACROSS TIME ####
 try(DBI::dbRemoveTable(db_claims, "##temp2", temporary = T))
@@ -603,6 +751,9 @@ DBI::dbExecute(db_claims,
              ,case when a.ed = 1 and (c.ed_pc_treatable_nyu + c.ed_nonemergent_nyu) > 0.50 then 1 else 0 end as 'ed_nonemergent_nyu'
              ,case when a.ed = 1 and (((c.ed_needed_unavoid_nyu + c.ed_needed_avoid_nyu) = 0.50) or 
                                       ((c.ed_pc_treatable_nyu + c.ed_nonemergent_nyu) = 0.50)) then 1 else 0 end as 'ed_intermediate_nyu'
+									  
+			       --Yale ED MEASURE
+			       ,g.ed_pophealth_id
              
              --Inpatient-related flags
              ,case when a.inpatient = 1 and a.mental_dx1 = 0 and a.newborn_dx1 = 0 and a.maternal_dx1 = 0 then 1 else 0 end as 'ipt_medsurg'
@@ -644,6 +795,8 @@ DBI::dbExecute(db_claims,
              on a.claim_header_id = e.claim_header_id
              left join ##injury as f
              on a.claim_header_id = f.claim_header_id
+			       left join ##ed_yale_final as g
+             on a.claim_header_id = g.claim_header_id			 
            ")
 
 
@@ -683,3 +836,5 @@ try(DBI::dbRemoveTable(db_claims, "##injury10cm", temporary = T))
 try(DBI::dbRemoveTable(db_claims, "##injury", temporary = T))
 try(DBI::dbRemoveTable(db_claims, "##temp2", temporary = T))
 try(DBI::dbRemoveTable(db_claims, "##temp_final", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##ed_yale_step_1", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##ed_yale_final", temporary = T))
