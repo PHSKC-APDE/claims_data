@@ -51,6 +51,7 @@ vars:
     ed_emergent_nyu: TINYINT
     ed_nonemergent_nyu: TINYINT
     ed_intermediate_nyu: TINYINT
+    ed_ed_pophealth_id: BIGINT
     inpatient: TINYINT
     ipt_medsurg: TINYINT
     ipt_bh: TINYINT
