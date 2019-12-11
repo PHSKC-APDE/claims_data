@@ -43,6 +43,7 @@ table_config_claim_icdcm_header <- yaml::yaml.load(
 
 
 #### STEP 1: CREATE TABLE ####
+message("Running step 1: create table shell")
 create_table_f(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.yaml",
                overall = T, ind_yr = F)
@@ -127,9 +128,9 @@ message(glue::glue("Step 2 took {round(difftime(time_end, time_start, units = 's
 
 
 #### STEP 3: ADD INDEX ####
-message("Creating index")
+message("Running step 3: create index")
 time_start <- Sys.time()
-add_index_f(db_claims, table_config = table_config_claim_header)
+add_index_f(db_claims, table_config = table_config_claim_icdcm_header)
 time_end <- Sys.time()
 message(glue::glue("Index creation took {round(difftime(time_end, time_start, units = 'secs'), 2)} ",
                    " secs ({round(difftime(time_end, time_start, units = 'mins'), 2)} mins)"))
