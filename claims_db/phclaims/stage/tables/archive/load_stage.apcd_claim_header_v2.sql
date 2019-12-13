@@ -5,6 +5,9 @@
 --2019-11
 --Run time: 3 hours
 
+--12/13/2019 update:
+--test on 1 person to correct bug in ed_pophealth_id using Philip's new code
+--id_apcd: 23405232395
 
 ------------------
 --STEP 1: Do all line-level transformations that don't require ICD-CM, procedure, or provider information
@@ -48,6 +51,8 @@ into #temp1
 from PHClaims.stage.apcd_medical_claim
 --exclusions
 where denied_claim_flag = 'N' and orphaned_adjustment_flag = 'N'
+	--test code
+	and internal_member_id = 23405232395
 --grouping statement for consolidation to person-header level
 group by internal_member_id, medical_claim_header_id;
 
@@ -69,6 +74,8 @@ left join PHClaims.final.apcd_claim_procedure as b
 on a.medical_claim_header_id = b.claim_header_id
 --exclusions
 where a.denied_claim_flag = 'N' and a.orphaned_adjustment_flag = 'N'
+	--test code
+	and internal_member_id = 23405232395
 --cluster to claim header
 group by a.medical_claim_header_id
 ) as x
@@ -131,6 +138,8 @@ on a.medical_claim_header_id = d.claim_header_id
 
 --exclusions
 where a.denied_claim_flag = 'N' and a.orphaned_adjustment_flag = 'N'
+	--test code
+	and internal_member_id = 23405232395
 --cluster to claim header
 group by a.medical_claim_header_id
 ) as x
@@ -145,6 +154,8 @@ if object_id('tempdb..#charge') is not null drop table #charge;
 select medical_claim_header_id, sum(charge_amt) as charge_amt
 into #charge
 from PHClaims.stage.apcd_medical_claim
+	--test code
+	where internal_member_id = 23405232395
 group by medical_claim_header_id;
 
 
@@ -159,6 +170,8 @@ min(icdcm_version) as icdcm_version
 into #icd1
 from PHClaims.final.apcd_claim_icdcm_header
 where icdcm_number = '01'
+	--test code
+	and id_apcd = 23405232395
 group by claim_header_id;
 
 
@@ -258,131 +271,112 @@ if object_id('tempdb..#temp2') is not null drop table #temp2;
 
 ------------------
 --STEP 8: Conduct overlap and clustering for ED population health measure (Yale measure)
+--Adaptation of Philip's Medicaid code, which is adaptation of Eli's original code
 --Run time: 12 min
 -------------------
+
+-----
+--Union carrier, outpatient and inpatient ED visits
+-----
+--extract carrier ED visits and create left and right matching windows
+if object_id('tempdb..#ed_yale_1') is not null drop table #ed_yale_1;
+select id_apcd, claim_header_id, first_service_date, last_service_date, 'Carrier' as ed_type
+into #ed_yale_1
+from #temp3
+where ed_yale_carrier = 1
+
+union
+select id_apcd, claim_header_id, first_service_date, last_service_date, 'Outpatient' as ed_type
+from #temp3 where ed_yale_opt = 1
+
+union
+select id_apcd, claim_header_id, first_service_date, last_service_date, 'Inpatient' as ed_type
+from #temp3 where ed_yale_ipt = 1;
+
+-----
+--label duplicate/adjacent visits with a single [ed_pophealth_id]
+-----
 
 --Set date of service matching window
 declare @match_window int;
 set @match_window = 1;
 
------
---Overlap between Carrier and outpatient
------
---extract carrier ED visits and create left and right matching windows
-if object_id('tempdb..#ed_yale_1') is not null drop table #ed_yale_1;
-select id_apcd, claim_header_id,
-	first_service_date, dateadd(day, -1*@match_window, first_service_date) as window_left, 
-	dateadd(day, @match_window, first_service_date) as window_right,
-ed_yale_carrier
-into #ed_yale_1
-from #temp3
-where ed_yale_carrier = 1;
+if object_id('tempdb..#ed_yale_final') is not null 
+drop table #ed_yale_final;
+WITH [increment_stays_by_person] AS
+(
+SELECT
+ [id_apcd]
+,[claim_header_id]
+-- If [prior_first_service_date] IS NULL, then it is the first chronological [first_service_date] for the person
+,LAG([first_service_date]) OVER(PARTITION BY [id_apcd] ORDER BY [first_service_date], [last_service_date], [claim_header_id]) AS [prior_first_service_date]
+,[first_service_date]
+,[last_service_date]
+,[ed_type]
+-- Number of days between consecutive rows
+,DATEDIFF(DAY, LAG([first_service_date]) OVER(PARTITION BY [id_apcd] 
+ ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) AS [date_diff]
+/*
+Create a chronological (0, 1) indicator column.
+If 0, it is the first ED visit for the person OR the ED visit appears to be a duplicate
+(overlapping service dates) of the prior visit.
+If 1, the prior ED visit appears to be distinct from the following stay.
+This indicator column will be summed to create an episode_id.
+*/
+,CASE WHEN ROW_NUMBER() OVER(PARTITION BY [id_apcd] 
+      ORDER BY [first_service_date], [last_service_date], [claim_header_id]) = 1 THEN 0
+      WHEN DATEDIFF(DAY, LAG([first_service_date]) OVER(PARTITION BY [id_apcd]
+	  ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) <= @match_window THEN 0
+	  WHEN DATEDIFF(DAY, LAG(first_service_date) OVER(PARTITION BY [id_apcd]
+	  ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) > @match_window THEN 1
+ END AS [increment]
+FROM #ed_yale_1
+--ORDER BY [id_apcd], [first_service_date], [last_service_date], [claim_header_id]
+),
 
---full join with outpatient ED visits by ID
-if object_id('tempdb..#ed_yale_2') is not null drop table #ed_yale_2;
-select a.*, b.id_apcd as ed_opt_id_apcd, b.claim_header_id as ed_opt_claim_header_id, b.first_service_date as ed_opt_date, ed_yale_opt
-into #ed_yale_2
-from #ed_yale_1 a
-full join (select id_apcd, claim_header_id, first_service_date, ed_yale_opt from #temp3 where ed_yale_opt = 1) as b
-on a.id_apcd = b.id_apcd;
+/*
+Sum [increment] column (Cumulative Sum) within person to create an stay_id that
+combines duplicate/overlapping ED visits.
+*/
+[create_within_person_stay_id] AS
+(
+SELECT
+ id_apcd
+,[claim_header_id]
+,[prior_first_service_date]
+,[first_service_date]
+,[last_service_date]
+,[ed_type]
+,[date_diff]
+,[increment]
+,SUM([increment]) OVER(PARTITION BY [id_apcd] ORDER BY [first_service_date], [last_service_date], [claim_header_id] ROWS UNBOUNDED PRECEDING) + 1 AS [within_person_stay_id]
+FROM [increment_stays_by_person]
+--ORDER BY [id_apcd], [first_service_date], [last_service_date], [claim_header_id]
+)
 
---flag outpatient ED visits that are within match window, aggregate to outpatient ED visit date
-if object_id('tempdb..#ed_yale_3') is not null drop table #ed_yale_3;
-select a.ed_opt_id_apcd as id_apcd, a.ed_opt_claim_header_id, a.ed_opt_date, max(a.ed_yale_opt) as ed_yale_opt,
-	max(a.ed_yale_dup) as ed_yale_dup
-into #ed_yale_3
-from (
-select *,
-case
-	when ed_opt_date < window_left or ed_opt_date > window_right then 0
-	else 1
-end as ed_yale_dup
-from #ed_yale_2
-) as a
-where ed_opt_date is not null
-group by a.ed_opt_id_apcd, a.ed_opt_claim_header_id, a.ed_opt_date;
+SELECT
+ id_apcd
+,[claim_header_id]
+,[prior_first_service_date]
+,[first_service_date]
+,[last_service_date]
+,[ed_type]
+,[date_diff]
+,[increment]
+,[within_person_stay_id]
+,DENSE_RANK() OVER(ORDER BY [id_apcd], [within_person_stay_id]) AS [ed_pophealth_id]
 
-------
---Overlap between Carrier/outpatient and inpatient
-------
---prepare new carrier + outpatient table for joining to inpatient
-if object_id('tempdb..#ed_yale_4') is not null drop table #ed_yale_4;
-select id_apcd, claim_header_id, first_service_date, window_left, window_right
-into #ed_yale_4
-from #ed_yale_1
-union
-select id_apcd, ed_opt_claim_header_id as claim_header_id, ed_opt_date as first_service_date,
-	dateadd(day, -1*@match_window, ed_opt_date) as window_left, dateadd(day, @match_window, ed_opt_date) as window_right
-from #ed_yale_3
-where ed_yale_dup = 0;
+,FIRST_VALUE([first_service_date]) OVER(PARTITION BY [id_apcd], [within_person_stay_id] 
+ ORDER BY [id_apcd], [within_person_stay_id] ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS [episode_first_service_date]
+,LAST_VALUE([last_service_date]) OVER(PARTITION BY [id_apcd], [within_person_stay_id] 
+ ORDER BY [id_apcd], [within_person_stay_id] ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS [episode_last_service_date]
 
---full join with inpatient ED visits by ID
-if object_id('tempdb..#ed_yale_5') is not null drop table #ed_yale_5;
-select a.*, b.id_apcd as ed_ipt_id_apcd, b.claim_header_id as ed_ipt_claim_header_id,
-	b.first_service_date as ed_ipt_date, ed_yale_ipt
-into #ed_yale_5
-from #ed_yale_4 a
-full join (select id_apcd, claim_header_id, first_service_date, ed_yale_ipt from #temp3 where ed_yale_ipt = 1) as b
-on a.id_apcd = b.id_apcd;
-
---flag inpatient ED visits that are within match window, aggregate to outpatient ED visit date
-if object_id('tempdb..#ed_yale_6') is not null drop table #ed_yale_6;
-select a.ed_ipt_id_apcd as id_apcd, a.ed_ipt_claim_header_id, a.ed_ipt_date,
-	max(a.ed_yale_ipt) as ed_yale_ipt, max(a.ed_yale_dup) as ed_yale_dup
-into #ed_yale_6
-from (
-select *,
-case
-	when ed_ipt_date < window_left or ed_ipt_date > window_right then 0
-	else 1
-end as ed_yale_dup
-from #ed_yale_5
-) as a
-where ed_ipt_date is not null
-group by a.ed_ipt_id_apcd, a.ed_ipt_claim_header_id, a.ed_ipt_date;
-
---union all ED visits into final table
-if object_id('tempdb..#ed_yale_7') is not null drop table #ed_yale_7;
-select id_apcd, claim_header_id, first_service_date, 'carrier' as ed_type, 0 as ed_yale_dup
-into #ed_yale_7
-from #ed_yale_1
-union select id_apcd, ed_opt_claim_header_id as claim_header_id, ed_opt_date as first_service_date, 'opt' as ed_type, ed_yale_dup
-from #ed_yale_3
-union select id_apcd, ed_ipt_claim_header_id as claim_header_id, ed_ipt_date as first_service_date, 'ipt' as ed_type, ed_yale_dup
-from #ed_yale_6;
-
---assign ED ID to non-duplicate ED visits
-if object_id('tempdb..#ed_yale_8') is not null drop table #ed_yale_8;
-select *,
-case 
-	when ed_yale_dup = 1 then null
-	else dense_rank() over
-		(order by case when ed_yale_dup = 1 then 2 else 1 end, --sorts non-relevant claims to bottom
-		id_apcd, first_service_date)
-end as ed_yale_id
-into #ed_yale_8
-from #ed_yale_7;
-
---spread ED IDs to duplicate ED visits using count window aggregate function
-if object_id('tempdb..#ed_yale_final') is not null drop table #ed_yale_final;
-select a.id_apcd, a.claim_header_id, a.first_service_date, a.ed_type, a.ed_yale_dup,
-	max(a.ed_yale_id) over (partition by a.id_apcd, a.c) as ed_pophealth_id
-into #ed_yale_final
-from (
-	select *,
-	count(ed_yale_id) over (order by id_apcd, first_service_date, ed_yale_dup, ed_type) as c
-	from #ed_yale_8
-) as a;
+INTO #ed_yale_final
+FROM [create_within_person_stay_id]
+ORDER BY id_apcd, [first_service_date], [last_service_date], [claim_header_id];
 
 --drop other temp tables to make space
 if object_id('tempdb..#ed_yale_1') is not null drop table #ed_yale_1;
-if object_id('tempdb..#ed_yale_2') is not null drop table #ed_yale_2;
-if object_id('tempdb..#ed_yale_3') is not null drop table #ed_yale_3;
-if object_id('tempdb..#ed_yale_4') is not null drop table #ed_yale_4;
-if object_id('tempdb..#ed_yale_5') is not null drop table #ed_yale_5;
-if object_id('tempdb..#ed_yale_6') is not null drop table #ed_yale_6;
-if object_id('tempdb..#ed_yale_7') is not null drop table #ed_yale_7;
-if object_id('tempdb..#ed_yale_8') is not null drop table #ed_yale_8;
 
 
 ------------------
