@@ -9,6 +9,7 @@
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05 and 2019-12
 # Revised: Philip Sylling | 2019-12-12 | Added Yale ED Measure, ed_pophealth_id
 # Revised: Philip Sylling | 2019-12-13 | Changed definition of [ed] column to HCA-ARM definition
+# Revised: Philip Sylling | 2019-12-13 | Added [ed_perform_id] which increments [ed] column by unique [id_mcaid], [first_service_date]
 # 
 # Data Pull Run time: XX min
 # Create Index Run Time: XX min
@@ -526,7 +527,7 @@ DBI::dbExecute(db_claims,
 # Add index
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##injury] on ##injury(claim_header_id)")
 
-#### STEP 13: CREATE YALE ED MEASURE ####
+#### STEP 13: CREATE [ed_pophealth_id] (YALE ED MEASURE) and [ed_perform_id] (Increments [ed] column by distinct [id_mcaid], [first_service_date]) ####
 
 # Get relevant claims for Yale-ED-Measure
 
@@ -672,8 +673,19 @@ ORDER BY [id_mcaid], [first_service_date], [last_service_date], [claim_header_id
 ");
 
 # Add index
-DBI::dbExecute(db_claims, "create clustered index [idx_cl_##ed_yale_final] on ##ed_yale_final(claim_header_id)")            
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##ed_yale_final] on ##ed_yale_final(claim_header_id)");
 
+try(DBI::dbRemoveTable(db_claims, "##ed_perform_id", temporary = T))
+DBI::dbExecute(db_claims,"
+SELECT [claim_header_id]
+,case when [ed] = 0 then null
+else dense_rank() over(order by case when [ed] = 0 then 2 else 1 end, [id_mcaid], [first_service_date]) end as [ed_perform_id]
+into ##ed_perform_id
+from ##temp1;
+");
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##ed_perform_id] on ##ed_perform_id(claim_header_id)");
 
 #### STEP 14: CREATE FLAGS THAT REQUIRE COMPARISON OF PREVIOUSLY CREATED EVENT-BASED FLAGS ACROSS TIME ####
 try(DBI::dbRemoveTable(db_claims, "##temp2", temporary = T))
@@ -755,8 +767,10 @@ DBI::dbExecute(db_claims,
              ,case when a.ed = 1 and (((c.ed_needed_unavoid_nyu + c.ed_needed_avoid_nyu) = 0.50) or 
                                       ((c.ed_pc_treatable_nyu + c.ed_nonemergent_nyu) = 0.50)) then 1 else 0 end as 'ed_intermediate_nyu'
 									  
+			       --Increment [ed] column by distinct [id_mcaid], [first_service_date]
+			       ,h.[ed_perform_id]
 			       --Yale ED MEASURE
-			       ,g.ed_pophealth_id
+			       ,g.[ed_pophealth_id]
              
              --Inpatient-related flags
              ,case when a.inpatient = 1 and a.mental_dx1 = 0 and a.newborn_dx1 = 0 and a.maternal_dx1 = 0 then 1 else 0 end as 'ipt_medsurg'
@@ -799,7 +813,9 @@ DBI::dbExecute(db_claims,
              left join ##injury as f
              on a.claim_header_id = f.claim_header_id
 			       left join ##ed_yale_final as g
-             on a.claim_header_id = g.claim_header_id			 
+             on a.claim_header_id = g.claim_header_id			
+			       left join ##ed_perform_id as h
+             on a.claim_header_id = h.claim_header_id			
            ")
 
 
@@ -841,3 +857,4 @@ try(DBI::dbRemoveTable(db_claims, "##temp2", temporary = T))
 try(DBI::dbRemoveTable(db_claims, "##temp_final", temporary = T))
 try(DBI::dbRemoveTable(db_claims, "##ed_yale_step_1", temporary = T))
 try(DBI::dbRemoveTable(db_claims, "##ed_yale_final", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##ed_perform_id", temporary = T))
