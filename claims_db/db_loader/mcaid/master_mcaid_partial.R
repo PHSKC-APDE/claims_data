@@ -94,13 +94,24 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step1.R")
 
 # Run step 2, which processes addresses that were through Informatica and loads to SQL
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step1.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step2.R")
+
+# QA stage.address_clean
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.address_clean_partial.R")
 
 
 ### ref.address_clean
 load_table_from_sql_f(conn = db_claims, 
                       config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
                       truncate = T, truncate_date = F)
+
+# Check appropriate # rows loaded
+rows_ref_new <- as.integer(dbGetQuery(db_claims, "SELECT COUNT (*) AS row_cnt FROM ref.address_clean"))
+
+if (rows_ref != rows_ref_new) {
+  stop("Unexpected number of rows loaded to ref.address_clean")
+}
+
 
 ### stage.address_geocode
 # Currently need to run through manually until all geocoding can be done via R

@@ -340,6 +340,15 @@ adds_coded_load <- adds_coded_joined %>%
   mutate(last_run = Sys.time())
 
 
+#### RENAME FIELDS ####
+# Not currently doing this. Think through more.
+# If doing, need to finish renames here and change YAML file
+# adds_coded_load <- adds_coded_joined %>%
+#   rename(geo_statefp10 = geo_state_code, geo_countyfp10 = geo_county_code,
+#          geo_tractce10 = geo_tract_code, geo_blockce10 = geo_block_code,
+#          geo_block_geoid10 = geo_block_fullcode)
+
+
 #### LOAD TO SQL ####
 # Check how many rows are already in the stage table
 stage_rows_before <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.address_geocode"))
@@ -356,6 +365,14 @@ dbWriteTable(db_claims,
 row_load_ref_geo <- nrow(adds_coded_load)
 stage_rows_after <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.address_geocode"))
 
-if (stage_rows_before + row_load_ref_geo == stage_rows_after == F) {
+if ((stage_rows_before + row_load_ref_geo == stage_rows_after) == F) {
   warning("Number of rows added to stage.address_geocode now expected value")
 }
+
+
+#### CLEAN UP ####
+rm(block, puma, zcta, hra, region, school, kcc_dist, wa_dist, scc_dist)
+rm(stage_rows_before, stage_rows_after, row_load_ref_geo)
+rm(geocode_files, geocode_path, s_shapes, g_shapes)
+rm(geocode_here_f, i, here_url, startindex, app_id, app_code, result)
+rm(list = ls(pattern = "^adds_coded"), adds_here, adds_to_code)

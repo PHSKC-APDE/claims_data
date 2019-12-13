@@ -1,6 +1,9 @@
 
 # This code creates table ([stage].[mcaid_claim_icdcm_header]) to hold DISTINCT 
 # procedure codes in long format for Medicaid claims data
+#
+# It is designed to be run as part of the master Medicaid script:
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 # 
 # SQL script created by: Eli Kern, APDE, PHSKC, 2018-03-21
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05
@@ -21,65 +24,35 @@
 # ,[icdcm_number]
 # ,[last_run]
 
-#### Set up global parameter and call in libraries ####
-options(max.print = 350, tibble.print_max = 50, warning.length = 8170)
 
-library(configr) # Read in YAML files
-library(DBI)
-library(dbplyr)
-library(devtools)
-library(dplyr)
-library(glue)
-library(janitor)
-library(lubridate)
-library(odbc)
-library(openxlsx)
-library(RCurl) # Read files from Github
-library(tidyr)
-library(tidyverse) # Manipulate data
+#### SET UP FUNCTIONS, ETC. ####
+if (!exists("db_claims")) {
+  db_claims <- dbConnect(odbc(), "PHClaims")  
+}
 
-db_claims <- dbConnect(odbc(), "PHClaims")
+if (!exists("create_table_f")) {
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+}
 
-print("Creating stage.mcaid_claim_icdcm_header")
+if (!exists("add_index")) {
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+}
 
-#### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+table_config_claim_icdcm_header <- yaml::yaml.load(
+  RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.yaml"))
 
-step1_sql <- glue::glue_sql("
-if object_id('[stage].[mcaid_claim_icdcm_header]', 'U') is not null
-drop table [stage].[mcaid_claim_icdcm_header];
-create table [stage].[mcaid_claim_icdcm_header]
-([id_mcaid] varchar(255)
-,[claim_header_id] bigint
-,[first_service_date] date
-,[last_service_date] date
-,[icdcm_raw] varchar(255)
-,[icdcm_norm] varchar(255)
-,[icdcm_version] tinyint
-,[icdcm_number] varchar(5)
-,[last_run] datetime)
-on [PRIMARY];
-", .con = conn)
-odbc::dbGetQuery(conn = db_claims, step1_sql)
-dbDisconnect(db_claims)
 
-#### CREATE TABLE ####
-# create_table_f(conn = db_claims, 
-#                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_icdcm_header.yaml",
-#                overall = T, ind_yr = F)
+#### STEP 1: CREATE TABLE ####
+message("Running step 1: create table shell")
+create_table_f(conn = db_claims,
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.yaml",
+               overall = T, ind_yr = F)
 
-db_claims <- dbConnect(odbc(), "PHClaims")
+
+#### step 2: INSERT INTO TABLE ####
 step2_sql <- glue::glue_sql("
 insert into [stage].[mcaid_claim_icdcm_header] with (tablock)
-([id_mcaid]
-,[claim_header_id]
-,[first_service_date]
-,[last_service_date]
-,[icdcm_raw]
-,[icdcm_norm]
-,[icdcm_version]
-,[icdcm_number]
-,[last_run])
+({`names(table_config_claim_icdcm_header$vars)`*})
 
 select distinct
  id_mcaid
@@ -144,33 +117,21 @@ from stage.mcaid_claim
 ) as a
 
 unpivot(diagnoses for dx_number IN ([01], [02], [03], [04], [05], [06], [07], [08], [09], [10], [11], [12], [admit])) as diagnoses;
-", .con = conn)
+", .con = db_claims)
 
-print("Running step 2: Load to [stage].[mcaid_claim_icdcm_header]")
+message("Running step 2: Load to [stage].[mcaid_claim_icdcm_header]")
 time_start <- Sys.time()
-odbc::dbGetQuery(conn = db_claims, step2_sql)
+DBI::dbExecute(conn = db_claims, step2_sql)
 time_end <- Sys.time()
-print(paste0("Step 2 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
-dbDisconnect(db_claims)
+message(glue::glue("Step 2 took {round(difftime(time_end, time_start, units = 'secs'), 2)} ",
+                   " secs ({round(difftime(time_end, time_start, units = 'mins'), 2)} mins)"))
 
-db_claims <- dbConnect(odbc(), "PHClaims")
-step3_sql <- glue::glue_sql("
-create clustered index [idx_cl_mcaid_claim_icdcm_header_claim_header_id_icdcm_number]
-on [stage].[mcaid_claim_icdcm_header]([claim_header_id], [icdcm_number]);
-create nonclustered index [idx_nc_mcaid_claim_icdcm_header_icdcm_version_icdcm_norm] 
-on [stage].[mcaid_claim_icdcm_header]([icdcm_version], [icdcm_norm]);
-create nonclustered index [idx_nc_mcaid_claim_icdcm_header_first_service_date] 
-on [stage].[mcaid_claim_icdcm_header]([first_service_date]);
-", .con = conn)
 
-print("Running step 3: Create Indexes")
+#### STEP 3: ADD INDEX ####
+message("Running step 3: create index")
 time_start <- Sys.time()
-odbc::dbGetQuery(conn = db_claims, step3_sql)
+add_index_f(db_claims, table_config = table_config_claim_icdcm_header)
 time_end <- Sys.time()
-print(paste0("Step 3 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
-dbDisconnect(db_claims)
+message(glue::glue("Index creation took {round(difftime(time_end, time_start, units = 'secs'), 2)} ",
+                   " secs ({round(difftime(time_end, time_start, units = 'mins'), 2)} mins)"))
 

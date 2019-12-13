@@ -239,7 +239,7 @@ load_load_raw.mcaid_claim_partial_f <- function(etl_date_min = NULL,
                      .con = db_claims))
   
 
-  print("All eligibility data loaded to SQL and QA checked")
+  print("All claims data loaded to SQL and QA checked")
 
 }
 
