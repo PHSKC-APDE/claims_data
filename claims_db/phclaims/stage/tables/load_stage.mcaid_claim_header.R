@@ -7,7 +7,8 @@
 # 
 # SQL script created by: Eli Kern, APDE, PHSKC, 2018-03-21
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05 and 2019-12
-# Modified by: Philip Sylling, 2019-06-13
+# Revised: Philip Sylling | 2019-12-12 | Added Yale ED Measure, ed_pophealth_id
+# Revised: Philip Sylling | 2019-12-13 | Changed definition of [ed] column to HCA-ARM definition
 # 
 # Data Pull Run time: XX min
 # Create Index Run Time: XX min
@@ -202,8 +203,9 @@ DBI::dbExecute(db_claims,
            "select 
            claim_header_id
            --ed visits sub-flags
-           ,max(case when rev_code like '045[01269]' or rev_code like '0981' 
-                then 1 else 0 end) as 'ed_rev_code'
+           --,max(case when rev_code like '045[01269]' or rev_code like '0981' then 1 else 0 end) as 'ed_rev_code'
+           --Revised to match HCA-ARM Definition
+           ,max(case when rev_code like '045[01269]' then 1 else 0 end) as 'ed_rev_code'
            --maternity revenue codes
            ,max(case when rev_code in ('0112','0122','0132','0142','0152','0720','0721','0722','0724')
                 then 1 else 0 end) as 'maternal_rev_code'
@@ -280,7 +282,8 @@ DBI::dbExecute(db_claims,
            claim_header_id
            --ed visits sub-flags
            ,max(case when procedure_code like '9928[123458]' then 1 else 0 end) as 'ed_pcode1'
-           ,max(case when procedure_code between '10021' and '69990' then 1 else 0 end) as 'ed_pcode2'
+           -- Dropped to match HCA-ARM Definition
+           --,max(case when procedure_code between '10021' and '69990' then 1 else 0 end) as 'ed_pcode2'
            into ##procedure_code
            from [stage].[mcaid_claim_procedure]
            group by claim_header_id")
@@ -328,9 +331,9 @@ DBI::dbExecute(db_claims,
            ,header.inpatient
            --ED visit (broad definition)
            ,case when header.clm_type_mcaid_id in (3,26,34)
-           and (line.ed_rev_code = 1
-                or procedure_code.ed_pcode1 = 1
-                or (header.place_of_service_code = '23' and ed_pcode2 = 1)) then 1 else 0 end as 'ed'
+           and (line.ed_rev_code = 1 or procedure_code.ed_pcode1 = 1 or header.place_of_service_code = '23') then 1 else 0 end as 'ed'
+           --Revised to match HCA-ARM Definition
+           --and (line.ed_rev_code = 1 or procedure_code.ed_pcode1 = 1 or (header.place_of_service_code = '23' and ed_pcode2 = 1)) then 1 else 0 end as 'ed'
            --Primary diagnosis and version
            
            ,diag.primary_diagnosis
@@ -672,7 +675,7 @@ ORDER BY [id_mcaid], [first_service_date], [last_service_date], [claim_header_id
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##ed_yale_final] on ##ed_yale_final(claim_header_id)")            
 
 
-#### STEP 13: CREATE FLAGS THAT REQUIRE COMPARISON OF PREVIOUSLY CREATED EVENT-BASED FLAGS ACROSS TIME ####
+#### STEP 14: CREATE FLAGS THAT REQUIRE COMPARISON OF PREVIOUSLY CREATED EVENT-BASED FLAGS ACROSS TIME ####
 try(DBI::dbRemoveTable(db_claims, "##temp2", temporary = T))
 DBI::dbExecute(db_claims,
            "select temp1.*, case when ed_nohosp.ed_nohosp = 1 then 1 else 0 end as 'ed_nohosp'
@@ -712,13 +715,13 @@ DBI::dbExecute(db_claims,
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##temp2] on ##temp2(claim_header_id)")
 
 
-#### STEP 14: CREATE FINAL TABLE STRUCTURE ####
+#### STEP 15: CREATE FINAL TABLE STRUCTURE ####
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.yaml",
                overall = T, ind_yr = F, overwrite = T)
 
 
-#### STEP 15: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE) ####
+#### STEP 16: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE) ####
 try(DBI::dbRemoveTable(db_claims, "##temp_final", temporary = T))
 DBI::dbExecute(db_claims,
            "
@@ -800,7 +803,7 @@ DBI::dbExecute(db_claims,
            ")
 
 
-#### STEP 16: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER ####
+#### STEP 17: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER ####
 message("Loading to final table")
 DBI::dbExecute(db_claims,
            glue::glue_sql("INSERT INTO {`table_config_claim_header$to_schema`}.{`table_config_claim_header$to_table`} 
@@ -810,7 +813,7 @@ DBI::dbExecute(db_claims,
                           FROM ##temp_final", .con = db_claims))
 
 
-#### STEP 17: ADD INDEX ####
+#### STEP 18: ADD INDEX ####
 message("Creating index on final table")
 time_start <- Sys.time()
 add_index_f(db_claims, table_config = table_config_claim_header)
@@ -820,7 +823,7 @@ message(glue::glue("Index creation took {round(difftime(time_end, time_start, un
 
 
 
-#### STEP 18: CLEAN UP TEMP TABLES ####
+#### STEP 19: CLEAN UP TEMP TABLES ####
 try(DBI::dbRemoveTable(db_claims, name = DBI::Id(schema = "tmp", table = "mcaid_claim_header")))
 try(DBI::dbRemoveTable(db_claims, "##header", temporary = T))
 try(DBI::dbRemoveTable(db_claims, "##line", temporary = T))
