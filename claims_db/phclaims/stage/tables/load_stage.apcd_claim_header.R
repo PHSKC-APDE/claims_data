@@ -204,9 +204,15 @@ load_stage.apcd_claim_header_f <- function() {
     case when a.ed_perform_temp = 1 and b.kc_clm_type_id = 4 then 1 else 0 end as ed_perform,
     
     --ED population health (Yale measure)
-    case when b.kc_clm_type_id = 5 and e.ed_procedure_code_temp = 1 and a.ed_pos_temp = 1 then 1 else 0 end as ed_yale_carrier,
-    case when b.kc_clm_type_id = 4 and a.ed_revenue_code_temp = 1 then 1 else 0 end as ed_yale_opt,
-    case when b.kc_clm_type_id = 1 and a.ed_revenue_code_temp = 1 then 1 else 0 end as ed_yale_ipt,
+    case when b.kc_clm_type_id = 5 and 
+    	((e.ed_procedure_code_temp = 1 and a.ed_pos_temp = 1) or a.ed_revenue_code_temp = 1)
+    	then 1 else 0 end as ed_yale_carrier,
+    case when b.kc_clm_type_id = 4 and 
+    	(a.ed_revenue_code_temp = 1 or a.ed_pos_temp = 1 or e.ed_procedure_code_temp = 1)
+    	then 1 else 0 end as ed_yale_opt,
+    case when b.kc_clm_type_id = 1 and
+    	(a.ed_revenue_code_temp = 1 or a.ed_pos_temp = 1 or e.ed_procedure_code_temp = 1)
+    	then 1 else 0 end as ed_yale_ipt,
     
     --Inpatient visit
     ipt_flag as inpatient,
