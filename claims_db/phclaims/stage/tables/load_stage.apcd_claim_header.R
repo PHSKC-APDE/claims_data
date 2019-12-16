@@ -498,7 +498,7 @@ qa_stage.apcd_claim_header_f <- function() {
   #verify that ed_pophealth_id does not skip any values
   res9 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_claim_header' as 'table', 'qa1 = distinct ed_pophealth_id, qa2 = max - min + 1' as qa_type,
-    count(distinct ed_pophealth_id) as qa1, max(ed_pophealth_id) - min(ed_pophealth_id) + 1 as qa2
+    count(distinct ed_pophealth_id) as qa1, cast(max(ed_pophealth_id) - min(ed_pophealth_id) + 1 as int) as qa2
     from PHClaims.stage.apcd_claim_header;",
     .con = db_claims))
   
