@@ -266,7 +266,7 @@ system.time(apcd_procedure_qa1 <- qa_stage.apcd_claim_procedure_f())
 rm(apcd_procedure_qa1)
 
 ### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_procedure")
+#alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_procedure")
 
 ### G) Alter schema on new table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_procedure")
@@ -321,7 +321,7 @@ system.time(apcd_provider_qa1 <- qa_stage.apcd_claim_provider_f())
 rm(apcd_provider_qa1)
 
 ### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_provider")
+#alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_provider")
 
 ### G) Alter schema on new table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_provider")
@@ -385,3 +385,47 @@ alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", tab
 
 ### H) Create clustered columnstore index
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_claim_header on final.apcd_claim_header")))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 12: apcd_claim_ccw ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Create table
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml",
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_ccw(conn = db_claims, source = c("apcd")))
+
+### D) Table-level QA
+
+#all members should be in elig_demo table
+apcd_claim_ccw_qa1 <- dbGetQuery(conn = db_claims, glue_sql(
+  "select 'stage.apcd_claim_ccw' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+    count(distinct a.id_apcd) as qa
+    from stage.apcd_claim_ccw as a
+    left join final.apcd_elig_demo as b
+    on a.id_apcd = b.id_apcd
+    where b.id_apcd is null;",
+  .con = db_claims))
+
+#count conditions run
+apcd_claim_ccw_qa2 <- dbGetQuery(conn = db_claims, glue_sql(
+  "select 'stage.apcd_claim_ccw' as 'table', '# conditions, expect 27' as qa_type,
+  count(distinct ccw_code) as qa
+  from PHClaims.stage.apcd_claim_ccw;",
+    .con = db_claims))
+rm(apcd_claim_ccw_qa1, apcd_claim_ccw_qa2)
+
+### E) Run line-level QA script at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.apcd_claim_ccw.sql             
+
+### F) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_ccw")
+
+### G) Alter schema on new table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_ccw")
+
+### H) Create clustered columnstore index
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_claim_ccw on final.apcd_claim_ccw")))
