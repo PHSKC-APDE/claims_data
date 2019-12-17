@@ -77,6 +77,7 @@ create_table_f(db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_partial.yaml",
                overall = T, ind_yr = F, overwrite = F)
 
+# Insert data in
 sql_combine <- glue::glue_sql(
   "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
         ({`vars`*}) 
@@ -91,6 +92,10 @@ sql_combine <- glue::glue_sql(
   date_var = table_config_stage_claim$date_var)
 
 odbc::dbGetQuery(db_claims, sql_combine)
+
+
+#### ADD INDEX ####
+add_index_f(conn = db_claims, table_config = table_config_stage_claim)
 
 
 #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####

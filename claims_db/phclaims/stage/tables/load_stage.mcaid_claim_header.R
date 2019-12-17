@@ -1,10 +1,15 @@
 
 # This code creates table ([tmp].[mcaid_claim_header]) to hold DISTINCT 
 # header-level claim information in long format for Medicaid claims data
+#
+# It is designed to be run as part of the master Medicaid script:
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 # 
 # SQL script created by: Eli Kern, APDE, PHSKC, 2018-03-21
-# R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05
-# Modified by: Philip Sylling, 2019-06-13
+# R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05 and 2019-12
+# Revised: Philip Sylling | 2019-12-12 | Added Yale ED Measure, ed_pophealth_id
+# Revised: Philip Sylling | 2019-12-13 | Changed definition of [ed] column to HCA-ARM definition
+# Revised: Philip Sylling | 2019-12-13 | Added [ed_perform_id] which increments [ed] column by unique [id_mcaid], [first_service_date]
 # 
 # Data Pull Run time: XX min
 # Create Index Run Time: XX min
@@ -85,59 +90,771 @@
 # 
 # ,[last_run]
 
-#### Set up global parameter and call in libraries ####
-options(max.print = 350, tibble.print_max = 50, warning.length = 8170)
 
-library(configr) # Read in YAML files
-library(DBI)
-library(dbplyr)
-library(devtools)
-library(dplyr)
-library(glue)
-library(janitor)
-library(lubridate)
-library(odbc)
-library(openxlsx)
-library(RCurl) # Read files from Github
-library(tidyr)
-library(tidyverse) # Manipulate data
+message("Creating stage.mcaid_claim_header")
 
-db_claims <- dbConnect(odbc(), "PHClaims")
-print("Creating stage.mcaid_claim_header")
+#### SET UP FUNCTIONS, ETC. ####
+if (!exists("db_claims")) {
+  db_claims <- DBI::dbConnect(odbc(), "PHClaims")  
+}
 
-#### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+if (!exists("create_table_f")) {
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+}
 
-step1_sql <- glue::glue_sql("
-EXEC [stage].[sp_mcaid_claim_header];
-", .con = conn)
-odbc::dbGetQuery(conn = db_claims, step1_sql)
-dbDisconnect(db_claims)
+if (!exists("add_index")) {
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+}
 
-db_claims <- dbConnect(odbc(), "PHClaims")
-step2_sql <- glue::glue_sql("
-create clustered index [idx_cl_mcaid_claim_header_claim_header_id] 
-on [stage].[mcaid_claim_header]([claim_header_id]);
-create nonclustered index [idx_nc_mcaid_claim_header_type_of_bill_code] 
-on [stage].[mcaid_claim_header]([type_of_bill_code]);
-create nonclustered index [idx_nc_mcaid_claim_header_clm_type_mcaid_id] 
-on [stage].[mcaid_claim_header]([clm_type_mcaid_id]);
-create nonclustered index [idx_nc_mcaid_claim_header_drvd_drg_code] 
-on [stage].[mcaid_claim_header]([drvd_drg_code]);
-create nonclustered index [idx_nc_mcaid_claim_header_first_service_date] 
-on [stage].[mcaid_claim_header]([first_service_date]);
-create nonclustered index [idx_nc_mcaid_claim_header_id_mcaid] 
-on [stage].[mcaid_claim_header]([id_mcaid]);
-create nonclustered index [idx_nc_mcaid_claim_header_place_of_service_code] 
-on [stage].[mcaid_claim_header]([place_of_service_code]);
-", .con = conn)
+table_config_claim_header <- yaml::yaml.load(
+  RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.yaml"))
 
-print("Running step 2: Create Indexes")
+
+#### STEP 0: SET UP TEMP TABLE ####
+### Remove table if it exists
+try(DBI::dbRemoveTable(db_claims, name = DBI::Id(schema = "tmp", table = "mcaid_claim_header")))
+
+### Set up temp table
+# Could turn this code into a function and add test options if desired
+DBI::dbExecute(db_claims,
+           "select distinct 
+           --top(1000)
+           cast([MEDICAID_RECIPIENT_ID] as varchar(255)) as id_mcaid
+           ,cast([TCN] as bigint) as claim_header_id
+           ,cast([CLM_TYPE_CID] as varchar(20)) as clm_type_mcaid_id
+           ,cast(ref.[kc_clm_type_id] as tinyint) as claim_type_id
+           ,cast([FROM_SRVC_DATE] as date) as first_service_date
+           ,cast([TO_SRVC_DATE] as date) as last_service_date
+           ,cast([PATIENT_STATUS_LKPCD] as varchar(255)) as patient_status
+           ,cast([ADMSN_SOURCE_LKPCD] as varchar(255)) as admsn_source
+           ,cast([ADMSN_DATE] as date) as admsn_date
+           ,cast(timefromparts([ADMSN_HOUR] / 100, [ADMSN_HOUR] % 100, 0, 0, 0) as time(0)) as admsn_time
+           ,cast([DSCHRG_DATE] as date) as dschrg_date
+           ,cast([FCLTY_TYPE_CODE] as varchar(255)) as place_of_service_code
+           ,cast([TYPE_OF_BILL] as varchar(255)) as type_of_bill_code
+           ,cast([CLAIM_STATUS] as tinyint) as clm_status_code
+           ,cast(case when [CLAIM_STATUS] = 71 then [BLNG_NATIONAL_PRVDR_IDNTFR] 
+                 when ([CLAIM_STATUS] = 83 and [NPI] is not null) then [NPI] 
+                 when ([CLAIM_STATUS] = 83 and [NPI] is null) then [BLNG_NATIONAL_PRVDR_IDNTFR] 
+                 end as bigint) as billing_provider_npi
+           ,cast([DRVD_DRG_CODE] as varchar(255)) as drvd_drg_code
+           ,cast([PRIMARY_DIAGNOSIS_POA_LKPCD] as varchar(255)) as primary_diagnosis_poa
+           ,cast([INSRNC_CVRG_CODE] as varchar(255)) as insrnc_cvrg_code
+           ,cast([LAST_PYMNT_DATE] as date) as last_pymnt_date
+           ,cast([BILL_DATE] as date) as bill_date
+           ,cast([SYSTEM_IN_DATE] as date) as system_in_date
+           ,cast([TCN_DATE] as date) as claim_header_id_date
+           
+           into [tmp].[mcaid_claim_header]
+           from [stage].[mcaid_claim] as clm
+           left join [ref].[kc_claim_type_crosswalk] as ref
+           on cast(clm.[CLM_TYPE_CID] as varchar(20)) = ref.[source_clm_type_id]")
+
+
+#### STEP 1: SELECT HEADER-LEVEL INFORMATION NEEDED FOR EVENT FLAGS ####
+try(DBI::dbRemoveTable(db_claims, "##header", temporary = T))
+DBI::dbExecute(db_claims,
+           "select 
+           id_mcaid
+           ,claim_header_id
+           ,clm_type_mcaid_id
+           ,claim_type_id
+           ,first_service_date
+           ,last_service_date
+           ,patient_status
+           ,admsn_source
+           ,admsn_date
+           ,admsn_time
+           ,dschrg_date
+           ,place_of_service_code
+           ,type_of_bill_code
+           ,clm_status_code
+           ,billing_provider_npi
+           ,drvd_drg_code
+           ,primary_diagnosis_poa
+           ,insrnc_cvrg_code
+           ,last_pymnt_date
+           ,bill_date
+           ,system_in_date
+           ,claim_header_id_date
+           
+           --inpatient stay
+           ,case when clm_type_mcaid_id in (31,33) then 1 else 0 end as 'inpatient'
+           --mental health-related DRG
+           ,case when drvd_drg_code between '876' and '897' or 
+            drvd_drg_code between '945' and '946' then 1 else 0 end as 'mh_drg'
+           --newborn/liveborn infant-related DRG
+           ,case when drvd_drg_code between '789' and '795' then 1 else 0 end as 'newborn_drg'
+           --maternity-related DRG or type of bill
+           ,case when type_of_bill_code in 
+           ('840','841','842','843','844','845','847','848','84F','84G','84H',
+              '84I','84J','84K','84M','84O','84X','84Y','84Z') or 
+              drvd_drg_code between '765' and '782' 
+           then 1 else 0 end as 'maternal_drg_tob'
+           into ##header
+           from [tmp].[mcaid_claim_header]")
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index idx_cl_##header on ##header(claim_header_id)")
+
+
+#### STEP 2: SELECT LINE-LEVEL INFORMATION NEEDED FOR EVENT FLAGS ####
+try(DBI::dbRemoveTable(db_claims, "##line", temporary = T))
+DBI::dbExecute(db_claims,
+           "select 
+           claim_header_id
+           --ed visits sub-flags
+           --,max(case when rev_code like '045[01269]' or rev_code like '0981' then 1 else 0 end) as 'ed_rev_code'
+           --Revised to match HCA-ARM Definition
+           ,max(case when rev_code like '045[01269]' then 1 else 0 end) as 'ed_rev_code'
+           --maternity revenue codes
+           ,max(case when rev_code in ('0112','0122','0132','0142','0152','0720','0721','0722','0724')
+                then 1 else 0 end) as 'maternal_rev_code'
+           into ##line
+           from [stage].[mcaid_claim_line]
+           group by claim_header_id")
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index idx_cl_##line on ##line(claim_header_id)")
+
+
+#### STEP 3: SELECT DX CODE INFORMATION NEEDED FOR EVENT FLAGS ####
+try(DBI::dbRemoveTable(db_claims, "##diag", temporary = T))
+DBI::dbExecute(db_claims,
+           "select claim_header_id
+           --primary diagnosis code with version
+           ,max(case when icdcm_number = '01' then icdcm_norm else null end) as primary_diagnosis
+           ,max(case when icdcm_number = '01' then icdcm_version else null end) as icdcm_version
+           --mental health-related primary diagnosis (HEDIS 2017)
+           ,max(case when icdcm_number = '01'
+                and ((icdcm_norm between '290' and '316' and icdcm_version = 9)
+                     or (icdcm_norm between 'F03' and 'F0391' and icdcm_version = 10)
+                     or (icdcm_norm between 'F10' and 'F69' and icdcm_version = 10)
+                     or (icdcm_norm between 'F80' and 'F99' and icdcm_version = 10))
+                then 1 else 0 end) as 'dx1_mental'
+           --mental health-related, any diagnosis (HEDIS 2017)
+           ,max(case when ((icdcm_norm between '290' and '316' and icdcm_version = 9)
+                           or (icdcm_norm between 'F03' and 'F0391' and icdcm_version = 10)
+                           or (icdcm_norm between 'F10' and 'F69' and icdcm_version = 10)
+                           or (icdcm_norm between 'F80' and 'F99' and icdcm_version = 10))
+                then 1 else 0 end) as 'dxany_mental'
+           --newborn-related primary diagnosis (HEDIS 2017)
+           ,max(case when icdcm_number = '01'
+                and ((icdcm_norm between 'V30' and 'V39' and icdcm_version = 9)
+                     or (icdcm_norm between 'Z38' and 'Z389' and icdcm_version = 10))
+                then 1 else 0 end) as 'dx1_newborn'
+           --maternity-related primary diagnosis (HEDIS 2017)
+           ,max(case when icdcm_number = '01'
+                and ((icdcm_norm between '630' and '679' and icdcm_version = 9)
+                     or (icdcm_norm between 'V24' and 'V242' and icdcm_version = 9)
+                     or (icdcm_norm between 'O00' and 'O9279' and icdcm_version = 10)
+                     or (icdcm_norm between 'O98' and 'O9989' and icdcm_version = 10)
+                     or (icdcm_norm between 'O9A' and 'O9A53' and icdcm_version = 10)
+                     or (icdcm_norm between 'Z0371' and 'Z0379' and icdcm_version = 10)
+                     or (icdcm_norm between 'Z332' and 'Z3329' and icdcm_version = 10)
+                     or (icdcm_norm between 'Z39' and 'Z3909' and icdcm_version = 10))
+                then 1 else 0 end) as 'dx1_maternal'
+           --maternity-related primary diagnosis (broader)
+           ,max(case when icdcm_number = '01'
+                and ((icdcm_norm between '630' and '679' and icdcm_version = 9)
+                     or (icdcm_norm between 'V20' and 'V29' and icdcm_version = 9) /*broader*/
+                       or (icdcm_norm between 'O00' and 'O9279' and icdcm_version = 10)
+                     or (icdcm_norm between 'O94' and 'O9989' and icdcm_version = 10) /*broader*/
+                       or (icdcm_norm between 'O9A' and 'O9A53' and icdcm_version = 10)
+                     or (icdcm_norm between 'Z0371' and 'Z0379' and icdcm_version = 10)
+                     or (icdcm_norm between 'Z30' and 'Z392' and icdcm_version = 10) /*broader*/
+                       or (icdcm_norm between 'Z3A0' and 'Z3A49' and icdcm_version = 10)) /*broader*/
+                  then 1 else 0 end) as 'dx1_maternal_broad'
+           --SDOH-related (any diagnosis)
+           ,max(case when icdcm_norm between 'Z55' and 'Z659' and icdcm_version = 10
+                then 1 else 0 end) as 'sdoh_any'
+           into ##diag
+           from [final].[mcaid_claim_icdcm_header]
+           group by claim_header_id")
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index idx_cl_##diag on ##diag(claim_header_id)")
+
+
+#### STEP 4: SELECT PROCEDURE CODE INFORMATION NEEDED FOR EVENT FLAGS ####
+try(DBI::dbRemoveTable(db_claims, "##procedure_code", temporary = T))
+DBI::dbExecute(db_claims,
+           "select 
+           claim_header_id
+           --ed visits sub-flags
+           ,max(case when procedure_code like '9928[123458]' then 1 else 0 end) as 'ed_pcode1'
+           -- Dropped to match HCA-ARM Definition
+           --,max(case when procedure_code between '10021' and '69990' then 1 else 0 end) as 'ed_pcode2'
+           into ##procedure_code
+           from [stage].[mcaid_claim_procedure]
+           group by claim_header_id")
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index idx_cl_#procedure_code on ##procedure_code(claim_header_id)")
+
+
+#### STEP 5: CREATE TEMP SUMMARY CLAIMS TABLE WITH EVENT-BASED FLAGS ####
+try(DBI::dbRemoveTable(db_claims, "##temp1", temporary = T))
+DBI::dbExecute(db_claims,
+           "select 
+           header.id_mcaid
+           ,header.claim_header_id
+           ,header.clm_type_mcaid_id
+           ,header.claim_type_id
+           ,header.first_service_date
+           ,header.last_service_date
+           ,header.patient_status
+           ,header.admsn_source
+           ,admsn_date
+           ,admsn_time
+           ,dschrg_date
+           ,insrnc_cvrg_code
+           ,last_pymnt_date
+           ,bill_date
+           ,system_in_date
+           ,claim_header_id_date
+           ,header.place_of_service_code
+           ,header.type_of_bill_code
+           ,header.clm_status_code
+           ,header.billing_provider_npi
+           ,header.drvd_drg_code
+           --Mental health-related primary diagnosis
+           ,case when header.mh_drg = 1 or diag.dx1_mental = 1 then 1 else 0 end as 'mental_dx1'
+           --Mental health-related, any diagnosis
+           ,case when header.mh_drg = 1 or diag.dxany_mental = 1 then 1 else 0 end as 'mental_dxany'
+           --Maternity-related care (primary diagnosis only)
+           ,case when header.maternal_drg_tob = 1 or line.maternal_rev_code = 1 or diag.dx1_maternal = 1 then 1 else 0 end as 'maternal_dx1'
+           --Maternity-related care (primary diagnosis only), broader definition for diagnosis codes
+           ,case when header.maternal_drg_tob = 1 or line.maternal_rev_code = 1 or diag.dx1_maternal_broad = 1 then 1 else 0 end as 'maternal_broad_dx1'
+           --Newborn-related care (prim. diagnosis only)
+           ,case when header.newborn_drg = 1 or diag.dx1_newborn = 1 then 1 else 0 end as 'newborn_dx1'
+           --Inpatient stay flag
+           ,header.inpatient
+           --ED visit (broad definition)
+           ,case when header.clm_type_mcaid_id in (3,26,34)
+           and (line.ed_rev_code = 1 or procedure_code.ed_pcode1 = 1 or header.place_of_service_code = '23') then 1 else 0 end as 'ed'
+           --Revised to match HCA-ARM Definition
+           --and (line.ed_rev_code = 1 or procedure_code.ed_pcode1 = 1 or (header.place_of_service_code = '23' and ed_pcode2 = 1)) then 1 else 0 end as 'ed'
+           --Primary diagnosis and version
+           
+           ,diag.primary_diagnosis
+           ,diag.icdcm_version
+           ,header.primary_diagnosis_poa
+           --SDOH flags
+           ,diag.sdoh_any
+           
+           into ##temp1
+           from ##header as header
+           left join ##line as line 
+           on header.claim_header_id = line.claim_header_id
+           left join ##diag as diag 
+           on header.claim_header_id = diag.claim_header_id
+           left join ##procedure_code as procedure_code 
+           on header.claim_header_id = procedure_code.claim_header_id")
+
+
+#### STEP 6: AVOIDABLE ED VISIT FLAG, CALIFORNIA ALGORITHM ####
+try(DBI::dbRemoveTable(db_claims, "##avoid_ca", temporary = T))
+DBI::dbExecute(db_claims,
+           "select 
+           b.claim_header_id
+           ,max(a.ed_avoid_ca) as 'ed_avoid_ca'
+           into ##avoid_ca
+           from (select dx, dx_ver, ed_avoid_ca from [ref].[dx_lookup] where ed_avoid_ca = 1) as a
+           inner join (select claim_header_id, icdcm_norm, icdcm_version from [final].[mcaid_claim_icdcm_header] where icdcm_number = '01') as b
+           on (a.dx_ver = b.icdcm_version) and (a.dx = b.icdcm_norm)
+           group by b.claim_header_id")
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##avoid_ca] on ##avoid_ca(claim_header_id)")
+
+
+#### STEP 7: ED CLASSIFICATION, NYU ALGORITHM ####
+try(DBI::dbRemoveTable(db_claims, "##avoid_nyu'", temporary = T))
+DBI::dbExecute(db_claims,
+           "select 
+           b.claim_header_id
+           ,a.ed_needed_unavoid_nyu
+           ,a.ed_needed_avoid_nyu
+           ,a.ed_pc_treatable_nyu
+           ,a.ed_nonemergent_nyu
+           ,a.ed_mh_nyu
+           ,a.ed_sud_nyu
+           ,a.ed_alc_nyu
+           ,a.ed_injury_nyu
+           ,a.ed_unclass_nyu
+           into ##avoid_nyu
+           from [ref].[dx_lookup] as a
+           inner join (select claim_header_id, icdcm_norm, icdcm_version 
+           from [final].[mcaid_claim_icdcm_header] where icdcm_number = '01') as b
+           on a.dx_ver = b.icdcm_version and a.dx = b.icdcm_norm")
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##avoid_nyu] on ##avoid_nyu(claim_header_id)")
+
+
+#### STEP 8: CCS GROUPINGS (CCS, CCS-LEVEL 1, CCS-LEVEL 2), PRIMARY DX, FINAL CATEGORIZATION ####
+try(DBI::dbRemoveTable(db_claims, "##ccs'", temporary = T))
+DBI::dbExecute(db_claims,
+           "select 
+           b.claim_header_id
+           ,a.ccs
+           ,a.ccs_description
+           ,a.ccs_description_plain_lang
+           ,a.multiccs_lv1
+           ,a.multiccs_lv1_description
+           ,a.multiccs_lv2
+           ,a.multiccs_lv2_description
+           ,a.multiccs_lv2_plain_lang
+           ,a.ccs_final_code
+           ,a.ccs_final_description
+           ,a.ccs_final_plain_lang
+           into ##ccs
+           from [ref].[dx_lookup] as a
+           inner join (select claim_header_id, icdcm_norm, icdcm_version 
+           from [final].[mcaid_claim_icdcm_header] where icdcm_number = '01') as b
+           on a.dx_ver = b.icdcm_version and a.dx = b.icdcm_norm")
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##ccs] on ##ccs(claim_header_id)")
+
+
+#### STEP 9: RDA MENTAL HEALTH AND SUBSTANCE USE DISORDER DX FLAGS, ANY DX ####
+try(DBI::dbRemoveTable(db_claims, "##rda'", temporary = T))
+DBI::dbExecute(db_claims,
+           "select 
+           b.claim_header_id
+           ,max(a.mental_dx_rda) as 'mental_dx_rda_any'
+           ,max(a.sud_dx_rda) as 'sud_dx_rda_any'
+           into ##rda
+           from [ref].[dx_lookup] as a
+           inner join [final].[mcaid_claim_icdcm_header] as b
+           on a.dx_ver = b.icdcm_version and a.dx = b.icdcm_norm
+           group by b.claim_header_id")
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##rda] on ##rda(claim_header_id)")
+
+
+#### STEP 10: INJURY INTENT AND MECHANISM, ICD9-CM ####
+try(DBI::dbRemoveTable(db_claims, "##injury9cm", temporary = T))
+DBI::dbExecute(db_claims,
+           "select 
+           c.claim_header_id
+           ,c.intent
+           ,c.mechanism
+           into ##injury9cm
+           from 
+           (
+             --find external cause codes (ICD9-CM) for each TCN, then rank by diagnosis number
+             select 
+             b.claim_header_id
+             ,intent
+             ,mechanism
+             ,row_number() over (partition by b.claim_header_id order by b.icdcm_number) as 'diag_rank'
+             from (select dx, intent, mechanism from [ref].[dx_lookup] where intent is not null and dx_ver = 9) as a
+             inner join (select claim_header_id, icdcm_norm, icdcm_number from [final].[mcaid_claim_icdcm_header] where icdcm_version = 9) as b
+             on (a.dx = b.icdcm_norm)
+           ) as c
+           --only keep the highest ranked external cause code per claim
+           where c.diag_rank = 1")
+
+
+#### STEP 10: INJURY INTENT AND MECHANISM, ICD10-CM ####
+try(DBI::dbRemoveTable(db_claims, "##injury10cm", temporary = T))
+DBI::dbExecute(db_claims,
+           "select 
+           b.claim_header_id
+           into ##inj10_temp1
+           from (select dx, injury_icd10cm from [ref].[dx_lookup] where injury_icd10cm = 1 and dx_ver = 10) as a
+           inner join (select claim_header_id, icdcm_norm from [final].[mcaid_claim_icdcm_header] where icdcm_number = '01' and icdcm_version = 10) as b
+           on a.dx = b.icdcm_norm;
+           
+           --grab the full list of diagnosis codes for these injury claims
+           if object_id('tempdb..#inj10_temp2') is not null 
+           drop table ##inj10_temp2;
+           select 
+           b.claim_header_id
+           ,b.icdcm_norm
+           ,b.icdcm_number
+           into ##inj10_temp2
+           from ##inj10_temp1 as a
+           inner join (select claim_header_id, icdcm_norm, icdcm_number from [final].[mcaid_claim_icdcm_header] where icdcm_version = 10) as b
+           on a.claim_header_id = b.claim_header_id;
+           
+           --grab the highest ranked external cause code for each injury claim
+           if object_id('tempdb..#injury10cm') is not null 
+           drop table ##injury10cm;
+           select 
+           c.claim_header_id
+           ,c.intent
+           ,c.mechanism
+           into ##injury10cm
+           from 
+           (
+             select 
+             b.claim_header_id
+             ,intent
+             ,mechanism
+             ,row_number() over (partition by b.claim_header_id order by b.icdcm_number) as 'diag_rank'
+             from (select dx, dx_ver, intent, mechanism from [ref].[dx_lookup] where intent is not null and dx_ver = 10) as a
+             inner join ##inj10_temp2 as b
+             on a.dx = b.icdcm_norm
+           ) as c
+           where c.diag_rank = 1")
+
+# Clean up temp tables from this stage
+try(DBI::dbRemoveTable(db_claims, "##inj10_temp1", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##inj10_temp2", temporary = T))
+
+
+#### STEP 12: UNION ICD9-CM AND ICD10-CM INJURY TABLES ####
+try(DBI::dbRemoveTable(db_claims, "##injury", temporary = T))
+DBI::dbExecute(db_claims,
+           "select 
+           claim_header_id
+           ,intent
+           ,mechanism 
+           into ##injury 
+           from ##injury9cm
+           union
+           select 
+           claim_header_id
+           ,intent
+           ,mechanism 
+           from ##injury10cm")
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##injury] on ##injury(claim_header_id)")
+
+#### STEP 13: CREATE [ed_pophealth_id] (YALE ED MEASURE) and [ed_perform_id] (Increments [ed] column by distinct [id_mcaid], [first_service_date]) ####
+
+# Get relevant claims for Yale-ED-Measure
+
+# Logic:
+
+# IF [claim_type_id] = 5 (Provider/Professional) 
+# AND [procedure_code] IN ('99281','99282','99283','99284','99285','99291')
+# AND [place_of_service_code] = '23'
+# THEN [ed_type] = 'Carrier'
+
+# IF [claim_type_id] = 4 (Outpatient Facility)
+# AND [rev_code] IN ('0450','0451','0452','0456','0459','0981')
+# THEN [ed_type] = 'Outpatient'
+
+# IF [claim_type_id] = 1 (Inpatient Facility)
+# AND [rev_code] IN ('0450','0451','0452','0456','0459','0981')
+# THEN [ed_type] = 'Inpatient'
+
+try(DBI::dbRemoveTable(db_claims, "##ed_yale_step_1", temporary = T))
+DBI::dbExecute(db_claims,"
+select
+ [id_mcaid]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
+,'Carrier' as [ed_type]
+into ##ed_yale_step_1
+from [stage].[mcaid_claim_procedure]
+where [procedure_code] in ('99281','99282','99283','99284','99285','99291')
+and [claim_header_id] in 
+(
+select [claim_header_id]
+from [tmp].[mcaid_claim_header]
+where [place_of_service_code] = '23'
+-- [claim_type_id] = 5, Provider/Professional
+and [claim_type_id] = 5
+)
+
+union
+
+select
+ [id_mcaid]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
+,'Outpatient' as [ed_type]
+from [stage].[mcaid_claim_line]
+where [rev_code] in ('0450','0451','0452','0456','0459','0981')
+and [claim_header_id] in 
+(
+select [claim_header_id]
+from [tmp].[mcaid_claim_header]
+-- [claim_type_id] = 4, Outpatient Facility
+where [claim_type_id] = 4
+)
+
+union
+
+select
+ [id_mcaid]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
+,'Inpatient' as [ed_type]
+from [stage].[mcaid_claim_line]
+where [rev_code] in ('0450','0451','0452','0456','0459','0981')
+and [claim_header_id] in 
+(
+select [claim_header_id]
+from [tmp].[mcaid_claim_header]
+-- [claim_type_id] = 1, Inpatient Facility
+where [claim_type_id] = 1
+");
+
+# Label duplicate/adjacent visits with a single [ed_pophealth_id]
+try(DBI::dbRemoveTable(db_claims, "##ed_yale_final", temporary = T))
+DBI::dbExecute(db_claims,"
+WITH [increment_stays_by_person] AS
+(
+SELECT
+ [id_mcaid]
+,[claim_header_id]
+-- If [prior_first_service_date] IS NULL, then it is the first chronological [first_service_date] for the person
+,LAG([first_service_date]) OVER(PARTITION BY [id_mcaid] ORDER BY [first_service_date], [last_service_date], [claim_header_id]) AS [prior_first_service_date]
+,[first_service_date]
+,[last_service_date]
+,[ed_type]
+-- Number of days between consecutive rows
+,DATEDIFF(DAY, LAG([first_service_date]) OVER(PARTITION BY [id_mcaid] 
+ ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) AS [date_diff]
+/*
+Create a chronological (0, 1) indicator column.
+If 0, it is the first ED visit for the person OR the ED visit appears to be a duplicate
+(overlapping service dates) of the prior visit.
+If 1, the prior ED visit appears to be distinct from the following stay.
+This indicator column will be summed to create an episode_id.
+*/
+,CASE WHEN ROW_NUMBER() OVER(PARTITION BY [id_mcaid] 
+      ORDER BY [first_service_date], [last_service_date], [claim_header_id]) = 1 THEN 0
+      WHEN DATEDIFF(DAY, LAG([first_service_date]) OVER(PARTITION BY [id_mcaid]
+	  ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) <= 1 THEN 0
+	  WHEN DATEDIFF(DAY, LAG(first_service_date) OVER(PARTITION BY [id_mcaid]
+	  ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) > 1 THEN 1
+ END AS [increment]
+FROM ##ed_yale_step_1
+--ORDER BY [id_mcaid], [first_service_date], [last_service_date], [claim_header_id]
+),
+
+/*
+Sum [increment] column (Cumulative Sum) within person to create an stay_id that
+combines duplicate/overlapping ED visits.
+*/
+[create_within_person_stay_id] AS
+(
+SELECT
+ [id_mcaid]
+,[claim_header_id]
+,[prior_first_service_date]
+,[first_service_date]
+,[last_service_date]
+,[ed_type]
+,[date_diff]
+,[increment]
+,SUM([increment]) OVER(PARTITION BY [id_mcaid] ORDER BY [first_service_date], [last_service_date], [claim_header_id] ROWS UNBOUNDED PRECEDING) + 1 AS [within_person_stay_id]
+FROM [increment_stays_by_person]
+--ORDER BY [id_mcaid], [first_service_date], [last_service_date], [claim_header_id]
+)
+
+SELECT
+ [id_mcaid]
+,[claim_header_id]
+,[prior_first_service_date]
+,[first_service_date]
+,[last_service_date]
+,[ed_type]
+,[date_diff]
+,[increment]
+,[within_person_stay_id]
+,DENSE_RANK() OVER(ORDER BY [id_mcaid], [within_person_stay_id]) AS [ed_pophealth_id]
+INTO ##ed_yale_final
+FROM [create_within_person_stay_id]
+ORDER BY [id_mcaid], [first_service_date], [last_service_date], [claim_header_id];
+");
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##ed_yale_final] on ##ed_yale_final(claim_header_id)");
+
+try(DBI::dbRemoveTable(db_claims, "##ed_perform_id", temporary = T))
+DBI::dbExecute(db_claims,"
+SELECT [claim_header_id]
+,case when [ed] = 0 then null
+else dense_rank() over(order by case when [ed] = 0 then 2 else 1 end, [id_mcaid], [first_service_date]) end as [ed_perform_id]
+into ##ed_perform_id
+from ##temp1;
+");
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##ed_perform_id] on ##ed_perform_id(claim_header_id)");
+
+#### STEP 14: CREATE FLAGS THAT REQUIRE COMPARISON OF PREVIOUSLY CREATED EVENT-BASED FLAGS ACROSS TIME ####
+try(DBI::dbRemoveTable(db_claims, "##temp2", temporary = T))
+DBI::dbExecute(db_claims,
+           "select temp1.*, case when ed_nohosp.ed_nohosp = 1 then 1 else 0 end as 'ed_nohosp'
+           into ##temp2
+           from ##temp1 as temp1
+           --ED flag that rules out visits with an inpatient stay within 24hrs
+           left join (
+             select y.id_mcaid, y.claim_header_id, ed_nohosp = 1
+             from (
+               --group by ID and ED visit date and take minimum difference to get closest inpatient stay
+               select distinct x.id_mcaid, x.claim_header_id, min(x.eh_ddiff) as 'eh_ddiff_pmin'
+               from (
+                 select distinct e.id_mcaid, ed_date = e.first_service_date, hosp_date = h.first_service_date, claim_header_id,
+                 --create field that calculates difference in days between each ED visit and following inpatient stay
+                 --set to null when comparison is between ED visits and PRIOR inpatient stays
+                 case
+                 when datediff(dd, e.first_service_date, h.first_service_date) >=0 then datediff(dd, e.first_service_date, h.first_service_date)
+                 else null
+                 end as 'eh_ddiff'
+                 from ##temp1 as e
+                 left join (
+                   select distinct id_mcaid, first_service_date
+                   from ##temp1
+                   where inpatient = 1
+                 ) as h
+                 on e.id_mcaid = h.id_mcaid
+                 where e.ed = 1
+               ) as x
+               group by x.id_mcaid, x.claim_header_id
+             ) as y
+             where y.eh_ddiff_pmin > 1 or y.eh_ddiff_pmin is null
+           ) ed_nohosp
+           on temp1.claim_header_id = ed_nohosp.claim_header_id")
+
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##temp2] on ##temp2(claim_header_id)")
+
+
+#### STEP 15: CREATE FINAL TABLE STRUCTURE ####
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.yaml",
+               overall = T, ind_yr = F, overwrite = T)
+
+
+#### STEP 16: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE) ####
+try(DBI::dbRemoveTable(db_claims, "##temp_final", temporary = T))
+DBI::dbExecute(db_claims,
+           "
+             select 
+             a.*
+               --ED-related flags
+             ,case when a.ed = 1 and a.mental_dxany = 1 then 1 else 0 end as 'ed_bh'
+             ,case when a.ed = 1 and b.ed_avoid_ca = 1 then 1 else 0 end as 'ed_avoid_ca'
+             ,case when a.ed_nohosp = 1 and b.ed_avoid_ca = 1 then 1 else 0 end as 'ed_avoid_ca_nohosp'
+             
+             --original nine categories of NYU ED algorithm
+             ,case when a.ed = 1 and c.ed_nonemergent_nyu > 0.50 then 1 else 0 end as 'ed_ne_nyu'
+             ,case when a.ed = 1 and c.ed_pc_treatable_nyu > 0.50 then 1 else 0 end as 'ed_pct_nyu'
+             ,case when a.ed = 1 and c.ed_needed_avoid_nyu > 0.50 then 1 else 0 end as 'ed_pa_nyu'
+             ,case when a.ed = 1 and c.ed_needed_unavoid_nyu > 0.50 then 1 else 0 end as 'ed_npa_nyu'
+             ,case when a.ed = 1 and c.ed_mh_nyu > 0.50 then 1 else 0 end as 'ed_mh_nyu'
+             ,case when a.ed = 1 and c.ed_sud_nyu > 0.50 then 1 else 0 end as 'ed_sud_nyu'
+             ,case when a.ed = 1 and c.ed_alc_nyu > 0.50 then 1 else 0 end as 'ed_alc_nyu'
+             ,case when a.ed = 1 and c.ed_injury_nyu > 0.50 then 1 else 0 end as 'ed_injury_nyu'
+             
+             ,case when a.ed = 1 and ((c.ed_unclass_nyu > 0.50)  or 
+                                      (c.ed_nonemergent_nyu <= 0.50 and c.ed_pc_treatable_nyu <= 0.50
+                                        and c.ed_needed_avoid_nyu <= 0.50 and c.ed_needed_unavoid_nyu <= 0.50 
+                                        and c.ed_mh_nyu <= 0.50 and c.ed_sud_nyu <= 0.50
+                                        and c.ed_alc_nyu <= 0.50 and c.ed_injury_nyu <= 0.50 and c.ed_unclass_nyu <= 0.50))
+             then 1 else 0 end as 'ed_unclass_nyu'
+             
+             --collapsed 3 categories of NYU ED algorithm based on Ghandi et al.
+             ,case when a.ed = 1 and (c.ed_needed_unavoid_nyu + c.ed_needed_avoid_nyu) > 0.50 then 1 else 0 end as 'ed_emergent_nyu'
+             ,case when a.ed = 1 and (c.ed_pc_treatable_nyu + c.ed_nonemergent_nyu) > 0.50 then 1 else 0 end as 'ed_nonemergent_nyu'
+             ,case when a.ed = 1 and (((c.ed_needed_unavoid_nyu + c.ed_needed_avoid_nyu) = 0.50) or 
+                                      ((c.ed_pc_treatable_nyu + c.ed_nonemergent_nyu) = 0.50)) then 1 else 0 end as 'ed_intermediate_nyu'
+									  
+			       --Increment [ed] column by distinct [id_mcaid], [first_service_date]
+			       ,h.[ed_perform_id]
+			       --Yale ED MEASURE
+			       ,g.[ed_pophealth_id]
+             
+             --Inpatient-related flags
+             ,case when a.inpatient = 1 and a.mental_dx1 = 0 and a.newborn_dx1 = 0 and a.maternal_dx1 = 0 then 1 else 0 end as 'ipt_medsurg'
+             ,case when a.inpatient = 1 and a.mental_dxany = 1 then 1 else 0 end as 'ipt_bh'
+             
+             --Injuries
+             ,f.intent
+             ,f.mechanism
+             
+             --CCS
+             ,d.ccs
+             ,d.ccs_description
+             ,d.ccs_description_plain_lang
+             ,d.multiccs_lv1 as 'ccs_mult1'
+             ,d.multiccs_lv1_description as 'ccs_mult1_description'
+             ,d.multiccs_lv2 as 'ccs_mult2'
+             ,d.multiccs_lv2_description as 'ccs_mult2_description'
+             ,d.multiccs_lv2_plain_lang as 'ccs_mult2_plain_lang'
+             ,d.ccs_final_description
+             ,d.ccs_final_plain_lang
+             
+             --RDA MH and SUD flags
+             ,case when e.mental_dx_rda_any = 1 then 1 else 0 end as 'mental_dx_rda_any'
+             ,case when e.sud_dx_rda_any = 1 then 1 else 0 end as 'sud_dx_rda_any'
+             
+             --SDOH ED and IPT flags
+             ,case when a.ed = 1 and a.sdoh_any = 1 then 1 else 0 end as 'ed_sdoh'
+             ,case when a.inpatient = 1 and a.sdoh_any = 1 then 1 else 0 end as 'ipt_sdoh'
+             
+             into ##temp_final
+             from ##temp2 as a
+             left join ##avoid_ca as b
+             on a.claim_header_id = b.claim_header_id
+             left join ##avoid_nyu as c
+             on a.claim_header_id = c.claim_header_id
+             left join ##ccs as d
+             on a.claim_header_id = d.claim_header_id
+             left join ##rda as e
+             on a.claim_header_id = e.claim_header_id
+             left join ##injury as f
+             on a.claim_header_id = f.claim_header_id
+			       left join ##ed_yale_final as g
+             on a.claim_header_id = g.claim_header_id			
+			       left join ##ed_perform_id as h
+             on a.claim_header_id = h.claim_header_id			
+           ")
+
+
+#### STEP 17: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER ####
+message("Loading to final table")
+DBI::dbExecute(db_claims,
+           glue::glue_sql("INSERT INTO {`table_config_claim_header$to_schema`}.{`table_config_claim_header$to_table`} 
+                          ({`names(table_config_claim_header$vars)`*}) 
+                          SELECT {`names(table_config_claim_header$vars)[names(table_config_claim_header$vars) != 'last_run']`*}
+                          , getdate() AS [last_run] 
+                          FROM ##temp_final", .con = db_claims))
+
+
+#### STEP 18: ADD INDEX ####
+message("Creating index on final table")
 time_start <- Sys.time()
-odbc::dbGetQuery(conn = db_claims, step2_sql)
+add_index_f(db_claims, table_config = table_config_claim_header)
 time_end <- Sys.time()
-print(paste0("Step 2 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
-dbDisconnect(db_claims)
+message(glue::glue("Index creation took {round(difftime(time_end, time_start, units = 'secs'), 2)} ",
+                   " secs ({round(difftime(time_end, time_start, units = 'mins'), 2)} mins)"))
 
+
+
+#### STEP 19: CLEAN UP TEMP TABLES ####
+try(DBI::dbRemoveTable(db_claims, name = DBI::Id(schema = "tmp", table = "mcaid_claim_header")))
+try(DBI::dbRemoveTable(db_claims, "##header", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##line", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##diag", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##procedure_code", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##temp1", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##avoid_ca", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##avoid_nyu'", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##ccs'", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##rda'", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##injury9cm", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##injury10cm", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##injury", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##temp2", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##temp_final", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##ed_yale_step_1", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##ed_yale_final", temporary = T))
+try(DBI::dbRemoveTable(db_claims, "##ed_perform_id", temporary = T))
