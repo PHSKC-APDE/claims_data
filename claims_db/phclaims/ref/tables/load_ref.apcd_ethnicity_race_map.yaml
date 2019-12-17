@@ -1,0 +1,11 @@
+schema: ref
+table: apcd_ethnicity_race_map
+vars:
+    ethnicity_id: int
+    ethnicity_desc: varchar(255)
+    race_id: tinyint
+    race_desc: varchar(255)
+overall:
+    file_path: C:/Users/kerneli/King County/King County Cross-Sector Data - Documents/References/APCD/apcd_ethnicity_race_mapping.csv
+    field_term: ','
+    row_term: \n

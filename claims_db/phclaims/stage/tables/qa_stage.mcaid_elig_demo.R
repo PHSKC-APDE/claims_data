@@ -111,6 +111,41 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
   }
   
   
+  #### CHECK DISTINCT IDS = DISTINCT IDS IN STAGE.MCAID_ELIG ####
+  id_count_raw <- as.numeric(odbc::dbGetQuery(conn, 
+                                          "SELECT COUNT (DISTINCT MEDICAID_RECIPIENT_ID) 
+                                            FROM stage.mcaid_elig"))
+  
+  if (id_count != id_count_raw) {
+    odbc::dbGetQuery(
+      conn = conn,
+      glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                       (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                       VALUES ({last_run}, 
+                       'stage.mcaid_elig_demo',
+                       'Number distinct IDs matches raw data', 
+                       'FAIL', 
+                       {Sys.time()}, 
+                       'There were {id_count} distinct IDs but {id_count_raw} IDs in the raw data (should be the same)')",
+                     .con = conn))
+    
+    message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
+                      Check metadata.qa_mcaid for details (last_run = {last_run}"))
+  } else {
+    odbc::dbGetQuery(
+      conn = conn,
+      glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                       (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                       VALUES ({last_run}, 
+                       'stage.mcaid_elig_demo',
+                       'Number distinct IDs matches raw data', 
+                       'PASS', 
+                       {Sys.time()}, 
+                       'The number of distinct IDs matched the number in the raw data ({id_count})')",
+                     .con = conn))
+    
+  }
+  
   
   #### LOAD VALUES TO QA_VALUES TABLE ####
   print("Loading values to metadata.qa_mcaid_values")

@@ -5,7 +5,7 @@
 ## Run time: 20 mins (Medicaid) to 2h 30min (APCD) 
 
 load_ccw <- function(conn = NULL,
-                     source = c("apcd", "mcaid", "mcare"),
+                     source = c("apcd", "mcaid", "mcare", "mcaid_mcare"),
                      test_rows = NULL) {
   
   # Check libraries are called in and load if not
@@ -46,6 +46,9 @@ load_ccw <- function(conn = NULL,
   } else if (source == "mcare") {
     id_source <- "id_mcare"
     config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_claim_ccw.yaml"
+  } else if (source == "mcaid_mcare") {
+    id_source <- "id_apde"
+    config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_ccw.yaml"
   }
   
   
@@ -419,7 +422,7 @@ load_ccw <- function(conn = NULL,
       "insert into PHClaims.{`schema`}.{`to_table`} with (tablock)
       select
       {`id_source`}, from_date, to_date, ccw_code, ccw_desc, 
-      {Sys.Date()}
+      getdate() as last_run
       from {`ccw_abbrev_table`}",
       .con = conn,
       ccw_abbrev_table = glue("##{ccw_abbrev}"))

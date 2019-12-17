@@ -2,11 +2,8 @@ from_schema: stage
 from_table: mcaid_elig_timevar
 to_schema: final
 to_table: mcaid_elig_timevar
-index_name: idx_cl_final_mcaid_elig_timevar_id_mcaid_from_date_to_date
-index:
-  - id_mcaid
-  - from_date
-  - to_date
+index_name: idx_ccs_final_mcaid_elig_timevar
+index_type: ccs
 vars:
     id_mcaid: VARCHAR(255)
     from_date: DATE

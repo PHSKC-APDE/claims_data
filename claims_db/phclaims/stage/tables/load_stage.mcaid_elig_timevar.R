@@ -345,8 +345,8 @@ step5b_sql <- glue::glue_sql(
     CASE WHEN a.tpl = 'Y' THEN 1 ELSE 0 END AS tpl,
     a.bsp_group_name, a.full_benefit, a.cov_type, a.mco_id,
     a.geo_add1_clean, a.geo_add2_clean, a.geo_city_clean, a.geo_state_clean, a.geo_zip_clean,
-    b.geo_zip_centroid, b.geo_street_centroid, b.geo_countyfp10, b.geo_tractce10, 
-    b.geo_hra_id, b.geo_school_geoid10, a.cov_time_day,
+    b.geo_zip_centroid, b.geo_street_centroid, b.geo_county_code, b.geo_tract_code, 
+    b.geo_hra_code, b.geo_school_code, a.cov_time_day,
     {Sys.time()} AS last_run
     FROM
     (SELECT id_mcaid, from_date, to_date, 
@@ -356,8 +356,9 @@ step5b_sql <- glue::glue_sql(
       FROM ##timevar_04b) a
       LEFT JOIN
       (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
-        geo_zip_centroid, geo_street_centroid, geo_countyfp10, geo_tractce10, 
-        geo_hra_id, geo_school_geoid10
+        geo_zip_centroid, geo_street_centroid, geo_countyfp10 AS geo_county_code, 
+        geo_tractce10 AS geo_tract_code, geo_hra_id AS geo_hra_code, 
+        geo_school_geoid10 AS geo_school_code
         FROM PHClaims.ref.address_geocode) b
       ON 
       (a.geo_add1_clean = b.geo_add1_clean OR (a.geo_add1_clean IS NULL AND b.geo_add1_clean IS NULL)) AND 

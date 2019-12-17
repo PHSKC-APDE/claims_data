@@ -11,7 +11,7 @@ vars:
     to_date: date
     ccw_code: tinyint
     ccw_desc: varchar(200)
-    last_run: date
+    last_run: datetime
 cond_hypothyroid:
     ccw_code: 1
     ccw_desc: Acquired hypothyroidism

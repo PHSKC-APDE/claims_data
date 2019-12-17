@@ -7,7 +7,7 @@ vars:
     contiguous: TINYINT
     mcaid: TINYINT
     mcare: TINYINT
-    dual: TINYINT
+    apde_dual: TINYINT
     geo_kc: TINYINT
     part_a: TINYINT
     part_b: TINYINT

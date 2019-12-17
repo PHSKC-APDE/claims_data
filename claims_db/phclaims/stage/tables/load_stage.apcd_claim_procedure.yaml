@@ -1,0 +1,14 @@
+schema: stage
+table: apcd_claim_procedure
+vars:
+    id_apcd: bigint
+    claim_header_id: bigint
+    first_service_date: date
+    last_service_date: date
+    procedure_code: varchar(255)
+    procedure_code_number: varchar(255)
+    modifier_1: varchar(255)
+    modifier_2: varchar(255)
+    modifier_3: varchar(255)
+    modifier_4: varchar(255)
+    last_run: datetime

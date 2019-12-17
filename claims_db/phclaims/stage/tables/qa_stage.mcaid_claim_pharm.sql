@@ -1,146 +1,131 @@
 
-use PHClaims;
+use [PHClaims];
 go
 
-delete from [metadata].[qa_mcaid] where table_name = 'stage.mcaid_claim_pharm';
+delete from [metadata].[qa_mcaid] 
+where table_name = 'stage.mcaid_claim_pharm';
 
---All members should be in elig_demo and table
-select count(a.id_mcaid) as id_dcount
+declare @last_run as datetime;
+declare @mcaid_elig_check as varchar(255);
+declare @mcaid_elig_demo_check as varchar(255);
+declare @ndc_code_check as varchar(255);
+declare @ndc_lookup_check as varchar(255);
+declare @pct_claim_header_id_with_rx as varchar(255);
+declare @compare_current_prior_min as varchar(255);
+declare @compare_current_prior_max as varchar(255);
+
+set @last_run = (select max(last_run) from [stage].[mcaid_claim_pharm]);
+
+--All members should be in [mcaid_elig] table
+set @mcaid_elig_check = 
+(
+select count(distinct a.id_mcaid) as id_dcount
 from [stage].[mcaid_claim_pharm] as a
 where not exists
 (
 select 1 
-from [stage].[mcaid_elig_demo] as b
-where a.id_mcaid = b.id_mcaid
-);
-
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_pharm]);
-insert into [metadata].[qa_mcaid]
-select 
- NULL
-,@last_run
-,'stage.mcaid_claim_pharm'
-,'mcaid_elig_demo.id_mcaid foreign key check'
-,'PASS'
-,getdate()
-,'All members in mcaid_claim_pharm are in mcaid_elig_demo';
-go
-
---All members should be in elig_timevar table
-select count(a.id_mcaid) as id_dcount
-from [stage].[mcaid_claim_pharm] as a
-where not exists
-(
-select 1 
---from [final].[mcaid_elig_timevar] as b
 from [stage].[mcaid_elig] as b
---where a.id_mcaid = b.id_mcaid
 where a.id_mcaid = b.MEDICAID_RECIPIENT_ID
-);
-go
+));
 
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_pharm]);
 insert into [metadata].[qa_mcaid]
 select 
  NULL
 ,@last_run
 ,'stage.mcaid_claim_pharm'
---,'mcaid_elig_time_var.id_mcaid check'
-,'mcaid_elig.MEDICAID_RECIPIENT_ID check'
-,'PASS'
+,'All members should be in [mcaid_elig] table'
+,CASE WHEN @mcaid_elig_check = '0' THEN 'PASS' ELSE 'FAIL' END
 ,getdate()
---,'All members in mcaid_claim_pharm are in mcaid_elig_time_var';
-,'All members in mcaid_claim_pharm are in mcaid_elig';
+,@mcaid_elig_check + ' members in mcaid_claim_pharm and are not in [mcaid_elig]';
 
---Check that ndc codes are properly formed type
---25,968,547
-SELECT COUNT(*)
-FROM [PHClaims].[stage].[mcaid_claim_pharm]
-WHERE LEN([ndc]) <> 11
-OR ISNUMERIC([ndc]) = 1;
-GO
+--All members should be in [mcaid_elig_demo] table
+set @mcaid_elig_demo_check = 
+(
+select count(distinct a.id_mcaid) as id_dcount
+from [stage].[mcaid_claim_pharm] as a
+where not exists
+(
+select 1 
+from (SELECT [id_mcaid] FROM [final].[mcaid_elig_demo] UNION SELECT [id_mcaid] FROM [stage].[mcaid_elig_demo]) as b
+where a.id_mcaid = b.id_mcaid
+));
 
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_pharm]);
+insert into [metadata].[qa_mcaid]
+select 
+ NULL
+,@last_run
+,'stage.mcaid_claim_pharm'
+,'All members should be in [mcaid_elig_demo] table'
+,CASE WHEN @mcaid_elig_demo_check = '0' THEN 'PASS' ELSE 'FAIL' END
+,getdate()
+,@mcaid_elig_demo_check + ' members in mcaid_claim_pharm and are not in [mcaid_elig_demo]';
+
+--Check that ndc codes are properly formed
+set @ndc_code_check =
+(
+select count(*)
+from [stage].[mcaid_claim_pharm]
+where len([ndc]) <> 11 or isnumeric([ndc]) = 1
+);
+
 insert into [metadata].[qa_mcaid]
 select 
  NULL
 ,@last_run
 ,'stage.mcaid_claim_pharm'
 ,'Check ndc code digit structure'
-,'PASS'
+,CASE WHEN @ndc_code_check = '0' THEN 'PASS' ELSE 'FAIL' END
 ,getdate()
-,'All codes are 11-digit left-zero-padded numeric';
+,@ndc_code_check + ' codes are not 11-digit left-zero-padded numeric';
 
---Count ndc codes that do not join to reference table
-select distinct
- [ndc]
+--Count if ndc codes do not join to reference table
+set @ndc_lookup_check =
+(
+select count(distinct 'NDC - ' + [ndc])
 from [stage].[mcaid_claim_pharm] as a
 where not exists
 (
 select 1
 from [ref].[pharm] as b
 where a.[ndc] = b.[ndc_code]
-);
-go
+));
 
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_pharm]);
 insert into [metadata].[qa_mcaid]
 select 
  NULL
 ,@last_run
 ,'stage.mcaid_claim_pharm'
-,'ndc_code foreign key check'
-,'FAIL'
+,'Count if ndc codes do not join to reference table'
+,CASE WHEN @ndc_lookup_check = '0' THEN 'PASS' ELSE 'FAIL' END
 ,getdate()
-,'3,964 ndc codes not in [ref].[pharm]';
-
-/*
---ndc codes that do not join to reference table
-select
- [ndc]
-,count(*) as [num_claims]
-from [stage].[mcaid_claim_pharm] as a
-where not exists
-(
-select 1
-from [ref].[pharm] as b
-where a.[ndc] = b.[ndc_code]
-)
-GROUP BY
- [ndc]
-ORDER BY
- [num_claims] desc;
-*/
+,@ndc_lookup_check + ' NDC codes not in [ref].[pharm]';
 
 --Compare number of people with claim_header table
+set @pct_claim_header_id_with_rx = 
+(
 select
+ cast((select count(distinct id_mcaid) as id_dcount
+ from [stage].[mcaid_claim_pharm]) as numeric) /
  (select count(distinct id_mcaid) as id_dcount
-  from [stage].[mcaid_claim_pharm])
-,(select count(distinct id_mcaid) as id_dcount
-  from [final].[mcaid_claim_header])
-,cast((select count(distinct id_mcaid) as id_dcount
-  from [stage].[mcaid_claim_pharm]) as numeric) /
- (select count(distinct id_mcaid) as id_dcount
-  from [final].[mcaid_claim_header]);
-go
+  from [stage].[mcaid_claim_header])
+);
 
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_pharm]);
 insert into [metadata].[qa_mcaid]
 select 
  NULL
 ,@last_run
 ,'stage.mcaid_claim_pharm'
-,'Compare pharm to header (number of people)'
-,'PASS'
+,'Compare number of people with claim_header table'
+,NULL
 ,getdate()
-,'77.3% of people in pharm are in header';
+,@pct_claim_header_id_with_rx + ' proportion of members with a claim header have a rx';
 
 -- Compare number of ndc codes in current vs. prior analytic tables
 WITH [final] AS
 (
 SELECT
  YEAR([rx_fill_date]) AS [claim_year]
-,COUNT(*) AS [prior_num_pharm]
+,COUNT(*) AS [prior_num_rx]
 FROM [final].[mcaid_claim_pharm] AS a
 GROUP BY YEAR([rx_fill_date])
 ),
@@ -149,39 +134,35 @@ GROUP BY YEAR([rx_fill_date])
 (
 SELECT
  YEAR([rx_fill_date]) AS [claim_year]
-,COUNT(*) AS [current_num_pharm]
+,COUNT(*) AS [current_num_rx]
 FROM [stage].[mcaid_claim_pharm] AS a
 GROUP BY YEAR([rx_fill_date])
-)
+),
 
+[compare] AS
+(
 SELECT
  COALESCE(a.[claim_year], b.[claim_year]) AS [claim_year]
-,[prior_num_pharm]
-,[current_num_pharm]
-,CAST([current_num_pharm] AS NUMERIC) / [prior_num_pharm] AS [pct_change]
+,[prior_num_rx]
+,[current_num_rx]
+,CAST([current_num_rx] AS NUMERIC) / [prior_num_rx] AS [pct_change]
 FROM [final] AS a
 FULL JOIN [stage] AS b
 ON a.[claim_year] = b.[claim_year]
-ORDER BY [claim_year];
-GO
+)
 
-declare @last_run as datetime = (select max(last_run) from [stage].[mcaid_claim_pharm]);
+SELECT 
+ @compare_current_prior_min = MIN([pct_change])
+,@compare_current_prior_max = MAX([pct_change])
+FROM [compare]
+WHERE [claim_year] >= YEAR(GETDATE()) - 3;
+
 insert into [metadata].[qa_mcaid]
 select 
  NULL
 ,@last_run
 ,'stage.mcaid_claim_pharm'
-,'Compare new-to-prior pharm counts'
-,'PASS'
+,'Compare current vs. prior analytic tables'
+,NULL
 ,getdate()
-,'Stable';
-
-SELECT [etl_batch_id]
-      ,[last_run]
-      ,[table_name]
-      ,[qa_item]
-      ,[qa_result]
-      ,[qa_date]
-      ,[note]
-FROM [PHClaims].[metadata].[qa_mcaid]
-WHERE [table_name] = 'stage.mcaid_claim_pharm';
+,'Min: ' + @compare_current_prior_min + ', Max: ' + @compare_current_prior_max + ' ratio of current to prior rows';

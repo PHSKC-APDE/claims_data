@@ -22,12 +22,12 @@ The ZERO rows are used to track changing enrollment threshold over time.
 SELECT 
  b.[year_month]
 ,b.[month]
-,b.[beg_month]
-,b.[end_month]
+--,b.[beg_month]
+--,b.[end_month]
 ,a.[id_mcaid]
 ,a.[dob]
 
-,DATEDIFF(YEAR, a.[dob], b.[beg_month]) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, a.[dob], b.[beg_month]), a.[dob]) > b.[beg_month] THEN 1 ELSE 0 END AS [beg_month_age]
+--,DATEDIFF(YEAR, a.[dob], b.[beg_month]) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, a.[dob], b.[beg_month]), a.[dob]) > b.[beg_month] THEN 1 ELSE 0 END AS [beg_month_age]
 ,DATEDIFF(YEAR, a.[dob], b.[end_month]) - CASE WHEN DATEADD(YEAR, DATEDIFF(YEAR, a.[dob], b.[end_month]), a.[dob]) > b.[end_month] THEN 1 ELSE 0 END AS [end_month_age]
 ,DATEDIFF(MONTH, a.[dob], b.[end_month]) - CASE WHEN DATEADD(MONTH, DATEDIFF(MONTH, a.[dob], b.[end_month]), a.[dob]) > b.[end_month] THEN 1 ELSE 0 END AS [age_in_months]
 
@@ -38,8 +38,9 @@ SELECT
 ,CASE WHEN c.[TPL_FULL_FLAG] = 'Y' THEN 1 ELSE 0 END AS [tpl]
 ,ISNULL(e.[hospice_flag], 0) AS [hospice]
 ,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[full_benefit] = 'Y' AND c.[DUAL_ELIG] = 'N' AND c.[TPL_FULL_FLAG] = ' ' THEN 1 ELSE 0 END AS [full_criteria]
-,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[full_benefit] = 'Y' AND c.[DUAL_ELIG] = 'N' THEN 1 ELSE 0 END AS [full_criteria_without_tpl]
+--,CASE WHEN c.[MEDICAID_RECIPIENT_ID] IS NOT NULL AND d.[full_benefit] = 'Y' AND c.[DUAL_ELIG] = 'N' THEN 1 ELSE 0 END AS [full_criteria_without_tpl]
 --,CASE WHEN [COVERAGE_TYPE_IND] = 'FFS' THEN 'FFS' ELSE [MC_PRVDR_NAME] END AS [mco_or_ffs]
+,c.[RSDNTL_POSTAL_CODE] AS [zip_code]
 ,b.[row_num]
 
 FROM [final].[mcaid_elig_demo] AS a
@@ -70,7 +71,7 @@ IF OBJECT_ID('tempdb..#temp', 'U') IS NOT NULL
 DROP TABLE #temp;
 SELECT *
 INTO #temp
-FROM [stage].[fn_perf_enroll_member_month](201701, 201712);
+FROM [stage].[fn_perf_enroll_member_month](201601, 201812);
 
 SELECT TOP 100 *
 FROM #temp;

@@ -29,7 +29,7 @@ load_table_from_file_f <- function(
   ind_yr = F,
   combine_yr = T,
   test_mode = F
-  ) {
+) {
   
   
   #### INITIAL ERROR CHECK ####
@@ -63,7 +63,7 @@ load_table_from_file_f <- function(
     table_config <- yaml::read_yaml(config_file)
   }
   
-
+  
   #### ERROR CHECKS AND OVERALL MESSAGES ####
   # Make sure a valid URL was found
   if ('404' %in% names(table_config)) {
@@ -97,10 +97,12 @@ load_table_from_file_f <- function(
     }
   }
   
-  if (!is.null(table_config$index_name) & is.null(table_config$index)) {
-    stop("YAML file has an index name but no index columns")
+  if (!is.null(table_config$index_name)) {
+    if (is.null(table_config$index) & is.null(table_config$index_type)) {
+      stop("YAML file has an index name but no index columns or an index_type = ccs")
+    }
   }
-  
+
   if (overall == T) {
     if (!"overall" %in% names(table_config)) {
       stop("YAML file is missing details for overall file")
@@ -116,11 +118,11 @@ load_table_from_file_f <- function(
       warning("YAML file has details for an overall file. \n
               This will be ignored since ind_yr == T.")
     }
-    if (max(str_detect(names(table_config), "table_20[0-9]{2}")) == 0) {
+    if (max(str_detect(names(table_config), "table_")) == 0) {
       stop("YAML file is missing details for individual years")
     }
     if (combine_yr == T) {
-      if (is.null(unlist(table_config$combine_years))) {
+      if (is.null(unlist(table_config$years))) {
         stop("No years specified for combining in config file")
       }
       if (!"vars" %in% names(table_config)) {
@@ -131,8 +133,8 @@ load_table_from_file_f <- function(
       }
     }
   }
-
-
+  
+  
   # Alert users they are in test mode
   if (test_mode == T) {
     message("FUNCTION WILL BE RUN IN TEST MODE, WRITING TO TMP SCHEMA")
@@ -176,7 +178,8 @@ load_table_from_file_f <- function(
   
   if (ind_yr == T & combine_yr == T) {
     # Use unique in case variables are repeated
-    combine_years <- as.list(sort(unique(table_config$combine_years)))
+    #combine_years <- as.list(sort(unique(table_config$combine_years)))
+    combine_years <- as.list(sort(unique(table_config$years)))
   }
   
   if (!is.null(table_config$index_name)) {
@@ -184,8 +187,8 @@ load_table_from_file_f <- function(
   } else {
     add_index <- FALSE
   }
-
-
+  
+  
   #### SET UP A FUNCTION FOR COMMON ACTIONS ####
   # Both the overall load and year-specific loads use a similar set of code
   loading_process_f <- function(conn_inner = conn,
@@ -205,10 +208,10 @@ load_table_from_file_f <- function(
     } else {
       ind_yr_msg <- "overall"
     }
-
+    
     # Add message to user
     message(glue('Loading {ind_yr_msg} [{schema_inner}].[{table_name_inner}] table(s) ',
-               ' from {table_config_inner[[config_section]][["file_path"]]} {test_msg_inner}'))
+                 ' from {table_config_inner[[config_section]][["file_path"]]} {test_msg_inner}'))
     
     # Truncate existing table if desired
     if (truncate_inner == T) {
@@ -216,15 +219,15 @@ load_table_from_file_f <- function(
                                             .con = conn_inner))
     }
     
-    # Remove existing clustered index if desired (and an index exists)
+    # Remove existing index if desired (and an index exists)
     if (drop_index == T) {
-      # This code pulls out the clustered index name
+      # This code pulls out the index name
       index_name <- dbGetQuery(conn_inner, glue::glue_sql("SELECT DISTINCT a.index_name
                                   FROM
                                   (SELECT ind.name AS index_name
                                   FROM
                                   (SELECT object_id, name, type_desc FROM sys.indexes
-                                  WHERE type_desc = 'CLUSTERED') ind
+                                  WHERE type_desc LIKE 'CLUSTERED%') ind
                                   INNER JOIN
                                   (SELECT name, schema_id, object_id FROM sys.tables
                                   WHERE name = {`table`}) t
@@ -234,16 +237,16 @@ load_table_from_file_f <- function(
                                   WHERE name = {`schema`}) s
                                   ON t.schema_id = s.schema_id
                                   ) a", .con = conn_inner,
-                                table = dbQuoteString(conn_inner, table_name_inner),
-                                schema = dbQuoteString(conn_inner, schema_inner)))[[1]]
-
+                                                          table = dbQuoteString(conn_inner, table_name_inner),
+                                                          schema = dbQuoteString(conn_inner, schema_inner)))[[1]]
+      
       if (length(index_name) != 0) {
         dbGetQuery(conn_inner,
                    glue::glue_sql("DROP INDEX {`index_name`} ON 
                                   {`schema_inner`}.{`table_name_inner`}", .con = conn_inner))
       }
     }
-
+    
     # Pull out parameters for BCP load
     if (!is.null(table_config_inner[[config_section]][["field_term"]])) {
       field_term <- paste0("-t ", table_config_inner[[config_section]][["field_term"]])
@@ -256,7 +259,7 @@ load_table_from_file_f <- function(
     } else {
       row_term <- ""
     }
-
+    
     # Set up BCP arguments and run BCP
     bcp_args <- c(glue(' PHclaims.{schema_inner}.{table_name_inner} IN ', 
                        ' "{table_config_inner[[config_section]][["file_path"]]}" ',
@@ -267,19 +270,18 @@ load_table_from_file_f <- function(
   }
   
   
-
+  
   #### OVERALL TABLE ####
   if (overall == T) {
     # Run loading function
     loading_process_f(config_section = "overall")
-
+    
     if (add_index == T) {
-      # Add index to the table
-      dbGetQuery(conn,
-                 glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}({`index_vars`*})",
-                                index_vars = table_config$index,
-                                .con = conn))
+      if (!exists("add_index_f")) {
+        devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+      }
+      message("Adding index")
+      add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
     }
   }
   
@@ -287,21 +289,33 @@ load_table_from_file_f <- function(
   if (ind_yr == T) {
     # Find which years have details
     years <- as.list(names(table_config)[str_detect(names(table_config), "table_")])
-
+    
     lapply(years, function(x) {
       
-      table_name_new <- glue("{table_name}_{str_sub(x, -4, -1)}")
+      #table_name_new <- glue("{table_name}_{str_sub(x, -4, -1)}")
+      table_name_new <- glue("{table_name}_{gsub('table_','',x)}")
       
       # Run loading function
       loading_process_f(config_section = x, table_name_inner = table_name_new)
       
+      if (add_index == T) {
       # Add index to the table
-      dbGetQuery(conn,
-                 glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                                {`schema`}.{`table_name_new`}({`index_vars`*})",
-                                index_vars = table_config$index,
-                                .con = conn))
-    })
+      if (!is.null(table_config$index_type) & table_config$index_type == 'ccs') {
+        # Clustered columnstore index
+        dbGetQuery(conn,
+                   glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
+                              {`schema`}.{`table_name`}",
+                                  .con = conn))
+      } else {
+        # Clustered index
+        dbGetQuery(conn,
+                   glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
+                              {`schema`}.{`table_name`}({`index_vars`*})",
+                                  index_vars = table_config$index,
+                                  .con = conn))
+        }
+        }
+      })
     
     # Combine individual years into a single table if desired
     if (combine_yr == T) {
@@ -309,7 +323,7 @@ load_table_from_file_f <- function(
       if (truncate == T) {
         # Remove data from existing combined table if desired
         dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`schema`}.{`table_name`}", 
-                                              .con = conn))
+                                        .con = conn))
       }
       
       if (add_index == T) {
@@ -321,7 +335,7 @@ load_table_from_file_f <- function(
                                                 (SELECT ind.name AS index_name
                                                   FROM
                                                   (SELECT object_id, name, type_desc FROM sys.indexes
-                                                    WHERE type_desc = 'CLUSTERED') ind
+                                                    WHERE type_desc LIKE 'CLUSTERED%') ind
                                                   INNER JOIN
                                                   (SELECT name, schema_id, object_id FROM sys.tables
                                                     WHERE name = {`table`}) t
@@ -363,8 +377,8 @@ load_table_from_file_f <- function(
         }
       })
       # Make sure there are no duplicate variables
-	  all_vars <- unique(all_vars)
-	  
+      all_vars <- unique(all_vars)
+      
       
       # Set up SQL code to load columns
       sql_combine <- glue::glue_sql("INSERT INTO {`schema`}.{`table_name`} WITH (TABLOCK) 
@@ -413,12 +427,11 @@ load_table_from_file_f <- function(
       dbGetQuery(conn, sql_combine)
       
       if (add_index == T) {
-        # Add index to the table
-        dbGetQuery(conn,
-                   glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}({`index_vars`*})",
-                                  index_vars = table_config$index,
-                                  .con = conn))
+        if (!exists("add_index_f")) {
+          devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+        }
+        message("Adding index")
+        add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
       }
     }
   }
@@ -448,7 +461,7 @@ load_table_from_sql_f <- function(
   auto_date = F,
   test_mode = F,
   mcaid_claim = F # Specific recoding of Medicaid claims variables
-  ) {
+) {
   
   #### INITIAL ERROR CHECK ####
   # Check if the config provided is a local file or on a webpage
@@ -528,9 +541,9 @@ load_table_from_sql_f <- function(
       stop("No variables specified in config file")
     }
   }
-
+  
   if (truncate == T & truncate_date == T) {
-    print("Warning: truncate and truncate_date both set to TRUE. \n
+    message("Warning: truncate and truncate_date both set to TRUE. \n
           Entire table will be truncated.")
   }
   
@@ -610,7 +623,7 @@ load_table_from_sql_f <- function(
       # Find the most recent date in the new data
       max_date <- dbGetQuery(conn, glue::glue_sql("SELECT MAX({`date_var`})
                                  FROM {`from_schema`}.{`from_table`}",
-                                 .con = conn))
+                                                  .con = conn))
       
       message(glue("Most recent date found in the new data: {max_date}"))
       
@@ -635,7 +648,7 @@ load_table_from_sql_f <- function(
     
     message(glue("Date to truncate from: {date_truncate}"))
   }
-
+  
   
   #### DEAL WITH EXISTING TABLE ####
   # Make sure temp table exists if needed
@@ -695,8 +708,8 @@ load_table_from_sql_f <- function(
     
     # Now truncate destination table
     dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`to_schema`}.{`to_table`}", .con = conn))
-    }
-    
+  }
+  
   
   # Remove existing clustered index if a new one is to be added
   if (add_index == T) {
@@ -706,7 +719,7 @@ load_table_from_sql_f <- function(
                                   (SELECT ind.name AS index_name
                                   FROM
                                   (SELECT object_id, name, type_desc FROM sys.indexes
-                                  WHERE type_desc = 'CLUSTERED') ind
+                                  WHERE type_desc LIKE 'CLUSTERED%') ind
                                   INNER JOIN
                                   (SELECT name, schema_id, object_id FROM sys.tables
                                   WHERE name = {`table`}) t
@@ -729,10 +742,10 @@ load_table_from_sql_f <- function(
     }
   }
   
-
+  
   #### LOAD DATA TO TABLE ####
   # Add message to user
-  message(glue("Loading to [{to_schema}].[{to_table}] table", test_msg))
+  message(glue("Loading to [{to_schema}].[{to_table}] from [{from_schema}].[{from_table}] table ", test_msg))
   
   # Run INSERT statement
   if (truncate_date == F) {
@@ -754,7 +767,7 @@ load_table_from_sql_f <- function(
                                     .con = conn,
                                     load_rows = DBI::SQL(load_rows))
     }
-
+    
   } else if (truncate_date == T) {
     if (mcaid_claim == T) {
       sql_combine <- glue::glue_sql(
@@ -787,13 +800,10 @@ load_table_from_sql_f <- function(
   
   # Add index to the table (if desired)
   if (add_index == T) {
-    index_sql <- glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                            {`to_schema`}.{`to_table`}({index_vars*})",
-                                index_vars = dbQuoteIdentifier(conn, table_config$index),
-                                .con = conn)
-    
+    if (!exists("add_index_f")) {
+      devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+    }
     message("Adding index")
-    dbGetQuery(conn, index_sql)
+    add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
   }
 }
-

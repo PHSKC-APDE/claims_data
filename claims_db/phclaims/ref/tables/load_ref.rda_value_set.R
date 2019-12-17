@@ -11,8 +11,8 @@ library("openxlsx")
 library("lubridate")
 library("janitor")
 
-dsn <- "Analytics"
-#dsn <- "PHClaims"
+#dsn <- "Analytics"
+dsn <- "PHClaims"
 db.connection <- dbConnect(odbc(), dsn)
 
 ##### MENTAL HEALTH MEASURES
@@ -34,10 +34,11 @@ input <- read.xlsx(paste0(mh.file.dir, "MH-taxonomy-value-set.xlsx"), sheet = 1)
 dbWriteTable(db.connection, "tmp_MH-taxonomy-value-set.xlsx", input, overwrite=TRUE)
 
 ##### SUD MEASURES
-sud.file.dir <- "L:/DCHSPHClaimsData/References/RDA_measures/Old SUD Tx Pen measure/"
+sud.file.dir <- "C:/Users/psylling/github/claims_data/claims_db/phclaims/ref/tables_data/"
 
 input <- read.xlsx(paste0(sud.file.dir, "SUD-Tx-Pen-Value-Set-1.xlsx"), sheet = 1)
-dbWriteTable(db.connection, "tmp_SUD-Tx-Pen-Value-Set-1.xlsx", input, overwrite=TRUE)
+tbl <- Id(schema="tmp", table="SUD-Tx-Pen-Value-Set-1_xlsx")
+dbWriteTable(db.connection, name=tbl, value=input, overwrite=TRUE)
 
 input <- read.xlsx(paste0(sud.file.dir, "SUD-Tx-Pen-Value-Set-2.xlsx"), sheet = 1)
 dbWriteTable(db.connection, "tmp_SUD-Tx-Pen-Value-Set-2-1.xlsx", input, overwrite=TRUE)

@@ -88,7 +88,7 @@
       race.recent <- copy(race)
       race.recent[, ordering := 1:.N, by = id_mcare] # identify the most recent row for each id  
       race.recent <- race.recent[ordering == 1, ]
-      race.recent[, race_eth_recent := as.character(factor(race, levels = c(0:6), labels = c("Unknown", "White", "Black", "Other", "Asian_PI", "Latino", "AIAN")))]
+      race.recent[, race_eth_recent := as.character(factor(race, levels = c(0:6), labels = c("Unknown", "White", "Black", "Other", "Asian_PI", "Latino", "AI/AN")))]
       race.recent <- race.recent[, .(id_mcare, race_eth_recent)]
       race.recent[, race_recent := NA_character_] # for medicare cannot separate Latino from race
   # back to processing all the race data
@@ -106,7 +106,7 @@
       race[race_other==1, race_eth_me := "Other"]
       race[race_asian_pi==1, race_eth_me := "Asian_PI"]
       race[race_latino==1, race_eth_me := "Latino"]
-      race[race_aian==1, race_eth_me := "AIAN"]
+      race[race_aian==1, race_eth_me := "AI/AN"]
       race[(race_white + race_black + race_other + race_asian_pi + race_latino + race_aian + race_unk) > 1, race_eth_me := "Multiple"]
     # create race_me
       race[, race_me := NA_character_] # this cannot be calculated b/c we only use RTI race coding, which includes Hispanic as a race  

@@ -64,11 +64,11 @@
   }
 
   # add dual flag
-    dual[, dual := 1]
+    dual[, apde_dual := 1]
   
 ## (6) Append the duals to the non-duals ----
     elig <- rbindlist(list(dual, mcaid.solo, mcare.solo), use.names = TRUE, fill = TRUE)
-    elig[is.na(dual), dual := 0] # fill in duals flag
+    elig[is.na(apde_dual), apde_dual := 0] # fill in duals flag
     
 ## (7) Prep for pushing to SQL ----
     # set dates

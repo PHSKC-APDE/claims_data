@@ -1,0 +1,22 @@
+schema: stage
+table: apcd_elig_demo
+vars:
+    id_apcd: varchar(255)
+    dob: date
+    ninety_only: tinyint
+    gender_me: varchar(255)
+    gender_recent: varchar(255)
+    gender_female: tinyint
+    gender_male: tinyint
+    race_eth_me: varchar(255)    
+    race_me: varchar(255)
+    race_eth_recent: varchar(255)
+    race_recent: varchar(255)
+    race_aian: tinyint
+    race_asian: tinyint
+    race_black: tinyint
+    race_latino: tinyint
+    race_nhpi: tinyint
+    race_white: tinyint
+    race_unknown: tinyint
+    last_run: datetime

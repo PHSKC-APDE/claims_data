@@ -34,7 +34,6 @@ library(dplyr)
 library(glue)
 library(janitor)
 library(lubridate)
-library(medicaid)
 library(odbc)
 library(openxlsx)
 library(RCurl) # Read files from Github
