@@ -9,7 +9,7 @@
 #' data sources: APCD, Medicaid, and Medicare Medicaid/Medicare combined, & 
 #' Medicaid/Medicare/Housing combined.
 #' Parameters below have the following key to indicate which data source they 
-#' can be used against: A = All sources, AP = APCD, MD = Medicaid, ME = Medicare, & PHA = Housing 
+#' can be used against: A = All sources, AP = APCD, MD = Medicaid, ME = Medicare, PHA = Housing 
 #' Most parameters default to NULL, which means that all values are included for
 #' that field.
 #' 
@@ -39,6 +39,8 @@
 #' during requested date range (percent scale) (PHA) 
 #' @param med_covgrp Medical coverage group type in APCD data (AP)
 #' @param pharm_covgrp Pharmacy coverage group type in APCD data (AP)
+#' @param tpl_max Maximum time with third-party liability during the requested
+#' time period (percent scale) (MD)
 #' @param bsp_group_name Most frequently reported BSP group during requested date
 #' range, case insensitive, can take multiple values (MD)
 #' @param full_benefit_min Minimum time with full benefits during the requested
@@ -164,6 +166,7 @@ claims_elig <- function(conn,
                        pha_max = NULL,
                        med_covgrp = NULL,
                        pharm_covgrp = NULL,
+                       tpl_max = NULL,
                        bsp_group_name = NULL,
                        full_benefit_min = NULL,
                        cov_type = NULL,
@@ -1044,6 +1047,17 @@ claims_elig <- function(conn,
   
   #### SET UP MEDICAID COVERAGE TYPES AND MCO ID CODE (MCAID) ####
   if (source %in% c("mcaid", "mcaid_mcare", "mcaid_mcare_pha")) {
+    # TPL
+    tpl_sql <- timevar_gen_sql(var = "tpl", pct = T)
+    
+    if (!is.null(tpl_max)) {
+      tpl_where_sql <- glue::glue_sql(
+        " AND tpl_final.tpl_pct <= {tpl_max} ",
+        .con = conn)
+    } else {
+      tpl_where_sql <- DBI::SQL('')
+    }
+    
     # BSP group name
     bsp_group_name_sql <- timevar_gen_sql(var = "bsp_group_name", pct = F)
     
@@ -1089,6 +1103,8 @@ claims_elig <- function(conn,
     }
     
   } else {
+    tpl_sql <- DBI::SQL('')
+    tpl_where_sql <- DBI::SQL('')
     bsp_group_name_sql <- DBI::SQL('')
     bsp_group_name_where_sql <- DBI::SQL('')
     full_benefit_sql <- DBI::SQL('')
@@ -1285,6 +1301,7 @@ claims_elig <- function(conn,
   } else if (source == "mcaid") {
     timevar_vars <- glue::glue_sql(
       " dual_final.dual, dual_final.dual_pct, 
+      tpl_final.tpl, tpl_final.tpl_pct, 
       bsp_group_name_final.bsp_group_name, bsp_group_name_final.bsp_group_name_days, 
       full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
       cov_type_final.cov_type, cov_type_final.cov_type_days, 
@@ -1298,6 +1315,7 @@ claims_elig <- function(conn,
       " mcaid_final.mcaid, mcaid_final.mcaid_pct,
       mcare_final.mcare, mcare_final.mcare_pct,
       apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct,
+      tpl_final.tpl, tpl_final.tpl_pct, 
       bsp_group_name_final.bsp_group_name, bsp_group_name_final.bsp_group_name_days, 
       full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
       cov_type_final.cov_type, cov_type_final.cov_type_days, 
@@ -1317,6 +1335,7 @@ claims_elig <- function(conn,
       mcare_final.mcare, mcare_final.mcare_pct, 
       apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct, 
       pha_final.pha, pha_final.pha_pct,
+      tpl_final.tpl, tpl_final.tpl_pct, 
       bsp_group_name_final.bsp_group_name, bsp_group_name_final.bsp_group_name_days, 
       full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
       cov_type_final.cov_type, cov_type_final.cov_type_days, 
@@ -1370,7 +1389,7 @@ claims_elig <- function(conn,
       (SELECT {id_name}, cov_days, duration, cov_pct, covgap_max 
         FROM ##cov_time_tot) timevar
         ON demo.{id_name} = timevar.{id_name}
-      {mcaid_cov_sql} {mcare_cov_sql} {dual_sql} {bsp_group_name_sql} 
+      {mcaid_cov_sql} {mcare_cov_sql} {dual_sql} {tpl_sql} {bsp_group_name_sql} 
       {full_benefit_sql} {cov_type_sql} {mco_id_sql} 
       {part_a_sql} {part_b_sql} {part_c_sql} {buy_in_sql} 
       {pha_cov_sql} {pha_agency_sql} {pha_subsidy_sql} {pha_voucher_sql} 
@@ -1378,7 +1397,7 @@ claims_elig <- function(conn,
       {geo_zip_sql} {geo_hra_code_sql} {geo_school_code_sql} 
       {geo_county_code_sql} {geo_ach_code_sql} {geo_kc_sql}
       WHERE 1 = 1 
-      {mcaid_cov_where_sql} {mcare_cov_where_sql} {dual_where_sql} 
+      {mcaid_cov_where_sql} {mcare_cov_where_sql} {dual_where_sql} {tpl_where_sql} 
       {bsp_group_name_where_sql} {full_benefit_where_sql}
       {cov_type_where_sql} {mco_id_where_sql} {part_a_where_sql} 
       {part_b_where_sql} {part_c_where_sql} {buy_in_where_sql}
@@ -1401,7 +1420,7 @@ claims_elig <- function(conn,
 
   hra.names <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/hra_vid_region.csv",
                                  select = c("hra", "vid"))
-  setnames(hra.names, c("hra", "vid"), c("geo_hra_name", "geo_hra_code"))
+  data.table::setnames(hra.names, c("hra", "vid"), c("geo_hra_name", "geo_hra_code"))
   output <- merge(output, hra.names, by = "geo_hra_code", all.x = TRUE, all.y = FALSE)
 
   # return complete dataset
