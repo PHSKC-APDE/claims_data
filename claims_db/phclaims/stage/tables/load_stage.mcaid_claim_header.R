@@ -530,21 +530,16 @@ DBI::dbExecute(db_claims, "create clustered index [idx_cl_##injury] on ##injury(
 #### STEP 13: CREATE [ed_pophealth_id] (YALE ED MEASURE) and [ed_perform_id] (Increments [ed] column by distinct [id_mcaid], [first_service_date]) ####
 
 # Get relevant claims for Yale-ED-Measure
-
+# 
 # Logic:
-
-# IF [claim_type_id] = 5 (Provider/Professional) 
-# AND [procedure_code] IN ('99281','99282','99283','99284','99285','99291')
-# AND [place_of_service_code] = '23'
+#   
+#   IF [claim_type_id] = 5 (Provider/Professional) 
+# AND (([procedure_code] IN ('99281','99282','99283','99284','99285','99291') AND [place_of_service_code] = '23') OR [rev_code] IN ('0450','0451','0452','0456','0459','0981'))
 # THEN [ed_type] = 'Carrier'
-
-# IF [claim_type_id] = 4 (Outpatient Facility)
-# AND [rev_code] IN ('0450','0451','0452','0456','0459','0981')
-# THEN [ed_type] = 'Outpatient'
-
-# IF [claim_type_id] = 1 (Inpatient Facility)
-# AND [rev_code] IN ('0450','0451','0452','0456','0459','0981')
-# THEN [ed_type] = 'Inpatient'
+# 
+# IF [claim_type_id] IN (4, 1) (Outpatient Facility, Inpatient Facility)
+# AND ([procedure_code] IN ('99281','99282','99283','99284','99285','99291') OR [place_of_service_code] = '23' OR [rev_code] IN ('0450','0451','0452','0456','0459','0981'))
+# THEN [ed_type] = 'Facility'
 
 try(DBI::dbRemoveTable(db_claims, "##ed_yale_step_1", temporary = T))
 DBI::dbExecute(db_claims,"
@@ -554,13 +549,14 @@ select
 ,[first_service_date]
 ,[last_service_date]
 ,'Carrier' as [ed_type]
-into ##ed_yale_step_1
+into #ed_yale_step_1
 from [stage].[mcaid_claim_procedure]
 where [procedure_code] in ('99281','99282','99283','99284','99285','99291')
 and [claim_header_id] in 
 (
 select [claim_header_id]
-from [tmp].[mcaid_claim_header]
+--from [tmp].[mcaid_claim_header]
+from [stage].[mcaid_claim_header]
 where [place_of_service_code] = '23'
 -- [claim_type_id] = 5, Provider/Professional
 and [claim_type_id] = 5
@@ -573,15 +569,16 @@ select
 ,[claim_header_id]
 ,[first_service_date]
 ,[last_service_date]
-,'Outpatient' as [ed_type]
+,'Carrier' as [ed_type]
 from [stage].[mcaid_claim_line]
 where [rev_code] in ('0450','0451','0452','0456','0459','0981')
 and [claim_header_id] in 
 (
 select [claim_header_id]
-from [tmp].[mcaid_claim_header]
--- [claim_type_id] = 4, Outpatient Facility
-where [claim_type_id] = 4
+--from [tmp].[mcaid_claim_header]
+from [stage].[mcaid_claim_header]
+-- [claim_type_id] = 5, Provider/Professional
+where [claim_type_id] = 5
 )
 
 union
@@ -591,15 +588,49 @@ select
 ,[claim_header_id]
 ,[first_service_date]
 ,[last_service_date]
-,'Inpatient' as [ed_type]
+,'Facility' as [ed_type]
+from [stage].[mcaid_claim_procedure]
+where [procedure_code] in ('99281','99282','99283','99284','99285','99291')
+and [claim_header_id] in 
+(
+select [claim_header_id]
+--from [tmp].[mcaid_claim_header]
+from [stage].[mcaid_claim_header]
+-- [claim_type_id] = 1, Inpatient Facility, [claim_type_id] = 4, Outpatient Facility
+where [claim_type_id] IN (1, 4)
+)
+
+union
+
+select
+ [id_mcaid]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
+,'Facility' as [ed_type]
+from [stage].[mcaid_claim_header]
+where [place_of_service_code] = '23'
+-- [claim_type_id] = 1, Inpatient Facility, [claim_type_id] = 4, Outpatient Facility
+and [claim_type_id] IN (1, 4)
+
+union
+
+select
+ [id_mcaid]
+,[claim_header_id]
+,[first_service_date]
+,[last_service_date]
+,'Facility' as [ed_type]
 from [stage].[mcaid_claim_line]
 where [rev_code] in ('0450','0451','0452','0456','0459','0981')
 and [claim_header_id] in 
 (
 select [claim_header_id]
-from [tmp].[mcaid_claim_header]
--- [claim_type_id] = 1, Inpatient Facility
-where [claim_type_id] = 1
+--from [tmp].[mcaid_claim_header]
+from [stage].[mcaid_claim_header]
+-- [claim_type_id] = 1, Inpatient Facility, [claim_type_id] = 4, Outpatient Facility
+where [claim_type_id] IN (1, 4)
+);
 ");
 
 # Label duplicate/adjacent visits with a single [ed_pophealth_id]
