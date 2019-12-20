@@ -264,6 +264,9 @@ if (is.na(duplicate_type)) {
 DBI::dbExecute(db_claims, sql_combine)
 
 
+#### ADD INDEX ####
+add_index_f(conn = db_claims, table_config = table_config_stage_elig)
+
 
 #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
 message("Running QA checks")
@@ -284,6 +287,7 @@ if (exists("dedup_row_diff")) {
 
 
 if (row_diff != 0) {
+  row_diff_qa_fail <- 1
   DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -294,8 +298,9 @@ if (row_diff != 0) {
                                   {Sys.time()},
                                   'Issue even after accounting for any duplicate rows. Investigate further.')",
                                   .con = db_claims))
-  stop("Number of rows does not match total expected")
+  warning("Number of rows does not match total expected")
   } else {
+    row_diff_qa_fail <- 0
     DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -315,6 +320,7 @@ null_ids <- as.numeric(dbGetQuery(db_claims,
                                     WHERE MEDICAID_RECIPIENT_ID IS NULL"))
 
 if (null_ids != 0) {
+  null_ids_qa_fail <- 1
   DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -325,8 +331,9 @@ if (null_ids != 0) {
                                   {Sys.time()},
                                   'Null IDs found. Investigate further.')",
                                   .con = db_claims))
-  stop("Null Medicaid IDs found in stage.mcaid_elig")
+  warning("Null Medicaid IDs found in stage.mcaid_elig")
 } else {
+  null_ids_qa_fail <- 0
   DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -338,10 +345,6 @@ if (null_ids != 0) {
                                   'No null IDs found')",
                                   .con = db_claims))
 }
-
-
-#### ADD INDEX ####
-add_index_f(conn = db_claims, table_config = table_config_stage_elig)
 
 
 #### ADD VALUES TO QA_VALUES TABLE ####
@@ -357,6 +360,35 @@ DBI::dbExecute(
                  .con = db_claims))
 
 
+#### ADD OVERALL QA RESULT ####
+# This creates an overall QA result to feed the stage.v_mcaid_status view, 
+#    which is used by the integrated data hub to check for new data to run
+if (max(row_diff_qa_fail, null_ids_qa_fail) == 1) {
+  DBI::dbExecute(conn = db_claims,
+                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                                  (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
+                                  VALUES ({current_batch_id}, 
+                                  'stage.mcaid_elig',
+                                  'Overall QA result', 
+                                  'FAIL',
+                                  {Sys.time()},
+                                  'One or more QA steps failed')",
+                                .con = db_claims))
+  stop("One or more QA steps failed. See metadata.qa_mcaid for more details")
+} else {
+  DBI::dbExecute(conn = db_claims,
+                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                                  (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
+                                  VALUES ({current_batch_id}, 
+                                  'stage.mcaid_elig',
+                                  'Overall QA result', 
+                                  'PASS',
+                                  {Sys.time()},
+                                  'All QA steps passed')",
+                                .con = db_claims))
+}
+
+
 #### CLEAN UP ####
 # Drop global temp table
 suppressWarnings(try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_temp", temporary = T)))
@@ -367,7 +399,7 @@ rm(duplicate_check_reason, duplicate_check_hoh, duplicate_check_rac, duplicate_t
    temp_rows_01, temp_rows_02, dedup_sql)
 rm(from_schema, from_table, to_schema, to_table, archive_schema, date_truncate)
 rm(rows_stage, rows_load_raw, rows_archive, distinct_rows_load_raw, null_ids)
+rm(row_diff_qa_fail, null_ids_qa_fail)
 rm(table_config_stage_elig)
 rm(sql_combine, sql_archive)
 rm(current_batch_id)
-
