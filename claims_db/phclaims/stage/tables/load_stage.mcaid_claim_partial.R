@@ -91,7 +91,7 @@ sql_combine <- glue::glue_sql(
   .con = db_claims,
   date_var = table_config_stage_claim$date_var)
 
-odbc::dbGetQuery(db_claims, sql_combine)
+DBI::dbExecute(db_claims, sql_combine)
 
 
 #### ADD INDEX ####
@@ -99,7 +99,7 @@ add_index_f(conn = db_claims, table_config = table_config_stage_claim)
 
 
 #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
-print("Running QA checks")
+message("Running QA checks")
 rows_stage <- as.numeric(dbGetQuery(
   db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`to_schema`}.{`to_table`}", .con = db_claims)))
 rows_load_raw <- as.numeric(dbGetQuery(
@@ -111,7 +111,7 @@ rows_archive <- as.numeric(dbGetQuery(
 
 
 if (rows_stage != (rows_load_raw + rows_archive)) {
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -124,7 +124,7 @@ if (rows_stage != (rows_load_raw + rows_archive)) {
                                   .con = db_claims))
   stop("Number of rows does not match total expected")
   } else {
-    odbc::dbGetQuery(conn = db_claims,
+    DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -145,7 +145,7 @@ null_ids <- as.numeric(dbGetQuery(
                  .con = db_claims)))
 
 if (null_ids != 0) {
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -157,7 +157,7 @@ if (null_ids != 0) {
                                   .con = db_claims))
   stop("Null Medicaid IDs found in stage.mcaid_claim")
 } else {
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -175,7 +175,7 @@ if (null_ids != 0) {
 
 #### ADD VALUES TO QA_VALUES TABLE ####
 # Number of new rows
-odbc::dbGetQuery(
+DBI::dbExecute(
   conn = db_claims,
   glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
                    (table_name, qa_item, qa_value, qa_date, note) 
