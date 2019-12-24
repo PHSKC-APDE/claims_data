@@ -68,10 +68,10 @@ rows_load_raw <- as.numeric(dbGetQuery(
 
 distinct_rows_load_raw <- as.numeric(dbGetQuery(
   db_claims,
-  "SELECT COUNT (*) FROM
+  glue::glue_sql("SELECT COUNT (*) FROM
   (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE,
   RPRTBL_RAC_CODE, SECONDARY_RAC_CODE 
-  FROM {`from_schema`}.{`from_table`}) a"))
+  FROM {`from_schema`}.{`from_table`}) a", .con = db_claims)))
 
 # If a match, don't bother checking any further
 if (rows_load_raw != distinct_rows_load_raw) {
@@ -141,7 +141,7 @@ if (rows_load_raw != distinct_rows_load_raw) {
     message("Setting up a temp table to remove duplicate rows")
     # This can then be used to deduplicate rows with differing end reasons
     # Remove temp table if it exists
-    try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_temp", temporary = T))
+    suppressWarnings(try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_temp", temporary = T)))
     
     odbc::dbGetQuery(
       db_claims,
@@ -182,7 +182,7 @@ if (rows_load_raw != distinct_rows_load_raw) {
     
     ### Manipulate the temporary table to deduplicate
     # Remove temp table if it exists
-    try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_dedup", temporary = T))
+    suppressWarnings(try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_dedup", temporary = T)))
     
     dedup_sql <- glue::glue_sql(
       "SELECT DISTINCT {`vars_dedup`*}
@@ -261,7 +261,11 @@ if (is.na(duplicate_type)) {
                                 date_var = table_config_stage_elig$date_var)
 }
 
-odbc::dbGetQuery(db_claims, sql_combine)
+DBI::dbExecute(db_claims, sql_combine)
+
+
+#### ADD INDEX ####
+add_index_f(conn = db_claims, table_config = table_config_stage_elig)
 
 
 #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
@@ -283,7 +287,8 @@ if (exists("dedup_row_diff")) {
 
 
 if (row_diff != 0) {
-  odbc::dbGetQuery(conn = db_claims,
+  row_diff_qa_fail <- 1
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -293,9 +298,10 @@ if (row_diff != 0) {
                                   {Sys.time()},
                                   'Issue even after accounting for any duplicate rows. Investigate further.')",
                                   .con = db_claims))
-  stop("Number of rows does not match total expected")
+  warning("Number of rows does not match total expected")
   } else {
-    odbc::dbGetQuery(conn = db_claims,
+    row_diff_qa_fail <- 0
+    DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -314,7 +320,8 @@ null_ids <- as.numeric(dbGetQuery(db_claims,
                                     WHERE MEDICAID_RECIPIENT_ID IS NULL"))
 
 if (null_ids != 0) {
-  odbc::dbGetQuery(conn = db_claims,
+  null_ids_qa_fail <- 1
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -324,9 +331,10 @@ if (null_ids != 0) {
                                   {Sys.time()},
                                   'Null IDs found. Investigate further.')",
                                   .con = db_claims))
-  stop("Null Medicaid IDs found in stage.mcaid_elig")
+  warning("Null Medicaid IDs found in stage.mcaid_elig")
 } else {
-  odbc::dbGetQuery(conn = db_claims,
+  null_ids_qa_fail <- 0
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -339,12 +347,8 @@ if (null_ids != 0) {
 }
 
 
-#### ADD INDEX ####
-add_index_f(conn = db_claims, table_config = table_config_stage_elig)
-
-
 #### ADD VALUES TO QA_VALUES TABLE ####
-odbc::dbGetQuery(
+DBI::dbExecute(
   conn = db_claims,
   glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
                    (table_name, qa_item, qa_value, qa_date, note) 
@@ -356,17 +360,46 @@ odbc::dbGetQuery(
                  .con = db_claims))
 
 
+#### ADD OVERALL QA RESULT ####
+# This creates an overall QA result to feed the stage.v_mcaid_status view, 
+#    which is used by the integrated data hub to check for new data to run
+if (max(row_diff_qa_fail, null_ids_qa_fail) == 1) {
+  DBI::dbExecute(conn = db_claims,
+                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                                  (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
+                                  VALUES ({current_batch_id}, 
+                                  'stage.mcaid_elig',
+                                  'Overall QA result', 
+                                  'FAIL',
+                                  {Sys.time()},
+                                  'One or more QA steps failed')",
+                                .con = db_claims))
+  stop("One or more QA steps failed. See metadata.qa_mcaid for more details")
+} else {
+  DBI::dbExecute(conn = db_claims,
+                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                                  (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
+                                  VALUES ({current_batch_id}, 
+                                  'stage.mcaid_elig',
+                                  'Overall QA result', 
+                                  'PASS',
+                                  {Sys.time()},
+                                  'All QA steps passed')",
+                                .con = db_claims))
+}
+
+
 #### CLEAN UP ####
 # Drop global temp table
-try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_temp", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_dedup", temporary = T))
+suppressWarnings(try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_temp", temporary = T)))
+suppressWarnings(try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_dedup", temporary = T)))
 rm(dedup_sql)
 rm(vars, var_names, vars_dedup)
 rm(duplicate_check_reason, duplicate_check_hoh, duplicate_check_rac, duplicate_type,
    temp_rows_01, temp_rows_02, dedup_sql)
 rm(from_schema, from_table, to_schema, to_table, archive_schema, date_truncate)
 rm(rows_stage, rows_load_raw, rows_archive, distinct_rows_load_raw, null_ids)
+rm(row_diff_qa_fail, null_ids_qa_fail)
 rm(table_config_stage_elig)
 rm(sql_combine, sql_archive)
 rm(current_batch_id)
-

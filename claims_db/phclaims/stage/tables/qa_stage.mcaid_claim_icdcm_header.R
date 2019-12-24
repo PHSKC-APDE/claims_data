@@ -1,11 +1,19 @@
 
-# This code QAs table ([stage].[mcaid_claim_icdcm_header])
+# This code QAs table [stage].[mcaid_claim_icdcm_header]
 #
 # It is designed to be run as part of the master Medicaid script:
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 #
 # 2019-12
-# Alastair Matheson
+# Alastair Matheson (building on SQL from Philip Sylling)
+#
+# QA checks:
+# 1) IDs are all found in the elig tables
+# 2) ICD-9-CM and ICD-10-CM codes are an appropriate length
+# 3) icdcm_number falls in an acceptable range
+# 4) (AlmosT) All dx codes are found in the ref table
+# 5) Check there were as many or more diagnoses for each calendar year
+# 6) [Not yet added - need a threshold for failure] Proprtion of IDs in claim header table with a dx
 
 
 #### SET UP FUNCTIONS, ETC. ####
@@ -114,7 +122,7 @@ if (icd10_len_chk$min_len == 3 & icd10_len_chk$max_len == 7) {
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
                    'stage.mcaid_claim_icdcm_header',
-                   'Length of ICD-9-CM codes', 
+                   'Length of ICD-10-CM codes', 
                    'PASS', 
                    {Sys.time()}, 
                    'The ICD-10-CM codes ranged from {icd10_len_chk$min_len} to ",
@@ -127,7 +135,7 @@ if (icd10_len_chk$min_len == 3 & icd10_len_chk$max_len == 7) {
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
                    'stage.mcaid_claim_icdcm_header',
-                   'Length of ICD-9-CM codes', 
+                   'Length of ICD-10-CM codes', 
                    'FAIL', 
                    {Sys.time()}, 
                    'The ICD-10-CM codes ranged from {icd10_len_chk$min_len} to ",
@@ -266,6 +274,29 @@ if (max(num_dx_overall$pct_change, na.rm = T) > 0 &
                         sep = ', ', last = ' and '))}')",
                  .con = db_claims))
 }
+
+
+#### Check the proportion of people in the claim_header table who have a dx ####
+# Not yet implemented, need to adapt SQL code and adopt a threshold
+# --Compare number of people with claim_header table
+# set @pct_claim_header_id_with_dx = 
+#   (
+#     select
+#     cast((select count(distinct id_mcaid) as id_dcount
+#           from [stage].[mcaid_claim_icdcm_header]) as numeric) /
+#       (select count(distinct id_mcaid) as id_dcount
+#        from [stage].[mcaid_claim_header])
+#   );
+# 
+# insert into [metadata].[qa_mcaid]
+# select 
+# NULL
+# ,@last_run
+# ,'stage.mcaid_claim_icdcm_header'
+# ,'Compare number of people with claim_header table'
+# ,NULL
+# ,getdate()
+# ,@pct_claim_header_id_with_dx + ' proportion of members with a claim header have a dx';
 
 
 #### SUM UP FAILURES ####

@@ -111,12 +111,56 @@ rm(last_run_elig_timevar, qa_rows_final_elig_timevar)
 
 
 #### STAGE ANALYTIC TABLES ####
+# Need to follow this order when making tables because of dependencies
+
+
+#### MCAID_CLAIM_LINE ####
+
+
+
+#### MCAID_CLAIM_ICDCM_HEADER ####
+### Create and load table, add index
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.R",
+                     echo = T)
+
+### QA table
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.R",
+                     echo = T)
+
+if (fail_tot > 0) {
+  message("One or more QA checks on stage.mcaid_claim_icdcm_header failed. See metadata.qa_mcaid for details")
+} else {
+  message("All QA checks on stage.mcaid_claim_icdcm_header passed")
+}
+
+rm(fail_tot)
+
+
+
+#### MCAID_CLAIM_PROCEDURE ####
+
+
+
+#### MCAID_CLAIM_PHARM ####
+
+
+
+
+
+#### MCAID_CLAIM_HEADER ####
+
+
+
+
+
+
 ### CCW
 # Load table to SQL
 load_ccw(conn = db_claims, source = "mcaid")
 
 # QA table
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_ccw.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_ccw.R",
+                     echo = T)
 
 # If QA passes, load to final table
 if (ccw_qa_result == "PASS") {
