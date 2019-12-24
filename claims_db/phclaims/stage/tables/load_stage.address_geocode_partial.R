@@ -66,6 +66,7 @@ adds_coded_esri <- adds_coded_esri %>%
          geo_city_clean = geo_city_c,
          geo_state_clean = geo_state_,
          geo_zip_clean = geo_zip_cl) %>%
+  mutate(geo_zip_clean = as.character(geo_zip_clean)) %>%
   mutate(geo_x = st_coordinates(adds_coded_esri)[,1],
          geo_y = st_coordinates(adds_coded_esri)[,2]) %>%
   mutate_at(vars(geo_x, geo_y), list( ~ ifelse(is.na(.), 0, .))) %>%
@@ -243,7 +244,8 @@ adds_coded <- adds_coded %>%
          geo_add_geocoded, geo_zip_geocoded, geo_add_type,
          geo_check_esri, geo_check_here, geo_geocode_source, 
          geo_zip_centroid, geo_street_centroid,
-         geo_lon, geo_lat, geo_x, geo_y)
+         geo_lon, geo_lat, geo_x, geo_y) %>%
+  mutate(geo_zip_clean = as.character(geo_zip_clean))
 
 
 ### Remove any addresses that could not be geocoded to an acceptable level
@@ -327,9 +329,10 @@ adds_coded_joined <- st_join(adds_coded_joined, scc_dist) %>%
   rename(geo_scc_dist = SCCDST)
 
 
-### Convert factors to character
+### Convert factors to character etc.
 adds_coded_load <- adds_coded_joined %>%
-  mutate_at(vars(geo_statefp10, geo_countyfp10, geo_tractce10, geo_blockce10,
+  mutate_at(vars(geo_zip_clean, 
+                 geo_statefp10, geo_countyfp10, geo_tractce10, geo_blockce10,
                  geo_block_geoid10, geo_pumace10, geo_puma_geoid10, geo_puma_name,
                  geo_zcta5ce10, geo_zcta_geoid10, geo_hra, geo_region, 
                  geo_school_geoid10, geo_school),
@@ -352,6 +355,20 @@ adds_coded_load <- adds_coded_joined %>%
 #### LOAD TO SQL ####
 # Check how many rows are already in the stage table
 stage_rows_before <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.address_geocode"))
+stage_rows_before_distinct <- as.numeric(dbGetQuery(
+  db_claims, 
+  "SELECT COUNT (*) 
+  FROM
+  (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
+  geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
+  geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
+  geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
+  geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
+  geo_puma_geoid10, geo_puma_name, geo_zcta5ce10, geo_zcta_geoid10, 
+  geo_hra_id, geo_hra, geo_region_id, geo_region, geo_school_geoid10, 
+  geo_school, geo_kcc_dist, geo_wa_legdist, geo_scc_dist
+  FROM stage.address_geocode) a"))
+
 
 # Write data
 dbWriteTable(db_claims,
@@ -364,6 +381,19 @@ dbWriteTable(db_claims,
 ### Compare row counts now
 row_load_ref_geo <- nrow(adds_coded_load)
 stage_rows_after <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.address_geocode"))
+stage_rows_after_distinct <- as.numeric(dbGetQuery(
+  db_claims, 
+  "SELECT COUNT (*) 
+  FROM
+  (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
+  geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
+  geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
+  geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
+  geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
+  geo_puma_geoid10, geo_puma_name, geo_zcta5ce10, geo_zcta_geoid10, 
+  geo_hra_id, geo_hra, geo_region_id, geo_region, geo_school_geoid10,   
+  geo_school, geo_kcc_dist, geo_wa_legdist, geo_scc_dist
+  FROM stage.address_geocode) a"))
 
 if ((stage_rows_before + row_load_ref_geo == stage_rows_after) == F) {
   warning("Number of rows added to stage.address_geocode now expected value")
