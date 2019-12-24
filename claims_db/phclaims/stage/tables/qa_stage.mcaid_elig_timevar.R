@@ -119,7 +119,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     conn, 
     "SELECT COUNT (*) AS count FROM 
     (SELECT DISTINCT id_mcaid, from_date, to_date, 
-    dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+    dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
     cov_time_day 
     FROM stage.mcaid_elig_timevar) a"))
