@@ -133,7 +133,9 @@ new_add_final <- bind_rows(new_add_trim, in_manual) %>%
   select(geo_add1_raw, geo_add2_raw, geo_add3_raw, geo_city_raw, 
          geo_state_raw, geo_zip_raw,
          geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
-         geo_source_mcaid, geo_source_pha, last_run)
+         geo_source_mcaid, geo_source_pha, last_run) %>%
+  # Convert all blank fields to be NA
+  mutate_if(is.character, list(~ ifelse(. == "", NA_character_, .)))
 
 
 #### STEP 2C: APPEND to SQL ####

@@ -26,6 +26,7 @@ if (rows_stage < rows_ref) {
                              {Sys.time()}, 
                              'Stage table has {rows_stage - rows_ref} fewer rows than ref table')",
                    .con = db_claims))
+  message(glue::glue("FAIL: Stage table has {rows_stage - rows_ref} fewer rows than ref table"))
 } else {
   dbGetQuery(db_claims,
     glue::glue_sql("INSERT INTO metadata.qa_mcaid 
@@ -37,6 +38,7 @@ if (rows_stage < rows_ref) {
                              {Sys.time()}, 
                              'Stage table has {rows_stage - rows_ref} more rows than ref table')",
                    .con = db_claims))
+  message(glue::glue("PASS: Stage table has {rows_stage - rows_ref} more rows than ref table"))
 }
 
 
@@ -55,6 +57,7 @@ if (min(names_stage == names_ref) == 0) {
                              {Sys.time()}, 
                              'Stage table columns do not match ref table')",
                             .con = db_claims))
+  message("FAIL: Column order does not match between stage and ref.address_clean tables")
 } else if (min(names_stage == names_ref) == 1) {
   dbGetQuery(db_claims,
              glue::glue_sql("INSERT INTO metadata.qa_mcaid 
@@ -62,12 +65,13 @@ if (min(names_stage == names_ref) == 0) {
                      VALUES ({last_run}, 
                              'stage.address_clean',
                              'Field names',
-                             'FAIL',
+                             'PASS',
                              {Sys.time()}, 
                              'Stage table columns match ref table')",
                             .con = db_claims))
+  message("PASS: Column order matches between stage and ref.address_clean tables")
 } else {
-  message("Something went wrong when checking columns in stage.address_clean")
+  message("FAIL: Something went wrong when checking columns in stage.address_clean")
 }
 
 
