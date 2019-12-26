@@ -16,7 +16,7 @@ load_stage.mcare_bcarrier_claims_f <- function() {
     --Union of single-year files
     --Eli Kern (PHSKC-APDE)
     --2019-12
-    --Run time: X
+    --Run time: 12 min
     
     
     insert into PHClaims.stage.mcare_bcarrier_claims_load with (tablock)
@@ -151,18 +151,50 @@ load_stage.mcare_bcarrier_claims_f <- function() {
 #### Table-level QA script ####
 qa_stage.mcare_bcarrier_claims_qa_f <- function() {
   
-  #confirm that claim header is distinct
-  res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_claim_header' as 'table', '# of non-distinct headers, expect 0' as qa_type,
-    count(a.claim_header_id) as qa1, qa2 = null
-    from (
-      select claim_header_id, count(*) as header_cnt
-      from PHClaims.stage.apcd_claim_header
-      group by claim_header_id
-    ) as a
-    where a.header_cnt > 1;",
+  #confirm that row counts match expected
+  row_single_2014 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select count(*) as qa from (select distinct * from PHClaims.load_raw.mcare_bcarrier_claims_k_14) as a;",
     .con = db_claims))
   
-  res_final <- mget(ls(pattern="^res")) %>% bind_rows()
+  row_single_2015 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select count(*) as qa from (select distinct * from PHClaims.load_raw.mcare_bcarrier_claims_j) as a;",
+    .con = db_claims))
+  
+  row_single_2016 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select count(*) as qa from (select distinct * from PHClaims.load_raw.mcare_bcarrier_claims_k) as a;",
+    .con = db_claims))
+  
+  row_sum_single <- Reduce("+", lapply(ls(pattern = "row_single"), get))
+  
+  row_sum_union <- dbGetQuery(conn = db_claims, glue_sql(
+    "select count(*) as qa from PHClaims.stage.mcare_bcarrier_claims_load;",
+    .con = db_claims))
+  
+  if(row_sum_single$qa == row_sum_union$qa) {
+    print("row sums match")
+  }
+  if(row_sum_single$qa > row_sum_union$qa) {
+    print(paste0("union row sum more, single-year sum: ", row_sum_single$qa, " , union sum: ", row_sum_union$qa))
+  }
+  if(row_sum_single$qa < row_sum_union$qa) {
+    print(paste0("union row sum less, single-year sum: ", row_sum_single$qa, " , union sum: ", row_sum_union$qa))
+  }
+  
+  #confirm that col count matches expected
+  col_count <- dbGetQuery(conn = db_claims, glue_sql(
+    " select count(*) as col_cnt
+      from information_schema.columns
+      where table_catalog = 'PHClaims' -- the database
+      and table_schema = 'stage'
+      and table_name = 'mcare_' + 'bcarrier_claims_load';",
+    .con = db_claims))
+  
+  col_count_expected <- 37
+  
+  if(col_count$col_cnt == col_count_expected) {
+    print("col count matches expected")
+  } else {
+    print("col count does not match!!")
+  }
   
 }
