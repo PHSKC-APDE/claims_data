@@ -102,10 +102,10 @@ qa_stage.mcare_bcarrier_line_qa_f <- function() {
   if(table_config$row_count_expected == row_sum_union$qa) {
     print("row sums match")
   }
-  if(table_config$row_count_expected > row_sum_union$qa) {
+  if(table_config$row_count_expected < row_sum_union$qa) {
     print(paste0("union row sum more, single-year sum: ", table_config$row_count_expected, " , union sum: ", row_sum_union$qa))
   }
-  if(table_config$row_count_expected < row_sum_union$qa) {
+  if(table_config$row_count_expected > row_sum_union$qa) {
     print(paste0("union row sum less, single-year sum: ", table_config$row_count_expected, " , union sum: ", row_sum_union$qa))
   }
   
