@@ -44,14 +44,15 @@ create_table_f(conn = db_claims,
 system.time(load_stage.mcare_bcarrier_claims_f())
 
 ### D) Table-level QA
-system.time(mcare_bcarrier_claims_qa1 <- qa_stage.mcare_bcarrier_claims_qa1_f())
-rm(mcare_bcarrier_claims_qa1)
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_bcarrier_claims.yaml"
+system.time(mcare_bcarrier_claims_qa <- qa_stage.mcare_bcarrier_claims_qa_f())
+#rm(mcare_bcarrier_claims_qa)
 
 ### E) Archive current table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_bcarrier_claims")
 
 ### F) Remove "load" suffix from new stage table
-#alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_elig_demo")
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_bcarrier_claims_load', 'stage.mcare_bcarrier_claims';"))
 
 ### G) Create clustered columnstore index
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_bcarrier_claims on stage.mcare_bcarrier_claims")))
