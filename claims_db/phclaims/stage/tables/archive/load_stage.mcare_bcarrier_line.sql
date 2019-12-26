@@ -2,13 +2,13 @@
 --Union of single-year files
 --Eli Kern (PHSKC-APDE)
 --2019-12
---Run time: 12 min
+--Run time: X min
 
 
 insert into PHClaims.stage.mcare_bcarrier_line_load with (tablock)
 
 --2014 data
-select top 100
+select
 encrypted723beneficiaryid as id_mcare
 ,encryptedclaimid as claim_header_id
 ,claimlinenumber as claim_line_id
@@ -30,7 +30,7 @@ from PHClaims.load_raw.mcare_bcarrier_line_j_14
 
 --2015 data
 union
-select top 100
+select
 bene_id collate SQL_Latin1_General_Cp1_CS_AS as id_mcare
 ,clm_id collate SQL_Latin1_General_Cp1_CS_AS as claim_header_id
 ,line_num as claim_line_id
@@ -52,7 +52,7 @@ from PHClaims.load_raw.mcare_bcarrier_line_k
 
 --2016 data
 union
-select top 100
+select
 bene_id as id_mcare
 ,clm_id as claim_header_id
 ,line_num as claim_line_id
