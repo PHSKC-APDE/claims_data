@@ -1,5 +1,7 @@
 schema: stage
 table: mcare_bcarrier_claims_load
+row_count_expected: 
+col_count_expected: 37
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
     claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
