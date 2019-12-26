@@ -15,7 +15,7 @@ load_stage.mcare_bcarrier_line_f <- function() {
     --Union of single-year files
     --Eli Kern (PHSKC-APDE)
     --2019-12
-    --Run time: X min
+    --Run time: 34 min
     
     
     insert into PHClaims.stage.mcare_bcarrier_line_load with (tablock)
