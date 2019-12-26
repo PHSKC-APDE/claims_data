@@ -31,8 +31,8 @@ from PHClaims.load_raw.mcare_bcarrier_line_j_14
 --2015 data
 union
 select top 100
-bene_id as id_mcare
-,clm_id as claim_header_id
+bene_id collate SQL_Latin1_General_Cp1_CS_AS as id_mcare
+,clm_id collate SQL_Latin1_General_Cp1_CS_AS as claim_header_id
 ,line_num as claim_line_id
 ,prf_physn_npi as provider_rendering_npi
 ,org_npi_num as provider_org_npi
