@@ -1,0 +1,22 @@
+schema: stage
+table: mcare_bcarrier_line_load
+row_count_expected: 
+col_count_expected: 17
+vars:
+    id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    claim_line_id: varchar(255)
+    provider_rendering_npi: varchar(255)
+    provider_org_npi: varchar(255)
+    provider_rendering_type: varchar(255)
+    provider_rendering_tin: varchar(255)
+    provider_rendering_zip: varchar(255)
+    provider_rendering_specialty: varchar(255)
+    type_of_service: varchar(255)
+    place_of_service_code: varchar(255)
+    procedure_code_hcpcs: varchar(255)
+    procedure_code_hcps_modifier_1: varchar(255)
+    procedure_code_hcps_modifier_2: varchar(255)
+    procedure_code_betos: varchar(255)
+    provider_billing_zip: varchar(255)
+    last_run: datetime
