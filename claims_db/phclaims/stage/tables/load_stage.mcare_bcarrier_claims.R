@@ -151,32 +151,21 @@ load_stage.mcare_bcarrier_claims_f <- function() {
 #### Table-level QA script ####
 qa_stage.mcare_bcarrier_claims_qa_f <- function() {
   
+  #load expected counts from YAML file
+  table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+  
   #confirm that row counts match expected
-  row_single_2014 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select count(*) as qa from (select distinct * from PHClaims.load_raw.mcare_bcarrier_claims_k_14) as a;",
-    .con = db_claims))
-  
-  row_single_2015 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select count(*) as qa from (select distinct * from PHClaims.load_raw.mcare_bcarrier_claims_j) as a;",
-    .con = db_claims))
-  
-  row_single_2016 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select count(*) as qa from (select distinct * from PHClaims.load_raw.mcare_bcarrier_claims_k) as a;",
-    .con = db_claims))
-  
-  row_sum_single <- Reduce("+", lapply(ls(pattern = "row_single"), get))
-  
   row_sum_union <- dbGetQuery(conn = db_claims, glue_sql(
     "select count(*) as qa from PHClaims.stage.mcare_bcarrier_claims_load;",
     .con = db_claims))
   
-  if(row_sum_single$qa == row_sum_union$qa) {
+  if(table_config$row_count_expected == row_sum_union$qa) {
     print("row sums match")
   }
-  if(row_sum_single$qa > row_sum_union$qa) {
+  if(table_config$row_count_expected > row_sum_union$qa) {
     print(paste0("union row sum more, single-year sum: ", row_sum_single$qa, " , union sum: ", row_sum_union$qa))
   }
-  if(row_sum_single$qa < row_sum_union$qa) {
+  if(table_config$row_count_expected < row_sum_union$qa) {
     print(paste0("union row sum less, single-year sum: ", row_sum_single$qa, " , union sum: ", row_sum_union$qa))
   }
   
@@ -189,12 +178,9 @@ qa_stage.mcare_bcarrier_claims_qa_f <- function() {
       and table_name = 'mcare_' + 'bcarrier_claims_load';",
     .con = db_claims))
   
-  col_count_expected <- 37
-  
-  if(col_count$col_cnt == col_count_expected) {
+  if(table_config$col_count_expected == col_count$col_cnt) {
     print("col count matches expected")
   } else {
     print("col count does not match!!")
   }
-  
 }
