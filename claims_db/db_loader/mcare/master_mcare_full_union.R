@@ -34,25 +34,57 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_bcarrier_claims.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_bcarrier_claims.yaml"
 
 ### B) Create table
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_bcarrier_claims.yaml",
+               config_url = config_url,
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
 
 ### C) Load tables
 system.time(load_stage.mcare_bcarrier_claims_f())
 
 ### D) Table-level QA
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_bcarrier_claims.yaml"
 system.time(mcare_bcarrier_claims_qa <- qa_stage.mcare_bcarrier_claims_qa_f())
+rm(config_url)
 #rm(mcare_bcarrier_claims_qa)
 
 ### E) Archive current table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_bcarrier_claims")
 
 ### F) Remove "load" suffix from new stage table
-dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_bcarrier_claims_load', 'stage.mcare_bcarrier_claims';"))
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_bcarrier_claims_load', 'mcare_bcarrier_claims';"))
 
 ### G) Create clustered columnstore index
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_bcarrier_claims on stage.mcare_bcarrier_claims")))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 2: mcare_bcarrier_line ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_bcarrier_line.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_bcarrier_line.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_bcarrier_line_f())
+
+### D) Table-level QA
+system.time(mcare_bcarrier_line_qa <- qa_stage.mcare_bcarrier_line_qa_f())
+rm(config_url)
+#rm(mcare_bcarrier_line_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_bcarrier_line")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_bcarrier_line_load', 'mcare_bcarrier_line';"))
+
+### G) Create clustered columnstore index
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_bcarrier_line on stage.mcare_bcarrier_line")))
