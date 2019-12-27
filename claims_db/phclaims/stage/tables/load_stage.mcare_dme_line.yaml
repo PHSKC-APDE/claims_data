@@ -1,5 +1,5 @@
 schema: stage
-table: mcare_bcarrier_line_load
+table: mcare_dme_line_load
 row_count_expected: 4483456
 col_count_expected: 13
 vars:
