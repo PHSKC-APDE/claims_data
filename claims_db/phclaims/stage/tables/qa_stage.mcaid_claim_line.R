@@ -108,13 +108,13 @@ if (rows_line == rows_raw) {
 
 
 #### Check format of rev_code ####
-rev_count <- as.integer(odbc::dbGetQuery(
+rev_format <- as.integer(odbc::dbGetQuery(
   conn = db_claims,
   "SELECT count(*) FROM [stage].[mcaid_claim_line]
   WHERE [rev_code] IS NOT NULL AND 
     (len([rev_code]) <> 4 OR isnumeric([rev_code]) = 0)"))
 
-if (rev_count == 0) {
+if (rev_format == 0) {
   rev_code_fail <- 0
   DBI::dbExecute(conn = db_claims,
                  glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -124,7 +124,7 @@ if (rev_count == 0) {
                    'Format of rev_code field', 
                    'PASS', 
                    {Sys.time()}, 
-                   'There were the same number of distinct claim lines as in the raw data')",
+                   'All rows of rev_code formatted properly')",
                                 .con = db_claims))
 } else {
   rev_code_fail <- 1
@@ -136,7 +136,7 @@ if (rev_count == 0) {
                    'Format of rev_code field', 
                    'FAIL', 
                    {Sys.time()}, 
-                   'rev_code field had some rows with legnth != 4 or characters')",
+                   'rev_code field had some rows with length != 4 or characters')",
                                 .con = db_claims))
 }
 
@@ -186,17 +186,17 @@ if (rac_chk < 50) {
 
 #### Compare number of claim lines in current vs. prior analytic tables ####
 num_claim_current <- DBI::dbGetQuery(db_claims,
- "SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [prior_claim_line]
+ "SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [current_claim_line]
  FROM [final].[mcaid_claim_line]
  GROUP BY YEAR([first_service_date]) ORDER BY YEAR([first_service_date])")
 
 num_claim_new <- DBI::dbGetQuery(db_claims,
-"SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [current_claim_line]
+"SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [new_claim_line]
  FROM [stage].[mcaid_claim_line]
  GROUP BY YEAR([first_service_date]) ORDER by YEAR([first_service_date])")
 
 num_claim_overall <- left_join(num_claim_new, num_claim_current, by = "claim_year") %>%
-  mutate(pct_change = round((current_claim_line - prior_claim_line) / prior_claim_line * 100, 4))
+  mutate(pct_change = round((new_claim_line - current_claim_line) / current_claim_line * 100, 4))
                
 # Write findings to metadata
 if (max(num_claim_overall$pct_change, na.rm = T) > 0 & 
@@ -251,6 +251,6 @@ fail_tot <- sum(ids_fail, rows_fail, rev_code_fail, rac_fail, num_claim_fail)
 rm(last_run)
 rm(ids_demo_chk, ids_timevar_chk)
 rm(rows_line, rows_raw)
-rm(rev_count)
+rm(rev_format)
 rm(num_claim_current, num_claim_new, num_claim_overall)
 rm(ids_fail, rows_fail, rev_code_fail, rac_fail, num_claim_fail)
