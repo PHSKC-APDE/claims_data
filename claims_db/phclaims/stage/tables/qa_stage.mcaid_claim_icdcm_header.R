@@ -197,7 +197,7 @@ if (dx_chk < 100) {
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
                    'stage.mcaid_claim_icdcm_header',
-                   'Almost all dx codes join to ICD-CM reference table ({dx_chk} did not)', 
+                   'Almost all dx codes join to ICD-CM reference table', 
                    'PASS', 
                    {Sys.time()}, 
                    'There were {dx_chk} dx values not in ref.dx_lookup (acceptable is < 100)')",
@@ -209,7 +209,7 @@ if (dx_chk < 100) {
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
                    'stage.mcaid_claim_icdcm_header',
-                   'All dx codes join to ICD-CM reference table', 
+                   'Almost all dx codes join to ICD-CM reference table', 
                    'FAIL', 
                    {Sys.time()}, 
                    'There were {dx_chk} dx values not in ref.dx_lookup table (acceptable is < 100)')",
