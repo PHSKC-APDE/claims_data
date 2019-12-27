@@ -1,6 +1,6 @@
 schema: stage
-table: mcare_hh_base_claims_load
-row_count_expected: 218745
+table: mcare_hospice_base_claims_load
+row_count_expected: 217961
 col_count_expected: 64
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
@@ -11,8 +11,9 @@ vars:
     claim_type: varchar(255)
     facility_type_code: varchar(255)
     service_type_code: varchar(255)
-    admission_date: date
     discharge_date: date
+    hospice_from_date: date
+    patient_status: varchar(255)
     patient_status_code: varchar(255)
     provider_attending_npi: varchar(255)
     provider_attending_specialty: varchar(255)
@@ -26,7 +27,6 @@ vars:
     provider_rendering_npi: varchar(255)
     provider_rendering_specialty: varchar(255)
     provider_sos_npi: varchar(255)
-    provider_rendering_zip: varchar(255)
     dx01: varchar(255)
     dx02: varchar(255)
     dx03: varchar(255)
