@@ -135,3 +135,7 @@ time_end <- Sys.time()
 message(glue::glue("Index creation took {round(difftime(time_end, time_start, units = 'secs'), 2)} ",
                    " secs ({round(difftime(time_end, time_start, units = 'mins'), 2)} mins)"))
 
+#### CLEAN UP ####
+rm(table_config_claim_icdcm_header)
+rm(step2_sql)
+rm(time_start, time_end)
