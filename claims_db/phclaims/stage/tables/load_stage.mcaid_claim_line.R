@@ -22,7 +22,7 @@ create_table_f(conn = db_claims, config_url = config_url, overall = T, ind_yr = 
 #### LOAD TABLE ####
 # NB: Changes in table structure need to altered here and the YAML file
 insert_sql <- glue::glue_sql("
-INSERT INTO {load_mcaid_claim_line_config$to_schema}.{load_mcaid_claim_line_config$to_table} with (tablock)
+INSERT INTO {`load_mcaid_claim_line_config$to_schema`}.{`load_mcaid_claim_line_config$to_table`} with (tablock)
 (id_mcaid
 ,claim_header_id
 ,claim_line_id
@@ -46,7 +46,7 @@ SELECT DISTINCT
 from [stage].[mcaid_claim];
 ", .con = db_claims)
 
-message("Loading to {load_mcaid_claim_line_config$to_schema}.{load_mcaid_claim_line_config$to_table}")
+message(glue::glue("Loading to {load_mcaid_claim_line_config$to_schema}.{load_mcaid_claim_line_config$to_table}"))
 time_start <- Sys.time()
 DBI::dbExecute(conn = db_claims, insert_sql)
 time_end <- Sys.time()
@@ -61,4 +61,5 @@ add_index_f(db_claims, table_config = load_mcaid_claim_line_config)
 
 #### CLEAN  UP ####
 rm(config_url, load_mcaid_claim_line_config)
+rm(insert_sql)
 rm(time_start, time_end)
