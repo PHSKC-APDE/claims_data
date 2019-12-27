@@ -2,7 +2,7 @@
 --Union of single-year files
 --Eli Kern (PHSKC-APDE)
 --2019-12
---Run time: 34 min
+--Run time: 25 min
 
 
 insert into PHClaims.stage.mcare_bcarrier_line_load with (tablock)
