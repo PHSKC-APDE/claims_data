@@ -18,7 +18,7 @@ load_stage.mcare_dme_line_f <- function() {
     --Run time: xx min
     
     
-    insert into PHClaims.stage.mcare_dme_line with (tablock)
+    insert into PHClaims.stage.mcare_dme_line_load with (tablock)
     
     --2015 data
     select
