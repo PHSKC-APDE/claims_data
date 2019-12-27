@@ -1,7 +1,7 @@
 schema: stage
-table: mcare_bcarrier_claims_load
-row_count_expected: 48377322
-col_count_expected: 37
+table: mcare_dme_claims_load
+row_count_expected: 
+col_count_expected: 34
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
     claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
@@ -9,10 +9,7 @@ vars:
     last_service_date: date
     claim_type: varchar(255)
     denial_code: varchar(255)
-    provider_billing_npi: varchar(255)
     provider_referring_npi: varchar(255)
-    provider_cpo_npi: varchar(255)
-    provider_sos_npi: varchar(255)
     dx01: varchar(255)
     dx01_ver: varchar(255)
     dx02: varchar(255)
