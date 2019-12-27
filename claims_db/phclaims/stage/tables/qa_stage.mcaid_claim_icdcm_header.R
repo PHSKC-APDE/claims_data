@@ -218,17 +218,17 @@ if (dx_chk < 200) {
 
 #### Compare number of dx codes in current vs. prior analytic tables ####
 num_dx_current <- DBI::dbGetQuery(db_claims,
- "SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [prior_num_dx]
+ "SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [current_num_dx]
  FROM [final].[mcaid_claim_icdcm_header]
  GROUP BY YEAR([first_service_date]) ORDER BY YEAR([first_service_date])")
 
 num_dx_new <- DBI::dbGetQuery(db_claims,
-"SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [current_num_dx]
+"SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [new_num_dx]
  FROM [stage].[mcaid_claim_icdcm_header]
  GROUP BY YEAR([first_service_date]) ORDER by YEAR([first_service_date])")
 
 num_dx_overall <- left_join(num_dx_new, num_dx_current, by = "claim_year") %>%
-  mutate(pct_change = round((current_num_dx - prior_num_dx) / prior_num_dx * 100, 4))
+  mutate(pct_change = round((new_num_dx - current_num_dx) / current_num_dx * 100, 4))
                
 # Write findings to metadata
 if (max(num_dx_overall$pct_change, na.rm = T) > 0 & 
