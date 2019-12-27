@@ -1,5 +1,5 @@
 schema: stage
-table: mcare_hh_base_claims_load
+table: mcare_hha_base_claims_load
 row_count_expected: 218745
 col_count_expected: 64
 vars:
