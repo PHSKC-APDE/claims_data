@@ -15,7 +15,7 @@ load_stage.mcare_snf_base_claims_f <- function() {
     --Union of single-year files
     --Eli Kern (PHSKC-APDE)
     --2019-12
-    --Run time: xx min
+    --Run time: 1 min
     
     
     insert into PHClaims.stage.mcare_snf_base_claims_load with (tablock)
