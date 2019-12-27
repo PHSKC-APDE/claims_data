@@ -1,0 +1,13 @@
+to_schema: stage
+to_table: idx_ccs_stage_mcaid_claim_line
+index_type: ccs
+index_name: idx_ccs_stage_mcaid_claim_line
+vars:
+    id_mcaid: VARCHAR(255)
+    claim_header_id: BIGINT
+    claim_line_id: BIGINT
+    first_service_date: DATE
+    last_service_date: DATE
+    rev_code: VARCHAR(200)
+    rac_code_line: INT
+    last_run: DATETIME
