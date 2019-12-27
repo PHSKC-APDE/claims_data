@@ -180,7 +180,6 @@ if (icdcm_num_chk == 0) {
 }
 
 
-
 #### Check if any diagnosis codes do not join to ICD-CM reference table ####
 dx_chk <- as.integer(DBI::dbGetQuery(db_claims,
   "SELECT count(distinct 'ICD' + CAST([icdcm_version] AS VARCHAR(2)) + ' - ' + [icdcm_norm])
@@ -190,7 +189,7 @@ dx_chk <- as.integer(DBI::dbGetQuery(db_claims,
     WHERE a.[icdcm_version] = b.[dx_ver] and a.[icdcm_norm] = b.[dx])"))
 
 # Write findings to metadata
-if (dx_chk < 100) {
+if (dx_chk < 200) {
   dx_fail <- 0
   DBI::dbExecute(conn = db_claims,
                  glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -200,7 +199,7 @@ if (dx_chk < 100) {
                    'Almost all dx codes join to ICD-CM reference table', 
                    'PASS', 
                    {Sys.time()}, 
-                   'There were {dx_chk} dx values not in ref.dx_lookup (acceptable is < 100)')",
+                   'There were {dx_chk} dx values not in ref.dx_lookup (acceptable is < 200)')",
                                 .con = db_claims))
 } else {
   dx_fail <- 1
@@ -212,7 +211,7 @@ if (dx_chk < 100) {
                    'Almost all dx codes join to ICD-CM reference table', 
                    'FAIL', 
                    {Sys.time()}, 
-                   'There were {dx_chk} dx values not in ref.dx_lookup table (acceptable is < 100)')",
+                   'There were {dx_chk} dx values not in ref.dx_lookup table (acceptable is < 200)')",
                                 .con = db_claims))
 }
 
