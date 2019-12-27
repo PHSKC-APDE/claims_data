@@ -1,0 +1,16 @@
+from_schema: stage
+from_table: mcaid_claim_icdcm_header
+to_schema: final
+to_table: mcaid_claim_icdcm_header
+index_type: ccs
+index_name: idx_ccs_final_mcaid_claim_icdcm_header
+vars:
+    id_mcaid: VARCHAR(255)
+    claim_header_id: BIGINT
+    first_service_date: DATE
+    last_service_date: DATE
+    icdcm_raw: VARCHAR(255)
+    icdcm_norm: VARCHAR(255)
+    icdcm_version: TINYINT
+    icdcm_number: VARCHAR(5)
+    last_run: DATETIME
