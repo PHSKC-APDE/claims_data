@@ -1,5 +1,5 @@
 to_schema: stage
-to_table: idx_ccs_stage_mcaid_claim_line
+to_table: mcaid_claim_line
 index_type: ccs
 index_name: idx_ccs_stage_mcaid_claim_line
 vars:
