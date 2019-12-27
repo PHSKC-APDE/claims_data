@@ -2,7 +2,7 @@
 --Union of single-year files
 --Eli Kern (PHSKC-APDE)
 --2019-12
---Run time: xx min
+--Run time: 8 min
 
 
 insert into PHClaims.stage.mcare_dme_claims_load with (tablock)
