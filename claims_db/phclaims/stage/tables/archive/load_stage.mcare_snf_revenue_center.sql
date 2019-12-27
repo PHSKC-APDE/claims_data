@@ -2,7 +2,7 @@
 --Union of single-year files
 --Eli Kern (PHSKC-APDE)
 --2019-12
---Run time: xx min
+--Run time: 1 min
 
 
 insert into PHClaims.stage.mcare_snf_revenue_center_load with (tablock)

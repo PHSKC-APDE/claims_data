@@ -15,7 +15,7 @@ load_stage.mcare_outpatient_revenue_center_f <- function() {
     --Union of single-year files
     --Eli Kern (PHSKC-APDE)
     --2019-12
-    --Run time: xx min
+    --Run time: 21 min
     
     
     insert into PHClaims.stage.mcare_outpatient_revenue_center_load with (tablock)

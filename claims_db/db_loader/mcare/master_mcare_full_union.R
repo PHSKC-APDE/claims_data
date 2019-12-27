@@ -55,9 +55,6 @@ alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", t
 ### F) Remove "load" suffix from new stage table
 dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_bcarrier_claims_load', 'mcare_bcarrier_claims';"))
 
-### G) Create clustered columnstore index
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_bcarrier_claims on stage.mcare_bcarrier_claims")))
-
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 2: mcare_bcarrier_line ####
@@ -86,5 +83,338 @@ alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", t
 ### F) Remove "load" suffix from new stage table
 dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_bcarrier_line_load', 'mcare_bcarrier_line';"))
 
-### G) Create clustered columnstore index
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 3: mcare_dme_claims ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_dme_claims.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_dme_claims.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_dme_claims_f())
+
+### D) Table-level QA
+system.time(mcare_dme_claims_qa <- qa_stage.mcare_dme_claims_qa_f())
+rm(config_url)
+#rm(mcare_dme_claims_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_dme_claims")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_dme_claims_load', 'mcare_dme_claims';"))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 4: mcare_dme_line ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_dme_line.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_dme_line.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_dme_line_f())
+
+### D) Table-level QA
+system.time(mcare_dme_line_qa <- qa_stage.mcare_dme_line_qa_f())
+rm(config_url)
+#rm(mcare_dme_line_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_dme_line")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_dme_line_load', 'mcare_dme_line';"))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 5: mcare_hha_base_claims ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_hha_base_claims.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_hha_base_claims.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_hha_base_claims_f())
+
+### D) Table-level QA
+system.time(mcare_hha_base_claims_qa <- qa_stage.mcare_hha_base_claims_qa_f())
+rm(config_url)
+#rm(mcare_hha_base_claims_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_hha_base_claims")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_hha_base_claims_load', 'mcare_hha_base_claims';"))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 6: mcare_hha_revenue_center ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### Place holder for when files are received from OFM ###
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 7: mcare_hospice_base_claims ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_hospice_base_claims.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_hospice_base_claims.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_hospice_base_claims_f())
+
+### D) Table-level QA
+system.time(mcare_hospice_base_claims_qa <- qa_stage.mcare_hospice_base_claims_qa_f())
+rm(config_url)
+#rm(mcare_hospice_base_claims_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_hospice_base_claims")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_hospice_base_claims_load', 'mcare_hospice_base_claims';"))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 8: mcare_hospice_revenue_center ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_hospice_revenue_center.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_hospice_revenue_center.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_hospice_revenue_center_f())
+
+### D) Table-level QA
+system.time(mcare_hospice_revenue_center_qa <- qa_stage.mcare_hospice_revenue_center_qa_f())
+rm(config_url)
+#rm(mcare_hospice_revenue_center_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_hospice_revenue_center")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_hospice_revenue_center_load', 'mcare_hospice_revenue_center';"))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 9: mcare_inpatient_base_claims ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_inpatient_base_claims.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_inpatient_base_claims.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_inpatient_base_claims_f())
+
+### D) Table-level QA
+system.time(mcare_inpatient_base_claims_qa <- qa_stage.mcare_inpatient_base_claims_qa_f())
+rm(config_url)
+#rm(mcare_inpatient_base_claims_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_inpatient_base_claims")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_inpatient_base_claims_load', 'mcare_inpatient_base_claims';"))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 10: mcare_inpatient_revenue_center ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_inpatient_revenue_center.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_inpatient_revenue_center.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_inpatient_revenue_center_f())
+
+### D) Table-level QA
+system.time(mcare_inpatient_revenue_center_qa <- qa_stage.mcare_inpatient_revenue_center_qa_f())
+rm(config_url)
+#rm(mcare_inpatient_revenue_center_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_inpatient_revenue_center")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_inpatient_revenue_center_load', 'mcare_inpatient_revenue_center';"))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 11: mcare_outpatient_base_claims ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_outpatient_base_claims.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_outpatient_base_claims.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_outpatient_base_claims_f())
+
+### D) Table-level QA
+system.time(mcare_outpatient_base_claims_qa <- qa_stage.mcare_outpatient_base_claims_qa_f())
+rm(config_url)
+#rm(mcare_outpatient_base_claims_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_outpatient_base_claims")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_outpatient_base_claims_load', 'mcare_outpatient_base_claims';"))
+
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 12: mcare_outpatient_revenue_center ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_outpatient_revenue_center.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_outpatient_revenue_center.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_outpatient_revenue_center_f())
+
+### D) Table-level QA
+system.time(mcare_outpatient_revenue_center_qa <- qa_stage.mcare_outpatient_revenue_center_qa_f())
+rm(config_url)
+#rm(mcare_outpatient_revenue_center_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_outpatient_revenue_center")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_outpatient_revenue_center_load', 'mcare_outpatient_revenue_center';"))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 13: mcare_snf_base_claims ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_snf_base_claims.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_snf_base_claims.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_snf_base_claims_f())
+
+### D) Table-level QA
+system.time(mcare_snf_base_claims_qa <- qa_stage.mcare_snf_base_claims_qa_f())
+rm(config_url)
+#rm(mcare_snf_base_claims_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_snf_base_claims")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_snf_base_claims_load', 'mcare_snf_base_claims';"))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 14: mcare_snf_revenue_center ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_snf_revenue_center.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_snf_revenue_center.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_snf_revenue_center_f())
+
+### D) Table-level QA
+system.time(mcare_snf_revenue_center_qa <- qa_stage.mcare_snf_revenue_center_qa_f())
+rm(config_url)
+#rm(mcare_snf_revenue_center_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_snf_revenue_center")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_snf_revenue_center_load', 'mcare_snf_revenue_center';"))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### FINAL STEP: INDEX ALL TABLES ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_bcarrier_claims on stage.mcare_bcarrier_claims")))
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_bcarrier_line on stage.mcare_bcarrier_line")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_dme_claims on stage.mcare_dme_claims")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_dme_line on stage.mcare_dme_line")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_hha_base_claims on stage.mcare_hha_base_claims")))
+#placeholder for hha_revenue_center
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_hospice_base_claims on stage.mcare_hospice_base_claims")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_hospice_revenue_center on stage.mcare_hospice_revenue_center")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_inpatient_base_claims on stage.mcare_inpatient_base_claims")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_inpatient_revenue_center on stage.mcare_inpatient_revenue_center")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_outpatient_base_claims on stage.mcare_outpatient_base_claims")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_outpatient_revenue_center on stage.mcare_outpatient_revenue_center")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_snf_base_claims on stage.mcare_snf_base_claims")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_snf_revenue_center on stage.mcare_snf_revenue_center")))
