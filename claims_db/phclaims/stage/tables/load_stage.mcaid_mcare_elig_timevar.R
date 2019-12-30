@@ -33,7 +33,7 @@
            mcare[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
            mcare[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
            
-  mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, from_date, to_date, tpl, bsp_group_name, full_benefit, cov_type, mco_id, 
+  mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, from_date, to_date, tpl, bsp_group_cid, full_benefit, cov_type, mco_id, 
                                   geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip, geo_zip_centroid, 
                                   geo_street_centroid, geo_county_code, geo_tractce10, geo_hra_code, geo_school_code
                                   FROM PHClaims.final.mcaid_elig_timevar"))
