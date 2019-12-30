@@ -15,7 +15,7 @@ vars:
     partial: TINYINT
     buy_in: TINYINT
     tpl: TINYINT
-    bsp_group_name: VARCHAR(255)
+    bsp_group_cid: INTEGER
     full_benefit: TINYINT
     cov_type: CHAR(3)
     mco_id: INT

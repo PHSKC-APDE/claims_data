@@ -11,11 +11,11 @@ vars:
     full_benefit: TINYINT
     cov_type: CHAR(3)
     mco_id: INT
-    geo_add1_clean: VARCHAR(255)
-    geo_add2_clean: VARCHAR(255)
-    geo_city_clean: VARCHAR(255)
-    geo_state_clean: VARCHAR(255)
-    geo_zip_clean: VARCHAR(255)
+    geo_add1: VARCHAR(255)
+    geo_add2: VARCHAR(255)
+    geo_city: VARCHAR(255)
+    geo_state: VARCHAR(255)
+    geo_zip: VARCHAR(255)
     geo_zip_centroid: TINYINT
     geo_street_centroid: TINYINT
     geo_county_code: varchar(255)
