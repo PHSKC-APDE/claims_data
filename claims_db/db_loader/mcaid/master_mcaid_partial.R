@@ -106,7 +106,8 @@ load_table_from_sql_f(conn = db_claims,
                       truncate = T, truncate_date = F)
 
 # Check appropriate # rows loaded
-rows_ref_new <- as.integer(dbGetQuery(db_claims, "SELECT COUNT (*) AS row_cnt FROM ref.address_clean"))
+rows_ref <- as.integer(dbGetQuery(db_claims, "SELECT COUNT (*) AS row_cnt FROM ref.address_clean"))
+rows_ref_new <- as.integer(dbGetQuery(db_claims, "SELECT COUNT (*) AS row_cnt FROM stage.address_clean"))
 
 if (rows_ref != rows_ref_new) {
   stop("Unexpected number of rows loaded to ref.address_clean")
@@ -129,7 +130,7 @@ qa_rows_final <- qa_sql_row_count_f(conn = db_claims,
                                     config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
                                     overall = T, ind_yr = F)
 
-odbc::dbGetQuery(
+DBI::dbExecute(
   conn = db_claims,
   glue::glue_sql("INSERT INTO metadata.qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 

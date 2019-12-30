@@ -12,11 +12,18 @@ library(odbc) # Read to and write from SQL
 library(configr) # Read in YAML files
 library(RCurl) # Read files from Github
 
-db_apde51 <- dbConnect(odbc(), "PH_APDEStore51")
-db_claims <- dbConnect(odbc(), "PHClaims51")
+if (!exists("db_apde51")) {
+  db_apde51 <- dbConnect(odbc(), "PH_APDEStore51")  
+}
+if (!exists("db_claims")) {
+  db_claims <- dbConnect(odbc(), "PHClaims51") 
+}
+
+if (!exists("create_table_f")) {
+  source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")  
+}
 
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
-source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
 
 
 #### PARTIAL ADDRESS_CLEAN SETUP ####
@@ -79,7 +86,10 @@ update_sql <- glue::glue_data(
 
 update_sql <- str_replace_all(update_sql, "= 'NA'", "Is NULL")
 
-dbGetQuery(db_claims, glue::glue_collapse(update_sql, sep = "; "))
+DBI::dbExecute(db_claims, glue::glue_collapse(update_sql, sep = "; "))
+
+message(glue::glue("{nrow(update_source)} addresses were found in the new Medicaid ",
+                   "data that were previously only in PHA data"))
 
 
 #### STEP 1C: Take address data from Medicaid that don't match to the ref table ####

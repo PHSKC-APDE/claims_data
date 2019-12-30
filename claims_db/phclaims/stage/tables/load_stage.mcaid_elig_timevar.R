@@ -21,7 +21,7 @@ try(odbc::dbRemoveTable(db_claims, "##timevar_01a", temporary = T))
 step1a_sql <- glue::glue_sql(
   "SELECT DISTINCT a.id_mcaid, 
     CONVERT(DATE, CAST(a.CLNDR_YEAR_MNTH as varchar(200)) + '01', 112) AS calmonth, 
-    a.fromdate, a.todate, a.dual, a.tpl, a.bsp_group_name, 
+    a.fromdate, a.todate, a.dual, a.tpl, a.bsp_group_cid, 
     b.full_benefit_1, c.full_benefit_2, a.cov_type, a.mco_id,
     d.geo_add1_clean, d.geo_add2_clean, d.geo_city_clean,
     d.geo_state_clean, d.geo_zip_clean
@@ -31,7 +31,7 @@ step1a_sql <- glue::glue_sql(
       CLNDR_YEAR_MNTH, FROM_DATE AS 'fromdate', TO_DATE AS 'todate',
       DUAL_ELIG AS 'dual', TPL_FULL_FLAG AS 'tpl', 
       RPRTBL_RAC_CODE AS 'rac_code_1', SECONDARY_RAC_CODE AS 'rac_code_2', 
-      RPRTBL_BSP_GROUP_NAME AS 'bsp_group_name', 
+      RPRTBL_bsp_group_cid AS 'bsp_group_cid', 
       COVERAGE_TYPE_IND AS 'cov_type', 
       MC_PRVDR_ID AS 'mco_id', 
       RSDNTL_ADRS_LINE_1 AS 'geo_add1_raw', RSDNTL_ADRS_LINE_2 AS 'geo_add2_raw',
@@ -88,13 +88,13 @@ try(odbc::dbRemoveTable(db_claims, "##timevar_01b", temporary = T))
 
 step1b_sql <- glue::glue_sql(
   "SELECT a.id_mcaid, a.calmonth, a.fromdate, a.todate, a.dual, 
-  a.tpl, a.bsp_group_name, a.full_benefit, a.cov_type, a.mco_id, 
+  a.tpl, a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id, 
   a.geo_add1_clean, a.geo_add2_clean, 
   a.geo_city_clean, a.geo_state_clean, a.geo_zip_clean
   INTO ##timevar_01b
   FROM
   (SELECT id_mcaid, calmonth, fromdate, todate, dual, 
-  tpl, bsp_group_name, cov_type, mco_id,
+  tpl, bsp_group_cid, cov_type, mco_id,
   CASE 
     WHEN COALESCE(MAX(full_benefit_1), 0) + COALESCE(MAX(full_benefit_2), 0) >= 1 THEN 1
     WHEN COALESCE(MAX(full_benefit_1), 0) + COALESCE(MAX(full_benefit_2), 0) = 0 THEN 0
@@ -105,7 +105,7 @@ step1b_sql <- glue::glue_sql(
                     ORDER BY id_mcaid, calmonth, fromdate) AS group_row 
   FROM ##timevar_01a
   GROUP BY id_mcaid, calmonth, fromdate, todate, dual, 
-  tpl, bsp_group_name, cov_type, mco_id,
+  tpl, bsp_group_cid, cov_type, mco_id,
   geo_add1_clean, geo_add2_clean, geo_city_clean,
   geo_state_clean, geo_zip_clean) a
   WHERE a.group_row = 1",
@@ -128,13 +128,13 @@ print(paste0("Step 1b took ", round(difftime(time_end, time_start, units = "secs
 try(odbc::dbRemoveTable(db_claims, "##timevar_02a", temporary = T))
 
 step2a_sql <- glue::glue_sql(
-  "SELECT id_mcaid, dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+  "SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     calmonth AS startdate, dateadd(day, - 1, dateadd(month, 1, calmonth)) AS enddate,
     fromdate, todate
     INTO ##timevar_02a
     FROM ##timevar_01b
-    GROUP BY id_mcaid, calmonth, dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+    GROUP BY id_mcaid, calmonth, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     fromdate, todate",
   .con = db_claims)
@@ -155,12 +155,12 @@ try(odbc::dbRemoveTable(db_claims, "##timevar_02b", temporary = T))
 
 step2b_sql <- glue::glue_sql(
   "SELECT DISTINCT a.id_mcaid, a.from_date, a.to_date, a.dual, a.tpl, 
-  a.bsp_group_name, a.full_benefit, a.cov_type, a.mco_id, 
+  a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id, 
   a.geo_add1_clean, a.geo_add2_clean, a.geo_city_clean, 
   a.geo_state_clean, a.geo_zip_clean
   INTO ##timevar_02b
   FROM
-  (SELECT id_mcaid, dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+  (SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     CASE 
       WHEN fromdate IS NULL THEN startdate 
@@ -198,11 +198,11 @@ try(odbc::dbRemoveTable(db_claims, "##timevar_03a", temporary = T))
 
 step3a_sql <- glue::glue_sql(
   "SELECT DISTINCT id_mcaid, from_date, to_date, 
-  dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+  dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
   geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
   DATEDIFF(day, lag(to_date) OVER (
     PARTITION BY id_mcaid, 
-      dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+      dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
       geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean
       ORDER BY id_mcaid, from_date), from_date) AS group_num
   INTO ##timevar_03a
@@ -225,7 +225,7 @@ try(odbc::dbRemoveTable(db_claims, "##timevar_03b", temporary = T))
 
 step3b_sql <- glue::glue_sql(
   "SELECT DISTINCT id_mcaid, from_date, to_date,
-    dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+    dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
     CASE 
       WHEN group_num > 1  OR group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY id_mcaid ORDER BY from_date) + 1
@@ -256,10 +256,10 @@ try(odbc::dbRemoveTable(db_claims, "##timevar_03c", temporary = T))
 
 step3c_sql <- glue::glue_sql(
   "SELECT DISTINCT id_mcaid, from_date, to_date,
-    dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+    dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
     group_num = max(group_num) OVER 
-      (PARTITION BY id_mcaid, dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+      (PARTITION BY id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
         geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean 
         ORDER BY from_date)
     INTO ##timevar_03c
@@ -281,13 +281,13 @@ print(paste0("Step 3c took ", round(difftime(time_end, time_start, units = "secs
 try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T))
 
 step4a_sql <- glue::glue_sql(
-  "SELECT id_mcaid, dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+  "SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     MIN(from_date) AS from_date,
     MAX(to_date) AS to_date
     INTO ##timevar_04a
     FROM ##timevar_03c
-    GROUP BY id_mcaid, dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+    GROUP BY id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
     group_num",
   .con = db_claims)
@@ -306,7 +306,7 @@ try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T))
 
 step4b_sql <- glue::glue_sql(
   "SELECT id_mcaid, from_date, to_date, dual, tpl, 
-    bsp_group_name, full_benefit, cov_type, mco_id,
+    bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
     DATEDIFF(dd, from_date, to_date) + 1 as cov_time_day
     INTO ##timevar_04b
@@ -343,14 +343,14 @@ step5b_sql <- glue::glue_sql(
       THEN 1 ELSE 0 END AS contiguous, 
     CASE WHEN a.dual = 'Y' THEN 1 ELSE 0 END AS dual,
     CASE WHEN a.tpl = 'Y' THEN 1 ELSE 0 END AS tpl,
-    a.bsp_group_name, a.full_benefit, a.cov_type, a.mco_id,
+    a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id,
     a.geo_add1_clean, a.geo_add2_clean, a.geo_city_clean, a.geo_state_clean, a.geo_zip_clean,
     b.geo_zip_centroid, b.geo_street_centroid, b.geo_county_code, b.geo_tract_code, 
     b.geo_hra_code, b.geo_school_code, a.cov_time_day,
     {Sys.time()} AS last_run
     FROM
     (SELECT id_mcaid, from_date, to_date, 
-      dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
+      dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
       geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
       cov_time_day
       FROM ##timevar_04b) a

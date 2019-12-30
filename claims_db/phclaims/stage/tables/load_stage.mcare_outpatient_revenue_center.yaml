@@ -1,0 +1,18 @@
+schema: stage
+table: mcare_outpatient_revenue_center_load
+row_count_expected: 70643110
+col_count_expected: 13
+vars:
+    id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    claim_line_id: varchar(255)
+    revenue_code: varchar(255)
+    procedure_code_hcpcs: varchar(255)
+    procedure_code_hcps_modifier_1: varchar(255)
+    procedure_code_hcps_modifier_2: varchar(255)
+    ndc_code: varchar(255)
+    drug_quantity: varchar(255)
+    drug_uom: varchar(255)
+    provider_rendering_npi: varchar(255)
+    provider_rendering_specialty: varchar(255)
+    last_run: datetime

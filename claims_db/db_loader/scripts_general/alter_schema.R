@@ -23,7 +23,7 @@ alter_schema_f <- function(
   }
   
   if (dbExistsTable(conn, DBI::Id(schema = from_schema, table = table_name)) == F) {
-    stop("From table does not exist")
+    stop(glue::glue("From table ({from_schema.table_name}) does not exist"))
   }
   
   schema_check <- odbc::dbGetQuery(conn,
@@ -38,6 +38,9 @@ alter_schema_f <- function(
     stop("To schema does not exist")
   }
   
+  if (from_schema == to_schema) {
+    stop("From and to schema cannot be the same")
+  }
 
   #### DROP TABLE IN TO SCHEMA IF IT ALREADY EXISTS ####
   if (dbExistsTable(conn, DBI::Id(schema = to_schema, table = table_name)) == T) {
