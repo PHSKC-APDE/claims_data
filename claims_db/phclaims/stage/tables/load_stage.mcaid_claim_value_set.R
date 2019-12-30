@@ -331,7 +331,3 @@ AND dx.[icdcm_norm] = hed.[code];")
 DBI::dbGetQuery(db_claims,
                 "CREATE CLUSTERED COLUMNSTORE INDEX [idx_ccs_mcaid_claim_value_set]
                 ON [stage].[mcaid_claim_value_set]")
-
-
-
-
