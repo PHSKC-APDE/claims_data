@@ -3,7 +3,6 @@
   # Date: September 16, 2019
   # Purpose: Create stage.mcaid_mcare_elig_timevar for SQL
   #
-  #
   # This code is designed to be run as part of the master Medicaid/Medicare script:
   # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
   #

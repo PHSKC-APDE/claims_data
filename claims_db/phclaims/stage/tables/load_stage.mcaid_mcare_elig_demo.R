@@ -92,16 +92,12 @@
   # Pull YAML from GitHub
     table_config <- yaml::yaml.load(RCurl::getURL(yaml.url))
   
-  # Create table ID
-    tbl_id <- DBI::Id(schema = table_config$schema, 
-                      table = table_config$table)  
-  
   # Ensure columns are in same order in R & SQL
     setcolorder(elig, names(table_config$vars))
   
   # Write table to SQL
     dbWriteTable(db_claims, 
-                 tbl_id, 
+                 DBI::Id(schema = table_config$schema, table = table_config$table), 
                  value = as.data.frame(elig),
                  overwrite = T, append = F, 
                  field.types = unlist(table_config$vars))
@@ -234,6 +230,17 @@
                          problems))
     }else{message("Staged MCAID_MCARE_ELIG_DEMO passed all QA tests")}
 
+    
+## (12) Clean up
+    rm(apde, mcaid, mcaid.dual, mcaid.solo, mcare, mcare.dual, mcare.solo, dual.id)
+    rm(i, yaml.url)
+    rm(dual, elig)
+    rm(table_config)
+    rm(stage.count, last_run, previous_rows, row_diff)
+    rm(stage.count.unique)
+    rm(qa.values)
+    rm(problem.row_diff, problem.ids, problems)
+    
 ## The end! ----
     run.time <- Sys.time() - start.time
     print(run.time)
