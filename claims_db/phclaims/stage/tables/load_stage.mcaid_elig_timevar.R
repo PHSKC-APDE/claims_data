@@ -16,7 +16,7 @@ print("Creating stage.mcaid_elig_timevar. This will take ~25 minutes to run.")
 # Note, some people have 2 secondary RAC codes on separate rows.
 # Need to create third RAC code field and collapse to a single row.
 # First pull in relevant columns and set an index to speed later sorting
-try(odbc::dbRemoveTable(db_claims, "##timevar_01a", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_01a", temporary = T), silent = T)
 
 step1a_sql <- glue::glue_sql(
   "SELECT DISTINCT a.id_mcaid, 
@@ -85,7 +85,7 @@ print(paste0("Step 1a took ", round(difftime(time_end, time_start, units = "secs
 
 
 # Setup full_benefit flag and drop secondary RAC rows
-try(odbc::dbRemoveTable(db_claims, "##timevar_01b", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_01b", temporary = T), silent = T)
 
 step1b_sql <- glue::glue_sql(
   "SELECT a.id_mcaid, a.calmonth, a.fromdate, a.todate, a.dual, 
@@ -123,7 +123,7 @@ print(paste0("Step 1b took ", round(difftime(time_end, time_start, units = "secs
 
 #### STEP 2: MAKE START AND END DATES ####
 # Make a start and end date for each month
-try(odbc::dbRemoveTable(db_claims, "##timevar_02a", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_02a", temporary = T), silent = T)
 
 step2a_sql <- glue::glue_sql(
   "SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
@@ -148,7 +148,7 @@ print(paste0("Step 2a took ", round(difftime(time_end, time_start, units = "secs
 # Incorporate sub-month coverage (identify the smallest possible time interval)
 # Note that the step above leads to duplicate rows so use distinct here to clear
 #  them out once submonth coverage is accounted for
-try(odbc::dbRemoveTable(db_claims, "##timevar_02b", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_02b", temporary = T), silent = T)
 
 step2b_sql <- glue::glue_sql(
   "SELECT DISTINCT a.id_mcaid, a.from_date, a.to_date, a.dual, a.tpl, 
@@ -190,7 +190,7 @@ print(paste0("Step 2b took ", round(difftime(time_end, time_start, units = "secs
 
 #### STEP 3: IDENTIFY CONTIGUOUS PERIODS ####
 # Calculate the number of days between each from_date and the previous to_date
-try(odbc::dbRemoveTable(db_claims, "##timevar_03a", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_03a", temporary = T), silent = T)
 
 step3a_sql <- glue::glue_sql(
   "SELECT DISTINCT id_mcaid, from_date, to_date, 
@@ -214,10 +214,9 @@ print(paste0("Step 3a took ", round(difftime(time_end, time_start, units = "secs
              " mins)"))
 
 
-
 # Give a unique identifier (row number) to the first date in a continguous series of dates 
 # (meaning 0 or 1 days between each from_date and the previous to_date)
-try(odbc::dbRemoveTable(db_claims, "##timevar_03b", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_03b", temporary = T), silent = T)
 
 step3b_sql <- glue::glue_sql(
   "SELECT DISTINCT id_mcaid, from_date, to_date,
@@ -248,7 +247,7 @@ print(paste0("Step 3b took ", round(difftime(time_end, time_start, units = "secs
 
 # Use the row number for the first in the series of contiguous dates as an 
 # identifier for that set of contiguous dates
-try(odbc::dbRemoveTable(db_claims, "##timevar_03c", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_03c", temporary = T), silent = T)
 
 step3c_sql <- glue::glue_sql(
   "SELECT DISTINCT id_mcaid, from_date, to_date,
@@ -274,7 +273,7 @@ print(paste0("Step 3c took ", round(difftime(time_end, time_start, units = "secs
 
 #### STEP 4: FIND MIN/MAX DATES AND CONTIGUOUS PERIODS ####
 # Find the min/max dates
-try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T), silent = T)
 
 step4a_sql <- glue::glue_sql(
   "SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
@@ -298,7 +297,7 @@ print(paste0("Step 4a took ", round(difftime(time_end, time_start, units = "secs
 
 
 # Calculate coverage time
-try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T), silent = T)
 
 step4b_sql <- glue::glue_sql(
   "SELECT id_mcaid, from_date, to_date, dual, tpl, 
@@ -375,15 +374,15 @@ print(paste0("Step 5b took ", round(difftime(time_end, time_start, units = "secs
 #### STEP 6: REMOVE TEMPORARY TABLES ####
 print("Running step 6: Remove temporary tables")
 time_start <- Sys.time()
-try(odbc::dbRemoveTable(db_claims, "##timevar_01a", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_01b", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_02a", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_02b", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_03a", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_03b", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_03c", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T))
-try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T))
+try(odbc::dbRemoveTable(db_claims, "##timevar_01a", temporary = T), silent = T)
+try(odbc::dbRemoveTable(db_claims, "##timevar_01b", temporary = T), silent = T)
+try(odbc::dbRemoveTable(db_claims, "##timevar_02a", temporary = T), silent = T)
+try(odbc::dbRemoveTable(db_claims, "##timevar_02b", temporary = T), silent = T)
+try(odbc::dbRemoveTable(db_claims, "##timevar_03a", temporary = T), silent = T)
+try(odbc::dbRemoveTable(db_claims, "##timevar_03b", temporary = T), silent = T)
+try(odbc::dbRemoveTable(db_claims, "##timevar_03c", temporary = T), silent = T)
+try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T), silent = T)
+try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T), silent = T)
 rm(list = ls(pattern = "step(.){1,2}_sql"))
 time_end <- Sys.time()
 print(paste0("Step 6 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
