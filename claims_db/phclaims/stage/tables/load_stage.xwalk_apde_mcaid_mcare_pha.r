@@ -271,7 +271,7 @@
     
   ## (4) Clean merged Mcaid dataset ----
     # without ssn, dob, and last name, there is no hope of matching
-      mcaid.dt <- mcaid.dt[!(is.na(ssn) & is.na(dob.year) & is.na(name_srnm) ), ] 
+      mcaid.dt <- mcaid.dt[!(is.na(ssn) & is.na(dob) & is.na(name_srnm) ), ] 
       
     # fill in missing SSN when dob, sex, and complete name are an exact match
       ssn.ok <- mcaid.dt[!is.na(ssn), ]
@@ -339,8 +339,10 @@
     # Confirm that all rows were loaded to sql
       stage.count <- as.numeric(odbc::dbGetQuery(db_claims51, 
                                                  "SELECT COUNT (*) FROM tmp.xwalk_mcaid_prepped"))
-      if(stage.count != nrow(mcaid.dt))
+      if(stage.count != nrow(mcaid.dt)) {
         stop("Mismatching row count, error writing or reading data")
+      }
+        
     
   ## (6) Close ODBC connection & drop temporary files ----
       dbDisconnect(db_claims51)        
@@ -460,13 +462,16 @@
         # Confirm that all rows were loaded to sql
         stage.count <- as.numeric(odbc::dbGetQuery(db_claims51, 
                                                    "SELECT COUNT (*) FROM tmp.xwalk_mcare_prepped"))
-        if(stage.count != nrow(mcare.dt))
+        if(stage.count != nrow(mcare.dt)) {
           stop("Mismatching row count, error writing or reading data")
+        }
+          
         
   ## (7) Close ODBC connection and drop temporary files ----
         dbDisconnect(db_claims51)
         rm(list=(setdiff(ls(), keep.me)))
         gc()
+        
         
 #### ----------------- ####
 #### Prep PHA DATA     ####   
@@ -479,9 +484,7 @@
         
   ## (2) Tidy PHA data ----
         # Limit to one row per person and only variables used for merging (use most recent row of data)
-        # Filter if person's most recent enddate is <2011 since they can't match to Medicare
         pha.dt <- setDT(pha.dt %>%
-          filter(year(enddate) >= 2012) %>%
           distinct(pid, ssn_id_m6, lname_new_m6, fname_new_m6, mname_new_m6, 
                    dob_m6, gender_new_m6, enddate) %>%
           arrange(pid, ssn_id_m6, lname_new_m6, fname_new_m6, mname_new_m6, 
@@ -547,8 +550,10 @@
         # Confirm that all rows were loaded to sql
         stage.count <- as.numeric(odbc::dbGetQuery(db_apde51, 
                                                    "SELECT COUNT (*) FROM tmp.xwalk_pha_prepped"))
-        if(stage.count != nrow(pha.dt))
+        if(stage.count != nrow(pha.dt)) {
           stop("Mismatching row count, error writing or reading data")
+        }
+          
         
   ## (6) Close OBDC connection and drop temporary files ----
         dbDisconnect(db_apde51)
@@ -1556,6 +1561,7 @@
       rm(list=(setdiff(ls(), keep.me)))
       gc()
       
+      
 #### ------------------------ ####
 #### LINK ID_APDE - MCAID - MCARE - PHA ####   
 #### ------------------------ #### 
@@ -1572,9 +1578,7 @@
       # PH_APDEStore51
         db_apde51 <- dbConnect(odbc(), "PH_APDEStore51")      
       
-        pha.only <- setDT(odbc::dbGetQuery(db_apde51, "SELECT pid, enddate FROM stage.pha")) # did not filter to keep just >=2012
-        pha.only <- pha.only[year(enddate) >= 2012, ][, enddate := NULL]
-        pha.only <- unique(pha.only)
+        pha.only <- setDT(odbc::dbGetQuery(db_apde51, "SELECT DISTINCT pid FROM stage.pha"))
         
         mcaid.pha <- setDT(odbc::dbGetQuery(db_apde51, "SELECT DISTINCT pid, id_mcaid FROM [PH_APDEStore].[tmp].[xwalk_mcaid_pha]"))
         
@@ -1620,6 +1624,14 @@
           stop("pid in mcaid.pha is not unique")
         }
       
+      # Currently there are two sets of duplicates in the the mcaid.pha table
+        # Cause is duplicate id_pha rows pointing to a single id_mcaid
+        # Both appear to actually be a single person
+        # Arbitrarily taking one id_pha for now until the linking process is revamped
+        mcaid.pha <- mcaid.pha[order(id_mcaid, -pid)]
+        mcaid.pha <- mcaid.pha[mcaid.pha[, .I[1], by = "id_mcaid"]$V1]
+        
+        
   ## (3) Combined the three linked data files using mcare.mcaid as backbone ----
       # Merge mcare.mcaid with mcare.pha ----
         mcare.mcaid_mcare.pha <- merge(mcare.mcaid, mcare.pha, by = "id_mcare", all.x = TRUE, all.y = FALSE)
