@@ -382,17 +382,13 @@
 ## (10) Write to SQL ----              
   # Pull YAML from GitHub
     table_config <- yaml::yaml.load(RCurl::getURL(yaml.url))
-  
-  # Create table ID
-    tbl_id <- DBI::Id(schema = table_config$schema, 
-                      table = table_config$table)  
-  
+
   # Ensure columns are in same order in R & SQL
     setcolorder(timevar, names(table_config$vars))
   
   # Write table to SQL
     dbWriteTable(db_claims, 
-                 tbl_id, 
+                 DBI::Id(schema = table_config$schema, table = table_config$table), 
                  value = as.data.frame(timevar),
                  overwrite = T, append = F, 
                  field.types = unlist(table_config$vars))
@@ -554,6 +550,18 @@
                          problems))
     }else{message("Staged MCAID_MCARE_ELIG_TIMEVAR passed all QA tests")}
 
+## (14) Clean up ----
+    rm(apde, mcaid.dual, mcaid.solo, mcare.dual, mcare.solo, dual.id)
+    rm(yaml.url)
+    rm(duals, timevar)
+    rm(table_config)
+    rm(stage.count, last_run, previous_rows, row_diff)
+    rm(current.unique.id, previous.unique.id, id_diff)
+    rm(qa.values, qa.values2)
+    rm(problem.row_diff, problem.id_diff, problems)
+    rm(timevar.vars)
+    rm(kc.zips.url)
+    
 ## The end! ----
     run.time <- Sys.time() - start.time
     print(run.time)
