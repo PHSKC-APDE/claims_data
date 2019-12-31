@@ -70,7 +70,11 @@ rm(qa_rows_final_elig_demo, last_run_elig_demo)
 
 
 #### MCAID_ELIG_TIMEVAR ####
-# Load stage version
+# Create and load stage version
+create_table_f(conn = db_claims,
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig_timevar.yaml",
+               overall = T, ind_yr = F, overwrite = T)
+
 time_start <- Sys.time()
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R")
 time_end <- Sys.time()
