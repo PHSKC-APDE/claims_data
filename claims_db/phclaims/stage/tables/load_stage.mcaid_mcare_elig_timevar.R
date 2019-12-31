@@ -3,26 +3,30 @@
   # Date: September 16, 2019
   # Purpose: Create stage.mcaid_mcare_elig_timevar for SQL
   #
+  #
+  # This code is designed to be run as part of the master Medicaid/Medicare script:
+  # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
+  #
   # Notes: BEFORE RUNNING THIS CODE, PLEASE BE SURE THE FOLLOWING ARE UP TO DATE ... 
   #       - [PHClaims].[stage].[mcaid_elig_timevar]
   #       - [PHClaims].[stage].[mcare_elig_timevar]
   #       - [PHClaims].[stage].[xwalk_apde_mcaid_mcare_pha]
 
 ## Set up R Environment ----
-  rm(list=ls())  # clear memory
-  start.time <- Sys.time()
-  pacman::p_load(data.table, dplyr, odbc, DBI, lubridate) # load packages
-  options("scipen"=999) # turn off scientific notation  
-  options(warning.length = 8170) # get lengthy warnings, needed for SQL
-  
-  start.time <- Sys.time()
+  # rm(list=ls())  # clear memory
+  # start.time <- Sys.time()
+  # pacman::p_load(data.table, dplyr, odbc, DBI, lubridate) # load packages
+  # options("scipen"=999) # turn off scientific notation  
+  # options(warning.length = 8170) # get lengthy warnings, needed for SQL
+  # 
+  # start.time <- Sys.time()
   
   kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv"
   
   yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.yaml"
   
 ## (1) Connect to SQL Server ----    
-  db_claims <- dbConnect(odbc(), "PHClaims51")   
+  # db_claims <- dbConnect(odbc(), "PHClaims51")   
   
 ## (2) Load data from SQL ----  
   apde <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_apde, id_mcare, id_mcaid
@@ -33,15 +37,12 @@
            mcare[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
            mcare[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
            
-  mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, from_date, to_date, tpl, bsp_group_cid, full_benefit, cov_type, mco_id, 
-                                  geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip, geo_zip_centroid, 
-                                  geo_street_centroid, geo_county_code, geo_tractce10, geo_hra_code, geo_school_code
+  mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, from_date, to_date, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id, 
+                                  geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_zip_centroid, 
+                                  geo_street_centroid, geo_county_code, geo_tract_code, geo_hra_code, geo_school_code
                                   FROM PHClaims.final.mcaid_elig_timevar"))
           mcaid[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
           mcaid[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
-          # Ensure new geography naming conventions are followed ----
-          setnames(mcaid, grep("_clean$", names(mcaid), value = T), gsub("_clean", "", grep("_clean$", names(mcaid), value = T)) )
-          setnames(mcaid, "geo_tractce10", "geo_tract_code")
   
 ## (3) Merge on dual status ----
   mcare <- merge(apde[, .(id_apde, id_mcare)], mcare, by = "id_mcare", all.x = FALSE, all.y = TRUE)
@@ -121,6 +122,12 @@
 		         from_date_o, to_date_o, overlap_type, repnum) %>%
 		  arrange(id_apde, from_date_mcare, from_date_mcaid, from_date_o, 
 		          to_date_mcare, to_date_mcaid, to_date_o)
+    
+    # Check there were no anomalies (should be no overlap type == 8)
+    temp %>% group_by(overlap_type) %>% summarise(count = n())
+    if (nrow(filter(temp, overlap_type == 8)) > 0) {
+      warning("Unrecognized overlap type. Check results.")
+    }
 
 	#-- Expand out rows to separate out overlaps ----
 		temp_ext <- temp[rep(seq(nrow(temp)), temp$repnum), 1:ncol(temp)]
@@ -217,7 +224,7 @@
 		        overlap_type == 1 | (overlap_type %in% c(2:5) & rownum_temp == 2) ~ "both",
 		        TRUE ~ "x"
 		      ),
-		    # Drop rows from enroll_type == h/m when they are fully covered by an enroll_type == b
+		    # Drop rows from enroll_type == mcaid/mcare when they are fully covered by an enroll_type == both
 		    drop = 
 		      case_when(
 		        id_apde == lag(id_apde, 1) & !is.na(lag(id_apde, 1)) & 
@@ -266,8 +273,8 @@
 		    origin = "1970-01-01")
 		  ) %>%
 		  select(-drop, -repnum, -rownum_temp) %>%
-		  # With rows truncated, now additional rows with enroll_type == h/m that 
-		  # are fully covered by an enroll_type == b
+		  # With rows truncated, now additional rows with enroll_type == mcaid/mcare that 
+		  # are fully covered by an enroll_type == both
 		  # Also catches single day rows that now have to_date < from_date
 		  mutate(
 		    drop = case_when(
