@@ -16,29 +16,47 @@ library(odbc) # Read to and write from SQL
 library(RCurl) # Read files from Github
 library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
+library(RecordLinkage)
 
 
 db_claims <- dbConnect(odbc(), "PHClaims51")
 
 
 #### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/claim_ccw.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
 
 
 #### IDENTITY LINKAGE ####
-# To come
+# Make stage version of linkage
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r")
+
+# QA and load to final
+# (no QA outside of what is in the stage code right now)
+# Alter schema to final table (currently hard coded, use YAML eventually)
+alter_schema_f(conn = db_claims, 
+               from_schema = "stage", 
+               to_schema = "final",
+               table_name = "xwalk_apde_mcaid_mcare_pha")
+
+# Add index
+DBI::dbExecute(db_claims,
+               'CREATE CLUSTERED COLUMNSTORE INDEX "idx_ccs_final_xwalk_apde_mcaid_mcare_pha" ON 
+                              final.xwalk_apde_mcaid_mcare_pha')
+
 
 
 #### CREATE ELIG ANALYTIC TABLES ####
 #### MCAID_MCARE_ELIG_DEMO ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.R")
 
-# Pull out run date of stage.mcaid_elig_demo
-last_run_elig_demo <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_elig_demo")[[1]])
+# Pull out run date of stage.mcaid_mcare_elig_demo
+last_run_elig_demo <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_mcare_elig_demo")[[1]])
 
 # QA stage version
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
