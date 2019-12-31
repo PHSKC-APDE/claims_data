@@ -168,7 +168,7 @@
     # check that there are no duplicates ----
       # get count of unique id (each id should only appear once)
       stage.count.unique <- as.numeric(odbc::dbGetQuery(
-        db_claims, "SELECT COUNT (*) 
+        db_claims, "SELECT COUNT (DISTINCT id_apde) 
         FROM stage.mcaid_mcare_elig_demo"))
       
       if (stage.count.unique != stage.count) {
