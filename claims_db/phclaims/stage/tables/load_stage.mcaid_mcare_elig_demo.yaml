@@ -24,4 +24,15 @@ vars:
     race_white: TINYINT
     race_other: TINYINT
     race_unk: TINYINT
+    lang_max: VARCHAR(30)
+    lang_amharic: TINYINT
+    lang_arabic: TINYINT
+    lang_chinese: TINYINT
+    lang_korean: TINYINT
+    lang_english: TINYINT
+    lang_russian: TINYINT
+    lang_somali: TINYINT
+    lang_spanish: TINYINT
+    lang_ukrainian: TINYINT
+    lang_vietnamese: TINYINT
     last_run: DATETIME

@@ -2,19 +2,23 @@
   # Author: Danny Colombara
   # Date: August 28, 2019
   # Purpose: Create stage.mcaid_mcare_elig_demo for SQL
+  #
+  # This code is designed to be run as part of the master Medicaid/Medicare script:
+  # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
+  #
 
 ## Set up R Environment ----
-  rm(list=ls())  # clear memory
-  pacman::p_load(data.table, odbc, DBI, lubridate) # load packages
-  options("scipen"=999) # turn off scientific notation  
-  options(warning.length = 8170) # get lengthy warnings, needed for SQL
+  # rm(list=ls())  # clear memory
+  # pacman::p_load(data.table, odbc, DBI, lubridate) # load packages
+  # options("scipen"=999) # turn off scientific notation  
+  # options(warning.length = 8170) # get lengthy warnings, needed for SQL
   
   start.time <- Sys.time()
   
   yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.yaml"
   
 ## (1) Connect to SQL Server ----    
-  db_claims <- dbConnect(odbc(), "PHClaims51")   
+  # db_claims <- dbConnect(odbc(), "PHClaims51")   
   
 ## (2) Load data from SQL ----  
   apde <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_apde, id_mcare, id_mcaid 
@@ -25,7 +29,9 @@
                                   FROM PHClaims.final.mcare_elig_demo"))
 
   mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, dob, gender_female, gender_male, gender_me, gender_recent, race_eth_recent, race_recent,
-                                  race_me, race_eth_me, race_aian, race_asian, race_black, race_nhpi, race_white, race_latino 
+                                  race_me, race_eth_me, race_aian, race_asian, race_black, race_nhpi, race_white, race_latino, 
+                                  lang_max, lang_amharic, lang_arabic, lang_chinese, lang_korean, lang_english,
+                                  lang_russian, lang_somali, lang_spanish, lang_ukrainian, lang_vietnamese 
                                   FROM PHClaims.final.mcaid_elig_demo"))
 
 ## (3) Merge on apde id ----
@@ -47,8 +53,8 @@
 ## (5) Combine the data for duals ----
   # some data is assumed to be more reliable in one dataset compared to the other
   dual <- merge(x = mcaid.dual, y = mcare.dual, by = "id_apde")
-  setnames(dual, names(dual), gsub(".x$", ".mcaid", names(dual))) # clean up suffixes to eliminate confusion
-  setnames(dual, names(dual), gsub(".y$", ".mcare", names(dual))) # clean up suffixes to eliminate confusion
+  setnames(dual, names(dual), gsub("\\.x$", ".mcaid", names(dual))) # clean up suffixes to eliminate confusion
+  setnames(dual, names(dual), gsub("\\.y$", ".mcare", names(dual))) # clean up suffixes to eliminate confusion
   
   # ascribe MCARE data to duals
   dual[, dob := dob.mcaid] # default date of birth from Mcaid
