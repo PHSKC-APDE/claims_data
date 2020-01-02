@@ -152,8 +152,8 @@ create_table_f <- function(
     tbl_name <- DBI::Id(schema = schema, table = table_name)
     
     if (overwrite == T) {
-      if (dbExistsTable(conn, tbl_name)) {
-        dbRemoveTable(conn, tbl_name)
+      if (DBI::dbExistsTable(conn, tbl_name)) {
+        DBI::dbRemoveTable(conn, tbl_name)
       }
     }
 
@@ -169,8 +169,8 @@ create_table_f <- function(
       tbl_name <- DBI::Id(schema = schema, table = paste0(table_name, "_", x))
       
       if (overwrite == T) {
-        if (dbExistsTable(conn, tbl_name)) {
-          dbRemoveTable(conn, tbl_name)
+        if (DBI::dbExistsTable(conn, tbl_name)) {
+          DBI::dbRemoveTable(conn, tbl_name)
         }
       }
       
