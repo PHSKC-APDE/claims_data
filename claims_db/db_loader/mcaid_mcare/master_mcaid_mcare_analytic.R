@@ -1,7 +1,6 @@
 #### MASTER CODE TO UPDATE COMBINED MEDICAID/MEDICARE ANALYTIC TABLES
 #
 # Alastair Matheson, PHSKC (APDE)
-#
 # 2019-12
 
 
@@ -51,7 +50,7 @@ DBI::dbExecute(db_claims,
 
 
 
-#### CREATE ELIG ANALYTIC TABLES ####
+#### CREATE ELIG ANALYTIC TABLES -----------------------------------------------
 #### MCAID_MCARE_ELIG_DEMO ####
 # Create and load stage
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.R")
@@ -86,5 +85,22 @@ alter_schema_f(conn = db_claims,
 DBI::dbExecute(db_claims,
                'CREATE CLUSTERED COLUMNSTORE INDEX "idx_ccs_final_mcaid_mcare_elig_timevar" ON 
                               final.mcaid_mcare_elig_timevar')
+
+
+
+#### CREATE CLAIMS TABLES ------------------------------------------------------
+#### MCAID_MCARE_CLAIM_ICDCM_HEADER ####
+# Create and load stage
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_icdcm_header.R")
+
+
+#### MCAID_MCARE_CLAIM_HEADER ####
+# Create and load stage
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_header.R")
+
+
+#### MCAID_MCARE_CLAIM_CCW ####
+# Create and load stage (also currently loading to final)
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_ccw.R")
 
 

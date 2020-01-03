@@ -1,26 +1,10 @@
 #### CODE TO LOAD & TABLE-LEVEL QA STAGE.MCAID_MCARE_CLAIM_HEADER
-# Eli Kern, PHSKC (APDE)
+# Eli Kern, PHSKC (APDE), 2019-10
+# Alastair Mathesonm PHSKC (APDE), 2020-01
 #
-# 2019-10
-
-### Eventually run from master analytic script
-
-#### Set up global parameter and call in libraries ####
-options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
-
-library(pacman)
-pacman::p_load(tidyverse, lubridate, odbc, RCurl, configr, glue)
-
-db_claims <- dbConnect(odbc(), "PHClaims51")
-
-#### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/claim_ccw.R")
+# This code is designed to be run as part of the master Medicaid/Medicare script:
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
+#
 
 
 #### Create table ####
@@ -30,9 +14,8 @@ create_table_f(conn = db_claims,
 
 
 #### Load script ####
-load_stage.mcaid_mcare_claim_header_f <- function() {
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
-    "
+# Run time: 62 min
+system.time(DBI::dbExecute(db_claims, glue::glue_sql("
     -------------------
     --STEP 1: Union mcaid and mcare claim header tables and insert into table shell
     --Run time: 62 min
@@ -110,7 +93,7 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     ,a.ccs_mult2_plain_lang
     ,a.ccs_final_description
     ,a.ccs_final_plain_lang
-    ,getdate() as last_run
+    ,{Sys.time()} as last_run
     from PHClaims.final.mcaid_claim_header as a
     left join PHClaims.final.xwalk_apde_mcaid_mcare_pha as b
     on a.id_mcaid = b.id_mcaid
@@ -188,17 +171,11 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     ,ccs_mult2_plain_lang = null
     ,ccs_final_description = null
     ,ccs_final_plain_lang = null
-    ,getdate() as last_run
+    ,{Sys.time()} as last_run
     from PHClaims.final.mcare_claim_header as a
     left join PHClaims.final.xwalk_apde_mcaid_mcare_pha as b
     on a.id_mcare = b.id_mcare;",
-    .con = db_claims))
-}
-
-
-### Run load function
-# Run time: 62 min
-system.time(load_stage.mcaid_mcare_claim_header_f())
+    .con = db_claims)))
 
 
 #### Table-level QA script ####
