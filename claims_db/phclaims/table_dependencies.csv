@@ -67,5 +67,7 @@ stage,mcaid_mcare_elig_demo,final,mcare_elig_demo,,,,https://github.com/PHSKC-AP
 stage,mcaid_mcare_elig_demo,final,mcaid_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.R
 stage,mcaid_mcare_elig_timevar,final,xwalk_apde_mcaid_mcare_pha,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R
 stage,mcaid_mcare_elig_timevar,final,mcaid_elig_timevar,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R
-stage,mcaid_mcare_elig_timevar,final,mcaid_elig_timevar,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R
+stage,mcaid_mcare_elig_timevar,final,mcare_elig_timevar,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R
 stage,mcaid_mcare_elig_timevar,,,kc_zips,https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R
+archive,mcaid_elig,stage,mcaid_elig,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R
+archive,mcaid_claim,stage,mcaid_claim,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_partial.R
