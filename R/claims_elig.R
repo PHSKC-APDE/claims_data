@@ -949,7 +949,15 @@ claims_elig <- function(conn,
   }
   
   #### SET UP DUAL CODE (ALL) ####
-  if (source == "mcaid") {
+  if (source %in% c("mcaid", "mcare", "mcaid_mcare", "mcaid_mcare_pha")) {
+    
+    # mcare currently only has a dual field, not apde_dual
+    if (source != "mcare") {
+      apde_dual_sql <- timevar_gen_sql(var = "apde_dual", pct = T)
+    } else {
+      apde_dual_sql <- DBI::SQL('')
+    }
+    
     dual_sql <- timevar_gen_sql(var = "dual", pct = T)
     
     if (!is.null(dual_min) | !is.null(dual_max)) {
@@ -966,40 +974,10 @@ claims_elig <- function(conn,
     } else {
       dual_where_sql <- DBI::SQL('')
     }
-  } else if (source %in% c("mcaid_mcare", "mcaid_mcare_pha")) {
-    dual_sql <- timevar_gen_sql(var = "apde_dual", pct = T)
-    
-    if (!is.null(dual_min) | !is.null(dual_max)) {
-      ifelse(!is.null(dual_min),
-             dual_min_sql <- glue::glue_sql(" AND apde_dual_final.apde_dual_pct >= {dual_min} ", 
-                                            .con = conn),
-             dual_min_sql <- DBI::SQL(''))
-      ifelse(!is.null(dual_max),
-             dual_max_sql <- glue::glue_sql(" AND apde_dual_final.apde_dual_pct <= {dual_max} ", 
-                                            .con = conn),
-             dual_max_sql <- DBI::SQL(''))
-      
-      dual_where_sql <- glue::glue_sql(" {dual_min_sql} {dual_max_sql}", .con = conn)
-    } else {
-      dual_where_sql <- DBI::SQL('')
-    }
-  } else if (source == "mcare") {
-    dual_sql <- timevar_gen_sql(var = "dual", pct = T)
-    
-    if (!is.null(dual_min) | !is.null(dual_max)) {
-      ifelse(!is.null(dual_min),
-             dual_min_sql <- glue::glue_sql(" AND dual_final.dual_pct >= {dual_min} ", 
-                                            .con = conn),
-             dual_min_sql <- DBI::SQL(''))
-      ifelse(!is.null(dual_max),
-             dual_max_sql <- glue::glue_sql(" AND dual_final.dual_pct <= {dual_max} ", 
-                                            .con = conn),
-             dual_max_sql <- DBI::SQL(''))
-      
-      dual_where_sql <- glue::glue_sql(" {dual_min_sql} {dual_max_sql}", .con = conn)
-    } else {
-      dual_where_sql <- DBI::SQL('')
-    }
+  } else {
+    dual_sql <- DBI::SQL('')
+    apde_dual_sql <- DBI::SQL('')
+    dual_where_sql <- DBI::SQL('')
   }
   
   #### SET UP COVERAGE GROUP TYPES CODE (APCD) ####
@@ -1345,6 +1323,7 @@ claims_elig <- function(conn,
     timevar_vars <- glue::glue_sql(
       " mcaid_final.mcaid, mcaid_final.mcaid_pct,
       mcare_final.mcare, mcare_final.mcare_pct,
+      dual_final.dual, dual_final.dual_pct, 
       apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct,
       tpl_final.tpl, tpl_final.tpl_pct, 
       bsp_group_cid_final.bsp_group_cid, bsp_group_cid_final.bsp_group_cid_days, 
@@ -1364,6 +1343,7 @@ claims_elig <- function(conn,
     timevar_vars <- glue::glue_sql(
       " mcaid_final.mcaid, mcaid_final.mcaid_pct,
       mcare_final.mcare, mcare_final.mcare_pct, 
+      dual_final.dual, dual_final.dual_pct,
       apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct, 
       pha_final.pha, pha_final.pha_pct,
       tpl_final.tpl, tpl_final.tpl_pct, 
@@ -1420,8 +1400,8 @@ claims_elig <- function(conn,
       (SELECT {id_name}, cov_days, duration, cov_pct, covgap_max 
         FROM ##cov_time_tot) timevar
         ON demo.{id_name} = timevar.{id_name}
-      {mcaid_cov_sql} {mcare_cov_sql} {dual_sql} {tpl_sql} {bsp_group_cid_sql} 
-      {full_benefit_sql} {cov_type_sql} {mco_id_sql} 
+      {mcaid_cov_sql} {mcare_cov_sql} {apde_dual_sql} {dual_sql} {tpl_sql} 
+      {bsp_group_cid_sql} {full_benefit_sql} {cov_type_sql} {mco_id_sql} 
       {part_a_sql} {part_b_sql} {part_c_sql} {buy_in_sql} 
       {pha_cov_sql} {pha_agency_sql} {pha_subsidy_sql} {pha_voucher_sql} 
       {pha_operator_sql} {pha_portfolio_sql}
