@@ -9,9 +9,16 @@
 #' data sources: APCD, Medicaid, and Medicare Medicaid/Medicare combined, & 
 #' Medicaid/Medicare/Housing combined.
 #' Parameters below have the following key to indicate which data source they 
-#' can be used against: A = All sources, AP = APCD, MD = Medicaid, ME = Medicare, PHA = Housing 
+#' can be used against: A = All sources, AP = APCD, MD = Medicaid, ME = Medicare, 
+#' PHA = Housing. 
 #' Most parameters default to NULL, which means that all values are included for
 #' that field.
+#' NB: For time-varying variables, the value with the maximum time is returned 
+#' for each variable independently. Therefore, incongruent combinations may arise
+#' (e.g., having a bsp_group that does not confer full Medicaid benefits but the
+#' full_benefits flag set to 1, pha_agency returns 'Non-PHA' but pha_subsidy returns 
+#' 'HARD UNIT').
+#' 
 #' 
 #' @param conn SQL server connection created using \code{odbc} package
 #' @param source Which claims data source do you want to pull from?
