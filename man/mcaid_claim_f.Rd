@@ -4,16 +4,40 @@
 \alias{mcaid_claim_f}
 \title{Medicaid member claim summary}
 \usage{
-mcaid_claim_f(server, from_date = Sys.Date() - months(12),
-  to_date = Sys.Date() - months(6), covmin = 0, ccov_min = 1,
-  covgap_max = "null", dualmax = 100, agemin = 0, agemax = 200,
-  female = "null", male = "null", aian = "null", asian = "null",
-  black = "null", nhpi = "null", white = "null", latino = "null",
-  zip = "null", region = "null", english = "null",
-  spanish = "null", vietnamese = "null", chinese = "null",
-  somali = "null", russian = "null", arabic = "null",
-  korean = "null", ukrainian = "null", amharic = "null",
-  maxlang = "null", id = "null", detailed_claims = FALSE)
+mcaid_claim_f(
+  server,
+  from_date = Sys.Date() - months(12),
+  to_date = Sys.Date() - months(6),
+  covmin = 0,
+  ccov_min = 1,
+  covgap_max = "null",
+  dualmax = 100,
+  agemin = 0,
+  agemax = 200,
+  female = "null",
+  male = "null",
+  aian = "null",
+  asian = "null",
+  black = "null",
+  nhpi = "null",
+  white = "null",
+  latino = "null",
+  zip = "null",
+  region = "null",
+  english = "null",
+  spanish = "null",
+  vietnamese = "null",
+  chinese = "null",
+  somali = "null",
+  russian = "null",
+  arabic = "null",
+  korean = "null",
+  ukrainian = "null",
+  amharic = "null",
+  maxlang = "null",
+  id = "null",
+  detailed_claims = FALSE
+)
 }
 \arguments{
 \item{server}{SQL server connection created using \code{odbc} package}

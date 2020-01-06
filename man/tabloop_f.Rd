@@ -4,9 +4,21 @@
 \alias{tabloop_f}
 \title{Tabulation loop}
 \usage{
-tabloop_f(df, count, dcount, sum, mean, median, loop, fixed = NULL,
-  filter = FALSE, rename = FALSE, suppress = FALSE, rounding = 1,
-  ...)
+tabloop_f(
+  df,
+  count,
+  dcount,
+  sum,
+  mean,
+  median,
+  loop,
+  fixed = NULL,
+  filter = FALSE,
+  rename = FALSE,
+  suppress = FALSE,
+  rounding = 1,
+  ...
+)
 }
 \arguments{
 \item{df}{A data frame in tidy format}

@@ -4,28 +4,83 @@
 \alias{claims_elig}
 \title{Claims data member eligibility and demographics}
 \usage{
-claims_elig(conn, source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
-  from_date = Sys.Date() - months(18), to_date = Sys.Date() -
-  months(6), cov_min = 0, covgap_max = NULL, dual_min = NULL,
-  dual_max = NULL, med_covgrp = NULL, pharm_covgrp = NULL,
-  bsp_group_name = NULL, full_benefit_min = NULL, cov_type = NULL,
-  mco_id = NULL, part_a_min = NULL, part_a_max = NULL,
-  part_b_min = NULL, part_b_max = NULL, part_c_min = NULL,
-  part_c_max = NULL, buy_in_min = NULL, buy_in_max = NULL,
-  id = NULL, age_min = NULL, age_max = NULL, female = NULL,
-  male = NULL, gender_me = NULL, gender_recent = NULL,
-  race_aian = NULL, race_asian = NULL, race_asian_pi = NULL,
-  race_black = NULL, race_nhpi = NULL, race_latino = NULL,
-  race_white = NULL, race_unk = NULL, race_me = NULL,
-  race_eth_me = NULL, race_recent = NULL, race_eth_recent = NULL,
-  lang_amharic = NULL, lang_arabic = NULL, lang_chinese = NULL,
-  lang_english = NULL, lang_korean = NULL, lang_russian = NULL,
-  lang_somali = NULL, lang_spanish = NULL, lang_ukrainian = NULL,
-  lang_vietnamese = NULL, lang_me = NULL, lang_recent = NULL,
-  geo_zip = NULL, geo_hra_code = NULL, geo_school_code = NULL,
-  geo_region = NULL, geo_county_code = NULL, geo_ach_code = NULL,
-  geo_kc_ever = NULL, geo_kc_min = NULL,
-  timevar_denom = c("duration", "cov_days"), show_query = T)
+claims_elig(
+  conn,
+  source = c("apcd", "mcaid", "mcaid_mcare", "mcare", "mcaid_mcare_pha"),
+  from_date = Sys.Date() - months(18),
+  to_date = Sys.Date() - months(6),
+  cov_min = 0,
+  covgap_max = NULL,
+  mcaid_min = NULL,
+  mcaid_max = NULL,
+  mcare_min = NULL,
+  mcare_max = NULL,
+  dual_min = NULL,
+  dual_max = NULL,
+  pha_min = NULL,
+  pha_max = NULL,
+  med_covgrp = NULL,
+  pharm_covgrp = NULL,
+  tpl_max = NULL,
+  bsp_group_cid = NULL,
+  full_benefit_min = NULL,
+  cov_type = NULL,
+  mco_id = NULL,
+  part_a_min = NULL,
+  part_a_max = NULL,
+  part_b_min = NULL,
+  part_b_max = NULL,
+  part_c_min = NULL,
+  part_c_max = NULL,
+  buy_in_min = NULL,
+  buy_in_max = NULL,
+  pha_agency = NULL,
+  pha_subsidy = NULL,
+  pha_voucher = NULL,
+  pha_operator = NULL,
+  pha_portfolio = NULL,
+  id = NULL,
+  age_min = NULL,
+  age_max = NULL,
+  female = NULL,
+  male = NULL,
+  gender_me = NULL,
+  gender_recent = NULL,
+  race_aian = NULL,
+  race_asian = NULL,
+  race_asian_pi = NULL,
+  race_black = NULL,
+  race_nhpi = NULL,
+  race_latino = NULL,
+  race_white = NULL,
+  race_unk = NULL,
+  race_me = NULL,
+  race_eth_me = NULL,
+  race_recent = NULL,
+  race_eth_recent = NULL,
+  lang_amharic = NULL,
+  lang_arabic = NULL,
+  lang_chinese = NULL,
+  lang_english = NULL,
+  lang_korean = NULL,
+  lang_russian = NULL,
+  lang_somali = NULL,
+  lang_spanish = NULL,
+  lang_ukrainian = NULL,
+  lang_vietnamese = NULL,
+  lang_me = NULL,
+  lang_recent = NULL,
+  geo_zip = NULL,
+  geo_hra_code = NULL,
+  geo_school_code = NULL,
+  geo_region = NULL,
+  geo_county_code = NULL,
+  geo_ach_code = NULL,
+  geo_kc_ever = NULL,
+  geo_kc_min = NULL,
+  timevar_denom = c("duration", "cov_days"),
+  show_query = T
+)
 }
 \arguments{
 \item{conn}{SQL server connection created using \code{odbc} package}
@@ -42,17 +97,38 @@ defaults to 6 months prior to today's date (A)}
 
 \item{covgap_max}{Maximum gap in continuous coverage allowed during requested date range (days) (A)}
 
+\item{mcaid_min}{Minimum Medicaid coverage allowed during requested date
+range (percent scale) (MD/ME)}
+
+\item{mcaid_max}{Maximum Medicaid coverage allowed during requested date
+range (percent scale) (MD/ME)}
+
+\item{mcare_min}{Minimum Medicare coverage allowed during requested date
+range (percent scale) (MD/ME)}
+
+\item{mcare_max}{Maximum Medicare coverage allowed during requested date
+range (percent scale) (MD/ME)}
+
 \item{dual_min}{Minimum Medicare-Medicaid dual eligibility coverage allowed 
 during requested date range (percent scale) (A)}
 
 \item{dual_max}{Maximum Medicare-Medicaid dual eligibility coverage allowed 
 during requested date range (percent scale) (A)}
 
+\item{pha_min}{Minimum Medicare-Medicaid pha eligibility coverage allowed 
+during requested date range (percent scale) (PHA)}
+
+\item{pha_max}{Maximum Medicare-Medicaid pha eligibility coverage allowed 
+during requested date range (percent scale) (PHA)}
+
 \item{med_covgrp}{Medical coverage group type in APCD data (AP)}
 
 \item{pharm_covgrp}{Pharmacy coverage group type in APCD data (AP)}
 
-\item{bsp_group_name}{Most frequently reported BSP group during requested date
+\item{tpl_max}{Maximum time with third-party liability during the requested
+time period (percent scale) (MD)}
+
+\item{bsp_group_cid}{Most frequently reported BSP group during requested date
 range, case insensitive, can take multiple values (MD)}
 
 \item{full_benefit_min}{Minimum time with full benefits during the requested
@@ -62,13 +138,13 @@ time period (percent scale) (MD)}
 
 \item{mco_id}{Managed care organization ID (MD)}
 
-\item{part_a_min}{Minimum time enrolled in Part A of Medicare during the requested 
+\item{part_a_min}{Maximum time enrolled in Part A of Medicare during the requested 
 time period (percent scale) (ME)}
 
-\item{part_b_min}{Minimum time enrolled in Part B of Medicare during the requested 
+\item{part_b_min}{Maximum time enrolled in Part B of Medicare during the requested 
 time period (percent scale) (ME)}
 
-\item{part_c_min}{Minimum time enrolled in Part C of Medicare during the requested 
+\item{part_c_min}{Maximum time enrolled in Part C of Medicare during the requested 
 time period (percent scale) (ME)}
 
 \item{buy_in_min}{Minimum time with state buy in during the requested time
@@ -77,7 +153,18 @@ period (percent scale) (ME)}
 \item{buy_in_max}{Maximum time with state buy in during the requested time
 period (percent scale) (ME)}
 
-\item{id}{Restrict to these specific APCD/Medicaid/Medicare IDs (A)}
+\item{pha_agency}{Most frequently reported housing agency name (PHA) during the dates requested}
+
+\item{pha_subsidy}{Most frequently reported housing subsidy type (hard vs soft) during the 
+requested date range (PHA)}
+
+\item{pha_voucher}{Most frequently reported housing voucher type during the requested date range (PHA)}
+
+\item{pha_operator}{Most frequently reported housing operator type during the requested date range (PHA)}
+
+\item{pha_portfolio}{Most frequently reported housing portfolio type during the requested date range (PHA)}
+
+\item{id}{Restrict to these specific APCD/Medicaid/Medicare/Housing IDs (A)}
 
 \item{age_min}{Minimum age for cohort (integer), age is calculated as of 
 last day of requested date range, defaults to 0 (A)}
@@ -180,15 +267,6 @@ enrolled). Default is duration.}
 
 \item{show_query}{Print the SQL query that is being run. Useful for debugging.
 Default is TRUE}
-
-\item{part_a_min}{Maximum time enrolled in Part A of Medicare during the requested 
-time period (percent scale) (ME)}
-
-\item{part_b_min}{Maximum time enrolled in Part B of Medicare during the requested 
-time period (percent scale) (ME)}
-
-\item{part_c_min}{Maximum time enrolled in Part C of Medicare during the requested 
-time period (percent scale) (ME)}
 }
 \description{
 \code{claims_elig} returns member eligibility and demographics.
@@ -197,18 +275,25 @@ time period (percent scale) (ME)}
 LARGELY FOR INTERNAL USE
 This function builds and sends a SQL query to return a member cohort with 
 specified parameters, including coverage time period, coverage characteristics 
-(e.g., Medicare dual eligibility), and member demographics. Can be used on three
-data sources: APCD, Medicaid, and Medicare (also Medicaid/Medicare combined).
-Parameters below have the following key to indicator which data source they 
-can be used against: A = All sources, AP = APCD, MD = Medicaid, ME = Medicare
+(e.g., Medicare dual eligibility), and member demographics. Can be used on five
+data sources: APCD, Medicaid, and Medicare Medicaid/Medicare combined, & 
+Medicaid/Medicare/Housing combined.
+Parameters below have the following key to indicate which data source they 
+can be used against: A = All sources, AP = APCD, MD = Medicaid, ME = Medicare, 
+PHA = Housing. 
 Most parameters default to NULL, which means that all values are included for
 that field.
+NB: For time-varying variables, the value with the maximum time is returned 
+for each variable independently. Therefore, incongruent combinations may arise
+(e.g., having a bsp_group that does not confer full Medicaid benefits but the
+full_benefits flag set to 1, pha_agency returns 'Non-PHA' but pha_subsidy returns 
+'HARD UNIT').
 }
 \examples{
 \dontrun{
-claims_elig(server = db.claims51, source = "apcd", 
+claims_elig(conn = db.claims51, source = "apcd", 
   from_date = "2017-01-01", to_date = "2017-06-30")
-claims_elig(server = db.claims51, source = "mcaid", 
+claims_elig(conn = db.claims51, source = "mcaid", 
   from_date = "2017-01-01", to_date = "2017-06-30", age_min = 18, 
   age_max = 64, lang_me = c("ARABIC", "SOMALI"), zip = c("98103", "98105"))
 }
