@@ -6,7 +6,7 @@ icdcm_from_table: mcaid_mcare_claim_icdcm_header
 schema: stage
 to_table: mcaid_mcare_claim_ccw
 vars:
-    id_apde: varchar(255)
+    id_apde: integer
     from_date: date
     to_date: date
     ccw_code: tinyint
