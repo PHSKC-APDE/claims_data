@@ -2,7 +2,7 @@
 #
 # Alastair Matheson, PHSKC (APDE)
 #
-# 2019-08
+# 2020-01
 
 
 #### Set up global parameter and call in libraries ####
@@ -31,7 +31,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 
 
-#### CREATE ELIG ANALYTIC TABLES ####
+#### CREATE ELIG TABLES --------------------------------------------------------
 #### MCAID_ELIG_DEMO ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.R")
 
@@ -121,7 +121,7 @@ rm(last_run_elig_timevar, qa_rows_final_elig_timevar)
 
 
 
-#### CREATE ANALYTIC TABLES ####
+#### CREATE CLAIMS TABLES ------------------------------------------------------
 # Need to follow this order when making tables because of dependencies
 # These scripts depend only on [stage].[mcaid_claim]:
 #    mcaid_claim_line
@@ -565,6 +565,30 @@ if (ccw_qa_result == "PASS") {
 } else {
   warning("CCW table failed QA and was not loaded to final schema")
 }
+
+
+#### PERFORMANCE MEASURES ------------------------------------------------------
+# All these tables will be renamed to have a mcaid_ prefix at some point
+
+#### PERF_ELIG_MEMBER_MONTH ####
+DBI::dbExecute(db_claims, "EXEC [stage].[sp_perf_elig_member_month]")
+
+#### PERF_ENROLL_DENOM ####
+# Need to find which months have been refreshed and run for those
+# Assumes a 12-month refresh. Change manually for other options
+max_elig_month <- odbc::dbGetQuery(db_claims, "SELECT MAX (CLNDR_YEAR_MNTH) FROM stage.mcaid_elig")[[1]]
+min_elig_month <- max_elig_month - 99
+
+# Run stored procedure
+DBI::dbExecute(db_claims, 
+               glue_sql("EXEC [stage].[sp_perf_enroll_denom] 
+                        @start_date_int = {min_elig_month}, @end_date_int = {max_elig_month}",
+               .con = db_claims))
+
+rm(max_elig_month, min_elig_month)
+
+#### PERF_DISTINCT_MEMBER ####
+DBI::dbExecute(db_claims, "EXEC [stage].[sp_perf_distinct_member]")
 
 
 
