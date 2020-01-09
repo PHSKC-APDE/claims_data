@@ -9864,55 +9864,36 @@ option &orgoptionValue;
 
 proc format library=LIBRARY
 cntlout=format_data_set;
+select
+$ACCOPDD
+$ACDIALD
+$ACDIASD
+$ACDIAUD
+$ACLEA2D
+$ACPGASD
+$ACSAP2D
+$ACSAPPD
+$ACSASTD
+$ACSBA2D
+$ACSBACD
+$ACSCARP
+$ACSDEHD
+$ACSHY2D
+$ACSHYPD
+$ACSLEAD
+$ACSLEAP
+$ACSUTID
+$CRENLFD
+$DIALY2P
+$HYPERID
+$IMMUNID
+$IMMUNIP
+$KIDNEY
+MDCF2T
+$MRTCHFD
+$PHYSIDB
+$RESPAN;
 run;
-
-/*
-proc sql;
-create table temp as
-select distinct FMTNAME
-from format_data_set;
-quit;
-*/
-
-data format_data_set;
-set format_data_set;
-if FMTNAME = 'ACCOPDD'
-or FMTNAME = 'ACDIALD'
-or FMTNAME = 'ACDIASD'
-or FMTNAME = 'ACDIAUD'
-or FMTNAME = 'ACLEA2D'
-or FMTNAME = 'ACPGASD'
-or FMTNAME = 'ACSAP2D'
-or FMTNAME = 'ACSAPPD'
-or FMTNAME = 'ACSASTD'
-or FMTNAME = 'ACSBA2D'
-or FMTNAME = 'ACSBACD'
-or FMTNAME = 'ACSCARP'
-or FMTNAME = 'ACSDEHD'
-or FMTNAME = 'ACSHY2D'
-or FMTNAME = 'ACSHYPD'
-or FMTNAME = 'ACSLEAD'
-or FMTNAME = 'ACSLEAP'
-or FMTNAME = 'ACSUTID'
-or FMTNAME = 'CRENLFD'
-or FMTNAME = 'DIALY2P'
-or FMTNAME = 'HYPERID'
-or FMTNAME = 'IMMUNID'
-or FMTNAME = 'IMMUNIP'
-or FMTNAME = 'KIDNEY'
-/*or FMTNAME = 'MDCF2T'*/
-or FMTNAME = 'MRTCHFD'
-or FMTNAME = 'PHYSIDB'
-or FMTNAME = 'RESPAN';
-run;
-
-/*
-proc sql;
-select *
-from format_data_set
-where START ~= END;
-quit;
-*/
 
 
 options nolabel;
@@ -9924,7 +9905,7 @@ select
 ,FMTNAME as value_set_name
 ,"Diagnosis" as data_source_type
 ,"ICD10CM" as code_set
-,"CHAR_PREFIX_" || START as code
+,"CHAR_PREFIX_" || COMPRESS(START) as code
 ,case 
  when FMTNAME = 'ACCOPDD' then 'Chronic obstructive pulmonary disorder'
  when FMTNAME = 'ACDIALD' then 'Diabetes with long-term complications'
@@ -9949,6 +9930,30 @@ select
  when FMTNAME = 'PHYSIDB' then 'Acute kidney (renal) failure'
  when FMTNAME = 'RESPAN' then 'Cystic fibrosis and anomalies of respiratory system'
  end as desc_1
+,case 
+ when FMTNAME = 'ACCOPDD' then 'PQI 05-COPD-Asthma'
+ when FMTNAME = 'ACDIALD' then 'PQI 03-Diabetes-LT Complications'
+ when FMTNAME = 'ACDIASD' then 'PQI 01-Diabetes-ST Complications'
+ when FMTNAME = 'ACDIAUD' then 'Uncontrolled diabetes without mention of a short-term or long-term complication'
+ when FMTNAME = 'ACPGASD' then 'Gastroenteritis'
+ when FMTNAME = 'ACSAP2D' then 'Appendicitis'
+ when FMTNAME = 'ACSAPPD' then 'Perforations or abscesses of appendix'
+ when FMTNAME = 'ACSASTD' then 'PQI 05-COPD-Asthma'
+ when FMTNAME = 'ACSBA2D' then 'Sickle cell anemia or HB-S disease'
+ when FMTNAME = 'ACSBACD' then 'Community acquired pneumonia'
+ when FMTNAME = 'ACSDEHD' then 'Dehydration'
+ when FMTNAME = 'ACSHY2D' then 'Stage I-IV kidney disease'
+ when FMTNAME = 'ACSHYPD' then 'PQI 07-Hypertension'
+ when FMTNAME = 'ACSLEAD' then 'Diabetes'
+ when FMTNAME = 'ACSUTID' then 'Urinary tract infection'
+ when FMTNAME = 'CRENLFD' then 'Chronic renal failure'
+ when FMTNAME = 'HYPERID' then 'Hyperosmolality and/or hypernatremia'
+ when FMTNAME = 'IMMUNID' then 'Immunocompromised state'
+ when FMTNAME = 'KIDNEY' then 'Kidney or urinary tract disorder'
+ when FMTNAME = 'MRTCHFD' then 'Heart failure'
+ when FMTNAME = 'PHYSIDB' then 'Acute kidney (renal) failure'
+ when FMTNAME = 'RESPAN' then 'Cystic fibrosis and anomalies of respiratory system'
+ end as desc_2
 
 from format_data_set
 where FMTNAME in 
@@ -9984,7 +9989,7 @@ select
 ,FMTNAME as value_set_name
 ,"Procedure" as data_source_type
 ,"ICD10PCS" as code_set
-,"CHAR_PREFIX_" || START as code
+,"CHAR_PREFIX_" || COMPRESS(START) as code
 ,case 
  when FMTNAME = 'ACSCARP' then 'Cardiac'
  when FMTNAME = 'ACSLEAP' then 'Lower extremity amputation'
@@ -9997,7 +10002,22 @@ where FMTNAME in
 ,'ACSLEAP'
 ,'DIALY2P'
 ,'IMMUNIP')
-and LABEL = '1';
+and LABEL = '1'
+
+union all
+
+select
+ "PQI" as value_set_group
+,FMTNAME as value_set_name
+,"Diagnosis" as data_source_type
+,"MSDRG" as code_set
+,"CHAR_PREFIX_" || COMPRESS(START) as code
+,"" as desc_1
+
+from format_data_set
+where FMTNAME in 
+('MDCF2T')
+and LABEL = '14';
 quit;
 
 

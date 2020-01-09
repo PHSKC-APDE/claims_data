@@ -2,10 +2,10 @@
 USE [PHClaims];
 GO
 
-IF OBJECT_ID('[stage].[sp_perf_elig_member_month]','P') IS NOT NULL
-DROP PROCEDURE [stage].[sp_perf_elig_member_month];
+IF OBJECT_ID('[stage].[sp_mcaid_perf_elig_member_month]','P') IS NOT NULL
+DROP PROCEDURE [stage].[sp_mcaid_perf_elig_member_month];
 GO
-CREATE PROCEDURE [stage].[sp_perf_elig_member_month]
+CREATE PROCEDURE [stage].[sp_mcaid_perf_elig_member_month]
 AS
 SET NOCOUNT ON;
 
@@ -75,8 +75,8 @@ OR [MIN_TPL_FULL_FLAG] <> [MAX_TPL_FULL_FLAG]
 OR [MIN_RSDNTL_POSTAL_CODE] <> [MAX_RSDNTL_POSTAL_CODE]
 */
 
-IF OBJECT_ID('[stage].[perf_elig_member_month]', 'U') IS NOT NULL
-DROP TABLE [stage].[perf_elig_member_month];
+IF OBJECT_ID('[stage].[mcaid_perf_elig_member_month]', 'U') IS NOT NULL
+DROP TABLE [stage].[mcaid_perf_elig_member_month];
 
 WITH CTE AS
 (
@@ -112,19 +112,19 @@ SELECT
 ,[RSDNTL_POSTAL_CODE]
 ,CAST(GETDATE() AS DATE) AS [load_date]
 
-INTO [stage].[perf_elig_member_month]
+INTO [stage].[mcaid_perf_elig_member_month]
 FROM CTE
 WHERE 1 = 1
 AND [row_num] = 1;
 
-ALTER TABLE [stage].[perf_elig_member_month] ALTER COLUMN [CLNDR_YEAR_MNTH] INT NOT NULL;
-ALTER TABLE [stage].[perf_elig_member_month] ALTER COLUMN [MEDICAID_RECIPIENT_ID] VARCHAR(200) NOT NULL;
-ALTER TABLE [stage].[perf_elig_member_month] 
-ADD CONSTRAINT [pk_perf_elig_member_month_MEDICAID_RECIPIENT_ID_CLNDR_YEAR_MNTH] PRIMARY KEY ([MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]);
+ALTER TABLE [stage].[mcaid_perf_elig_member_month] ALTER COLUMN [CLNDR_YEAR_MNTH] INT NOT NULL;
+ALTER TABLE [stage].[mcaid_perf_elig_member_month] ALTER COLUMN [MEDICAID_RECIPIENT_ID] VARCHAR(200) NOT NULL;
+ALTER TABLE [stage].[mcaid_perf_elig_member_month] 
+ADD CONSTRAINT [pk_mcaid_perf_elig_member_month_MEDICAID_RECIPIENT_ID_CLNDR_YEAR_MNTH] PRIMARY KEY ([MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]);
 END
 GO
 
---EXEC [stage].[sp_perf_elig_member_month];
+--EXEC [stage].[sp_mcaid_perf_elig_member_month];
 
 /*
 SELECT 
@@ -136,7 +136,7 @@ SELECT
  [MEDICAID_RECIPIENT_ID]
 ,[CLNDR_YEAR_MNTH]
 ,COUNT(*) AS NumRows
-FROM [stage].[perf_elig_member_month]
+FROM [stage].[mcaid_perf_elig_member_month]
 GROUP BY [MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]
 ) AS SubQuery
 GROUP BY NumRows

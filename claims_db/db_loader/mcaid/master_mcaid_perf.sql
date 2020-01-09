@@ -5,7 +5,7 @@ GO
 /*
 Preliminary Stored Procedures
 */
-EXEC [stage].[sp_perf_elig_member_month];
+EXEC [stage].[sp_mcaid_perf_elig_member_month];
 GO
 
 EXEC [stage].[sp_perf_enroll_denom] @start_date_int = 201901, @end_date_int = 201906;
