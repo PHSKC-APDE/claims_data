@@ -119,6 +119,8 @@ SELECT
 ,COUNT(*) OVER(PARTITION BY [id_mcaid], [episode_id]) AS [count_stays]
 ,ROW_NUMBER() OVER(PARTITION BY [id_mcaid], [episode_id] ORDER BY [first_service_date], [last_service_date], [claim_header_id]) AS [stay_id]
 ,MAX(CASE WHEN [patient_status] = '20' THEN 1 ELSE 0 END) OVER(PARTITION BY [id_mcaid], [episode_id] ORDER BY [id_mcaid], [episode_id]) AS [death_during_stay]
+,DENSE_RANK() OVER(ORDER BY [id_mcaid], [episode_id]) AS [acute_inpatient_id]
+
 FROM [create_episode_id];
 GO
 
@@ -126,4 +128,16 @@ GO
 SELECT * 
 FROM [stage].[v_perf_ah_inpatient_direct_transfer]
 ORDER BY [id_mcaid], [episode_id], [stay_id];
+
+SELECT
+ [acute_inpatient_id]
+,[claim_header_id]
+,[episode_first_service_date]
+,[episode_last_service_date]
+,[count_stays]
+
+FROM [stage].[v_perf_ah_inpatient_direct_transfer]
+ORDER BY [id_mcaid], [episode_id], [stay_id];
+
+
 */
