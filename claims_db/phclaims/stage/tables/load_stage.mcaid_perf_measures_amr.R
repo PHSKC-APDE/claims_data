@@ -72,16 +72,16 @@ lapply(months_list, function(x) {
     # not for dbExistsTable. Use try() in the mean time so that the code
     # continues even if an error is thrown trying to remove a table that
     # doesn't exist
-    try(dbRemoveTable(db_claims, "##asthma_pop", temporary = T))
+    try(dbRemoveTable(db_claims, "##asthma_pop", temporary = T), silent = T)
 
-    dbGetQuery(db_claims, 
+    DBI::dbExecute(db_claims, 
                 paste0("SELECT a.id_mcaid, a.year_month, b.end_month, a.end_month_age, 
                         b.beg_measure_year_month, 'enroll_flag' = 1 
                        INTO ##asthma_pop FROM ",
                        sql_temp))
     i <<- i + 1
   } else {
-    dbGetQuery(db_claims, 
+    DBI::dbExecute(db_claims, 
                 paste0("INSERT INTO ##asthma_pop 
                        SELECT a.id_mcaid, a.year_month, b.end_month, a.end_month_age, 
                         beg_measure_year_month, 'enroll_flag' = 1 
