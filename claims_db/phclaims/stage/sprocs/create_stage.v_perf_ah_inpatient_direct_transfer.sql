@@ -48,6 +48,7 @@ SELECT
 ,[first_service_date]
 ,[last_service_date]
 ,[patient_status]
+,[primary_diagnosis]
 FROM [final].[mcaid_claim_header]
 WHERE [clm_type_mcaid_id] IN (31, 33)
 ),
@@ -63,6 +64,7 @@ SELECT
 ,[first_service_date]
 ,[last_service_date]
 ,[patient_status]
+,[primary_diagnosis]
 -- Number of days between consecutive stays
 ,DATEDIFF(DAY, LAG([last_service_date]) OVER(PARTITION BY [id_mcaid]
  ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) AS [date_diff]
@@ -95,6 +97,7 @@ SELECT
 ,[first_service_date]
 ,[last_service_date]
 ,[patient_status]
+,[primary_diagnosis]
 ,[date_diff]
 ,[increment]
 ,SUM([increment]) OVER(PARTITION BY [id_mcaid] 
@@ -109,6 +112,7 @@ SELECT
 ,[first_service_date] AS [claim_first_service_date]
 ,[last_service_date] AS [claim_last_service_date]
 ,[patient_status]
+,[primary_diagnosis] AS [claim_primary_diagnosis]
 ,[date_diff]
 ,[increment]
 ,[episode_id]
@@ -119,8 +123,9 @@ SELECT
 ,COUNT(*) OVER(PARTITION BY [id_mcaid], [episode_id]) AS [count_stays]
 ,ROW_NUMBER() OVER(PARTITION BY [id_mcaid], [episode_id] ORDER BY [first_service_date], [last_service_date], [claim_header_id]) AS [stay_id]
 ,MAX(CASE WHEN [patient_status] = '20' THEN 1 ELSE 0 END) OVER(PARTITION BY [id_mcaid], [episode_id] ORDER BY [id_mcaid], [episode_id]) AS [death_during_stay]
+,FIRST_VALUE([primary_diagnosis]) OVER(PARTITION BY [id_mcaid], [episode_id] 
+ ORDER BY [first_service_date], [last_service_date], [claim_header_id] ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS [episode_primary_diagnosis]
 ,DENSE_RANK() OVER(ORDER BY [id_mcaid], [episode_id]) AS [acute_inpatient_id]
-
 FROM [create_episode_id];
 GO
 
@@ -135,9 +140,9 @@ SELECT
 ,[episode_first_service_date]
 ,[episode_last_service_date]
 ,[count_stays]
+,[claim_primary_diagnosis]
+,[episode_primary_diagnosis]
 
 FROM [stage].[v_perf_ah_inpatient_direct_transfer]
 ORDER BY [id_mcaid], [episode_id], [stay_id];
-
-
 */
