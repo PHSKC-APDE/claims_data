@@ -16,7 +16,7 @@ load_stage.mcare_claim_line_f <- function() {
 --value per claim line.
 --Eli Kern (PHSKC-APDE)
 --2020-01
---Run time: XX min
+--Run time: 45 min
 
 ------------------
 --STEP 1: Select (distinct) desired columns from multi-year claim tables on stage schema
@@ -139,7 +139,86 @@ where b.denial_code_facility = '' or b.denial_code_facility is null;",
 #### Table-level QA script ####
 qa_stage.mcare_claim_line_qa_f <- function() {
   
-#confirm that no denied claims are in table
-#confirm that row counts match expected
-  
+#confirm that row counts match expected after excluding denied claims
+res1 <- dbGetQuery(conn = db_claims, glue_sql(
+  "select 'stage.mcare_claim_line' as 'table', 'row count' as qa_type,
+  count(*) as qa
+  from stage.mcare_claim_line;",
+  .con = db_claims))
+
+res2 <- dbGetQuery(conn = db_claims, glue_sql(
+  "select 'stage.mcare_bcarrier_line' as 'table', 'row count' as qa_type,
+  count(*) as qa
+  from stage.mcare_bcarrier_line as a
+  left join stage.mcare_bcarrier_claims as b
+  on a.claim_header_id = b.claim_header_id
+  where b.denial_code in ('1','2','3','4','5','6','7','8','9');",
+  .con = db_claims))
+
+res3 <- dbGetQuery(conn = db_claims, glue_sql(
+  "select 'stage.mcare_dme_line' as 'table', 'row count' as qa_type,
+  count(*) as qa
+  from stage.mcare_dme_line as a
+  left join stage.mcare_dme_claims as b
+  on a.claim_header_id = b.claim_header_id
+  where b.denial_code in ('1','2','3','4','5','6','7','8','9');",
+  .con = db_claims))
+
+res4 <- dbGetQuery(conn = db_claims, glue_sql(
+  "select 'stage.mcare_hospice_revenue_center' as 'table', 'row count' as qa_type,
+  count(*) as qa
+  from stage.mcare_hospice_revenue_center as a
+  left join stage.mcare_hospice_base_claims as b
+  on a.claim_header_id = b.claim_header_id
+  where b.denial_code_facility = '' or b.denial_code_facility is null;",
+  .con = db_claims))
+
+res5 <- dbGetQuery(conn = db_claims, glue_sql(
+  "select 'stage.mcare_inpatient_revenue_center' as 'table', 'row count' as qa_type,
+  count(*) as qa
+  from stage.mcare_inpatient_revenue_center as a
+  left join stage.mcare_inpatient_base_claims as b
+  on a.claim_header_id = b.claim_header_id
+  where b.denial_code_facility = '' or b.denial_code_facility is null;",
+  .con = db_claims))
+
+res6 <- dbGetQuery(conn = db_claims, glue_sql(
+  "select 'stage.mcare_outpatient_revenue_center' as 'table', 'row count' as qa_type,
+  count(*) as qa
+  from stage.mcare_outpatient_revenue_center as a
+  left join stage.mcare_outpatient_base_claims as b
+  on a.claim_header_id = b.claim_header_id
+  where b.denial_code_facility = '' or b.denial_code_facility is null;",
+  .con = db_claims))
+
+res7 <- dbGetQuery(conn = db_claims, glue_sql(
+  "select 'stage.mcare_snf_revenue_center' as 'table', 'row count' as qa_type,
+  count(*) as qa
+  from stage.mcare_snf_revenue_center as a
+  left join stage.mcare_snf_base_claims as b
+  on a.claim_header_id = b.claim_header_id
+  where b.denial_code_facility = '' or b.denial_code_facility is null;",
+  .con = db_claims))
+
+#make sure everyone is in elig_demo
+res8 <- dbGetQuery(conn = db_claims, glue_sql(
+  "select 'stage.mcare_claim_line' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+    count(a.id_mcare) as qa
+    from stage.mcare_claim_line as a
+    left join final.mcare_elig_demo as b
+    on a.id_mcare = b.id_mcare
+    where b.id_mcare is null;",
+  .con = db_claims))
+
+#make sure everyone is in elig_timevar
+res9 <- dbGetQuery(conn = db_claims, glue_sql(
+  "select 'stage.mcare_claim_line' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
+    count(a.id_mcare) as qa
+    from stage.mcare_claim_line as a
+    left join final.mcare_elig_timevar as b
+    on a.id_mcare = b.id_mcare
+    where b.id_mcare is null;",
+  .con = db_claims))
+
+res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }
