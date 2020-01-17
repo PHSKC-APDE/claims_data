@@ -46,11 +46,9 @@ create_table_f(conn = db_claims,
 ### C) Load tables
 system.time(load_stage.mcare_claim_line_f())
 
-### D) Table-level QA
+### D) Table-level QA (23 min)
 system.time(mcare_claim_line_qa <- qa_stage.mcare_claim_line_qa_f())
 rm(config_url)
-
-### E) Run line-level QA script at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.mcare_claim_line.sql             
 
 ### F) Archive current table
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcare_claim_line")
