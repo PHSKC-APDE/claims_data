@@ -16,7 +16,7 @@ load_stage.mcare_claim_line_f <- function() {
     --value per claim line.
     --Eli Kern (PHSKC-APDE)
     --2020-01
-    --Run time: XX min
+    --Run time: 22 min
     
     ------------------
     --STEP 1: Select (distinct) desired columns from multi-year claim tables on stage schema
