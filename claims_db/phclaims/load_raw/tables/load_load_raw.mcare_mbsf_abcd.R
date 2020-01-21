@@ -2,13 +2,16 @@
   # Author: Danny Colombara
   # Date: 2019/02/27
   # Purpose: Push Medicare MBSF ABCD data (2015-2016) to SQL. 
-  # Notes: Using odbc rather than RODBC because the former are substantially (~20x) faster
+  # Notes: 
   #		      
 
 ## Clear memory and load packages ----
   rm(list=ls())
   pacman::p_load(data.table, lubridate, odbc, DBI, tidyr)
 
+## set working directory ----
+  setwd("//phdata01/DROF_Data/DOH DATA/Medicare/CMS_Drive/CMS_Drive/4749/New data/")
+  
 ## Prevent scientific notation except for huge numbers ----
 	options("scipen"=999) # turn off scientific notation
 
@@ -80,67 +83,68 @@
   sql_database_name <- "phclaims" ##Name of SQL database where table will be created
   sql_schema_name <- "load_raw" ##Name of schema where table will be created
   sql_table_name <- "mcare_mbsf_abcd"
+  glue::glue({sql_database_name}.{sql_schema_name}.{sql_table_name})
   
-  mbsf.create_table <- DBI::SQL(paste0(sql_database_name, ".", sql_schema_name, ".", sql_table_name))
-  mbsf.write.table <- DBI::Id(schema = sql_schema_name, name = sql_table_name)  
 
 ## Create Empty Table ----
-  dbRemoveTable(conn = db.claims51, name = mbsf.create_table) # delete table if it exists
-  dbCreateTable(conn = db.claims51, name = mbsf.create_table, fields = sql.columns, row.names = NULL)
+  # mbsf.create_table <- DBI::SQL(paste0(sql_database_name, ".", sql_schema_name, ".", sql_table_name))
+  # dbRemoveTable(conn = db.claims51, name = mbsf.create_table) # delete table if it exists
+  # dbCreateTable(conn = db.claims51, name = mbsf.create_table, fields = sql.columns, row.names = NULL)
   
 ## Get order of columns from SQL table ----
   mbsfabcd.names <- names(sql.columns)
   
-## Create Master loop MBSF_ABCD data ----
-  for(yr in 15:16){
+## Write yearly MBSF_ABCD data ----
+  mbsf.write.table <- DBI::Id(schema = sql_schema_name, table = sql_table_name)  
+  for(yr in 17){
     # Import data####
-      mbsf <- fread(paste0("Y:/Medicare/CMS_Drive/CMS_Drive/4749/New data/mbsf_resent/mbsf_resend_", yr, "/mbsf_resend_", yr, ".csv"))
-      #DT<-copy(mbsf)
-      #DT<-DT[,which(unlist(lapply(DT, function(x)!all(is.na(x))))),with=F]
+      mbsf <- fread(paste0("//phdata01/DROF_Data/DOH DATA/Medicare/CMS_Drive/CMS_Drive/4749/New data/20", yr, "/mbsf_abcd_", yr, "_summary/mbsf_abcd_summary.csv"))
 
-    # Change column names to lower case
+    # Drop the given year from the SQL data to avoid duplication   ----
+      dbGetQuery(
+        conn = db.claims51,
+        glue::glue("DELETE FROM {sql_database_name}.{sql_schema_name}.{sql_table_name} where bene_enrollmt_ref_yr = 20{yr}", .con = db.claims51))
+
+    # Change column names to lower case ----
       setnames(mbsf, names(mbsf), tolower(names(mbsf)))
       
-    # Drop the useless rownumber indicator that was made by SAS
-      mbsf[, c(grep("v1", names(mbsf), value = TRUE)) := NULL]      
+    # Drop the useless rownumber indicator that was made by SAS ----
+      suppressWarnings(mbsf[, c(grep("v1", names(mbsf), value = TRUE)) := NULL])      
 
-    # Add a variable to indicate the year of the data upload
+    # Add a variable to indicate the year of the data upload ----
       mbsf[, data_year:=2000+yr]     
       
-    # Set column order to match that in SQL to ensure proper appending
+    # Set column order to match that in SQL to ensure proper appending ----
       setcolorder(mbsf, mbsfabcd.names)      
       
-    # set dates to proper format
+    # set dates to proper format ----
       date.vars<-c("bene_birth_dt", "bene_death_dt", "covstart")
       mbsf[, bene_birth_dt := dmy(bene_birth_dt)]
       mbsf[, bene_death_dt := dmy(bene_death_dt)]
       mbsf[, covstart := dmy(covstart)]
 
-    # set up parameters for loading data to SQL in chunks 
-      max.row.num <- nrow(mbsf) # number of rows in the original R dataset
-      chunk.size <- 10000 # number of rows uploaded per batch
-      number.chunks <-  ceiling(max.row.num/chunk.size) # number of chunks to be uploaded
-      starting.row <- 1 # the starting row number for each chunk to be uploaded. Will begin with 1 for the first chunk
-      ending.row <- chunk.size  # the final row number for each chunk to be uploaded. Will begin with the overall chunk size for the first chunk
-      
-    # Create loop for appending new data
-      for(i in 1:number.chunks){
-        # counter so we know it isn't broken
-          print(paste0("20",yr, ": Loading chunk ", i, " of ", number.chunks, ": rows ", starting.row, "-", ending.row))  
-        
-        # subset the data (i.e., create a data 'chunk')
-          temp.dt<-mbsf[starting.row:ending.row,] 
-        
-        # load the data chunk into SQL
-         # dbWriteTable(conn = db.claims51, name = mbsfabcd, value = temp.dt, row.names = FALSE, header = FALSE, append = TRUE) # load data to SQL
-          dbWriteTable(conn = db.claims51, name = mbsf.write.table, value = as.data.frame(temp.dt), row.names = FALSE, header = T, append = T)
+    # Append new data ----
+      dbWriteTable(conn = db.claims51, name = mbsf.write.table, value = as.data.frame(mbsf), row.names = FALSE, header = T, append = T)
           
-        # set the starting ane ending rows for the next chunk to be uploaded
-          starting.row <- starting.row + chunk.size
-          ifelse(ending.row + chunk.size < max.row.num, 
-                 ending.row <- ending.row + chunk.size,
-                 ending.row <- max.row.num)
-      } # close the for loop that appends the chunks
+    # Basic QA ----
+      # row counts
+        count.sql <-  as.numeric(dbGetQuery(conn = db.claims51, glue::glue("SELECT count(*) FROM {sql_database_name}.{sql_schema_name}.{sql_table_name} where bene_enrollmt_ref_yr = 20{yr}", .con = db.claims51)))
+        if(count.sql == nrow(mbsf)){
+          print("All rows were copies to SQL")
+        } else {stop("The number of rows copied to SQL does not equal the number of rows in the MBSF")}
+      
+      # column names
+        names.sql <- tolower(names(dbGetQuery(conn = db.claims51, glue::glue("SELECT top(0) * FROM {sql_database_name}.{sql_schema_name}.{sql_table_name}", .con = db.claims51))))
+        if( identical(names.sql, names(mbsf)) ){
+          print("All columns were copied to SQL")
+        } else {
+          dbGetQuery(
+            conn = db.claims51,
+            glue::glue("DELETE FROM {sql_database_name}.{sql_schema_name}.{sql_table_name} where bene_enrollmt_ref_yr = 20{yr}", .con = db.claims51))
+          stop("There is mismatch between SQL column names and the column names in R. 
+               The 20{yr] data has been deleted from SQL. Identify the error and try again")}
+      
   } # close loop for each year
 
-# the end
+
+# the end ----
