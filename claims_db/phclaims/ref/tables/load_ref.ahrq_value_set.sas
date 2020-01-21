@@ -9862,6 +9862,9 @@ run;
 *Restore source option to setting used prior to formats;
 option &orgoptionValue;
 
+/*
+Put the format mappings (of those we will use) into a data set
+*/
 proc format library=LIBRARY
 cntlout=format_data_set;
 select
@@ -9870,38 +9873,52 @@ $ACDIALD
 $ACDIASD
 $ACDIAUD
 $ACLEA2D
-$ACPGASD
-$ACSAP2D
-$ACSAPPD
 $ACSASTD
 $ACSBA2D
 $ACSBACD
 $ACSCARP
-$ACSDEHD
 $ACSHY2D
 $ACSHYPD
 $ACSLEAD
 $ACSLEAP
 $ACSUTID
-$CRENLFD
 $DIALY2P
-$HYPERID
 $IMMUNID
 $IMMUNIP
 $KIDNEY
 MDCF2T
 $MRTCHFD
-$PHYSIDB
 $RESPAN;
 run;
 
 
 options nolabel;
 
+/*
+Create a transformed value set table like the [ref].[rda_value_set] table
+*/
+
 proc sql;
 create table temp as 
 select
- "PQI" as value_set_group
+ case 
+ when FMTNAME = 'ACCOPDD' then 'PQI 05'
+ when FMTNAME = 'ACDIALD' then 'PQI 03'
+ when FMTNAME = 'ACDIASD' then 'PQI 01'
+ when FMTNAME = 'ACDIAUD' then 'PQI 14'
+ when FMTNAME = 'ACLEA2D' then 'PQI Exclusion'
+ when FMTNAME = 'ACSASTD' then 'PQI 05/PQI 15'
+ when FMTNAME = 'ACSBA2D' then 'PQI Exclusion'
+ when FMTNAME = 'ACSBACD' then 'PQI 11'
+ when FMTNAME = 'ACSHY2D' then 'PQI Exclusion'
+ when FMTNAME = 'ACSHYPD' then 'PQI 07'
+ when FMTNAME = 'ACSLEAD' then 'PQI 16'
+ when FMTNAME = 'ACSUTID' then 'PQI 12'
+ when FMTNAME = 'IMMUNID' then 'PQI Exclusion'
+ when FMTNAME = 'KIDNEY' then 'PQI Exclusion'
+ when FMTNAME = 'MRTCHFD' then 'PQI 08'
+ when FMTNAME = 'RESPAN' then 'PQI Exclusion'
+ end as value_set_group
 ,FMTNAME as value_set_name
 ,"Diagnosis" as data_source_type
 ,"ICD10CM" as code_set
@@ -9911,49 +9928,19 @@ select
  when FMTNAME = 'ACDIALD' then 'Diabetes with long-term complications'
  when FMTNAME = 'ACDIASD' then 'Diabetes with short-term complications'
  when FMTNAME = 'ACDIAUD' then 'Uncontrolled diabetes without mention of a short-term or long-term complication'
- when FMTNAME = 'ACPGASD' then 'Gastroenteritis'
- when FMTNAME = 'ACSAP2D' then 'Appendicitis'
- when FMTNAME = 'ACSAPPD' then 'Perforations or abscesses of appendix'
+ when FMTNAME = 'ACLEA2D' then 'Traumatic amputation of the lower extremity'
  when FMTNAME = 'ACSASTD' then 'Asthma'
  when FMTNAME = 'ACSBA2D' then 'Sickle cell anemia or HB-S disease'
  when FMTNAME = 'ACSBACD' then 'Community acquired pneumonia'
- when FMTNAME = 'ACSDEHD' then 'Dehydration'
  when FMTNAME = 'ACSHY2D' then 'Stage I-IV kidney disease'
  when FMTNAME = 'ACSHYPD' then 'Hypertension'
  when FMTNAME = 'ACSLEAD' then 'Diabetes'
  when FMTNAME = 'ACSUTID' then 'Urinary tract infection'
- when FMTNAME = 'CRENLFD' then 'Chronic renal failure'
- when FMTNAME = 'HYPERID' then 'Hyperosmolality and/or hypernatremia'
  when FMTNAME = 'IMMUNID' then 'Immunocompromised state'
  when FMTNAME = 'KIDNEY' then 'Kidney or urinary tract disorder'
  when FMTNAME = 'MRTCHFD' then 'Heart failure'
- when FMTNAME = 'PHYSIDB' then 'Acute kidney (renal) failure'
  when FMTNAME = 'RESPAN' then 'Cystic fibrosis and anomalies of respiratory system'
  end as desc_1
-,case 
- when FMTNAME = 'ACCOPDD' then 'PQI 05-COPD-Asthma'
- when FMTNAME = 'ACDIALD' then 'PQI 03-Diabetes-LT Complications'
- when FMTNAME = 'ACDIASD' then 'PQI 01-Diabetes-ST Complications'
- when FMTNAME = 'ACDIAUD' then 'Uncontrolled diabetes without mention of a short-term or long-term complication'
- when FMTNAME = 'ACPGASD' then 'Gastroenteritis'
- when FMTNAME = 'ACSAP2D' then 'Appendicitis'
- when FMTNAME = 'ACSAPPD' then 'Perforations or abscesses of appendix'
- when FMTNAME = 'ACSASTD' then 'PQI 05-COPD-Asthma'
- when FMTNAME = 'ACSBA2D' then 'Sickle cell anemia or HB-S disease'
- when FMTNAME = 'ACSBACD' then 'Community acquired pneumonia'
- when FMTNAME = 'ACSDEHD' then 'Dehydration'
- when FMTNAME = 'ACSHY2D' then 'Stage I-IV kidney disease'
- when FMTNAME = 'ACSHYPD' then 'PQI 07-Hypertension'
- when FMTNAME = 'ACSLEAD' then 'Diabetes'
- when FMTNAME = 'ACSUTID' then 'Urinary tract infection'
- when FMTNAME = 'CRENLFD' then 'Chronic renal failure'
- when FMTNAME = 'HYPERID' then 'Hyperosmolality and/or hypernatremia'
- when FMTNAME = 'IMMUNID' then 'Immunocompromised state'
- when FMTNAME = 'KIDNEY' then 'Kidney or urinary tract disorder'
- when FMTNAME = 'MRTCHFD' then 'Heart failure'
- when FMTNAME = 'PHYSIDB' then 'Acute kidney (renal) failure'
- when FMTNAME = 'RESPAN' then 'Cystic fibrosis and anomalies of respiratory system'
- end as desc_2
 
 from format_data_set
 where FMTNAME in 
@@ -9962,30 +9949,28 @@ where FMTNAME in
 ,'ACDIASD'
 ,'ACDIAUD'
 ,'ACLEA2D'
-,'ACPGASD'
-,'ACSAP2D'
-,'ACSAPPD'
 ,'ACSASTD'
 ,'ACSBA2D'
 ,'ACSBACD'
-,'ACSDEHD'
 ,'ACSHY2D'
 ,'ACSHYPD'
 ,'ACSLEAD'
 ,'ACSUTID'
-,'CRENLFD'
-,'HYPERID'
 ,'IMMUNID'
 ,'KIDNEY'
 ,'MRTCHFD'
-,'PHYSIDB'
 ,'RESPAN')
 and LABEL = '1'
 
 union all
 
 select
- "PQI" as value_set_group
+ case 
+ when FMTNAME = 'ACSCARP' then 'PQI Exclusion'
+ when FMTNAME = 'ACSLEAP' then 'PQI 16'
+ when FMTNAME = 'DIALY2P' then 'PQI Exclusion'
+ when FMTNAME = 'IMMUNIP' then 'PQI Exclusion'
+ end as value_set_group
 ,FMTNAME as value_set_name
 ,"Procedure" as data_source_type
 ,"ICD10PCS" as code_set
@@ -9993,6 +9978,7 @@ select
 ,case 
  when FMTNAME = 'ACSCARP' then 'Cardiac'
  when FMTNAME = 'ACSLEAP' then 'Lower extremity amputation'
+ when FMTNAME = 'DIALY2P' then 'Dialysis access'
  when FMTNAME = 'IMMUNIP' then 'Immunocompromised state'
  end as desc_1
 
@@ -10007,12 +9993,16 @@ and LABEL = '1'
 union all
 
 select
- "PQI" as value_set_group
-,FMTNAME as value_set_name
+ case
+ when FMTNAME = 'MDCF2T' then 'PQI Exclusion'
+ end as value_set_group
+,"MDC " || COMPRESS(LABEL) as value_set_name
 ,"Diagnosis" as data_source_type
 ,"MSDRG" as code_set
 ,"CHAR_PREFIX_" || COMPRESS(START) as code
-,"" as desc_1
+,case
+ when FMTNAME = 'MDCF2T' & LABEL = '14' then 'Major diagnositic category for pregnancy, childbirth and puerperium'
+ end as desc_1
 
 from format_data_set
 where FMTNAME in 
@@ -10026,4 +10016,3 @@ ods excel file="C:/Users/psylling/github/claims_data/claims_db/phclaims/ref/tabl
 proc print data=temp noobs;
 run;
 ods excel close;
-

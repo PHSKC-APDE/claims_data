@@ -2,10 +2,10 @@
 USE [PHClaims];
 GO
 
-IF OBJECT_ID('[stage].[fn_perf_enroll_member_month]', 'IF') IS NOT NULL
-DROP FUNCTION [stage].[fn_perf_enroll_member_month];
+IF OBJECT_ID('[stage].[fn_mcaid_perf_enroll_member_month]', 'IF') IS NOT NULL
+DROP FUNCTION [stage].[fn_mcaid_perf_enroll_member_month];
 GO
-CREATE FUNCTION [stage].[fn_perf_enroll_member_month]
+CREATE FUNCTION [stage].[fn_mcaid_perf_enroll_member_month]
 (@start_date_int INT = 201701
 ,@end_date_int INT = 201712)
 RETURNS TABLE 
@@ -15,7 +15,7 @@ RETURN
 1. Create Age at beginning of month and end of month. This would correspond to age
 at Beginning of Measurement Year or End of Measurement Year (typical)
 2. Create enrollment gaps as ZERO rows by the following join
-[stage].[mcaid_elig_demo] CROSS JOIN [ref].[perf_year_month] LEFT JOIN [stage].[perf_elig_member_month]
+[stage].[mcaid_elig_demo] CROSS JOIN [ref].[perf_year_month] LEFT JOIN [stage].[mcaid_perf_elig_member_month]
 The ZERO rows are used to track changing enrollment threshold over time.
 */
 
@@ -53,7 +53,7 @@ WHERE [year_month] BETWEEN @start_date_int AND @end_date_int
 --WHERE [year_month] BETWEEN 201701 AND 201712
 ) AS b
 
-LEFT JOIN [stage].[perf_elig_member_month] AS c
+LEFT JOIN [stage].[mcaid_perf_elig_member_month] AS c
 ON a.[id_mcaid] = c.[MEDICAID_RECIPIENT_ID]
 AND b.[year_month] = c.[CLNDR_YEAR_MNTH]
 
@@ -71,7 +71,7 @@ IF OBJECT_ID('tempdb..#temp', 'U') IS NOT NULL
 DROP TABLE #temp;
 SELECT *
 INTO #temp
-FROM [stage].[fn_perf_enroll_member_month](201601, 201812);
+FROM [stage].[fn_mcaid_perf_enroll_member_month](201601, 201812);
 
 SELECT TOP 100 *
 FROM #temp;
