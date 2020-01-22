@@ -9,6 +9,21 @@ final,mcaid_claim_procedure,stage,mcaid_claim_procedure,,,,https://github.com/PH
 final,mcaid_elig_demo,stage,mcaid_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 final,mcaid_elig_timevar,stage,mcaid_elig_timevar,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 final,xwalk_apde_mcaid_mcare_pha,stage,xwalk_apde_mcaid_mcare_pha,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid_mcare/master_mcaid_mcare_analytic.R
+final,mcare_elig_demo,stage,mcare_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/final/tables/load_final.mcare_elig_demo.sql
+final,mcare_elig_timevar,stage,mcare_elig_timevar,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/final/tables/load_final.mcare_elig_timevar.sql
+final,mcare_claim_icdcm_header,stage,mcare_claim_icdcm_header,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/final/tables/final_mcare_claim_icdcm_header.sql
+final,mcare_claim_header,stage,mcare_claim_header,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/final/tables/final_mcare_claim_header.sql
+stage,mcare_elig_demo,stage,mcare_mbsf,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.R
+stage,mcare_elig_timevar,stage,mcare_mbsf,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.R
+stage,mcare_elig_timevar,final,mcare_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.R
+stage,mcare_mbsf,load_raw,mcare_mbsf_ab,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_mbsf.r
+stage,mcare_mbsf,load_raw,mcare_mbsf_abcd,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_mbsf.r
+load_raw,mcare_mbsf_ab,,,mbsf_ab_summary_res000028029_req004749_2011.Rds,Y:\Medicare\CMS_Drive\CMS_Drive\4749\2011\mbsf_ab_summary\mbsf_ab_summary_res000028029_req004749_2011.Rds,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_ab.R
+load_raw,mcare_mbsf_ab,,,mbsf_ab_summary_res000028029_req004749_2012.Rds,Y:\Medicare\CMS_Drive\CMS_Drive\4749\2012\mbsf_ab_summary\mbsf_ab_summary_res000028029_req004749_2012.Rds,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_ab.R
+load_raw,mcare_mbsf_ab,,,mbsf_ab_summary_res000028029_req004749_2013.Rds,Y:\Medicare\CMS_Drive\CMS_Drive\4749\2013\mbsf_ab_summary\mbsf_ab_summary_res000028029_req004749_2013.Rds,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_ab.R
+load_raw,mcare_mbsf_ab,,,mbsf_ab_summary_14/mbsf_ab_summary.csv,Y:/Medicare/CMS_Drive/CMS_Drive/4749/New data/2014/mbsf_ab_summary_14/mbsf_ab_summary.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_ab.R
+load_raw,mcare_mbsf_abcd,,,mbsf_abcd_summary.csv,Y:/Medicare/CMS_Drive/CMS_Drive/4749/New data/2015/mbsf_abcd_summary_15/mbsf_abcd_summary.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_abcd.R
+load_raw,mcare_mbsf_abcd,,,mbsf_abcd_summary.csv,Y:/Medicare/CMS_Drive/CMS_Drive/4749/New data/2016/mbsf_abcd_summary_16/mbsf_abcd_summary.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_abcd.R
 load_raw,mcaid_claim,,,,,,"https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.R
 https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R"
 load_raw,mcaid_elig,,,,,,"https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_full.R
