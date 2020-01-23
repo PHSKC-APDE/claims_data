@@ -1,0 +1,8 @@
+schema: stage
+table: mcare_xwalk_bene_hic
+years:
+vars:
+    bene_id: CHAR(15) collate SQL_Latin1_General_Cp1_CS_AS
+    hic: VARCHAR(255)
+    crnt_hic_sw: VARCHAR(255)
+    last_run: DATETIME
