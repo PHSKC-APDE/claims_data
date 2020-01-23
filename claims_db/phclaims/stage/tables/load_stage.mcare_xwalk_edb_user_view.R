@@ -1,7 +1,7 @@
 ## Header ----
 # Author: Danny Colombara
 # Date: 2020/01/22
-# Purpose: Created cleanded versions of EDB (names), SSN, and HIC (alternate ID) tables
+# Purpose: Created cleaned versions of EDB (names), SSN, and HIC (alternate ID) tables
 # Notes: 
 
 
