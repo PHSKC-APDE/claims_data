@@ -922,7 +922,7 @@ DBI::dbExecute(db_claims,
              on a.claim_header_id = g.claim_header_id			
 			 left join ##ed_perform_id as h
              on a.claim_header_id = h.claim_header_id
-			 left join ##inpatient_id_id as h
+			 left join ##inpatient_id_id as i
              on a.claim_header_id = i.claim_header_id			 
            ")
 
