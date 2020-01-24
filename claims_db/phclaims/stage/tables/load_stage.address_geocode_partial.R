@@ -28,7 +28,7 @@ adds_to_code <- dbGetQuery(
   "SELECT DISTINCT a.*, b.geocoded
     FROM
   (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean
-  FROM ref.address_clean) a
+  FROM ref.address_clean WHERE geo_geocode_skip = 0) a
   LEFT JOIN
   (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
   1 as geocoded
@@ -209,10 +209,10 @@ adds_coded <- adds_coded %>%
                         "Kitsap_gcs") ~ "esri",
       !is.na(geo_lat.y) & address_type %in% c("houseNumber", "street") ~ "here",
       !is.na(geo_lat.x) & Loc_name == "zip_5_digit_gc" ~ "esri",
-      !is.na(geo_lat.y) & address_type %in% c("postalCode", "district") ~ "here",
+      !is.na(geo_lat.y) & address_type %in% c("postalCode") ~ "here",
       TRUE ~ NA_character_),
     geo_zip_centroid = ifelse((geo_geocode_source == "esri" & Loc_name == "zip_5_digit_gc") |
-                                (geo_geocode_source == "here" & address_type %in% c("postalCode", "district")),
+                                (geo_geocode_source == "here" & address_type %in% c("postalCode")),
                               1, 0),
     geo_street_centroid = ifelse(geo_geocode_source == "here" & address_type == "street", 1, 0),
     # Move address and coordindate data into a single field
@@ -246,6 +246,44 @@ adds_coded <- adds_coded %>%
          geo_zip_centroid, geo_street_centroid,
          geo_lon, geo_lat, geo_x, geo_y) %>%
   mutate(geo_zip_clean = as.character(geo_zip_clean))
+
+
+### Identify addresses that could not be geocoded to an acceptable level
+# Will flag them in ref.address_clean as addresses to skip future geocoding attempts
+adds_geocode_skip <- adds_coded %>% filter(is.na(geo_geocode_source)) %>% 
+  select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean)
+
+# Set up SQL to update values
+update_sql <- glue::glue_data_sql(adds_geocode_skip, 
+  "UPDATE stage.address_clean 
+  SET geo_geocode_skip = 1 
+  WHERE (geo_add1_clean = {geo_add1_clean} AND geo_city_clean = {geo_city_clean} AND
+  geo_state_clean = {geo_state_clean} AND geo_zip_clean = {geo_zip_clean})",
+  .con = db_claims)
+# Need to account for NULL values properly
+update_sql <- str_replace_all(update_sql, "= NULL", "Is NULL")
+# Run code
+DBI::dbExecute(db_claims, glue::glue_collapse(update_sql, sep = "; "))
+
+# Check that more addresses were flagged for skipping
+stage_geocode_skip <- as.integer(DBI::dbGetQuery(
+  db_claims, "SELECT SUM(geo_geocode_skip) AS skip_cnt FROM stage.address_clean"))
+ref_geocode_skip <- as.integer(DBI::dbGetQuery(
+  db_claims, "SELECT SUM(geo_geocode_skip) AS skip_cnt FROM ref.address_clean"))
+
+if (stage_geocode_skip >= ref_geocode_skip) {
+  # Update in ref table
+  update_sql <- str_replace_all(update_sql, "stage.address_clean", "ref.address_clean")
+  DBI::dbExecute(db_claims, glue::glue_collapse(update_sql, sep = "; "))
+  
+  # Check counts
+  ref_geocode_skip_new <- as.integer(DBI::dbGetQuery(
+    db_claims, "SELECT SUM(geo_geocode_skip) AS skip_cnt FROM ref.address_clean"))
+  
+  if (stage_geocode_skip == ref_geocode_skip_new) {
+    message("Succesfully updated ref.address_clean with geocode_skip flags")
+  }
+}
 
 
 ### Remove any addresses that could not be geocoded to an acceptable level
@@ -406,3 +444,4 @@ rm(stage_rows_before, stage_rows_after, row_load_ref_geo)
 rm(geocode_files, geocode_path, s_shapes, g_shapes)
 rm(geocode_here_f, i, here_url, startindex, app_id, app_code, result)
 rm(list = ls(pattern = "^adds_coded"), adds_here, adds_to_code)
+rm(stage_geocode_skip, ref_geocode_skip, ref_geocode_skip_new, update_sql)

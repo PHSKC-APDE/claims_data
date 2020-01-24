@@ -125,15 +125,16 @@ new_add_trim <- left_join(new_add_in,
 
 ### Bring it all together
 new_add_final <- bind_rows(new_add_trim, in_manual) %>%
-  # Set up columns only found in the PHA data
+  # Set up columns only found in the PHA data or used for skipping geocoding later
   mutate(geo_add3_raw = NA_character_,
          geo_source_mcaid = 1,
          geo_source_pha = 0,
+         geo_geocode_skip = 0L,
          last_run = Sys.time()) %>%
   select(geo_add1_raw, geo_add2_raw, geo_add3_raw, geo_city_raw, 
          geo_state_raw, geo_zip_raw,
          geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
-         geo_source_mcaid, geo_source_pha, last_run) %>%
+         geo_source_mcaid, geo_source_pha, geo_geocode_skip, last_run) %>%
   # Convert all blank fields to be NA
   mutate_if(is.character, list(~ ifelse(. == "", NA_character_, .)))
 

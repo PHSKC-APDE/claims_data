@@ -591,6 +591,9 @@ rm(max_elig_month, min_elig_month)
 DBI::dbExecute(db_claims, "EXEC [stage].[sp_perf_distinct_member]")
 
 
+#### ASTHMA MEDICATION RATIO ####
+
+
 
 #### DROP TABLES NO LONGER NEEDED ####
 
