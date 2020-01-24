@@ -13,16 +13,16 @@
   	options("scipen"=999) # turn off scientific notation
 
 ## Identify year for 'source' of raw data ----
-    this.year <- 2017
+    this.year <- 2018
   
 ## Load Medicare CSVs into memory ----
-    edb <- fread(paste0("//phdata01/DROF_Data/DOH DATA/Medicare/CMS_Drive/CMS_Drive/4749/New data/", this.year, "/ebd_user_view_", substr(this.year, 3, 4),"/ebd_user_view.csv"), header = TRUE)
-    hic <- fread(paste0("//phdata01/DROF_Data/DOH DATA/Medicare/CMS_Drive/CMS_Drive/4749/New data/", this.year, "/bene_hic_xwalk_", substr(this.year, 3, 4),"/bene_hic_xwalk.csv"), header = TRUE)
-    ssn <- fread(paste0("//phdata01/DROF_Data/DOH DATA/Medicare/CMS_Drive/CMS_Drive/4749/New data/", this.year, "/bene_ssn_xwalk_", substr(this.year, 3, 4),"/bene_ssn_xwalk.csv"), header = TRUE, colClasses=c("character", "character"))
-    # edb <- fread("//phdata01/DROF_Data/DOH DATA/Medicare/CMS_Drive/CMS_Drive/4749/New data/edb_user_view/edb_user_view.csv", header = TRUE) # 2016
-    # hic <- fread("//phdata01/DROF_Data/DOH DATA/Medicare/CMS_Drive/CMS_Drive/4749/New data/bene_hic_xwalk/bene_hic_xwalk.csv", header = TRUE) # 2016
-    # ssn <- fread("//phdata01/DROF_Data/DOH DATA/Medicare/CMS_Drive/CMS_Drive/4749/New data/bene_ssn_xwalk/bene_ssn_xwalk.csv", header = TRUE, colClasses=c("character", "character")) # 2016
-  
+    edb <- fread(paste0("//phdata01/DROF_Data/DOH DATA/Medicare/CMS_Drive/CMS_Drive/4749/New data/", this.year, "/edb_user_view_", substr(this.year, 3, 4),"/edb_user_view.csv"), 
+                 colClasses=c("character"), header = TRUE)
+    hic <- fread(paste0("//phdata01/DROF_Data/DOH DATA/Medicare/CMS_Drive/CMS_Drive/4749/New data/", this.year, "/bene_hic_xwalk_", substr(this.year, 3, 4),"/bene_hic_xwalk.csv"), 
+                 colClasses=c("character"), header = TRUE)
+    ssn <- fread(paste0("//phdata01/DROF_Data/DOH DATA/Medicare/CMS_Drive/CMS_Drive/4749/New data/", this.year, "/bene_ssn_xwalk_", substr(this.year, 3, 4),"/bene_ssn_xwalk.csv"), 
+                        colClasses=c("character"), header = TRUE)
+          
 ## Connect to the servers ----
     sql_server = "KCITSQLUTPDBH51"
     sql_server_odbc_name = "PHClaims51"
