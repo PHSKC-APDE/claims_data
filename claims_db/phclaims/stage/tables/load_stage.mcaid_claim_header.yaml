@@ -56,6 +56,7 @@ vars:
     inpatient: TINYINT
     ipt_medsurg: TINYINT
     ipt_bh: TINYINT
+    inpatient_id: BIGINT
     intent: VARCHAR(255)
     mechanism: VARCHAR(255)
     sdoh_any: TINYINT
