@@ -268,6 +268,12 @@ DBI::dbExecute(db_claims,
            --SDOH-related (any diagnosis)
            ,max(case when icdcm_norm between 'Z55' and 'Z659' and icdcm_version = 10
                 then 1 else 0 end) as 'sdoh_any'
+           --Primary care-related visits
+           ,max(CASE WHEN icdcm_number IN ('01', '02') AND icdcm_raw IN (
+             'Z00', 'Z000', 'Z0000', 'Z0001', 'Z001', 'Z0011', 'Z00110', 'Z00111', 'Z0012', 
+             'Z00121', 'Z00129', 'Z008', 'Z014', 'Z0141', 'Z01411', 'Z01419') AND 
+             icdcm_version = 10 
+             THEN 1 ELSE 0 END) AS 'pc_zcode' 
            into ##diag
            from [final].[mcaid_claim_icdcm_header]
            group by claim_header_id")
@@ -285,6 +291,21 @@ DBI::dbExecute(db_claims,
            ,max(case when procedure_code like '9928[123458]' then 1 else 0 end) as 'ed_pcode1'
            -- Dropped to match HCA-ARM Definition
            --,max(case when procedure_code between '10021' and '69990' then 1 else 0 end) as 'ed_pcode2'
+           -- Primary care visit
+           ,MAX(CASE WHEN procedure_code IN (
+             '59400', '59510', '59610', '59618', '90460', '90461', '90471', '90472', 
+             '90473', '90474', '96160', '96161', '96372', '98966', '98967', '98968', 
+             '98969', '99201', '99202', '99203', '99204', '99205', '99211', '99212', 
+             '99213', '99214', '99215', '99339', '99339', '99340', '99340', '99341', 
+             '99342', '99343', '99344', '99345', '99347', '99348', '99349', '99350', 
+             '99381', '99382', '99383', '99384', '99385', '99386', '99387', '99391', 
+             '99392', '99393', '99394', '99395', '99396', '99397', '99401', '99402', 
+             '99403', '99404', '99406', '99407', '99408', '99409', '99411', '99412', 
+             '99420', '99429', '9944', '99441', '99442', '99443', '99444', '99495', 
+             '99496', 'G0008', 'G0009', 'G0010', 'G0396', 'G0397', 'G0438', 'G0439', 
+             'G0442', 'G0443', 'G0444', 'G0502', 'G0503', 'G0504', 'G0505', 'G0506', 
+             'G0507', 'G0513', 'G0514') 
+           THEN 1 ELSE 0 END) AS 'pc_pcode' 
            into ##procedure_code
            from [final].[mcaid_claim_procedure]
            group by claim_header_id")
@@ -292,7 +313,8 @@ DBI::dbExecute(db_claims,
 # Add index
 DBI::dbExecute(db_claims, "create clustered index idx_cl_#procedure_code on ##procedure_code(claim_header_id)")
 
-#### HEDIS INPATIENT DEFINITION ####
+
+#### STEP 5: HEDIS INPATIENT DEFINITION ####
 try(DBI::dbRemoveTable(db_claims, "##hedis_inpatient_definition", temporary = T))
 DBI::dbExecute(db_claims,"
 SELECT 
@@ -347,7 +369,35 @@ AND a.[type_of_bill_code] = b.[code]
 # Add index
 DBI::dbExecute(db_claims, "create clustered index idx_cl_##hedis_inpatient_definition on ##hedis_inpatient_definition([claim_header_id])")
 
-#### STEP 5: CREATE TEMP SUMMARY CLAIMS TABLE WITH EVENT-BASED FLAGS ####
+
+#### STEP 6: PRIMARY CARE PROVIDERS ####
+try(DBI::dbRemoveTable(db_claims, "##pc_provider", temporary = T), silent = T)
+
+DBI::dbExecute(db_claims,
+  "SELECT a.billing_provider_npi, b.pc_provider 
+  INTO ##pc_provider
+  FROM
+  (SELECT DISTINCT billing_provider_npi
+  FROM ##header) a
+  LEFT JOIN
+  (SELECT npi, CASE WHEN primary_taxonomy IN (
+    '207Q00000X', '207R00000X', '208000000X', '363L00000X', '363LA2200X', '363LF0000X', 
+    '363LP0200X', '363LP2300X', '363A00000X', '363AM0700X', '207RG0300X', '261QF0400X', 
+    '261QP2300X', '261QR1300X', '175F00000X', '2084P0800X', '2084P0804X', '207V00000X', 
+    '207VG0400X', '208D00000X', '363LP0808X', '363LW0102X', '363LX0001X', '175L00000X', 
+    '2083P0500X', '364S00000X', '163W00000X') OR
+    secondary_taxonomy IN (
+    '207Q00000X', '207R00000X', '208000000X', '363L00000X', '363LA2200X', '363LF0000X', 
+    '363LP0200X', '363LP2300X', '363A00000X', '363AM0700X', '207RG0300X', '261QF0400X', 
+    '261QP2300X', '261QR1300X', '175F00000X', '2084P0800X', '2084P0804X', '207V00000X', 
+    '207VG0400X', '208D00000X', '363LP0808X', '363LW0102X', '363LX0001X', '175L00000X', 
+    '2083P0500X', '364S00000X', '163W00000X')
+    THEN 1 ELSE 0 END AS 'pc_provider'
+  FROM ref.kc_provider_master) b
+  ON a.billing_provider_npi = b.npi")
+
+
+#### STEP 7: CREATE TEMP SUMMARY CLAIMS TABLE WITH EVENT-BASED FLAGS ####
 try(DBI::dbRemoveTable(db_claims, "##temp1", temporary = T))
 DBI::dbExecute(db_claims,
            "select 
@@ -382,9 +432,9 @@ DBI::dbExecute(db_claims,
            ,case when header.maternal_drg_tob = 1 or line.maternal_rev_code = 1 or diag.dx1_maternal_broad = 1 then 1 else 0 end as 'maternal_broad_dx1'
            --Newborn-related care (prim. diagnosis only)
            ,case when header.newborn_drg = 1 or diag.dx1_newborn = 1 then 1 else 0 end as 'newborn_dx1'
-           --Inpatient stay flag
+           --Inpatient stay flag [not using claim_type_mcaid_id any more]
            --,header.inpatient
-		   ,hedis.inpatient
+		       ,hedis.inpatient
            --ED visit (broad definition)
            ,case when header.clm_type_mcaid_id in (3,26,34)
            and (line.ed_rev_code = 1 or procedure_code.ed_pcode1 = 1 or header.place_of_service_code = '23') then 1 else 0 end as 'ed'
@@ -397,6 +447,11 @@ DBI::dbExecute(db_claims,
            ,header.primary_diagnosis_poa
            --SDOH flags
            ,diag.sdoh_any
+           --Primary care visit
+           CASE WHEN (diag.pc_zcode = 1 OR procedure_code.pc_pcode = 1) AND
+            pc_provider.pc_provider = 1 AND 
+            header.clm_type_mcaid_id NOT IN (19, 31, 33) --Ambulatory surgery centers/inpatient 
+            THEN 1 ELSE 0 END AS pc_visit
            
            into ##temp1
            from ##header as header
@@ -406,11 +461,13 @@ DBI::dbExecute(db_claims,
            on header.claim_header_id = diag.claim_header_id
            left join ##procedure_code as procedure_code 
            on header.claim_header_id = procedure_code.claim_header_id
-		   left join ##hedis_inpatient_definition as hedis
-		   on header.claim_header_id = hedis.claim_header_id")
+		       left join ##hedis_inpatient_definition as hedis
+		       on header.claim_header_id = hedis.claim_header_id
+           LEFT JOIN ##pc_provider AS pc_provider
+           ON header.billing_provider_npi = pc_provider.npi")
 
 
-#### STEP 6: AVOIDABLE ED VISIT FLAG, CALIFORNIA ALGORITHM ####
+#### STEP 8: AVOIDABLE ED VISIT FLAG, CALIFORNIA ALGORITHM ####
 try(DBI::dbRemoveTable(db_claims, "##avoid_ca", temporary = T))
 DBI::dbExecute(db_claims,
            "select 
@@ -426,7 +483,7 @@ DBI::dbExecute(db_claims,
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##avoid_ca] on ##avoid_ca(claim_header_id)")
 
 
-#### STEP 7: ED CLASSIFICATION, NYU ALGORITHM ####
+#### STEP 9: ED CLASSIFICATION, NYU ALGORITHM ####
 try(DBI::dbRemoveTable(db_claims, "##avoid_nyu'", temporary = T))
 DBI::dbExecute(db_claims,
            "select 
@@ -450,7 +507,7 @@ DBI::dbExecute(db_claims,
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##avoid_nyu] on ##avoid_nyu(claim_header_id)")
 
 
-#### STEP 8: CCS GROUPINGS (CCS, CCS-LEVEL 1, CCS-LEVEL 2), PRIMARY DX, FINAL CATEGORIZATION ####
+#### STEP 10: CCS GROUPINGS (CCS, CCS-LEVEL 1, CCS-LEVEL 2), PRIMARY DX, FINAL CATEGORIZATION ####
 try(DBI::dbRemoveTable(db_claims, "##ccs'", temporary = T))
 DBI::dbExecute(db_claims,
            "select 
@@ -476,7 +533,7 @@ DBI::dbExecute(db_claims,
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##ccs] on ##ccs(claim_header_id)")
 
 
-#### STEP 9: RDA MENTAL HEALTH AND SUBSTANCE USE DISORDER DX FLAGS, ANY DX ####
+#### STEP 11: RDA MENTAL HEALTH AND SUBSTANCE USE DISORDER DX FLAGS, ANY DX ####
 try(DBI::dbRemoveTable(db_claims, "##rda'", temporary = T))
 DBI::dbExecute(db_claims,
            "select 
@@ -493,7 +550,7 @@ DBI::dbExecute(db_claims,
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##rda] on ##rda(claim_header_id)")
 
 
-#### STEP 10: INJURY INTENT AND MECHANISM, ICD9-CM ####
+#### STEP 12: INJURY INTENT AND MECHANISM, ICD9-CM ####
 try(DBI::dbRemoveTable(db_claims, "##injury9cm", temporary = T))
 DBI::dbExecute(db_claims,
            "select 
@@ -517,7 +574,7 @@ DBI::dbExecute(db_claims,
            where c.diag_rank = 1")
 
 
-#### STEP 10: INJURY INTENT AND MECHANISM, ICD10-CM ####
+#### STEP 13: INJURY INTENT AND MECHANISM, ICD10-CM ####
 try(DBI::dbRemoveTable(db_claims, "##injury10cm", temporary = T))
 DBI::dbExecute(db_claims,
            "select 
@@ -565,7 +622,7 @@ try(DBI::dbRemoveTable(db_claims, "##inj10_temp1", temporary = T))
 try(DBI::dbRemoveTable(db_claims, "##inj10_temp2", temporary = T))
 
 
-#### STEP 12: UNION ICD9-CM AND ICD10-CM INJURY TABLES ####
+#### STEP 14: UNION ICD9-CM AND ICD10-CM INJURY TABLES ####
 try(DBI::dbRemoveTable(db_claims, "##injury", temporary = T))
 DBI::dbExecute(db_claims,
            "select 
@@ -585,7 +642,12 @@ DBI::dbExecute(db_claims,
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##injury] on ##injury(claim_header_id)")
 
 
-#### STEP 13: CREATE [ed_pophealth_id] (YALE ED MEASURE) and [ed_perform_id] (Increments [ed] column by distinct [id_mcaid], [first_service_date]) ####
+#### STEP 15: CREATE ID COLUMNS FOR EVENTS THAT ARE ONLY COUNTED ONCE PER DAY ####
+# [ed_pophealth_id] (YALE ED MEASURE)
+# [ed_perform_id]
+# [inpatient_id]
+# [pc_visit_id]
+
 # Get relevant claims for Yale-ED-Measure
 # 
 # Logic:
@@ -776,6 +838,7 @@ from ##temp1;
 # Add index
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##ed_perform_id] on ##ed_perform_id(claim_header_id)")
 
+
 # Create [inpatient_id] column
 try(DBI::dbRemoveTable(db_claims, "##inpatient_id", temporary = T))
 DBI::dbExecute(db_claims,"
@@ -792,7 +855,26 @@ FROM ##hedis_inpatient_definition;
 # Add index
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##inpatient_id] on ##inpatient_id([claim_header_id])")
 
-#### STEP 14: CREATE FLAGS THAT REQUIRE COMPARISON OF PREVIOUSLY CREATED EVENT-BASED FLAGS ACROSS TIME ####
+
+# Create [pc_visit_id] column
+try(DBI::dbRemoveTable(db_claims, "##pc_visit_id", temporary = T))
+DBI::dbExecute(db_claims,"
+SELECT
+ [id_mcaid]
+,[claim_header_id]
+,[first_service_date]
+,[pc_visit]
+,DENSE_RANK() OVER(ORDER BY [id_mcaid], [first_service_date]) AS [pc_visit_id]
+INTO ##pc_visit_id
+FROM ##temp1
+WHERE pc_visit = 1;
+")
+
+# Add index
+DBI::dbExecute(db_claims, "create clustered index [idx_cl_##pc_visit_id] on ##pc_visit_id([claim_header_id])")
+
+
+#### STEP 16: CREATE FLAGS THAT REQUIRE COMPARISON OF PREVIOUSLY CREATED EVENT-BASED FLAGS ACROSS TIME ####
 try(DBI::dbRemoveTable(db_claims, "##temp2", temporary = T))
 DBI::dbExecute(db_claims,
            "select temp1.*, case when ed_nohosp.ed_nohosp = 1 then 1 else 0 end as 'ed_nohosp'
@@ -832,13 +914,13 @@ DBI::dbExecute(db_claims,
 DBI::dbExecute(db_claims, "create clustered index [idx_cl_##temp2] on ##temp2(claim_header_id)")
 
 
-#### STEP 15: CREATE FINAL TABLE STRUCTURE ####
+#### STEP 17: CREATE FINAL TABLE STRUCTURE ####
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.yaml",
                overall = T, ind_yr = F, overwrite = T)
 
 
-#### STEP 16: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE) ####
+#### STEP 18: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE) ####
 try(DBI::dbRemoveTable(db_claims, "##temp_final", temporary = T))
 DBI::dbExecute(db_claims,
            "
@@ -906,6 +988,10 @@ DBI::dbExecute(db_claims,
              ,case when a.ed = 1 and a.sdoh_any = 1 then 1 else 0 end as 'ed_sdoh'
              ,case when a.inpatient = 1 and a.sdoh_any = 1 then 1 else 0 end as 'ipt_sdoh'
              
+             --Primary care
+             ,a.pc_visit
+             ,j.pc_visit_id
+             
              into ##temp_final
              from ##temp2 as a
              left join ##avoid_ca as b
@@ -918,16 +1004,18 @@ DBI::dbExecute(db_claims,
              on a.claim_header_id = e.claim_header_id
              left join ##injury as f
              on a.claim_header_id = f.claim_header_id
-			 left join ##ed_yale_final as g
+             left join ##ed_yale_final as g
              on a.claim_header_id = g.claim_header_id			
-			 left join ##ed_perform_id as h
+             left join ##ed_perform_id as h
              on a.claim_header_id = h.claim_header_id
-			 left join ##inpatient_id_id as i
-             on a.claim_header_id = i.claim_header_id			 
+             left join ##inpatient_id_id as i
+             on a.claim_header_id = i.claim_header_id
+             left join ##pc_visit_id AS j
+             on a.claim_header_id = j.claim_header_id
            ")
 
 
-#### STEP 17: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER ####
+#### STEP 19: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER ####
 message("Loading to final table")
 DBI::dbExecute(db_claims,
            glue::glue_sql("INSERT INTO {`table_config_claim_header$to_schema`}.{`table_config_claim_header$to_table`} 
@@ -937,7 +1025,7 @@ DBI::dbExecute(db_claims,
                           FROM ##temp_final", .con = db_claims))
 
 
-#### STEP 18: ADD INDEX ####
+#### STEP 20: ADD INDEX ####
 message("Creating index on final table")
 time_start <- Sys.time()
 add_index_f(db_claims, table_config = table_config_claim_header)
@@ -947,26 +1035,27 @@ message(glue::glue("Index creation took {round(difftime(time_end, time_start, un
 
 
 
-#### STEP 19: CLEAN UP TEMP TABLES ####
-try(DBI::dbRemoveTable(db_claims, name = DBI::Id(schema = "tmp", table = "mcaid_claim_header")))
-try(DBI::dbRemoveTable(db_claims, "##header", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##line", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##diag", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##procedure_code", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##temp1", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##avoid_ca", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##avoid_nyu'", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##ccs'", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##rda'", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##injury9cm", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##injury10cm", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##injury", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##temp2", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##temp_final", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##ed_yale_step_1", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##ed_yale_final", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##ed_perform_id", temporary = T))
-try(DBI::dbRemoveTable(db_claims, "##inpatient_id", temporary = T))
+#### STEP 21: CLEAN UP TEMP TABLES ####
+try(DBI::dbRemoveTable(db_claims, name = DBI::Id(schema = "tmp", table = "mcaid_claim_header")), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##header", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##line", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##diag", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##procedure_code", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##pc_provider", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##temp1", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##avoid_ca", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##avoid_nyu'", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##ccs'", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##rda'", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##injury9cm", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##injury10cm", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##injury", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##temp2", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##temp_final", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##ed_yale_step_1", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##ed_yale_final", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##ed_perform_id", temporary = T), silent = T)
+try(DBI::dbRemoveTable(db_claims, "##inpatient_id", temporary = T), silent = T)
 
 rm(time_start, time_end)
 rm(table_config_claim_header)
