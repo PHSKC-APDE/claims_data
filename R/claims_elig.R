@@ -442,19 +442,19 @@ claims_elig <- function(conn,
   
   # Age
   ifelse(!is.null(age_min), 
-         age_min_sql <- glue::glue_sql(" AND age_min >= {age_min} ", .con = conn),
+         age_min_sql <- glue::glue_sql(" AND age >= {age_min} ", .con = conn),
          age_min_sql <- DBI::SQL(''))
   
   ifelse(!is.null(age_max), 
-         age_max_sql <- glue::glue_sql(" AND age_max >= {age_max} ", .con = conn),
+         age_max_sql <- glue::glue_sql(" AND age <= {age_max} ", .con = conn),
          age_max_sql <- DBI::SQL(''))
   
   # Gender
   ifelse(!is.null(female), 
-         female_sql <- glue::glue_sql(" AND female = {female} ", .con = conn),
+         female_sql <- glue::glue_sql(" AND gender_female = {female} ", .con = conn),
          female_sql <- DBI::SQL(''))
   ifelse(!is.null(male), 
-         male_sql <- glue::glue_sql(" AND male = {male} ", .con = conn),
+         male_sql <- glue::glue_sql(" AND gender_male = {male} ", .con = conn),
          male_sql <- DBI::SQL(''))
   ifelse(!is.null(gender_me), 
          gender_me_sql <- glue::glue_sql(" AND LOWER(gender_me) IN ({tolower(gender_me)*}) ", .con = conn),
@@ -951,8 +951,8 @@ claims_elig <- function(conn,
   #### SET UP DUAL CODE (ALL) ####
   if (source %in% c("mcaid", "mcare", "mcaid_mcare", "mcaid_mcare_pha")) {
     
-    # mcare currently only has a dual field, not apde_dual
-    if (source != "mcare") {
+    # mcaid and mcare currently only have a dual field, not apde_dual
+    if (!source %in% c("mcaid", "mcare")) {
       apde_dual_sql <- timevar_gen_sql(var = "apde_dual", pct = T)
     } else {
       apde_dual_sql <- DBI::SQL('')
@@ -1386,7 +1386,6 @@ claims_elig <- function(conn,
       (SELECT DISTINCT {demo_vars_sql}
         from {`sql_db_name`}.final.{`paste0(source, '_elig_demo')`}
         WHERE 1 = 1 {id_sql} 
-        {age_min_sql} {age_max_sql} 
         {female_sql} {male_sql} {gender_me_sql} {gender_recent_sql} 
         {race_aian_sql} {race_asian_sql} {race_black_sql} {race_latino_sql} 
         {race_nhpi_sql} {race_white_sql} {race_unk_sql} {race_me_sql} 
@@ -1408,6 +1407,7 @@ claims_elig <- function(conn,
       {geo_zip_sql} {geo_hra_code_sql} {geo_school_code_sql} 
       {geo_county_code_sql} {geo_ach_code_sql} {geo_kc_sql}
       WHERE 1 = 1 
+      {age_min_sql} {age_max_sql} 
       {mcaid_cov_where_sql} {mcare_cov_where_sql} {dual_where_sql} {tpl_where_sql}
       {bsp_group_cid_where_sql} {full_benefit_where_sql}
       {cov_type_where_sql} {mco_id_where_sql} {part_a_where_sql} 
@@ -1461,6 +1461,13 @@ claims_elig <- function(conn,
     }
   }
 
+  
+  #### Clean up temp tables ####
+  try(odbc::dbRemoveTable(conn = conn, name = "##cov_time_part", temporary = T), 
+      silent = T)
+  try(odbc::dbRemoveTable(conn = conn, name = "##cov_time_tot", temporary = T), 
+      silent = T)
+  
   
   #### Return complete dataset ####
   return(output)
