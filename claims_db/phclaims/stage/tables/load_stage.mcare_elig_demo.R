@@ -121,6 +121,9 @@
       if(nrow(race) - length(unique(race$id_mcare)) != 0){
         stop('non-unique id_mcare in race')
       } 
+    
+  # ensure that Asian and NHPI are NA (because cannot be assessed in Medicare data)
+    race[, c("race_nhpi", "race_asian") := NA]
 
 ## (7) Create date of death as a data.table ----
   death <- unique(mbsf[!is.na(death_dt) & death_dt != "1900-01-01", .(id_mcare, death_dt, year)]) # copy only death data
