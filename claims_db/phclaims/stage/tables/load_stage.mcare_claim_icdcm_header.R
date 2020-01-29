@@ -454,18 +454,60 @@ load_stage.mcare_claim_icdcm_header_f <- function() {
 #### Table-level QA script ####
 qa_stage.mcare_claim_icdcm_header_qa_f <- function() {
   
-  #load expected counts from YAML file
-  table_config <- yaml::yaml.load(RCurl::getURL(config_url))  
-  
-  #confirm that row counts match expected after excluding denied claims
+  #confirm that claim counts match for a specific diagnosis code field: facility-level claims
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
-  "select 'stage.mcare_claim_icdcm_header' as 'table', 'row count, expect {table_config$row_count_expected}' as qa_type,
-  count(*) as qa
-  from stage.mcare_claim_icdcm_header;",
-  .con = db_claims))
+    "select 'stage.mcare_claim_icdcm_header' as 'table', 'row count, expect match with inpatient table' as qa_type,
+    count(*) as qa
+    from stage.mcare_claim_icdcm_header
+    where file_type = 'inpatient' and icdcm_number = 'ecode_9';",
+    .con = db_claims))
+  
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_inpatient_base_claims' as 'table', 'row count, expect match with claim_icdcm_header table' as qa_type,
+    count(*) as qa
+    from (
+      select distinct a.id_mcare, a.claim_header_id, a.first_service_date,
+      a.last_service_date, a.dxecode_9
+    	from PHClaims.stage.mcare_inpatient_base_claims as a
+    	left join PHClaims.final.mcare_elig_demo as b
+    	on a.id_mcare = b.id_mcare
+    	--exclude denined claims using carrier/dme claim method
+    	where a.denial_code_facility = '' or a.denial_code_facility is null
+    	--exclude claims among people who have no eligibility data
+    	and b.id_mcare is not null
+      --exclude null/blank diagnosis code rows
+      and a.dxecode_9 is not null and a.dxecode_9 != ' '
+    ) as x;",
+    .con = db_claims))
+  
+  #confirm that claim counts match for a specific diagnosis code field: carrier claims
+  res3 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_claim_icdcm_header' as 'table', 'row count, expect match with inpatient table' as qa_type,
+    count(*) as qa
+    from stage.mcare_claim_icdcm_header
+    where file_type = 'bcarrier' and icdcm_number = '12';",
+    .con = db_claims))
+  
+  res4 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_bcarrier_claims' as 'table', 'row count, expect match with claim_icdcm_header table' as qa_type,
+    count(*) as qa
+    from (
+      select distinct a.id_mcare, a.claim_header_id, a.first_service_date,
+      a.last_service_date, a.dx12
+    	from PHClaims.stage.mcare_bcarrier_claims as a
+    	left join PHClaims.final.mcare_elig_demo as b
+    	on a.id_mcare = b.id_mcare
+    	--exclude denined claims using carrier/dme claim method
+    	where a.denial_code in ('1','2','3','4','5','6','7','8','9')
+    	--exclude claims among people who have no eligibility data
+    	and b.id_mcare is not null
+      --exclude null/blank diagnosis code rows
+      and a.dx12 is not null and a.dx12 != ' '
+    ) as x;",
+    .con = db_claims))
   
   #make sure everyone is in elig_demo
-  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+  res5 <- dbGetQuery(conn = db_claims, glue_sql(
   "select 'stage.mcare_claim_icdcm_header' as 'table', '# members not in elig_demo, expect 0' as qa_type,
     count(a.id_mcare) as qa
     from stage.mcare_claim_icdcm_header as a
@@ -475,7 +517,7 @@ qa_stage.mcare_claim_icdcm_header_qa_f <- function() {
   .con = db_claims))
   
   #make sure everyone is in elig_timevar
-  res3 <- dbGetQuery(conn = db_claims, glue_sql(
+  res6 <- dbGetQuery(conn = db_claims, glue_sql(
   "select 'stage.mcare_claim_icdcm_header' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
     count(a.id_mcare) as qa
     from stage.mcare_claim_icdcm_header as a
