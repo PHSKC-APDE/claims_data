@@ -1,0 +1,14 @@
+schema: stage
+table: mcare_claim_icdcm_header
+row_count_expected: 0
+vars:
+    id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    first_service_date: date
+    last_service_date: date
+    icdcm_raw: varchar(255)
+    icdcm_norm: varchar(255)
+    icdcm_version: tinyint
+    icdcm_number: varhcar(255)
+    last_run: datetime
+	
