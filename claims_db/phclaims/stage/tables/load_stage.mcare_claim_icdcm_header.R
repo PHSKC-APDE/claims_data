@@ -459,7 +459,7 @@ qa_stage.mcare_claim_icdcm_header_qa_f <- function() {
     "select 'stage.mcare_claim_icdcm_header' as 'table', 'row count, expect match with inpatient table' as qa_type,
     count(*) as qa
     from stage.mcare_claim_icdcm_header
-    where file_type = 'inpatient' and icdcm_number = 'ecode_9';",
+    where filetype_mcare = 'inpatient' and icdcm_number = 'ecode_9';",
     .con = db_claims))
   
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
@@ -485,7 +485,7 @@ qa_stage.mcare_claim_icdcm_header_qa_f <- function() {
     "select 'stage.mcare_claim_icdcm_header' as 'table', 'row count, expect match with inpatient table' as qa_type,
     count(*) as qa
     from stage.mcare_claim_icdcm_header
-    where file_type = 'bcarrier' and icdcm_number = '12';",
+    where filetype_mcare = 'bcarrier' and icdcm_number = '12';",
     .con = db_claims))
   
   res4 <- dbGetQuery(conn = db_claims, glue_sql(

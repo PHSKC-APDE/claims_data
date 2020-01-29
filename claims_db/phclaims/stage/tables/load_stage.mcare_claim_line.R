@@ -180,7 +180,7 @@ qa_stage.mcare_claim_line_qa_f <- function() {
   "select 'stage.mcare_claim_line' as 'table', 'row count, expect match with inpatient table' as qa_type,
   count(*) as qa
   from stage.mcare_claim_line
-  where file_type = 'inpatient' and revenue_code = '0450';",
+  where filetype_mcare = 'inpatient' and revenue_code = '0450';",
   .con = db_claims))
   
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
@@ -208,7 +208,7 @@ qa_stage.mcare_claim_line_qa_f <- function() {
     "select 'stage.mcare_claim_line' as 'table', 'row count, expect match with carrier table' as qa_type,
     count(*) as qa
     from stage.mcare_claim_line
-    where file_type = 'carrier' and place_of_service_code = '81';",
+    where filetype_mcare = 'carrier' and place_of_service_code = '81';",
     .con = db_claims))
   
   res4 <- dbGetQuery(conn = db_claims, glue_sql(
