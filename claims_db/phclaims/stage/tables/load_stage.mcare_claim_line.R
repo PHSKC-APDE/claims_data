@@ -195,7 +195,7 @@ qa_stage.mcare_claim_line_qa_f <- function() {
     left join PHClaims.final.mcare_elig_demo as c
     on a.id_mcare = c.id_mcare
     --exclude denined claims using carrier/dme claim method
-    where b.denial_code_facility = '' or b.denial_code_facility is null
+    where (b.denial_code_facility = '' or b.denial_code_facility is null)
     --exclude claims among people who have eligibility data
     and c.id_mcare is not null
     --specific revenue code
