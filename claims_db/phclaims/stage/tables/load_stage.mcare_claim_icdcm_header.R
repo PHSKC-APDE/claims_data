@@ -55,15 +55,18 @@ load_stage.mcare_claim_icdcm_header_f <- function() {
     	
     	--diagnosis code number
     	cast(substring(icdcm_number, 3,10) as varchar(200)) as 'icdcm_number',
+    	filetype_mcare,
     	getdate() as last_run
     
     from (
     	--bcarrier
     	select
+    	--top 100
     	rtrim(a.id_mcare) as id_mcare,
     	rtrim(a.claim_header_id) as claim_header_id,
     	a.first_service_date,
     	a.last_service_date,
+    	'carrier' as filetype_mcare,
     	dxadmit = null,
     	a.dx01,
     	a.dx02,
@@ -115,10 +118,12 @@ load_stage.mcare_claim_icdcm_header_f <- function() {
     	--dme
     	union
     	select
+    	--top 100
     	rtrim(a.id_mcare) as id_mcare,
     	rtrim(a.claim_header_id) as claim_header_id,
     	a.first_service_date,
     	a.last_service_date,
+    	'dme' as filetype_mcare,
     	dxadmit = null,
     	a.dx01,
     	a.dx02,
@@ -173,10 +178,12 @@ load_stage.mcare_claim_icdcm_header_f <- function() {
     	--hospice
     	union
     	select
+    	--top 100
     	rtrim(a.id_mcare) as id_mcare,
     	rtrim(a.claim_header_id) as claim_header_id,
     	a.first_service_date,
     	a.last_service_date,
+    	'hospice' as filetype_mcare,
     	dxadmit = null,
     	a.dx01,
     	a.dx02,
@@ -228,10 +235,12 @@ load_stage.mcare_claim_icdcm_header_f <- function() {
     	--inpatient
     	union
     	select
+    	--top 100
     	rtrim(a.id_mcare) as id_mcare,
     	rtrim(a.claim_header_id) as claim_header_id,
     	a.first_service_date,
     	a.last_service_date,
+    	'inpatient' as filetype_mcare,
     	a.dxadmit,
     	a.dx01,
     	a.dx02,
@@ -283,10 +292,12 @@ load_stage.mcare_claim_icdcm_header_f <- function() {
     	--outpatient
     	union
     	select
+    	--top 100
     	rtrim(a.id_mcare) as id_mcare,
     	rtrim(a.claim_header_id) as claim_header_id,
     	a.first_service_date,
     	a.last_service_date,
+    	'outpatient' as filetype_mcare,
     	dxadmit = null,
     	a.dx01,
     	a.dx02,
@@ -338,10 +349,12 @@ load_stage.mcare_claim_icdcm_header_f <- function() {
     	--snf
     	union
     	select
+    	--top 100
     	rtrim(a.id_mcare) as id_mcare,
     	rtrim(a.claim_header_id) as claim_header_id,
     	a.first_service_date,
     	a.last_service_date,
+    	'snf' as filetype_mcare,
     	a.dxadmit,
     	a.dx01,
     	a.dx02,
