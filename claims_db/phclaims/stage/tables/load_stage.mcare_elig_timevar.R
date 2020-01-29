@@ -34,13 +34,15 @@
         death <- setDT(DBI::dbGetQuery(db_claims, query.string))
 
         # Ensure that the complete number of rows were downloaded
-        # count rows in load_raw 
         sql.row.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM final.mcare_elig_demo"))
         if(sql.row.count != nrow(death))
           stop("Mismatching row count, error reading in data")
         
         # only keep rows with death dates
         death <- death[!is.na(death_dt)]
+        
+        # convert death_dt to class == date
+        death[, death_dt := ymd(death_dt)]
         
     ## MBSF data ----
         # Identify variables of interest   
@@ -58,36 +60,24 @@
           dt <- setDT(DBI::dbGetQuery(db_claims, query.string))
           
         # Ensure that the complete number of rows were downloaded
-          # count rows in load_raw 
           sql.row.count <- as.numeric(odbc::dbGetQuery(db_claims, 
                                                       "SELECT COUNT (*) FROM stage.mcare_mbsf"))
           if(sql.row.count != nrow(dt))
             stop("Mismatching row count, error reading in data")
       
 ## (2) Rename columns in MBSF ---- 
-    ## create column names for renaming / reshaping ----
-          dual.cols <- paste0("dual_", formatC(1:12, width = 2, flag = "0"))
-          buyin.cols <- paste0("buyin_", formatC(1:12, width = 2, flag = "0"))
-          hmo.cols <- paste0("hmo_", formatC(1:12, width = 2, flag = "0"))
-      
-    ## rename columns ----
-          setnames(dt, 
-                   old = paste0("dual_stus_cd_", formatC(1:12, width = 2, flag = "0")), 
-                   new = dual.cols)
-          setnames(dt, 
-                   old = paste0("mdcr_entlmt_buyin_ind_", formatC(1:12, width = 2, flag = "0")), 
-                   new = buyin.cols)
-          setnames(dt, 
-                   old = paste0("hmo_ind_", formatC(1:12, width = 2, flag = "0")), 
-                   new = hmo.cols)
-          setnames(dt, old = c("zip_cd", "bene_id", "bene_enrollmt_ref_yr"), 
-                   new = c("geo_zip", "id_mcare", "data_year"))
+      setnames(dt, names(dt), gsub("dual_stus_cd_", "dual_", names(dt)))    
+      setnames(dt, names(dt), gsub("mdcr_entlmt_buyin_ind_", "buyin_", names(dt)))    
+      setnames(dt, names(dt), gsub("hmo_ind_", "hmo_", names(dt)))    
+      setnames(dt, c("zip_cd", "bene_id", "bene_enrollmt_ref_yr"), c("geo_zip", "id_mcare", "data_year"))
 
 ## (3) Reshape wide to long ----
       # reshaping multiple unrelated columns simultaneously uses 'enhanced melt': https://cran.r-project.org/web/packages/data.table/vignettes/datatable-reshape.html
       dt <- melt(dt, 
                 id.vars = c("id_mcare", "data_year", "geo_zip"), 
-                measure = list(dual.cols, buyin.cols, hmo.cols), 
+                measure = list(grep("dual", names(dt), value = T), 
+                               grep("buyin", names(dt), value = T), 
+                               grep("hmo", names(dt), value = T) ), 
                 value.name = c("duals", "buyins", "hmos"), variable.name = c("month"))
       
 ## (4) Recode / create indicators ----
@@ -125,14 +115,12 @@
       gc() 
       
       ## Create from_date ----
-      dt[, from_date := paste0(data_year, "-", month, "-01")] # from date is always first day of the month ... done step wise with hope helps with memory
-      dt[, from_date := ymd(from_date)] # set from_date to class Date
-      
+      dt[, from_date := ymd(paste0(data_year, "-", month, "-01"))] # from date is always first day of the month 
+
       ## Create to_date ----
       dt[, to_date := days_in_month(from_date)] # identify last day of month (adapts for Leap years)
-      dt[, to_date := paste0(data_year, "-", month, "-", to_date)] # again, piecewise with hope it helps with memory
-      dt[, to_date := ymd(to_date)]
-      
+      dt[, to_date := ymd(paste0(data_year, "-", month, "-", to_date))] #
+
       ## Merge on death date ----
       dt <- merge(dt, death, by= "id_mcare", all.x = TRUE, all.y = FALSE)            
       gc()
@@ -156,7 +144,7 @@
       
 ## (8) Create unique ID for contiguous times within a given data chunk ----
       dt[, prev_to_date := c(NA, to_date[-.N]), by = "group"] # MUCH faster than shift(..."lag") ... create row with the previous 'to_date'
-      dt[, diff.prev := from_date - prev_to_date] # difference between from_date & prev_to_date will be 1 (day) if they are contiguous
+      dt[, diff.prev := as.integer(from_date - prev_to_date)] # difference between from_date & prev_to_date will be 1 (day) if they are contiguous
       dt[diff.prev != 1, diff.prev := NA] # set to NA if difference is not 1 day, i.e., it is not contiguous, i.e., it starts a new contiguous chunk
       dt[is.na(diff.prev), contig.id := .I] # Give a unique number for each start of a new contiguous chunk (i.e., section starts with NA)
       setkeyv(dt, c("group", "from_date")) # need to order the data so the following line will work.
