@@ -42,6 +42,7 @@ select distinct
 	
 	--diagnosis code number
 	cast(substring(icdcm_number, 3,10) as varchar(200)) as 'icdcm_number',
+	filetype_mcare,
 	getdate() as last_run
 
 from (
@@ -52,6 +53,7 @@ from (
 	rtrim(a.claim_header_id) as claim_header_id,
 	a.first_service_date,
 	a.last_service_date,
+	'carrier' as filetype_mcare,
 	dxadmit = null,
 	a.dx01,
 	a.dx02,
@@ -108,6 +110,7 @@ from (
 	rtrim(a.claim_header_id) as claim_header_id,
 	a.first_service_date,
 	a.last_service_date,
+	'dme' as filetype_mcare,
 	dxadmit = null,
 	a.dx01,
 	a.dx02,
@@ -167,6 +170,7 @@ from (
 	rtrim(a.claim_header_id) as claim_header_id,
 	a.first_service_date,
 	a.last_service_date,
+	'hospice' as filetype_mcare,
 	dxadmit = null,
 	a.dx01,
 	a.dx02,
@@ -223,6 +227,7 @@ from (
 	rtrim(a.claim_header_id) as claim_header_id,
 	a.first_service_date,
 	a.last_service_date,
+	'inpatient' as filetype_mcare,
 	a.dxadmit,
 	a.dx01,
 	a.dx02,
@@ -279,6 +284,7 @@ from (
 	rtrim(a.claim_header_id) as claim_header_id,
 	a.first_service_date,
 	a.last_service_date,
+	'outpatient' as filetype_mcare,
 	dxadmit = null,
 	a.dx01,
 	a.dx02,
@@ -335,6 +341,7 @@ from (
 	rtrim(a.claim_header_id) as claim_header_id,
 	a.first_service_date,
 	a.last_service_date,
+	'snf' as filetype_mcare,
 	a.dxadmit,
 	a.dx01,
 	a.dx02,
