@@ -215,7 +215,7 @@ from (
 	left join PHClaims.final.mcare_elig_demo as b
 	on a.id_mcare = b.id_mcare
 	--exclude denined claims using carrier/dme claim method
-	where a.denial_code_facility = '' or a.denial_code_facility is null
+	where (a.denial_code_facility = '' or a.denial_code_facility is null)
 	--exclude claims among people who have no eligibility data
 	and b.id_mcare is not null
 
@@ -272,7 +272,7 @@ from (
 	left join PHClaims.final.mcare_elig_demo as b
 	on a.id_mcare = b.id_mcare
 	--exclude denined claims using carrier/dme claim method
-	where a.denial_code_facility = '' or a.denial_code_facility is null
+	where (a.denial_code_facility = '' or a.denial_code_facility is null)
 	--exclude claims among people who have no eligibility data
 	and b.id_mcare is not null
 
@@ -329,7 +329,7 @@ from (
 	left join PHClaims.final.mcare_elig_demo as b
 	on a.id_mcare = b.id_mcare
 	--exclude denined claims using carrier/dme claim method
-	where a.denial_code_facility = '' or a.denial_code_facility is null
+	where (a.denial_code_facility = '' or a.denial_code_facility is null)
 	--exclude claims among people who have no eligibility data
 	and b.id_mcare is not null
 
@@ -386,7 +386,7 @@ from (
 	left join PHClaims.final.mcare_elig_demo as b
 	on a.id_mcare = b.id_mcare
 	--exclude denined claims using carrier/dme claim method
-	where a.denial_code_facility = '' or a.denial_code_facility is null
+	where (a.denial_code_facility = '' or a.denial_code_facility is null)
 	--exclude claims among people who have no eligibility data
 	and b.id_mcare is not null
 	
