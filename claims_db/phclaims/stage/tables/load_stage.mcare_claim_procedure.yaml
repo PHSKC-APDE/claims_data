@@ -1,0 +1,15 @@
+schema: stage
+table: mcare_claim_procedure
+vars:
+    id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    first_service_date: date
+    last_service_date: date
+    procedure_code: varchar(255)
+    procedure_code_number: varchar(255)
+    modifier_1: varchar(255)
+    modifier_2: varchar(255)
+    modifier_3: varchar(255)
+    modifier_4: varchar(255)
+    filetype_mcare: varchar(255)
+    last_run: datetime

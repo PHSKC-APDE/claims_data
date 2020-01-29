@@ -1,0 +1,28 @@
+schema: stage
+table: mcare_claim_header
+vars:
+    id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    first_service_date: date
+    last_service_date: date
+    primary_diagnosis: varchar(255)
+    icdcm_version: tinyint
+    claim_type_mcare_id: varchar(255)
+    claim_type_id: tinyint
+    facility_type_code: varchar(255)
+    service_type_code: varchar(255)
+    patient_status: varchar(255)
+    patient_status_code: varchar(255)
+    billing_provider_npi: bigint
+    ed_perform_id: bigint
+    ed_pophealth_id: bigint
+    inpatient_id: bigint
+    admission_date: date
+    discharge_date: date
+    ipt_admission_type: varchar(255)
+    ipt_admission_source: varchar(255)
+    drg_code: varchar(255)
+    hospice_from_date: date
+    pc_visit_id: bigint
+    filetype_mcare: varchar(255)
+    last_run: datetime
