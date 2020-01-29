@@ -23,10 +23,10 @@
 ## (3) Create date of birth indicator as a data.table ----
   # Want to keep the most recent date b/c assume it is a correction in Medicare registration ... discussed with Eli/Alastair
   dob <- unique(mbsf[, c("id_mcare", "dob", "year")])
-  setkey(dob, id_mcare, year) # sorts by these columns and indicates these are key columns
-  dob[!is.na(dob), maxyear := max(year), by=id_mcare] # identify the max year for each ID's date of birth
-  dob <- dob[year==maxyear,] # keep data for the most recent (max) year
-  dob <- dob[, c("maxyear", "year"):=NULL] # delete columns no longer of use   
+  setorder(dob, id_mcare, -year) # sorts by id_mcare with year is descending order
+  dob[, most.recent := seq(1:.N)==1, by = "id_mcare"] # identify the row for the most recent year
+  dob <- dob[most.recent == T] # keep only the most recent row
+  dob <- dob[, c("most.recent", "year"):=NULL] # delete columns no longer of use   
   if(nrow(dob) - length(unique(dob$id_mcare)) != 0){
     stop('non-unique id_mcare in dob')
   } # confirm all id_mcare are unique
@@ -34,10 +34,11 @@
 ## (4) Create King County ever indicator (moment by moment KC status will be in timevar table) ----
   kc.zips <- fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv") #github file with KC zipcodes
   kc <- copy(mbsf[, c("id_mcare", "zip_code", "year")])
-  kc[, geo_kc_ever := as.numeric(as.integer(zip_code) %in% kc.zips$zip)] #creating the new var kc (a 0/1 var) 
+  kc[, geo_kc_ever := as.numeric(suppressWarnings(as.integer(zip_code)) %in% kc.zips$zip)] #creating the new var kc (a 0/1 var) 
   kc <- unique(kc[, c("id_mcare", "geo_kc_ever", "year")])
-  kc <- kc[, lapply(.SD, sum, na.rm = TRUE), by = id_mcare, .SDcols = c("geo_kc_ever")] # sum/collapse/aggregate the kc variables by ID
+  kc[, geo_kc_ever := sum(geo_kc_ever, na.rm = T), by = id_mcare] # sum # of times zip was in KC
   kc[geo_kc_ever>1, geo_kc_ever := 1]# geo_kc_ever should be either 0 | 1, so if >1, replace with 1
+  kc <- unique(kc[, .(id_mcare, geo_kc_ever)])
   if(nrow(kc) - length(unique(kc$id_mcare)) != 0){
     stop('non-unique id_mcare in kc')
   }  # confirm all id_mcare are unique
@@ -45,8 +46,8 @@
 
 ## (5) Create sex indicator as a data.table ----
   sex <- unique(mbsf[, .(id_mcare, sex, year)])
+  setorder(sex, id_mcare, -year) # sort so most recent year is first for each id
   # identify the most recent gender for gender_recent
-      setorder(sex, id_mcare, -year) # sort so most recent year is first for each id
       sex.recent <- copy(sex)
       sex.recent[, ordering := 1:.N, by = id_mcare] # identify the most recent row for each id  
       sex.recent <- sex.recent[ordering == 1, ]
@@ -73,18 +74,18 @@
   #For race, use RTI_RACE_CD rather than BENE_RACE_CD because better allocation of Hipanic and Asian
   # Prep race 
       race <- unique(mbsf[, c("id_mcare", "race", "year")])
+      setorder(race, id_mcare, -year) # sort so most recent year is first for each id
       race <- race[!is.na(id_mcare)]
+      race[, race_asian:=NA] # RTI method cannot be used to identify Asian
+      race[, race_nhpi:=NA] # RTI method cannot be used to identify NHPI
       race[race==0, race_unk := 1] 
       race[race==1, race_white := 1] 
       race[race==2, race_black := 1] 
       race[race==3, race_other := 1] 
-      race[, race_asian:=0] # RTI method cannot be used to identify Asian
       race[race==4, race_asian_pi := 1] # RTI method groups asian and pacific islander, so there is no way to split them in our data 
-      race[race==5, race_latino := 1] 
+      race[race==5, race_latino := 1] # Latino is treated as race in RTI/Medicare data. No way to use as ethnicity.
       race[race==6, race_aian := 1] 
-      race[, race_nhpi:=0] # RTI method cannot be used to identify NHPI
   # identify the most recent race for race_recent
-      setorder(race, id_mcare, -year) # sort so most recent year is first for each id
       race.recent <- copy(race)
       race.recent[, ordering := 1:.N, by = id_mcare] # identify the most recent row for each id  
       race.recent <- race.recent[ordering == 1, ]
@@ -93,12 +94,12 @@
       race.recent[, race_recent := NA_character_] # for medicare cannot separate Latino from race
   # back to processing all the race data
     # sum/collapse/aggregate the race variables by ID
-      race.vars <- paste0("race_", c("white", "black", "other", "asian", "asian_pi", "aian", "nhpi", "latino", "unk"))
+      race.vars <- paste0("race_", c("asian", "nhpi", "unk", "white", "black", "other", "asian_pi", "latino", "aian"))
       race <- race[, lapply(.SD, sum, na.rm = TRUE), by = id_mcare, .SDcols = race.vars] 
     # if collapsed data sums >1, replace with 1
-      race[race_white>1, race_white := 1][race_black>1, race_black := 1][race_other>1, race_other := 1]
-      race[race_asian>1, race_asian := 1][race_asian_pi>1, race_asian_pi := 1]
-      race[race_aian>1, race_aian := 1][race_nhpi>1, race_nhpi := 1][race_latino>1, race_latino := 1][race_unk>1, race_unk := 1]  
+      for(var in race.vars){
+        race[get(var) > 1, paste(var) := 1] 
+      }
     # create race_ethnicity var
       race[race_unk==1, race_eth_me := "Unknown"]
       race[race_white==1, race_eth_me := "White"]
@@ -120,12 +121,15 @@
       if(nrow(race) - length(unique(race$id_mcare)) != 0){
         stop('non-unique id_mcare in race')
       } 
+    
+  # ensure that Asian and NHPI are NA (because cannot be assessed in Medicare data)
+    race[, c("race_nhpi", "race_asian") := NA]
 
 ## (7) Create date of death as a data.table ----
   death <- unique(mbsf[!is.na(death_dt) & death_dt != "1900-01-01", .(id_mcare, death_dt, year)]) # copy only death data
   setorder(death, id_mcare, -year) # order by year so that when drop duplicate id_mcare below, will keep the most recent death date, which will be assumed to be a correction
-  death[, dup := 1:.N, by = "id_mcare"] # identify duplicates
-  death <- death[dup == 1, ] # drop duplicates
+  death[, dup := 1:.N, by = "id_mcare"] # identify duplicates by id_mcare
+  death <- death[dup == 1, ] # keep only the most recent death date (presumably a correction)
   death <- death[, .(id_mcare, death_dt)]
   death[, death_dt := as.Date(death_dt)]
   if(nrow(death) != length(unique(death$id_mcare))){stop("Repeated id_mcare in death data ... FIX before moving on!")}
