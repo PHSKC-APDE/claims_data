@@ -11,4 +11,3 @@ vars:
     icdcm_version: tinyint
     icdcm_number: varhcar(255)
     last_run: datetime
-	
