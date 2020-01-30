@@ -9,6 +9,6 @@ vars:
     revenue_code: varchar(255)
     place_of_service_code: varchar(255)
     type_of_service: varchar(255)
-    file_type_mcare: varchar(255)
+    filetype_mcare: varchar(255)
     last_run: datetime
 
