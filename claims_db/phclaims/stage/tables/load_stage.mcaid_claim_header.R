@@ -223,7 +223,7 @@ DBI::dbExecute(db_claims, "create clustered index idx_cl_##line on ##line(claim_
 #### STEP 3: SELECT DX CODE INFORMATION NEEDED FOR EVENT FLAGS ####
 try(DBI::dbRemoveTable(db_claims, "##diag", temporary = T), silent = T)
 DBI::dbExecute(db_claims,
-           "select claim_header_id
+           "SELECT dx.claim_header_id
            --primary diagnosis code with version
            ,max(case when icdcm_number = '01' then icdcm_norm else null end) as primary_diagnosis
            ,max(case when icdcm_number = '01' then icdcm_version else null end) as icdcm_version
@@ -233,18 +233,18 @@ DBI::dbExecute(db_claims,
                      or (icdcm_norm between 'F03' and 'F0391' and icdcm_version = 10)
                      or (icdcm_norm between 'F10' and 'F69' and icdcm_version = 10)
                      or (icdcm_norm between 'F80' and 'F99' and icdcm_version = 10))
-                then 1 else 0 end) as 'dx1_mental'
+                then 1 else 0 end) AS 'dx1_mental'
            --mental health-related, any diagnosis (HEDIS 2017)
            ,max(case when ((icdcm_norm between '290' and '316' and icdcm_version = 9)
                            or (icdcm_norm between 'F03' and 'F0391' and icdcm_version = 10)
                            or (icdcm_norm between 'F10' and 'F69' and icdcm_version = 10)
                            or (icdcm_norm between 'F80' and 'F99' and icdcm_version = 10))
-                then 1 else 0 end) as 'dxany_mental'
+                then 1 else 0 end) AS 'dxany_mental'
            --newborn-related primary diagnosis (HEDIS 2017)
            ,max(case when icdcm_number = '01'
                 and ((icdcm_norm between 'V30' and 'V39' and icdcm_version = 9)
                      or (icdcm_norm between 'Z38' and 'Z389' and icdcm_version = 10))
-                then 1 else 0 end) as 'dx1_newborn'
+                then 1 else 0 end) AS 'dx1_newborn'
            --maternity-related primary diagnosis (HEDIS 2017)
            ,max(case when icdcm_number = '01'
                 and ((icdcm_norm between '630' and '679' and icdcm_version = 9)
@@ -255,7 +255,7 @@ DBI::dbExecute(db_claims,
                      or (icdcm_norm between 'Z0371' and 'Z0379' and icdcm_version = 10)
                      or (icdcm_norm between 'Z332' and 'Z3329' and icdcm_version = 10)
                      or (icdcm_norm between 'Z39' and 'Z3909' and icdcm_version = 10))
-                then 1 else 0 end) as 'dx1_maternal'
+                then 1 else 0 end) AS 'dx1_maternal'
            --maternity-related primary diagnosis (broader)
            ,max(case when icdcm_number = '01'
                 and ((icdcm_norm between '630' and '679' and icdcm_version = 9)
@@ -266,19 +266,21 @@ DBI::dbExecute(db_claims,
                      or (icdcm_norm between 'Z0371' and 'Z0379' and icdcm_version = 10)
                      or (icdcm_norm between 'Z30' and 'Z392' and icdcm_version = 10) /*broader*/
                        or (icdcm_norm between 'Z3A0' and 'Z3A49' and icdcm_version = 10)) /*broader*/
-                  then 1 else 0 end) as 'dx1_maternal_broad'
+                  then 1 else 0 end) AS 'dx1_maternal_broad'
            --SDOH-related (any diagnosis)
            ,max(case when icdcm_norm between 'Z55' and 'Z659' and icdcm_version = 10
-                then 1 else 0 end) as 'sdoh_any'
+                then 1 else 0 end) AS 'sdoh_any'
            --Primary care-related visits
-           ,max(CASE WHEN icdcm_number IN ('01', '02') AND icdcm_raw IN (
-             'Z00', 'Z000', 'Z0000', 'Z0001', 'Z001', 'Z0011', 'Z00110', 'Z00111', 'Z0012', 
-             'Z00121', 'Z00129', 'Z008', 'Z014', 'Z0141', 'Z01411', 'Z01419') AND 
-             icdcm_version = 10 
-             THEN 1 ELSE 0 END) AS 'pc_zcode' 
-           into ##diag
-           from [final].[mcaid_claim_icdcm_header]
-           group by claim_header_id")
+           ,MAX(CASE WHEN dx.icdcm_number IN ('01', '02') AND dx.icdcm_version = 10 AND 
+            pc_ref.pc_dxcode = 1 THEN 1 ELSE 0 END) AS 'pc_zcode' 
+           INTO ##diag FROM
+           (select claim_header_id, icdcm_number, icdcm_norm, icdcm_version
+           FROM [final].[mcaid_claim_icdcm_header]) AS dx
+           LEFT JOIN
+           (SELECT code, 1 AS pc_dxcode FROM ref.pc_visit_oregon 
+           WHERE code_system IN ('icd10cm')) pc_ref
+           ON dx.icdcm_norm = pc_ref.code
+           GROUP BY dx.claim_header_id")
 
 # Add index
 DBI::dbExecute(db_claims, "create clustered index idx_cl_##diag on ##diag(claim_header_id)")
@@ -287,30 +289,19 @@ DBI::dbExecute(db_claims, "create clustered index idx_cl_##diag on ##diag(claim_
 #### STEP 4: SELECT PROCEDURE CODE INFORMATION NEEDED FOR EVENT FLAGS ####
 try(DBI::dbRemoveTable(db_claims, "##procedure_code", temporary = T), silent = T)
 DBI::dbExecute(db_claims,
-           "select 
-           claim_header_id
+           "SELECT px.claim_header_id 
            --ed visits sub-flags
-           ,max(case when procedure_code like '9928[123458]' then 1 else 0 end) as 'ed_pcode1'
+           ,max(case when px.procedure_code like '9928[123458]' then 1 else 0 end) as 'ed_pcode1'
            -- Dropped to match HCA-ARM Definition
-           --,max(case when procedure_code between '10021' and '69990' then 1 else 0 end) as 'ed_pcode2'
-           -- Primary care visit
-           ,MAX(CASE WHEN procedure_code IN (
-             '59400', '59510', '59610', '59618', '90460', '90461', '90471', '90472', 
-             '90473', '90474', '96160', '96161', '96372', '98966', '98967', '98968', 
-             '98969', '99201', '99202', '99203', '99204', '99205', '99211', '99212', 
-             '99213', '99214', '99215', '99339', '99339', '99340', '99340', '99341', 
-             '99342', '99343', '99344', '99345', '99347', '99348', '99349', '99350', 
-             '99381', '99382', '99383', '99384', '99385', '99386', '99387', '99391', 
-             '99392', '99393', '99394', '99395', '99396', '99397', '99401', '99402', 
-             '99403', '99404', '99406', '99407', '99408', '99409', '99411', '99412', 
-             '99420', '99429', '9944', '99441', '99442', '99443', '99444', '99495', 
-             '99496', 'G0008', 'G0009', 'G0010', 'G0396', 'G0397', 'G0438', 'G0439', 
-             'G0442', 'G0443', 'G0444', 'G0502', 'G0503', 'G0504', 'G0505', 'G0506', 
-             'G0507', 'G0513', 'G0514') 
-           THEN 1 ELSE 0 END) AS 'pc_pcode' 
-           into ##procedure_code
-           from [final].[mcaid_claim_procedure]
-           group by claim_header_id")
+           --,max(case when px.procedure_code between '10021' and '69990' then 1 else 0 end) as 'ed_pcode2'
+           ,MAX(ISNULL(pc_ref.pc_pcode, 0)) AS pc_pcode 
+           INTO ##procedure_code FROM
+           (SELECT claim_header_id, procedure_code FROM [final].[mcaid_claim_procedure]) AS px
+           LEFT JOIN
+           (SELECT code, 1 AS pc_pcode FROM ref.pc_visit_oregon 
+           WHERE code_system IN ('cpt', 'hcpcs')) pc_ref
+           ON px.procedure_code = pc_ref.code
+           GROUP BY claim_header_id")
 
 # Add index
 DBI::dbExecute(db_claims, "create clustered index idx_cl_#procedure_code on ##procedure_code(claim_header_id)")
@@ -376,26 +367,17 @@ DBI::dbExecute(db_claims, "create clustered index idx_cl_##hedis_inpatient_defin
 try(DBI::dbRemoveTable(db_claims, "##pc_provider", temporary = T), silent = T)
 
 DBI::dbExecute(db_claims,
-  "SELECT a.billing_provider_npi, b.pc_provider 
+  "SELECT a.billing_provider_npi, ISNULL(b.pc_provider , 0) AS pc_provider
   INTO ##pc_provider
   FROM
-  (SELECT DISTINCT billing_provider_npi
-  FROM ##header) a
+  (SELECT DISTINCT billing_provider_npi FROM ##header) a
   LEFT JOIN
-  (SELECT npi, CASE WHEN primary_taxonomy IN (
-    '207Q00000X', '207R00000X', '208000000X', '363L00000X', '363LA2200X', '363LF0000X', 
-    '363LP0200X', '363LP2300X', '363A00000X', '363AM0700X', '207RG0300X', '261QF0400X', 
-    '261QP2300X', '261QR1300X', '175F00000X', '2084P0800X', '2084P0804X', '207V00000X', 
-    '207VG0400X', '208D00000X', '363LP0808X', '363LW0102X', '363LX0001X', '175L00000X', 
-    '2083P0500X', '364S00000X', '163W00000X') OR
-    secondary_taxonomy IN (
-    '207Q00000X', '207R00000X', '208000000X', '363L00000X', '363LA2200X', '363LF0000X', 
-    '363LP0200X', '363LP2300X', '363A00000X', '363AM0700X', '207RG0300X', '261QF0400X', 
-    '261QP2300X', '261QR1300X', '175F00000X', '2084P0800X', '2084P0804X', '207V00000X', 
-    '207VG0400X', '208D00000X', '363LP0808X', '363LW0102X', '363LX0001X', '175L00000X', 
-    '2083P0500X', '364S00000X', '163W00000X')
-    THEN 1 ELSE 0 END AS 'pc_provider'
-  FROM ref.kc_provider_master) b
+  (SELECT ref_provider.npi, 1 AS pc_provider
+  FROM
+  (SELECT npi, primary_taxonomy, secondary_taxonomy FROM ref.kc_provider_master) ref_provider
+  INNER JOIN
+  (SELECT code FROM ref.pc_visit_oregon WHERE code_system = 'provider_taxonomy') ref_pc
+  ON ref_provider.primary_taxonomy = ref_pc.code OR ref_provider.secondary_taxonomy = ref_pc.code) b
   ON a.billing_provider_npi = b.npi")
 
 
