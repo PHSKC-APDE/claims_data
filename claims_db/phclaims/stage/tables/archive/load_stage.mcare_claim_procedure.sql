@@ -134,7 +134,54 @@ from (
 	and c.id_mcare is not null
 
 	--hha
-	--placeholder once we receive HHA revenue center tables
+	union
+	select
+	top 100
+	rtrim(a.id_mcare) as id_mcare,
+	rtrim(a.claim_header_id) as claim_header_id,
+	a.first_service_date,
+	a.last_service_date,
+	'hha' as filetype_mcare,
+	b.procedure_code_hcpcs as pchcpcs,
+	b.procedure_code_hcps_modifier_1,
+	b.procedure_code_hcps_modifier_2,
+	b.procedure_code_hcps_modifier_3,
+	procedure_code_hcps_modifier_4 = null,
+	pcbetos = null,
+	pc01 = null,
+	pc02 = null,
+	pc03 = null,
+	pc04 = null,
+	pc05 = null,
+	pc06 = null,
+	pc07 = null,
+	pc08 = null,
+	pc09 = null,
+	pc10 = null,
+	pc11 = null,
+	pc12 = null,
+	pc13 = null,
+	pc14 = null,
+	pc15 = null,
+	pc16 = null,
+	pc17 = null,
+	pc18 = null,
+	pc19 = null,
+	pc20 = null,
+	pc21 = null,
+	pc22 = null,
+	pc23 = null,
+	pc24 = null,
+	pc25 = null
+	from PHClaims.stage.mcare_hha_base_claims as a
+	left join PHClaims.stage.mcare_hha_revenue_center as b
+	on a.claim_header_id = b.claim_header_id
+	left join PHClaims.final.mcare_elig_demo as c
+	on a.id_mcare = c.id_mcare
+	--exclude denined claims using carrier/dme claim method
+	where (a.denial_code_facility = '' or a.denial_code_facility is null)
+	--exclude claims among people who have no eligibility data
+	and c.id_mcare is not null
 
 	--hospice
 	union
