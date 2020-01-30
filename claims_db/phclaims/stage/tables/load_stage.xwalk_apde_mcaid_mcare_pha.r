@@ -468,9 +468,9 @@
           select(-(enddate)))
         
         # harmonize gender with Mcare/Mcaid
-        pha.dt[gender == 2, gender_me := 1] # Male ==1 in Mcare/Mcaid
-        pha.dt[gender == 1, gender_me := 2] # Female ==2 in Mcare/Mcaid
-        pha.dt[, gender:=NULL]
+            pha.dt[gender == 2, gender_me := 1] # Male ==1 in Mcare/Mcaid
+            pha.dt[gender == 1, gender_me := 2] # Female ==2 in Mcare/Mcaid
+            pha.dt[, gender:=NULL]
         
         # Properly format SSN
           pha.dt[ssn %in% c("111111111", "111223333"), ssn := NA] # these are repeated non-sense SSN
@@ -480,17 +480,23 @@
           pha.dt[, ssn := formatC(as.integer(ssn), width = 9, flag = "0", format = "d")] # add preceding zeros which are often lost in data manipulation
           pha.dt[grep("NA", ssn), ssn := NA]
           
+        # Tidy names  
+          pha.dt<- pha.dt[, c("name_srnm", "name_gvn", "name_mdl") := lapply(.SD, function(x){gsub("^\\s+|\\s+$", "", x)}), .SDcols = c("name_srnm", "name_gvn", "name_mdl")] # trim white space
+          for(i in c("name_srnm", "name_gvn", "name_mdl")){
+            pha.dt[get(i) == "", paste0(i) := NA]  
+          }
+          
         # convert PID to character so same type as id_mcare/id_mcaid
-        pha.dt[, pid := as.character(pid)] 
+          pha.dt[, pid := as.character(pid)] 
         
   ## (3) Run cleaning functions on PHA data ----
-        pha.dt <- prep.names(pha.dt)
-        pha.dt <- prep.names(pha.dt) # run second time because some people have suffixes like "blah JR IV", so first removes IV and second removes JR
-        pha.dt <- prep.dob(pha.dt)
-        # do not run prep.sex because sex was coded differently in PHA
+          pha.dt <- prep.names(pha.dt)
+          pha.dt <- prep.names(pha.dt) # run second time because some people have suffixes like "blah JR IV", so first removes IV and second removes JR
+          pha.dt <- prep.dob(pha.dt)
+          # do not run prep.sex because sex was coded differently in PHA
         
         # without ssn, dob, and last name, there is no hope of matching
-        pha.dt <- pha.dt[!(is.na(ssn) & is.na(dob.year) & is.na(name_srnm) ), ] 
+          pha.dt <- pha.dt[!(is.na(ssn) & is.na(dob.year) & is.na(name_srnm) ), ] 
         
   ## (4) Check for duplicate SSN ----
         pha.dt[!is.na(ssn), dup:=.N, by = "ssn"]
