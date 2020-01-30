@@ -19,10 +19,10 @@ rtrim(a.claim_header_id) as claim_header_id,
 a.claim_line_id,
 b.first_service_date,
 b.last_service_date,
-'carrier' as filetype_mcare,
 revenue_code = null,
 a.place_of_service_code,
 a.type_of_service,
+'carrier' as filetype_mcare,
 getdate() as last_run
 from PHClaims.stage.mcare_bcarrier_line as a
 left join PHClaims.stage.mcare_bcarrier_claims as b
@@ -43,10 +43,10 @@ rtrim(a.claim_header_id) as claim_header_id,
 a.claim_line_id,
 b.first_service_date,
 b.last_service_date,
-'dme' as filetype_mcare,
 revenue_code = null,
 a.place_of_service_code,
 a.type_of_service,
+'dme' as filetype_mcare,
 getdate() as last_run
 from PHClaims.stage.mcare_dme_line as a
 left join PHClaims.stage.mcare_dme_claims as b
@@ -67,10 +67,10 @@ rtrim(a.claim_header_id) as claim_header_id,
 a.claim_line_id,
 b.first_service_date,
 b.last_service_date,
-'hha' as filetype_mcare,
 a.revenue_code,
 place_of_service_code = null,
 type_of_service = null,
+'hha' as filetype_mcare,
 getdate() as last_run
 from PHClaims.stage.mcare_hha_revenue_center as a
 left join PHClaims.stage.mcare_hha_base_claims as b
@@ -91,10 +91,10 @@ rtrim(a.claim_header_id) as claim_header_id,
 a.claim_line_id,
 b.first_service_date,
 b.last_service_date,
-'hospice' as filetype_mcare,
 a.revenue_code,
 place_of_service_code = null,
 type_of_service = null,
+'hospice' as filetype_mcare,
 getdate() as last_run
 from PHClaims.stage.mcare_hospice_revenue_center as a
 left join PHClaims.stage.mcare_hospice_base_claims as b
@@ -115,10 +115,10 @@ rtrim(a.claim_header_id) as claim_header_id,
 a.claim_line_id,
 b.first_service_date,
 b.last_service_date,
-'inpatient' as filetype_mcare,
 a.revenue_code,
 place_of_service_code = null,
 type_of_service = null,
+'inpatient' as filetype_mcare,
 getdate() as last_run
 from PHClaims.stage.mcare_inpatient_revenue_center as a
 left join PHClaims.stage.mcare_inpatient_base_claims as b
@@ -139,10 +139,10 @@ rtrim(a.claim_header_id) as claim_header_id,
 a.claim_line_id,
 b.first_service_date,
 b.last_service_date,
-'outpatient' as filetype_mcare,
 a.revenue_code,
 place_of_service_code = null,
 type_of_service = null,
+'outpatient' as filetype_mcare,
 getdate() as last_run
 from PHClaims.stage.mcare_outpatient_revenue_center as a
 left join PHClaims.stage.mcare_outpatient_base_claims as b
@@ -163,10 +163,10 @@ rtrim(a.claim_header_id) as claim_header_id,
 a.claim_line_id,
 b.first_service_date,
 b.last_service_date,
-'snf' as filetype_mcare,
 a.revenue_code,
 place_of_service_code = null,
 type_of_service = null,
+'snf' as filetype_mcare,
 getdate() as last_run
 from PHClaims.stage.mcare_snf_revenue_center as a
 left join PHClaims.stage.mcare_snf_base_claims as b
