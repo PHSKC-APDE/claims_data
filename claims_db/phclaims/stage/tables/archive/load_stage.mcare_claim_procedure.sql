@@ -24,10 +24,11 @@ select distinct
 	cast(substring(procedure_code_number, 3,10) as varchar(200)) as 'procedure_code_number',
 
 	--modifier codes
-    procedure_code_hcps_modifier_1 as modifier_1,
-	procedure_code_hcps_modifier_2 as modifier_2,
-	procedure_code_hcps_modifier_3 as modifier_3,
-	procedure_code_hcps_modifier_4 as modifier_4,
+	--set missing/blank/null equal to null
+    case when (procedure_code_hcps_modifier_1 is null or procedure_code_hcps_modifier_1 = ' ') then null else procedure_code_hcps_modifier_1 end as modifier_1,
+    case when (procedure_code_hcps_modifier_2 is null or procedure_code_hcps_modifier_2 = ' ') then null else procedure_code_hcps_modifier_2 end as modifier_2,
+    case when (procedure_code_hcps_modifier_3 is null or procedure_code_hcps_modifier_3 = ' ') then null else procedure_code_hcps_modifier_3 end as modifier_3,
+    case when (procedure_code_hcps_modifier_4 is null or procedure_code_hcps_modifier_4 = ' ') then null else procedure_code_hcps_modifier_4 end as modifier_4,
 
 	filetype_mcare,
 	getdate() as last_run
