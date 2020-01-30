@@ -32,10 +32,10 @@ load_stage.mcare_claim_line_f <- function() {
     a.claim_line_id,
     b.first_service_date,
     b.last_service_date,
-    'carrier' as filetype_mcare,
     revenue_code = null,
     a.place_of_service_code,
     a.type_of_service,
+    'carrier' as filetype_mcare,
     getdate() as last_run
     from PHClaims.stage.mcare_bcarrier_line as a
     left join PHClaims.stage.mcare_bcarrier_claims as b
@@ -56,10 +56,10 @@ load_stage.mcare_claim_line_f <- function() {
     a.claim_line_id,
     b.first_service_date,
     b.last_service_date,
-    'dme' as filetype_mcare,
     revenue_code = null,
     a.place_of_service_code,
     a.type_of_service,
+    'dme' as filetype_mcare,
     getdate() as last_run
     from PHClaims.stage.mcare_dme_line as a
     left join PHClaims.stage.mcare_dme_claims as b
@@ -80,10 +80,10 @@ load_stage.mcare_claim_line_f <- function() {
     a.claim_line_id,
     b.first_service_date,
     b.last_service_date,
-    'hha' as filetype_mcare,
     a.revenue_code,
     place_of_service_code = null,
     type_of_service = null,
+    'hha' as filetype_mcare,
     getdate() as last_run
     from PHClaims.stage.mcare_hha_revenue_center as a
     left join PHClaims.stage.mcare_hha_base_claims as b
@@ -104,10 +104,10 @@ load_stage.mcare_claim_line_f <- function() {
     a.claim_line_id,
     b.first_service_date,
     b.last_service_date,
-    'hospice' as filetype_mcare,
     a.revenue_code,
     place_of_service_code = null,
     type_of_service = null,
+    'hospice' as filetype_mcare,
     getdate() as last_run
     from PHClaims.stage.mcare_hospice_revenue_center as a
     left join PHClaims.stage.mcare_hospice_base_claims as b
@@ -128,10 +128,10 @@ load_stage.mcare_claim_line_f <- function() {
     a.claim_line_id,
     b.first_service_date,
     b.last_service_date,
-    'inpatient' as filetype_mcare,
     a.revenue_code,
     place_of_service_code = null,
     type_of_service = null,
+    'inpatient' as filetype_mcare,
     getdate() as last_run
     from PHClaims.stage.mcare_inpatient_revenue_center as a
     left join PHClaims.stage.mcare_inpatient_base_claims as b
@@ -152,10 +152,10 @@ load_stage.mcare_claim_line_f <- function() {
     a.claim_line_id,
     b.first_service_date,
     b.last_service_date,
-    'outpatient' as filetype_mcare,
     a.revenue_code,
     place_of_service_code = null,
     type_of_service = null,
+    'outpatient' as filetype_mcare,
     getdate() as last_run
     from PHClaims.stage.mcare_outpatient_revenue_center as a
     left join PHClaims.stage.mcare_outpatient_base_claims as b
@@ -176,10 +176,10 @@ load_stage.mcare_claim_line_f <- function() {
     a.claim_line_id,
     b.first_service_date,
     b.last_service_date,
-    'snf' as filetype_mcare,
     a.revenue_code,
     place_of_service_code = null,
     type_of_service = null,
+    'snf' as filetype_mcare,
     getdate() as last_run
     from PHClaims.stage.mcare_snf_revenue_center as a
     left join PHClaims.stage.mcare_snf_base_claims as b
@@ -198,20 +198,20 @@ qa_stage.mcare_claim_line_qa_f <- function() {
   
   #confirm that claim line counts match for a specific revenue code
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
-  "select 'stage.mcare_claim_line' as 'table', 'row count, expect match with inpatient table' as qa_type,
+  "select 'stage.mcare_claim_line' as 'table', 'row count revenue code, expect match with outpatient table' as qa_type,
   count(*) as qa
   from stage.mcare_claim_line
-  where filetype_mcare = 'inpatient' and revenue_code = '0450';",
+  where filetype_mcare = 'outpatient' and revenue_code = '0450';",
   .con = db_claims))
   
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
-  "select 'stage.mcare_inpatient_revenue_center' as 'table', 'row count, expect match with claim_line table' as qa_type,
+  "select 'stage.mcare_outpatient_revenue_center' as 'table', 'row count revenue code, expect match with claim_line table' as qa_type,
   count(*) as qa
   from (
     select distinct a.id_mcare, a.claim_header_id, a.claim_line_id, b.first_service_date,
     b.last_service_date, a.revenue_code
-    from stage.mcare_inpatient_revenue_center as a
-    left join stage.mcare_inpatient_base_claims as b
+    from stage.mcare_outpatient_revenue_center as a
+    left join stage.mcare_outpatient_base_claims as b
     on a.claim_header_id = b.claim_header_id
     left join PHClaims.final.mcare_elig_demo as c
     on a.id_mcare = c.id_mcare
