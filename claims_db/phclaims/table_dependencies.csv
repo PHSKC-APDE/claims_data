@@ -100,6 +100,7 @@ stage,xwalk_apde_mcaid_mcare_pha,load_raw,mcare_xwalk_bene_ssn,,,,https://github
 stage,xwalk_apde_mcaid_mcare_pha,load_raw,mcare_xwalk_edb_user_view,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
 stage,xwalk_apde_mcaid_mcare_pha,stage,mcaid_elig,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
 stage,xwalk_apde_mcaid_mcare_pha,stage,pha,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
+stage,xwalk_apde_mcaid_mcare_pha,stage,mcare_mbsf,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
 stage,perf_elig_member_month,stage,mcaid_elig,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 stage,perf_enroll_denom,final,mcaid_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 stage,perf_enroll_denom,ref,perf_year_month,,,,[stage].[fn_perf_enroll_member_month]
