@@ -59,7 +59,28 @@ where b.denial_code in ('1','2','3','4','5','6','7','8','9')
 and c.id_mcare is not null
 
 --hha
---placeholder once we receive HHA revenue center tables
+union
+select
+top 100
+rtrim(a.id_mcare) as id_mcare,
+rtrim(a.claim_header_id) as claim_header_id,
+a.claim_line_id,
+b.first_service_date,
+b.last_service_date,
+'hha' as filetype_mcare,
+a.revenue_code,
+place_of_service_code = null,
+type_of_service = null,
+getdate() as last_run
+from PHClaims.stage.mcare_hha_revenue_center as a
+left join PHClaims.stage.mcare_hha_base_claims as b
+on a.claim_header_id = b.claim_header_id
+left join PHClaims.final.mcare_elig_demo as c
+on a.id_mcare = c.id_mcare
+--exclude denined claims using carrier/dme claim method
+where (b.denial_code_facility = '' or b.denial_code_facility is null)
+--exclude claims among people who have eligibility data
+and c.id_mcare is not null
 
 --hospice
 union

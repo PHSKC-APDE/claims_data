@@ -172,7 +172,28 @@ dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_hha_base_cla
 #### Table 6: mcare_hha_revenue_center ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-### Place holder for when files are received from OFM ###
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_hha_revenue_center.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_hha_revenue_center.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_stage.mcare_hha_revenue_center_f())
+
+### D) Table-level QA
+system.time(mcare_hha_revenue_center_qa <- qa_stage.mcare_hha_revenue_center_qa_f())
+rm(config_url)
+#rm(mcare_hha_revenue_center_qa)
+
+### E) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", table_name = "mcare_hha_revenue_center")
+
+### F) Remove "load" suffix from new stage table
+dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_hha_revenue_center_load', 'mcare_hha_revenue_center';"))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
