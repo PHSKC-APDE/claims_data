@@ -1,14 +1,15 @@
 schema: stage
-table: mcare_claim_line
+table: mcare_claim_provider
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
     claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
-    claim_line_id: varchar(255)
     first_service_date: date
     last_service_date: date
-    revenue_code: varchar(255)
-    place_of_service_code: varchar(255)
-    type_of_service: varchar(255)
+    provider_npi: bigint
+    provider_type: varchar(255)
+    provider_type_nch: varchar(255)
+    provider_tin: varchar(255)
+    provider_zip: varchar(255)
+    provider_specialty: varchar(255)
     filetype_mcare: varchar(255)
     last_run: datetime
-
