@@ -115,7 +115,7 @@
         
         # save the pairs above the threshhold
         mod.pairs <- mod.pairs[Weight >= cutpoint, ]
-        mod.mcaid <- mod.pairs[grep("WA", id_mcare) , ] # all ids that start with a "WA" are Mcaid
+        mod.mcaid <- mod.pairs[grep("WA$", id_mcare) , ] # all ids that end with a "WA" are Mcaid
         mod.mcare <- mod.pairs[!(id_mcare %in% mod.mcaid$id_mcare)] # data that is not mcaid must be mcare
         
         # create linkage file when ssn is blocking field
@@ -232,33 +232,23 @@
           mcaid.names <- prep.names(mcaid.names) # run second time because some people have suffixes like "blah JR IV", so first removes IV and second removes JR
           
         # sort data
-          setkey(mcaid.names, id_mcaid, date)
+          setkey(mcaid.names, id_mcaid, date) # sort from oldest to newest 
           
         # Split those with consistent data from the others
           mcaid.names <- mcaid.names[, rank := 1:.N, by = c("id_mcaid", "name_gvn", "name_mdl", "name_srnm")] # rank for each set of unique data 
           mcaid.names <- mcaid.names[rank == 1][, c("rank") := NULL] # keep only most recent set of unique data rows
           mcaid.names[, dup := .N, by = id_mcaid]  # identify duplicates by id
           name.ok <- mcaid.names[dup == 1][, c("dup", "date") := NULL]
-          
+
+        # For duplicate IDs, fill in missing middle initial when possible & keep most recent name
           name.dups <- mcaid.names[dup > 1][, dup := NULL]
-          
-        # For duplicate IDs, fill in missing middle initial when possible (using other obs for same id)
-          mi.ok <- name.dups[!is.na(name_mdl)] # among those with multiple observations, the rows with a Middle initial
-          mi.ok.copy <- copy(mi.ok) # because want a copy without a date for merging below
-          mi.ok.copy <- mi.ok.copy[, c("date") := NULL] 
-          
-          mi.na <- name.dups[is.na(name_mdl)][, c("name_mdl") := NULL] # among those with multiple obs, rowss without a middle initial
-          mi.na <- merge(mi.na, mi.ok.copy, by=c("id_mcaid", "name_gvn", "name_srnm"), all.x = TRUE, all.y = FALSE)
-          
-          name.dups <- rbind(mi.ok, mi.na)
-          setkey(name.dups, id_mcaid, date) # sort each id by date
-          name.dups[, rank := 1:.N, by = c("id_mcaid")] # note the most recent with "1"
-          name.dups <- name.dups[rank == 1][, c("rank", "date") := NULL] # keep most recent
-          
+          name.dups[, name_mdl  := name_mdl[1], by= .( id_mcaid , cumsum(!is.na(name_mdl)) ) ] # fill middle initial forward / downward
+          name.dups <- name.dups[name.dups[, .I[which.max(date)], by = 'id_mcaid'][,V1], .(id_mcaid, name_gvn, name_mdl, name_srnm)] # keep the row for the max year
+
         # Append those with unique obs and those with deduplicated obs
           mcaid.names <- rbind(name.ok, name.dups)
           setkey(mcaid.names, id_mcaid)
-          rm(mi.na, mi.ok, mi.ok.copy, name.dups, name.ok)
+          rm(name.dups, name.ok)
           
         # ensure there is only one row per id
           if(nrow(mcaid.names) - length(unique(mcaid.names$id_mcaid)) != 0){
@@ -274,15 +264,13 @@
       mcaid.dt <- mcaid.dt[!(is.na(ssn) & is.na(dob) & is.na(name_srnm) ), ] 
       
     # fill in missing SSN when dob, sex, and complete name are an exact match
-      ssn.ok <- mcaid.dt[!is.na(ssn), ]
-      ssn.na <- mcaid.dt[is.na(ssn), ]
-      ssn.na[, c("ssn") := NULL]
-      ssn.na <- merge(ssn.na, ssn.ok, by = c("dob", "gender_me", "gender_female", "gender_male", "name_mdl", "name_srnm", "name_gvn"), all.x = TRUE, all.y = FALSE)
-      ssn.na[, id_mcaid.y := NULL]
-      setnames(ssn.na, "id_mcaid.x", "id_mcaid")
-      mcaid.dt <- rbind(ssn.ok, ssn.na)
-      rm(ssn.ok, ssn.na)
-    
+      mcaid.dt[, group := .GRP, by = c("dob", "gender_me", "gender_female", "gender_male", "name_mdl", "name_srnm", "name_gvn")] 
+      setorder(mcaid.dt, group, id_mcaid)
+      mcaid.dt[, ssn  := ssn[1], by= .(group , cumsum(!is.na(ssn)) ) ] # fill ssn forward / downward
+      setorder(mcaid.dt, group, -id_mcaid) # reverse order to fill SSN the other way
+      mcaid.dt[, ssn  := ssn[1], by= .(group , cumsum(!is.na(ssn)) ) ] # fill ssn forward / downward
+      mcaid.dt[, group := NULL]
+
     # deduplicate when all information is exactly the same except for id_mcaid
       setorder(mcaid.dt, -id_mcaid) # sort with largest ID at top
       mcaid.dt <- mcaid.dt[, dup := 1:.N, by = c("dob", "gender_me", "gender_female", "gender_male", "name_mdl", "name_srnm", "name_gvn", "ssn")]
@@ -295,16 +283,6 @@
       mcaid.dt[!is.na(ssn), dup := 1:.N, by="ssn"] # identify when when there are duplicate ssn (and ssn is not missing)
       mcaid.dt <- mcaid.dt[is.na(dup) | dup == 1, ][, dup := NULL] # drop when N > 1, this will keep the max mcaid id only, which is what we agreed to with Eli and Alastair
       
-    # deduplicate when all data are the same except for the meciaid ID & SSN (kept in case we want to do this in future, for now, think they are distinct people)
-      # mcaid.dt[!(is.na(dob) & is.na(gender_me)), dup := .N, by = c("dob", "gender_me", "name_mdl", "name_srnm", "name_gvn")] # if missing dob and gender, no assurance that same person
-      # dup.ok <- mcaid.dt[dup == 1 | is.na(dup)][, dup := NULL] # not duplicated
-      # dup <- mcaid.dt[dup > 1][, dup := NULL] # has duplicates
-      # setorder(dup, dob, name_gvn, name_mdl, name_srnm, -id_mcaid) # sort duplicated data, with largest (newest) id_mcaid first for for each person
-      # dup[, rank := 1:.N, by = c("dob", "gender_me", "name_mdl", "name_srnm", "name_gvn")]
-      # dup <- dup[rank==1, ][, rank := NULL] # keep only the most recent for each set of duplicates
-      # mcaid.dt <- rbind(dup.ok, dup) # combine unduplicated and de-duplicated data
-      # rm(dup.ok, dup)
-
     # Prep sex for linkage
       mcaid.dt <- prep.sex(mcaid.dt)   
       
@@ -361,12 +339,11 @@
         
         mcare.elig <- setDT(odbc::dbGetQuery(db_claims51, "SELECT DISTINCT id_mcare, dob, gender_me, gender_female, gender_male FROM final.mcare_elig_demo"))
         
-        mcare.names <- setDT(odbc::dbGetQuery(db_claims51, "SELECT DISTINCT bene_id, bene_srnm_name, bene_gvn_name, bene_mdl_name FROM load_raw.mcare_xwalk_edb_user_view"))
-        setnames(mcare.names, names(mcare.names), c("id_mcare", "name_srnm", "name_gvn", "name_mdl"))    
-        
-        mcare.ssn <- setDT(odbc::dbGetQuery(db_claims51, "SELECT DISTINCT * FROM load_raw.mcare_xwalk_bene_ssn"))
-        setnames(mcare.ssn, names(mcare.ssn), c("id_mcare", "ssn"))
-        
+        mcare.names <- setDT(odbc::dbGetQuery(db_claims51, "SELECT DISTINCT bene_id AS id_mcare, bene_srnm_name AS name_srnm, 
+                                              bene_gvn_name AS name_gvn, bene_mdl_name AS name_mdl FROM stage.mcare_xwalk_edb_user_view"))
+
+        mcare.ssn <- setDT(odbc::dbGetQuery(db_claims51, "SELECT DISTINCT bene_id AS id_mcare, ssn FROM stage.mcare_xwalk_bene_ssn"))
+
   ## (2) Tidy individual data files before merging ----
         # Keep only unique rows of identifiers within a file
         if(nrow(mcare.elig) - length(unique(mcare.elig$id_mcare)) != 0){
@@ -378,11 +355,6 @@
           stop('non-unique id_mcare in mcare.names')
         } # confirm all ids are unique in names data
         
-        mcare.ssn <- unique(mcare.ssn)
-        mcare.ssn[, dup.id := .N, by = "id_mcare"] # identify duplicate ID
-        mcare.ssn <- mcare.ssn[dup.id == 1, ][, c("dup.id"):=NULL] # No way to know which duplicate id pairing is correct, so drop them
-        mcare.ssn[, dup.ssn := .N, by = "ssn"] # identify duplicate SSN
-        mcare.ssn <- mcare.ssn[dup.ssn == 1, ][, c("dup.ssn"):=NULL] # No way to know which duplicate is correct, so drop them
         if(nrow(mcare.ssn) - length(unique(mcare.ssn$id_mcare)) >0){
           stop('non-unique id_mcare in mcare.ssn')
         } # confirm all id and ssn are unique
@@ -414,25 +386,23 @@
         # identify the duplicates
         mcare.dt[, dup := .N, by = c("name_srnm", "name_gvn", "name_mdl", "ssn", "dob.year", "dob.month", "dob.day", "gender_me")]
         mcare.dups <- mcare.dt[dup != 1 & !is.na(name_srnm), ]
+        mcare.nondup <- mcare.dt[!id_mcare %in% mcare.dups$id_mcare ]
         
         # choose the one to keep by the most recent enrollment year for each potential duplicate (from MBSF)
-        mbsf <- setDT(odbc::dbGetQuery(db_claims51, "SELECT DISTINCT [bene_id], [bene_enrollmt_ref_yr] FROM [PHClaims].[stage].[mcare_mbsf]"))
-        setnames(mbsf, c("bene_id", "bene_enrollmt_ref_yr"), c("id_mcare", "year"))
-        mbsf <- mbsf[id_mcare %in% mcare.dups$id_mcare]
-        mbsf <- unique(mbsf[, max(year), by = "id_mcare"])
+        mbsf <- setDT(odbc::dbGetQuery(db_claims51, "SELECT DISTINCT [bene_id] AS id_mcare, [bene_enrollmt_ref_yr] AS year FROM [PHClaims].[stage].[mcare_mbsf]"))
+        mbsf <- mbsf[id_mcare %in% mcare.dups$id_mcare] # limit to ids that identify a duplicate in mcare.dups
+        mbsf <- unique(mbsf[, .(maxyear = max(year)), by = "id_mcare"])
         
         # merge MBSF max date back onto potential duplicates
         mcare.dups <- merge(mcare.dups, mbsf, by = "id_mcare")
-        setnames(mcare.dups, "V1", "maxyear")
+
+        # keep the most recent year for each set of duplicates
+        mcare.dups[, group := .GRP, by = .(ssn, name_srnm, name_gvn, name_mdl, dob.year, dob.month, dob.day, gender_me)]
+        mcare.dups <- mcare.dups[mcare.dups[, .I[which.max(maxyear)], by = 'group'][,V1], ] 
         
-        # sort by identifiers, with most recent year first
-        setorder(mcare.dups, name_srnm, name_gvn, name_mdl, ssn, dob.year, dob.month, dob.day, gender_me, -maxyear)
-        
-        # identify and drop the older ids from the main data
-        mcare.dups[, dup := 1:.N, by = c("name_srnm", "name_gvn", "name_mdl", "ssn", "dob.year", "dob.month", "dob.day", "gender_me")]
-        mcare.dt <- mcare.dt[!id_mcare %in% mcare.dups[dup!=1]$id_mcare]
-        mcare.dt[, dup := NULL]
-        rm(mcare.dups, mbsf)
+        # combine non-duplicate and deduplicated data
+        mcare.dt <- rbind(mcare.nondup, mcare.dups, fill = T)[, c("dup", "maxyear", "group") := NULL]
+        rm(mcare.dups, mcare.nondup, mbsf)
         
   ## (6) Load Medicare id table to SQL ----
         # create last_run timestamp
@@ -502,9 +472,14 @@
         pha.dt[gender == 1, gender_me := 2] # Female ==2 in Mcare/Mcaid
         pha.dt[, gender:=NULL]
         
-        # SSN 111-11-1111 appears to be a filler SSN (i.e., it is not real and applies to many people)
-        pha.dt[ssn == "111111111", ssn := NA]
-        
+        # Properly format SSN
+          pha.dt[ssn %in% c("111111111", "111223333"), ssn := NA] # these are repeated non-sense SSN
+          pha.dt[grep("[A-Z]", ssn), ssn := NA] # if a SSN contains a letter, it isn't a true SSN!
+          pha.dt[grep("[a-z]", ssn), ssn := NA] # if a SSN contains a letter, it isn't a true SSN!
+          pha.dt[, ssn := gsub("^\\s+|\\s+$", "", ssn)] # delete all starting and ending white spaces
+          pha.dt[, ssn := formatC(as.integer(ssn), width = 9, flag = "0", format = "d")] # add preceding zeros which are often lost in data manipulation
+          pha.dt[grep("NA", ssn), ssn := NA]
+          
         # convert PID to character so same type as id_mcare/id_mcaid
         pha.dt[, pid := as.character(pid)] 
         
@@ -1121,30 +1096,33 @@
                                 strcmp = c("name_mdl", "name_gvn"), # compare similarity between two
                                 exclude = c("ssn") )
         
-        # get summary of potential pairs
-        summary(match7) 
+        if(exists("match7")){
+          # get summary of potential pairs
+          summary(match7) 
+          
+          # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
+          match7.weights <- epiWeights(match7) 
+          summary(match7.weights)
+          
+          # get paired data, with weights, as a dataset
+          match7.pairs <- setDT(getPairs(match7.weights, single.rows = TRUE))
+          match7.pairs.long <- setDT(getPairs(match7.weights, single.rows = FALSE))
+  
+          # classify pairs using a threshhold
+          summary(epiClassify(match7.weights, threshold.upper = 0.62)) # based on visual inspection of curve and dataset with weights     
+          
+          # get linked pairs
+          match7.match <- get.linked.pairs.mcare.pha(match7.pairs.long, 0.62)            
+          
+          # drop the linked data from the two parent datasets so we don't try to link them again
+          pha <- pha[!(pid %in% match7.match$pid)]
+          mcare <- mcare[!(id_mcare %in% match7.match$id_mcare)]            
+          
+          # clean objects in memory
+          rm(match7, match7.weights, match7.pairs, match7.pairs.long, pha.mi.ssn) # drop tables only needed to form the linkage        
+        } # close condition for exists("match7")
         
-        # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
-        match7.weights <- epiWeights(match7) 
-        summary(match7.weights)
         
-        # get paired data, with weights, as a dataset
-        match7.pairs <- setDT(getPairs(match7.weights, single.rows = TRUE))
-        match7.pairs.long <- setDT(getPairs(match7.weights, single.rows = FALSE))
-
-        # classify pairs using a threshhold
-        summary(epiClassify(match7.weights, threshold.upper = 0.62)) # based on visual inspection of curve and dataset with weights     
-        
-        # get linked pairs
-        match7.match <- get.linked.pairs.mcare.pha(match7.pairs.long, 0.62)            
-        
-        # drop the linked data from the two parent datasets so we don't try to link them again
-        pha <- pha[!(pid %in% match7.match$pid)]
-        mcare <- mcare[!(id_mcare %in% match7.match$id_mcare)]            
-        
-        # clean objects in memory
-        rm(match7, match7.weights, match7.pairs, match7.pairs.long, pha.mi.ssn) # drop tables only needed to form the linkage        
-      
       # Match  8 - Probabilistic: Block on DOB + last name + gender_me, string compare for first name, exclude SSN ... when Mcare missing SSN ----
         mcare.mi.ssn <- mcare[is.na(ssn)] # try linkage with pha data missing SSN
         
@@ -1153,36 +1131,38 @@
                                 strcmp = c("name_mdl", "name_gvn"), # compare similarity between two
                                 exclude = c("ssn") )
         
-        # get summary of potential pairs
-        summary(match8) 
-        
-        # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
-        match8.weights <- epiWeights(match8) 
-        summary(match8.weights)
-        
-        # get paired data, with weights, as a dataset
-        match8.pairs <- setDT(getPairs(match8.weights, single.rows = TRUE))
-        match8.pairs.long <- setDT(getPairs(match8.weights, single.rows = FALSE))
-
-        # classify pairs using a threshhold
-        summary(epiClassify(match8.weights, threshold.upper = 0.62)) # based on visual inspection of curve and dataset with weights     
-        
-        # Have dupliacate IDs ... so, keep the one with higher probability weight
-        match8.pairs[, dup.mcaid := 1:.N, by = id_mcare.1] # already sorted by Weight
-        match8.pairs[, dup.pid := 1:.N, by = pid.2] # already sorted by Weight
-        match8.pairs <- match8.pairs[dup.mcaid==1 & dup.pid == 1] # many if not all of these are a single person with different ids 
-        
-        # get linked pairs
-        match8.match <- match8.pairs[Weight >= 0.62]
-        setnames(match8.match, c("pid.2", "id_mcare.1"), c("pid", "id_mcare"))
-        match8.match <- match8.match[, c("pid", "id_mcare")]          
-        
-        # drop the linked data from the two parent datasets so we don't try to link them again
-        pha <- pha[!(pid %in% match8.match$pid)]
-        mcare <- mcare[!(id_mcare %in% match8.match$id_mcare)]            
-        
-        # clean objects in memory
-        rm(match8, match8.weights, match8.pairs, match8.pairs.long, mcare.mi.ssn) # drop tables only needed to form the linkage       
+        if(exists("match8")){
+          # get summary of potential pairs
+          summary(match8) 
+          
+          # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
+          match8.weights <- epiWeights(match8) 
+          summary(match8.weights)
+          
+          # get paired data, with weights, as a dataset
+          match8.pairs <- setDT(getPairs(match8.weights, single.rows = TRUE))
+          match8.pairs.long <- setDT(getPairs(match8.weights, single.rows = FALSE))
+  
+          # classify pairs using a threshhold
+          summary(epiClassify(match8.weights, threshold.upper = 0.62)) # based on visual inspection of curve and dataset with weights     
+          
+          # Have dupliacate IDs ... so, keep the one with higher probability weight
+          match8.pairs[, dup.mcaid := 1:.N, by = id_mcare.1] # already sorted by Weight
+          match8.pairs[, dup.pid := 1:.N, by = pid.2] # already sorted by Weight
+          match8.pairs <- match8.pairs[dup.mcaid==1 & dup.pid == 1] # many if not all of these are a single person with different ids 
+          
+          # get linked pairs
+          match8.match <- match8.pairs[Weight >= 0.62]
+          setnames(match8.match, c("pid.2", "id_mcare.1"), c("pid", "id_mcare"))
+          match8.match <- match8.match[, c("pid", "id_mcare")]          
+          
+          # drop the linked data from the two parent datasets so we don't try to link them again
+          pha <- pha[!(pid %in% match8.match$pid)]
+          mcare <- mcare[!(id_mcare %in% match8.match$id_mcare)]            
+          
+          # clean objects in memory
+          rm(match8, match8.weights, match8.pairs, match8.pairs.long, mcare.mi.ssn) # drop tables only needed to form the linkage       
+        } # close condition for exists("match8")
         
       # Match  9 - Probabilistic: Block year + mo + all names + gender_me, string compare SSN + day ----      
         match9 <- compare.linkage(mcare, pha, 
@@ -1529,6 +1509,9 @@
       # deduplicate entire rows (just in case, should not be needed)
       xwalk <- unique(xwalk)     
       
+      # if duplicate id_mcaid, keep for the larger PID
+      xwalk <- xwalk[xwalk[, .I[which.max(as.integer(pid)) ], by = 'id_mcaid'][,V1], ] # keep the row for the max PID
+      
   ## (4) Load xwalk table to SQL ----
       # create last_run timestamp
       xwalk[, last_run := Sys.time()]
@@ -1645,7 +1628,7 @@
       # Clean up mcaid.mcare.pha ----
         mcaid.mcare.pha[!is.na(pid.x) & is.na(pid.y), pid := pid.x] # keep pid from mcare when pid from mcaid is missing
         mcaid.mcare.pha[is.na(pid.x) & !is.na(pid.y), pid := pid.y] # keep pid from mcaid when pid from mcare is missing
-        mcaid.mcare.pha[!is.na(pid.x) & !is.na(pid.y) & pid.x == pid.y, pid := pid.y] # when both mcare and mcare linked to same pid, chose the one from Mcaid
+        mcaid.mcare.pha[!is.na(pid.x) & !is.na(pid.y) & pid.x == pid.y, pid := pid.y] # when both mcaid and mcare linked to same pid, chose the one from Mcaid
         mcaid.mcare.pha[!is.na(pid.x) & !is.na(pid.y) & pid.x != pid.y, pid := pid.y] # when mcare and mcare linked to different pid, chose the one form Mcaid
         mcaid.mcare.pha[, c("pid.y", "pid.x") := NULL]
         
