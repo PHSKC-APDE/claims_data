@@ -339,7 +339,7 @@ step5b_sql <- glue::glue_sql(
     CASE WHEN a.dual = 'Y' THEN 1 ELSE 0 END AS dual,
     CASE WHEN a.tpl = 'Y' THEN 1 ELSE 0 END AS tpl,
     a.bsp_group_cid, a.full_benefit, 
-    CASE WHEN a.dual = 'N' AND a.tpl = 'N' AND a.full_benefit = 1 THEN 1 ELSE 0
+    CASE WHEN a.dual <> 'Y' AND a.tpl <> 'Y' AND a.full_benefit = 1 THEN 1 ELSE 0
       END AS full_criteria, 
     a.cov_type, a.mco_id,
     a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip,
