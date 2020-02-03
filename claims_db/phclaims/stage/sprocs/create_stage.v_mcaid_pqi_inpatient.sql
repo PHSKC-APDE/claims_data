@@ -464,7 +464,7 @@ SELECT
 ,ISNULL([PQI 15], 0) AS [pqi_15]
 ,ISNULL([PQI 16], 0) AS [pqi_16]
 
-,ISNULL([PQI 01], 0) +
+,CASE WHEN (ISNULL([PQI 01], 0) +
  ISNULL([PQI 03], 0) +
  ISNULL([PQI 05], 0) +
  ISNULL([PQI 07], 0) +
@@ -473,7 +473,7 @@ SELECT
  ISNULL([PQI 12], 0) +
  ISNULL([PQI 14], 0) +
  ISNULL([PQI 15], 0) +
- ISNULL([PQI 16], 0) AS [pqi_composite]
+ ISNULL([PQI 16], 0)) >= 1 THEN 1 ELSE 0 END AS [pqi_composite]
 
 FROM [get_pqi_claims]
 PIVOT(MAX([flag]) FOR [value_set_group] IN 
