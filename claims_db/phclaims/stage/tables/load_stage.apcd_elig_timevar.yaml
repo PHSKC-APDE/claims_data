@@ -7,6 +7,7 @@ vars:
     contiguous: tinyint
     med_covgrp: tinyint
     pharm_covgrp: tinyint
+    dental_coverage: tinyint
     med_medicaid: tinyint
     med_medicare: tinyint
     med_commercial: tinyint
