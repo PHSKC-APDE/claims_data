@@ -224,5 +224,5 @@ qa_stage.apcd_elig_timevar_f <- function() {
     from stage.apcd_elig_timevar
     where med_covgrp = 0 and pharm_covgrp = 0 and dental_coverage = 0;",
     .con = db_claims))
-  res_final <- bind_rows(res1, res2, res3, res4, res5, res6)
+  res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }
