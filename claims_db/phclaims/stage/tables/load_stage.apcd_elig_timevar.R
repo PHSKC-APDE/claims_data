@@ -190,28 +190,39 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
 qa_stage.apcd_elig_timevar_f <- function() {
   
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'distinct count' as qa_type, count(distinct id_apcd) as qa from stage.apcd_elig_timevar",
+    "select 'stage.apcd_elig_timevar' as 'table', 'member count, expect match to raw tables' as qa_type, count(distinct id_apcd) as qa
+    from stage.apcd_elig_timevar",
     .con = db_claims))
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_member_month_detail' as 'table', 'distinct count' as qa_type, count(distinct internal_member_id) as qa from stage.apcd_member_month_detail",
+    "select 'stage.apcd_member_month_detail' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
+    from stage.apcd_member_month_detail",
     .con = db_claims))
   res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'final.apcd_elig_demo' as 'table', 'distinct count' as qa_type, count(distinct id_apcd) as qa from final.apcd_elig_demo",
+    "select 'final.apcd_elig_demo' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct id_apcd) as qa
+    from final.apcd_elig_demo",
     .con = db_claims))
   res4 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'distinct count, King 2016' as qa_type, count(distinct id_apcd) as qa from stage.apcd_elig_timevar
+    "select 'stage.apcd_elig_timevar' as 'table', 'member count, King 2016, expect match to member_month' as qa_type, count(distinct id_apcd) as qa
+    from stage.apcd_elig_timevar
       where from_date <= '2016-12-31' and to_date >= '2016-01-01'
       and geo_ach = 'HealthierHere'",
     .con = db_claims))
   res5 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_member_month_detail' as 'table', 'distinct count, King 2016' as qa_type, count(distinct internal_member_id) as qa from stage.apcd_member_month_detail
+    "select 'stage.apcd_member_month_detail' as 'table', 'member count, King 2016, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
+    from stage.apcd_member_month_detail
       where left(year_month,4) = '2016'
       and zip_code in (select zip_code from phclaims.ref.apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
     .con = db_claims))
   res6 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_eligibility' as 'table', 'distinct count, King 2016' as qa_type, count(distinct internal_member_id) as qa from stage.apcd_eligibility
+    "select 'stage.apcd_eligibility' as 'table', 'member count, King 2016, expect slightly more than timevar' as qa_type, count(distinct internal_member_id) as qa
+    from stage.apcd_eligibility
       where eligibility_start_dt <= '2016-12-31' and eligibility_end_dt >= '2016-01-01'
       and zip in (select zip_code from phclaims.ref.apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
-    .con = db_claims))  
+    .con = db_claims))
+  res7 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_elig_timevar' as 'table', 'count of member elig segments with no coverage, expect 1' as qa_type, count(distinct id_apcd) as qa
+    from stage.apcd_elig_timevar
+    where med_covgrp = 0 and pharm_covgrp = 0 and dental_coverage = 0;",
+    .con = db_claims))
   res_final <- bind_rows(res1, res2, res3, res4, res5, res6)
 }
