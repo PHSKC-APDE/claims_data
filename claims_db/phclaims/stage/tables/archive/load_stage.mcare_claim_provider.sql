@@ -4,8 +4,6 @@
 --2020-01
 --Run time: XX min
 
---2/5/2020 update - after many hours this script failed, need to optimize code, will try to do reshapes within each claim type
-
 ------------------
 --STEP 1: Select and union desired columns from multi-year claim tables on stage schema
 --Exclude all denied claims using proposed approach per ResDAC 01-2020 consult
@@ -98,7 +96,7 @@ from (
 		rendering,
 		organization)
 	) as providers
-	where len(providers) = 10
+	where len(providers) = 10 and isnumeric(providers) = 1
 
 	--dme
 	union
@@ -155,7 +153,7 @@ from (
 		billing,
 		referring)
 	) as providers
-	where len(providers) = 10
+	where len(providers) = 10 and isnumeric(providers) = 1
 
 	--hha
 	union
@@ -224,7 +222,7 @@ from (
 		operating,
 		other)
 	) as providers
-	where len(providers) = 10
+	where len(providers) = 10 and isnumeric(providers) = 1
 
 	--hospice
 	union
@@ -295,7 +293,7 @@ from (
 		operating,
 		other)
 	) as providers
-	where len(providers) = 10
+	where len(providers) = 10 and isnumeric(providers) = 1
 
 	--inpatient
 	union
@@ -362,7 +360,7 @@ from (
 		operating,
 		other)
 	) as providers
-	where len(providers) = 10
+	where len(providers) = 10 and isnumeric(providers) = 1
 
 
 	--outpatient
@@ -440,7 +438,7 @@ from (
 		operating,
 		other)
 	) as providers
-	where len(providers) = 10
+	where len(providers) = 10 and isnumeric(providers) = 1
 
 
 	--snf
@@ -508,7 +506,7 @@ from (
 		operating,
 		other)
 	) as providers
-	where len(providers) = 10
+	where len(providers) = 10 and isnumeric(providers) = 1
 
 ) as z
 --exclude claims among people who have no eligibility data
