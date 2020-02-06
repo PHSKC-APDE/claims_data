@@ -2,10 +2,10 @@
 USE [PHClaims];
 GO
 
-IF OBJECT_ID('[stage].[v_mcaid_pqi_inpatient]', 'V') IS NOT NULL
-DROP VIEW [stage].[v_mcaid_pqi_inpatient];
+IF OBJECT_ID('[stage].[v_mcaid_pqi_ed]', 'V') IS NOT NULL
+DROP VIEW [stage].[v_mcaid_pqi_ed];
 GO
-CREATE VIEW [stage].[v_mcaid_pqi_inpatient]
+CREATE VIEW [stage].[v_mcaid_pqi_ed]
 AS
 
 WITH [get_pqi_claims] AS
@@ -16,7 +16,7 @@ Prevention Quality Indicator 01 (PQI 01) Diabetes Short-Term Complications
 SELECT 
  b.[value_set_group]
 ,a.[claim_header_id]
-,a.[inpatient_id]
+,a.[ed_pophealth_id]
 ,1 AS [flag]
 
 FROM [stage].[mcaid_claim_header] AS a
@@ -29,8 +29,7 @@ hyperosmolarity, or coma) (ACDIASD)
 */
 AND b.[value_set_name] IN ('ACDIASD')
 
-WHERE a.[inpatient_id] IS NOT NULL
-AND (a.[admsn_source] IS NULL OR a.[admsn_source] NOT IN ('4', '5', '6', 'A', 'B', 'C', 'D', 'E', 'F'))
+WHERE a.[ed_pophealth_id] IS NOT NULL
 
 UNION
 
@@ -40,7 +39,7 @@ Prevention Quality Indicator 03 (PQI 03) Diabetes Long-Term Complications
 SELECT 
  b.[value_set_group]
 ,a.[claim_header_id]
-,a.[inpatient_id]
+,a.[ed_pophealth_id]
 ,1 AS [flag]
 
 FROM [stage].[mcaid_claim_header] AS a
@@ -53,8 +52,7 @@ neurological, circulatory, or complications not otherwise specified) (ACDIALD)
 */
 AND b.[value_set_name] IN ('ACDIALD')
 
-WHERE a.[inpatient_id] IS NOT NULL
-AND (a.[admsn_source] IS NULL OR a.[admsn_source] NOT IN ('4', '5', '6', 'A', 'B', 'C', 'D', 'E', 'F'))
+WHERE a.[ed_pophealth_id] IS NOT NULL
 
 UNION
 
@@ -68,7 +66,7 @@ SELECT
  WHEN b.[value_set_group] = 'PQI 05' THEN b.[value_set_group] 
  END AS [value_set_group]
 ,a.[claim_header_id]
-,a.[inpatient_id]
+,a.[ed_pophealth_id]
 ,1 AS [flag]
 
 FROM [stage].[mcaid_claim_header] AS a
@@ -81,8 +79,7 @@ principal ICD-10-CM diagnosis code for asthma (ACSASTD)
 */
 AND b.[value_set_name] IN ('ACCOPDD', 'ACSASTD')
 
-WHERE a.[inpatient_id] IS NOT NULL
-AND (a.[admsn_source] IS NULL OR a.[admsn_source] NOT IN ('4', '5', '6', 'A', 'B', 'C', 'D', 'E', 'F'))
+WHERE a.[ed_pophealth_id] IS NOT NULL
 
 /*
 Exclude cases with any-listed ICD-10-CM diagnosis codes for cystic fibrosis and
@@ -104,7 +101,7 @@ UNION
 SELECT 
  b.[value_set_group]
 ,a.[claim_header_id]
-,a.[inpatient_id]
+,a.[ed_pophealth_id]
 ,1 AS [flag]
 
 FROM [stage].[mcaid_claim_header] AS a
@@ -116,8 +113,7 @@ diagnosis code for hypertension (ACSHYPD)
 */
 AND b.[value_set_name] IN ('ACSHYPD')
 
-WHERE a.[inpatient_id] IS NOT NULL
-AND (a.[admsn_source] IS NULL OR a.[admsn_source] NOT IN ('4', '5', '6', 'A', 'B', 'C', 'D', 'E', 'F'))
+WHERE a.[ed_pophealth_id] IS NOT NULL
 
 /*
 Exclude cases with any-listed ICD-10-PCS procedure codes for cardiac procedure 
@@ -161,7 +157,7 @@ UNION
 SELECT 
  b.[value_set_group]
 ,a.[claim_header_id]
-,a.[inpatient_id]
+,a.[ed_pophealth_id]
 ,1 AS [flag]
 
 FROM [stage].[mcaid_claim_header] AS a
@@ -173,8 +169,7 @@ diagnosis code for heart failure (MRTCHFD)
 */
 AND b.[value_set_name] IN ('MRTCHFD')
 
-WHERE a.[inpatient_id] IS NOT NULL
-AND (a.[admsn_source] IS NULL OR a.[admsn_source] NOT IN ('4', '5', '6', 'A', 'B', 'C', 'D', 'E', 'F'))
+WHERE a.[ed_pophealth_id] IS NOT NULL
 
 /*
 Exclude cases with any-listed ICD-10-PCS procedure codes for cardiac procedure 
@@ -197,7 +192,7 @@ Prevention Quality Indicator 11 (PQI 11) Community-Acquired Pneumonia
 SELECT 
  b.[value_set_group]
 ,a.[claim_header_id]
-,a.[inpatient_id]
+,a.[ed_pophealth_id]
 ,1 AS [flag]
 
 FROM [stage].[mcaid_claim_header] AS a
@@ -210,8 +205,7 @@ diagnosis code for bacterial pneumonia (ACSBACD)
 */
 AND b.[value_set_name] IN ('ACSBACD')
 
-WHERE a.[inpatient_id] IS NOT NULL
-AND (a.[admsn_source] IS NULL OR a.[admsn_source] NOT IN ('4', '5', '6', 'A', 'B', 'C', 'D', 'E', 'F'))
+WHERE a.[ed_pophealth_id] IS NOT NULL
 
 /*
 Exclude cases with any-listed ICD-10-CM diagnosis codes for sickle cell anemia 
@@ -260,7 +254,7 @@ UNION
 SELECT 
  b.[value_set_group]
 ,a.[claim_header_id]
-,a.[inpatient_id]
+,a.[ed_pophealth_id]
 ,1 AS [flag]
 
 FROM [stage].[mcaid_claim_header] AS a
@@ -272,8 +266,7 @@ diagnosis code for urinary tract infection (ACSUTID)
 */
 AND b.[value_set_name] IN ('ACSUTID')
 
-WHERE a.[inpatient_id] IS NOT NULL
-AND (a.[admsn_source] IS NULL OR a.[admsn_source] NOT IN ('4', '5', '6', 'A', 'B', 'C', 'D', 'E', 'F'))
+WHERE a.[ed_pophealth_id] IS NOT NULL
 
 /*
 Exclude cases with any-listed ICD-10-CM diagnosis codes for kidney/urinary 
@@ -322,7 +315,7 @@ UNION
 SELECT 
  b.[value_set_group]
 ,a.[claim_header_id]
-,a.[inpatient_id]
+,a.[ed_pophealth_id]
 ,1 AS [flag]
 
 FROM [stage].[mcaid_claim_header] AS a
@@ -336,8 +329,7 @@ long-term complication (ACDIAUD)
 */
 AND b.[value_set_name] IN ('ACDIAUD')
 
-WHERE a.[inpatient_id] IS NOT NULL
-AND (a.[admsn_source] IS NULL OR a.[admsn_source] NOT IN ('4', '5', '6', 'A', 'B', 'C', 'D', 'E', 'F'))
+WHERE a.[ed_pophealth_id] IS NOT NULL
 
 UNION
 
@@ -347,7 +339,7 @@ SELECT
  WHEN b.[value_set_group] = 'PQI 05/PQI 15' THEN 'PQI 15' 
  END AS [value_set_group]
 ,a.[claim_header_id]
-,a.[inpatient_id]
+,a.[ed_pophealth_id]
 ,1 AS [flag]
 
 FROM [stage].[mcaid_claim_header] AS a
@@ -360,8 +352,7 @@ diagnosis code for asthma (ACSASTD)
 */
 AND b.[value_set_name] IN ('ACSASTD')
 
-WHERE a.[inpatient_id] IS NOT NULL
-AND (a.[admsn_source] IS NULL OR a.[admsn_source] NOT IN ('4', '5', '6', 'A', 'B', 'C', 'D', 'E', 'F'))
+WHERE a.[ed_pophealth_id] IS NOT NULL
 
 /*
 Exclude cases with any-listed ICD-10-CM diagnosis codes for cystic fibrosis and
@@ -386,7 +377,7 @@ Patients with Diabetes
 SELECT
  a.[value_set_group]
 ,a.[claim_header_id]
-,b.[inpatient_id]
+,b.[ed_pophealth_id]
 ,1 AS [flag]
 FROM
 (
@@ -418,8 +409,7 @@ AND b.[value_set_name] IN ('ACSLEAD')
 -- Claim has to be a valid inpatient claim that is not a transfer (by [admsn_source])
 INNER JOIN [stage].[mcaid_claim_header] AS b
 ON a.[claim_header_id] = b.[claim_header_id]
-AND b.[inpatient_id] IS NOT NULL
-AND (b.[admsn_source] IS NULL OR b.[admsn_source] NOT IN ('4', '5', '6', 'A', 'B', 'C', 'D', 'E', 'F'))
+AND b.[ed_pophealth_id] IS NOT NULL
 
 /*
 Exclude cases with any-listed ICD-10-CM diagnosis codes for traumatic 
@@ -451,7 +441,7 @@ AND b.[value_set_name] IN ('MDC 14')
 
 SELECT
  [claim_header_id]
-,[inpatient_id]
+,[ed_pophealth_id]
 ,ISNULL([PQI 01], 0) AS [pqi_01]
 ,ISNULL([PQI 03], 0) AS [pqi_03]
 ,ISNULL([PQI 05], 0) AS [pqi_05]
@@ -489,5 +479,5 @@ PIVOT(MAX([flag]) FOR [value_set_group] IN
 GO
 
 /*
-SELECT * FROM [stage].[v_mcaid_pqi_inpatient];
+SELECT * FROM [stage].[v_mcaid_pqi_ed];
 */

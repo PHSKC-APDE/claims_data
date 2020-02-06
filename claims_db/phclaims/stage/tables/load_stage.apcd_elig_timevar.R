@@ -24,7 +24,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     --STEP 1: Convert eligibility table to 1 month per row format
     -------------------
     if object_id('tempdb..#temp1') is not null drop table #temp1;
-    select a.internal_member_id, b.first_day_month, b.last_day_month, a.dual_flag, a.rac_code_id, a.product_code_id
+    select a.internal_member_id, b.first_day_month, b.last_day_month, a.dual_flag, a.rac_code_id, a.product_code_id, a.dental_coverage
     into #temp1
     from (
     	select internal_member_id, eligibility_start_dt,
@@ -40,8 +40,9 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     	else null
     	end as dual_flag,
     	cast(aid_category_id as int) as rac_code_id,
-    	product_code_id
-    	from phclaims.stage.apcd_eligibility
+    	product_code_id,
+    	case when coverage_class = 'DENTAL' then 1 else 0 end as dental_coverage
+	    from phclaims.stage.apcd_eligibility
     ) as a
     inner join (select distinct year_month, first_day_month, last_day_month from PHClaims.ref.date) as b
     on (a.eligibility_start_dt <= b.last_day_month) and (a.eligibility_end_dt >= b.first_day_month)
@@ -57,7 +58,8 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     -------------------
     if object_id('tempdb..#temp2') is not null drop table #temp2;
     select x.internal_member_id, x.first_day_month, x.last_day_month, max(x.dual_flag) as dual_flag,
-    	max(x.bsp_group_cid) as bsp_group_cid, max(x.full_benefit) as full_benefit
+    	max(x.bsp_group_cid) as bsp_group_cid, max(x.full_benefit) as full_benefit,
+    	max(x.dental_coverage) as dental_coverage
     into #temp2
     from (
     select a.internal_member_id, a.first_day_month, a.last_day_month, a.dual_flag, c.bsp_group_cid,
@@ -68,7 +70,8 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     		when a.product_code_id = 14 and (a.rac_code_id < 0 or a.rac_code_id is null) then 1
     		--otherwise set as not full-benefit
     		else 0
-    	end as full_benefit
+    	end as full_benefit,
+    	a.dental_coverage
     from #temp1 as a
     left join PHClaims.ref.apcd_aid_category as b
     on a.rac_code_id = b.aid_category_id
@@ -91,7 +94,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
         when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is null and (a.med_medicare_eligibility_id is null and b.dual_flag = 0) then 1 --Medicaid only
         when (a.med_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.med_commercial_eligibility_id is null and (a.med_medicare_eligibility_id is not null and b.dual_flag = 0) then 2 --Medicare only
         when (a.med_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.med_commercial_eligibility_id is not null and a.med_medicare_eligibility_id is null then 3 --Commercial only
-        when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is null and (a.med_medicare_eligibility_id is not null or b.dual_flag = 1) then 4 -- Medicaid-Medicare dual
+	      when ((a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is null and (a.med_medicare_eligibility_id is not null)) or (b.dual_flag = 1) then 4 -- Medicaid-Medicare dual
         when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is not null and (a.med_medicare_eligibility_id is null and b.dual_flag = 0) then 5 --Medicaid-commercial dual
         when (a.med_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.med_commercial_eligibility_id is not null and (a.med_medicare_eligibility_id is not null and b.dual_flag = 0) then 6 --Medicare-commercial dual
         when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is not null and (a.med_medicare_eligibility_id is not null or b.dual_flag = 1) then 7 -- All three
@@ -102,12 +105,14 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
         when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is null and (a.rx_medicare_eligibility_id is null and b.dual_flag = 0) then 1 --Medicaid only
         when (a.rx_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.rx_commercial_eligibility_id is null and (a.rx_medicare_eligibility_id is not null and b.dual_flag = 0) then 2 --Medicare only
         when (a.rx_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.rx_commercial_eligibility_id is not null and a.rx_medicare_eligibility_id is null then 3 --Commercial only
-        when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is null and (a.rx_medicare_eligibility_id is not null or b.dual_flag = 1) then 4 -- Medicaid-Medicare dual
+	      when ((a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is null and (a.rx_medicare_eligibility_id is not null)) or (b.dual_flag = 1) then 4 -- Medicaid-Medicare dual
         when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is not null and (a.rx_medicare_eligibility_id is null and b.dual_flag = 0) then 5 --Medicaid-commercial dual
         when (a.rx_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.rx_commercial_eligibility_id is not null and (a.rx_medicare_eligibility_id is not null and b.dual_flag = 0) then 6 --Medicare-commercial dual
         when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is not null and (a.rx_medicare_eligibility_id is not null or b.dual_flag = 1) then 7 -- All three
         else 0 --no pharm coverage
-       end as pharm_covgrp
+       end as pharm_covgrp,
+       --dental coverage
+       b.dental_coverage
     into #temp3
     from (
     select *, convert(date, cast(year_month as varchar(200)) + '01') as first_day_month
@@ -121,9 +126,9 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     --STEP 4: Assign a group number to each set of contiguous months by person, covgrp, dual_flag, BSP code, and full benefit flag, and ZIP code
     ----------------
     if object_id('tempdb..#temp4') is not null drop table #temp4;
-    select distinct internal_member_id, from_date, to_date, zip_code, med_covgrp, pharm_covgrp, dual_flag, bsp_group_cid, full_benefit,
+    select distinct internal_member_id, from_date, to_date, zip_code, med_covgrp, pharm_covgrp, dental_coverage, dual_flag, bsp_group_cid, full_benefit,
     	datediff(month, '1900-01-01', from_date) - row_number() 
-    	over (partition by internal_member_id, zip_code, med_covgrp, pharm_covgrp, dual_flag, bsp_group_cid, full_benefit order by from_date) as group_num
+    	over (partition by internal_member_id, zip_code, med_covgrp, pharm_covgrp, dental_coverage, dual_flag, bsp_group_cid, full_benefit order by from_date) as group_num
     into #temp4
     from #temp3;
     
@@ -132,11 +137,11 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     --STEP 5: Taking the max and min of each contiguous period, collapse to one row
     ----------------
     if object_id('tempdb..#temp5') is not null drop table #temp5;
-    select internal_member_id, zip_code, med_covgrp, pharm_covgrp, dual_flag, bsp_group_cid, full_benefit, min(from_date) as from_date, max(to_date) as to_date,
+    select internal_member_id, zip_code, med_covgrp, pharm_covgrp, dental_coverage, dual_flag, bsp_group_cid, full_benefit, min(from_date) as from_date, max(to_date) as to_date,
       datediff(day, min(from_date), max(to_date)) + 1 as cov_time_day
     into #temp5
     from #temp4
-    group by internal_member_id, zip_code, med_covgrp, pharm_covgrp, dual_flag, bsp_group_cid, full_benefit, group_num;
+    group by internal_member_id, zip_code, med_covgrp, pharm_covgrp, dental_coverage, dual_flag, bsp_group_cid, full_benefit, group_num;
     
     
     ------------
@@ -151,7 +156,8 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     case when datediff(day, lag(a.to_date, 1) over (partition by a.internal_member_id order by a.internal_member_id, a.from_date), a.from_date) = 1
     then 1 else 0 end as contiguous,
     a.med_covgrp,
-    a.pharm_covgrp, 
+    a.pharm_covgrp,
+    a.dental_coverage,
     --Binary flags for medicaid and pharmacy coverage type
     case when a.med_covgrp in (1,4,5,7) then 1 else 0 end as med_medicaid,
     case when a.med_covgrp in (2,4,6,7) then 1 else 0 end as med_medicare,
@@ -184,28 +190,39 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
 qa_stage.apcd_elig_timevar_f <- function() {
   
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'distinct count' as qa_type, count(distinct id_apcd) as qa from stage.apcd_elig_timevar",
+    "select 'stage.apcd_elig_timevar' as 'table', 'member count, expect match to raw tables' as qa_type, count(distinct id_apcd) as qa
+    from stage.apcd_elig_timevar",
     .con = db_claims))
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_member_month_detail' as 'table', 'distinct count' as qa_type, count(distinct internal_member_id) as qa from stage.apcd_member_month_detail",
+    "select 'stage.apcd_member_month_detail' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
+    from stage.apcd_member_month_detail",
     .con = db_claims))
   res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'final.apcd_elig_demo' as 'table', 'distinct count' as qa_type, count(distinct id_apcd) as qa from final.apcd_elig_demo",
+    "select 'final.apcd_elig_demo' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct id_apcd) as qa
+    from final.apcd_elig_demo",
     .con = db_claims))
   res4 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'distinct count, King 2016' as qa_type, count(distinct id_apcd) as qa from stage.apcd_elig_timevar
+    "select 'stage.apcd_elig_timevar' as 'table', 'member count, King 2016, expect match to member_month' as qa_type, count(distinct id_apcd) as qa
+    from stage.apcd_elig_timevar
       where from_date <= '2016-12-31' and to_date >= '2016-01-01'
       and geo_ach = 'HealthierHere'",
     .con = db_claims))
   res5 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_member_month_detail' as 'table', 'distinct count, King 2016' as qa_type, count(distinct internal_member_id) as qa from stage.apcd_member_month_detail
+    "select 'stage.apcd_member_month_detail' as 'table', 'member count, King 2016, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
+    from stage.apcd_member_month_detail
       where left(year_month,4) = '2016'
       and zip_code in (select zip_code from phclaims.ref.apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
     .con = db_claims))
   res6 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_eligibility' as 'table', 'distinct count, King 2016' as qa_type, count(distinct internal_member_id) as qa from stage.apcd_eligibility
+    "select 'stage.apcd_eligibility' as 'table', 'member count, King 2016, expect slightly more than timevar' as qa_type, count(distinct internal_member_id) as qa
+    from stage.apcd_eligibility
       where eligibility_start_dt <= '2016-12-31' and eligibility_end_dt >= '2016-01-01'
       and zip in (select zip_code from phclaims.ref.apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
-    .con = db_claims))  
-  res_final <- bind_rows(res1, res2, res3, res4, res5, res6)
+    .con = db_claims))
+  res7 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_elig_timevar' as 'table', 'count of member elig segments with no coverage, expect 1' as qa_type, count(distinct id_apcd) as qa
+    from stage.apcd_elig_timevar
+    where med_covgrp = 0 and pharm_covgrp = 0 and dental_coverage = 0;",
+    .con = db_claims))
+  res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }
