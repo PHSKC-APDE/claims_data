@@ -580,7 +580,7 @@ qa_stage.mcare_claim_provider_qa_f <- function() {
   		--exclude denined claims using carrier/dme claim method
   		where (a.denial_code_facility = '' or a.denial_code_facility is null)
   		and c.id_mcare is not null
-  			and len(b.provider_rendering_npi) = 10 and isnumeric(b.provider_rendering_npi) = 1
+  			and len(a.provider_attending_npi) = 10 and isnumeric(a.provider_attending_npi) = 1
   			and a.provider_attending_specialty = '20'
     ) as x;",
     .con = db_claims))
