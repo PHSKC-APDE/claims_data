@@ -96,7 +96,7 @@ stage,mcaid_mcare_pha_elig_calyear,final,mcaid_mcare_pha_elig_timevar,,,,https:/
 stage,mcaid_mcare_pha_elig_calyear,,,demo_codes,https://raw.githubusercontent.com/PHSKC-APDE/Housing/pha_2018_data/processing/housing_mcaid%20demo%20codes.csv,,https://github.com/PHSKC-APDE/Housing/blob/master/analyses/load_stage.mcaid_mcare_pha_elig_calyear.R
 stage,xwalk_apde_mcaid_mcare_pha,final,mcaid_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
 stage,xwalk_apde_mcaid_mcare_pha,final,mcare_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
-stage,xwalk_apde_mcaid_mcare_pha,load_raw,mcare_xwalk_bene_ssn,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
+stage,xwalk_apde_mcaid_mcare_pha,stage,mcare_xwalk_bene_ssn,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
 stage,xwalk_apde_mcaid_mcare_pha,load_raw,mcare_xwalk_edb_user_view,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
 stage,xwalk_apde_mcaid_mcare_pha,stage,mcaid_elig,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
 stage,xwalk_apde_mcaid_mcare_pha,stage,pha,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
