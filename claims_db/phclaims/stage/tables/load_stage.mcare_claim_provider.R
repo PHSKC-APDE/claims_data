@@ -534,6 +534,57 @@ load_stage.mcare_claim_provider_f <- function() {
 #### Table-level QA script ####
 qa_stage.mcare_claim_provider_qa_f <- function() {
   
+  #confirm that rendering provider counts match for carrier claims
+  res1 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_claim_provider' as 'table', 'rendering provider count, expect match with carrier tables' as qa_type,
+      count(distinct provider_npi) as qa
+    from stage.mcare_claim_provider
+    where filetype_mcare = 'carrier' and provider_type = 'rendering';",
+    .con = db_claims))
+  
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_bcarrier_line' as 'table', 'rendering provider count, expect match with claim_provider table' as qa_type,
+    count(*) as qa
+    from (
+		select distinct b.provider_rendering_npi
+  		from PHClaims.stage.mcare_bcarrier_claims as a
+  		left join PHClaims.stage.mcare_bcarrier_line as b
+  		on a.claim_header_id = b.claim_header_id
+  		left join PHClaims.final.mcare_elig_demo as c
+  		on a.id_mcare = c.id_mcare
+  		--exclude denined claims using carrier/dme claim method
+  		where a.denial_code in ('1','2','3','4','5','6','7','8','9')
+  			and c.id_mcare is not null
+  			and len(b.provider_rendering_npi) = 10 and isnumeric(b.provider_rendering_npi) = 1
+    ) as x;",
+    .con = db_claims))
+  
+  #confirm attending provider counts for a specific specialty, using outpatient table
+  res3 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_claim_provider' as 'table', 'attending provider count specialty 20, expect match with outpatient tables' as qa_type,
+      count(distinct provider_npi) as qa
+    from PHClaims.stage.mcare_claim_provider
+    where filetype_mcare = 'outpatient' and provider_specialty = '20' and provider_type = 'attending';",
+    .con = db_claims))
+  
+  res4 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_outpatient_base_claims' as 'table', 'rendering provider count, expect match with claim_provider table' as qa_type,
+    count(*) as qa
+    from (
+  		select distinct a.provider_attending_npi
+  		from PHClaims.stage.mcare_outpatient_base_claims as a
+  		left join PHClaims.stage.mcare_outpatient_revenue_center as b
+  		on a.claim_header_id = b.claim_header_id
+  		left join PHClaims.final.mcare_elig_demo as c
+  		on a.id_mcare = c.id_mcare
+  		--exclude denined claims using carrier/dme claim method
+  		where (a.denial_code_facility = '' or a.denial_code_facility is null)
+  		and c.id_mcare is not null
+  			and len(b.provider_rendering_npi) = 10 and isnumeric(b.provider_rendering_npi) = 1
+  			and a.provider_attending_specialty = '20'
+    ) as x;",
+    .con = db_claims))
+  
   #make sure everyone is in elig_demo
   res5 <- dbGetQuery(conn = db_claims, glue_sql(
   "select 'stage.mcare_claim_provider' as 'table', '# members not in elig_demo, expect 0' as qa_type,
