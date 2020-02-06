@@ -4,8 +4,6 @@
 --2020-01
 --Run time: XX min
 
---2/5/2020 update - after many hours this script failed, need to optimize code, will try to do reshapes within each claim type
-
 ------------------
 --STEP 1: Select and union desired columns from multi-year claim tables on stage schema
 --Exclude all denied claims using proposed approach per ResDAC 01-2020 consult
