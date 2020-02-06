@@ -111,7 +111,7 @@ load_stage.mcare_claim_provider_f <- function() {
     		rendering,
     		organization)
     	) as providers
-    	where len(providers) = 10
+    	where len(providers) = 10 and isnumeric(providers) = 1
     
     	--dme
     	union
@@ -168,7 +168,7 @@ load_stage.mcare_claim_provider_f <- function() {
     		billing,
     		referring)
     	) as providers
-    	where len(providers) = 10
+    	where len(providers) = 10 and isnumeric(providers) = 1
     
     	--hha
     	union
@@ -237,7 +237,7 @@ load_stage.mcare_claim_provider_f <- function() {
     		operating,
     		other)
     	) as providers
-    	where len(providers) = 10
+    	where len(providers) = 10 and isnumeric(providers) = 1
     
     	--hospice
     	union
@@ -308,7 +308,7 @@ load_stage.mcare_claim_provider_f <- function() {
     		operating,
     		other)
     	) as providers
-    	where len(providers) = 10
+    	where len(providers) = 10 and isnumeric(providers) = 1
     
     	--inpatient
     	union
@@ -375,7 +375,7 @@ load_stage.mcare_claim_provider_f <- function() {
     		operating,
     		other)
     	) as providers
-    	where len(providers) = 10
+    	where len(providers) = 10 and isnumeric(providers) = 1
     
     
     	--outpatient
@@ -453,7 +453,7 @@ load_stage.mcare_claim_provider_f <- function() {
     		operating,
     		other)
     	) as providers
-    	where len(providers) = 10
+    	where len(providers) = 10 and isnumeric(providers) = 1
     
     
     	--snf
@@ -521,7 +521,7 @@ load_stage.mcare_claim_provider_f <- function() {
     		operating,
     		other)
     	) as providers
-    	where len(providers) = 10
+    	where len(providers) = 10 and isnumeric(providers) = 1
     
     ) as z
     --exclude claims among people who have no eligibility data
