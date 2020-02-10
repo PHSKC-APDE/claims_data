@@ -20,12 +20,13 @@ library(glue) # Safely combine SQL code
 db_claims <- dbConnect(odbc(), "PHClaims51")
 
 #### SET UP FUNCTIONS ####
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/claim_ccw.R")
 
 
 
@@ -40,8 +41,8 @@ create_table_f(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_full.R")
 
-load_load_raw.mcaid_elig_full_f(etl_date_min = "2012-01-01", etl_date_max = "2018-12-31",
-                                etl_delivery_date = "2019-06-12", 
+load_load_raw.mcaid_elig_full_f(etl_date_min = "2012-01-01", etl_date_max = "2019-12-31",
+                                etl_delivery_date = "2020-02-07", 
                                 etl_note = "Updated elig tables to accompany corrected claims data")
 
 

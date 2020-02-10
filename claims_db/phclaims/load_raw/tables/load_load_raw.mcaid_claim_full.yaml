@@ -129,57 +129,73 @@ table_2012:
     vars_2012: null
     field_term: \t
     row_term: \n
-    row_count: 10846564
+    row_count: 11108125
     date_min: 2012-01-01
     date_max: 2012-12-31
+    date_delivery: 2020-01-31
 table_2013:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_CY2013.txt
     vars_2013: null
     field_term: \t
     row_term: \n
-    row_count: 10821662
+    row_count: 11082304
     date_min: 2013-01-01
     date_max: 2013-12-31
+    date_delivery: 2020-01-31
 table_2014:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_CY2014.txt
     vars_2014: null
     field_term: \t
     row_term: \n
-    row_count: 15172595
+    row_count: 15645315
     date_min: 2014-01-01
     date_max: 2014-12-31
+    date_delivery: 2020-02-04
 table_2015:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_CY2015.txt
     vars_2015: null
     field_term: \t
     row_term: \n
-    row_count: 16791077
+    row_count: 17053175
     date_min: 2015-01-01
     date_max: 2015-12-31
+    date_delivery: 2020-02-04
 table_2016:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_CY2016.txt
     vars_2016: null
     field_term: \t
     row_term: \n
-    row_count: 18750433
+    row_count: 18928190
     date_min: 2016-01-01
     date_max: 2016-12-31
+    date_delivery: 2020-02-05
 table_2017:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_CY2017.txt
     vars_2017: null
     field_term: \t
     row_term: \n
-    row_count: 18291317
+    row_count: 19017575
     date_min: 2017-01-01
     date_max: 2017-12-31
+    date_delivery: 2020-02-05
 table_2018:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_CY2018.txt
     vars_2018: null
     field_term: \t
     row_term: \n
-    row_count: 18734844
+    row_count: 17313045
     date_min: 2018-01-01
     date_max: 2018-12-31
+    date_delivery: 2020-02-07
+table_2019:
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_CY2019.txt
+    vars_2019: null
+    field_term: \t
+    row_term: \n
+    row_count: 17733905
+    date_min: 2019-01-01
+    date_max: 2019-12-31
+    date_delivery: 2020-02-07
 combine_years:
     - 2012
     - 2013
@@ -188,3 +204,4 @@ combine_years:
     - 2016
     - 2017
     - 2018
+    - 2019

@@ -53,6 +53,7 @@ table_2012:
     row_count: 3277629
     date_min: 201201
     date_max: 201212
+    date_delivery: 2020-01-31
 table_2013:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2013.txt
     vars_2013: null
@@ -61,46 +62,61 @@ table_2013:
     row_count: 3317991
     date_min: 201301
     date_max: 201312
+    date_delivery: 2020-01-31
 table_2014:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2014.txt
     vars_2014: null
     field_term: \t
     row_term: \n
-    row_count: 4612482
+    row_count: 4612406
     date_min: 201401
     date_max: 201412
+    date_delivery: 2020-02-04
 table_2015:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2015.txt
     vars_2015: null
     field_term: \t
     row_term: \n
-    row_count: 5292649
+    row_count: 5292523
     date_min: 201501
     date_max: 201512
+    date_delivery: 2020-02-04
 table_2016:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2016.txt
     vars_2016: null
     field_term: \t
     row_term: \n
-    row_count: 5521033
+    row_count: 5521060
     date_min: 201601
     date_max: 201612
+    date_delivery: 2020-02-05
 table_2017:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2017.txt
     vars_2017: null
     field_term: \t
     row_term: \n
-    row_count: 5508673
+    row_count: 5509546
     date_min: 201701
     date_max: 201712
+    date_delivery: 2020-02-05
 table_2018:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2018.txt
     vars_2018: null
     field_term: \t
     row_term: \n
-    row_count: 5349446
+    row_count: 5350380
     date_min: 201801
     date_max: 201812
+    date_delivery: 2020-02-07
+table_2018:
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2019.txt
+    vars_2018: null
+    field_term: \t
+    row_term: \n
+    row_count: 5212831
+    date_min: 201901
+    date_max: 201912
+    date_delivery: 2020-02-07
 combine_years:
     - 2012
     - 2013
@@ -109,3 +125,4 @@ combine_years:
     - 2016
     - 2017
     - 2018
+    - 2019

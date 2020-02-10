@@ -8,7 +8,7 @@
 
 
 load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
-                                            etl_date_max = "2018-12-31",
+                                            etl_date_max = "2019-12-31",
                                             etl_delivery_date = NULL,
                                             etl_note = NULL) {
   
