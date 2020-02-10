@@ -37,7 +37,8 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                               date_min = etl_date_min,
                                               date_max = etl_date_max,
                                               delivery_date = etl_delivery_date, 
-                                              note = etl_note)
+                                              note = etl_note,
+                                              auto_proceed = T)
   
   if (is.na(current_batch_id)) {
     stop("No etl_batch_id. Check metadata.etl_log table")
@@ -144,55 +145,67 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
   
   #### QA CHECK: COUNT OF DISTINCT ID, CLNDR_YEAR_MNTH, FROM DATE, TO DATE, SECONDARY RAC ####
   print("Running additional QA items")
-  # Should be no combo of ID, CLNDR_YEAR_MNTH, from_date, to_date, and secondary RAC with >1 row
-  distinct_rows <- as.numeric(dbGetQuery(db_claims,
-                                         "SELECT COUNT (*) FROM
-                            (SELECT DISTINCT CLNDR_YEAR_MNTH, 
-                              MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE,
-                              SECONDARY_RAC_CODE 
-                              FROM load_raw.mcaid_elig) a"))
   
-  total_rows <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM load_raw.mcaid_elig"))
+  # Currently fields are hard coded. Switch over to reading in YAML file and 
+  # excluding the address fields
+  
+  distinct_rows <- as.numeric(dbGetQuery(
+    db_claims,
+    "SELECT COUNT (*) FROM
+    (SELECT DISTINCT MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN, 
+      ORGNL_TCN, RAC_CODE_H, RAC_CODE_L, FROM_SRVC_DATE, TO_SRVC_DATE, 
+      BLNG_PRVDR_LCTN_IDNTFR, BLNG_NATIONAL_PRVDR_IDNTFR, BLNG_PRVDR_LCTN_TXNMY_CODE, 
+      BLNG_PRVDR_TYPE_CODE, BLNG_PRVDR_SPCLTY_CODE, SRVCNG_PRVDR_LCTN_IDNTFR, 
+      SRVCNG_NATIONAL_PRVDR_IDNTFR, SRVCNG_PRVDR_LCTN_TXNMY_CODE, 
+      SRVCNG_PRVDR_TYPE_CODE, SRVCNG_PRVDR_SPCLTY_CODE, CLM_TYPE_CID, CLM_TYPE_NAME, 
+      CLM_CTGRY_LKPCD, CLM_CTGRY_NAME, REVENUE_CODE, TYPE_OF_BILL, CLAIM_STATUS, 
+      CLAIM_STATUS_DESC, DRG_CODE, DRG_NAME, UNIT_SRVC_H, UNIT_SRVC_L, 
+      PRIMARY_DIAGNOSIS_CODE, DIAGNOSIS_CODE_2, DIAGNOSIS_CODE_3, DIAGNOSIS_CODE_4, 
+      DIAGNOSIS_CODE_5, DIAGNOSIS_CODE_6, DIAGNOSIS_CODE_7, DIAGNOSIS_CODE_8, 
+      DIAGNOSIS_CODE_9, DIAGNOSIS_CODE_10, DIAGNOSIS_CODE_11, DIAGNOSIS_CODE_12, 
+      PRIMARY_DIAGNOSIS_CODE_LINE, DIAGNOSIS_CODE_2_LINE, DIAGNOSIS_CODE_3_LINE, 
+      DIAGNOSIS_CODE_4_LINE, DIAGNOSIS_CODE_5_LINE, DIAGNOSIS_CODE_6_LINE, 
+      DIAGNOSIS_CODE_7_LINE, DIAGNOSIS_CODE_8_LINE, DIAGNOSIS_CODE_9_LINE, 
+      DIAGNOSIS_CODE_10_LINE, DIAGNOSIS_CODE_11_LINE, DIAGNOSIS_CODE_12_LINE, 
+      PRCDR_CODE_1, PRCDR_CODE_2, PRCDR_CODE_3, PRCDR_CODE_4, PRCDR_CODE_5, PRCDR_CODE_6, 
+      PRCDR_CODE_7, PRCDR_CODE_8, PRCDR_CODE_9, PRCDR_CODE_10, PRCDR_CODE_11, PRCDR_CODE_12, 
+      LINE_PRCDR_CODE, MDFR_CODE1, MDFR_CODE2, MDFR_CODE3, MDFR_CODE4, NDC, NDC_DESC, 
+      DRUG_STRENGTH, PRSCRPTN_FILLED_DATE, DAYS_SUPPLY, DRUG_DOSAGE, PACKAGE_SIZE_UOM, 
+      SBMTD_DISPENSED_QUANTITY, PRSCRBR_ID, PRVDR_LCTN_H_SID, NPI, PRVDR_LAST_NAME, 
+      PRVDR_FIRST_NAME, TXNMY_CODE, TXNMY_NAME, PRVDR_TYPE_CODE, SPCLTY_CODE, SPCLTY_NAME, 
+      ADMSN_SOURCE_LKPCD, PATIENT_STATUS_LKPCD, ADMSN_DATE, ADMSN_HOUR, ADMTNG_DIAGNOSIS_CODE, 
+      BLNG_PRVDR_FIRST_NAME, BLNG_PRVDR_LAST_NAME, BLNG_PRVDR_NAME, DRVD_DRG_CODE, 
+      DRVD_DRG_NAME, DSCHRG_DATE, FCLTY_TYPE_CODE, INSRNC_CVRG_CODE, INVC_TYPE_LKPCD, 
+      MDCL_RECORD_NMBR, PRIMARY_DIAGNOSIS_POA_LKPCD, PRIMARY_DIAGNOSIS_POA_NAME, 
+      PRVDR_COUNTY_CODE, SPCL_PRGRM_LKPCD, BSP_GROUP_CID, LAST_PYMNT_DATE, BILL_DATE, 
+      SYSTEM_IN_DATE, TCN_DATE
+      FROM load_raw.mcaid_claim) a"))
+  
+  distinct_tcn <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (DISTINCT CLM_LINE_TCN) FROM load_raw.mcaid_claim"))
   
   
-  if (distinct_rows != total_rows) {
-    # Looks like there are 42 people with extra rows where the only difference is a NULL or different end reason
-    # Still flag as a fail but account for this in the note and continue processing
-    if (total_rows - distinct_rows == 42) {
-      odbc::dbGetQuery(
-        conn = db_claims,
-        glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                     (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({current_batch_id}, 
-                             'load_raw.mcaid_elig',
-                             'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, SECONDARY RAC)', 
-                             'FAIL', 
-                             {Sys.time()}, 
-                             'Known issue where 42 people have duplicate rows but differing end reason. Continued with load.')",
-                       .con = db_claims))
-    } else if (total_rows - distinct_rows != 42) {
-      odbc::dbGetQuery(conn = db_claims,
-                       glue::glue_sql("INSERT INTO metadata.qa_mcaid
+  if (distinct_rows != distinct_tcn) {
+    odbc::dbGetQuery(conn = db_claims,
+                     glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                     (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                     VALUES ({current_batch_id}, 
-                                    'load_raw.mcaid_elig',
-                                    'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, SECONDARY RAC)', 
+                                    'load_raw.mcaid_claim',
+                                    'Distinct TCNs', 
                                     'FAIL',
                                     {Sys.time()},
-                                    'Issue was not the known 42 people with duplicate rows. Investigate further.')",
-                                      .con = db_claims))
-      stop("Number of distinct rows does not match total expected")
-    }
+                                    'No. distinct TCNs did not match rows even after excluding addresses')",
+                                    .con = db_claims))
+    stop("Number of distinct rows does not match total expected")
   } else {
     odbc::dbGetQuery(conn = db_claims,
                      glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'load_raw.mcaid_elig',
-                                  'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, SECONDARY RAC)', 
+                                  'load_raw.mcaid_claim',
+                                  'Distinct TCNs', 
                                   'PASS',
                                   {Sys.time()},
-                                  'Number of distinct rows equals total # rows')",
+                                  'Number of distinct TCNs equals total # rows (after excluding address fields)')",
                                     .con = db_claims))
   }
   
@@ -357,6 +370,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
   }
   
   print("All QA items passed, see results in metadata.qa_mcaid")
+  
   
   #### ADD BATCH ID COLUMN ####
   print("Adding batch ID to SQL table")

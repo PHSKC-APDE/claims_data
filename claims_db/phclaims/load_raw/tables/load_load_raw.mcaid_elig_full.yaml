@@ -50,7 +50,7 @@ table_2012:
     vars_2012: null
     field_term: \t
     row_term: \n
-    row_count: 3277629
+    row_count: 3277595
     date_min: 201201
     date_max: 201212
     date_delivery: 2020-01-31
@@ -59,7 +59,7 @@ table_2013:
     vars_2013: null
     field_term: \t
     row_term: \n
-    row_count: 3317991
+    row_count: 3317936
     date_min: 201301
     date_max: 201312
     date_delivery: 2020-01-31

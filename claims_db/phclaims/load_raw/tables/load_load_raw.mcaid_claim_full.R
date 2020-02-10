@@ -8,7 +8,7 @@
 
 
 load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
-                                            etl_date_max = "2018-12-31",
+                                            etl_date_max = "2019-12-31",
                                             etl_delivery_date = NULL,
                                             etl_note = NULL,
                                             qa_file_row = F) {
@@ -42,7 +42,8 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                               date_min = etl_date_min,
                                               date_max = etl_date_max,
                                               delivery_date = etl_delivery_date, 
-                                              note = etl_note)
+                                              note = etl_note,
+                                              auto_proceed = T)
   
   if (is.na(current_batch_id)) {
     stop("No etl_batch_id. Check metadata.etl_log table")
