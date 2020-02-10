@@ -69,7 +69,10 @@ create_table_f(conn = db_claims,
                overall = T, ind_yr = F)
 
 ### Load table
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_full.R")
+# Call in function
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
+
+load_stage.mcaid_elig_f(full_refresh == T)
 
 
 #### STAGE CLAIM ####
