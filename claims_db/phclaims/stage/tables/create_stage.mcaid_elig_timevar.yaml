@@ -9,6 +9,7 @@ vars:
     tpl: TINYINT
     bsp_group_cid: INTEGER
     full_benefit: TINYINT
+    full_criteria: TINYINT
     cov_type: CHAR(3)
     mco_id: INT
     geo_add1: VARCHAR(255)
