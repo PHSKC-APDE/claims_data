@@ -108,16 +108,16 @@ table_2018:
     date_min: 201801
     date_max: 201812
     date_delivery: 2020-02-07
-table_2018:
+table_2019:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2019.txt
-    vars_2018: null
+    vars_2019: null
     field_term: \t
     row_term: \n
     row_count: 5212831
     date_min: 201901
     date_max: 201912
     date_delivery: 2020-02-07
-combine_years:
+years:
     - 2012
     - 2013
     - 2014

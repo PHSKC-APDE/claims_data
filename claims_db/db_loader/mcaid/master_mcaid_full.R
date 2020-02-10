@@ -33,7 +33,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 #### LOAD_RAW ELIGIBILITY ####
 ### Create tables
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/create_load_raw.mcaid_elig.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_full.yaml",
                overall = T, ind_yr = T, overwrite = T)
 
 
@@ -46,22 +46,20 @@ load_load_raw.mcaid_elig_full_f(etl_date_min = "2012-01-01", etl_date_max = "201
                                 etl_note = "Updated elig tables to accompany corrected claims data")
 
 
-
 #### LOAD_RAW CLAIMS ####
 ### Create tables
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/create_load_raw.mcaid_claim.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
                overall = T, ind_yr = T, overwrite = T)
 
 ### Load tables
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.R")
 
-load_load_raw.mcaid_claim_full_f(etl_date_min = "2012-01-01", etl_date_max = "2018-12-31",
-                                etl_delivery_date = "2019-06-12", 
-                                etl_note = "Updated claims data to correct missing secondary RAC claims",
+load_load_raw.mcaid_claim_full_f(etl_date_min = "2012-01-01", etl_date_max = "2019-12-31",
+                                etl_delivery_date = "2020-02-07", 
+                                etl_note = "Updated claims data to correct missing mass-adjusted claims",
                                 qa_file_row = F)
-
 
 
 #### STAGE ELIG ####
@@ -74,7 +72,6 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_full.R")
 
 
-
 #### STAGE CLAIM ####
 ### Create table
 create_table_f(conn = db_claims, 
@@ -85,161 +82,39 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_full.R")
 
 
-
-
-#### CREATE ELIG ANALYTIC TABLES ####
-#### MCAID_ELIG_DEMO ####
-# Create and load stage version
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig_demo.yaml",
-               overall = T, ind_yr = F, overwrite = T)
-
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.R")
-
-# Pull out run date of stage.mcaid_elig_demo
-last_run_elig_demo <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_elig_demo")[[1]])
-
-# QA stage version
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
-qa_mcaid_elig_demo_f(conn = db_claims, load_only = T)
-
-# Create and load final table
-create_table_f(
-  conn = db_claims, 
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/create_final.mcaid_elig_demo.yaml",
-  overall = T, ind_yr = F, overwrite = T)
-
-load_table_from_sql_f(
-  conn = db_claims,
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml", 
-  truncate = T, truncate_date = F)
-
-# QA final table
-qa_rows_final_elig_demo <- qa_sql_row_count_f(
-  conn = db_claims,
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml",
-  overall = T, ind_yr = F)
-
-odbc::dbGetQuery(
-  conn = db_claims,
-  glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_elig_demo}, 
-                 'final.mcaid_elig_demo',
-                 'Number final rows compared to stage', 
-                 {qa_rows_final_elig_demo$qa_result}, 
-                 {Sys.time()}, 
-                 {qa_rows_final_elig_demo$note})",
-                 .con = db_claims))
-
-
 #### ADDRESS CLEANING ####
-### Create stage table
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_clean.yaml",
-               overall = T, ind_yr = F, overwrite = T)
+### stage.address_clean
+# Run step 1, which identifies new addresses and sets them up to be run through Informatica
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step1.R")
 
-### Call in and run load function
-# Note: using partial load because ref.address_clean already exists
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial.R")
-load_stage.address_clean_partial_f(informatica = F)
+# Run step 2, which processes addresses that were through Informatica and loads to SQL
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step2.R")
 
-#### QA (not sure what yet)
+# QA stage.address_clean
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.address_clean_partial.R")
 
 
-### Move existing ref to archive?
-
-
-### Create and load to final
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.address_clean.yaml",
-               overall = T, ind_yr = F)
-
-
+### ref.address_clean
 load_table_from_sql_f(conn = db_claims, 
                       config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
                       truncate = T, truncate_date = F)
 
+# Check appropriate # rows loaded
+rows_ref <- as.integer(dbGetQuery(db_claims, "SELECT COUNT (*) AS row_cnt FROM ref.address_clean"))
+rows_ref_new <- as.integer(dbGetQuery(db_claims, "SELECT COUNT (*) AS row_cnt FROM stage.address_clean"))
+
+if (rows_ref != rows_ref_new) {
+  stop("Unexpected number of rows loaded to ref.address_clean")
+}
 
 
-#### MCAID_ELIG_TIMEVAR ####
-# Create and load stage version
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig_timevar.yaml",
-               overall = T, ind_yr = F, overwrite = T)
+### stage.address_geocode
+# Currently need to run through manually until all geocoding can be done via R
+# use load_stage.address_geocode_partial.R
 
-time_start <- Sys.time()
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R")
-time_end <- Sys.time()
-print(paste0("stage.mcaid_elig_timevar took ", round(difftime(time_end, time_start, units = "mins"), 2), " mins to make"))
-
-
-# Pull out run date of stage.mcaid_elig_demo
-last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_elig_timevar")[[1]])
-
-# QA stage version
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
-qa_mcaid_elig_timevar_f(conn = db_claims, load_only = T)
-
-
-# Create and load final table
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
-               overall = T, ind_yr = F, overwrite = T)
-
-load_table_from_sql_f(conn = db_claims,
-                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
-                      truncate = T, truncate_date = F)
-
-# QA final table
-qa_rows_final_elig_timevar <- qa_sql_row_count_f(
-  conn = db_claims,
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
-  overall = T, ind_yr = F)
-
-odbc::dbGetQuery(
-  conn = db_claims,
-  glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_elig_timevar}, 
-                 'final.mcaid_elig_timevar',
-                 'Number final rows compared to stage', 
-                 {qa_rows_final_elig_timevar$qa_result}, 
-                 {Sys.time()}, 
-                 {qa_rows_final_elig_timevar$note})",
-                 .con = db_claims))
-
-
-
-#### GEOCODING SETUP ####
-library(sf) # Read shape files
-
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_geocode.R")
-
-### Create stage.address_geocode
-create_table_f(db_claims,
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml",
-               overall = T, ind_yr = F)
-
-### Run function to process geocodes
-# NB. This script is still a WIP and needs to be fleshed out to 
-# accommodate partial refreshes.
-row_load_ref_geo <- stage_address_geocode_f(full_refresh = F)
-
-
-### QA stage.address_geocode
-# How many ZIP centroids?
-# What else?
-
-
-
-### Load to ref.address_geocode
-# Pull out run date of stage.address_geocode
-last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.address_geocode")[[1]])
-
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.address_geocode.yaml",
-               overall = T, ind_yr = F, overwrite = T)
+### ref.address_geocode
+# Also should only be triggered manually until automatic geocoding and QA are built in to stage above
+last_run_geocode <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.address_geocode")[[1]])
 
 load_table_from_sql_f(conn = db_claims,
                       config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
@@ -249,11 +124,11 @@ qa_rows_final <- qa_sql_row_count_f(conn = db_claims,
                                     config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
                                     overall = T, ind_yr = F)
 
-odbc::dbGetQuery(
+DBI::dbExecute(
   conn = db_claims,
   glue::glue_sql("INSERT INTO metadata.qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run}, 
+                 VALUES ({last_run_geocode}, 
                  'ref.address_geocode',
                  'Number final rows compared to stage', 
                  {qa_rows_final$qa_result}, 
@@ -261,52 +136,7 @@ odbc::dbGetQuery(
                  {qa_rows_final$note})",
                  .con = db_claims))
 
-
-
-
-
-
-#### STAGE ANALYTIC TABLES ####
-### CCW
-# Load table to SQL
-load_ccw(conn = db_claims, source = "mcaid")
-
-# QA table
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_ccw.R")
-
-# If QA passes, load to final table
-if (ccw_qa_result == "PASS") {
-  
-  create_table_f(
-    conn = db_claims, 
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml",
-    overall = T, ind_yr = F, overwrite = T)
-  
-  load_table_from_sql_f(
-    conn = db_claims,
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml", 
-    truncate = T, truncate_date = F)
-  
-  # QA final table
-  qa_rows_final_claim_ccw <- qa_sql_row_count_f(
-    conn = db_claims,
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml",
-    overall = T, ind_yr = F)
-  
-  odbc::dbGetQuery(
-    conn = db_claims,
-    glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_ccw}, 
-                 'final.mcaid_claim_ccw',
-                 'Number final rows compared to stage', 
-                 {qa_rows_final_claim_ccw$qa_result}, 
-                 {Sys.time()}, 
-                 {qa_rows_final_claim_ccw$note})",
-                   .con = db_claims))
-} else {
-  warning("CCW table failed QA and was not loaded to final schema")
-}
+rm(last_run_geocode, qa_rows_final)
 
 
 
