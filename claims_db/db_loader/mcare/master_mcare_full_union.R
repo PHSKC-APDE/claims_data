@@ -83,6 +83,7 @@ alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", t
 ### F) Remove "load" suffix from new stage table
 dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_bcarrier_line_load', 'mcare_bcarrier_line';"))
 
+#shuva testing git clone and pull
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 3: mcare_dme_claims ####
