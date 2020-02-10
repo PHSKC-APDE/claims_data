@@ -26,7 +26,7 @@ a.facility_type_code,
 a.service_type_code,
 a.patient_status,
 a.patient_status_code,
-case when a.claim_type_mcare_id = '60' then 1 else 0 end as inpatient_flag,
+case when a.claim_type_mcare_id = '60' and discharge_date is not null then 1 else 0 end as inpatient_flag,
 min(a.admission_date) over(partition by a.claim_header_id) as admission_date,
 max(a.discharge_date) over(partition by a.claim_header_id) as discharge_date,
 a.ipt_admission_type,
@@ -451,7 +451,6 @@ if object_id('tempdb..#temp2') is not null drop table #temp2;
 ------------------
 --STEP 8: Conduct overlap and clustering for ED population health measure (Yale measure)
 --Adaptation of Philip's Medicaid code, which is adaptation of Eli's original code
---Run time: 12 min
 -------------------
 
 -----
