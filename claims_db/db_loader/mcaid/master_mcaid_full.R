@@ -65,14 +65,14 @@ load_load_raw.mcaid_claim_full_f(etl_date_min = "2012-01-01", etl_date_max = "20
 #### STAGE ELIG ####
 ### Create table
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml",
                overall = T, ind_yr = F)
 
 ### Load table
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
-
-load_stage.mcaid_elig_f(full_refresh == T)
+# Run function
+load_stage.mcaid_elig_f(full_refresh = T)
 
 
 #### STAGE CLAIM ####
@@ -82,7 +82,10 @@ create_table_f(conn = db_claims,
                overall = T, ind_yr = F)
 
 ### Load table
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_full.R")
+# Call in function
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
+# Run function
+load_stage.mcaid_claim_f(full_refresh = T)
 
 
 #### ADDRESS CLEANING ####
