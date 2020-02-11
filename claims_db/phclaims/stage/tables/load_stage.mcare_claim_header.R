@@ -36,7 +36,7 @@ load_stage.mcare_claim_header_f <- function() {
     a.service_type_code,
     a.patient_status,
     a.patient_status_code,
-    case when a.claim_type_mcare_id = '60' then 1 else 0 end as inpatient_flag,
+    case when a.claim_type_mcare_id = '60' and discharge_date is not null then 1 else 0 end as inpatient_flag,
     min(a.admission_date) over(partition by a.claim_header_id) as admission_date,
     max(a.discharge_date) over(partition by a.claim_header_id) as discharge_date,
     a.ipt_admission_type,
@@ -589,10 +589,22 @@ load_stage.mcare_claim_header_f <- function() {
 #### Table-level QA script ####
 qa_stage.mcare_claim_header_qa_f <- function() {
   
+  #confirm that claim header is distinct
+  res1 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_claim_header' as 'table', '# of non-distinct headers, expect 0' as qa_type,
+    count(a.claim_header_id) as qa1, qa2 = null
+    from (
+      select claim_header_id, count(*) as header_cnt
+      from PHClaims.stage.mcare_claim_header
+      group by claim_header_id
+    ) as a
+    where a.header_cnt > 1;",
+    .con = db_claims))
+  
   #make sure everyone is in elig_demo
-  res5 <- dbGetQuery(conn = db_claims, glue_sql(
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
   "select 'stage.mcare_claim_header' as 'table', '# members not in elig_demo, expect 0' as qa_type,
-    count(a.id_mcare) as qa
+    count(a.id_mcare) as qa1, qa2 = null
     from stage.mcare_claim_header as a
     left join final.mcare_elig_demo as b
     on a.id_mcare = b.id_mcare
@@ -600,14 +612,73 @@ qa_stage.mcare_claim_header_qa_f <- function() {
   .con = db_claims))
   
   #make sure everyone is in elig_timevar
-  res6 <- dbGetQuery(conn = db_claims, glue_sql(
+  res3 <- dbGetQuery(conn = db_claims, glue_sql(
   "select 'stage.mcare_claim_header' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
-    count(a.id_mcare) as qa
+    count(a.id_mcare) as qa1, qa2 = null
     from stage.mcare_claim_header as a
     left join final.mcare_elig_timevar as b
     on a.id_mcare = b.id_mcare
     where b.id_mcare is null;",
   .con = db_claims))
+  
+  #count unmatched claim types
+  res4 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_claim_header' as 'table', '# of claims with unmatched claim type, expect 0' as qa_type,
+    count(*) as qa1, qa2 = null
+    from PHClaims.stage.mcare_claim_header
+    where claim_type_id is null or claim_type_mcare_id is null;",
+    .con = db_claims))
+  
+  #verify that all inpatient stays have discharge date
+  res5 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_claim_header' as 'table', '# of ipt stays with no discharge date, expect 0' as qa_type,
+    count(*) as qa1, qa2 = null
+    from PHClaims.stage.mcare_claim_header
+    where inpatient_id is not null and discharge_date is null;",
+    .con = db_claims))
+  
+  #verify that no ed_pophealth_id value is used for more than one person
+  res6 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_claim_header' as 'table', '# of ed_pophealth_id values used for >1 person, expect 0' as qa_type,
+    count(a.ed_pophealth_id) as qa1, qa2 = null
+    from (
+      select ed_pophealth_id, count(distinct id_mcare) as id_dcount
+      from PHClaims.stage.mcare_claim_header
+      group by ed_pophealth_id
+    ) as a
+    where a.id_dcount > 1;",
+    .con = db_claims))
+  
+  #verify that ed_pophealth_id does not skip any values
+  res7 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_claim_header' as 'table', 'qa1 = distinct ed_pophealth_id, qa2 = max - min + 1' as qa_type,
+    count(distinct ed_pophealth_id) as qa1, cast(max(ed_pophealth_id) - min(ed_pophealth_id) + 1 as int) as qa2
+    from PHClaims.stage.mcare_claim_header;",
+    .con = db_claims))
+  
+  #verify that there are no rows with ed_perform_id without ed_pophealth_id
+  res8 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_claim_header' as 'table', '# of ed_perform rows with no ed_pophealth, expect 0' as qa_type,
+    count(*) as qa1, qa2 = null
+    from PHClaims.stage.mcare_claim_header
+    where ed_perform_id is not null and ed_pophealth_id is null;",
+    .con = db_claims))
+  
+  #verify that 1-day overlap window was implemented correctly with ed_pophealth_id
+  res9 <- dbGetQuery(conn = db_claims, glue_sql(
+    "with cte as
+    (
+    select * 
+    ,lag(ed_pophealth_id) over(partition by id_mcare, ed_pophealth_id order by first_service_date) as lag_ed_pophealth_id
+    ,lag(first_service_date) over(partition by id_mcare, ed_pophealth_id order by first_service_date) as lag_first_service_date
+    from PHClaims.stage.mcare_claim_header
+    where [ed_pophealth_id] is not null
+    )
+    select 'stage.mcare_claim_header' as 'table', '# of ed_pophealth visits where the overlap date is greater than 1 day, expect 0' as 'qa_type',
+      count(*) as qa1, qa2 = null
+    from PHClaims.stage.mcare_claim_header
+    where [ed_pophealth_id] in (select ed_pophealth_id from cte where abs(datediff(day, lag_first_service_date, first_service_date)) > 1);",
+    .con = db_claims))
 
 res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }
