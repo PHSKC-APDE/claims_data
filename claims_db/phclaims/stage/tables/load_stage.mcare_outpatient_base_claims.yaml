@@ -1,6 +1,6 @@
 schema: stage
 table: mcare_outpatient_base_claims_load
-row_count_expected: 12180232
+row_count_expected: 16548524
 col_count_expected: 86
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
