@@ -8,7 +8,7 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
 
 
-load_stage.mcaid_elig_f <- function(full_refresh = F) {
+load_stage.mcaid_claim_f <- function(full_refresh = F) {
   #### CALL IN CONFIG FILE TO GET VARS ####
   table_config_stage_claim <- yaml::yaml.load(RCurl::getURL(
     "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"
@@ -41,6 +41,7 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
   
   
   #### FIND MOST RECENT BATCH ID FROM SOURCE (LOAD_RAW) ####
+  message("Looking up etl_batch_id")
   current_batch_id <- as.numeric(odbc::dbGetQuery(db_claims,
                                                   glue::glue_sql("SELECT MAX(etl_batch_id) FROM {`from_schema`}.{`from_table`}",
                                                                  .con = db_claims)))
@@ -119,9 +120,10 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
     rows_diff <- rows_stage - rows_load_raw
     row_diff_qa_type <- 'Rows passed from load_raw to stage'
     if (rows_diff != 0) {
-      row_diff_qa_note <- 'Number of rows in stage does not match load_raw'
+      row_diff_qa_note <- paste0('Number of rows in stage (', rows_stage, 
+                                 ') does not match load_raw (', rows_load_raw, ')')
     } else {
-      row_diff_qa_note <- 'Number of rows in stage matches load_raw'
+      row_diff_qa_note <- paste0('Number of rows in stage matches load_raw (', rows_stage, ')')
     }
   }
 
