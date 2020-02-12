@@ -9,7 +9,7 @@ insert into PHClaims.stage.mcare_bcarrier_claims_load with (tablock)
 
 --2014 data
 select
---top 100
+top 100
 encrypted723beneficiaryid as id_mcare
 ,encryptedclaimid as claim_header_id
 ,claimfromdate as first_service_date
@@ -52,7 +52,7 @@ from PHClaims.load_raw.mcare_bcarrier_claims_k_14
 --2015 data
 union
 select
---top 100
+top 100
 bene_id as id_mcare
 ,clm_id as claim_header_id
 ,from_dt as first_service_date
@@ -95,7 +95,7 @@ from PHClaims.load_raw.mcare_bcarrier_claims_j
 --2016 data
 union
 select
---top 100
+top 100
 bene_id as id_mcare
 ,clm_id as claim_header_id
 ,clm_from_dt as first_service_date
@@ -138,7 +138,7 @@ from PHClaims.load_raw.mcare_bcarrier_claims_k
 --2017 data
 union
 select
---top 100
+top 100
 bene_id as id_mcare
 ,clm_id as claim_header_id
 ,clm_from_dt as first_service_date

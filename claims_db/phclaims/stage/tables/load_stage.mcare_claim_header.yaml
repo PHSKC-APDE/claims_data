@@ -13,7 +13,6 @@ vars:
     service_type_code: varchar(255)
     patient_status: varchar(255)
     patient_status_code: varchar(255)
-    billing_provider_npi: bigint
     ed_perform_id: bigint
     ed_pophealth_id: bigint
     inpatient_id: bigint

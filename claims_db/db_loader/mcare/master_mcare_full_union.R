@@ -83,6 +83,7 @@ alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "archive", t
 ### F) Remove "load" suffix from new stage table
 dbSendQuery(conn = db_claims, glue_sql("exec sp_rename 'stage.mcare_bcarrier_line_load', 'mcare_bcarrier_line';"))
 
+#shuva testing git clone and pull
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 3: mcare_dme_claims ####
@@ -430,7 +431,7 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_dme_claims on stage.mcare_dme_claims")))
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_dme_line on stage.mcare_dme_line")))
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_hha_base_claims on stage.mcare_hha_base_claims")))
-#placeholder for hha_revenue_center
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_hha_revenue_center on stage.mcare_hha_revenue_center")))
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_hospice_base_claims on stage.mcare_hospice_base_claims")))
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_hospice_revenue_center on stage.mcare_hospice_revenue_center")))
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_inpatient_base_claims on stage.mcare_inpatient_base_claims")))
