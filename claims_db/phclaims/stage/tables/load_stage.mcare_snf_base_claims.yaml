@@ -1,6 +1,6 @@
 schema: stage
 table: mcare_snf_base_claims_load
-row_count_expected: 264272
+row_count_expected: 347028
 col_count_expected: 90
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS

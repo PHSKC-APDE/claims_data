@@ -1,6 +1,6 @@
 schema: stage
 table: mcare_dme_line_load
-row_count_expected: 4483456
+row_count_expected: 6686609
 col_count_expected: 13
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS

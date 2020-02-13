@@ -58,7 +58,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                         overall = F, ind_yr = T)
     
     # Report results out to SQL table
-    odbc::dbGetQuery(conn = db_claims,
+    DBI::dbExecute(conn = db_claims,
                      glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -84,7 +84,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                  overall = F, ind_yr = T)
   
   # Report results out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -117,7 +117,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                     overall = F, ind_yr = T, combine_yr = T)
   
   # Report individual results out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -128,7 +128,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                         {qa_rows_sql$note[1]})",
                                   .con = db_claims))
   # Report combined years result out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -193,7 +193,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
   
   
   if (distinct_rows != distinct_tcn) {
-    odbc::dbGetQuery(conn = db_claims,
+    DBI::dbExecute(conn = db_claims,
                      glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                     (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                     VALUES ({current_batch_id}, 
@@ -205,7 +205,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                     .con = db_claims))
     stop("Number of distinct rows does not match total expected")
     } else {
-    odbc::dbGetQuery(conn = db_claims,
+      DBI::dbExecute(conn = db_claims,
                      glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -225,7 +225,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                    date_var = "FROM_SRVC_DATE")
   
   # Report individual results out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -236,7 +236,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                         {qa_date_range$note[1]})",
                                   .con = db_claims))
   # Report combined years result out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -263,7 +263,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
   #### ADD BATCH ID COLUMN ####
   print("Adding batch ID to SQL table")
   # Add column to the SQL table and set current batch to the default
-  odbc::dbGetQuery(db_claims,
+  DBI::dbExecute(db_claims,
                    glue::glue_sql(
                      "ALTER TABLE load_raw.mcaid_claim 
                    ADD etl_batch_id INTEGER 
@@ -276,7 +276,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
   
   total_rows <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM load_raw.mcaid_claim"))
   
-  odbc::dbGetQuery(
+  DBI::dbExecute(
     conn = db_claims,
     glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
                    (table_name, qa_item, qa_value, qa_date, note) 

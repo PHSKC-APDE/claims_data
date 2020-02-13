@@ -1,6 +1,6 @@
 schema: stage
 table: mcare_hha_base_claims_load
-row_count_expected: 218745
+row_count_expected: 294436
 col_count_expected: 64
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS

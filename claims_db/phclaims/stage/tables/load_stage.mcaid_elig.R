@@ -22,12 +22,12 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
   from_table <- table_config_stage_elig$from_table
   to_schema <- table_config_stage_elig$to_schema
   to_table <- table_config_stage_elig$to_table
+  vars <- unlist(names(table_config_stage_elig$vars))
   
   if (full_refresh == F) {
     archive_schema <- table_config_stage_elig$archive_schema
+    date_truncate <- table_config_load_elig$overall$date_min
   }
-  
-  date_truncate <- table_config_load_elig$overall$date_min
   
   
   #### CALL IN FUNCTIONS IF NOT ALREADY LOADED ####
@@ -130,7 +130,7 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
       message(glue::glue("{duplicate_type}. Using temp table code to fix."))
       
       ### Pull in vars for making temp tables
-      vars <- unlist(names(table_config_stage_elig$vars))
+      
       # Need to specify which temp table the vars come from
       # Can't handle this just with glue_sql
       # (see https://community.rstudio.com/t/using-glue-sql-s-collapse-with-table-name-identifiers/11633)
@@ -231,12 +231,7 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
   
   
   ### Combine relevant parts of archive and new data
-  message("Recreating stage table")
-  
-  # First create new table
-  create_table_f(db_claims,
-                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml",
-                 overall = T, ind_yr = F, overwrite = F)
+  message("Loading to stage table")
   
   if (full_refresh == F) {
     # Select the source, depending on if deduplication has been carried out
@@ -310,20 +305,20 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
     }
   }
 
+  if (full_refresh == F) {
+    row_diff_qa_type <- 'Rows passed from load_raw AND archive to stage'
+  } else {
+    row_diff_qa_type <- 'Rows passed from load_raw to stage'
+  }
+  
   if (row_diff != 0) {
-    if (full_refresh == F) {
-      row_diff_qa_note <- 'Rows passed from load_raw AND archive to stage'
-    } else {
-      row_diff_qa_note <- 'Rows passed from load_raw to stage'
-    }
-    
     row_diff_qa_fail <- 1
     DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
                                   'stage.mcaid_elig',
-                                  {row_diff_qa_note}, 
+                                  {row_diff_qa_type}, 
                                   'FAIL',
                                   {Sys.time()},
                                   'Issue even after accounting for any duplicate rows. Investigate further.')",
@@ -336,7 +331,7 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
                                   'stage.mcaid_elig',
-                                  {row_diff_qa_note}, 
+                                  {row_diff_qa_type}, 
                                   'PASS',
                                   {Sys.time()},
                                   'Number of rows in stage matches expected (n = {rows_stage})')",
@@ -386,7 +381,10 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
                    'row_count', 
                    '{rows_stage}', 
                    {Sys.time()}, 
-                   'Count after partial refresh')",
+                   {refresh_type})",
+                   refresh_type = ifelse(full_refresh == F, 
+                                         'Count after partial refresh', 
+                                         'Count after full refresh'),
                    .con = db_claims))
   
   
