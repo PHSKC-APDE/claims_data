@@ -169,6 +169,8 @@ system.time(load_stage.mcare_claim_header_f())
 system.time(mcare_claim_header_qa <- qa_stage.mcare_claim_header_qa_f())
 rm(config_url)
 
+### E) Run line-level QA script
+
 ### F) Archive current table
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcare_claim_header")
 
