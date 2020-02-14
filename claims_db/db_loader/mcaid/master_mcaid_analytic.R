@@ -229,23 +229,31 @@ if (fail_tot > 0) {
     "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.yaml"))
   final_mcaid_claim_icdcm_header_config <- yaml::yaml.load(RCurl::getURL(
     "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_icdcm_header.yaml"))
+  archive_mcaid_claim_icdcm_header_config <- yaml::yaml.load(RCurl::getURL(
+    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.mcaid_claim_icdcm_header.yaml"))
   
-  # Track how many rows in stage
+  
+   # Track how many rows in stage
   rows_claim_icdcm_header_stage <- as.integer(odbc::dbGetQuery(
     db_claims, "SELECT COUNT (*) FROM stage.mcaid_claim_icdcm_header"))
   
-  # Alter schema to final table
+  # Alter schema from final to archive
+  alter_schema_f(conn = db_claims, 
+                 from_schema = archive_mcaid_claim_icdcm_header_config$from_schema, 
+                 to_schema = archive_mcaid_claim_icdcm_header_config$to_schema,
+                 table_name = archive_mcaid_claim_icdcm_header_config$to_table,
+                 rename_index = T,
+                 index_name = archive_mcaid_claim_icdcm_header_config$index_name)
+  
+  # Alter schema from stage to final
   alter_schema_f(conn = db_claims, 
                  from_schema = final_mcaid_claim_icdcm_header_config$from_schema, 
                  to_schema = final_mcaid_claim_icdcm_header_config$to_schema,
-                 table_name = final_mcaid_claim_icdcm_header_config$to_table)
+                 table_name = final_mcaid_claim_icdcm_header_config$to_table,
+                 rename_index = T,
+                 index_name = final_mcaid_claim_icdcm_header_config$index_name)
   
-  # Rename index
-  DBI::dbExecute(db_claims,
-                 glue::glue_sql("EXEC sp_rename N'final.mcaid_claim_icdcm_header.{`stage_mcaid_claim_icdcm_header_config$index_name`}', 
-                   N'{`final_mcaid_claim_icdcm_header_config$index_name`}', N'INDEX';",
-                                .con = db_claims))
-  
+
   # QA final table
   rows_claim_icdcm_header_final <- as.integer(odbc::dbGetQuery(
     db_claims, "SELECT COUNT (*) FROM final.mcaid_claim_icdcm_header"))
