@@ -1,20 +1,14 @@
---Code to load data to stage.mcare_hospice_revenue_center
+--Code to load data to stage.mcare_hha_revenue_center
 --Union of single-year files
---Eli Kern (PHSKC-APDE)
---2019-12
---Run time: 1 min
----------------------
----------------------
 --Shuva Dawadi
---2/12/2020
---adding 2017 data codeblock
+--2/11/2020
+--Run time: xx
 
 
-insert into PHClaims.stage.mcare_hospice_revenue_center_load with (tablock)
-
+insert into PHClaims.stage.mcare_hha_revenue_center_load with (tablock)
 --2014 data
 select
-top 100
+top 100 
 bene_id as id_mcare
 ,clm_id as claim_header_id
 ,clm_line_num as claim_line_id
@@ -29,7 +23,7 @@ bene_id as id_mcare
 ,rndrng_physn_npi as provider_rendering_npi
 ,rndrng_physn_spclty_cd as provider_rendering_specialty
 ,getdate() as last_run
-from PHClaims.load_raw.mcare_hospice_revenue_center_k_14
+from PHClaims.load_raw.mcare_hha_revenue_center_k_14
 
 --2015 data
 union
@@ -49,7 +43,7 @@ bene_id as id_mcare
 ,rndrng_physn_npi as provider_rendering_npi
 ,rndrng_physn_spclty_cd as provider_rendering_specialty
 ,getdate() as last_run
-from PHClaims.load_raw.mcare_hospice_revenue_center_k_15
+from PHClaims.load_raw.mcare_hha_revenue_center_k_15
 
 --2016 data
 union
@@ -69,7 +63,7 @@ bene_id as id_mcare
 ,rndrng_physn_npi as provider_rendering_npi
 ,rndrng_physn_spclty_cd as provider_rendering_specialty
 ,getdate() as last_run
-from PHClaims.load_raw.mcare_hospice_revenue_center_k_16
+from PHClaims.load_raw.mcare_hha_revenue_center_k_16
 
 --2017 data
 union
@@ -89,4 +83,4 @@ bene_id as id_mcare
 ,rndrng_physn_npi as provider_rendering_npi
 ,rndrng_physn_spclty_cd as provider_rendering_specialty
 ,getdate() as last_run
-from PHClaims.load_raw.mcare_hospice_revenue_center_k_17;
+from PHClaims.load_raw.mcare_hha_revenue_center_k_17;
