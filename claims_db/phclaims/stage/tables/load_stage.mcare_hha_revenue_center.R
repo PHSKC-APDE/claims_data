@@ -21,7 +21,7 @@ load_stage.mcare_hha_revenue_center_f <- function() {
     insert into PHClaims.stage.mcare_hha_revenue_center_load with (tablock)
     --2014 data
     select
-    top 100 
+    --top 100 
     bene_id as id_mcare
     ,clm_id as claim_header_id
     ,clm_line_num as claim_line_id
@@ -41,7 +41,7 @@ load_stage.mcare_hha_revenue_center_f <- function() {
     --2015 data
     union
     select
-    top 100
+    --top 100
     bene_id as id_mcare
     ,clm_id as claim_header_id
     ,clm_line_num as claim_line_id
@@ -61,7 +61,7 @@ load_stage.mcare_hha_revenue_center_f <- function() {
     --2016 data
     union
     select
-    top 100
+    --top 100
     bene_id as id_mcare
     ,clm_id as claim_header_id
     ,clm_line_num as claim_line_id
@@ -81,7 +81,7 @@ load_stage.mcare_hha_revenue_center_f <- function() {
     --2017 data
     union
     select
-    top 100
+    --top 100
     bene_id as id_mcare
     ,clm_id as claim_header_id
     ,clm_line_num as claim_line_id
