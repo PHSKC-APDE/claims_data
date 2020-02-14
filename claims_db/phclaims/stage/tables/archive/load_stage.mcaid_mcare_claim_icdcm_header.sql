@@ -11,6 +11,7 @@ insert into PHClaims.stage.mcaid_mcare_claim_icdcm_header with (tablock)
 
 --Medicaid claim ICD-CM header
 select
+top 100
 b.id_apde
 ,'mcaid' as source_desc
 ,cast(a.claim_header_id as varchar(255)) --because mcare uses alpha characters
@@ -20,7 +21,7 @@ b.id_apde
 ,a.icdcm_norm
 ,a.icdcm_version
 ,a.icdcm_number
-,file_type_mcare = null
+,filetype_mcare = null
 ,getdate() as last_run
 from PHClaims.final.mcaid_claim_icdcm_header as a
 left join PHClaims.final.xwalk_apde_mcaid_mcare_pha as b
@@ -30,16 +31,17 @@ union
 
 --Medicare claim ICD-CM header
 select
+top 100
 b.id_apde
 ,'mcare' as source_desc
 ,a.claim_header_id
-,first_service_date = null
-,last_service_date = null
+,first_service_date
+,last_service_date
 ,a.icdcm_raw
 ,a.icdcm_norm
 ,a.icdcm_version
 ,cast(a.icdcm_number as varchar(255)) collate SQL_Latin1_General_CP1_CI_AS --resolve collation conflict
-,a.filetype as file_type_mcare
+,a.filetype_mcare
 ,getdate() as last_run
 from PHClaims.final.mcare_claim_icdcm_header as a
 left join PHClaims.final.xwalk_apde_mcaid_mcare_pha as b
