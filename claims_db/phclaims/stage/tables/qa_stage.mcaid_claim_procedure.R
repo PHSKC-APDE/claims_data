@@ -214,7 +214,7 @@ if (max(num_procedure_overall$pct_change, na.rm = T) > 0 &
     min(num_procedure_overall$pct_change, na.rm = T) >= 0) {
   num_procedure_fail <- 0
   DBI::dbExecute(conn = db_claims, 
-  glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
                    'stage.mcaid_claim_procedure',
@@ -222,9 +222,11 @@ if (max(num_procedure_overall$pct_change, na.rm = T) > 0 &
                    'PASS', 
                    {Sys.time()}, 
                    'The following years had more procedures than in the final schema table: ", 
-                 "{DBI::SQL(glue::glue_collapse(num_procedure_overall$claim_year[num_procedure_overall$pct_change > 0], 
-                        sep = ', ', last = ' and '))}')",
-                 .con = db_claims))
+                                "{DBI::SQL(glue::glue_collapse(
+                 glue::glue_data(data.frame(year = num_procedure_overall$claim_year[num_procedure_overall$pct_change > 0], 
+                                            pct = round(abs(num_procedure_overall$pct_change[num_procedure_overall$pct_change > 0]), 2)),
+                                 '{year} ({pct}% more)'), sep = ', ', last = ' and '))}')",
+                                .con = db_claims))
 } else if (min(num_procedure_overall$pct_change, na.rm = T) + max(num_procedure_overall$pct_change, na.rm = T) == 0) {
   num_procedure_fail <- 1
   DBI::dbExecute(conn = db_claims, 
@@ -240,7 +242,7 @@ if (max(num_procedure_overall$pct_change, na.rm = T) > 0 &
 } else if (min(num_procedure_overall$pct_change, na.rm = T) < 0) {
   num_procedure_fail <- 1
   DBI::dbExecute(conn = db_claims, 
-  glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
                    'stage.mcaid_claim_procedure',
@@ -248,11 +250,12 @@ if (max(num_procedure_overall$pct_change, na.rm = T) > 0 &
                    'FAIL', 
                    {Sys.time()}, 
                    'The following years had fewer procedures than in the final schema table: ", 
-                 "{DBI::SQL(glue::glue_collapse(num_procedure_overall$claim_year[num_procedure_overall$pct_change < 0], 
-                        sep = ', ', last = ' and '))}')",
+                                "{DBI::SQL(glue::glue_collapse(
+                 glue::glue_data(data.frame(year = num_procedure_overall$claim_year[num_procedure_overall$pct_change < 0], 
+                                            pct = round(abs(num_procedure_overall$pct_change[num_procedure_overall$pct_change < 0]), 2)),
+                                 '{year} ({pct}% fewer)'), sep = ', ', last = ' and '))}')",
                  .con = db_claims))
 }
-
 
 
 #### SUM UP FAILURES ####
