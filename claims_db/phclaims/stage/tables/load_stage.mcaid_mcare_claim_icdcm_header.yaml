@@ -10,6 +10,6 @@ vars:
     icdcm_norm: varchar(255)
     icdcm_version: tinyint
     icdcm_number: varchar(255)
-    filetype_mcare: tinyint
+    filetype_mcare: varchar(255)
     last_run: datetime
 
