@@ -78,7 +78,7 @@ load_stage.mcaid_elig_f(full_refresh = T)
 #### STAGE CLAIM ####
 ### Create table
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml",
                overall = T, ind_yr = F)
 
 ### Load table

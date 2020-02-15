@@ -211,8 +211,10 @@ if (max(num_claim_overall$pct_change, na.rm = T) > 0 &
                    'PASS', 
                    {Sys.time()}, 
                    'The following years had more claim lines than in the final schema table: ", 
-                 "{DBI::SQL(glue::glue_collapse(num_claim_overall$claim_year[num_claim_overall$pct_change > 0], 
-                        sep = ', ', last = ' and '))}')",
+                 "{DBI::SQL(glue::glue_collapse(
+                 glue::glue_data(data.frame(year = num_claim_overall$claim_year[num_claim_overall$pct_change > 0], 
+                                            pct = round(abs(num_claim_overall$pct_change[num_claim_overall$pct_change > 0]), 2)),
+                                 '{year} ({pct}% more)'), sep = ', ', last = ' and '))}')",
                  .con = db_claims))
 } else if (min(num_claim_overall$pct_change, na.rm = T) + max(num_claim_overall$pct_change, na.rm = T) == 0) {
   num_claim_fail <- 1
@@ -237,8 +239,10 @@ if (max(num_claim_overall$pct_change, na.rm = T) > 0 &
                    'FAIL', 
                    {Sys.time()}, 
                    'The following years had fewer claim lines than in the final schema table: ", 
-                 "{DBI::SQL(glue::glue_collapse(num_claim_overall$claim_year[num_claim_overall$pct_change < 0], 
-                        sep = ', ', last = ' and '))}')",
+                 "{DBI::SQL(glue::glue_collapse(
+                 glue::glue_data(data.frame(year = num_claim_overall$claim_year[num_claim_overall$pct_change < 0], 
+                                            pct = round(abs(num_claim_overall$pct_change[num_claim_overall$pct_change < 0]), 2)),
+                                 '{year} ({pct}% more)'), sep = ', ', last = ' and '))}')",
                  .con = db_claims))
 }
 
