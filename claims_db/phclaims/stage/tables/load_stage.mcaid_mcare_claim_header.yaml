@@ -8,6 +8,7 @@ vars:
     claim_type_mcare_id: varchar(255)
     claim_type_id: tinyint
     file_type_mcare: tinyint
+    filetype_mcare: varchar(255)
     first_service_date: date
     last_service_date: date
     patient_status: varchar(255)
@@ -41,6 +42,19 @@ vars:
     ccs_mult2_plain_lang: varchar(500)
     ccs_final_description: varchar(500)
     ccs_final_plain_lang: varchar(500)
-    filetype_mcare: varchar(255)
+    mental_dx1: tinyint
+    mental_dxany: tinyint
+    mental_dx_rda_any: tinyint
+    sud_dx_rda_any: tinyint
+    maternal_dx1: tinyint
+    maternal_broad_dx1: tinyint
+    newborn_dx1: tinyint
+    ipt_medsurg: tinyint
+    ipt_bh: tinyint
+    ipt_sdoh: tinyint
+    ed_sdoh: tinyint
+    sdoh_any: tinyint
+    intent: varchar(255)
+    mechanism: varchar(255)
     last_run: datetime
 
