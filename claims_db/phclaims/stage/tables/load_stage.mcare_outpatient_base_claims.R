@@ -27,7 +27,7 @@ load_stage.mcare_outpatient_base_claims_f <- function() {
     
     --2014 data
     select
-    top 100
+    --top 100
     bene_id as id_mcare
     ,clm_id as claim_header_id
     ,clm_from_dt as first_service_date
@@ -119,7 +119,7 @@ load_stage.mcare_outpatient_base_claims_f <- function() {
     --2015 data
     union
     select
-    top 100
+    --top 100
     bene_id as id_mcare
     ,clm_id as claim_header_id
     ,clm_from_dt as first_service_date
@@ -211,7 +211,7 @@ load_stage.mcare_outpatient_base_claims_f <- function() {
     --2016 data
     union
     select
-    top 100
+    --top 100
     bene_id as id_mcare
     ,clm_id as claim_header_id
     ,clm_from_dt as first_service_date
@@ -303,7 +303,7 @@ load_stage.mcare_outpatient_base_claims_f <- function() {
     --2017 data 
     union
     select
-    top 100
+    --top 100
     bene_id as id_mcare
     ,clm_id as claim_header_id
     ,clm_from_dt as first_service_date
