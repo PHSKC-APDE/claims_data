@@ -75,31 +75,31 @@ bene_id as id_mcare
 ,icd_dgns_e_cd10 as dxecode_11
 ,icd_dgns_e_cd11 as dxecode_12
 ,icd_dgns_e_cd12 as dxecode_13
-,icd_prcdr_cd1 as pc01
-,icd_prcdr_cd2 as pc02
-,icd_prcdr_cd3 as pc03
-,icd_prcdr_cd4 as pc04
-,icd_prcdr_cd5 as pc05
-,icd_prcdr_cd6 as pc06
-,icd_prcdr_cd7 as pc07
-,icd_prcdr_cd8 as pc08
-,icd_prcdr_cd9 as pc09
-,icd_prcdr_cd10 as pc10
-,icd_prcdr_cd11 as pc11
-,icd_prcdr_cd12 as pc12
-,icd_prcdr_cd13 as pc13
-,icd_prcdr_cd14 as pc14
-,icd_prcdr_cd15 as pc15
-,icd_prcdr_cd16 as pc16
-,icd_prcdr_cd17 as pc17
-,icd_prcdr_cd18 as pc18
-,icd_prcdr_cd19 as pc19
-,icd_prcdr_cd20 as pc20
-,icd_prcdr_cd21 as pc21
-,icd_prcdr_cd22 as pc22
-,icd_prcdr_cd23 as pc23
-,icd_prcdr_cd24 as pc24
-,icd_prcdr_cd25 as pc25
+,cast(icd_prcdr_cd1 as varchar(255)) as pc01
+,cast(icd_prcdr_cd2 as varchar(255)) as pc02
+,cast(icd_prcdr_cd3 as varchar(255)) as pc03
+,cast(icd_prcdr_cd4 as varchar(255)) as pc04
+,cast(icd_prcdr_cd5 as varchar(255)) as pc05
+,cast(icd_prcdr_cd6 as varchar(255)) as pc06
+,cast(icd_prcdr_cd7 as varchar(255)) as pc07
+,cast(icd_prcdr_cd8 as varchar(255)) as pc08
+,cast(icd_prcdr_cd9 as varchar(255)) as pc09
+,cast(icd_prcdr_cd10 as varchar(255)) as pc10
+,cast(icd_prcdr_cd11 as varchar(255)) as pc11
+,cast(icd_prcdr_cd12 as varchar(255)) as pc12
+,cast(icd_prcdr_cd13 as varchar(255)) as pc13
+,cast(icd_prcdr_cd14 as varchar(255)) as pc14
+,cast(icd_prcdr_cd15 as varchar(255)) as pc15
+,cast(icd_prcdr_cd16 as varchar(255)) as pc16
+,cast(icd_prcdr_cd17 as varchar(255)) as pc17
+,cast(icd_prcdr_cd18 as varchar(255)) as pc18
+,cast(icd_prcdr_cd19 as varchar(255)) as pc19
+,cast(icd_prcdr_cd20 as varchar(255)) as pc20
+,cast(icd_prcdr_cd21 as varchar(255)) as pc21
+,cast(icd_prcdr_cd22 as varchar(255)) as pc22
+,cast(icd_prcdr_cd23 as varchar(255)) as pc23
+,cast(icd_prcdr_cd24 as varchar(255)) as pc24
+,cast(icd_prcdr_cd25 as varchar(255)) as pc25
 ,getdate() as last_run
 from PHClaims.load_raw.mcare_outpatient_base_claims_j_14
 
@@ -167,31 +167,31 @@ bene_id as id_mcare
 ,icd_dgns_e_cd10 as dxecode_11
 ,icd_dgns_e_cd11 as dxecode_12
 ,icd_dgns_e_cd12 as dxecode_13
-,icd_prcdr_cd1 as pc01
-,icd_prcdr_cd2 as pc02
-,icd_prcdr_cd3 as pc03
-,icd_prcdr_cd4 as pc04
-,icd_prcdr_cd5 as pc05
-,icd_prcdr_cd6 as pc06
-,icd_prcdr_cd7 as pc07
-,icd_prcdr_cd8 as pc08
-,icd_prcdr_cd9 as pc09
-,icd_prcdr_cd10 as pc10
-,icd_prcdr_cd11 as pc11
-,icd_prcdr_cd12 as pc12
-,icd_prcdr_cd13 as pc13
-,icd_prcdr_cd14 as pc14
-,icd_prcdr_cd15 as pc15
-,icd_prcdr_cd16 as pc16
-,icd_prcdr_cd17 as pc17
-,icd_prcdr_cd18 as pc18
-,icd_prcdr_cd19 as pc19
-,icd_prcdr_cd20 as pc20
-,icd_prcdr_cd21 as pc21
-,icd_prcdr_cd22 as pc22
-,icd_prcdr_cd23 as pc23
-,icd_prcdr_cd24 as pc24
-,icd_prcdr_cd25 as pc25
+,cast(icd_prcdr_cd1 as varchar(255)) as pc01
+,cast(icd_prcdr_cd2 as varchar(255)) as pc02
+,cast(icd_prcdr_cd3 as varchar(255)) as pc03
+,cast(icd_prcdr_cd4 as varchar(255)) as pc04
+,cast(icd_prcdr_cd5 as varchar(255)) as pc05
+,cast(icd_prcdr_cd6 as varchar(255)) as pc06
+,cast(icd_prcdr_cd7 as varchar(255)) as pc07
+,cast(icd_prcdr_cd8 as varchar(255)) as pc08
+,cast(icd_prcdr_cd9 as varchar(255)) as pc09
+,cast(icd_prcdr_cd10 as varchar(255)) as pc10
+,cast(icd_prcdr_cd11 as varchar(255)) as pc11
+,cast(icd_prcdr_cd12 as varchar(255)) as pc12
+,cast(icd_prcdr_cd13 as varchar(255)) as pc13
+,cast(icd_prcdr_cd14 as varchar(255)) as pc14
+,cast(icd_prcdr_cd15 as varchar(255)) as pc15
+,cast(icd_prcdr_cd16 as varchar(255)) as pc16
+,cast(icd_prcdr_cd17 as varchar(255)) as pc17
+,cast(icd_prcdr_cd18 as varchar(255)) as pc18
+,cast(icd_prcdr_cd19 as varchar(255)) as pc19
+,cast(icd_prcdr_cd20 as varchar(255)) as pc20
+,cast(icd_prcdr_cd21 as varchar(255)) as pc21
+,cast(icd_prcdr_cd22 as varchar(255)) as pc22
+,cast(icd_prcdr_cd23 as varchar(255)) as pc23
+,cast(icd_prcdr_cd24 as varchar(255)) as pc24
+,cast(icd_prcdr_cd25 as varchar(255)) as pc25
 ,getdate() as last_run
 from PHClaims.load_raw.mcare_outpatient_base_claims_j
 
@@ -259,31 +259,31 @@ bene_id as id_mcare
 ,icd_dgns_e_cd10 as dxecode_11
 ,icd_dgns_e_cd11 as dxecode_12
 ,icd_dgns_e_cd12 as dxecode_13
-,icd_prcdr_cd1 as pc01
-,icd_prcdr_cd2 as pc02
-,icd_prcdr_cd3 as pc03
-,icd_prcdr_cd4 as pc04
-,icd_prcdr_cd5 as pc05
-,icd_prcdr_cd6 as pc06
-,icd_prcdr_cd7 as pc07
-,icd_prcdr_cd8 as pc08
-,icd_prcdr_cd9 as pc09
-,icd_prcdr_cd10 as pc10
-,icd_prcdr_cd11 as pc11
-,icd_prcdr_cd12 as pc12
-,icd_prcdr_cd13 as pc13
-,icd_prcdr_cd14 as pc14
-,icd_prcdr_cd15 as pc15
-,icd_prcdr_cd16 as pc16
-,icd_prcdr_cd17 as pc17
-,icd_prcdr_cd18 as pc18
-,icd_prcdr_cd19 as pc19
-,icd_prcdr_cd20 as pc20
-,icd_prcdr_cd21 as pc21
-,icd_prcdr_cd22 as pc22
-,icd_prcdr_cd23 as pc23
-,icd_prcdr_cd24 as pc24
-,icd_prcdr_cd25 as pc25
+,cast(icd_prcdr_cd1 as varchar(255)) as pc01
+,cast(icd_prcdr_cd2 as varchar(255)) as pc02
+,cast(icd_prcdr_cd3 as varchar(255)) as pc03
+,cast(icd_prcdr_cd4 as varchar(255)) as pc04
+,cast(icd_prcdr_cd5 as varchar(255)) as pc05
+,cast(icd_prcdr_cd6 as varchar(255)) as pc06
+,cast(icd_prcdr_cd7 as varchar(255)) as pc07
+,cast(icd_prcdr_cd8 as varchar(255)) as pc08
+,cast(icd_prcdr_cd9 as varchar(255)) as pc09
+,cast(icd_prcdr_cd10 as varchar(255)) as pc10
+,cast(icd_prcdr_cd11 as varchar(255)) as pc11
+,cast(icd_prcdr_cd12 as varchar(255)) as pc12
+,cast(icd_prcdr_cd13 as varchar(255)) as pc13
+,cast(icd_prcdr_cd14 as varchar(255)) as pc14
+,cast(icd_prcdr_cd15 as varchar(255)) as pc15
+,cast(icd_prcdr_cd16 as varchar(255)) as pc16
+,cast(icd_prcdr_cd17 as varchar(255)) as pc17
+,cast(icd_prcdr_cd18 as varchar(255)) as pc18
+,cast(icd_prcdr_cd19 as varchar(255)) as pc19
+,cast(icd_prcdr_cd20 as varchar(255)) as pc20
+,cast(icd_prcdr_cd21 as varchar(255)) as pc21
+,cast(icd_prcdr_cd22 as varchar(255)) as pc22
+,cast(icd_prcdr_cd23 as varchar(255)) as pc23
+,cast(icd_prcdr_cd24 as varchar(255)) as pc24
+,cast(icd_prcdr_cd25 as varchar(255)) as pc25
 ,getdate() as last_run
 from PHClaims.load_raw.mcare_outpatient_base_claims_k
 
@@ -351,30 +351,30 @@ bene_id as id_mcare
 ,icd_dgns_e_cd10 as dxecode_11
 ,icd_dgns_e_cd11 as dxecode_12
 ,icd_dgns_e_cd12 as dxecode_13
-,icd_prcdr_cd1 as pc01
-,icd_prcdr_cd2 as pc02
-,icd_prcdr_cd3 as pc03
-,icd_prcdr_cd4 as pc04
-,icd_prcdr_cd5 as pc05
-,icd_prcdr_cd6 as pc06
-,icd_prcdr_cd7 as pc07
-,icd_prcdr_cd8 as pc08
-,icd_prcdr_cd9 as pc09
-,icd_prcdr_cd10 as pc10
-,icd_prcdr_cd11 as pc11
-,icd_prcdr_cd12 as pc12
-,icd_prcdr_cd13 as pc13
-,icd_prcdr_cd14 as pc14
-,icd_prcdr_cd15 as pc15
-,icd_prcdr_cd16 as pc16
-,icd_prcdr_cd17 as pc17
-,icd_prcdr_cd18 as pc18
-,icd_prcdr_cd19 as pc19
-,icd_prcdr_cd20 as pc20
-,icd_prcdr_cd21 as pc21
-,icd_prcdr_cd22 as pc22
-,icd_prcdr_cd23 as pc23
-,icd_prcdr_cd24 as pc24
-,icd_prcdr_cd25 as pc25
+,cast(icd_prcdr_cd1 as varchar(255)) as pc01
+,cast(icd_prcdr_cd2 as varchar(255)) as pc02
+,cast(icd_prcdr_cd3 as varchar(255)) as pc03
+,cast(icd_prcdr_cd4 as varchar(255)) as pc04
+,cast(icd_prcdr_cd5 as varchar(255)) as pc05
+,cast(icd_prcdr_cd6 as varchar(255)) as pc06
+,cast(icd_prcdr_cd7 as varchar(255)) as pc07
+,cast(icd_prcdr_cd8 as varchar(255)) as pc08
+,cast(icd_prcdr_cd9 as varchar(255)) as pc09
+,cast(icd_prcdr_cd10 as varchar(255)) as pc10
+,cast(icd_prcdr_cd11 as varchar(255)) as pc11
+,cast(icd_prcdr_cd12 as varchar(255)) as pc12
+,cast(icd_prcdr_cd13 as varchar(255)) as pc13
+,cast(icd_prcdr_cd14 as varchar(255)) as pc14
+,cast(icd_prcdr_cd15 as varchar(255)) as pc15
+,cast(icd_prcdr_cd16 as varchar(255)) as pc16
+,cast(icd_prcdr_cd17 as varchar(255)) as pc17
+,cast(icd_prcdr_cd18 as varchar(255)) as pc18
+,cast(icd_prcdr_cd19 as varchar(255)) as pc19
+,cast(icd_prcdr_cd20 as varchar(255)) as pc20
+,cast(icd_prcdr_cd21 as varchar(255)) as pc21
+,cast(icd_prcdr_cd22 as varchar(255)) as pc22
+,cast(icd_prcdr_cd23 as varchar(255)) as pc23
+,cast(icd_prcdr_cd24 as varchar(255)) as pc24
+,cast(icd_prcdr_cd25 as varchar(255)) as pc25
 ,getdate() as last_run
 from PHClaims.load_raw.mcare_outpatient_base_claims_k_17;
