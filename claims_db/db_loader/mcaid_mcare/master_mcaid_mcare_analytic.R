@@ -205,28 +205,37 @@ alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", t
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcaid_mcare_claim_header")
 
 
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 6: mcaid_mcare_claim_ccw ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_ccw.yaml"
+
+### B) Create table
+create_table_f(conn = db_claims, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+
+### C) Load tables
+system.time(load_ccw(conn = db_claims, source = "mcaid_mcare"))
+
+### D) Line-level QA
+#Run script: qa_stage.mcaid_mcare_claim_ccw.sql
+
+### F) Archive current table
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcaid_mcare_claim_ccw")
+
+### G) Alter schema on new table
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcaid_mcare_claim_ccw")
 
 
-
-
-
-
-
-
-
-## OLDER CODE ###
-#### MCAID_MCARE_CLAIM_ICDCM_HEADER ####
-# Create and load stage
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_icdcm_header.R")
-
-
-#### MCAID_MCARE_CLAIM_HEADER ####
-# Create and load stage
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_header.R")
-
-
-#### MCAID_MCARE_CLAIM_CCW ####
-# Create and load stage (also currently loading to final)
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_ccw.R")
-
-
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### INDEX ALL TABLES ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_line on final.mcaid_mcare_claim_line")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_icdcm_header on final.mcaid_mcare_claim_icdcm_header")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_procedure on final.mcaid_mcare_claim_procedure")))
+#system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_provider on final.mcaid_mcare_claim_provider")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_header on final.mcaid_mcare_claim_header")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_ccw on final.mcaid_mcare_claim_ccw")))
