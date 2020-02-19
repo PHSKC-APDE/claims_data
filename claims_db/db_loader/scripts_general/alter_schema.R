@@ -88,27 +88,30 @@ alter_schema_f <- function(
   
   
   #### RENAME INDICES ####
-  if (length(old_index_names$index_name) > 0) {
-    # If there are multiple indices, check the number of names are the same
-    if (length(old_index_names$index_name) > length(index_name)) {
-      warning(paste0("There were ", length(old_index_names$index_name), " existing indices but only ",
-                     length(index_name), "new names provided. Only the first ",
-                     length(index_name), " index/indices will be renamed."))
-    } else if (length(old_index_names$index_name) < length(index_name)) {
-      warning(paste0("There were ", length(old_index_names$index_name), " existing indices but ",
-                     length(index_name), "new names provided. Only the first ",
-                     length(index_name), " new names will be used."))
-    }
-    
-    lapply(seq_along(index_name), function(x) {
-      DBI::dbExecute(db_claims,
-                     glue::glue_sql("EXEC sp_rename N'{`to_schema`}.{`table_name`}.{`old_index_names$index_name[x]`}', 
+  if (rename_index == T) {
+    if (length(old_index_names$index_name) > 0) {
+      # If there are multiple indices, check the number of names are the same
+      if (length(old_index_names$index_name) > length(index_name)) {
+        warning(paste0("There were ", length(old_index_names$index_name), " existing indices but only ",
+                       length(index_name), "new names provided. Only the first ",
+                       length(index_name), " index/indices will be renamed."))
+      } else if (length(old_index_names$index_name) < length(index_name)) {
+        warning(paste0("There were ", length(old_index_names$index_name), " existing indices but ",
+                       length(index_name), "new names provided. Only the first ",
+                       length(index_name), " new names will be used."))
+      }
+      
+      lapply(seq_along(index_name), function(x) {
+        DBI::dbExecute(db_claims,
+                       glue::glue_sql("EXEC sp_rename N'{`to_schema`}.{`table_name`}.{`old_index_names$index_name[x]`}', 
                    N'{`index_name[x]`}', N'INDEX';",
-                                    .con = db_claims))
-    })
-  } else {
-    warning("No existing index was found to rename")
+                                      .con = db_claims))
+      })
+    } else {
+      warning("No existing index was found to rename")
+    }
   }
+
   
   #### Finish with a message ####
   message(glue::glue("Table {table_name} has been switched from {from_schema} to {to_schema} schema."))
