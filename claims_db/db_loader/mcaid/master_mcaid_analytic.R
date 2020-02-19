@@ -149,20 +149,30 @@ if (fail_tot > 0) {
   last_run_claim_line <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_line")[[1]])
   
   # Pull in config files
-  stage_mcaid_claim_line_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_line.yaml"))
   final_mcaid_claim_line_config <- yaml::yaml.load(RCurl::getURL(
     "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_line.yaml"))
+  archive_mcaid_claim_line_config <- yaml::yaml.load(RCurl::getURL(
+    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.mcaid_claim_line.yaml"))
   
   # Track how many rows in stage
   rows_claim_line_stage <- as.integer(odbc::dbGetQuery(
     db_claims, "SELECT COUNT (*) FROM stage.mcaid_claim_line"))
   
+  # Alter schema from final to archive
+  alter_schema_f(conn = db_claims, 
+                 from_schema = archive_mcaid_claim_line_config$from_schema, 
+                 to_schema = archive_mcaid_claim_line_config$to_schema,
+                 table_name = archive_mcaid_claim_line_config$to_table,
+                 rename_index = T,
+                 index_name = archive_mcaid_claim_line_config$index_name)
+  
   # Alter schema to final table
   alter_schema_f(conn = db_claims, 
                  from_schema = final_mcaid_claim_line_config$from_schema, 
                  to_schema = final_mcaid_claim_line_config$to_schema,
-                 table_name = final_mcaid_claim_line_config$to_table)
+                 table_name = final_mcaid_claim_line_config$to_table,
+                 rename_index = T,
+                 index_name = final_mcaid_claim_line_config$index_name)
   
   # Rename index
   DBI::dbExecute(db_claims,
@@ -200,8 +210,8 @@ if (fail_tot > 0) {
                      .con = db_claims))
   }
   
-  rm(last_run_claim_line, stage_mcaid_claim_line_config, 
-     final_mcaid_claim_line_config, rows_claim_line_stage, rows_claim_line_final)
+  rm(last_run_claim_line, final_mcaid_claim_line_config, archive_mcaid_claim_line_config,
+     rows_claim_line_stage, rows_claim_line_final)
 }
 rm(fail_tot)
 
@@ -225,8 +235,6 @@ if (fail_tot > 0) {
   last_run_claim_icdcm_header <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_icdcm_header")[[1]])
   
   # Pull in config files
-  stage_mcaid_claim_icdcm_header_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.yaml"))
   final_mcaid_claim_icdcm_header_config <- yaml::yaml.load(RCurl::getURL(
     "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_icdcm_header.yaml"))
   archive_mcaid_claim_icdcm_header_config <- yaml::yaml.load(RCurl::getURL(
@@ -253,7 +261,6 @@ if (fail_tot > 0) {
                  rename_index = T,
                  index_name = final_mcaid_claim_icdcm_header_config$index_name)
   
-
   # QA final table
   rows_claim_icdcm_header_final <- as.integer(odbc::dbGetQuery(
     db_claims, "SELECT COUNT (*) FROM final.mcaid_claim_icdcm_header"))
@@ -284,8 +291,8 @@ if (fail_tot > 0) {
                      .con = db_claims))
   }
   
-  rm(last_run_claim_icdcm_header, stage_mcaid_claim_icdcm_header_config, 
-     final_mcaid_claim_icdcm_header_config, rows_claim_icdcm_header_stage, rows_claim_icdcm_header_final)
+  rm(last_run_claim_icdcm_header, final_mcaid_claim_icdcm_header_config, 
+     archive_mcaid_claim_icdcm_header_config, rows_claim_icdcm_header_stage, rows_claim_icdcm_header_final)
 }
 rm(fail_tot)
 
@@ -310,26 +317,30 @@ if (fail_tot > 0) {
   last_run_claim_procedure <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_procedure")[[1]])
   
   # Pull in config files
-  stage_mcaid_claim_procedure_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_procedure.yaml"))
   final_mcaid_claim_procedure_config <- yaml::yaml.load(RCurl::getURL(
     "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_procedure.yaml"))
+  archive_mcaid_claim_procedure_config <- yaml::yaml.load(RCurl::getURL(
+    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.mcaid_claim_procedure.yaml"))
   
   # Track how many rows in stage
   rows_claim_procedure_stage <- as.integer(odbc::dbGetQuery(
     db_claims, "SELECT COUNT (*) FROM stage.mcaid_claim_procedure"))
   
-  # Alter schema to final table
+  # Alter schema from final to archive
+  alter_schema_f(conn = db_claims, 
+                 from_schema = archive_mcaid_claim_procedure_config$from_schema, 
+                 to_schema = archive_mcaid_claim_procedure_config$to_schema,
+                 table_name = archive_mcaid_claim_procedure_config$to_table,
+                 rename_index = T,
+                 index_name = archive_mcaid_claim_procedure_config$index_name)
+  
+  # Alter schema from stage to final
   alter_schema_f(conn = db_claims, 
                  from_schema = final_mcaid_claim_procedure_config$from_schema, 
                  to_schema = final_mcaid_claim_procedure_config$to_schema,
-                 table_name = final_mcaid_claim_procedure_config$to_table)
-  
-  # Rename index
-  DBI::dbExecute(db_claims,
-                 glue::glue_sql("EXEC sp_rename N'final.mcaid_claim_procedure.{`stage_mcaid_claim_procedure_config$index_name`}', 
-                   N'{`final_mcaid_claim_procedure_config$index_name`}', N'INDEX';",
-                                .con = db_claims))
+                 table_name = final_mcaid_claim_procedure_config$to_table,
+                 rename_index = T,
+                 index_name = final_mcaid_claim_procedure_config$index_name)
   
   # QA final table
   rows_claim_procedure_final <- as.integer(odbc::dbGetQuery(
@@ -361,8 +372,8 @@ if (fail_tot > 0) {
                      .con = db_claims))
   }
   
-  rm(last_run_claim_procedure, stage_mcaid_claim_procedure_config, 
-     final_mcaid_claim_procedure_config, rows_claim_procedure_stage, rows_claim_procedure_final)
+  rm(last_run_claim_procedure, final_mcaid_claim_procedure_config, 
+     archive_mcaid_claim_procedure_config, rows_claim_procedure_stage, rows_claim_procedure_final)
 }
 rm(fail_tot)
 
@@ -386,26 +397,30 @@ if (fail_tot > 0) {
   last_run_claim_pharm <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_pharm")[[1]])
   
   # Pull in config files
-  stage_mcaid_claim_pharm_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_pharm.yaml"))
   final_mcaid_claim_pharm_config <- yaml::yaml.load(RCurl::getURL(
     "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_pharm.yaml"))
+  archive_mcaid_claim_pharm_config <- yaml::yaml.load(RCurl::getURL(
+    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.mcaid_claim_pharm.yaml"))
   
   # Track how many rows in stage
   rows_claim_pharm_stage <- as.integer(odbc::dbGetQuery(
     db_claims, "SELECT COUNT (*) FROM stage.mcaid_claim_pharm"))
   
-  # Alter schema to final table
+  # Alter schema from final to archive
+  alter_schema_f(conn = db_claims, 
+                 from_schema = archive_mcaid_claim_pharm_config$from_schema, 
+                 to_schema = archive_mcaid_claim_pharm_config$to_schema,
+                 table_name = archive_mcaid_claim_pharm_config$to_table,
+                 rename_index = T,
+                 index_name = archive_mcaid_claim_pharm_config$index_name)
+  
+  # Alter schema from stage to final
   alter_schema_f(conn = db_claims, 
                  from_schema = final_mcaid_claim_pharm_config$from_schema, 
                  to_schema = final_mcaid_claim_pharm_config$to_schema,
-                 table_name = final_mcaid_claim_pharm_config$to_table)
-  
-  # Rename index
-  DBI::dbExecute(db_claims,
-                 glue::glue_sql("EXEC sp_rename N'final.mcaid_claim_pharm.{`stage_mcaid_claim_pharm_config$index_name`}', 
-                   N'{`final_mcaid_claim_pharm_config$index_name`}', N'INDEX';",
-                                .con = db_claims))
+                 table_name = final_mcaid_claim_pharm_config$to_table,
+                 rename_index = T,
+                 index_name = final_mcaid_claim_pharm_config$index_name)
   
   # QA final table
   rows_claim_pharm_final <- as.integer(odbc::dbGetQuery(
@@ -437,8 +452,8 @@ if (fail_tot > 0) {
                      .con = db_claims))
   }
   
-  rm(last_run_claim_pharm, stage_mcaid_claim_pharm_config, 
-     final_mcaid_claim_pharm_config, rows_claim_pharm_stage, rows_claim_pharm_final)
+  rm(last_run_claim_pharm, final_mcaid_claim_pharm_config, archive_mcaid_claim_pharm_config,
+     rows_claim_pharm_stage, rows_claim_pharm_final)
 }
 rm(fail_tot)
 
@@ -463,27 +478,31 @@ if (sum(claim_line_fail, claim_icdcm_fail, claim_procedure_fail, claim_pharm_fai
     last_run_claim_header <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_header")[[1]])
     
     # Pull in config files
-    stage_mcaid_claim_header_config <- yaml::yaml.load(RCurl::getURL(
-      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.yaml"))
     final_mcaid_claim_header_config <- yaml::yaml.load(RCurl::getURL(
       "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_header.yaml"))
+    archive_mcaid_claim_header_config <- yaml::yaml.load(RCurl::getURL(
+      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.mcaid_claim_header.yaml"))
     
     # Track how many rows in stage
     rows_claim_header_stage <- as.integer(odbc::dbGetQuery(
       db_claims, "SELECT COUNT (*) FROM stage.mcaid_claim_header"))
     
-    # Alter schema to final table
+    # Alter schema from final to archive
+    alter_schema_f(conn = db_claims, 
+                   from_schema = archive_mcaid_claim_header_config$from_schema, 
+                   to_schema = archive_mcaid_claim_header_config$to_schema,
+                   table_name = archive_mcaid_claim_header_config$to_table,
+                   rename_index = T,
+                   index_name = archive_mcaid_claim_header_config$index_name)
+    
+    # Alter schema from stage to final
     alter_schema_f(conn = db_claims, 
                    from_schema = final_mcaid_claim_header_config$from_schema, 
                    to_schema = final_mcaid_claim_header_config$to_schema,
-                   table_name = final_mcaid_claim_header_config$to_table)
-    
-    # Rename index
-    DBI::dbExecute(db_claims,
-                   glue::glue_sql("EXEC sp_rename N'final.mcaid_claim_header.{`stage_mcaid_claim_header_config$index_name`}', 
-                   N'{`final_mcaid_claim_header_config$index_name`}', N'INDEX';",
-                                  .con = db_claims))
-    
+                   table_name = final_mcaid_claim_header_config$to_table,
+                   rename_index = T,
+                   index_name = final_mcaid_claim_header_config$index_name)
+
     # QA final table
     rows_claim_header_final <- as.integer(odbc::dbGetQuery(
       db_claims, "SELECT COUNT (*) FROM final.mcaid_claim_header"))
@@ -514,8 +533,8 @@ if (sum(claim_line_fail, claim_icdcm_fail, claim_procedure_fail, claim_pharm_fai
                        .con = db_claims))
     }
     
-    rm(last_run_claim_header, stage_mcaid_claim_header_config, 
-       final_mcaid_claim_header_config, rows_claim_header_stage, rows_claim_header_final)
+    rm(last_run_claim_header, final_mcaid_claim_header_config, archive_mcaid_claim_header_config, 
+       rows_claim_header_stage, rows_claim_header_final)
   }
   rm(claim_line_fail, claim_icdcm_fail, claim_procedure_fail, claim_pharm_fail)
   rm(fail_tot)
