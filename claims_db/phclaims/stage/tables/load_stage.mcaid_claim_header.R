@@ -372,7 +372,7 @@ DBI::dbExecute(db_claims,
   FROM
   (SELECT DISTINCT billing_provider_npi FROM ##header) a
   LEFT JOIN
-  (SELECT ref_provider.npi, 1 AS pc_provider
+  (SELECT DISTINCT ref_provider.npi, 1 AS pc_provider
   FROM
   (SELECT npi, primary_taxonomy, secondary_taxonomy FROM ref.kc_provider_master) ref_provider
   INNER JOIN

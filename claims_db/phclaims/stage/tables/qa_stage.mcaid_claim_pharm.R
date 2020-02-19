@@ -156,11 +156,11 @@ if (max(num_rx_overall$pct_change, na.rm = T) > 0 &
                    'Change in number of pharmacy claim row', 
                    'FAIL', 
                    {Sys.time()}, 
-                   'The following years had more pharmacy claim rows than in the final schema table: ", 
+                   'The following years had fewer pharmacy claim rows than in the final schema table: ", 
                  "{DBI::SQL(glue::glue_collapse(
                  glue::glue_data(data.frame(year = num_rx_overall$claim_year[num_rx_overall$pct_change < 0], 
                                             pct = round(abs(num_rx_overall$pct_change[num_rx_overall$pct_change < 0]), 2)),
-                                 '{year} ({pct}% more)'), sep = ', ', last = ' and '))}')",
+                                 '{year} ({pct}% fewer)'), sep = ', ', last = ' and '))}')",
                  .con = db_claims))
 }
 
