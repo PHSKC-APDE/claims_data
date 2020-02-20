@@ -52,7 +52,7 @@ DBI::dbExecute(db_claims,
 
 
 
-#### CREATE ELIG ANALYTIC TABLES -----------------------------------------------
+#### CREATE ELIG ANALYTIC TABLES ------------------------------------------- ----
 #### MCAID_MCARE_ELIG_DEMO ####
 # Create and load stage
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.R")
@@ -94,7 +94,7 @@ DBI::dbExecute(db_claims,
 
 
 
-#### CREATE CLAIMS TABLES ------------------------------------------------------
+#### CREATE CLAIMS TABLES -------------------------------------------------- ----
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 1: mcaid_mcare_claim_line ####
