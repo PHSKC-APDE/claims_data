@@ -233,9 +233,9 @@ alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", tab
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### INDEX ALL TABLES ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_line on final.mcaid_mcare_claim_line")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_icdcm_header on final.mcaid_mcare_claim_icdcm_header")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_procedure on final.mcaid_mcare_claim_procedure")))
-#system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_provider on final.mcaid_mcare_claim_provider")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_header on final.mcaid_mcare_claim_header")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcaid_mcare_claim_ccw on final.mcaid_mcare_claim_ccw")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_line on final.mcaid_mcare_claim_line")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_icdcm_header on final.mcaid_mcare_claim_icdcm_header")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_procedure on final.mcaid_mcare_claim_procedure")))
+#system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_provider on final.mcaid_mcare_claim_provider")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_header on final.mcaid_mcare_claim_header")))
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_ccw on final.mcaid_mcare_claim_ccw")))
