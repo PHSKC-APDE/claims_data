@@ -7,9 +7,10 @@
   # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
   #
   # Notes: BEFORE RUNNING THIS CODE, PLEASE BE SURE THE FOLLOWING ARE UP TO DATE ... 
-  #       - [PHClaims].[stage].[mcaid_elig_timevar]
-  #       - [PHClaims].[stage].[mcare_elig_timevar]
-  #       - [PHClaims].[stage].[xwalk_apde_mcaid_mcare_pha]
+  #       - [PHClaims].[final].[mcaid_elig_timevar]
+  #       - [PHClaims].[final].[mcare_elig_timevar]
+  #       - [PHClaims].[final].[xwalk_apde_mcaid_mcare_pha]
+  #
 
 ## Set up R Environment ----
   # rm(list=ls())  # clear memory
@@ -18,7 +19,7 @@
   # options("scipen"=999) # turn off scientific notation  
   # options(warning.length = 8170) # get lengthy warnings, needed for SQL
   # 
-  # start.time <- Sys.time()
+  start.time <- Sys.time()
   
   kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv"
   
@@ -67,6 +68,7 @@
     gc()
 
 ## (5) Duals Part 1: Create master list of time intervals by ID ----
+  #-- READ ME !!! ----
     # Originally from ... 
     # https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_pha_mcaid_join.R
     # confirmed on 11/4/2019 that the results are 100% the same as an alternate method where
@@ -86,22 +88,32 @@
 		  mutate(overlap_type = case_when(
 		    # First ID the non-matches
 		    is.na(from_date_mcare) | is.na(from_date_mcaid) ~ 0,
+		    
 		    # Then figure out which overlapping date comes first
+		    
 		    # Exactly the same dates
-		    from_date_mcare == from_date_mcaid & to_date_mcare == to_date_mcaid ~ 1,
+		      from_date_mcare == from_date_mcaid & to_date_mcare == to_date_mcaid ~ 1,
+		    
 		    # mcare before mcaid (or exactly the same dates)
-		    from_date_mcare <= from_date_mcaid & from_date_mcaid <= to_date_mcare & 
-		      to_date_mcare <= to_date_mcaid ~ 2,
+		      from_date_mcare <= from_date_mcaid & from_date_mcaid <= to_date_mcare & 
+		        to_date_mcare <= to_date_mcaid ~ 2,
+		    
 		    # mcaid before mcare
-		    from_date_mcaid <= from_date_mcare & from_date_mcare <= to_date_mcaid & 
-		      to_date_mcaid <= to_date_mcare ~ 3,
-		    # mcaid dates competely within mcare dates or vice versa
-		    from_date_mcaid >= from_date_mcare & to_date_mcaid <= to_date_mcare ~ 4,
-		    from_date_mcare >= from_date_mcaid & to_date_mcare <= to_date_mcaid ~ 5,
+		      from_date_mcaid <= from_date_mcare & from_date_mcare <= to_date_mcaid & 
+		        to_date_mcaid <= to_date_mcare ~ 3,
+		    
+		    # mcaid competely nested within mcare 
+		      from_date_mcaid >= from_date_mcare & to_date_mcaid <= to_date_mcare ~ 4,
+		    
+		    # mcare completely nested within mcaid
+		      from_date_mcare >= from_date_mcaid & to_date_mcare <= to_date_mcaid ~ 5,
+		    
 		    # mcare coverage only before mcaid (or mcaid only after mcare)
-		    from_date_mcare < from_date_mcaid & to_date_mcare < from_date_mcaid ~ 6,
+		      from_date_mcare < from_date_mcaid & to_date_mcare < from_date_mcaid ~ 6,
+		    
 		    # mcare coverage only after mcaid (or mcaid only before mcare)
-		    from_date_mcare > to_date_mcaid & to_date_mcare > to_date_mcaid ~ 7,
+		      from_date_mcare > to_date_mcaid & to_date_mcare > to_date_mcaid ~ 7,
+		    
 		    # Anyone rows that are left
 		    TRUE ~ 8),
 		    # Calculate overlapping dates
@@ -297,53 +309,38 @@
 		rm(temp, temp_ext)
 
 ## (6) Duals Part 2: join mcare/mcaid data based on ID & overlapping time periods ----      
-      duals[, c("from_date", "to_date") := lapply(.SD, as.integer), .SDcols = c("from_date", "to_date")] # ensure type==integer for foverlaps()
-      setkey(duals, id_apde, from_date, to_date)    
+		  # ensure type==integer for foverlaps() ----
+        duals[, c("from_date", "to_date") := lapply(.SD, as.integer), .SDcols = c("from_date", "to_date")] 
+        setkey(duals, id_apde, from_date, to_date)    
+        
+        mcare.dual[, c("from_date", "to_date") := lapply(.SD, as.integer), .SDcols = c("from_date", "to_date")] 
+        setkey(mcare.dual, id_apde, from_date, to_date)
+        
+        mcaid.dual[, c("from_date", "to_date") := lapply(.SD, as.integer), .SDcols = c("from_date", "to_date")] 
+        setkey(mcaid.dual, id_apde, from_date, to_date)
       
-      mcare.dual[, c("from_date", "to_date") := lapply(.SD, as.integer), .SDcols = c("from_date", "to_date")] # ensure type==integer for foverlaps()
-      setkey(mcare.dual, id_apde, from_date, to_date)
+      # join on the Medicaid duals data (using foverlaps in data.table) ----
+        duals <- foverlaps(duals, mcaid.dual, type = "any", mult = "all")
+        duals[, from_date := i.from_date] # the complete set of proper from_dates are in i.from_date
+        duals[, to_date := i.to_date] # the complete set of proper to_dates are in i.to_date
+        duals[, c("i.from_date", "i.to_date") := NULL] # no longer needed
+        setkey(duals, id_apde, from_date, to_date)
       
-      mcaid.dual[, c("from_date", "to_date") := lapply(.SD, as.integer), .SDcols = c("from_date", "to_date")] # ensure type==integer for foverlaps()
-      setkey(mcaid.dual, id_apde, from_date, to_date)
-      
-      # join on the Medicaid duals data (using foverlaps ... https://github.com/Rdatatable/data.table/blob/master/man/foverlaps.Rd)
-      duals <- foverlaps(duals, mcaid.dual, type = "any", mult = "all")
-      duals[, from_date := i.from_date] # the complete set of proper from_dates are in i.from_date
-      duals[, to_date := i.to_date] # the complete set of proper to_dates are in i.to_date
-      duals[, c("i.from_date", "i.to_date") := NULL] # no longer needed
-      setkey(duals, id_apde, from_date, to_date)
-      
-      # join on the Medicare duals data
-      duals <- foverlaps(duals, mcare.dual, type = "any", mult = "all")
-      duals[, from_date := i.from_date] # the complete set of proper from_dates are in i.from_date
-      duals[, to_date := i.to_date] # the complete set of proper to_dates are in i.to_date
-      duals[, c("i.from_date", "i.to_date") := NULL] # no longer needed    
+      # join on the Medicare duals data (using foverlaps in data.table) ----
+        duals <- foverlaps(duals, mcare.dual, type = "any", mult = "all")
+        duals[, from_date := i.from_date] # the complete set of proper from_dates are in i.from_date
+        duals[, to_date := i.to_date] # the complete set of proper to_dates are in i.to_date
+        duals[, c("i.from_date", "i.to_date") := NULL] # no longer needed    
 
 ## (7) Append duals and non-duals data ----
       timevar <- rbindlist(list(duals, mcare.solo, mcaid.solo), use.names = TRUE, fill = TRUE)
       setkey(timevar, id_apde, from_date) # order dual data
       
 ## (8) Collapse data if dates are contiguous and all data is the same ----
-    # Create unique ID for data chunks ----
-      timevar.vars <- setdiff(names(timevar), c("from_date", "to_date")) # all vars except date vars
-      timevar[, group := .GRP, by = timevar.vars] # create group id
-      timevar[, group := cumsum( c(0, diff(group)!=0) )] # in situation like a:a:a:b:b:b:b:a:a:a, want to distinguish first set of "a" from second set of "a"
-    
-    # Create unique ID for contiguous times within a given data chunk ----
+      timevar[, gr := cumsum(from_date - shift(to_date, fill=1) != 1), by = c(setdiff(names(timevar), c("from_date", "to_date")))] # unique group # (gr) for each set of contiguous dates & constant data 
+      timevar <- timevar[, .(from_date=min(from_date), to_date=max(to_date)), by = c(setdiff(names(timevar), c("from_date", "to_date")))] 
+      timevar[, gr := NULL]
       setkey(timevar, id_apde, from_date)
-      timevar[, prev_to_date := c(NA, to_date[-.N]), by = "group"] # create row with the previous 'to_date', MUCH faster than the shift "lag" function in data.table
-      timevar[, diff.prev := from_date - prev_to_date] # difference between from_date & prev_to_date will be 1 (day) if they are contiguous
-      timevar[diff.prev != 1, diff.prev := NA] # set to NA if difference is not 1 day, i.e., it is not contiguous, i.e., it starts a new contiguous chunk
-      timevar[is.na(diff.prev), contig.id := .I] # Give a unique number for each start of a new contiguous chunk (i.e., section starts with NA)
-      setkey(timevar, group, from_date) # need to order the data so the following line will work.
-      timevar[, contig.id  := contig.id[1], by=  .( group , cumsum(!is.na(contig.id))) ] # fill forward by group
-      timevar[, c("prev_to_date", "diff.prev") := NULL] # drop columns that were just intermediates
-      
-    # Collapse rows where data chunks are constant and time is contiguous ----      
-      timevar[, from_date := min(from_date), by = c("group", "contig.id")]
-      timevar[, to_date := max(to_date), by = c("group", "contig.id")]
-      timevar[, c("group", "contig.id") := NULL]
-      timevar <- unique(timevar)
     
 ## (9) Prep for pushing to SQL ----
     # Create mcare, mcaid, & dual flags ----
@@ -401,171 +398,15 @@
 ## (11) Simple QA ----
     # Confirm that all rows were loaded to SQL ----
       stage.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.mcaid_mcare_elig_timevar"))
-      if(stage.count != nrow(timevar))
-        stop("Mismatching row count, error writing data")    
+      if(stage.count != nrow(timevar)){stop("Mismatching row count, error reading or writing data")} else{print("All data appear to have been successfully loaded to SQL...")}    
     
-    # check that rows in stage are not less than the last time that it was created ----
-      last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_mcare_elig_timevar")[[1]])
-    
-      # count number of rows
-      previous_rows <- as.numeric(
-        odbc::dbGetQuery(db_claims, 
-                         "SELECT c.qa_value from
-                         (SELECT a.* FROM
-                         (SELECT * FROM metadata.qa_mcare_values
-                         WHERE table_name = 'stage.mcaid_mcare_elig_timevar' AND
-                         qa_item = 'row_count') a
-                         INNER JOIN
-                         (SELECT MAX(qa_date) AS max_date 
-                         FROM metadata.qa_mcare_values
-                         WHERE table_name = 'stage.mcaid_mcare_elig_timevar' AND
-                         qa_item = 'row_count') b
-                         ON a.qa_date = b.max_date)c"))
-      
-      if(is.na(previous_rows)){previous_rows = 0}
-      
-      row_diff <- stage.count - previous_rows
-      
-      if (row_diff < 0) {
-        odbc::dbGetQuery(
-          conn = db_claims,
-          glue::glue_sql("INSERT INTO metadata.qa_mcare
-                         (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
-                         'stage.mcaid_mcare_elig_timevar',
-                         'Number new rows compared to most recent run', 
-                         'FAIL', 
-                         {Sys.time()}, 
-                         'There were {row_diff} fewer rows in the most recent table 
-                         ({stage.count} vs. {previous_rows})')",
-                         .con = db_claims))
-        
-        problem.row_diff <- glue::glue("Fewer rows than found last time.  
-                                       Check metadata.qa_mcare for details (last_run = {last_run})
-                                       \n")
-      } else {
-        odbc::dbGetQuery(
-          conn = db_claims,
-          glue::glue_sql("INSERT INTO metadata.qa_mcare
-                         (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
-                         'stage.mcaid_mcare_elig_timevar',
-                         'Number new rows compared to most recent run', 
-                         'PASS', 
-                         {Sys.time()}, 
-                         'There were {row_diff} more rows in the most recent table 
-                         ({stage.count} vs. {previous_rows})')",
-                         .con = db_claims))
-        
-        problem.row_diff <- glue::glue(" ") # no problem, so empty error message
-        
-      }
-    
-    # check that the number of distinct IDs not less than the last time that it was created ----
-      # get count of unique id (each id should only appear once)
-      current.unique.id <- as.numeric(odbc::dbGetQuery(
-        db_claims, "SELECT COUNT (DISTINCT id_apde) 
-        FROM stage.mcaid_mcare_elig_timevar"))
-      
-      previous.unique.id <- as.numeric(
-        odbc::dbGetQuery(db_claims, 
-                         "SELECT c.qa_value from
-                         (SELECT a.* FROM
-                         (SELECT * FROM metadata.qa_mcare_values
-                         WHERE table_name = 'stage.mcaid_mcare_elig_timevar' AND
-                         qa_item = 'id_count') a
-                         INNER JOIN
-                         (SELECT MAX(qa_date) AS max_date 
-                         FROM metadata.qa_mcare_values
-                         WHERE table_name = 'stage.mcaid_mcare_elig_timevar' AND
-                         qa_item = 'id_count') b
-                         ON a.qa_date = b.max_date)c"))
-      
-      if(is.na(previous.unique.id)){previous.unique.id = 0}
-      
-      id_diff <- current.unique.id - previous.unique.id
-      
-      if (id_diff < 0) {
-        odbc::dbGetQuery(
-          conn = db_claims,
-          glue::glue_sql("INSERT INTO metadata.qa_mcare
-                         (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
-                         'stage.mcaid_mcare_elig_timevar',
-                         'Number distinct IDs compared to most recent run', 
-                         'FAIL', 
-                         {Sys.time()}, 
-                         'There were {id_diff} fewer IDs in the most recent table 
-                         ({current.unique.id} vs. {previous.unique.id})')",
-                         .con = db_claims))
-        
-        problem.id_diff <- glue::glue("Fewer unique IDs than found last time.  
-                                       Check metadata.qa_mcare for details (last_run = {last_run})
-                                       \n")
-      } else {
-        odbc::dbGetQuery(
-          conn = db_claims,
-          glue::glue_sql("INSERT INTO metadata.qa_mcare
-                         (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
-                         'stage.mcaid_mcare_elig_timevar',
-                         'Number distinct IDs compared to most recent run', 
-                         'PASS', 
-                         {Sys.time()}, 
-                         'There were {id_diff} more IDs in the most recent table 
-                         ({current.unique.id} vs. {previous.unique.id})')",
-                         .con = db_claims))
-        
-        problem.id_diff <- glue::glue(" ") # no problem, so empty error message
-      }
-    
-    # create summary of errors ---- 
-      problems <- glue::glue(
-        problem.row_diff, "\n",
-        problem.id_diff)
-
-## (12) Fill qa_mcare_values table ----
-    qa.values <- glue::glue_sql("INSERT INTO metadata.qa_mcare_values
-                                (table_name, qa_item, qa_value, qa_date, note) 
-                                VALUES ('stage.mcaid_mcare_elig_timevar',
-                                'row_count', 
-                                {stage.count}, 
-                                {Sys.time()}, 
-                                '')",
-                                .con = db_claims)
-    
-    odbc::dbGetQuery(conn = db_claims, qa.values)
-    
-    qa.values2 <- glue::glue_sql("INSERT INTO metadata.qa_mcare_values
-                                (table_name, qa_item, qa_value, qa_date, note) 
-                                VALUES ('stage.mcaid_mcare_elig_timevar',
-                                'id_count', 
-                                {current.unique.id}, 
-                                {Sys.time()}, 
-                                '')",
-                                .con = db_claims)
-    
-    odbc::dbGetQuery(conn = db_claims, qa.values2)
-    
-
-## (13) Print error messages ----
-    if(problems >1){
-      message(glue::glue("WARNING ... MCAID_MCARE_ELIG_TIMEVAR FAILED AT LEAST ONE QA TEST", "\n",
-                         "Summary of problems in MCAID_MCARE_ELIG_TIMEVAR: ", "\n", 
-                         problems))
-    }else{message("Staged MCAID_MCARE_ELIG_TIMEVAR passed all QA tests")}
-
-## (14) Clean up ----
+## (12) Clean up ----
     rm(apde, mcaid.dual, mcaid.solo, mcare.dual, mcare.solo, dual.id)
-    rm(yaml.url)
-    rm(duals, timevar)
     rm(table_config)
-    rm(stage.count, last_run, previous_rows, row_diff)
-    rm(current.unique.id, previous.unique.id, id_diff)
-    rm(qa.values, qa.values2)
-    rm(problem.row_diff, problem.id_diff, problems)
-    rm(timevar.vars)
+    rm(duals, timevar)
+    rm(yaml.url)
     rm(kc.zips.url)
+
     
 ## The end! ----
     run.time <- Sys.time() - start.time
