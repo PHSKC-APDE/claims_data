@@ -7,22 +7,17 @@
   # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
   #
 
-## Set up R Environment ----
-  # rm(list=ls())  # clear memory
-  # pacman::p_load(data.table, odbc, DBI, lubridate) # load packages
-  # options("scipen"=999) # turn off scientific notation  
-  # options(warning.length = 8170) # get lengthy warnings, needed for SQL
+## Open the function ----
+qa_mcaid_mcare_elig_demo_f <- function(conn = db_claims, load_only = F) {
   
-  start.time <- Sys.time()
-
-## (1) Connect to SQL Server ----    
-  # db_claims <- dbConnect(odbc(), "PHClaims51")   
+## (1) Set up ----    
+  stage.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.mcaid_mcare_elig_demo"))
+  last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_mcare_elig_demo")[[1]])
   
 ## (2) Simple QA ----
-    # check that rows in stage are not less than the last time that it was created ----
-      stage.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.mcaid_mcare_elig_demo"))
-      last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_mcare_elig_demo")[[1]])
+  if (load_only == F) {
     
+    # check that rows in stage are not less than the last time that it was created ----
       # count number of rows
       previous_rows <- as.numeric(
         odbc::dbGetQuery(db_claims, 
@@ -122,7 +117,8 @@
       problems <- glue::glue(
         problem.ids, "\n",
         problem.row_diff)
-
+  } # close condition "if (load_only == F)" 
+  
 ## (4) Fill qa_xwalk_values table ----
     qa.values <- glue::glue_sql("INSERT INTO metadata.qa_xwalk_values
                                 (table_name, qa_item, qa_value, qa_date, note) 
@@ -136,13 +132,14 @@
     odbc::dbGetQuery(conn = db_claims, qa.values)
 
 ## (5) Print error messages ----
-    if(problems >1){
-      message(glue::glue("WARNING ... MCARE_ELIG_DEMO FAILED AT LEAST ONE QA TEST", "\n",
-                         "Summary of problems in MCARE_ELIG_DEMO: ", "\n", 
-                         problems))
-    }else{message("Staged MCAID_MCARE_ELIG_DEMO passed all QA tests")}
+    if (load_only == F) {
+      if(problems >1){
+        message(glue::glue("WARNING ... MCARE_ELIG_DEMO FAILED AT LEAST ONE QA TEST", "\n",
+                           "Summary of problems in MCARE_ELIG_DEMO: ", "\n", 
+                           problems))
+      }else{message("Staged MCAID_MCARE_ELIG_DEMO passed all QA tests")}
+    }
+    
+} # close the function
 
 ## The end! ----
-    run.time <- Sys.time() - start.time
-    print(run.time)
-    
