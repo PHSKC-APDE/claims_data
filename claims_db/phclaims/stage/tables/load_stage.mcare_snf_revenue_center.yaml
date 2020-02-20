@@ -1,6 +1,6 @@
 schema: stage
 table: mcare_snf_revenue_center_load
-row_count_expected: 2234111
+row_count_expected: 2935754
 col_count_expected: 14
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS

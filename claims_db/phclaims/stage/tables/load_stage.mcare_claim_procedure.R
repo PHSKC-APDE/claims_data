@@ -519,7 +519,7 @@ qa_stage.mcare_claim_procedure_qa_f <- function() {
     count(*) as qa
     from (
     	select distinct a.id_mcare, a.claim_header_id, b.first_service_date,
-    	b.last_service_date, a.procedure_code_hcpcs
+    	b.last_service_date, a.procedure_code_hcpcs, a.procedure_code_hcps_modifier_1, a.procedure_code_hcps_modifier_2
     	from stage.mcare_bcarrier_line as a
     	left join stage.mcare_bcarrier_claims as b
     	on a.claim_header_id = b.claim_header_id

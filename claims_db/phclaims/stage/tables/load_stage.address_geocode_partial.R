@@ -94,158 +94,179 @@ adds_coded_unmatch <- adds_coded_esri %>%
                                 geo_zip_clean, "USA", sep = ", "))
 
 
-### Run through the HERE geocoder
-# Get an API here: https://developer.here.com
-if ("rstudioapi" %in% installed.packages()[,"Package"]) {
-  app_id <- rstudioapi::askForPassword(prompt = 'Please enter HERE app id: ')
-  app_code <- rstudioapi::askForPassword(prompt = 'Please enter HERE app code: ')
-} else {
-  app_id <- readline(prompt = "Please enter HERE app id: ")
-  app_code <- readline(prompt = "Please enter HERE app code: ")
-}
-
-here_url <- "http://geocoder.api.here.com/6.2/geocode.json"
-
-
-geocode_here_f <- function(address, here_app_code = app_code, here_app_id = app_id) {
-  
-  if (!is.character(address)) {
-    stop("'address' must be a character string")
+if (nrow(adds_coded_unmatch) > 0) {
+  ### Run through the HERE geocoder
+  # Get an API here: https://developer.here.com
+  if ("rstudioapi" %in% installed.packages()[,"Package"]) {
+    app_id <- rstudioapi::askForPassword(prompt = 'Please enter HERE app id: ')
+    app_code <- rstudioapi::askForPassword(prompt = 'Please enter HERE app code: ')
   } else {
-    add_text <- address
+    app_id <- readline(prompt = "Please enter HERE app id: ")
+    app_code <- readline(prompt = "Please enter HERE app code: ")
   }
   
-  # Query HERE servers (make sure API key is stored)
-  geo_query <- httr::GET(here_url, 
-                         query = list(app_id = here_app_id,
-                                      app_code = here_app_code,
-                                      searchtext = add_text))
+  here_url <- "http://geocoder.api.here.com/6.2/geocode.json"
   
-  # Convert results to a list
-  geo_reply <- httr::content(geo_query)
   
-  # Set up response for when answer is not specific enough
-  answer <- data.frame(lat = NA,
-                       lon = NA,
-                       formatted_address = NA,
-                       address_type = NA)
-  
-  # Check for a result
-  if (length(geo_reply$Response$View) > 0) {
+  geocode_here_f <- function(address, here_app_code = app_code, here_app_id = app_id) {
     
-    # Convert to a data frame
-    geo_reply <- as.data.frame(geo_reply$Response$View)
+    if (!is.character(address)) {
+      stop("'address' must be a character string")
+    } else {
+      add_text <- address
+    }
     
-    answer <- answer %>%
-      mutate(
-        lat = geo_reply$Result.Location.NavigationPosition.Latitude,
-        lon = geo_reply$Result.Location.DisplayPosition.Longitude,
-        formatted_address = geo_reply$Result.Location.Address.Label,
-        address_type = geo_reply$Result.MatchLevel
-      )
+    # Query HERE servers (make sure API key is stored)
+    geo_query <- httr::GET(here_url, 
+                           query = list(app_id = here_app_id,
+                                        app_code = here_app_code,
+                                        searchtext = add_text))
+    
+    # Convert results to a list
+    geo_reply <- httr::content(geo_query)
+    
+    # Set up response for when answer is not specific enough
+    answer <- data.frame(lat = NA,
+                         lon = NA,
+                         formatted_address = NA,
+                         address_type = NA)
+    
+    # Check for a result
+    if (length(geo_reply$Response$View) > 0) {
+      
+      # Convert to a data frame
+      geo_reply <- as.data.frame(geo_reply$Response$View)
+      
+      answer <- answer %>%
+        mutate(
+          lat = geo_reply$Result.Location.NavigationPosition.Latitude,
+          lon = geo_reply$Result.Location.DisplayPosition.Longitude,
+          formatted_address = geo_reply$Result.Location.Address.Label,
+          address_type = geo_reply$Result.MatchLevel
+        )
+    }
+    return(answer)
   }
-  return(answer)
+  
+  # Initialise a dataframe to hold the results
+  adds_here <- data.frame()
+  # Find out where to start in the address list (if the script was interrupted before):
+  startindex <- 1
+  
+  # Start the geocoding process - address by address - can do 250k per month
+  for (i in seq(startindex, nrow(adds_coded_unmatch))) {
+    print(paste("Working on index", i, "of", nrow(adds_coded_unmatch)))
+    # query the geocoder - this will pause here if we are over the limit.
+    result <- geocode_here_f(address = adds_coded_unmatch$geo_add_single[i])
+    result$index <- i
+    result$input_add <- adds_coded_unmatch$geo_add_single[i]
+    result$geo_check_here <- 1
+    # append the answer to the results file
+    adds_here <- rbind(adds_here, result)
+  }
+  
+  # Look at match results
+  adds_here %>% group_by(address_type) %>% summarise(count = n())
+  
+  # Combine HERE results back to unmatched data
+  adds_coded_here <- left_join(adds_coded_unmatch, adds_here,
+                               by = c("geo_add_single" = "input_add")) %>%
+    select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
+           lat, lon, formatted_address, address_type, geo_check_here) %>%
+    mutate_at(vars(lat, lon), list( ~ replace_na(., 0)))
+  
+  # Convert to WSG84 projected coordinate system to obtain x/y
+  adds_coded_here <- st_as_sf(adds_coded_here, coords = c("lon", "lat"), 
+                              crs = 4326, remove = F)
+  adds_coded_here <- st_transform(adds_coded_here, 3857)
+  adds_coded_here <- adds_coded_here %>%
+    mutate(geo_x = st_coordinates(adds_coded_here)[,1],
+           geo_y = st_coordinates(adds_coded_here)[,2]) %>%
+    st_drop_geometry() %>%
+    rename(geo_lat = lat, geo_lon = lon) %>%
+    distinct()
+  
+  ### Combine back to initial data
+  adds_coded <- left_join(adds_coded_esri, adds_coded_here,
+                          by = c("geo_add1_clean", "geo_city_clean",
+                                 "geo_state_clean", "geo_zip_clean"))
+  
+  # Look at how the HERE geocodes improved things
+  adds_coded %>% group_by(Loc_name, address_type) %>% summarise(count = n())
+  
+  
+  
+  # Collapse to useful columns and select matching from each source as appropriate
+  adds_coded <- adds_coded %>%
+    # Add metadata indicating where the geocode comes from and if ZIP centroid
+    mutate(
+      formatted_address = as.character(formatted_address),
+      address_type = as.character(address_type),
+      geo_check_esri = 1,
+      geo_check_here = ifelse(is.na(geo_check_here), 0, geo_check_here),
+      geo_geocode_source = case_when(
+        !is.na(geo_lat.x) & 
+          Loc_name %in% c("address_point_", "pin_address_on", "st_address_us", 
+                          "trans_network_", "Pierce_gcs", "Snohomish_gcs",
+                          "Kitsap_gcs") ~ "esri",
+        !is.na(geo_lat.y) & address_type %in% c("houseNumber", "street") ~ "here",
+        !is.na(geo_lat.x) & Loc_name == "zip_5_digit_gc" ~ "esri",
+        !is.na(geo_lat.y) & address_type %in% c("postalCode") ~ "here",
+        TRUE ~ NA_character_),
+      geo_zip_centroid = ifelse((geo_geocode_source == "esri" & Loc_name == "zip_5_digit_gc") |
+                                  (geo_geocode_source == "here" & address_type %in% c("postalCode")),
+                                1, 0),
+      geo_street_centroid = ifelse(geo_geocode_source == "here" & address_type == "street", 1, 0),
+      # Move address and coordindate data into a single field
+      geo_add_geocoded = ifelse(geo_geocode_source == "esri", 
+                                toupper(Match_addr), 
+                                toupper(formatted_address)),
+      geo_zip_geocoded = case_when(
+        geo_geocode_source == "esri" ~ str_sub(Match_addr,
+                                               str_locate(Match_addr, "[:digit:]{5}$")[,1],
+                                               str_locate(Match_addr, "[:digit:]{5}$")[,2]),
+        geo_geocode_source == "here" & str_detect(formatted_address, "^[:digit:]{5},") ~ 
+          str_sub(formatted_address, 
+                  str_locate(formatted_address, "^[:digit:]{5},")[,1],
+                  str_locate(formatted_address, "^[:digit:]{5},")[,2] - 1),
+        geo_geocode_source == "here" & str_detect(formatted_address, " [:digit:]{5},") ~ 
+          str_sub(formatted_address, 
+                  str_locate(formatted_address, " [:digit:]{5},")[,1] + 1,
+                  str_locate(formatted_address, " [:digit:]{5},")[,2] - 1)),
+      geo_add_type = case_when(
+        geo_geocode_source == "esri" ~ Loc_name,
+        geo_geocode_source == "here" ~ address_type
+      ),
+      geo_lon = ifelse(geo_geocode_source == "esri", geo_lon.x, geo_lon.y),
+      geo_lat = ifelse(geo_geocode_source == "esri", geo_lat.x, geo_lat.y),
+      geo_x = ifelse(geo_geocode_source == "esri", geo_x.x, geo_x.y),
+      geo_y = ifelse(geo_geocode_source == "esri", geo_y.x, geo_y.y)
+    ) %>%
+    select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
+           geo_add_geocoded, geo_zip_geocoded, geo_add_type,
+           geo_check_esri, geo_check_here, geo_geocode_source, 
+           geo_zip_centroid, geo_street_centroid,
+           geo_lon, geo_lat, geo_x, geo_y) %>%
+    mutate(geo_zip_clean = as.character(geo_zip_clean))
+} else {
+  adds_coded <- adds_coded_esri %>% 
+    mutate(geo_add_geocoded = toupper(Match_addr),
+           geo_zip_geocoded = str_sub(Match_addr, 
+                                      str_locate(Match_addr, "[:digit:]{5}$")[,1],
+                                      str_locate(Match_addr, "[:digit:]{5}$")[,2]),
+           geo_add_type = Loc_name,
+           geo_check_esri = 1L,
+           geo_check_here = 0L,
+           geo_geocode_source = "esri",
+           geo_zip_centroid = 0L,
+           geo_street_centroid = 0L) %>%
+    select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
+           geo_add_geocoded, geo_zip_geocoded, geo_add_type,
+           geo_check_esri, geo_check_here, geo_geocode_source, 
+           geo_zip_centroid, geo_street_centroid,
+           geo_lon, geo_lat, geo_x, geo_y)
 }
 
-# Initialise a dataframe to hold the results
-adds_here <- data.frame()
-# Find out where to start in the address list (if the script was interrupted before):
-startindex <- 1
-
-# Start the geocoding process - address by address - can do 250k per month
-for (i in seq(startindex, nrow(adds_coded_unmatch))) {
-  print(paste("Working on index", i, "of", nrow(adds_coded_unmatch)))
-  # query the geocoder - this will pause here if we are over the limit.
-  result <- geocode_here_f(address = adds_coded_unmatch$geo_add_single[i])
-  result$index <- i
-  result$input_add <- adds_coded_unmatch$geo_add_single[i]
-  result$geo_check_here <- 1
-  # append the answer to the results file
-  adds_here <- rbind(adds_here, result)
-}
-
-# Look at match results
-adds_here %>% group_by(address_type) %>% summarise(count = n())
-
-# Combine HERE results back to unmatched data
-adds_coded_here <- left_join(adds_coded_unmatch, adds_here,
-                                  by = c("geo_add_single" = "input_add")) %>%
-  select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
-         lat, lon, formatted_address, address_type, geo_check_here) %>%
-  mutate_at(vars(lat, lon), list( ~ replace_na(., 0)))
-
-# Convert to WSG84 projected coordinate system to obtain x/y
-adds_coded_here <- st_as_sf(adds_coded_here, coords = c("lon", "lat"), 
-                                 crs = 4326, remove = F)
-adds_coded_here <- st_transform(adds_coded_here, 3857)
-adds_coded_here <- adds_coded_here %>%
-  mutate(geo_x = st_coordinates(adds_coded_here)[,1],
-         geo_y = st_coordinates(adds_coded_here)[,2]) %>%
-  st_drop_geometry() %>%
-  rename(geo_lat = lat, geo_lon = lon) %>%
-  distinct()
-
-### Combine back to initial data
-adds_coded <- left_join(adds_coded_esri, adds_coded_here,
-                             by = c("geo_add1_clean", "geo_city_clean",
-                                    "geo_state_clean", "geo_zip_clean"))
-
-# Look at how the HERE geocodes improved things
-adds_coded %>% group_by(Loc_name, address_type) %>% summarise(count = n())
-
-
-# Collapse to useful columns and select matching from each source as appropriate
-adds_coded <- adds_coded %>%
-  # Add metadata indicating where the geocode comes from and if ZIP centroid
-  mutate(
-    formatted_address = as.character(formatted_address),
-    address_type = as.character(address_type),
-    geo_check_esri = 1,
-    geo_check_here = ifelse(is.na(geo_check_here), 0, geo_check_here),
-    geo_geocode_source = case_when(
-      !is.na(geo_lat.x) & 
-        Loc_name %in% c("address_point_", "pin_address_on", "st_address_us", 
-                        "trans_network_", "Pierce_gcs", "Snohomish_gcs",
-                        "Kitsap_gcs") ~ "esri",
-      !is.na(geo_lat.y) & address_type %in% c("houseNumber", "street") ~ "here",
-      !is.na(geo_lat.x) & Loc_name == "zip_5_digit_gc" ~ "esri",
-      !is.na(geo_lat.y) & address_type %in% c("postalCode") ~ "here",
-      TRUE ~ NA_character_),
-    geo_zip_centroid = ifelse((geo_geocode_source == "esri" & Loc_name == "zip_5_digit_gc") |
-                                (geo_geocode_source == "here" & address_type %in% c("postalCode")),
-                              1, 0),
-    geo_street_centroid = ifelse(geo_geocode_source == "here" & address_type == "street", 1, 0),
-    # Move address and coordindate data into a single field
-    geo_add_geocoded = ifelse(geo_geocode_source == "esri", 
-                              toupper(Match_addr), 
-                              toupper(formatted_address)),
-    geo_zip_geocoded = case_when(
-      geo_geocode_source == "esri" ~ str_sub(Match_addr,
-                                             str_locate(Match_addr, "[:digit:]{5}$")[,1],
-                                             str_locate(Match_addr, "[:digit:]{5}$")[,2]),
-      geo_geocode_source == "here" & str_detect(formatted_address, "^[:digit:]{5},") ~ 
-        str_sub(formatted_address, 
-                str_locate(formatted_address, "^[:digit:]{5},")[,1],
-                str_locate(formatted_address, "^[:digit:]{5},")[,2] - 1),
-      geo_geocode_source == "here" & str_detect(formatted_address, " [:digit:]{5},") ~ 
-        str_sub(formatted_address, 
-                str_locate(formatted_address, " [:digit:]{5},")[,1] + 1,
-                str_locate(formatted_address, " [:digit:]{5},")[,2] - 1)),
-    geo_add_type = case_when(
-      geo_geocode_source == "esri" ~ Loc_name,
-      geo_geocode_source == "here" ~ address_type
-    ),
-    geo_lon = ifelse(geo_geocode_source == "esri", geo_lon.x, geo_lon.y),
-    geo_lat = ifelse(geo_geocode_source == "esri", geo_lat.x, geo_lat.y),
-    geo_x = ifelse(geo_geocode_source == "esri", geo_x.x, geo_x.y),
-    geo_y = ifelse(geo_geocode_source == "esri", geo_y.x, geo_y.y)
-  ) %>%
-  select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
-         geo_add_geocoded, geo_zip_geocoded, geo_add_type,
-         geo_check_esri, geo_check_here, geo_geocode_source, 
-         geo_zip_centroid, geo_street_centroid,
-         geo_lon, geo_lat, geo_x, geo_y) %>%
-  mutate(geo_zip_clean = as.character(geo_zip_clean))
 
 
 ### Identify addresses that could not be geocoded to an acceptable level
@@ -253,35 +274,40 @@ adds_coded <- adds_coded %>%
 adds_geocode_skip <- adds_coded %>% filter(is.na(geo_geocode_source)) %>% 
   select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean)
 
-# Set up SQL to update values
-update_sql <- glue::glue_data_sql(adds_geocode_skip, 
-  "UPDATE stage.address_clean 
+if (nrow(adds_geocode_skip) > 0) {
+  # Set up SQL to update values
+  update_sql <- glue::glue_data_sql(adds_geocode_skip, 
+                                    "UPDATE stage.address_clean 
   SET geo_geocode_skip = 1 
   WHERE (geo_add1_clean = {geo_add1_clean} AND geo_city_clean = {geo_city_clean} AND
   geo_state_clean = {geo_state_clean} AND geo_zip_clean = {geo_zip_clean})",
-  .con = db_claims)
-# Need to account for NULL values properly
-update_sql <- str_replace_all(update_sql, "= NULL", "Is NULL")
-# Run code
-DBI::dbExecute(db_claims, glue::glue_collapse(update_sql, sep = "; "))
-
-# Check that more addresses were flagged for skipping
-stage_geocode_skip <- as.integer(DBI::dbGetQuery(
-  db_claims, "SELECT SUM(geo_geocode_skip) AS skip_cnt FROM stage.address_clean"))
-ref_geocode_skip <- as.integer(DBI::dbGetQuery(
-  db_claims, "SELECT SUM(geo_geocode_skip) AS skip_cnt FROM ref.address_clean"))
-
-if (stage_geocode_skip >= ref_geocode_skip) {
-  # Update in ref table
-  update_sql <- str_replace_all(update_sql, "stage.address_clean", "ref.address_clean")
+                                    .con = db_claims)
+  # Need to account for NULL values properly
+  update_sql <- str_replace_all(update_sql, "= NULL", "Is NULL")
+  # Run code
   DBI::dbExecute(db_claims, glue::glue_collapse(update_sql, sep = "; "))
   
-  # Check counts
-  ref_geocode_skip_new <- as.integer(DBI::dbGetQuery(
+  # Check that more addresses were flagged for skipping
+  stage_geocode_skip <- as.integer(DBI::dbGetQuery(
+    db_claims, "SELECT SUM(geo_geocode_skip) AS skip_cnt FROM stage.address_clean"))
+  ref_geocode_skip <- as.integer(DBI::dbGetQuery(
     db_claims, "SELECT SUM(geo_geocode_skip) AS skip_cnt FROM ref.address_clean"))
   
-  if (stage_geocode_skip == ref_geocode_skip_new) {
-    message("Succesfully updated ref.address_clean with geocode_skip flags")
+  if (stage_geocode_skip >= ref_geocode_skip) {
+    # Update in ref table
+    update_sql <- str_replace_all(update_sql, "stage.address_clean", "ref.address_clean")
+    DBI::dbExecute(db_claims, glue::glue_collapse(update_sql, sep = "; "))
+    
+    # Check counts
+    ref_geocode_skip_new <- as.integer(DBI::dbGetQuery(
+      db_claims, "SELECT SUM(geo_geocode_skip) AS skip_cnt FROM ref.address_clean"))
+    
+    if (stage_geocode_skip == ref_geocode_skip_new) {
+      message("Succesfully updated ref.address_clean with geocode_skip flags")
+    }
+  } else {
+    message(paste0("Number of rows in set to skip geocode in stage (", stage_geocode_skip,
+                   ") is less than the current ref table (", ref_geocode_skip, ")"))
   }
 }
 
@@ -434,7 +460,7 @@ stage_rows_after_distinct <- as.numeric(dbGetQuery(
   FROM stage.address_geocode) a"))
 
 if ((stage_rows_before + row_load_ref_geo == stage_rows_after) == F) {
-  warning("Number of rows added to stage.address_geocode now expected value")
+  warning("Number of rows added to stage.address_geocode not expected value")
 }
 
 

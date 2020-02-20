@@ -86,10 +86,16 @@ update_sql <- glue::glue_data(
 
 update_sql <- str_replace_all(update_sql, "= 'NA'", "Is NULL")
 
-DBI::dbExecute(db_claims, glue::glue_collapse(update_sql, sep = "; "))
+if (nrow(update_source) > 0) {
+  DBI::dbExecute(db_claims, glue::glue_collapse(update_sql, sep = "; "))
+  
+  message(glue::glue("{nrow(update_source)} addresses were found in the new Medicaid ",
+                     "data that were previously only in PHA data"))
+} else {
+  message(glue::glue("{nrow(update_source)} addresses were found in the new Medicaid ",
+                     "data that were previously only in PHA data"))
+}
 
-message(glue::glue("{nrow(update_source)} addresses were found in the new Medicaid ",
-                   "data that were previously only in PHA data"))
 
 
 #### STEP 1C: Take address data from Medicaid that don't match to the ref table ####
@@ -97,18 +103,21 @@ message(glue::glue("{nrow(update_source)} addresses were found in the new Medica
 # Include ETL batch ID to know where the addresses are coming from
 new_add <- dbGetQuery(db_claims,
            "SELECT DISTINCT a.geo_add1_raw, a.geo_add2_raw, a.geo_city_raw,
-            a.geo_state_raw, a.geo_zip_raw, a.etl_batch_id, 1 AS geo_source_mcaid
+            a.geo_state_raw, a.geo_zip_raw, a.etl_batch_id, 1 AS geo_source_mcaid,
+            b.[exists]
            FROM
-           (SELECT RSDNTL_ADRS_LINE_1 AS 'geo_add1_raw', 
-             RSDNTL_ADRS_LINE_2 AS 'geo_add2_raw',
-             RSDNTL_CITY_NAME as 'geo_city_raw', 
-             RSDNTL_STATE_CODE AS 'geo_state_raw', 
-             RSDNTL_POSTAL_CODE AS 'geo_zip_raw',
-             etl_batch_id
-             FROM PHClaims.stage.mcaid_elig) a
+           (SELECT 
+            CASE WHEN RSDNTL_ADRS_LINE_1 IN ('NA', 'N/A') THEN NULL ELSE RSDNTL_ADRS_LINE_1 END AS 'geo_add1_raw', 
+            CASE WHEN RSDNTL_ADRS_LINE_2 IN ('NA', 'N/A') THEN NULL ELSE RSDNTL_ADRS_LINE_2 END AS 'geo_add2_raw', 
+            RSDNTL_CITY_NAME AS 'geo_city_raw', 
+            RSDNTL_STATE_CODE AS 'geo_state_raw', 
+            RSDNTL_POSTAL_CODE AS 'geo_zip_raw', 
+            etl_batch_id
+           FROM PHClaims.stage.mcaid_elig) a
            LEFT JOIN
            (SELECT geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw,
-             geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean
+             geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
+             1 AS [exists] 
              FROM ref.address_clean
              WHERE geo_add3_raw IS NULL) b
            ON 
@@ -117,7 +126,7 @@ new_add <- dbGetQuery(db_claims,
            (a.geo_city_raw = b.geo_city_raw OR (a.geo_city_raw IS NULL AND b.geo_city_raw IS NULL)) AND 
            (a.geo_state_raw = b.geo_state_raw OR (a.geo_state_raw IS NULL AND b.geo_state_raw IS NULL)) AND 
            (a.geo_zip_raw = b.geo_zip_raw OR (a.geo_zip_raw IS NULL AND b.geo_zip_raw IS NULL))
-           where b.geo_zip_clean IS NULL")
+           where b.[exists] IS NULL")
 
 
 

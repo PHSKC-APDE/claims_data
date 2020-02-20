@@ -45,7 +45,7 @@ system.time(load_stage.apcd_elig_demo_f())
 
 ### D) Table-level QA
 system.time(apcd_demo_qa1 <- qa_stage.apcd_elig_demo_f())
-rm(apcd_demo_qa1)
+#rm(apcd_demo_qa1)
 
 ### E) Run line-level QA script at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.apcd_elig_demo.sql             
 
@@ -76,7 +76,7 @@ system.time(load_stage.apcd_elig_timevar_f(extract_end_date = "2019-03-31"))
 
 ### D) Table-level QA
 system.time(apcd_timevar_qa1 <- qa_stage.apcd_elig_timevar_f())
-rm(apcd_timevar_qa1)
+#rm(apcd_timevar_qa1)
 
 ### E) Run line-level QA script at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.apcd_elig_timevar.sql
 
@@ -180,7 +180,7 @@ system.time(load_ref.apcd_denied_orphaned_header_f())
 
 ### E) Table-level QA
 system.time(apcd_denied_orphaned_header_qa1 <- qa_ref.apcd_denied_orphaned_header_f())
-rm(apcd_denied_orphaned_header_qa1)
+#rm(apcd_denied_orphaned_header_qa1)
 
 ### F) Run line-level QA script on a single year only at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_ref.apcd_denied_orphaned_header.sql
 
@@ -205,7 +205,7 @@ system.time(load_stage.apcd_claim_line_f())
 
 ### D) Table-level QA
 system.time(apcd_line_qa1 <- qa_stage.apcd_claim_line_f())
-rm(apcd_line_qa1)
+#rm(apcd_line_qa1)
 
 ### F) Archive current table
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_line")
@@ -234,7 +234,7 @@ system.time(load_stage.apcd_claim_icdcm_header_f())
 
 ### D) Table-level QA
 system.time(apcd_icdcm_qa1 <- qa_stage.apcd_claim_icdcm_header_f())
-rm(apcd_icdcm_qa1)
+#rm(apcd_icdcm_qa1)
 
 ### F) Archive current table
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_icdcm_header")
@@ -263,7 +263,7 @@ system.time(load_stage.apcd_claim_procedure_f())
 
 ### D) Table-level QA
 system.time(apcd_procedure_qa1 <- qa_stage.apcd_claim_procedure_f())
-rm(apcd_procedure_qa1)
+#rm(apcd_procedure_qa1)
 
 ### F) Archive current table
 #alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_procedure")
@@ -295,7 +295,7 @@ system.time(load_ref.apcd_provider_npi_f())
 
 ### E) Table-level QA
 system.time(apcd_provider_npi_qa1 <- qa_ref.apcd_provider_npi_f())
-rm(apcd_provider_npi_qa1)
+#rm(apcd_provider_npi_qa1)
 
 ### F) Create clustered columnstore index
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_ref_apcd_provider_npi on ref.apcd_provider_npi")))
@@ -318,7 +318,7 @@ system.time(load_stage.apcd_claim_provider_f())
 
 ### D) Table-level QA
 system.time(apcd_provider_qa1 <- qa_stage.apcd_claim_provider_f())
-rm(apcd_provider_qa1)
+#rm(apcd_provider_qa1)
 
 ### F) Archive current table
 #alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_provider")
@@ -350,7 +350,7 @@ system.time(load_ref.kc_provider_master_f())
 
 ### E) Table-level QA
 system.time(kc_provider_master_qa1 <- qa_ref.kc_provider_master_f())
-rm(kc_provider_master_qa1)
+#rm(kc_provider_master_qa1)
 
 ### F) Create clustered columnstore index
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_ref_kc_provider_master on ref.kc_provider_master")))
@@ -373,7 +373,7 @@ system.time(load_stage.apcd_claim_header_f())
 
 ### D) Table-level QA
 system.time(apcd_claim_header_qa1 <- qa_stage.apcd_claim_header_f())
-rm(apcd_claim_header_qa1)
+#rm(apcd_claim_header_qa1)
 
 ### E) Run line-level QA script at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.apcd_claim_header.sql             
 
@@ -417,7 +417,7 @@ apcd_claim_ccw_qa2 <- dbGetQuery(conn = db_claims, glue_sql(
   count(distinct ccw_code) as qa
   from PHClaims.stage.apcd_claim_ccw;",
     .con = db_claims))
-rm(apcd_claim_ccw_qa1, apcd_claim_ccw_qa2)
+#rm(apcd_claim_ccw_qa1, apcd_claim_ccw_qa2)
 
 ### E) Run line-level QA script at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.apcd_claim_ccw.sql             
 

@@ -1,29 +1,30 @@
 #### CODE TO LOAD & TABLE-LEVEL QA STAGE.MCAID_MCARE_CLAIM_ICDCM_HEADER
-# Eli Kern, PHSKC (APDE), 2019-10
+# Eli Kern, PHSKC (APDE), 2020-02
 # Alastair Mathesonm PHSKC (APDE), 2020-01
 #
 # This code is designed to be run as part of the master Medicaid/Medicare script:
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
 #
 
-
-#### Create table ####
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_icdcm_header.yaml",
-               overall = T, ind_yr = F, overwrite = T, test_mode = F)
-
-
-#### Load data ####
-# Run time: 18 min
-system.time(DBI::dbExecute(db_claims, glue::glue_sql("
+#### Load script ####
+load_stage.mcaid_mcare_claim_icdcm_header_f <- function() {
+  
+  ### Run SQL query
+  odbc::dbGetQuery(db_claims, glue::glue_sql(
+    "--Code to load data to stage.mcaid_mcare_claim_icdcm_header
+    --Union of mcaid and mcare claim ICD-CM header tables
+    --Eli Kern (PHSKC-APDE)
+    --2019-10
+    --Run time: X min
+    
     -------------------
     --STEP 1: Union mcaid and mcare claim ICD-CM header tables and insert into table shell
-    --Run time: 18 min
     -------------------
     insert into PHClaims.stage.mcaid_mcare_claim_icdcm_header with (tablock)
     
     --Medicaid claim ICD-CM header
     select
+    --top 100
     b.id_apde
     ,'mcaid' as source_desc
     ,cast(a.claim_header_id as varchar(255)) --because mcare uses alpha characters
@@ -33,8 +34,8 @@ system.time(DBI::dbExecute(db_claims, glue::glue_sql("
     ,a.icdcm_norm
     ,a.icdcm_version
     ,a.icdcm_number
-    ,file_type_mcare = null
-    ,{Sys.time()} as last_run
+    ,filetype_mcare = null
+    ,getdate() as last_run
     from PHClaims.final.mcaid_claim_icdcm_header as a
     left join PHClaims.final.xwalk_apde_mcaid_mcare_pha as b
     on a.id_mcaid = b.id_mcaid
@@ -43,60 +44,45 @@ system.time(DBI::dbExecute(db_claims, glue::glue_sql("
     
     --Medicare claim ICD-CM header
     select
+    --top 100
     b.id_apde
     ,'mcare' as source_desc
     ,a.claim_header_id
-    ,first_service_date = null
-    ,last_service_date = null
+    ,first_service_date
+    ,last_service_date
     ,a.icdcm_raw
     ,a.icdcm_norm
     ,a.icdcm_version
     ,cast(a.icdcm_number as varchar(255)) collate SQL_Latin1_General_CP1_CI_AS --resolve collation conflict
-    ,a.filetype as file_type_mcare
-    ,{Sys.time()} as last_run
+    ,a.filetype_mcare
+    ,getdate() as last_run
     from PHClaims.final.mcare_claim_icdcm_header as a
     left join PHClaims.final.xwalk_apde_mcaid_mcare_pha as b
     on a.id_mcare = b.id_mcare;",
-    .con = db_claims)))
-
-
-
-#### Table-level QA script ####
-qa_stage.mcaid_mcare_claim_icdcm_header_f <- function() {
-  
-  res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.mcaid_mcare_claim_icdcm_header' as 'table', 'count_total' as qa_type, count(*) as qa from stage.mcaid_mcare_claim_icdcm_header",
     .con = db_claims))
-  res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.mcaid_mcare_claim_icdcm_header' as 'table', 'count_mcaid' as qa_type, count(*) as qa from stage.mcaid_mcare_claim_icdcm_header
-      where source_desc = 'mcaid'",
-    .con = db_claims))
-  res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.mcaid_mcare_claim_icdcm_header' as 'table', 'count_mcare' as qa_type, count(*) as qa from stage.mcaid_mcare_claim_icdcm_header
-      where source_desc = 'mcare'",
-    .con = db_claims))
-  res4 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'final.mcaid_claim_icdcm_header' as 'table', 'count_mcaid' as qa_type, count(*) as qa from final.mcaid_claim_icdcm_header",
-    .con = db_claims))
-  res5 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'final.mcare_claim_icdcm_header' as 'table', 'count_mcare' as qa_type, count(*) as qa from final.mcare_claim_icdcm_header",
-    .con = db_claims))
-  res_final <- bind_rows(res1, res2, res3, res4, res5)
 }
 
-### Run QA
-system.time(qa_mcaid_mcare_claim_icdcm_header <- qa_stage.mcaid_mcare_claim_icdcm_header_f())
-
-
-#### Archive current table ####
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcaid_mcare_claim_icdcm_header")
-
-
-#### Alter schema ####
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcaid_mcare_claim_icdcm_header")
-
-
-#### Create clustered columnstore index ####
-# Run time: 18 min
-system.time(dbSendQuery(conn = db_claims, glue_sql(
-  "create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_icdcm_header on final.mcaid_mcare_claim_icdcm_header")))
+#### Table-level QA script ####
+qa_stage.mcaid_mcare_claim_icdcm_header_qa_f <- function() {
+  
+  #confirm that claim row counts match as expected for union
+  res1 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcaid_mcare_claim_icdcm_header' as 'table', 'row count, expect match with sum of mcaid and mcare' as qa_type,
+    count(*) as qa
+    from stage.mcaid_mcare_claim_icdcm_header;",
+    .con = db_claims))
+  
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcaid_claim_icdcm_header' as 'table', 'row count' as qa_type,
+    count(*) as qa
+    from final.mcaid_claim_icdcm_header;",
+    .con = db_claims))
+  
+  res3 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.mcare_claim_icdcm_header' as 'table', 'row count' as qa_type,
+    count(*) as qa
+    from final.mcare_claim_icdcm_header;",
+    .con = db_claims))
+  
+  res_final <- mget(ls(pattern="^res")) %>% bind_rows()
+}

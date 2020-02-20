@@ -72,4 +72,6 @@ vars:
     ccs_mult2_plain_lang: VARCHAR(500)
     ccs_final_description: VARCHAR(500)
     ccs_final_plain_lang: VARCHAR(500)
+    pc_visit: TINYINT
+    pc_visit_id: BIGINT
     last_run: DATETIME

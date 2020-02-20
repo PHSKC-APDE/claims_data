@@ -300,37 +300,42 @@ load_table_from_file_f <- function(
       
       if (add_index == T) {
       # Add index to the table
-      if (!is.null(table_config$index_type) & table_config$index_type == 'ccs') {
-        # Clustered columnstore index
-        dbGetQuery(conn,
-                   glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}",
-                                  .con = conn))
+      if (!is.null(table_config$index_type)) {
+        if (table_config$index_type == 'ccs') {
+          # Clustered columnstore index
+          dbGetQuery(conn,
+                     glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
+                              {`schema`}.{`table_name_new`}",
+                                    .con = conn))
+        } else {
+          stop("Invalid index_type specified")
+        }
       } else {
         # Clustered index
         dbGetQuery(conn,
                    glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}({`index_vars`*})",
+                              {`schema`}.{`table_name_new`}({`index_vars`*})",
                                   index_vars = table_config$index,
                                   .con = conn))
         }
         }
       })
+  }
+  
+  #### COMBINED INDIVIDUAL YEARS ####
+  if (combine_yr == T) {
+    message("Combining years into a single table")
+    if (truncate == T) {
+      # Remove data from existing combined table if desired
+      dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`schema`}.{`table_name`}", 
+                                      .con = conn))
+    }
     
-    # Combine individual years into a single table if desired
-    if (combine_yr == T) {
-      message("Combining years into a single table")
-      if (truncate == T) {
-        # Remove data from existing combined table if desired
-        dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`schema`}.{`table_name`}", 
-                                        .con = conn))
-      }
-      
-      if (add_index == T) {
-        # Remove index from combined table if it exists
-        # This code pulls out the clustered index name
-        index_name <- dbGetQuery(conn, 
-                                 glue::glue_sql("SELECT DISTINCT a.index_name
+    if (add_index == T) {
+      # Remove index from combined table if it exists
+      # This code pulls out the clustered index name
+      index_name <- dbGetQuery(conn, 
+                               glue::glue_sql("SELECT DISTINCT a.index_name
                                                 FROM
                                                 (SELECT ind.name AS index_name
                                                   FROM
@@ -344,95 +349,94 @@ load_table_from_file_f <- function(
                                                   (SELECT name, schema_id FROM sys.schemas
                                                     WHERE name = {`schema`}) s
                                                   ON t.schema_id = s.schema_id) a",
-                                                .con = conn,
-                                                table = dbQuoteString(conn, table_name),
-                                                schema = dbQuoteString(conn, schema)))[[1]]
-        
-        if (length(index_name) != 0) {
-          dbGetQuery(conn_inner,
-                     glue::glue_sql("DROP INDEX {`index_name`} ON 
+                                              .con = conn,
+                                              table = dbQuoteString(conn, table_name),
+                                              schema = dbQuoteString(conn, schema)))[[1]]
+      
+      if (length(index_name) != 0) {
+        dbGetQuery(conn_inner,
+                   glue::glue_sql("DROP INDEX {`index_name`} ON 
                                   {`schema`}.{`table_name`}", .con = conn))
-        }
       }
+    }
+    
+    
+    # Need to find all the columns that only exist in some years
+    # First find common variables
+    # Set up to work with old and new YAML config styles
+    if (!is.null(names(table_config$vars))) {
+      all_vars <- unlist(names(table_config$vars))
+    } else {
+      all_vars <- unlist(table_config$vars)  
+    }
+    
+    # Now find year-specific ones and add to main list
+    lapply(combine_years, function(x) {
+      table_name_new <- paste0("table_", x)
+      add_vars_name <- paste0("vars_", x)
       
-      
-      # Need to find all the columns that only exist in some years
-      # First find common variables
-      # Set up to work with old and new YAML config styles
       if (!is.null(names(table_config$vars))) {
-        all_vars <- unlist(names(table_config$vars))
+        all_vars <<- c(all_vars, unlist(names(table_config[[table_name_new]][[add_vars_name]])))
       } else {
-        all_vars <- unlist(table_config$vars)  
+        all_vars <<- c(all_vars, unlist(table_config[[table_name_new]][[add_vars_name]]))
       }
-      
-      # Now find year-specific ones and add to main list
-      lapply(combine_years, function(x) {
-        table_name_new <- paste0("table_", x)
-        add_vars_name <- paste0("vars_", x)
-        
-        if (!is.null(names(table_config$vars))) {
-          all_vars <<- c(all_vars, unlist(names(table_config[[table_name_new]][[add_vars_name]])))
-        } else {
-          all_vars <<- c(all_vars, unlist(table_config[[table_name_new]][[add_vars_name]]))
-        }
-      })
-      # Make sure there are no duplicate variables
-      all_vars <- unique(all_vars)
-      
-      
-      # Set up SQL code to load columns
-      sql_combine <- glue::glue_sql("INSERT INTO {`schema`}.{`table_name`} WITH (TABLOCK) 
+    })
+    # Make sure there are no duplicate variables
+    all_vars <- unique(all_vars)
+    
+    
+    # Set up SQL code to load columns
+    sql_combine <- glue::glue_sql("INSERT INTO {`schema`}.{`table_name`} WITH (TABLOCK) 
                                     ({`vars`*}) 
                                     SELECT {`vars`*} FROM (", 
-                                    .con = conn,
-                                    vars = all_vars)
-      
-      # For each year check which of the additional columns are present
-      lapply(seq_along(combine_years), function(x) {
-        table_name_new <- paste0(table_name, "_", combine_years[x])
-        config_name_new <- paste0("table_", combine_years[x])
-        add_vars_name <- paste0("vars_", combine_years[x])
-        if (!is.null(names(table_config$vars))) {
-          year_vars <- c(unlist(names(table_config$vars)), 
-                         unlist(names(table_config[[config_name_new]][[add_vars_name]])))
-        } else {
-          year_vars <- c(unlist(table_config$vars), unlist(table_config[[config_name_new]][[add_vars_name]]))
-        }
-        
-        matched_vars <- match(all_vars, year_vars)
-        
-        vars_to_load <- unlist(lapply(seq_along(matched_vars), function(y) {
-          if (is.na(matched_vars[y])) {
-            var_x <- paste0("NULL AS ", all_vars[y])
-          } else {
-            var_x <- all_vars[y]
-          }
-        }))
-        
-        # Add to main SQL statement
-        if (x < length(combine_years)) {
-          sql_combine <<- glue::glue_sql("{`sql_combine`} SELECT {`vars_to_load`*}
-                                         FROM {`schema`}.{`table`} UNION ALL ",
-                                         .con = conn,
-                                         table = table_name_new)
-        } else {
-          sql_combine <<- glue::glue_sql("{`sql_combine`} SELECT {`vars_to_load`*}
-                                         FROM {`schema`}.{`table`}) AS tmp",
-                                         .con = conn,
-                                         table = table_name_new)
-        }
-        
-      })
-      
-      dbGetQuery(conn, sql_combine)
-      
-      if (add_index == T) {
-        if (!exists("add_index_f")) {
-          devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
-        }
-        message("Adding index")
-        add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
+                                  .con = conn,
+                                  vars = all_vars)
+    
+    # For each year check which of the additional columns are present
+    lapply(seq_along(combine_years), function(x) {
+      table_name_new <- paste0(table_name, "_", combine_years[x])
+      config_name_new <- paste0("table_", combine_years[x])
+      add_vars_name <- paste0("vars_", combine_years[x])
+      if (!is.null(names(table_config$vars))) {
+        year_vars <- c(unlist(names(table_config$vars)), 
+                       unlist(names(table_config[[config_name_new]][[add_vars_name]])))
+      } else {
+        year_vars <- c(unlist(table_config$vars), unlist(table_config[[config_name_new]][[add_vars_name]]))
       }
+      
+      matched_vars <- match(all_vars, year_vars)
+      
+      vars_to_load <- unlist(lapply(seq_along(matched_vars), function(y) {
+        if (is.na(matched_vars[y])) {
+          var_x <- paste0("NULL AS ", all_vars[y])
+        } else {
+          var_x <- all_vars[y]
+        }
+      }))
+      
+      # Add to main SQL statement
+      if (x < length(combine_years)) {
+        sql_combine <<- glue::glue_sql("{`sql_combine`} SELECT {`vars_to_load`*}
+                                         FROM {`schema`}.{`table`} UNION ALL ",
+                                       .con = conn,
+                                       table = table_name_new)
+      } else {
+        sql_combine <<- glue::glue_sql("{`sql_combine`} SELECT {`vars_to_load`*}
+                                         FROM {`schema`}.{`table`}) AS tmp",
+                                       .con = conn,
+                                       table = table_name_new)
+      }
+      
+    })
+    
+    dbGetQuery(conn, sql_combine)
+    
+    if (add_index == T) {
+      if (!exists("add_index_f")) {
+        devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+      }
+      message("Adding index")
+      add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
     }
   }
 }
