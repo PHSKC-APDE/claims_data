@@ -28,8 +28,9 @@
                                   race_white, race_black, race_other, race_asian, race_asian_pi, race_aian, race_nhpi, race_latino, race_unk, race_eth_me, race_me 
                                   FROM PHClaims.final.mcare_elig_demo"))
 
-  mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, dob, gender_female, gender_male, gender_me, gender_recent, race_eth_recent, race_recent,
-                                  race_me, race_eth_me, race_aian, race_asian, race_black, race_nhpi, race_white, race_latino, 
+  mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, dob, gender_female, gender_male, gender_me, gender_recent, 
+                                  race_eth_recent, race_recent, race_me, race_eth_me, 
+                                  race_aian, race_asian, race_black, race_latino, race_nhpi, race_white, race_unk, race_eth_unk,  
                                   lang_max, lang_amharic, lang_arabic, lang_chinese, lang_korean, lang_english,
                                   lang_russian, lang_somali, lang_spanish, lang_ukrainian, lang_vietnamese 
                                   FROM PHClaims.final.mcaid_elig_demo"))
@@ -105,133 +106,11 @@
 ## (9) Simple QA ----
     # Confirm that all rows were loaded to SQL ----
       stage.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.mcaid_mcare_elig_demo"))
-      if(stage.count != nrow(elig))
-        stop("Mismatching row count, error reading in data")    
+      if(stage.count != nrow(elig)){stop("Mismatching row count, error reading or writing data")} else{print("All data appear to have been successfully loaded to SQL...")}    
     
-    # check that rows in stage are not less than the last time that it was created ----
-      last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_mcare_elig_demo")[[1]])
+    # More elaborate QA has it's own script! ----
     
-      # count number of rows
-      previous_rows <- as.numeric(
-        odbc::dbGetQuery(db_claims, 
-                         "SELECT c.qa_value from
-                         (SELECT a.* FROM
-                         (SELECT * FROM metadata.qa_mcare_values
-                         WHERE table_name = 'stage.mcaid_mcare_elig_demo' AND
-                         qa_item = 'row_count') a
-                         INNER JOIN
-                         (SELECT MAX(qa_date) AS max_date 
-                         FROM metadata.qa_mcare_values
-                         WHERE table_name = 'stage.mcaid_mcare_elig_demo' AND
-                         qa_item = 'row_count') b
-                         ON a.qa_date = b.max_date)c"))
-      
-      if(is.na(previous_rows)){previous_rows = 0}
-      
-      row_diff <- stage.count - previous_rows
-      
-      if (row_diff < 0) {
-        odbc::dbGetQuery(
-          conn = db_claims,
-          glue::glue_sql("INSERT INTO metadata.qa_mcare
-                         (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
-                         'stage.mcaid_mcare_elig_demo',
-                         'Number new rows compared to most recent run', 
-                         'FAIL', 
-                         {Sys.time()}, 
-                         'There were {row_diff} fewer rows in the most recent table 
-                         ({stage.count} vs. {previous_rows})')",
-                         .con = db_claims))
-        
-        problem.row_diff <- glue::glue("Fewer rows than found last time.  
-                                       Check metadata.qa_mcare for details (last_run = {last_run})
-                                       \n")
-      } else {
-        odbc::dbGetQuery(
-          conn = db_claims,
-          glue::glue_sql("INSERT INTO metadata.qa_mcare
-                         (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
-                         'stage.mcaid_mcare_elig_demo',
-                         'Number new rows compared to most recent run', 
-                         'PASS', 
-                         {Sys.time()}, 
-                         'There were {row_diff} more rows in the most recent table 
-                         ({stage.count} vs. {previous_rows})')",
-                         .con = db_claims))
-        
-        problem.row_diff <- glue::glue(" ") # no problem, so empty error message
-        
-      }
-    
-    # check that there are no duplicates ----
-      # get count of unique id (each id should only appear once)
-      stage.count.unique <- as.numeric(odbc::dbGetQuery(
-        db_claims, "SELECT COUNT (DISTINCT id_apde) 
-        FROM stage.mcaid_mcare_elig_demo"))
-      
-      if (stage.count.unique != stage.count) {
-        odbc::dbGetQuery(
-          conn = db_claims,
-          glue::glue_sql("INSERT INTO metadata.qa_mcare
-                         (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES (
-                         {last_run}, 
-                         'stage.mcaid_mcare_elig_demo',
-                         'Number distinct IDs', 
-                         'FAIL', 
-                         {Sys.time()}, 
-                         'There were {stage.count.unique} distinct IDs but {stage.count} rows overall (should be the same)'
-                         )
-                         ",
-                         .con = db_claims))
-        
-        problem.ids  <- glue::glue("Number of distinct IDs doesn't match the number of rows. 
-                                   Check metadata.qa_mcare for details (last_run = {last_run})
-                                   \n")
-      } else {
-        odbc::dbGetQuery(
-          conn = db_claims,
-          glue::glue_sql("INSERT INTO metadata.qa_mcare
-                         (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
-                         'stage.mcaid_mcare_elig_demo',
-                         'Number distinct IDs', 
-                         'PASS', 
-                         {Sys.time()}, 
-                         'The number of distinct IDs matched number of overall rows ({stage.count.unique})')",
-                         .con = db_claims))
-        
-        problem.ids  <- glue::glue(" ") # no problem
-      }
-    
-    # create summary of errors ---- 
-      problems <- glue::glue(
-        problem.ids, "\n",
-        problem.row_diff)
-
-## (10) Fill qa_mcare_values table ----
-    qa.values <- glue::glue_sql("INSERT INTO metadata.qa_mcare_values
-                                (table_name, qa_item, qa_value, qa_date, note) 
-                                VALUES ('stage.mcaid_mcare_elig_demo',
-                                'row_count', 
-                                {stage.count}, 
-                                {Sys.time()}, 
-                                '')",
-                                .con = db_claims)
-    
-    odbc::dbGetQuery(conn = db_claims, qa.values)
-
-## (11) Print error messages ----
-    if(problems >1){
-      message(glue::glue("WARNING ... MCARE_ELIG_DEMO FAILED AT LEAST ONE QA TEST", "\n",
-                         "Summary of problems in MCARE_ELIG_DEMO: ", "\n", 
-                         problems))
-    }else{message("Staged MCAID_MCARE_ELIG_DEMO passed all QA tests")}
-
-    
-## (12) Clean up
+## (10) Clean up ----
     rm(apde, mcaid, mcaid.dual, mcaid.solo, mcare, mcare.dual, mcare.solo, dual.id)
     rm(i, yaml.url)
     rm(dual, elig)
@@ -240,7 +119,7 @@
     rm(stage.count.unique)
     rm(qa.values)
     rm(problem.row_diff, problem.ids, problems)
-    
+
 ## The end! ----
     run.time <- Sys.time() - start.time
     print(run.time)
