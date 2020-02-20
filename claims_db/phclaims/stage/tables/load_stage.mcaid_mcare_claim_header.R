@@ -143,14 +143,14 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     ,ipt_sdoh = null
     ,ed_sdoh = null
     ,sdoh_any = null
-    ,c.intent
-    ,c.mechanism
+    ,intent = null
+    ,mechanism = null
     from PHClaims.final.mcare_claim_header as a
     left join PHClaims.final.xwalk_apde_mcaid_mcare_pha as b
     on a.id_mcare = b.id_mcare
     --join to ICD-CM lookup table to create some columns
     left join PHClaims.ref.dx_lookup as c
-    on (a.primary_diagnosis = c.dx) and (a.icdcm_version = c.dx_ver)
+    on (a.primary_diagnosis = c.dx) and (a.icdcm_version = c.dx_ver);
     
     
     ----------------
@@ -186,9 +186,9 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     end as ed_perform_id
     
     --Recreate Yale ED carrier, outpatient and inpatient flags
-    ,case when ed_pophealth_id = 1 and claim_type_id = 5 then 1 else 0 end as ed_yale_carrier
-    ,case when ed_pophealth_id = 1 and claim_type_id = 4 then 1 else 0 end as ed_yale_opt
-    ,case when ed_pophealth_id = 1 and claim_type_id = 1 then 1 else 0 end as ed_yale_ipt
+    ,case when ed_pophealth_id is not null and claim_type_id = 5 then 1 else 0 end as ed_yale_carrier
+    ,case when ed_pophealth_id is not null and claim_type_id = 4 then 1 else 0 end as ed_yale_opt
+    ,case when ed_pophealth_id is not null and claim_type_id = 1 then 1 else 0 end as ed_yale_ipt
     
     --inpatient stays
     ,case when (inpatient_id = 0 or inpatient_id is null) then null
