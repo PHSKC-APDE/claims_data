@@ -59,7 +59,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 # QA stage version
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_mcare_elig_demo.R")
-qa_xwalk_apde_mcaid_mcare_pha_f(conn = db_claims, load_only = F)
+qa_mcaid_mcare_elig_demo_f(conn = db_claims, load_only = F)
 
 # Alter schema to final table (currently hard coded, use YAML eventually)
 alter_schema_f(conn = db_claims, 
@@ -77,8 +77,10 @@ DBI::dbExecute(db_claims,
 # Create and load stage
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R")
 
-# QA and load to final
-# (no QA outside of what is in the stage code right now)
+# QA stage version
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_mcare_elig_timevar.R")
+qa_mcaid_mcare_elig_timevar_f(conn = db_claims, load_only = F)
+
 # Alter schema to final table (currently hard coded, use YAML eventually)
 alter_schema_f(conn = db_claims, 
                from_schema = "stage", 
