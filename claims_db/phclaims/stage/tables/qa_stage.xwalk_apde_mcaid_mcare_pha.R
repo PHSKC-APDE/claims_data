@@ -6,6 +6,9 @@
 # Purpose: Simple QA for PHClaims.stage.xwalk_apde_mcaid_mcare_pha
 # 
 # Notes: Type the <Alt> + <o> at the same time to collapse the code and view the structure
+# 
+# This code is designed to be run as part of the master Medicaid/Medicare script:
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
 #
 
 # This is all one function ----
