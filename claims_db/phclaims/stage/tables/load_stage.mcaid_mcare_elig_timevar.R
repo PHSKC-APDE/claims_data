@@ -347,6 +347,7 @@
       timevar[, mcare := 0][part_a==1 | part_b == 1 | part_c==1, mcare := 1]
       timevar[, mcaid := 0][!is.na(cov_type), mcaid := 1]
       timevar[, apde_dual := 0][mcare == 1 & mcaid == 1, apde_dual := 1]
+      timevar[apde_dual == 1 , dual := 1] # discussed this change via email with Alastair on 2/21/2020
       timevar[, enroll_type := NULL] # kept until now for comparison with the dual flag
       timevar <- timevar[!(mcare==0 & mcaid==0)]
       

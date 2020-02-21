@@ -15,13 +15,14 @@ alter_schema_f <- function(
   to_schema = NULL,
   table_name = NULL,
   rename_index = F,
-  index_name = NULL
+  index_name = NULL, 
+  odbc_name = "PHClaims51"
   ) {
   
   #### ERROR CHECKS ####
   if (is.null(conn)) {
-    print("No DB connection specificed, trying PHClaims51")
-    conn <- odbc::dbConnect(odbc(), "PHClaims51")
+    print(paste0("No DB connection specificed, trying ", odbc_name))
+    conn <- odbc::dbConnect(odbc(), odbc_name)
   }
   
   if (dbExistsTable(conn, DBI::Id(schema = from_schema, table = table_name)) == F) {
