@@ -33,10 +33,12 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 #### IDENTITY LINKAGE ####
 # Make stage version of linkage
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.R")
 
-# QA and load to final
-# (no QA outside of what is in the stage code right now)
+# QA stage version
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.xwalk_apde_mcaid_mcare_pha.R")
+qa_xwalk_apde_mcaid_mcare_pha_f(conn = db_claims, load_only = F)
+
 # Alter schema to final table (currently hard coded, use YAML eventually)
 alter_schema_f(conn = db_claims, 
                from_schema = "stage", 
@@ -50,13 +52,15 @@ DBI::dbExecute(db_claims,
 
 
 
-#### CREATE ELIG ANALYTIC TABLES -----------------------------------------------
+#### CREATE ELIG ANALYTIC TABLES ------------------------------------------- ----
 #### MCAID_MCARE_ELIG_DEMO ####
 # Create and load stage
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.R")
 
-# QA and load to final
-# (no QA outside of what is in the stage code right now)
+# QA stage version
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_mcare_elig_demo.R")
+qa_mcaid_mcare_elig_demo_f(conn = db_claims, load_only = F)
+
 # Alter schema to final table (currently hard coded, use YAML eventually)
 alter_schema_f(conn = db_claims, 
                from_schema = "stage", 
@@ -73,8 +77,10 @@ DBI::dbExecute(db_claims,
 # Create and load stage
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R")
 
-# QA and load to final
-# (no QA outside of what is in the stage code right now)
+# QA stage version
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_mcare_elig_timevar.R")
+qa_mcaid_mcare_elig_timevar_f(conn = db_claims, load_only = F)
+
 # Alter schema to final table (currently hard coded, use YAML eventually)
 alter_schema_f(conn = db_claims, 
                from_schema = "stage", 
@@ -88,7 +94,7 @@ DBI::dbExecute(db_claims,
 
 
 
-#### CREATE CLAIMS TABLES ------------------------------------------------------
+#### CREATE CLAIMS TABLES -------------------------------------------------- ----
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 1: mcaid_mcare_claim_line ####

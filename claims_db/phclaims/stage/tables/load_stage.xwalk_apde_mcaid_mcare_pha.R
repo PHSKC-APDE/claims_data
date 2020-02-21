@@ -13,6 +13,12 @@
   #
   #        When there is a change in gender, we will record both (i.e., we'll have a male and a female column, both binary)
   #        this will allow us to have sex== unknown, male, female, mutliple
+  #
+  #
+  #
+  # This code is designed to be run as part of the master Medicaid/Medicare script:
+  # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
+  #
 
 ## OVERVIEW ####
   # 1) Prepare file with all Mcaid Identifiers
