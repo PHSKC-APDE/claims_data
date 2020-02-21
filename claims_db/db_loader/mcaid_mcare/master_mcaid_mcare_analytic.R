@@ -194,7 +194,7 @@ create_table_f(conn = db_claims,
 ### C) Load tables
 system.time(load_stage.mcaid_mcare_claim_header_f())
 
-### D) Table-level QA (xx min)
+### D) Table-level QA (14 min)
 system.time(mcaid_mcare_claim_header_qa <- qa_stage.mcaid_mcare_claim_header_qa_f())
 rm(config_url)
 
