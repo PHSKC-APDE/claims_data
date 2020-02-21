@@ -43,7 +43,7 @@ b.id_apde
 ,a.dschrg_date as discharge_date
 ,a.drvd_drg_code as drg_code
 ,hospice_from_date = null
-,pc_visit_id = null
+,a.pc_visit_id
 ,a.ccs
 ,a.ccs_description
 ,a.ccs_description_plain_lang
