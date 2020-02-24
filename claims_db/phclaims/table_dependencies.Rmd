@@ -1,7 +1,7 @@
 ---
 title: "PHClaims table dependencies"
 author: "Alastair Matheson (Assessment, Policy Development, and Evaluation Unit)"
-date: "1/3/2020"
+date: "02/24/2020"
 output: html_document
 ---
 
@@ -25,8 +25,8 @@ color_font_light <- "Snow"
 color_font_dark <- "DarkOliveGreen"
 
 #### Pull in and set up data
-input <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/table_dependencies.csv")
-#input <- data.table::fread("C:/Users/mathesal/OneDrive - King County/github/claims/claims_db/phclaims/table_dependencies.csv")
+# input <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/table_dependencies.csv")
+input <- data.table::fread("C:/code/claims_data/claims_db/phclaims/table_dependencies.csv")
 
 # Modify overall data
 input <- input %>%
@@ -98,7 +98,7 @@ node_filter <- function(edge_df) {
   left_join(., nodes, by = "node")
 }
 
-# Set up a function to create teh Graphviz text
+# Set up a function to create the Graphviz text
 gv_maker <- function(node_df, edge_df) {
   gv_nodes <- glue_collapse(
     glue_data(node_df, "{id} [fillcolor = {fillcolor}, fontcolor = {fontcolor}, label = '{node_label}']"),
@@ -300,6 +300,70 @@ if (length(mcaid_claim_gv)) {
 ```
 
 
+## Medicare 
+### Claims
+```{r mcare_claim, echo=FALSE}
+# set up mcare_elig only
+mcare_claim_edges <- edges %>% 
+  filter(str_detect(from, "mcare_claim") | str_detect(to, "mcare_claim"))
+
+# See which nodes should be included
+mcare_claim_nodes <- node_filter(mcare_claim_edges)
+  
+# Set up Graphviz text
+mcare_claim_gv <- gv_maker(node_df = mcare_claim_nodes, edge_df = mcare_claim_edges)
+
+# Make graph
+if (length(mcare_claim_gv)) {
+  grViz(mcare_claim_gv)
+} else {
+  message("No tables in this category")
+}
+
+```
+
+### Eligibility
+```{r mcare_elig, echo=FALSE}
+# set up mcare_elig only
+mcare_elig_edges <- edges %>% 
+  filter(str_detect(from, c("\\.mcare_elig|mcare_mbsf")) | str_detect(to, c("\\.mcare_elig|mcare_mbsf")) ) %>% 
+  filter(!(str_detect(from, c("mcaid_mcare")) | str_detect(to, c("mcaid_mcare"))) )
+
+# See which nodes should be included
+mcare_elig_nodes <- node_filter(mcare_elig_edges)
+  
+# Set up Graphviz text
+mcare_elig_gv <- gv_maker(node_df = mcare_elig_nodes, edge_df = mcare_elig_edges)
+
+# Make graph
+if (length(mcare_elig_gv)) {
+  grViz(mcare_elig_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
+## Identity linkage
+```{r mcaid_mcare_pha_xwalk, echo=FALSE}
+# set up mcaid_mcare_pha_xwalk only
+mcaid_mcare_pha_xwalk_edges <- edges %>% 
+  filter(str_detect(from, "xwalk_apde_mcaid_mcare_pha") | str_detect(to, "xwalk_apde_mcaid_mcare_pha")) %>% 
+  filter(!(str_detect(from, c("final.xwalk_apde_mcaid_mcare_pha")) )) 
+
+# See which nodes should be included
+mcaid_mcare_pha_xwalk_nodes <- node_filter(mcaid_mcare_pha_xwalk_edges)
+  
+# Set up Graphviz text
+mcaid_mcare_pha_xwalk_gv <- gv_maker(node_df = mcaid_mcare_pha_xwalk_nodes, edge_df = mcaid_mcare_pha_xwalk_edges)
+
+# Make graph
+if (length(mcaid_mcare_pha_xwalk_gv)) {
+  grViz(mcaid_mcare_pha_xwalk_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
 ## Medicaid/Medicare combined
 ### Claims
 ```{r mcaid_mcare_claim, echo=FALSE}
@@ -325,7 +389,8 @@ if (length(mcaid_mcare_claim_gv)) {
 ```{r mcaid_mcare_elig, echo=FALSE}
 # set up mcaid_mcare_elig only
 mcaid_mcare_elig_edges <- edges %>% 
-  filter(str_detect(from, "mcaid_mcare_elig") | str_detect(to, "mcaid_mcare_elig"))
+  filter(str_detect(from, "mcaid_mcare_elig") | str_detect(to, "mcaid_mcare_elig")) %>%
+  filter(!(str_detect(from, c("final.mcaid_mcare_elig"))))
 
 # See which nodes should be included
 mcaid_mcare_elig_nodes <- node_filter(mcaid_mcare_elig_edges)
@@ -383,65 +448,6 @@ if (length(mcaid_mcare_pha_elig_gv)) {
 }
 ```
 
-### Identity linkage
-```{r mcaid_mcare_pha_xwalk, echo=FALSE}
-# set up mcaid_mcare_pha_xwalk only
-mcaid_mcare_pha_xwalk_edges <- edges %>% 
-  filter(str_detect(from, "xwalk_apde_mcaid_mcare_pha") | str_detect(to, "xwalk_apde_mcaid_mcare_pha"))
-
-# See which nodes should be included
-mcaid_mcare_pha_xwalk_nodes <- node_filter(mcaid_mcare_pha_xwalk_edges)
-  
-# Set up Graphviz text
-mcaid_mcare_pha_xwalk_gv <- gv_maker(node_df = mcaid_mcare_pha_xwalk_nodes, edge_df = mcaid_mcare_pha_xwalk_edges)
-
-# Make graph
-if (length(mcaid_mcare_pha_xwalk_gv)) {
-  grViz(mcaid_mcare_pha_xwalk_gv)
-} else {
-  message("No tables in this category")
-}
-```
 
 
-## Medicare 
-### Claims
-```{r mcare_claim, echo=FALSE}
-# set up mcare_elig only
-mcare_claim_edges <- edges %>% 
-  filter(str_detect(from, "mcare_claim") | str_detect(to, "mcare_claim"))
 
-# See which nodes should be included
-mcare_claim_nodes <- node_filter(mcare_claim_edges)
-  
-# Set up Graphviz text
-mcare_claim_gv <- gv_maker(node_df = mcare_claim_nodes, edge_df = mcare_claim_edges)
-
-# Make graph
-if (length(mcare_claim_gv)) {
-  grViz(mcare_claim_gv)
-} else {
-  message("No tables in this category")
-}
-
-```
-
-### Eligibility
-```{r mcare_elig, echo=FALSE}
-# set up mcare_elig only
-mcare_elig_edges <- edges %>% 
-  filter(str_detect(from, "mcare_elig") | str_detect(to, "mcare_elig"))
-
-# See which nodes should be included
-mcare_elig_nodes <- node_filter(mcare_elig_edges)
-  
-# Set up Graphviz text
-mcare_elig_gv <- gv_maker(node_df = mcare_elig_nodes, edge_df = mcare_elig_edges)
-
-# Make graph
-if (length(mcare_elig_gv)) {
-  grViz(mcare_elig_gv)
-} else {
-  message("No tables in this category")
-}
-```
