@@ -1,0 +1,12 @@
+schema: load_raw
+table: mcare_hospice_span_codes_14
+year: 2014
+vars:
+    bene_id: char(255) collate SQL_Latin1_General_Cp1_CS_AS
+    clm_id: char(255) collate SQL_Latin1_General_Cp1_CS_AS
+    nch_clm_type_cd: varchar(255)
+    rlt_span_cd_seq: varchar(255)
+    clm_span_cd: varchar(255)
+    clm_span_from_dt: varchar(255)
+    clm_span_thru_dt: varchar(255)
+

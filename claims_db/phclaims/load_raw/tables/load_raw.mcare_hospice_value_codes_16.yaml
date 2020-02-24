@@ -1,0 +1,7 @@
+schema: load_raw
+table: mcare_hospice_value_codes_16
+year: 2016
+overall:
+    file_path: \\phdata01\DROF_DATA\DOH DATA\Medicare\CMS_Drive\CMS_Drive\4749\New data\2016\hospice_value_codes_16\hospice_value_codes_16.csv
+    field_term: ','
+    row_term: \n

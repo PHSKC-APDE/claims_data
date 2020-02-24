@@ -1,0 +1,11 @@
+schema: load_raw
+table: mcare_hospice_occurance_codes_14
+year: 2014
+vars:
+    bene_id: char(15) collate SQL_Latin1_General_Cp1_CS_AS
+    clm_id: char(15) collate SQL_Latin1_General_Cp1_CS_AS
+    nch_clm_type_cd: varchar(255)
+    rlt_ocrnc_cd_seq: varchar(255)
+    clm_rlt_ocrnc_cd: varchar(255)
+    clm_rlt_ocrnc_dt: varchar(255)
+
