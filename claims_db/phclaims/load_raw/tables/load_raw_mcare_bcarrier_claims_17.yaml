@@ -1,0 +1,7 @@
+schema: load_raw
+table: mcare_bcarrier_claims_k_17
+year: 2017
+overall:
+    file_path: Y:\cms_raw\2017\bcarrier_claims_k_17\bcarrier_claims_k.csv
+    field_term: ','
+    row_term: \n
