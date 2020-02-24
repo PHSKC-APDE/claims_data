@@ -1,0 +1,7 @@
+schema: load_raw
+table: mcare_dme_line_k_17
+year: 2017
+overall:
+    file_path: Y:\cms_raw\2017\dme_line_k_17\dme_line_k.csv
+    field_term: ','
+    row_term: \n

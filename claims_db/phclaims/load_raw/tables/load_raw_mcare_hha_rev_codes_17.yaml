@@ -1,0 +1,7 @@
+schema: load_raw
+table: mcare_hha_revenue_center_k_17
+year: 2016
+overall:
+    file_path: Y:\cms_raw\2017\hha_revenue_center_k_17\hha_revenue_center_k.csv
+    field_term: ','
+    row_term: \n

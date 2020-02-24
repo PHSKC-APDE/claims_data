@@ -1,0 +1,11 @@
+schema: load_raw
+table: mcare_bcarrier_demo_codes_17_test
+year: 2017
+vars:
+    bene_id: char(255) collate SQL_Latin1_General_Cp1_CS_AS
+    clm_id: char(255) collate SQL_Latin1_General_Cp1_CS_AS
+    nch_clm_type_cd: varchar(255)
+    demo_id_sqnc_num: varchar(255)
+    demo_id_num: varchar(255)
+    demo_info_txt: varchar(255)
+

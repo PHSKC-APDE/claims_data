@@ -1,0 +1,29 @@
+schema: load_raw
+table: mcare_inpatient_revenue_center_k_17
+year: 2017
+vars:
+    bene_id: char(255) collate SQL_Latin1_General_Cp1_CS_AS
+    clm_id: char(255) collate SQL_Latin1_General_Cp1_CS_AS
+    clm_thru_dt: varchar(255)
+    clm_line_num: varchar(255)
+    nch_clm_type_cd: varchar(255)
+    rev_cntr: varchar(255)
+    hcpcs_cd: varchar(255)
+    hcpcs_1st_mdfr_cd: varchar(255)
+    hcpcs_2nd_mdfr_cd: varchar(255)
+    hcpcs_3rd_mdfr_cd: varchar(255)
+    rev_cntr_unit_cnt: varchar(255)
+    rev_cntr_rate_amt: varchar(255)
+    rev_cntr_tot_chrg_amt: varchar(255)
+    rev_cntr_ncvrd_chrg_amt: varchar(255)
+    rev_cntr_ddctbl_coinsrnc_cd: varchar(255)
+    rev_cntr_ndc_qty: varchar(255)
+    rev_cntr_ndc_qty_qlfr_cd: varchar(255)
+    rndrng_physn_upin: varchar(255)
+    rndrng_physn_npi: varchar(255)
+    rndrng_physn_spclty_cd: varchar(255)
+    rev_cntr_ide_ndc_upc_num: varchar(255)
+    rev_cntr_prcng_ind_cd: varchar(255)
+    thrpy_cap_ind_cd1: varchar(255)
+    thrpy_cap_ind_cd2: varchar(255)
+
