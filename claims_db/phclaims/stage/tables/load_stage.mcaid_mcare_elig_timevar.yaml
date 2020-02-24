@@ -5,28 +5,32 @@ vars:
     from_date: DATE
     to_date: DATE
     contiguous: TINYINT
-    dual: TINYINT
+    mcaid: TINYINT
+    mcare: TINYINT
+    apde_dual: TINYINT
     geo_kc: TINYINT
     part_a: TINYINT
     part_b: TINYINT
     part_c: TINYINT
     partial: TINYINT
     buy_in: TINYINT
+    dual: TINYINT
     tpl: TINYINT
-    bsp_group_name: VARCHAR(255)
+    bsp_group_cid: INTEGER
     full_benefit: TINYINT
+    full_criteria: TINYINT
     cov_type: CHAR(3)
     mco_id: INT
-    geo_add1_clean: VARCHAR(255)
-    geo_add2_clean: VARCHAR(255)
-    geo_city_clean: VARCHAR(255)
-    geo_state_clean: VARCHAR(255)
-    geo_zip_clean: VARCHAR(255)
+    geo_add1: VARCHAR(255)
+    geo_add2: VARCHAR(255)
+    geo_city: VARCHAR(255)
+    geo_state: VARCHAR(255)
+    geo_zip: VARCHAR(255)
     geo_zip_centroid: TINYINT
     geo_street_centroid: TINYINT
-    geo_countyfp10: varchar(255)
-    geo_tractce10: VARCHAR(255)
-    geo_hra_id: SMALLINT
-    geo_school_geoid10: VARCHAR(255)
+    geo_county_code: varchar(255)
+    geo_tract_code: VARCHAR(255)
+    geo_hra_code: SMALLINT
+    geo_school_code: VARCHAR(255)
     cov_time_day: SMALLINT
     last_run: DATETIME

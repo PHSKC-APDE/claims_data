@@ -1,75 +1,29 @@
-
 # This code creates table ([stage].[mcaid_claim_pharm]) to hold DISTINCT 
 # pharmacy information
-# 
+#
+# It is designed to be run as part of the master Medicaid script:
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+#
 # SQL script created by: Eli Kern, APDE, PHSKC, 2018-03-21
-# R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05
+# R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05 and 2019-12
 # Modified by: Philip Sylling, 2019-06-11
 # 
 # Data Pull Run time: 5.58 min
 # Create Index Run Time: 2.17 min
-# 
-# Returns
-# [stage].[mcaid_claim_pharm]
-#  [id_mcaid]
-# ,[claim_header_id]
-# ,[ndc]
-# ,[rx_days_supply]
-# ,[rx_quantity]
-# ,[rx_fill_date]
-# ,[pharmacy_npi]
-# ,[last_run]
 
-#### Set up global parameter and call in libraries ####
-options(max.print = 350, tibble.print_max = 50, warning.length = 8170)
 
-library(configr) # Read in YAML files
-library(DBI)
-library(dbplyr)
-library(devtools)
-library(dplyr)
-library(glue)
-library(janitor)
-library(lubridate)
-library(medicaid)
-library(odbc)
-library(openxlsx)
-library(RCurl) # Read files from Github
-library(tidyr)
-library(tidyverse) # Manipulate data
+#### PULL IN CONFIG FILE ####
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_pharm.yaml"
 
-db_claims <- dbConnect(odbc(), "PHClaims")
-print("Creating stage.mcaid_claim_pharm")
+load_mcaid_claim_pharm_config <- yaml::yaml.load(RCurl::getURL(config_url))
 
-#### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-
-step1_sql <- glue::glue_sql("
-if object_id('[stage].[mcaid_claim_pharm]', 'U') is not null
-drop table [stage].[mcaid_claim_pharm];
-create table [stage].[mcaid_claim_pharm]
-([id_mcaid] varchar(255)
-,[claim_header_id] bigint
-,[ndc] varchar(255)
-,[rx_days_supply] smallint
-,[rx_quantity] numeric(19,3)
-,[rx_fill_date] date
-,[prescriber_id_format] varchar(10)
-,[prescriber_id] varchar(255)
-,[pharmacy_npi] bigint
-,[last_run] datetime)
-on [PRIMARY];
-", .con = conn)
-odbc::dbGetQuery(conn = db_claims, step1_sql)
-dbDisconnect(db_claims)
 
 #### CREATE TABLE ####
-# create_table_f(conn = db_claims, 
-#                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_pharm.yaml",
-#                overall = T, ind_yr = F)
+create_table_f(conn = db_claims, config_url = config_url, overall = T, ind_yr = F)
 
-db_claims <- dbConnect(odbc(), "PHClaims")
-step2_sql <- glue::glue_sql("
+#### LOAD TABLE ####
+# NB: Changes in table structure need to altered here and the YAML file
+insert_sql <- glue::glue_sql("
 insert into [stage].[mcaid_claim_pharm] with (tablock)
 ([id_mcaid]
 ,[claim_header_id]
@@ -104,33 +58,22 @@ select distinct
 
 from [stage].[mcaid_claim]
 where ndc is not null;
-", .con = conn)
+", .con = db_claims)
 
-print("Running step 2: Load to [stage].[mcaid_claim_pharm]")
+message(glue::glue("Loading to {load_mcaid_claim_pharm_config$to_schema}.{load_mcaid_claim_pharm_config$to_table}"))
 time_start <- Sys.time()
-odbc::dbGetQuery(conn = db_claims, step2_sql)
+DBI::dbExecute(conn = db_claims, insert_sql)
 time_end <- Sys.time()
-print(paste0("Step 2 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+print(paste0("Loading took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
-dbDisconnect(db_claims)
 
-db_claims <- dbConnect(odbc(), "PHClaims")
-step3_sql <- glue::glue_sql("
-create clustered index [idx_cl_mcaid_claim_pharm_claim_header_id] 
-on [stage].[mcaid_claim_pharm]([claim_header_id]);
-create nonclustered index [idx_nc_mcaid_claim_pharm_ndc] 
-on [stage].[mcaid_claim_pharm]([ndc]);
-create nonclustered index [idx_nc_mcaid_claim_pharm_rx_fill_date] 
-on [stage].[mcaid_claim_pharm]([rx_fill_date]);
-", .con = conn)
 
-print("Running step 3: Create Indexes")
-time_start <- Sys.time()
-odbc::dbGetQuery(conn = db_claims, step3_sql)
-time_end <- Sys.time()
-print(paste0("Step 3 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
-dbDisconnect(db_claims)
+#### ADD INDEX ####
+add_index_f(db_claims, table_config = load_mcaid_claim_pharm_config)
 
+
+#### CLEAN  UP ####
+rm(config_url, load_mcaid_claim_pharm_config)
+rm(insert_sql)
+rm(time_start, time_end)

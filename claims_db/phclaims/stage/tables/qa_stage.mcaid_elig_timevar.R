@@ -29,7 +29,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     # Pull in the reference value
     previous_rows <- as.numeric(
       odbc::dbGetQuery(conn, 
-                       "SELECT a.* FROM
+                       "SELECT a.qa_value FROM
                        (SELECT * FROM metadata.qa_mcaid_values
                          WHERE table_name = 'stage.mcaid_elig_timevar' AND
                           qa_item = 'row_count') a
@@ -52,11 +52,11 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                    'Number new rows compared to most recent run', 
                    'FAIL', 
                    {Sys.time()}, 
-                   'There were {row_diff} fewer rows in the most recent table 
+                   'There were {row_diff} fewer rows in the most recent table \\
                        ({row_count} vs. {previous_rows})')",
                        .con = conn))
       
-      stop(glue::glue("Fewer rows than found last time.  
+      warning(glue::glue("Fewer rows than found last time.  
                   Check metadata.qa_mcaid for details (last_run = {last_run}"))
     } else {
       odbc::dbGetQuery(
@@ -68,7 +68,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                    'Number new rows compared to most recent run', 
                    'PASS', 
                    {Sys.time()}, 
-                   'There were {row_diff} more rows in the most recent table 
+                   'There were {row_diff} more rows in the most recent table \\
                        ({row_count} vs. {previous_rows})')",
                        .con = conn))
       
@@ -96,7 +96,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        'There were {id_count_timevar} distinct IDs but {id_count_elig} in the raw data (should be the same)')",
                      .con = conn))
     
-    stop(glue::glue("Number of distinct IDs doesn't match the number of rows. 
+    warning(glue::glue("Number of distinct IDs doesn't match the number of rows. 
                       Check metadata.qa_mcaid for details (last_run = {last_run}"))
   } else {
     odbc::dbGetQuery(
@@ -119,8 +119,8 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     conn, 
     "SELECT COUNT (*) AS count FROM 
     (SELECT DISTINCT id_mcaid, from_date, to_date, 
-    dual, tpl, bsp_group_name, full_benefit, cov_type, mco_id,
-    geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
+    dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+    geo_add1, geo_add2, geo_city, geo_state, geo_zip,
     cov_time_day 
     FROM stage.mcaid_elig_timevar) a"))
   
@@ -135,10 +135,11 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        'Duplicate rows', 
                        'FAIL', 
                        {Sys.time()}, 
-                       'There were {dup_row_count} distinct rows (excl. ref_geo vars) but {row_count} rows overall (should be the same)')",
+                       'There were {dup_row_count} distinct rows (excl. ref_geo vars) \\
+                    but {row_count} rows overall (should be the same)')",
                      .con = conn))
     
-    stop(glue::glue("There appear to be duplicate rows. 
+    warning(glue::glue("There appear to be duplicate rows. 
                       Check metadata.qa_mcaid for details (last_run = {last_run}"))
   } else {
     odbc::dbGetQuery(
@@ -150,7 +151,8 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        'Duplicate rows', 
                        'PASS', 
                        {Sys.time()}, 
-                       'The number of distinct rows (excl. ref_geo vars) matched number total rows ({row_count})')",
+                       'The number of distinct rows (excl. ref_geo vars) \\
+                     matched number total rows ({row_count})')",
                      .con = conn))
   }
   
@@ -182,14 +184,14 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              'Date range',
                              'FAIL',
                              {Sys.time()}, 
-                             'Some from/to dates fell outside the CLNDR_YEAR_MNTH range 
+                             'Some from/to dates fell outside the CLNDR_YEAR_MNTH range \\
                              (min: {`from`}, max: {`to`})')",
                      .con = conn,
                      from = dbQuoteIdentifier(conn, as.character(date_range_timevar$from_date)),
                      to = dbQuoteIdentifier(conn, as.character(date_range_timevar$to_date))
                      ))
     
-    stop(glue::glue("Some from/to dates fell outside the CLNDR_YEAR_MNTH range. 
+    warning(glue::glue("Some from/to dates fell outside the CLNDR_YEAR_MNTH range. 
                     Check metadata.qa_mcaid for details (last_run = {last_run}"))
   } else {
     odbc::dbGetQuery(
@@ -201,7 +203,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              'Date range',
                              'PASS',
                              {Sys.time()}, 
-                             'All from/to dates fell within the CLNDR_YEAR_MNTH range 
+                             'All from/to dates fell within the CLNDR_YEAR_MNTH range \\
                              (min: {`from`}, max: {`to`})')",
                      .con = conn,
                      from = dbQuoteIdentifier(conn, as.character(date_range_elig$from_date)),

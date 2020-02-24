@@ -2,11 +2,8 @@ from_schema: stage
 from_table: mcaid_elig_timevar
 to_schema: final
 to_table: mcaid_elig_timevar
-index_name: idx_cl_final_mcaid_elig_timevar_id_mcaid_from_date_to_date
-index:
-  - id_mcaid
-  - from_date
-  - to_date
+index_name: idx_ccs_final_mcaid_elig_timevar
+index_type: ccs
 vars:
     id_mcaid: VARCHAR(255)
     from_date: DATE
@@ -14,20 +11,20 @@ vars:
     contiguous: TINYINT
     dual: TINYINT
     tpl: TINYINT
-    bsp_group_name: VARCHAR(255)
+    bsp_group_cid: INTEGER
     full_benefit: TINYINT
     cov_type: CHAR(3)
     mco_id: INT
-    geo_add1_clean: VARCHAR(255)
-    geo_add2_clean: VARCHAR(255)
-    geo_city_clean: VARCHAR(255)
-    geo_state_clean: VARCHAR(255)
-    geo_zip_clean: VARCHAR(255)
+    geo_add1: VARCHAR(255)
+    geo_add2: VARCHAR(255)
+    geo_city: VARCHAR(255)
+    geo_state: VARCHAR(255)
+    geo_zip: VARCHAR(255)
     geo_zip_centroid: TINYINT
     geo_street_centroid: TINYINT
-    geo_countyfp10: varchar(255)
-    geo_tractce10: VARCHAR(255)
-    geo_hra_id: SMALLINT
-    geo_school_geoid10: VARCHAR(255)
+    geo_county_code: varchar(255)
+    geo_tract_code: VARCHAR(255)
+    geo_hra_code: SMALLINT
+    geo_school_code: VARCHAR(255)
     cov_time_day: SMALLINT
     last_run: DATETIME

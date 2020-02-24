@@ -8,7 +8,7 @@
 
 
 load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
-                                            etl_date_max = "2018-12-31",
+                                            etl_date_max = "2019-12-31",
                                             etl_delivery_date = NULL,
                                             etl_note = NULL) {
   
@@ -37,7 +37,8 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                               date_min = etl_date_min,
                                               date_max = etl_date_max,
                                               delivery_date = etl_delivery_date, 
-                                              note = etl_note)
+                                              note = etl_note,
+                                              auto_proceed = T)
   
   if (is.na(current_batch_id)) {
     stop("No etl_batch_id. Check metadata.etl_log table")
@@ -51,7 +52,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                       overall = F, ind_yr = T)
   
   # Report results out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -76,7 +77,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                  overall = F, ind_yr = T)
   
   # Report results out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -87,7 +88,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                         {qa_column$note})",
                                   .con = db_claims))
   
-  if (qa_column$outcome == "FAIL") {
+  if (qa_column$outcome == "FAIL" | !exists(qa_column)) {
     stop(glue::glue("Mismatching column order between source file and SQL table. 
                   Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
   }
@@ -109,7 +110,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                     overall = F, ind_yr = T, combine_yr = T)
   
   # Report individual results out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -120,7 +121,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                         {qa_rows_sql$note[1]})",
                                   .con = db_claims))
   # Report combined years result out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -144,55 +145,49 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
   
   #### QA CHECK: COUNT OF DISTINCT ID, CLNDR_YEAR_MNTH, FROM DATE, TO DATE, SECONDARY RAC ####
   print("Running additional QA items")
+  
   # Should be no combo of ID, CLNDR_YEAR_MNTH, from_date, to_date, and secondary RAC with >1 row
-  distinct_rows <- as.numeric(dbGetQuery(db_claims,
-                                         "SELECT COUNT (*) FROM
-                            (SELECT DISTINCT CLNDR_YEAR_MNTH, 
-                              MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE,
-                              SECONDARY_RAC_CODE 
-                              FROM load_raw.mcaid_elig) a"))
+  # However, some months have multiple rows per person-month-RAC combo. There are currently 
+  #   3 main reasons for this:
+  # 1) Multiple end reasons (mostly dates prior to 2018-09)
+  # 2) One row with missing HOH_ID and one row with non-missing HOH_ID (mostly mid-2019)
+  # 3) RAC name (usually secondary) spelled incorrectly 
+  #  (Involuntary Inpatient Psychiactric Treatment (ITA) vs Involuntary Inpatient Psychiatric Treatment (ITA))
+  
+  # Check for all 3 situations, they will be addressed when making stage tables
+  distinct_rows <- as.numeric(dbGetQuery(
+    db_claims,
+    "SELECT COUNT (*) FROM
+    (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
+    TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, HOH_ID, END_REASON, RPRTBL_RAC_NAME,
+    SECONDARY_RAC_NAME
+    FROM load_raw.mcaid_elig) a"))
   
   total_rows <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM load_raw.mcaid_elig"))
   
   
   if (distinct_rows != total_rows) {
-    # Looks like there are 42 people with extra rows where the only difference is a NULL or different end reason
-    # Still flag as a fail but account for this in the note and continue processing
-    if (total_rows - distinct_rows == 42) {
-      odbc::dbGetQuery(
-        conn = db_claims,
-        glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                     (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({current_batch_id}, 
-                             'load_raw.mcaid_elig',
-                             'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, SECONDARY RAC)', 
-                             'FAIL', 
-                             {Sys.time()}, 
-                             'Known issue where 42 people have duplicate rows but differing end reason. Continued with load.')",
-                       .con = db_claims))
-    } else if (total_rows - distinct_rows != 42) {
-      odbc::dbGetQuery(conn = db_claims,
-                       glue::glue_sql("INSERT INTO metadata.qa_mcaid
+    odbc::dbGetQuery(conn = db_claims,
+                     glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                     (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                     VALUES ({current_batch_id}, 
                                     'load_raw.mcaid_elig',
-                                    'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, SECONDARY RAC)', 
+                                    'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON)', 
                                     'FAIL',
                                     {Sys.time()},
-                                    'Issue was not the known 42 people with duplicate rows. Investigate further.')",
-                                      .con = db_claims))
-      stop("Number of distinct rows does not match total expected")
-    }
+                                    'Number distinct rows ({distinct_rows}) != total rows ({total_rows})')",
+                                    .con = db_claims))
+    warning(glue("Number of distinct rows ({distinct_rows}) does not match total expected ({total_rows})"))
   } else {
     odbc::dbGetQuery(conn = db_claims,
                      glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
                                   'load_raw.mcaid_elig',
-                                  'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, SECONDARY RAC)', 
+                                  'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON)', 
                                   'PASS',
                                   {Sys.time()},
-                                  'Number of distinct rows equals total # rows')",
+                                  'Number of distinct rows equals total # rows ({total_rows})')",
                                     .con = db_claims))
   }
   
@@ -204,7 +199,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                    date_var = "CLNDR_YEAR_MNTH")
   
   # Report individual results out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -215,7 +210,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                         {qa_date_range$note[1]})",
                                   .con = db_claims))
   # Report combined years result out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
@@ -243,7 +238,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                      FROM load_raw.mcaid_elig")
   
   if (id_len$min_len != 11 | id_len$max_len != 11) {
-    odbc::dbGetQuery(
+    DBI::dbExecute(
       conn = db_claims,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -258,7 +253,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
     stop(glue::glue("Some Medicaid IDs are not 11 characters long.  
                   Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
   } else {
-    odbc::dbGetQuery(
+    DBI::dbExecute(
       conn = db_claims,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -282,7 +277,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
   
   if (rac_len$min_len != 4 | rac_len$max_len != 4 | 
       rac_len$min_len2 != 4 | rac_len$max_len2 != 4) {
-    odbc::dbGetQuery(
+    DBI::dbExecute(
       conn = db_claims,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -298,7 +293,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
     stop(glue::glue("Some RAC codes are not 4 characters long.  
                   Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
   } else {
-    odbc::dbGetQuery(
+    DBI::dbExecute(
       conn = db_claims,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -328,7 +323,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
   pct_null <- round(from_nulls$null_dates / from_nulls$total_rows  * 100, 3)
   
   if (pct_null > 2.0) {
-    odbc::dbGetQuery(
+    DBI::dbExecute(
       conn = db_claims,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -343,7 +338,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
     stop(glue::glue(">2% FROM_DATE rows are null.  
                   Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
   } else {
-    odbc::dbGetQuery(
+    DBI::dbExecute(
       conn = db_claims,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
                    (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
@@ -358,10 +353,11 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
   
   print("All QA items passed, see results in metadata.qa_mcaid")
   
+  
   #### ADD BATCH ID COLUMN ####
   print("Adding batch ID to SQL table")
   # Add column to the SQL table and set current batch to the default
-  odbc::dbGetQuery(db_claims,
+  DBI::dbExecute(db_claims,
                    glue::glue_sql(
                      "ALTER TABLE load_raw.mcaid_elig 
                    ADD etl_batch_id INTEGER 
@@ -371,7 +367,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
   
   #### ADD VALUES TO QA_VALUES TABLE ####
   print("Loading values to metadata value table")
-  odbc::dbGetQuery(
+  DBI::dbExecute(
     conn = db_claims,
     glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
                    (table_name, qa_item, qa_value, qa_date, note) 

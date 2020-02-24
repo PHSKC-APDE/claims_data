@@ -1,0 +1,453 @@
+---
+title: "PHClaims table dependencies"
+author: "Alastair Matheson (Assessment, Policy Development, and Evaluation Unit)"
+date: "02/24/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+if (!require("pacman")) {install.packages("pacman")}
+pacman::p_load(tidyverse, glue, DiagrammeR)
+
+#### Set up color schema
+color_load_raw <- "SeaGreen1"
+color_stage <- "SeaGreen2"
+color_final <- "SeaGreen3"
+color_archive <- "SeaGreen4"
+color_ref <- "Bisque1"
+color_metadata <- "Bisque2"
+color_file <- "Azure"
+color_edge <- "MidnightBlue"
+color_edge_qa <- "CornflowerBlue"
+color_font_light <- "Snow"
+color_font_dark <- "DarkOliveGreen"
+
+#### Pull in and set up data
+# input <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/table_dependencies.csv")
+input <- data.table::fread("C:/code/claims_data/claims_db/phclaims/table_dependencies.csv")
+
+# Modify overall data
+input <- input %>%
+  mutate(to = paste(schema, table, sep = "."),
+         from = case_when(
+           !is.na(parent_schema) & parent_schema != "" ~ paste(parent_schema, parent_table, sep = "."),
+           !is.na(parent_file) & parent_file != "" ~ parent_file))
+
+# Set up overall nodes
+nodes <- input %>%
+  distinct(to, schema) %>%
+  rename(node = to) %>%
+  bind_rows(., distinct(input, from, parent_schema) %>% 
+              filter(!is.na(from)) %>%
+              rename(node = from, schema = parent_schema))  %>%
+  arrange(node) %>%
+  mutate(fillcolor = case_when(
+           schema == "load_raw" ~ color_load_raw,
+           schema == "stage" ~ color_stage,
+           schema == "final" ~ color_final,
+           schema == "archive" ~ color_archive,
+           schema == "ref" ~ color_ref,
+           schema == "metadata" ~ color_metadata,
+           is.na(schema) | schema == "" ~ color_file,
+           TRUE ~ "Black"),
+         fontcolor = case_when(
+           schema %in% c("final", "archive") ~ color_font_light,
+           TRUE ~ color_font_dark),
+         node_label = str_replace(node, "\\.", "\\.\\\\n")
+         ) %>%
+  distinct(node, fillcolor, fontcolor, node_label) %>%
+  mutate(id = seq(1, nrow(.))) %>%
+  select(id, node, fillcolor, fontcolor, node_label)
+
+# Set up overall edges
+edges <- input %>%
+  filter(!is.na(to) & !is.na(from)) %>%
+  mutate(color = case_when(
+           is.na(qa_dependency) ~ color_edge,
+           TRUE ~ color_edge_qa),
+         penwidth = case_when(
+           is.na(qa_dependency) ~ 1,
+           TRUE ~ 0.5),
+         rel = case_when(
+           is.na(qa_dependency) ~ "depends_on",
+           TRUE ~ "helps_qa")
+         ) %>%
+  select(from, to, color, penwidth, rel) %>%
+  arrange(from) %>%
+  # Keep IDs to set up edges
+  left_join(., select(nodes, node, id),
+            by = c("from" = "node")) %>%
+  rename(from_id = id) %>%
+  left_join(., select(nodes, node, id),
+            by = c("to" = "node")) %>%
+  rename(to_id = id) %>%
+  mutate(edge = paste(from_id, to_id, sep = '->'),
+         # Need to be factors for DiagrammeR to work
+         from = factor(from, levels = nodes$node),
+         to = factor(to, levels = nodes$node))
+
+
+# Set up function to restrict to desired nodes
+node_filter <- function(edge_df) {
+  output <- edge_df %>%
+  mutate(node = as.character(from)) %>%
+  bind_rows(., mutate(edge_df, node = as.character(to)) %>% select(node)) %>%
+  distinct(node) %>%
+  left_join(., nodes, by = "node")
+}
+
+# Set up a function to create the Graphviz text
+gv_maker <- function(node_df, edge_df) {
+  gv_nodes <- glue_collapse(
+    glue_data(node_df, "{id} [fillcolor = {fillcolor}, fontcolor = {fontcolor}, label = '{node_label}']"),
+    sep = '\n')
+  
+  gv_edges <- glue_collapse(glue_data(edge_df, "{edge} [color = {color}, pendwidth = {penwidth}]"), sep = '; ')
+  
+  gv_txt <- glue('
+  digraph dependencies {{
+  
+  ## Graph statement
+  graph [overlap = false]
+  labelloc = t;
+  rankdir = LR;
+  
+  ## Set up overall formats
+  node[shape = rectangle, style = filled]
+  
+  ## Set up legend
+  subgraph cluster_legend {{
+  
+    label = "Key";
+    color = Crimson;
+    
+    subgraph cluster_col1 {{
+      label = "";
+      style = invis;
+    
+      kc1[fillcolor = {color_load_raw}, label = ""];
+      k1[shape=plaintext, style=solid, width=2, label = "load_raw schema\\r"]
+      k1->kc1[style = invis]
+      
+      kc2[fillcolor = {color_stage}, label = ""];
+      k2[shape=plaintext, style=solid, width=2, label = "stage schema\\r"]
+      k2->kc2[style = invis]
+      
+      kc3[fillcolor = {color_final}, label = ""];
+      k3[shape=plaintext, style=solid, width=2, label = "final schema\\r"]
+      k3->kc3[style = invis]
+      
+      kc4[fillcolor = {color_archive}, label = ""];
+      k4[shape=plaintext, style=solid, width=2, label = "archive schema\\r"]
+      k4->kc4[style = invis]
+    }}
+
+
+    subgraph cluster_col2 {{
+      label = "";
+      style = invis;
+      
+      kc5[fillcolor = {color_ref}, label = ""];
+      k5[shape=plaintext, style=solid, width=2, label = "ref schema\\r"]
+      k5->kc5[style = invis]
+      
+      kc6[fillcolor = {color_metadata}, label = ""];
+      k6[shape=plaintext, style=solid, width=2, label = "metadata schema\\r"]
+      k6->kc6[style = invis]
+      
+      kc7[fillcolor = {color_file}, label = ""];
+      k7[shape=plaintext, style=solid, width=2, label = "file source\\r"]
+      k7->kc7[style = invis]
+    }}
+    
+    
+    subgraph cluster_col3 {{
+      label = "";
+      style = invis;
+      
+      kc8[style = invis]
+      k8[shape=plaintext, style=solid, width=2, label = "depends on\\r"]
+      k8->kc8[color = {color_edge}]
+      
+      kc9[style = invis]
+      k9[shape=plaintext, style=solid, width=2, label = "helps QA\\r"]
+      k9->kc9[color = {color_edge_qa}]
+    }}
+    
+    # Add invisible edges so the legend has columns
+    kc1->k5[style = invis]
+    kc5->k8[style = invis]
+
+  }}
+  
+  ## Set up main graph
+  subgraph cluster_main {{
+    # Set up nodes
+    {gv_nodes}
+  
+    # Set up edges
+    {gv_edges}
+  }}
+
+  
+  }}')
+  
+  return(gv_txt)
+}
+
+
+
+### NB
+# After experimenting with various methods of using DiagrammeR, the best results
+# came from using glue to generate Graphviz code rather than the create_graph and 
+# render_graph functions. 
+
+```
+
+## Purpose
+
+This is an attempt to document the table dependencies that exist in the PHClaims database. This will allow users to better understand how code/variable changes
+will impact downstream tables. Because of the volume of tables, the diagrams are split into sections.
+
+Future plans for this documentation include turning it into an interactive document that would allow users to select a specific table and see all the related tables.
+
+Code to create this document is found here: <https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/table_dependencies.Rmd>
+
+
+## APCD 
+### Claims
+```{r apcd_claim, echo=FALSE}
+# set up apcd_elig only
+apcd_claim_edges <- edges %>% 
+  filter(str_detect(from, "apcd_claim") | str_detect(to, "apcd_claim"))
+
+# See which nodes should be included
+apcd_claim_nodes <- node_filter(apcd_claim_edges)
+  
+# Set up Graphviz text
+apcd_claim_gv <- gv_maker(node_df = apcd_claim_nodes, edge_df = apcd_claim_edges)
+
+# Make graph
+if (length(apcd_claim_gv)) {
+  grViz(apcd_claim_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
+### Eligibility
+```{r apcd_elig, echo=FALSE}
+# set up apcd_elig only
+apcd_elig_edges <- edges %>% 
+  filter(str_detect(from, "apcd_elig") | str_detect(to, "apcd_elig"))
+
+# See which nodes should be included
+apcd_elig_nodes <- node_filter(apcd_elig_edges)
+  
+# Set up Graphviz text
+apcd_elig_gv <- gv_maker(node_df = apcd_elig_nodes, edge_df = apcd_elig_edges)
+
+# Make graph
+if (length(apcd_elig_gv)) {
+  grViz(apcd_elig_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
+
+## Medicaid 
+### Claims
+```{r mcaid_claim, echo=FALSE}
+# set up mcaid_elig only
+mcaid_claim_edges <- edges %>% 
+  filter(str_detect(from, "mcaid_claim") | str_detect(to, "mcaid_claim"))
+
+# See which nodes should be included
+mcaid_claim_nodes <- node_filter(mcaid_claim_edges)
+  
+# Set up Graphviz text
+mcaid_claim_gv <- gv_maker(node_df = mcaid_claim_nodes, edge_df = mcaid_claim_edges)
+
+# Make graph
+if (length(mcaid_claim_gv)) {
+  grViz(mcaid_claim_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
+### Eligibility
+```{r mcaid_elig, echo=FALSE}
+# set up mcaid_elig only
+mcaid_elig_edges <- edges %>% 
+  filter(str_detect(from, "mcaid_elig") | str_detect(to, "mcaid_elig"))
+
+# See which nodes should be included
+mcaid_elig_nodes <- node_filter(mcaid_elig_edges)
+  
+# Set up Graphviz text
+mcaid_elig_gv <- gv_maker(node_df = mcaid_elig_nodes, edge_df = mcaid_elig_edges)
+
+# Make graph
+if (length(mcaid_claim_gv)) {
+  grViz(mcaid_claim_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
+
+## Medicare 
+### Claims
+```{r mcare_claim, echo=FALSE}
+# set up mcare_elig only
+mcare_claim_edges <- edges %>% 
+  filter(str_detect(from, "mcare_claim") | str_detect(to, "mcare_claim"))
+
+# See which nodes should be included
+mcare_claim_nodes <- node_filter(mcare_claim_edges)
+  
+# Set up Graphviz text
+mcare_claim_gv <- gv_maker(node_df = mcare_claim_nodes, edge_df = mcare_claim_edges)
+
+# Make graph
+if (length(mcare_claim_gv)) {
+  grViz(mcare_claim_gv)
+} else {
+  message("No tables in this category")
+}
+
+```
+
+### Eligibility
+```{r mcare_elig, echo=FALSE}
+# set up mcare_elig only
+mcare_elig_edges <- edges %>% 
+  filter(str_detect(from, c("\\.mcare_elig|mcare_mbsf")) | str_detect(to, c("\\.mcare_elig|mcare_mbsf")) ) %>% 
+  filter(!(str_detect(from, c("mcaid_mcare")) | str_detect(to, c("mcaid_mcare"))) )
+
+# See which nodes should be included
+mcare_elig_nodes <- node_filter(mcare_elig_edges)
+  
+# Set up Graphviz text
+mcare_elig_gv <- gv_maker(node_df = mcare_elig_nodes, edge_df = mcare_elig_edges)
+
+# Make graph
+if (length(mcare_elig_gv)) {
+  grViz(mcare_elig_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
+## Identity linkage
+```{r mcaid_mcare_pha_xwalk, echo=FALSE}
+# set up mcaid_mcare_pha_xwalk only
+mcaid_mcare_pha_xwalk_edges <- edges %>% 
+  filter(str_detect(from, "xwalk_apde_mcaid_mcare_pha") | str_detect(to, "xwalk_apde_mcaid_mcare_pha")) %>% 
+  filter(!(str_detect(from, c("final.xwalk_apde_mcaid_mcare_pha")) )) 
+
+# See which nodes should be included
+mcaid_mcare_pha_xwalk_nodes <- node_filter(mcaid_mcare_pha_xwalk_edges)
+  
+# Set up Graphviz text
+mcaid_mcare_pha_xwalk_gv <- gv_maker(node_df = mcaid_mcare_pha_xwalk_nodes, edge_df = mcaid_mcare_pha_xwalk_edges)
+
+# Make graph
+if (length(mcaid_mcare_pha_xwalk_gv)) {
+  grViz(mcaid_mcare_pha_xwalk_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
+## Medicaid/Medicare combined
+### Claims
+```{r mcaid_mcare_claim, echo=FALSE}
+# set up mcaid_mcare_elig only
+mcaid_mcare_claim_edges <- edges %>% 
+  filter(str_detect(from, "mcaid_mcare_claim") | str_detect(to, "mcaid_mcare_claim"))
+
+# See which nodes should be included
+mcaid_mcare_claim_nodes <- node_filter(mcaid_mcare_claim_edges)
+  
+# Set up Graphviz text
+mcaid_mcare_claim_gv <- gv_maker(node_df = mcaid_mcare_claim_nodes, edge_df = mcaid_mcare_claim_edges)
+
+# Make graph
+if (length(mcaid_mcare_claim_gv)) {
+  grViz(mcaid_mcare_claim_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
+### Eligibility
+```{r mcaid_mcare_elig, echo=FALSE}
+# set up mcaid_mcare_elig only
+mcaid_mcare_elig_edges <- edges %>% 
+  filter(str_detect(from, "mcaid_mcare_elig") | str_detect(to, "mcaid_mcare_elig")) %>%
+  filter(!(str_detect(from, c("final.mcaid_mcare_elig"))))
+
+# See which nodes should be included
+mcaid_mcare_elig_nodes <- node_filter(mcaid_mcare_elig_edges)
+  
+# Set up Graphviz text
+mcaid_mcare_elig_gv <- gv_maker(node_df = mcaid_mcare_elig_nodes, edge_df = mcaid_mcare_elig_edges)
+
+# Make graph
+if (length(mcaid_mcare_elig_gv)) {
+  grViz(mcaid_mcare_elig_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
+
+## Medicaid/Medicare/PH combined
+### Claims
+```{r mcaid_mcare_pha_claim, echo=FALSE}
+# set up mcaid_mcare_pha_elig only
+mcaid_mcare_pha_claim_edges <- edges %>% 
+  filter(str_detect(from, "mcaid_mcare_pha_claim") | str_detect(to, "mcaid_mcare_pha_claim"))
+
+# See which nodes should be included
+mcaid_mcare_pha_claim_nodes <- node_filter(mcaid_mcare_pha_claim_edges)
+  
+# Set up Graphviz text
+mcaid_mcare_pha_claim_gv <- gv_maker(node_df = mcaid_mcare_pha_claim_nodes, edge_df = mcaid_mcare_pha_claim_edges)
+
+# Make graph
+if (length(mcaid_mcare_pha_claim_gv)) {
+  grViz(mcaid_mcare_pha_claim_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
+### Eligibility
+```{r mcaid_mcare_pha_elig, echo=FALSE}
+# set up mcaid_mcare_pha_elig only
+mcaid_mcare_pha_elig_edges <- edges %>% 
+  filter(str_detect(from, "mcaid_mcare_pha_elig") | str_detect(to, "mcaid_mcare_pha_elig"))
+
+# See which nodes should be included
+mcaid_mcare_pha_elig_nodes <- node_filter(mcaid_mcare_pha_elig_edges)
+  
+# Set up Graphviz text
+mcaid_mcare_pha_elig_gv <- gv_maker(node_df = mcaid_mcare_pha_elig_nodes, edge_df = mcaid_mcare_pha_elig_edges)
+
+# Make graph
+if (length(mcaid_mcare_pha_elig_gv)) {
+  grViz(mcaid_mcare_pha_elig_gv)
+} else {
+  message("No tables in this category")
+}
+```
+
+
+
+

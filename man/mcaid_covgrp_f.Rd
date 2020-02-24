@@ -4,8 +4,13 @@
 \alias{mcaid_covgrp_f}
 \title{Medicaid member coverage group information}
 \usage{
-mcaid_covgrp_f(server, from_date = Sys.Date() - months(12),
-  to_date = Sys.Date() - months(6), join = FALSE, df_join_name)
+mcaid_covgrp_f(
+  server,
+  from_date = Sys.Date() - months(12),
+  to_date = Sys.Date() - months(6),
+  join = FALSE,
+  df_join_name
+)
 }
 \arguments{
 \item{server}{SQL server connection created using \code{odbc} package}

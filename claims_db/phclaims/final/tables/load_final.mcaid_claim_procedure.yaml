@@ -1,0 +1,18 @@
+from_schema: stage
+from_table: mcaid_claim_procedure
+to_schema: final
+to_table: mcaid_claim_procedure
+index_type: ccs
+index_name: idx_ccs_final_mcaid_claim_procedure
+vars:
+    id_mcaid: VARCHAR(255)
+    claim_header_id: BIGINT
+    first_service_date: DATE
+    last_service_date: DATE
+    procedure_code: VARCHAR(200)
+    procedure_code_number: VARCHAR(4)
+    modifier_1: VARCHAR(200)
+    modifier_2: VARCHAR(200)
+    modifier_3: VARCHAR(200)
+    modifier_4: VARCHAR(200)
+    last_run: DATETIME

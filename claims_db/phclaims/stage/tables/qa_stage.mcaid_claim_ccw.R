@@ -19,7 +19,7 @@ db_claims <- dbConnect(odbc(), "PHClaims51")
 
 # Bring in YAML file used to make CCW table
 table_config <- yaml::yaml.load(
-  RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_ccw.yaml" ))
+  RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_ccw.yaml"))
 
 ##Pull out run date of stage.mcaid_elig_demo
 last_run_claim_ccw <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_ccw")[[1]])
@@ -287,7 +287,8 @@ ids_csv <- read.csv(file = "//dchs-shares01/dchsdata/DCHSPHClaimsData/Data/QA_sp
 
 
 # Restrict to relevant columns
-ids_csv <- ids_csv %>% select(id_mcaid, ccw_desc, from_date, to_date)
+ids_csv <- ids_csv %>% select(id_mcaid, ccw_desc, from_date, to_date) %>%
+  arrange(id_mcaid, from_date)
 
 # Pull relevant people from ccw table
 # Note, need to use glue instead of glue_sql to get quotes to work in collapse
@@ -297,11 +298,12 @@ ids_ccw <- dbGetQuery(
         FROM stage.mcaid_claim_ccw 
         WHERE {glue_collapse(glue_data_sql(
              ids_csv, '(id_mcaid = {id_mcaid} and ccw_desc = {ccw_desc})', 
-             .con = db_claims), sep = ' OR ')}"
+             .con = db_claims), sep = ' OR ')} 
+        ORDER BY id_mcaid, from_date"
   ))
 
 
-if (all_equal(ids_csv, ids_ccw)) {
+if (isTRUE(all_equal(ids_csv, ids_ccw))) {
   ccw_qa <- rbind(ccw_qa,
                   data.frame(etl_batch_id = NA_integer_,
                              last_run = last_run_claim_ccw,
@@ -348,4 +350,4 @@ rm(table_config, ccw_qa, distinct_cond, conditions,
    age_dist_cond_f, age_dist_pop_f, age_dist_cond_chk, age_dist_pop_chk, age_dist_chk, 
    ids_csv, ids_ccw, load_sql)
 
-message("QA of stage.mcaid_claim_ccw complete")
+message(glue::glue("QA of stage.mcaid_claim_ccw complete. Result: {ccw_qa_result}"))

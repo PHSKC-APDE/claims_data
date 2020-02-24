@@ -1,0 +1,15 @@
+to_schema: stage
+to_table: mcaid_claim_value_set
+index_type: ccs
+index_name: idx_ccs_mcaid_claim_value_set
+vars:
+    value_set_group: VARCHAR(20)
+    value_set_name: VARCHAR(100)
+    data_source_type: VARCHAR(50)
+    sub_group: VARCHAR(50)
+    code_set: VARCHAR(50)
+    primary_dx_only: CHAR(1)
+    id_mcaid: VARCHAR(255)
+    claim_header_id: BIGINT
+    service_date: DATE
+    last_run: DATETIME

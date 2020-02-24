@@ -178,7 +178,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                                    "SELECT MIN(from_date) AS from_date, max(to_date) as to_date 
                                    FROM stage.mcare_elig_timevar")
   date_range_elig <- data.table(from_date = as.Date("2011-01-01"), # hard coded from and to dates
-                                to_date = as.Date("2016-12-31"))
+                                to_date = as.Date("2017-12-31"))
 
   if (date_range_timevar$from_date < date_range_elig$from_date | 
       date_range_timevar$to_date > date_range_elig$to_date) {

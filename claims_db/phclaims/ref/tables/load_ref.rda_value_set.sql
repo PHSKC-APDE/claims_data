@@ -2,6 +2,26 @@
 USE [PHClaims];
 GO
 
+/*
+SELECT *
+FROM [metadata].[v_rda_value_set_summary]
+ORDER BY
+ [value_set_group]
+,[value_set_name]
+,[data_source_type]
+,[sub_group]
+,[code_set]
+,[active]
+,[num_code];
+*/
+
+/*
+SUD-Tx-Pen-Value-Set-1 (Line 239)
+
+ALTER INDEX [pk_rda_value_set] 
+ON [ref].[rda_value_set] REBUILD PARTITION = ALL;
+*/
+
 TRUNCATE TABLE [ref].[rda_value_set];
 
 -- Mental Health Value Sets
@@ -223,7 +243,11 @@ SELECT
 ,CAST(NULL AS DATE) AS [to_date]
 FROM [tmp].[tmp_MH-taxonomy-value-set.xlsx];
 
--- Substance Use Disorder Value Sets
+/*
+DELETE FROM [ref].[rda_value_set]
+WHERE [value_set_name] = 'SUD-Tx-Pen-Value-Set-1';
+SELECT * FROM [tmp].[SUD-Tx-Pen-Value-Set-1_xlsx];
+*/
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
 ,[value_set_name]
@@ -240,7 +264,7 @@ SELECT
  CAST('SUD' AS VARCHAR(20)) AS [value_set_group]
 ,CAST('SUD-Tx-Pen-Value-Set-1' AS VARCHAR(100)) AS [value_set_name]
 ,CAST('Diagnosis' AS VARCHAR(50)) AS [data_source_type]
-,CAST('NA' AS VARCHAR(50)) AS [sub_group]
+,CAST(ISNULL([SubGroup], 'NA') AS VARCHAR(50)) AS [sub_group]
 ,CAST('ICD10CM' AS VARCHAR(50)) AS [code_set]
 ,CAST([Code] AS VARCHAR(20)) AS [code]
 ,CAST([CodeDescription] AS VARCHAR(200)) AS [desc_1]
@@ -248,17 +272,16 @@ SELECT
 ,CAST('Y' AS VARCHAR(1)) AS [active]
 ,CAST(NULL AS DATE) AS [from_date]
 ,CAST(NULL AS DATE) AS [to_date]
-FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-1.xlsx] WHERE CodeSet = 'ICD10';
+FROM [tmp].[SUD-Tx-Pen-Value-Set-1_xlsx] WHERE CodeSet = 'ICD10';
 
 WITH CTE AS
 (
 SELECT 
  *
 ,ROW_NUMBER() OVER(PARTITION BY REPLACE(CAST(REPLACE([Code], '.', '') AS CHAR(5)), ' ', '0') ORDER BY [Code] DESC) AS [row_num]
-FROM [tmp].[tmp_SUD-Tx-Pen-Value-Set-1.xlsx]
+FROM [tmp].[SUD-Tx-Pen-Value-Set-1_xlsx]
 WHERE [CodeSet] = 'ICD9'
 )
-
 INSERT INTO [ref].[rda_value_set]
 ([value_set_group]
 ,[value_set_name]
@@ -276,7 +299,7 @@ SELECT
  CAST('SUD' AS VARCHAR(20)) AS [value_set_group]
 ,CAST('SUD-Tx-Pen-Value-Set-1' AS VARCHAR(100)) AS [value_set_name]
 ,CAST('Diagnosis' AS VARCHAR(50)) AS [data_source_type]
-,CAST('NA' AS VARCHAR(50)) AS [sub_group]
+,CAST(ISNULL([SubGroup], 'NA') AS VARCHAR(50)) AS [sub_group]
 ,CAST('ICD9CM' AS VARCHAR(50)) AS [code_set]
 -- ZERO-RIGHT-PADDED
 ,CAST(REPLACE(CAST(REPLACE([Code], '.', '') AS CHAR(5)), ' ', '0') AS VARCHAR(20)) AS [code]

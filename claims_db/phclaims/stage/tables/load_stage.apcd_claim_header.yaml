@@ -1,0 +1,23 @@
+schema: stage
+table: apcd_claim_header
+vars:
+    id_apcd: bigint
+    claim_header_id: bigint
+    product_code_id: int
+    first_service_date: date
+    last_service_date: date
+    first_paid_date: date
+    last_paid_date: date
+    charge_amt: numeric(38,2)
+    primary_diagnosis: varchar(255)
+    icdcm_version: tinyint
+    claim_status_id: tinyint
+    claim_type_apcd_id: varchar(255)
+    claim_type_id: tinyint
+    type_of_bill_code: varchar(255)
+    ed_perform_id: bigint
+    ed_pophealth_id: bigint
+    inpatient_id: bigint
+    discharge_date: date
+    pc_visit_id: bigint
+    last_run: datetime

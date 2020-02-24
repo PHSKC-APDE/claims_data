@@ -1,0 +1,10 @@
+schema: stage
+table: mcare_xwalk_edb_user_view
+years:
+vars:
+    bene_id: CHAR(15) collate SQL_Latin1_General_Cp1_CS_AS
+    bene_srnm_name: VARCHAR(255)
+    bene_gvn_name: VARCHAR(255)
+    bene_mdl_name: CHAR(1)
+    crnt_rec_ind: CHAR(1)
+    last_run: DATETIME

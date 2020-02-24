@@ -1,0 +1,39 @@
+schema: stage
+table: mcare_dme_claims_load
+row_count_expected: 3738384
+col_count_expected: 34
+vars:
+    id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    first_service_date: date
+    last_service_date: date
+    claim_type: varchar(255)
+    denial_code: varchar(255)
+    provider_referring_npi: varchar(255)
+    dx01: varchar(255)
+    dx01_ver: varchar(255)
+    dx02: varchar(255)
+    dx02_ver: varchar(255)
+    dx03: varchar(255)
+    dx03_ver: varchar(255)
+    dx04: varchar(255)
+    dx04_ver: varchar(255)
+    dx05: varchar(255)
+    dx05_ver: varchar(255)
+    dx06: varchar(255)
+    dx06_ver: varchar(255)
+    dx07: varchar(255)
+    dx07_ver: varchar(255)
+    dx08: varchar(255)
+    dx08_ver: varchar(255)
+    dx09: varchar(255)
+    dx09_ver: varchar(255)
+    dx10: varchar(255)
+    dx10_ver: varchar(255)
+    dx11: varchar(255)
+    dx11_ver: varchar(255)
+    dx12: varchar(255)
+    dx12_ver: varchar(255)
+    dx13: varchar(255)
+    dx13_ver: varchar(255)
+    last_run: datetime

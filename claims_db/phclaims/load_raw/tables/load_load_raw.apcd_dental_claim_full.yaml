@@ -1,0 +1,82 @@
+schema: load_raw
+table: apcd_dental_claim
+vars:
+    dental_claim_service_line_id: bigint
+    submitter_id: integer
+    internal_member_id: bigint
+    submitter_clm_control_num: varchar(272)
+    product_code_id: integer
+    subscriber_relationship_id: integer
+    line_counter: integer
+    first_service_dt: date
+    last_service_dt: date
+    first_paid_dt: date
+    last_paid_dt: date
+    place_of_service_code: varchar(2)
+    procedure_code: varchar(20)
+    procedure_modifier_code_1: varchar(20)
+    procedure_modifier_code_2: varchar(20)
+    dental_tooth_system_id: integer
+    dental_tooth_code: varchar(2)
+    dental_quadrant_id: integer
+    dental_tooth_surface_code: varchar(5)
+    claim_status_id: integer
+    quantity: numeric(38,2)
+    charge_amt: numeric(38,2)
+    icd_version_ind: varchar(2)
+    principal_diagnosis_code: varchar(7)
+    rendering_provider_id: integer
+    rendering_internal_provider_id: integer
+    billing_provider_id: integer
+    billing_internal_provider_id: integer
+    network_indicator_id: integer
+    out_of_state_flag: varchar(1)
+    orphaned_adjustment_flag: varchar(1)
+    denied_claim_flag: varchar(1)
+    row_number: bigint
+table_part1:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_1.csv
+    field_term: ','
+    row_term: \n
+table_part2:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_2.csv
+    field_term: ','
+    row_term: \n
+table_part3:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_3.csv
+    field_term: ','
+    row_term: \n
+table_part4:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_4.csv
+    field_term: ','
+    row_term: \n
+table_part5:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_5.csv
+    field_term: ','
+    row_term: \n
+table_part6:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_6.csv
+    field_term: ','
+    row_term: \n
+table_part7:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_7.csv
+    field_term: ','
+    row_term: \n
+table_part8:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_8.csv
+    field_term: ','
+    row_term: \n
+table_part9:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_9.csv
+    field_term: ','
+    row_term: \n
+years:
+    - part1
+    - part2
+    - part3
+    - part4
+    - part5
+    - part6
+    - part7
+    - part8
+    - part9

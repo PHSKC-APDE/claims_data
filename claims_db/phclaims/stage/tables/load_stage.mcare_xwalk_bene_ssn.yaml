@@ -1,0 +1,7 @@
+schema: stage
+table: mcare_xwalk_bene_ssn
+years:
+vars:
+    bene_id: CHAR(15) collate SQL_Latin1_General_Cp1_CS_AS
+    ssn: CHAR(9)
+    last_run: DATETIME

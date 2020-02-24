@@ -1,0 +1,27 @@
+schema: stage
+table: apcd_elig_timevar
+vars:
+    id_apcd: varchar(255)
+    from_date: date
+    to_date: date
+    contiguous: tinyint
+    med_covgrp: tinyint
+    pharm_covgrp: tinyint
+    dental_coverage: tinyint
+    med_medicaid: tinyint
+    med_medicare: tinyint
+    med_commercial: tinyint
+    pharm_medicaid: tinyint
+    pharm_medicare: tinyint
+    pharm_commercial: tinyint
+    dual: tinyint
+    bsp_group_cid: varchar(255)
+    full_benefit: tinyint
+    geo_zip: varchar(255)
+    geo_county_code: varchar(255)
+    geo_county: varchar(255)
+    geo_ach_code: varchar(255)
+    geo_ach: varchar(255)
+    geo_wa: tinyint
+    cov_time_day: bigint
+    last_run: datetime

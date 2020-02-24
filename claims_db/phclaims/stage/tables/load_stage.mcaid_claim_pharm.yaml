@@ -1,0 +1,15 @@
+to_schema: stage
+to_table: mcaid_claim_pharm
+index_type: ccs
+index_name: idx_ccs_stage_mcaid_claim_pharm
+vars:
+    id_mcaid: VARCHAR(255)
+    claim_header_id: BIGINT
+    ndc: VARCHAR(255)
+    rx_days_supply: SMALLINT
+    rx_quantity: NUMERIC(19,3)
+    rx_fill_date: DATE
+    prescriber_id_format: VARCHAR(10)
+    prescriber_id: VARCHAR(255)
+    pharmacy_npi: BIGINT
+    last_run: DATETIME

@@ -10,7 +10,8 @@ create table PHClaims.final.apcd_claim_ccw (
 	from_date date,
 	to_date date,
 	ccw_code tinyint,
-	ccw_desc varchar(200)
+	ccw_desc varchar(200),
+	last_run date
 );
 
 

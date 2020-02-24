@@ -8,15 +8,15 @@
     # 
     # Notes: Type the <Alt> + <o> at the same time to collapse the code and view the structure
     #
-    #         Run time is approximately 22 minutes
+    #        Need at least 32 GB of RAM to run
+    #
+    #        Run time is approximately 22 minutes
 
 ## Set up environment ----
     rm(list=ls())
-    #.libPaths("C:/Users/dcolombara/R.packages") # needed for 32 GB SAS computer.
     pacman::p_load(data.table, dplyr, odbc, lubridate, glue, httr)
     options("scipen"=10) # turn off scientific notation  
     options(warning.length = 8170) # get lengthy warnings, needed for SQL
-    setwd("C:/temp/")
     kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv"
     yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
     qa.function.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcare_elig_timevar.R"
@@ -26,51 +26,58 @@
     # Connect to SQL server
       db_claims <- dbConnect(odbc(), "PHClaims51") 
   
-    # Identify variables of interest   
-      mbsf.vars <- paste(
-        c("bene_id", "bene_enrollmt_ref_yr", "zip_cd",
-          paste0("dual_stus_cd_", formatC(1:12, width = 2, flag = "0")), 
-          paste0("mdcr_entlmt_buyin_ind_", formatC(1:12, width = 2, flag = "0")), 
-          paste0("hmo_ind_", formatC(1:12, width = 2, flag = "0"))),
-        collapse = ", ")
-      
-    # Create query strings 
-      query.string <- glue_sql ("SELECT ", mbsf.vars, " FROM stage.mcare_mbsf")
+    ## Death date ----
+        # Create query strings 
+        query.string <- glue::glue_sql ("SELECT id_mcare, death_dt FROM final.mcare_elig_demo")
     
-    # Pull data and save as data.table object
-      dt <- setDT(DBI::dbGetQuery(db_claims, query.string))
+        # Pull data and save as data.table object
+        death <- setDT(DBI::dbGetQuery(db_claims, query.string))
+
+        # Ensure that the complete number of rows were downloaded
+        sql.row.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM final.mcare_elig_demo"))
+        if(sql.row.count != nrow(death))
+          stop("Mismatching row count, error reading in data")
+        
+        # only keep rows with death dates
+        death <- death[!is.na(death_dt)]
+        
+        # convert death_dt to class == date
+        death[, death_dt := ymd(death_dt)]
+        
+    ## MBSF data ----
+        # Identify variables of interest   
+          mbsf.vars <- paste(
+            c("bene_id", "bene_enrollmt_ref_yr", "zip_cd",
+              paste0("dual_stus_cd_", formatC(1:12, width = 2, flag = "0")), 
+              paste0("mdcr_entlmt_buyin_ind_", formatC(1:12, width = 2, flag = "0")), 
+              paste0("hmo_ind_", formatC(1:12, width = 2, flag = "0"))),
+            collapse = ", ")
+          
+        # Create query strings 
+          query.string <- glue_sql ("SELECT ", mbsf.vars, " FROM stage.mcare_mbsf")
+        
+        # Pull data and save as data.table object
+          dt <- setDT(DBI::dbGetQuery(db_claims, query.string))
+          
+        # Ensure that the complete number of rows were downloaded
+          sql.row.count <- as.numeric(odbc::dbGetQuery(db_claims, 
+                                                      "SELECT COUNT (*) FROM stage.mcare_mbsf"))
+          if(sql.row.count != nrow(dt))
+            stop("Mismatching row count, error reading in data")
       
-    # Ensure that the complete number of rows were downloaded
-      # count rows in load_raw 
-      sql.row.count <- as.numeric(odbc::dbGetQuery(db_claims, 
-                                                  "SELECT COUNT (*) FROM stage.mcare_mbsf"))
-      if(sql.row.count != nrow(dt))
-        stop("Mismatching row count, error reading in data")
-      
-## (2) Rename columns ---- 
-     # create column names for renaming / reshaping ----
-          dual.cols <- paste0("dual_", formatC(1:12, width = 2, flag = "0"))
-          buyin.cols <- paste0("buyin_", formatC(1:12, width = 2, flag = "0"))
-          hmo.cols <- paste0("hmo_", formatC(1:12, width = 2, flag = "0"))
-      
-      # rename columns ----
-          setnames(dt, 
-                   old = paste0("dual_stus_cd_", formatC(1:12, width = 2, flag = "0")), 
-                   new = dual.cols)
-          setnames(dt, 
-                   old = paste0("mdcr_entlmt_buyin_ind_", formatC(1:12, width = 2, flag = "0")), 
-                   new = buyin.cols)
-          setnames(dt, 
-                   old = paste0("hmo_ind_", formatC(1:12, width = 2, flag = "0")), 
-                   new = hmo.cols)
-          setnames(dt, old = c("zip_cd", "bene_id", "bene_enrollmt_ref_yr"), 
-                   new = c("geo_zip", "id_mcare", "data_year"))
+## (2) Rename columns in MBSF ---- 
+      setnames(dt, names(dt), gsub("dual_stus_cd_", "dual_", names(dt)))    
+      setnames(dt, names(dt), gsub("mdcr_entlmt_buyin_ind_", "buyin_", names(dt)))    
+      setnames(dt, names(dt), gsub("hmo_ind_", "hmo_", names(dt)))    
+      setnames(dt, c("zip_cd", "bene_id", "bene_enrollmt_ref_yr"), c("geo_zip", "id_mcare", "data_year"))
 
 ## (3) Reshape wide to long ----
       # reshaping multiple unrelated columns simultaneously uses 'enhanced melt': https://cran.r-project.org/web/packages/data.table/vignettes/datatable-reshape.html
       dt <- melt(dt, 
                 id.vars = c("id_mcare", "data_year", "geo_zip"), 
-                measure = list(dual.cols, buyin.cols, hmo.cols), 
+                measure = list(grep("dual", names(dt), value = T), 
+                               grep("buyin", names(dt), value = T), 
+                               grep("hmo", names(dt), value = T) ), 
                 value.name = c("duals", "buyins", "hmos"), variable.name = c("month"))
       
 ## (4) Recode / create indicators ----
@@ -104,13 +111,27 @@
       dt[, c("buyins", "hmos", "duals") := NULL] 
 
 ## (5) Create start / end dates ----
-      gc() # had memory problems, so added to see if it helps
-      dt[, from_date := paste0(data_year, "-", month, "-01")] # from date is always first day of the month ... done step wise with hope helps with memory
-      dt[, from_date := ymd(from_date)] # from date is always first day of the month
+      ## Clear memory because computer is wimpy ----
+      gc() 
+      
+      ## Create from_date ----
+      dt[, from_date := ymd(paste0(data_year, "-", month, "-01"))] # from date is always first day of the month 
+
+      ## Create to_date ----
       dt[, to_date := days_in_month(from_date)] # identify last day of month (adapts for Leap years)
-      dt[, to_date := paste0(data_year, "-", month, "-", to_date)] # again, piecewise with hope it helps with memory
-      dt[, to_date := ymd(to_date)]
-      dt[, c("data_year", "month") := NULL]
+      dt[, to_date := ymd(paste0(data_year, "-", month, "-", to_date))] #
+
+      ## Merge on death date ----
+      dt <- merge(dt, death, by= "id_mcare", all.x = TRUE, all.y = FALSE)            
+      gc()
+      
+      ## Truncate data based on death_dt ----
+      dt <- dt[!(!is.na(death_dt) & from_date > death_dt)]  # drop rows when from_date is after death
+      dt[to_date > death_dt, to_date := death_dt]
+
+      ## Clean up ----
+      dt[, c("data_year", "month", "death_dt") := NULL] # drop vars no longer needed
+      dt <- dt[!(part_a == 0 & part_b == 0 & part_c == 0), ] # drop rows where not enrolled in Mcare
       gc()
       
 ## (6) Set the key to order the data ----      
@@ -123,7 +144,7 @@
       
 ## (8) Create unique ID for contiguous times within a given data chunk ----
       dt[, prev_to_date := c(NA, to_date[-.N]), by = "group"] # MUCH faster than shift(..."lag") ... create row with the previous 'to_date'
-      dt[, diff.prev := from_date - prev_to_date] # difference between from_date & prev_to_date will be 1 (day) if they are contiguous
+      dt[, diff.prev := as.integer(from_date - prev_to_date)] # difference between from_date & prev_to_date will be 1 (day) if they are contiguous
       dt[diff.prev != 1, diff.prev := NA] # set to NA if difference is not 1 day, i.e., it is not contiguous, i.e., it starts a new contiguous chunk
       dt[is.na(diff.prev), contig.id := .I] # Give a unique number for each start of a new contiguous chunk (i.e., section starts with NA)
       setkeyv(dt, c("group", "from_date")) # need to order the data so the following line will work.

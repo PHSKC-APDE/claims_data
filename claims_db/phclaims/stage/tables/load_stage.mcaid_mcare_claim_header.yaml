@@ -1,0 +1,59 @@
+schema: stage
+table: mcaid_mcare_claim_header
+vars:
+    id_apde: bigint
+    source_desc: varchar(255)
+    claim_header_id: varchar(255) collate SQL_Latin1_General_CP1_CS_AS
+    claim_type_mcaid_id: varchar(255)
+    claim_type_mcare_id: varchar(255)
+    claim_type_id: tinyint
+    filetype_mcare: varchar(255)
+    first_service_date: date
+    last_service_date: date
+    patient_status: varchar(255)
+    patient_status_code: varchar(255)
+    place_of_service_code: varchar(255)
+    type_of_bill_code: varchar(255)
+    facility_type_code: varchar(255)   
+    service_type_code: varchar(255)    
+    claim_status_code: tinyint
+    billing_provider_npi: bigint
+    primary_diagnosis: varchar(255)
+    icdcm_version: tinyint
+    ed_perform_id: bigint
+    ed_pophealth_id: bigint
+    inpatient_id: bigint
+    admission_source: varchar(255)
+    admission_type: varchar(255)
+    admission_date: date
+    admission_time: time(0)
+    discharge_date: date
+    drg_code: varchar(255)    
+    hospice_from_date: date
+    pc_visit_id: bigint
+    ccs: varchar(255)
+    ccs_description: varchar(500)
+    ccs_description_plain_lang: varchar(500)
+    ccs_mult1: varchar(255)
+    ccs_mult1_description: varchar(500)
+    ccs_mult2: varchar(255)
+    ccs_mult2_description: varchar(500)
+    ccs_mult2_plain_lang: varchar(500)
+    ccs_final_description: varchar(500)
+    ccs_final_plain_lang: varchar(500)
+    mental_dx1: tinyint
+    mental_dxany: tinyint
+    mental_dx_rda_any: tinyint
+    sud_dx_rda_any: tinyint
+    maternal_dx1: tinyint
+    maternal_broad_dx1: tinyint
+    newborn_dx1: tinyint
+    ipt_medsurg: tinyint
+    ipt_bh: tinyint
+    ipt_sdoh: tinyint
+    ed_sdoh: tinyint
+    sdoh_any: tinyint
+    intent: varchar(255)
+    mechanism: varchar(255)
+    last_run: datetime
+

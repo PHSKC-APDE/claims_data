@@ -1,0 +1,125 @@
+schema,table,parent_schema,parent_table,parent_file,parent_file_location,qa_dependency,relevant_code
+archive,mcaid_claim,stage,mcaid_claim,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_partial.R
+archive,mcaid_elig,stage,mcaid_elig,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R
+final,mcaid_claim_header,stage,mcaid_claim_header,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+final,mcaid_claim_icdcm_header,stage,mcaid_claim_icdcm_header,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+final,mcaid_claim_line,stage,mcaid_claim_line,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+final,mcaid_claim_pharm,stage,mcaid_claim_pharm,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+final,mcaid_claim_procedure,stage,mcaid_claim_procedure,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+final,mcaid_elig_demo,stage,mcaid_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+final,mcaid_elig_timevar,stage,mcaid_elig_timevar,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+final,xwalk_apde_mcaid_mcare_pha,stage,xwalk_apde_mcaid_mcare_pha,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid_mcare/master_mcaid_mcare_analytic.R
+final,mcare_elig_demo,stage,mcare_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/final/tables/load_final.mcare_elig_demo.sql
+final,mcare_elig_timevar,stage,mcare_elig_timevar,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/final/tables/load_final.mcare_elig_timevar.sql
+final,mcare_claim_icdcm_header,stage,mcare_claim_icdcm_header,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/final/tables/final_mcare_claim_icdcm_header.sql
+final,mcare_claim_header,stage,mcare_claim_header,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/final/tables/final_mcare_claim_header.sql
+stage,mcare_elig_demo,stage,mcare_mbsf,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.R
+stage,mcare_elig_demo,,,zip_admin.csv,https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.R
+stage,mcare_elig_timevar,stage,mcare_mbsf,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.R
+stage,mcare_elig_timevar,,,zip_admin.csv,https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.R
+stage,mcare_elig_timevar,final,mcare_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.R
+stage,mcare_mbsf,load_raw,mcare_mbsf_ab,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_mbsf.r
+stage,mcare_mbsf,load_raw,mcare_mbsf_abcd,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_mbsf.r
+stage,mcare_xwalk_bene_ssn,load_raw,mcare_xwalk_bene_ssn,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_xwalk_bene_ssn.R
+stage,mcare_xwalk_edb_user_view,load_raw,mcare_xwalk_edb_user_view,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcare_xwalk_edb_user_view.R
+load_raw,mcare_mbsf_ab,,,mbsf_ab_summary_res000028029_req004749_2011.Rds,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2011/mbsf_ab_summary/mbsf_ab_summary_res000028029_req004749_2011.Rds,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_ab.R
+load_raw,mcare_mbsf_ab,,,mbsf_ab_summary_res000028029_req004749_2012.Rds,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2012/mbsf_ab_summary/mbsf_ab_summary_res000028029_req004749_2012.Rds,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_ab.R
+load_raw,mcare_mbsf_ab,,,mbsf_ab_summary_res000028029_req004749_2013.Rds,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2013/mbsf_ab_summary/mbsf_ab_summary_res000028029_req004749_2013.Rds,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_ab.R
+load_raw,mcare_mbsf_ab,,,mbsf_ab_summary_14/mbsf_ab_summary.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2014/mbsf_ab_summary_14/mbsf_ab_summary.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_ab.R
+load_raw,mcare_mbsf_abcd,,,mbsf_abcd_summary.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2015/mbsf_abcd_summary_15/mbsf_abcd_summary.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_abcd.R
+load_raw,mcare_mbsf_abcd,,,mbsf_abcd_summary.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2016/mbsf_abcd_summary_16/mbsf_abcd_summary.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_abcd.R
+load_raw,mcare_mbsf_abcd,,,mbsf_abcd_summary.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2016/mbsf_abcd_summary_17/mbsf_abcd_summary.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcare_mbsf_abcd.R
+load_raw,mcare_xwalk_bene_hic,,,bene_hic_xwalk.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2019/bene_hic_xwalk_19/bene_hic_xwalk.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.ofm_xwalk_data.r
+load_raw,mcare_xwalk_bene_hic,,,bene_hic_xwalk.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2018/bene_hic_xwalk_18/bene_hic_xwalk.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.ofm_xwalk_data.r
+load_raw,mcare_xwalk_bene_hic,,,bene_hic_xwalk.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2016/bene_hic_xwalk_16/bene_hic_xwalk.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.ofm_xwalk_data.r
+load_raw,mcare_xwalk_bene_ssn,,,bene_ssn_xwalk.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2016/bene_ssn_xwalk_16/bene_ssn_xwalk.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.ofm_xwalk_data.r
+load_raw,mcare_xwalk_bene_ssn,,,bene_ssn_xwalk.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2018/bene_ssn_xwalk_18/bene_ssn_xwalk.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.ofm_xwalk_data.r
+load_raw,mcare_xwalk_bene_ssn,,,bene_ssn_xwalk.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2019/bene_ssn_xwalk_19/bene_ssn_xwalk.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.ofm_xwalk_data.r
+load_raw,mcare_xwalk_edb_user_view,,,edb_user_view.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2016/ebd_user_view_16/ebd_user_view.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.ofm_xwalk_data.r
+load_raw,mcare_xwalk_edb_user_view,,,edb_user_view.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2018/ebd_user_view_18/ebd_user_view.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.ofm_xwalk_data.r
+load_raw,mcare_xwalk_edb_user_view,,,edb_user_view.csv,//phdata01/DROF_Data/DOH DATA/medicare/cms_raw/2019/ebd_user_view_19/ebd_user_view.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.ofm_xwalk_data.r
+load_raw,mcaid_claim,,,,,,"https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.R
+https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R"
+load_raw,mcaid_elig,,,,,,"https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_full.R
+https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R"
+stage,mcaid_claim,archive,mcaid_claim,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_partial.R
+stage,mcaid_claim,load_raw,mcaid_claim,,,,"https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_full.R
+https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_partial.R"
+stage,mcaid_claim_header,final,mcaid_claim_header,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_header.R
+stage,mcaid_claim_header,final,mcaid_claim_icdcm_header,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.R
+stage,mcaid_claim_header,final,mcaid_claim_line,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.R
+stage,mcaid_claim_header,final,mcaid_claim_procedure,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.R
+stage,mcaid_claim_header,final,mcaid_elig_demo,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_header.R
+stage,mcaid_claim_header,final,mcaid_elig_timevar,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_header.R
+stage,mcaid_claim_header,ref,dx_lookup,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.R
+stage,mcaid_claim_header,ref,kc_claim_type_crosswalk,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.R
+stage,mcaid_claim_header,stage,mcaid_claim,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.R
+stage,mcaid_claim_icdcm_header,final,mcaid_claim_icdcm_header,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_icdcm_header.R
+stage,mcaid_claim_icdcm_header,final,mcaid_elig_demo,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_icdcm_header.R
+stage,mcaid_claim_icdcm_header,final,mcaid_elig_timevar,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_icdcm_header.R
+stage,mcaid_claim_icdcm_header,ref,dx_lookup,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_icdcm_header.R
+stage,mcaid_claim_icdcm_header,stage,mcaid_claim,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.R
+stage,mcaid_claim_line,final,mcaid_claim_line,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_line.R
+stage,mcaid_claim_line,final,mcaid_elig_demo,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_line.R
+stage,mcaid_claim_line,final,mcaid_elig_timevar,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_line.R
+stage,mcaid_claim_line,ref,mcaid_rac_code,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_line.R
+stage,mcaid_claim_line,stage,mcaid_claim,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_line.R
+stage,mcaid_claim_line,stage,mcaid_claim,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_line.R
+stage,mcaid_claim_pharm,final,mcaid_claim_pharm,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_pharm.R
+stage,mcaid_claim_pharm,final,mcaid_elig_demo,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_pharm.R
+stage,mcaid_claim_pharm,final,mcaid_elig_timevar,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_pharm.R
+stage,mcaid_claim_pharm,stage,mcaid_claim,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_pharm.R
+stage,mcaid_claim_procedure,final,mcaid_claim_procedure,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_procedure.R
+stage,mcaid_claim_procedure,final,mcaid_elig_demo,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_procedure.R
+stage,mcaid_claim_procedure,final,mcaid_elig_timevar,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_procedure.R
+stage,mcaid_claim_procedure,ref,pcode,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_procedure.R
+stage,mcaid_claim_procedure,stage,mcaid_claim,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_procedure.R
+stage,mcaid_elig,archive,mcaid_elig,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R
+stage,mcaid_elig,load_raw,mcaid_elig,,,,"https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_full.R
+https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_partial.R"
+stage,mcaid_elig_demo,metadata,qa_mcaid_values,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R
+stage,mcaid_elig_demo,stage,mcaid_elig,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.R
+stage,mcaid_elig_demo,stage,mcaid_elig,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R
+stage,mcaid_elig_timevar,metadata,qa_mcaid_values,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R
+stage,mcaid_elig_timevar,ref,address_clean,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R
+stage,mcaid_elig_timevar,ref,address_geocode,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R
+stage,mcaid_elig_timevar,ref,mcaid_rac_code,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R
+stage,mcaid_elig_timevar,stage,mcaid_elig,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R
+stage,mcaid_elig_timevar,stage,mcaid_elig,,,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R
+stage,mcaid_elig_timevar,,,mcaid_elig_timevar_qa_ind,//dchs-shares01/dchsdata/DCHSPHClaimsData/Data/QA_specific/stage.mcaid_elig_timevar_qa_ind.csv,1,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R
+stage,mcaid_mcare_elig_demo,final,mcaid_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.R
+stage,mcaid_mcare_elig_demo,final,mcare_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.R
+stage,mcaid_mcare_elig_demo,final,xwalk_apde_mcaid_mcare_pha,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.R
+stage,mcaid_mcare_elig_timevar,final,mcaid_elig_timevar,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R
+stage,mcaid_mcare_elig_timevar,final,mcare_elig_timevar,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R
+stage,mcaid_mcare_elig_timevar,final,xwalk_apde_mcaid_mcare_pha,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R
+stage,mcaid_mcare_elig_timevar,,,zip_admin.csv,https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R
+final,mcaid_mcare_elig_demo,stage,mcaid_mcare_elig_demo,,,,"No code, simple ALTER SCHEMA command"
+final,mcaid_mcare_elig_timevar,stage,mcaid_mcare_elig_timevar,,,,"No code, simple ALTER SCHEMA command"
+stage,mcaid_mcare_pha_elig_calyear,final,mcaid_mcare_pha_elig_demo,,,,https://github.com/PHSKC-APDE/Housing/blob/master/analyses/load_stage.mcaid_mcare_pha_elig_calyear.R
+stage,mcaid_mcare_pha_elig_calyear,final,mcaid_mcare_pha_elig_timevar,,,,https://github.com/PHSKC-APDE/Housing/blob/master/analyses/load_stage.mcaid_mcare_pha_elig_calyear.R
+stage,mcaid_mcare_pha_elig_calyear,,,housing_mcaid%20demo%20codes.csv,https://github.com/PHSKC-APDE/Housing/blob/master/processing/housing_mcaid%20demo%20codes.csv,,https://github.com/PHSKC-APDE/Housing/blob/master/analyses/load_stage.mcaid_mcare_pha_elig_calyear.R
+stage,xwalk_apde_mcaid_mcare_pha,final,mcaid_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
+stage,xwalk_apde_mcaid_mcare_pha,final,mcare_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
+stage,xwalk_apde_mcaid_mcare_pha,stage,mcare_xwalk_bene_ssn,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
+stage,xwalk_apde_mcaid_mcare_pha,load_raw,mcare_xwalk_edb_user_view,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
+stage,xwalk_apde_mcaid_mcare_pha,stage,mcaid_elig,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
+stage,xwalk_apde_mcaid_mcare_pha,stage,pha,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
+stage,xwalk_apde_mcaid_mcare_pha,stage,mcare_mbsf,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.r
+stage,perf_elig_member_month,stage,mcaid_elig,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+stage,perf_enroll_denom,final,mcaid_elig_demo,,,,https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+stage,perf_enroll_denom,ref,perf_year_month,,,,[stage].[fn_perf_enroll_member_month]
+stage,perf_enroll_denom,stage,perf_elig_member_month,,,,[stage].[fn_perf_enroll_member_month]
+stage,perf_enroll_denom,ref,mcaid_rac_code,,,,[stage].[fn_perf_enroll_member_month]
+stage,perf_enroll_denom,stage,v_perf_hospice_member_month,,,,[stage].[fn_perf_enroll_member_month]
+stage,perf_distinct_member,stage,perf_enroll_denom,,,,[stage].[sp_perf_distinct_member]
+stage,mcaid_mcare_pha_elig_timevar,final,xwalk_apde_mcaid_mcare_pha,,,,https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_mcaid_mcare_pha_join.r
+stage,mcaid_mcare_pha_elig_demo,final,xwalk_apde_mcaid_mcare_pha,,,,https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_mcaid_mcare_pha_join.r
+stage,mcaid_mcare_pha_elig_timevar,stage,pha,,,,https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_mcaid_mcare_pha_join.r
+stage,mcaid_mcare_pha_elig_demo,stage,pha,,,,https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_mcaid_mcare_pha_join.r
+stage,mcaid_mcare_pha_elig_timevar,final,mcaid_mcare_elig_demo,,,,https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_mcaid_mcare_pha_join.r
+stage,mcaid_mcare_pha_elig_demo,final,mcaid_mcare_elig_timevar,,,,https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_mcaid_mcare_pha_join.r
+stage,mcaid_mcare_pha_elig_timevar,ref,address_geocode,,,,https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_mcaid_mcare_pha_join.r
+stage,mcaid_mcare_pha_elig_demo,ref,address_geocode,,,,https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_mcaid_mcare_pha_join.r
+final,mcaid_mcare_pha_elig_timevar,stage,mcaid_mcare_pha_elig_timevar,,,,https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_mcaid_mcare_pha_join.r
+final,mcaid_mcare_pha_elig_demo,stage,mcaid_mcare_pha_elig_demo,,,,https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_mcaid_mcare_pha_join.r

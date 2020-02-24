@@ -1,79 +1,30 @@
-
 # This code creates table ([stage].[mcaid_claim_procedure]) to hold DISTINCT 
 # procedure codes in long format for Medicaid claims data
-# 
+#
+# It is designed to be run as part of the master Medicaid script:
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+#
 # SQL script created by: Eli Kern, APDE, PHSKC, 2018-03-21
-# R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05
+# R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05 and 2019-12
 # Modified by: Philip Sylling, 2019-06-11
 # 
 # Data Pull Run time: 9.66 min
 # Create Index Run Time: 5.75 min
 # 
-# Returns
-#  [stage].[mcaid_claim_procedure]
-#  [id_mcaid]
-# ,[claim_header_id]
-# ,[first_service_date]
-# ,[last_service_date]
-# ,[procedure_code]
-# ,[procedure_code_number]
-# ,[modifier_1]
-# ,[modifier_2]
-# ,[modifier_3]
-# ,[modifier_4]
-# ,[last_run]
 
-#### Set up global parameter and call in libraries ####
-options(max.print = 350, tibble.print_max = 50, warning.length = 8170)
 
-library(configr) # Read in YAML files
-library(DBI)
-library(dbplyr)
-library(devtools)
-library(dplyr)
-library(glue)
-library(janitor)
-library(lubridate)
-library(medicaid)
-library(odbc)
-library(openxlsx)
-library(RCurl) # Read files from Github
-library(tidyr)
-library(tidyverse) # Manipulate data
+#### PULL IN CONFIG FILE ####
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_procedure.yaml"
 
-db_claims <- dbConnect(odbc(), "PHClaims")
-print("Creating stage.mcaid_claim_procedure")
+load_mcaid_claim_procedure_config <- yaml::yaml.load(RCurl::getURL(config_url))
 
-#### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-
-step1_sql <- glue::glue_sql("
-if object_id('[stage].[mcaid_claim_procedure]', 'U') is not null
-drop table [stage].[mcaid_claim_procedure];
-create table [stage].[mcaid_claim_procedure]
-([id_mcaid] varchar(200)
-,[claim_header_id] bigint
-,[first_service_date] date
-,[last_service_date] date
-,[procedure_code] varchar(200)
-,[procedure_code_number] varchar(4)
-,[modifier_1] varchar(200)
-,[modifier_2] varchar(200)
-,[modifier_3] varchar(200)
-,[modifier_4] varchar(200)
-,[last_run] datetime)
-on [PRIMARY];
-", .con = conn)
-odbc::dbGetQuery(conn = db_claims, step1_sql)
-dbDisconnect(db_claims)
 
 #### CREATE TABLE ####
-# create_table_f(conn = db_claims, 
-#                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_claim_procedure.yaml",
-#                overall = T, ind_yr = F)
+create_table_f(conn = db_claims, config_url = config_url, overall = T, ind_yr = F)
 
-db_claims <- dbConnect(odbc(), "PHClaims")
-step2_sql <- glue::glue_sql("
+#### LOAD TABLE ####
+# NB: Changes in table structure need to altered here and the YAML file
+insert_sql <- glue::glue_sql("
 insert into [stage].[mcaid_claim_procedure] with (tablock)
 ([id_mcaid]
 ,[claim_header_id]
@@ -128,33 +79,24 @@ select
 from [stage].[mcaid_claim]
 ) as a
 
-unpivot(procedure_code for procedure_code_number in ([01],[02],[03],[04],[05],[06],[07],[08],[09],[10],[11],[12],[line])) as procedure_code;
-", .con = conn)
+unpivot(procedure_code for procedure_code_number in 
+([01],[02],[03],[04],[05],[06],[07],[08],[09],[10],[11],[12],[line])) as procedure_code;", 
+.con = conn)
 
-print("Running step 2: Load to [stage].[mcaid_claim_procedure]")
+message(glue::glue("Loading to {load_mcaid_claim_procedure_config$to_schema}.{load_mcaid_claim_procedure_config$to_table}"))
 time_start <- Sys.time()
-odbc::dbGetQuery(conn = db_claims, step2_sql)
+DBI::dbExecute(conn = db_claims, insert_sql)
 time_end <- Sys.time()
-print(paste0("Step 2 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+print(paste0("Loading took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
-dbDisconnect(db_claims)
 
-db_claims <- dbConnect(odbc(), "PHClaims")
-step3_sql <- glue::glue_sql("
-create clustered index [idx_cl_mcaid_claim_procedure_claim_header_id] 
-on [stage].[mcaid_claim_procedure]([claim_header_id]);
-create nonclustered index [idx_nc_mcaid_claim_procedure_procedure_code] 
-on [stage].[mcaid_claim_procedure]([procedure_code]);
-create nonclustered index [idx_nc_mcaid_claim_procedure_first_service_date] 
-on [stage].[mcaid_claim_procedure]([first_service_date]);
-", .con = conn)
 
-print("Running step 3: Create Indexes")
-time_start <- Sys.time()
-odbc::dbGetQuery(conn = db_claims, step3_sql)
-time_end <- Sys.time()
-print(paste0("Step 3 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
-dbDisconnect(db_claims)
+#### ADD INDEX ####
+add_index_f(db_claims, table_config = load_mcaid_claim_procedure_config)
+
+
+#### CLEAN  UP ####
+rm(config_url, load_mcaid_claim_procedure_config)
+rm(insert_sql)
+rm(time_start, time_end)
