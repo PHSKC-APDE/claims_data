@@ -1,0 +1,10 @@
+schema: load_raw
+table: mcare_hospice_demo_codes_15
+year: 2015
+vars:
+    bene_id: char(15) collate SQL_Latin1_General_Cp1_CS_AS
+    clm_id: char(15) collate SQL_Latin1_General_Cp1_CS_AS
+    nch_clm_type_cd: varchar(255)
+    demo_id_sqnc_num: varchar(255)
+    demo_id_num: varchar(255)
+    demo_info_txt: varchar(255)

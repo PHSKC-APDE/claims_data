@@ -1,0 +1,8 @@
+schema: load_raw
+table: mcare_hospice_base_claims_k_14
+year: 2014
+overall:
+    file_path: \\phdata01\DROF_DATA\DOH DATA\Medicare\CMS_Drive\CMS_Drive\4749\New data\2014\hospice_base_claims_k_14\hospice_base_claims_k_14.csv
+    field_term: ','
+    row_term: \n
+
