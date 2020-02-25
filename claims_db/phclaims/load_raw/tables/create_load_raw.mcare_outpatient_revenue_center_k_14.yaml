@@ -1,0 +1,45 @@
+schema: load_raw
+table: mcare_outpatient_revenue_center_k14
+year: 2014
+vars:
+    encrypted723beneficiaryid: char(255) collate SQL_Latin1_General_Cp1_CS_AS
+    encryptedclaimid: char(255) collate SQL_Latin1_General_Cp1_CS_AS
+    claimthroughdatedeterminesyearof: varchar(255)
+    claimlinenumber: varchar(255)
+    nchclaimtypecode: varchar(255)
+    revenuecentercode: varchar(255)
+    revenuecenterdate: varchar(255)
+    revenuecenter1stansicode: varchar(255)
+    revenuecenter2ndansicode: varchar(255)
+    revenuecenter3rdansicode: varchar(255)
+    revenuecenter4thansicode: varchar(255)
+    revenuecenterapchipps: varchar(255)
+    revenuecenterhealthcarecommonpro: varchar(255)
+    revenuecenterhcpcsinitialmodifie: varchar(255)
+    revenuecenterhcpcssecondmodifier: varchar(255)
+    revenuecenterpaymentmethodindica: varchar(255)
+    revenuecenterdiscountindicatorco: varchar(255)
+    revenuecenterpackagingindicatorc: varchar(255)
+    revenuecenterobligationtoaccepta: varchar(255)
+    revenuecenteridendcupcnumber: varchar(255)
+    revenuecenterunitcount: varchar(255)
+    revenuecenterrateamount: varchar(255)
+    revenuecenterblooddeductibleamou: varchar(255)
+    revenuecentercashdeductibleamoun: varchar(255)
+    revenuecentercoinsurancewageadju: varchar(255)
+    revenuecenterreducedcoinsurancea: varchar(255)
+    revenuecenter1stmedicaresecondar: varchar(255)
+    revenuecenter2ndmedicaresecondar: varchar(255)
+    revenuecenterproviderpaymentamou: varchar(255)
+    revenuecenterbeneficiarypaymenta: varchar(255)
+    revenuecenterpatientresponsibili: varchar(255)
+    revenuecenterpaymentamountamount: varchar(255)
+    revenuecentertotalchargeamount: varchar(255)
+    revenuecenternoncoveredchargeamo: varchar(255)
+    revenuecenterstatusindicatorcode: varchar(255)
+    revenuecenterndcquantity: varchar(255)
+    revenuecenterndcquantityqualifie: varchar(255)
+    revenuecenterrenderingphysicianu: varchar(255)
+    revenuecenterrenderingphysiciann: varchar(255)
+
+

@@ -1,0 +1,8 @@
+schema: load_raw
+table: mcare_hha_base_claims_k_15
+year: 2015
+overall:
+    file_path: \\phdata01\DROF_DATA\DOH DATA\Medicare\CMS_Drive\CMS_Drive\4749\New data\2015\hha_base_claims_k_15\hha_base_claims_k_15.csv
+    field_term: ','
+    row_term: \n
+
