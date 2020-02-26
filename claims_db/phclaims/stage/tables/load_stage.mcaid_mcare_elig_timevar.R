@@ -374,10 +374,11 @@
       timevar[is.na(geo_zip) & !is.na(geo_zip_mcare), geo_zip := geo_zip_mcare]
       timevar[, geo_zip_mcare := NULL]
       
-    # Add KC flag based on zip code ----  
+      #-- Add KC flag based on zip code or FIPS code as appropriate----  
       kc.zips <- fread(kc.zips.url)
       timevar[, geo_kc := 0]
-      timevar[geo_zip %in% unique(as.character(kc.zips$zip)), geo_kc := 1]
+      timevar[geo_county_code=="033", geo_kc := 1]
+      timevar[is.na(geo_county_code) & geo_zip %in% unique(as.character(kc.zips$zip)), geo_kc := 1]
       rm(kc.zips)
       
     # create time stamp ----
