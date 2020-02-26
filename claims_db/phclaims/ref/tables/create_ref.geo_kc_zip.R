@@ -14,9 +14,8 @@ library(openxlsx) # Read and write data using Microsoft Excel
 conn <- dbConnect(odbc(), "PHClaims51")
 
 #### Get YAML config file #####
-yaml_path <- "C:/Users/kerneli/King County/King County Cross-Sector Data - Documents/References/Geographic definitions/create_ref.geo_kc_zip.yaml"
-
-table_config <- yaml::yaml.load_file(yaml_path)
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.geo_kc_zip.yaml"
+table_config <- yaml::yaml.load_file(config_url)
 file_path <- table_config[["file_path"]][[1]]
 schema <- table_config[["schema"]][[1]]
 to_table <- table_config[["to_table"]][[1]]
@@ -39,7 +38,7 @@ DBI::dbCreateTable(conn, tbl_name, fields = table_config$vars)
 
 #Read in data file
 #file <- read.xlsx(file_path)
-file <- read_csv(file_path)
+file <- read_csv(file_path, col_types = "ci")
 
 #Write data to SQL
 dbWriteTable(conn, name = tbl_name, value = as.data.frame(file), append = T)
