@@ -1,0 +1,7 @@
+schema: load_raw
+table: mcare_snf_condition_codes_15
+year: 2015
+overall:
+    file_path: \\phdata01\DROF_DATA\DOH DATA\Medicare\CMS_Drive\CMS_Drive\4749\New data\2015\snf_condition_codes_15\snf_condition_codes_15.csv
+    field_term: ','
+    row_term: \n

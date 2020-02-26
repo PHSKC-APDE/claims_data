@@ -19,7 +19,7 @@ SELECT
 ,a.[inpatient_id]
 ,1 AS [flag]
 
-FROM [stage].[mcaid_claim_header] AS a
+FROM [final].[mcaid_claim_header] AS a
 INNER JOIN [ref].[ahrq_value_set] AS b
 ON a.[primary_diagnosis] = b.[code]
 /*
@@ -43,7 +43,7 @@ SELECT
 ,a.[inpatient_id]
 ,1 AS [flag]
 
-FROM [stage].[mcaid_claim_header] AS a
+FROM [final].[mcaid_claim_header] AS a
 INNER JOIN [ref].[ahrq_value_set] AS b
 ON a.[primary_diagnosis] = b.[code]
 /*
@@ -71,7 +71,7 @@ SELECT
 ,a.[inpatient_id]
 ,1 AS [flag]
 
-FROM [stage].[mcaid_claim_header] AS a
+FROM [final].[mcaid_claim_header] AS a
 INNER JOIN [ref].[ahrq_value_set] AS b
 ON a.[primary_diagnosis] = b.[code]
 /*
@@ -107,7 +107,7 @@ SELECT
 ,a.[inpatient_id]
 ,1 AS [flag]
 
-FROM [stage].[mcaid_claim_header] AS a
+FROM [final].[mcaid_claim_header] AS a
 INNER JOIN [ref].[ahrq_value_set] AS b
 ON a.[primary_diagnosis] = b.[code]
 /*
@@ -164,7 +164,7 @@ SELECT
 ,a.[inpatient_id]
 ,1 AS [flag]
 
-FROM [stage].[mcaid_claim_header] AS a
+FROM [final].[mcaid_claim_header] AS a
 INNER JOIN [ref].[ahrq_value_set] AS b
 ON a.[primary_diagnosis] = b.[code]
 /*
@@ -200,7 +200,7 @@ SELECT
 ,a.[inpatient_id]
 ,1 AS [flag]
 
-FROM [stage].[mcaid_claim_header] AS a
+FROM [final].[mcaid_claim_header] AS a
 INNER JOIN [ref].[ahrq_value_set] AS b
 ON a.[primary_diagnosis] = b.[code]
 
@@ -263,7 +263,7 @@ SELECT
 ,a.[inpatient_id]
 ,1 AS [flag]
 
-FROM [stage].[mcaid_claim_header] AS a
+FROM [final].[mcaid_claim_header] AS a
 INNER JOIN [ref].[ahrq_value_set] AS b
 ON a.[primary_diagnosis] = b.[code]
 /*
@@ -325,7 +325,7 @@ SELECT
 ,a.[inpatient_id]
 ,1 AS [flag]
 
-FROM [stage].[mcaid_claim_header] AS a
+FROM [final].[mcaid_claim_header] AS a
 INNER JOIN [ref].[ahrq_value_set] AS b
 ON a.[primary_diagnosis] = b.[code]
 
@@ -350,7 +350,7 @@ SELECT
 ,a.[inpatient_id]
 ,1 AS [flag]
 
-FROM [stage].[mcaid_claim_header] AS a
+FROM [final].[mcaid_claim_header] AS a
 INNER JOIN [ref].[ahrq_value_set] AS b
 ON a.[primary_diagnosis] = b.[code]
 
@@ -416,7 +416,7 @@ AND b.[value_set_name] IN ('ACSLEAD')
 ) AS a
 
 -- Claim has to be a valid inpatient claim that is not a transfer (by [admsn_source])
-INNER JOIN [stage].[mcaid_claim_header] AS b
+INNER JOIN [final].[mcaid_claim_header] AS b
 ON a.[claim_header_id] = b.[claim_header_id]
 AND b.[inpatient_id] IS NOT NULL
 AND (b.[admsn_source] IS NULL OR b.[admsn_source] NOT IN ('4', '5', '6', 'A', 'B', 'C', 'D', 'E', 'F'))
@@ -447,11 +447,22 @@ INNER JOIN [ref].[ahrq_value_set] AS b
 ON a.[drvd_drg_code] = b.[code]
 AND b.[value_set_name] IN ('MDC 14')
 )
+),
+
+[aggregate_claim_header_id] AS
+(
+SELECT
+ [value_set_group]
+,[inpatient_id]
+,MAX([flag]) AS [flag]
+FROM [get_pqi_claims]
+GROUP BY
+ [value_set_group]
+,[inpatient_id]
 )
 
 SELECT
- [claim_header_id]
-,[inpatient_id]
+ [inpatient_id]
 ,ISNULL([PQI 01], 0) AS [pqi_01]
 ,ISNULL([PQI 03], 0) AS [pqi_03]
 ,ISNULL([PQI 05], 0) AS [pqi_05]
@@ -474,7 +485,7 @@ SELECT
  ISNULL([PQI 15], 0) +
  ISNULL([PQI 16], 0)) >= 1 THEN 1 ELSE 0 END AS [pqi_composite]
 
-FROM [get_pqi_claims]
+FROM [aggregate_claim_header_id]
 PIVOT(MAX([flag]) FOR [value_set_group] IN 
 ([PQI 01]
 ,[PQI 03]

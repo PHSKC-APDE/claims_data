@@ -1,0 +1,7 @@
+schema: load_raw
+table: mcare_bcarrier_demo_codes_17_test
+year: 2017
+overall:
+    file_path: Y:\cms_raw\2017\bcarrier_demo_codes_17\bcarrier_demo_codes.csv
+    field_term: ','
+    row_term: \n
