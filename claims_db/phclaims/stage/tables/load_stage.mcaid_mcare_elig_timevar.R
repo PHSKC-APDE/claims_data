@@ -364,8 +364,8 @@
       timevar[from_date - prev_to_date == 1, contiguous := 1]
       timevar[, prev_to_date := NULL] # drop because no longer needed
       
-    # Create cov_time_date ----
-      timevar[, cov_time_day := as.integer(to_date - from_date)]
+    # Create cov_time_day ----
+      timevar[, cov_time_day := as.integer(to_date - from_date + 1)] # add 1 b/c otherwise 1 day short ... i.e., 1 year would be 364 days
       
     # Set dates as.Date() ----
       timevar[, c("from_date", "to_date") := lapply(.SD, as.Date, origin = "1970-01-01"), .SDcols =  c("from_date", "to_date")] 
@@ -374,10 +374,11 @@
       timevar[is.na(geo_zip) & !is.na(geo_zip_mcare), geo_zip := geo_zip_mcare]
       timevar[, geo_zip_mcare := NULL]
       
-    # Add KC flag based on zip code ----  
+      #-- Add KC flag based on zip code or FIPS code as appropriate----  
       kc.zips <- fread(kc.zips.url)
       timevar[, geo_kc := 0]
-      timevar[geo_zip %in% unique(as.character(kc.zips$zip)), geo_kc := 1]
+      timevar[geo_county_code=="033", geo_kc := 1]
+      timevar[is.na(geo_county_code) & geo_zip %in% unique(as.character(kc.zips$zip)), geo_kc := 1]
       rm(kc.zips)
       
     # create time stamp ----
