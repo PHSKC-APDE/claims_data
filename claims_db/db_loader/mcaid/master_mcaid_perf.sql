@@ -11,7 +11,7 @@ GO
 EXEC [stage].[sp_mcaid_perf_enroll_denom] @start_date_int = 201601, @end_date_int = 201912;
 GO
 
-EXEC [stage].[sp_perf_distinct_member];
+EXEC [stage].[sp_mcaid_perf_distinct_member];
 GO
 
 --EXEC [stage].[sp_perf_enroll_provider] @start_date_int = 201702, @end_date_int = 201906;
@@ -24,7 +24,7 @@ SELECT
  [year_month]
 ,[end_quarter]
 ,COUNT(*)
-FROM [stage].[perf_enroll_denom]
+FROM [stage].[mcaid_perf_enroll_denom]
 GROUP BY [year_month], [end_quarter]
 ORDER BY [year_month], [end_quarter];
 
