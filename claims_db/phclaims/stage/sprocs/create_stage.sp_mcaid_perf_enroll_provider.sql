@@ -2,10 +2,10 @@
 USE [PHClaims];
 GO
 
-IF OBJECT_ID('[stage].[sp_perf_enroll_provider]','P') IS NOT NULL
-DROP PROCEDURE [stage].[sp_perf_enroll_provider];
+IF OBJECT_ID('[stage].[sp_mcaid_perf_enroll_provider]','P') IS NOT NULL
+DROP PROCEDURE [stage].[sp_mcaid_perf_enroll_provider];
 GO
-CREATE PROCEDURE [stage].[sp_perf_enroll_provider]
+CREATE PROCEDURE [stage].[sp_mcaid_perf_enroll_provider]
  @start_date_int INT = 201701
 ,@end_date_int INT = 201712
 AS
@@ -16,31 +16,31 @@ BEGIN
 
 SET @SQL = @SQL + N'
 
-IF OBJECT_ID(''tempdb..#perf_elig_member_month'') IS NOT NULL
-DROP TABLE #perf_elig_member_month;
+IF OBJECT_ID(''tempdb..#mcaid_perf_elig_member_month'') IS NOT NULL
+DROP TABLE #mcaid_perf_elig_member_month;
 SELECT 
  [CLNDR_YEAR_MNTH] AS [year_month]
 ,[MEDICAID_RECIPIENT_ID] AS [id_mcaid]
 ,CASE WHEN [COVERAGE_TYPE_IND] = ''FFS'' THEN ''FFS'' ELSE [MC_PRVDR_NAME] END AS [mco_or_ffs]
 ,1 AS [flag]
 
-INTO #perf_elig_member_month
-FROM [stage].[perf_elig_member_month]
+INTO #mcaid_perf_elig_member_month
+FROM [stage].[mcaid_perf_elig_member_month]
 WHERE 1 = 1
 AND ([CLNDR_YEAR_MNTH] BETWEEN ' + CAST(@start_date_int AS VARCHAR(6)) + ' AND ' + CAST(@end_date_int AS VARCHAR(6)) + ');
 
-CREATE CLUSTERED INDEX [idx_cl_#perf_elig_member_month] ON #perf_elig_member_month([id_mcaid], [mco_or_ffs], [year_month]);
+CREATE CLUSTERED INDEX [idx_cl_#mcaid_perf_elig_member_month] ON #mcaid_perf_elig_member_month([id_mcaid], [mco_or_ffs], [year_month]);
 
-IF OBJECT_ID(''tempdb..#perf_elig_member'') IS NOT NULL
-DROP TABLE #perf_elig_member;
+IF OBJECT_ID(''tempdb..#mcaid_perf_elig_member'') IS NOT NULL
+DROP TABLE #mcaid_perf_elig_member;
 SELECT DISTINCT
  [id_mcaid]
 ,[mco_or_ffs]
 
-INTO #perf_elig_member
-FROM #perf_elig_member_month;
+INTO #mcaid_perf_elig_member
+FROM #mcaid_perf_elig_member_month;
 
-CREATE CLUSTERED INDEX [idx_cl_#perf_elig_member] ON #perf_elig_member([id_mcaid], [mco_or_ffs]);
+CREATE CLUSTERED INDEX [idx_cl_#mcaid_perf_elig_member] ON #mcaid_perf_elig_member([id_mcaid], [mco_or_ffs]);
 
 IF OBJECT_ID(''tempdb..#year_month'') IS NOT NULL
 DROP TABLE #year_month;
@@ -67,8 +67,8 @@ SELECT
 
 INTO #cross_join
 FROM #year_month AS a
-CROSS JOIN #perf_elig_member AS b
-LEFT JOIN #perf_elig_member_month AS c
+CROSS JOIN #mcaid_perf_elig_member AS b
+LEFT JOIN #mcaid_perf_elig_member_month AS c
 ON b.[id_mcaid] = c.[id_mcaid]
 AND b.[mco_or_ffs] = c.[mco_or_ffs]
 AND a.[year_month] = c.[year_month];
@@ -91,8 +91,8 @@ FROM #cross_join;
 
 CREATE CLUSTERED INDEX [idx_cl_#coverage_months_t_12_m] ON #coverage_months_t_12_m([id_mcaid], [year_month], [coverage_months_t_12_m]);
 
-IF OBJECT_ID(''[stage].[perf_enroll_provider]'') IS NOT NULL
-DROP TABLE [stage].[perf_enroll_provider];
+IF OBJECT_ID(''[stage].[mcaid_perf_enroll_provider]'') IS NOT NULL
+DROP TABLE [stage].[mcaid_perf_enroll_provider];
 WITH CTE AS
 (
 SELECT
@@ -113,14 +113,14 @@ SELECT
 ,[mco_or_ffs]
 ,[coverage_months_t_12_m]
 
-INTO [stage].[perf_enroll_provider]
+INTO [stage].[mcaid_perf_enroll_provider]
 FROM CTE
 WHERE 1 = 1
 AND [row_num] >= 12
 AND [coverage_months_t_12_m] >= 1 
 AND [tie_breaker] = 1;
 
-CREATE CLUSTERED INDEX [idx_cl_perf_enroll_provider_id_mcaid_year_month] ON [stage].[perf_enroll_provider]([id_mcaid], [year_month]);'
+CREATE CLUSTERED INDEX [idx_cl_mcaid_perf_enroll_provider_id_mcaid_year_month] ON [stage].[mcaid_perf_enroll_provider]([id_mcaid], [year_month]);'
 
 PRINT @SQL;
 END
@@ -137,9 +137,9 @@ If the first 12-month period ends 201303
 If the last 12-month period ends 201712
 @end_date_int = 201712
 THESE PARAMETERS ARE INTEGERS
-This procedure will index the [stage].[perf_enroll_provider] table
+This procedure will index the [stage].[mcaid_perf_enroll_provider] table
 
-EXEC [stage].[sp_perf_enroll_provider] @start_date_int = 201801, @end_date_int = 201812;
+EXEC [stage].[sp_mcaid_perf_enroll_provider] @start_date_int = 201801, @end_date_int = 201812;
 
 -- Check Duplicates
 SELECT NumRows
@@ -149,23 +149,23 @@ FROM
 SELECT [id_mcaid]
       ,[year_month]
       ,COUNT(*) AS NumRows
-FROM [stage].[perf_enroll_provider]
+FROM [stage].[mcaid_perf_enroll_provider]
 GROUP BY [id_mcaid], [year_month]
 ) AS SubQuery
 GROUP BY NumRows
 ORDER BY NumRows;
 
 SELECT COUNT(DISTINCT [id_mcaid]) 
-FROM [stage].[perf_enroll_provider] 
+FROM [stage].[mcaid_perf_enroll_provider] 
 WHERE [year_month] = 201812;
 
 SELECT COUNT(DISTINCT [id_mcaid]) 
-FROM [stage].[perf_enroll_denom] 
+FROM [stage].[mcaid_perf_enroll_denom] 
 WHERE [year_month] = 201812
 AND [enrolled_any_t_12_m] >= 1;
 
 SELECT COUNT(DISTINCT [MEDICAID_RECIPIENT_ID]) 
-FROM [stage].[perf_elig_member_month] 
+FROM [stage].[mcaid_perf_elig_member_month] 
 WHERE [CLNDR_YEAR_MNTH] BETWEEN 201801 AND 201812;
 
 SELECT COUNT(DISTINCT [MEDICAID_RECIPIENT_ID])
