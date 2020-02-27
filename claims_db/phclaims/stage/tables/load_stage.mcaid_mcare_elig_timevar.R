@@ -351,7 +351,7 @@
       timevar[, enroll_type := NULL] # kept until now for comparison with the dual flag
       timevar <- timevar[!(mcare==0 & mcaid==0)]
       
-    # Create full_criteria flag (slightly different for mcaid-only tables)
+    # Create full_criteria flag (slightly different for mcaid-only tables) ----
       timevar[, full_criteria := 0]
       timevar[mcaid == 1 & mcare == 0 & dual == 0 & full_benefit == 1 & tpl != 1, full_criteria := 1]
       timevar[, y1114 := 0 ] # create flag for whether in 2011:2014 (years without partial data)
@@ -362,6 +362,16 @@
       timevar[y1114 == 1 & apde_dual == 1 & (full_benefit == 1 &  tpl != 1) | ((part_a==1 | part_b == 1)), full_criteria := 1]
       timevar[y1114 == 0 & apde_dual == 1 & ((full_benefit == 1 &  tpl != 1) | ((part_a==1 | part_b == 1) & partial==0)), full_criteria := 1]
       timevar[, y1114:=NULL]
+      
+    # Set Mcare related NULLs to zero when only Mcaid data exists ----
+      timevar[mcare == 0 & is.na(part_a), part_a := 0]
+      timevar[mcare == 0 & is.na(part_b), part_b := 0]
+      timevar[mcare == 0 & is.na(part_c), part_c := 0]
+      timevar[mcare == 0 & is.na(partial), partial := 0]
+      timevar[mcare == 0 & is.na(buy_in), buy_in := 0]
+      
+    # Set Mcaid related NULLs to zero when only Mcare data exists ----
+      timevar[mcaid == 0 & is.na(full_benefit), full_benefit := 0]      
       
     # Create contiguous flag ----  
       # If contiguous with the PREVIOUS row, then it is marked as contiguous. This is the same as mcaid_elig_timevar
