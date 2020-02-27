@@ -354,9 +354,15 @@
     # Create full_criteria flag (slightly different for mcaid-only tables)
       timevar[, full_criteria := 0]
       timevar[mcaid == 1 & mcare == 0 & dual == 0 & full_benefit == 1 & tpl != 1, full_criteria := 1]
-      timevar[mcaid==0 & mcare==1 & (part_a==1 | part_b == 1) & partial==0, full_criteria := 1]
-      timevar[apde_dual == 1 & ((full_benefit == 1 &  tpl != 1) | ((part_a==1 | part_b == 1) & partial==0)), full_criteria := 1]
-
+      timevar[, y1114 := 0 ] # create flag for whether in 2011:2014 (years without partial data)
+      timevar[from_date %in% c(as.numeric(as.Date("2011-01-01")) : as.numeric(as.Date("2014-12-31"))), y1114 := 1] 
+      timevar[to_date %in% c(as.numeric(as.Date("2011-01-01")) : as.numeric(as.Date("2014-12-31"))), y1114 := 1] 
+      timevar[y1114 == 1 & mcaid==0 & mcare==1 & (part_a==1 | part_b == 1), full_criteria := 1]
+      timevar[y1114 == 0 & mcaid==0 & mcare==1 & (part_a==1 | part_b == 1) & partial==0, full_criteria := 1]
+      timevar[y1114 == 1 & apde_dual == 1 & (full_benefit == 1 &  tpl != 1) | ((part_a==1 | part_b == 1)), full_criteria := 1]
+      timevar[y1114 == 0 & apde_dual == 1 & ((full_benefit == 1 &  tpl != 1) | ((part_a==1 | part_b == 1) & partial==0)), full_criteria := 1]
+      timevar[, y1114:=NULL]
+      
     # Create contiguous flag ----  
       # If contiguous with the PREVIOUS row, then it is marked as contiguous. This is the same as mcaid_elig_timevar
       timevar[, prev_to_date := c(NA, to_date[-.N]), by = "id_apde"] # MUCH faster than the shift "lag" function in data.table
@@ -374,7 +380,7 @@
       timevar[is.na(geo_zip) & !is.na(geo_zip_mcare), geo_zip := geo_zip_mcare]
       timevar[, geo_zip_mcare := NULL]
       
-      #-- Add KC flag based on zip code or FIPS code as appropriate----  
+    # Add KC flag based on zip code or FIPS code as appropriate----  
       kc.zips <- fread(kc.zips.url)
       timevar[, geo_kc := 0]
       timevar[geo_county_code=="033", geo_kc := 1]
