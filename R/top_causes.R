@@ -68,7 +68,7 @@ top_causes <- function(conn,
   
   # Source check
   source <- match.arg(source)
-
+  
   # Source
   if (source == "apcd") {
     id_name <- glue::glue_sql("id_apcd", .con = conn)
@@ -169,24 +169,28 @@ top_causes <- function(conn,
     stop("Warning: no flags selected so all visits will be pulled (slow). 
            Use override_all = T to confirm")
   }
-
+  
   
   
   #### SET UP IDS ####
   ### Extract list of unique IDs (and dates) and set up for writing to SQL
   if (ind_dates == T) {
-    ids <- cohort %>% distinct(!!id_quo, !!ind_from_date_quo, !!ind_to_date_quo) %>% 
-      rename(id = !!id_quo,
-             from_date_ind = !!ind_from_date_quo,
-             to_date_ind = !!ind_to_date_quo) %>%
-      # Constrain dates to between common range
-      filter(!(to_date_ind < from_date | from_date_ind > to_date)) %>%
-      mutate(from_date_ind = pmax(from_date_ind, from_date, na.rm = T),
-             to_date_ind = pmin(to_date_ind, to_date, na.rm = T)) %>%
-      distinct(id, from_date_ind, to_date_ind)
+    ids <- cohort %>% mutate(id = !!id_quo,
+                             from_date_ind = !!ind_from_date_quo,
+                             to_date_ind = !!ind_to_date_quo) %>%
+      select(id, from_date_ind, to_date_ind)
+    
+    ids <- data.table::setDT(ids)
+    ids <- unique(ids)
+    ids <- ids[!(to_date_ind < from_date | from_date_ind > to_date)]
+    ids[, from_date_ind := pmax(from_date_ind, from_date, na.rm = T)]
+    ids[, to_date_ind := pmax(to_date_ind, to_date, na.rm = T)]
+    ids <- unique(ids)
     
   } else {
-    ids <- cohort %>% distinct(!!id_quo) %>% rename(id = !!id_quo)
+    ids <- cohort %>% mutate(id = !!id_quo) %>% select(id)
+    ids <- data.table::setDT(ids)
+    ids <- unique(ids)
   }
   
   # Can only write 1000 values at a time so may need to do multiple rounds
@@ -260,11 +264,11 @@ top_causes <- function(conn,
     }
   }
   
-
+  
   #### JOIN DXS TO DX LOOKUP ####
   if (ind_dates == T) {
     claim_query <- glue::glue_sql(
-    "SELECT DISTINCT c.id, c.claim_header_id, c.from_date, c.ed_pophealth_id, c.inpatient_id, 
+      "SELECT DISTINCT c.id, c.claim_header_id, c.from_date, c.ed_pophealth_id, c.inpatient_id, 
       e.ccs_final_plain_lang, e.ccs_catch_all
     FROM 
       (SELECT a.id, a.from_date_ind, a.to_date_ind, b.from_date, b.claim_header_id,
@@ -281,7 +285,7 @@ top_causes <- function(conn,
       ON c.claim_header_id = d.claim_header_id
       LEFT JOIN PHClaims.ref.dx_lookup AS e
       ON d.icdcm_version = e.dx_ver AND d.icdcm_norm = e.dx {dx_num};",
-                                  .con = conn)
+      .con = conn)
   } else {
     claim_query <- glue::glue_sql("
     SELECT DISTINCT c.id, c.claim_header_id, c.from_date, c.ed_pophealth_id, c.inpatient_id, 
@@ -303,7 +307,6 @@ top_causes <- function(conn,
   }
   
   claims <- DBI::dbGetQuery(conn, claim_query)
-  
   
   #### PROCESS DATA IN R ####
   ### Decide whether or not to include catch-all categories
@@ -328,7 +331,7 @@ top_causes <- function(conn,
       summarise(claim_cnt = n_distinct(claim_header_id)) %>%
       ungroup()
   }
-
+  
   
   final_n <- min(n_distinct(claims$ccs_final_plain_lang), top)
   if (final_n < top) {
