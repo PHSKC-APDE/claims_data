@@ -60,7 +60,7 @@ AND b.[year_month] = c.[CLNDR_YEAR_MNTH]
 LEFT JOIN [ref].[mcaid_rac_code] AS d
 ON c.[RPRTBL_RAC_CODE] = d.[rac_code]
 
-LEFT JOIN [stage].[v_perf_hospice_member_month] AS e
+LEFT JOIN [stage].[v_mcaid_perf_hospice_member_month] AS e
 ON a.[id_mcaid] = e.[id_mcaid]
 AND b.[year_month] = e.[year_month];
 

@@ -10,9 +10,19 @@ CREATE PROCEDURE [stage].[sp_mcaid_perf_enroll_provider]
 ,@end_date_int INT = 201712
 AS
 SET NOCOUNT ON;
+DECLARE @look_back_date_int INT;
 DECLARE @SQL NVARCHAR(MAX) = '';
 
 BEGIN
+
+DELETE FROM [stage].[mcaid_perf_enroll_provider]
+WHERE [year_month] >= @start_date_int
+AND [year_month] <= @end_date_int;
+
+IF EXISTS(SELECT * FROM sys.indexes WHERE [name] = 'idx_cl_mcaid_perf_enroll_provider_id_mcaid_year_month')
+DROP INDEX [idx_cl_mcaid_perf_enroll_provider_id_mcaid_year_month] ON [stage].[mcaid_perf_enroll_provider];
+
+SET @look_back_date_int = (SELECT YEAR([12_month_prior]) * 100 + MONTH([12_month_prior]) FROM [ref].[perf_year_month] WHERE [year_month] = @start_date_int);
 
 SET @SQL = @SQL + N'
 
@@ -27,7 +37,7 @@ SELECT
 INTO #mcaid_perf_elig_member_month
 FROM [stage].[mcaid_perf_elig_member_month]
 WHERE 1 = 1
-AND ([CLNDR_YEAR_MNTH] BETWEEN ' + CAST(@start_date_int AS VARCHAR(6)) + ' AND ' + CAST(@end_date_int AS VARCHAR(6)) + ');
+AND ([CLNDR_YEAR_MNTH] BETWEEN ' + CAST(@look_back_date_int AS VARCHAR(6)) + ' AND ' + CAST(@end_date_int AS VARCHAR(6)) + ');
 
 CREATE CLUSTERED INDEX [idx_cl_#mcaid_perf_elig_member_month] ON #mcaid_perf_elig_member_month([id_mcaid], [mco_or_ffs], [year_month]);
 
@@ -51,7 +61,7 @@ SELECT
 
 INTO #year_month
 FROM [ref].[perf_year_month]
-WHERE ([year_month] BETWEEN ' + CAST(@start_date_int AS VARCHAR(6)) + ' AND ' + CAST(@end_date_int AS VARCHAR(6)) + ');
+WHERE ([year_month] BETWEEN ' + CAST(@look_back_date_int AS VARCHAR(6)) + ' AND ' + CAST(@end_date_int AS VARCHAR(6)) + ');
 
 CREATE CLUSTERED INDEX [idx_cl_#year_month] ON #year_month([year_month]);
 
@@ -91,8 +101,6 @@ FROM #cross_join;
 
 CREATE CLUSTERED INDEX [idx_cl_#coverage_months_t_12_m] ON #coverage_months_t_12_m([id_mcaid], [year_month], [coverage_months_t_12_m]);
 
-IF OBJECT_ID(''[stage].[mcaid_perf_enroll_provider]'') IS NOT NULL
-DROP TABLE [stage].[mcaid_perf_enroll_provider];
 WITH CTE AS
 (
 SELECT
@@ -106,14 +114,22 @@ SELECT
 ,ROW_NUMBER() OVER(PARTITION BY [id_mcaid], [year_month] ORDER BY [coverage_months_t_12_m] DESC, [flag] DESC) AS [tie_breaker] 
 FROM #coverage_months_t_12_m
 )
+INSERT INTO [stage].[mcaid_perf_enroll_provider]
+([year_month]
+,[end_quarter]
+,[id_mcaid]
+,[mco_or_ffs]
+,[coverage_months_t_12_m]
+,[load_date])
+
 SELECT
  [year_month]
 ,[end_quarter]
 ,[id_mcaid]
 ,[mco_or_ffs]
 ,[coverage_months_t_12_m]
+,CAST(GETDATE() AS DATE) AS [load_date]
 
-INTO [stage].[mcaid_perf_enroll_provider]
 FROM CTE
 WHERE 1 = 1
 AND [row_num] >= 12
@@ -132,14 +148,7 @@ EXEC sp_executeSQL @statement=@SQL,
 GO
 
 /*
-If the first 12-month period ends 201303
-@start_date_int = 201204 to get the full 12 months
-If the last 12-month period ends 201712
-@end_date_int = 201712
-THESE PARAMETERS ARE INTEGERS
-This procedure will index the [stage].[mcaid_perf_enroll_provider] table
-
-EXEC [stage].[sp_mcaid_perf_enroll_provider] @start_date_int = 201801, @end_date_int = 201812;
+EXEC [stage].[sp_mcaid_perf_enroll_provider] @start_date_int = 201901, @end_date_int = 201912;
 
 -- Check Duplicates
 SELECT NumRows
@@ -154,25 +163,4 @@ GROUP BY [id_mcaid], [year_month]
 ) AS SubQuery
 GROUP BY NumRows
 ORDER BY NumRows;
-
-SELECT COUNT(DISTINCT [id_mcaid]) 
-FROM [stage].[mcaid_perf_enroll_provider] 
-WHERE [year_month] = 201812;
-
-SELECT COUNT(DISTINCT [id_mcaid]) 
-FROM [stage].[mcaid_perf_enroll_denom] 
-WHERE [year_month] = 201812
-AND [enrolled_any_t_12_m] >= 1;
-
-SELECT COUNT(DISTINCT [MEDICAID_RECIPIENT_ID]) 
-FROM [stage].[mcaid_perf_elig_member_month] 
-WHERE [CLNDR_YEAR_MNTH] BETWEEN 201801 AND 201812;
-
-SELECT COUNT(DISTINCT [MEDICAID_RECIPIENT_ID])
-FROM [stage].[mcaid_elig] AS a
-INNER JOIN [ref].[apcd_zip] AS b
-ON a.[RSDNTL_POSTAL_CODE] = b.[zip_code]
-WHERE 1 = 1
-AND b.[state] = 'WA' AND b.[county_name] = 'King'
-AND [CLNDR_YEAR_MNTH] BETWEEN 201801 AND 201812;
 */
