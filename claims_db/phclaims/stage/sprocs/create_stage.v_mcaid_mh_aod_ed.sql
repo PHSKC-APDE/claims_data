@@ -13,6 +13,7 @@ WITH [ed_pophealth_id] AS
 SELECT
  hed.[value_set_name]
 ,hd.[ed_pophealth_id]
+--,hd.[claim_header_id]
 ,1 AS [flag]
 FROM [final].[mcaid_claim_header] AS hd
 INNER JOIN [archive].[hedis_code_system] AS hed
@@ -27,6 +28,7 @@ UNION
 SELECT 
  hed.[value_set_name]
 ,hd.[ed_pophealth_id]
+--,hd.[claim_header_id]
 ,1 AS [flag]
 FROM [final].[mcaid_claim_header] AS hd
 INNER JOIN [archive].[hedis_code_system] AS hed
@@ -39,6 +41,7 @@ WHERE [ed_pophealth_id] IS NOT NULL
 
 SELECT
  [ed_pophealth_id]
+--,[claim_header_id]
 ,ISNULL([Mental Illness], 0) AS [mental_illness]
 ,ISNULL([AOD Abuse and Dependence], 0) AS [aod_abuse_dependence]
 
@@ -50,4 +53,7 @@ GO
 
 /*
 SELECT * FROM [stage].[v_mcaid_mh_aod_ed];
+
+SELECT * FROM [stage].[v_mcaid_mh_aod_ed]
+WHERE [mental_illness] = 1 AND [aod_abuse_dependence] = 1;
 */
