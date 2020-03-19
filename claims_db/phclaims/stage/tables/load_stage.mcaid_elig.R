@@ -8,15 +8,30 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
-load_stage.mcaid_elig_f <- function(full_refresh = F) {
+load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F) {
+  ### Error check
+  if (is.null(conn)) {
+    print(paste0("No DB connection specificed, trying PHClaims51"))
+    conn <- odbc::dbConnect(odbc(), "PHClaims51")
+  }
+  
   #### CALL IN CONFIG FILES TO GET VARS ####
   table_config_stage_elig <- yaml::yaml.load(RCurl::getURL(
     "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml"
   ))
   
-  table_config_load_elig <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig.yaml"
-  ))
+  if (full_refresh == F) {
+    table_config_load_elig <- yaml::yaml.load(RCurl::getURL(
+      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
+  } else {
+    table_config_load_elig <- yaml::yaml.load(RCurl::getURL(
+      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_full.yaml"))
+  }
+
+  ### Check for 404 errors
+  if (table_config_stage_elig[[1]] == "Not Found" | table_config_load_elig[[1]] == "Not Found") {
+    stop("Error in config file URLs. Check load_stage.mcaid_elig.R script")
+  }
   
   from_schema <- table_config_stage_elig$from_schema
   from_table <- table_config_stage_elig$from_table
@@ -40,9 +55,9 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
   
   
   #### FIND MOST RECENT BATCH ID FROM SOURCE (LOAD_RAW) ####
-  current_batch_id <- as.numeric(odbc::dbGetQuery(db_claims,
+  current_batch_id <- as.numeric(odbc::dbGetQuery(conn,
                                                   glue::glue_sql("SELECT MAX(etl_batch_id) FROM {`from_schema`}.{`from_table`}",
-                                                                 .con = db_claims)))
+                                                                 .con = conn)))
   
   if (is.na(current_batch_id)) {
     stop(glue::glue_sql("Missing etl_batch_id in {`from_schema`}.{`from_table`}"))
@@ -51,12 +66,12 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
   
   #### ARCHIVE EXISTING TABLE ####
   if (full_refresh == F) {
-    alter_schema_f(conn = db_claims, from_schema = to_schema, to_schema = archive_schema,
-                   table_name = to_table)
+    alter_schema_f(conn = conn, from_schema = to_schema, to_schema = archive_schema,
+                   table_name = to_table, rename_index = F)
   }
- 
   
-  #### LOAD TABLE ####
+  
+  #### CHECK FOR DUPLICATES AND ADDRESS THEM ####
   # Some months have multiple rows per person-month-RAC combo. There are currently 
   #   3 main reasons for this:
   # 1) Multiple end reasons (mostly dates prior to 2018-09)
@@ -66,47 +81,47 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
   
   message("Checking for any duplicates")
   rows_load_raw <- as.numeric(dbGetQuery(
-    db_claims,
-    glue::glue_sql("SELECT COUNT (*) FROM {`from_schema`}.{`from_table`}", .con = db_claims)))
+    conn,
+    glue::glue_sql("SELECT COUNT (*) FROM {`from_schema`}.{`from_table`}", .con = conn)))
   
   distinct_rows_load_raw <- as.numeric(dbGetQuery(
-    db_claims,
+    conn,
     glue::glue_sql("SELECT COUNT (*) FROM
   (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE,
   RPRTBL_RAC_CODE, SECONDARY_RAC_CODE 
-  FROM {`from_schema`}.{`from_table`}) a", .con = db_claims)))
+  FROM {`from_schema`}.{`from_table`}) a", .con = conn)))
   
   # If a match, don't bother checking any further
   if (rows_load_raw != distinct_rows_load_raw) {
     # Need three different approaches to fix these. Check for each type of error.
     message("Duplicates found, checking for multiple END_REASON rows per id/month/RAC combo")
     duplicate_check_reason <- as.numeric(dbGetQuery(
-      db_claims,
+      conn,
       glue::glue_sql("SELECT COUNT (*) FROM
            (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
              TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, HOH_ID, RPRTBL_RAC_NAME,
              SECONDARY_RAC_NAME 
                  FROM {`from_schema`}.{`from_table`}) a",
-                     .con = db_claims)))
+                     .con = conn)))
     
     message("Checking for multiple HOH_ID rows per id/month/RAC combo")
     duplicate_check_hoh <- as.numeric(dbGetQuery(
-      db_claims,
+      conn,
       glue::glue_sql("SELECT COUNT (*) FROM
            (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
              TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, END_REASON, RPRTBL_RAC_NAME,
              SECONDARY_RAC_NAME 
                  FROM {`from_schema`}.{`from_table`}) a",
-                     .con = db_claims)))
+                     .con = conn)))
     
     message("Checking for misspelled RAC names rows per id/month/RAC combo")
     duplicate_check_rac <- as.numeric(dbGetQuery(
-      db_claims,
+      conn,
       glue::glue_sql("SELECT COUNT (*) FROM
            (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
              TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, HOH_ID, END_REASON
                  FROM {`from_schema`}.{`from_table`}) a",
-                     .con = db_claims)))
+                     .con = conn)))
     
     duplicate_type <- case_when(
       duplicate_check_reason != rows_load_raw & duplicate_check_hoh != rows_load_raw & 
@@ -136,7 +151,7 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
       # (see https://community.rstudio.com/t/using-glue-sql-s-collapse-with-table-name-identifiers/11633)
       var_names <- lapply(names(table_config_stage_elig$vars), 
                           function(nme) DBI::Id(table = "a", column = nme))
-      vars_dedup <- lapply(var_names, DBI::dbQuoteIdentifier, conn = db_claims)
+      vars_dedup <- lapply(var_names, DBI::dbQuoteIdentifier, conn = conn)
       
       
       # Use priority set out below (higher resaon score = higher priority)
@@ -144,9 +159,9 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
       message("Setting up a temp table to remove duplicate rows")
       # This can then be used to deduplicate rows with differing end reasons
       # Remove temp table if it exists
-      try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_temp", temporary = T), silent = T)
+      try(odbc::dbRemoveTable(conn, "##mcaid_elig_temp", temporary = T), silent = T)
       
-      odbc::dbGetQuery(db_claims,
+      odbc::dbGetQuery(conn,
         glue::glue_sql(
           "SELECT {`vars`*},
       CASE WHEN END_REASON IS NULL THEN 1
@@ -158,23 +173,23 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
         ELSE 7 END AS reason_score 
       INTO ##mcaid_elig_temp
       FROM {`from_schema`}.{`from_table`}",
-          .con = db_claims))
+          .con = conn))
       
       # Fix spelling of RAC if needed
       if (duplicate_check_rac != rows_load_raw) {
-        dbGetQuery(db_claims,
+        dbGetQuery(conn,
                    "UPDATE ##mcaid_elig_temp 
                SET RPRTBL_RAC_NAME = 'Involuntary Inpatient Psychiatric Treatment (ITA)' 
                WHERE RPRTBL_RAC_NAME = 'Involuntary Inpatient Psychiactric Treatment (ITA)'")
         
-        dbGetQuery(db_claims,
+        dbGetQuery(conn,
                    "UPDATE ##mcaid_elig_temp 
                SET SECONDARY_RAC_NAME = 'Involuntary Inpatient Psychiatric Treatment (ITA)' 
                WHERE SECONDARY_RAC_NAME = 'Involuntary Inpatient Psychiactric Treatment (ITA)'")
       }
       
       # Check no dups exist by recording row counts
-      temp_rows_01 <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM ##mcaid_elig_temp"))
+      temp_rows_01 <- as.numeric(dbGetQuery(conn, "SELECT COUNT (*) FROM ##mcaid_elig_temp"))
       if (rows_load_raw != temp_rows_01) {
         stop("Not all rows were copied to the temp table")
       } else {
@@ -184,7 +199,7 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
       
       ### Manipulate the temporary table to deduplicate
       # Remove temp table if it exists
-      try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_dedup", temporary = T), silent = T)
+      try(odbc::dbRemoveTable(conn, "##mcaid_elig_dedup", temporary = T), silent = T)
       
       dedup_sql <- glue::glue_sql(
         "SELECT DISTINCT {`vars_dedup`*}
@@ -208,12 +223,12 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
           (a.SECONDARY_RAC_CODE IS NULL AND b.SECONDARY_RAC_CODE IS NULL))
         WHERE a.reason_score = b.max_score AND 
         (a.HOH_ID = b.max_hoh OR (a.HOH_ID IS NULL AND b.max_hoh IS NULL))",
-        .con = db_claims)
+        .con = conn)
       
-      odbc::dbGetQuery(db_claims, dedup_sql)
+      odbc::dbGetQuery(conn, dedup_sql)
       
       # Keep track of how many of the duplicate rows are accounted for
-      temp_rows_02 <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (*) FROM ##mcaid_elig_dedup"))
+      temp_rows_02 <- as.numeric(dbGetQuery(conn, "SELECT COUNT (*) FROM ##mcaid_elig_dedup"))
       dedup_row_diff <- temp_rows_01 - temp_rows_02
       
       if (temp_rows_02 == distinct_rows_load_raw) {
@@ -230,8 +245,15 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
   }
   
   
-  ### Combine relevant parts of archive and new data
+  #### LOAD TABLE ####
+  # Combine relevant parts of archive and new data
   message("Loading to stage table")
+  
+  # Need to recreate stage table first (true if full_refresh == F or T)
+  # Assumes create_table_f loaded as part of the master script
+  create_table_f(conn = conn, 
+                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml", 
+                 overall = T, ind_yr = F, overwrite = T)
   
   if (full_refresh == F) {
     # Select the source, depending on if deduplication has been carried out
@@ -244,7 +266,7 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
                                   SELECT {`vars`*} FROM
                                   {`from_schema`}.{`from_table`}
                                   WHERE {`date_var`} >= {date_truncate}",
-                                    .con = db_claims,
+                                    .con = conn,
                                     date_var = table_config_stage_elig$date_var)
     } else {
       sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
@@ -255,28 +277,28 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
                                     SELECT {`vars`*} FROM
                                     ##mcaid_elig_dedup
                                     WHERE {`date_var`} >= {date_truncate}",
-                                    .con = db_claims,
+                                    .con = conn,
                                     date_var = table_config_stage_elig$date_var)
     }
-  } else {
+  } else if (full_refresh == T) {
     # Select the source, depending on if deduplication has been carried out
     if (is.na(duplicate_type)) {
       sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
                                   SELECT {`vars`*} FROM
                                   {`from_schema`}.{`from_table`}",
-                                    .con = db_claims)
+                                    .con = conn)
     } else {
       sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
                                     SELECT {`vars`*} FROM ##mcaid_elig_dedup",
-                                    .con = db_claims)
+                                    .con = conn)
     }
   }
 
-  DBI::dbExecute(db_claims, sql_combine)
+  DBI::dbExecute(conn, sql_combine)
   
   
   #### ADD INDEX ####
-  add_index_f(conn = db_claims, table_config = table_config_stage_elig)
+  add_index_f(conn = conn, table_config = table_config_stage_elig)
   
   
   #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
@@ -284,13 +306,13 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
   
   # Obtain row counts for other tables (rows_load_raw already calculated above)
   rows_stage <- as.numeric(dbGetQuery(
-    db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`to_schema`}.{`to_table`}", .con = db_claims)))
+    conn, glue::glue_sql("SELECT COUNT (*) FROM {`to_schema`}.{`to_table`}", .con = conn)))
   
   if (full_refresh == F) {
     rows_archive <- as.numeric(dbGetQuery(
-      db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`archive_schema`}.{`to_table`} 
+      conn, glue::glue_sql("SELECT COUNT (*) FROM {`archive_schema`}.{`to_table`} 
                             WHERE {`table_config_stage_elig$date_var`} < {date_truncate}",
-                                .con = db_claims)))
+                                .con = conn)))
       
       if (exists("dedup_row_diff")) {
         row_diff = rows_stage - (rows_archive + rows_load_raw) + dedup_row_diff
@@ -313,7 +335,7 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
   
   if (row_diff != 0) {
     row_diff_qa_fail <- 1
-    DBI::dbExecute(conn = db_claims,
+    DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -322,11 +344,11 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
                                   'FAIL',
                                   {Sys.time()},
                                   'Issue even after accounting for any duplicate rows. Investigate further.')",
-                                  .con = db_claims))
+                                  .con = conn))
     warning("Number of rows does not match total expected")
   } else {
     row_diff_qa_fail <- 0
-    DBI::dbExecute(conn = db_claims,
+    DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -335,18 +357,18 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
                                   'PASS',
                                   {Sys.time()},
                                   'Number of rows in stage matches expected (n = {rows_stage})')",
-                                  .con = db_claims))
+                                  .con = conn))
   }
   
   
   #### QA CHECK: NULL IDs ####
-  null_ids <- as.numeric(dbGetQuery(db_claims, 
+  null_ids <- as.numeric(dbGetQuery(conn, 
                                     "SELECT COUNT (*) FROM stage.mcaid_elig 
                                     WHERE MEDICAID_RECIPIENT_ID IS NULL"))
   
   if (null_ids != 0) {
     null_ids_qa_fail <- 1
-    DBI::dbExecute(conn = db_claims,
+    DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -355,11 +377,11 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
                                   'FAIL',
                                   {Sys.time()},
                                   'Null IDs found. Investigate further.')",
-                                  .con = db_claims))
+                                  .con = conn))
     warning("Null Medicaid IDs found in stage.mcaid_elig")
   } else {
     null_ids_qa_fail <- 0
-    DBI::dbExecute(conn = db_claims,
+    DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -368,13 +390,13 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
                                   'PASS',
                                   {Sys.time()},
                                   'No null IDs found')",
-                                  .con = db_claims))
+                                  .con = conn))
   }
   
   
   #### ADD VALUES TO QA_VALUES TABLE ####
   DBI::dbExecute(
-    conn = db_claims,
+    conn = conn,
     glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
                    (table_name, qa_item, qa_value, qa_date, note) 
                    VALUES ('stage.mcaid_elig',
@@ -385,14 +407,14 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
                    refresh_type = ifelse(full_refresh == F, 
                                          'Count after partial refresh', 
                                          'Count after full refresh'),
-                   .con = db_claims))
+                   .con = conn))
   
   
   #### ADD OVERALL QA RESULT ####
   # This creates an overall QA result to feed the stage.v_mcaid_status view, 
   #    which is used by the integrated data hub to check for new data to run
   if (max(row_diff_qa_fail, null_ids_qa_fail) == 1) {
-    DBI::dbExecute(conn = db_claims,
+    DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -401,10 +423,10 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
                                   'FAIL',
                                   {Sys.time()},
                                   'One or more QA steps failed')",
-                                  .con = db_claims))
+                                  .con = conn))
     stop("One or more QA steps failed. See metadata.qa_mcaid for more details")
   } else {
-    DBI::dbExecute(conn = db_claims,
+    DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
@@ -413,14 +435,14 @@ load_stage.mcaid_elig_f <- function(full_refresh = F) {
                                   'PASS',
                                   {Sys.time()},
                                   'All QA steps passed')",
-                                  .con = db_claims))
+                                  .con = conn))
   }
   
   
   #### CLEAN UP ####
   # Drop global temp table
-  suppressWarnings(try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_temp", temporary = T)))
-  suppressWarnings(try(odbc::dbRemoveTable(db_claims, "##mcaid_elig_dedup", temporary = T)))
+  suppressWarnings(try(odbc::dbRemoveTable(conn, "##mcaid_elig_temp", temporary = T)))
+  suppressWarnings(try(odbc::dbRemoveTable(conn, "##mcaid_elig_dedup", temporary = T)))
   rm(dedup_sql)
   rm(vars, var_names, vars_dedup)
   rm(duplicate_check_reason, duplicate_check_hoh, duplicate_check_rac, duplicate_type,
