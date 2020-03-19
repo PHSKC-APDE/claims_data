@@ -143,6 +143,7 @@ write.csv(new_add_out,
           glue::glue("//kcitetldepim001/Informatica/address/adds_for_informatica_{Sys.Date()}.csv"),
           row.names = F)
 
+message(glue::glue("{nrow(new_add_out)} addresses were exported for Informatica cleanup"))
 
 #### CLEAN UP ####
 rm(update_source, update_sql)
