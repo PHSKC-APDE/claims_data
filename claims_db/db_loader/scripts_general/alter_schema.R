@@ -26,7 +26,7 @@ alter_schema_f <- function(
   }
   
   if (dbExistsTable(conn, DBI::Id(schema = from_schema, table = table_name)) == F) {
-    stop(glue::glue("From table ({from_schema.table_name}) does not exist"))
+    stop(glue::glue("From table ({from_schema}.{table_name}) does not exist"))
   }
   
   schema_check <- odbc::dbGetQuery(conn,
