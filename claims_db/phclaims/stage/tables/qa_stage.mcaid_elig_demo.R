@@ -42,6 +42,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
     row_diff <- row_count - previous_rows
     
     if (row_diff < 0) {
+      row_qa_fail <- 1
       odbc::dbGetQuery(
         conn = conn,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -58,6 +59,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
       message(glue::glue("Fewer rows than found last time.  
                   Check metadata.qa_mcaid for details (last_run = {last_run}"))
     } else {
+      row_qa_fail <- 0
       odbc::dbGetQuery(
         conn = conn,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -81,6 +83,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                                             FROM stage.mcaid_elig_demo"))
   
   if (id_count != row_count) {
+    id_distinct_qa_fail <- 1
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -96,6 +99,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
     message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
                       Check metadata.qa_mcaid for details (last_run = {last_run}"))
   } else {
+    id_distinct_qa_fail <- 0
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -117,6 +121,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
                                             FROM stage.mcaid_elig"))
   
   if (id_count != id_count_raw) {
+    id_stage_qa_fail <- 1
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -132,6 +137,7 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
     message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
                       Check metadata.qa_mcaid for details (last_run = {last_run}"))
   } else {
+    id_stage_qa_fail <- 0
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -161,8 +167,10 @@ qa_mcaid_elig_demo_f <- function(conn = db_claims,
   
   odbc::dbGetQuery(conn = conn, load_sql)
   
-  
   print("QA complete, see above for any error messages")
+  
+  qa_total <- row_qa_fail + id_distinct_qa_fail + id_stage_qa_fail
+  return(qa_total)
   
 }
 
