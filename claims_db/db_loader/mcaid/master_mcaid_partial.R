@@ -15,9 +15,15 @@ library(odbc) # Read to and write from SQL
 library(RCurl) # Read files from Github
 library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
-
+library(sf) # Read shape files
 
 db_claims <- dbConnect(odbc(), "PHClaims51")
+
+# These are use for geocoding new addresses
+s_shapes <- "//phshare01/epe_share/WORK/REQUESTS/Maps/Shapefiles/"
+g_shapes <- "//gisdw/kclib/Plibrary2/"
+
+
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
@@ -78,14 +84,13 @@ load_load_raw.mcaid_claim_partial_f(etl_date_min = load_mcaid_claim_config$overa
                                     qa_file_row = F)
 
 
-
 #### STAGE ELIG ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_partial.R")
-
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
+load_stage.mcaid_elig_f(conn = db_claims, full_refresh = F)
 
 #### STAGE CLAIM ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_partial.R")
-
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
+load_stage.mcaid_claim_f(conn = db_claims, full_refresh = F)
 
 
 #### ADDRESS CLEANING ####

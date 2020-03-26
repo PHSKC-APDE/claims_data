@@ -1,24 +1,20 @@
 #### CODE TO GEOCODE ADDRESSES (MEDICAID AND HOUSING)
 # Alastair Matheson, PHSKC (APDE)
 #
-# 2019-09
+# 2019-09, updated 2020-03
 #
 # This only geocodes addresses newly added to the ref.address_clean table
 
+### Run from master_mcaid_partial script
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
-#### Set up global parameter and call in libraries ####
-options(max.print = 350, tibble.print_max = 350, scipen = 999, warning.length = 8170)
 
-library(tidyverse) # Manipulate data
-library(odbc) # Read to and write from SQL
-library(sf) # Read shape files
-
-geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
-s_shapes <- "//phshare01/epe_share/WORK/REQUESTS/Maps/Shapefiles/"
-g_shapes <- "//gisdw/kclib/Plibrary2/"
-
-# Add connection to the SQL db
-db_claims <- dbConnect(odbc(), "PHClaims51")
+#### SOURCE GEOCODING FUNCTION ####
+# Currently in a temporary location but will be moved eventually
+auth <- Sys.getenv("GITHUB_TOKEN")
+eval(parse(text = httr::GET(
+  url = "https://raw.githubusercontent.com/PHSKC-APDE/pers_alastair/master/general_functions/kc_geocode.R",
+  httr::authenticate(auth, "")) %>% httr::content(as = "text")))
 
 
 #### PULL IN DATA ####
@@ -45,10 +41,23 @@ adds_to_code <- dbGetQuery(
 adds_to_code <- adds_to_code %>%
   mutate(geo_add_single = glue("{geo_add1_clean}, {geo_city_clean}, {geo_zip_clean}", .na = ""))
 
+
+### Run the addresses through the geocoder, taking the best result only
+adds_coded_esri <- bind_rows(lapply(adds_to_code$geo_add_single[1:5], geocode, 
+                             street = NULL, city = NULL, zip = NULL, max_return = 10,
+                             best_result = T))
+
+geocode(singleline = "10001 NORTH 109TH STREET, SEATTLE, 98133", best_result = T)
+
+
+
+
+
+##### OLD CODE ####
+# Keep until REST API is working properly
 ### Write out for processing in ArcGIS
 data.table::fwrite(adds_to_code,
                    file.path(geocode_path, paste0("distinct_addresses_", Sys.Date(), ".csv")))
-
 
 
 ### Import data
@@ -76,7 +85,7 @@ adds_coded_esri <- adds_coded_esri %>%
 
 # Recreate coordinates
 adds_coded_esri <- st_as_sf(adds_coded_esri, coords = c("geo_x", "geo_y"), 
-                               crs = 3857, remove = F)
+                            crs = 3857, remove = F)
 
 # Convert to WSG84 geographic coordinate system to obtain lat/lon
 adds_coded_esri <- st_transform(adds_coded_esri, 4326)
@@ -92,6 +101,46 @@ adds_coded_unmatch <- adds_coded_esri %>%
   filter(Status == "U" | Loc_name == "zip_5_digit_gc" | is.na(Loc_name)) %>%
   mutate(geo_add_single = paste(geo_add1_clean, geo_city_clean, geo_state_clean,
                                 geo_zip_clean, "USA", sep = ", "))
+
+#### END OLD CODE ####
+
+
+### Join back to main data convert to spatial file
+# adds_coded_sp <- left_join(adds_to_code, adds_coded_esri, by = "geo_add_single") %>%
+#   st_as_sf(adds_coded_esri, coords = c("lon", "lat"),
+#   crs = "+proj=lcc +lat_1=47.5 +lat_2=48.73333333333333 +lat_0=47 +lon_0=-120.8333333333333 
+#   +x_0=500000.0000000001 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=us-ft +no_defs",
+#   remove = F)
+
+# Convert to WSG84 projected coordinate system to obtain x/y
+# adds_coded_esri <- st_transform(adds_coded_esri, 3857)
+
+# adds_coded_esri <- adds_coded_esri %>%
+#   mutate(geo_x = st_coordinates(adds_coded_esri)[,1],
+#          geo_y = st_coordinates(adds_coded_esri)[,2]) %>%
+#   mutate_at(vars(geo_x, geo_y), list( ~ ifelse(is.na(.), 0, .))) %>%
+#   select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
+#          Loc_name, score, geo_x, geo_y, Addr_type, Match_addr) %>%
+#   st_drop_geometry()
+# 
+# # Recreate coordinates
+# adds_coded_esri <- st_as_sf(adds_coded_esri, coords = c("geo_x", "geo_y"), 
+#                                crs = 3857, remove = F)
+# 
+# # Convert to WSG84 geographic coordinate system to obtain lat/lon
+# adds_coded_esri <- st_transform(adds_coded_esri, 4326)
+# 
+# adds_coded_esri <- adds_coded_esri %>%
+#   mutate(geo_lon = st_coordinates(adds_coded_esri)[,1],
+#          geo_lat = st_coordinates(adds_coded_esri)[,2]) %>%
+#   st_drop_geometry()
+# 
+# 
+# ### Find addresses that need additional geocoding
+# adds_coded_unmatch <- adds_coded_esri %>%
+#   filter(Status == "U" | Loc_name == "zip_5_digit_gc" | is.na(Loc_name)) %>%
+#   mutate(geo_add_single = paste(geo_add1_clean, geo_city_clean, geo_state_clean,
+#                                 geo_zip_clean, "USA", sep = ", "))
 
 
 if (nrow(adds_coded_unmatch) > 0) {
@@ -192,8 +241,7 @@ if (nrow(adds_coded_unmatch) > 0) {
                                  "geo_state_clean", "geo_zip_clean"))
   
   # Look at how the HERE geocodes improved things
-  adds_coded %>% group_by(Loc_name, address_type) %>% summarise(count = n())
-  
+  print(adds_coded %>% group_by(Loc_name, address_type) %>% summarise(count = n()))
   
   
   # Collapse to useful columns and select matching from each source as appropriate
