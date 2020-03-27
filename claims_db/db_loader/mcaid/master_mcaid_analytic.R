@@ -40,23 +40,26 @@ last_run_elig_demo <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_r
 
 # QA stage version
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
-qa_mcaid_elig_demo_f(conn = db_claims, load_only = F)
+qa_stage_mcaid_elig_demo <- qa_mcaid_elig_demo_f(conn = db_claims, load_only = F)
 
-# Load final table (assumes no changes to table structure)
-load_table_from_sql_f(
-  conn = db_claims,
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml", 
-  truncate = T, truncate_date = F)
 
-# QA final table
-qa_rows_final_elig_demo <- qa_sql_row_count_f(
-  conn = db_claims,
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml",
-  overall = T, ind_yr = F)
-
-odbc::dbGetQuery(
-  conn = db_claims,
-  glue::glue_sql("INSERT INTO metadata.qa_mcaid
+# Check that things passed QA before loading final table
+if (qa_stage_mcaid_elig_demo == 0) {
+  # Load final table (assumes no changes to table structure)
+  load_table_from_sql_f(
+    conn = db_claims,
+    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml", 
+    truncate = T, truncate_date = F)
+  
+  # QA final table
+  qa_rows_final_elig_demo <- qa_sql_row_count_f(
+    conn = db_claims,
+    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml",
+    overall = T, ind_yr = F)
+  
+  odbc::dbGetQuery(
+    conn = db_claims,
+    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
                  VALUES ({last_run_elig_demo}, 
                  'final.mcaid_elig_demo',
@@ -64,9 +67,14 @@ odbc::dbGetQuery(
                  {qa_rows_final_elig_demo$qa_result}, 
                  {Sys.time()}, 
                  {qa_rows_final_elig_demo$note})",
-                 .con = db_claims))
+                   .con = db_claims))
+  
+  rm(qa_rows_final_elig_demo)
+} else {
+  stop("Something went wrong with the mcaid_elig_demo run. See metadata.qa_mcaid_values")
+}
+rm(qa_stage_mcaid_elig_demo, last_run_elig_demo)
 
-rm(qa_rows_final_elig_demo, last_run_elig_demo)
 
 
 #### MCAID_ELIG_TIMEVAR ####
@@ -83,26 +91,28 @@ last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (las
 
 # QA stage version
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
-qa_mcaid_elig_timevar_f(conn = db_claims, load_only = F)
+qa_stage_mcaid_elig_timevar <- qa_mcaid_elig_timevar_f(conn = db_claims, load_only = F)
 
 
-# Create and load final table
-create_table_f(conn = db_claims,
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
-               overall = T, ind_yr = F, overwrite = T)
-
-load_table_from_sql_f(conn = db_claims,
-                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
-                      truncate = T, truncate_date = F)
-
-# QA final table
-qa_rows_final_elig_timevar <- qa_sql_row_count_f(conn = db_claims,
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
-  overall = T, ind_yr = F)
-
-DBI::dbExecute(
-  conn = db_claims,
-  glue::glue_sql("INSERT INTO metadata.qa_mcaid
+# Check that things passed QA before loading final table
+if (qa_stage_mcaid_elig_timevar == 0) { 
+  # Create and load final table
+  create_table_f(conn = db_claims,
+                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
+                 overall = T, ind_yr = F, overwrite = T)
+  
+  load_table_from_sql_f(conn = db_claims,
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
+                        truncate = T, truncate_date = F)
+  
+  # QA final table
+  qa_rows_final_elig_timevar <- qa_sql_row_count_f(conn = db_claims,
+                                                   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
+                                                   overall = T, ind_yr = F)
+  
+  DBI::dbExecute(
+    conn = db_claims,
+    glue::glue_sql("INSERT INTO metadata.qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
                  VALUES ({last_run_elig_timevar}, 
                  'final.mcaid_elig_timevar',
@@ -110,9 +120,14 @@ DBI::dbExecute(
                  {qa_rows_final_elig_timevar$qa_result}, 
                  {Sys.time()}, 
                  {qa_rows_final_elig_timevar$note})",
-                 .con = db_claims))
+                   .con = db_claims))
+  
+  rm(qa_rows_final_elig_timevar)
+} else {
+  stop("Something went wrong with the mcaid_elig_timevar run. See metadata.qa_mcaid_values")
+  }
 
-rm(last_run_elig_timevar, qa_rows_final_elig_timevar)
+rm(last_run_elig_timevar, qa_stage_mcaid_elig_timevar)
 
 
 

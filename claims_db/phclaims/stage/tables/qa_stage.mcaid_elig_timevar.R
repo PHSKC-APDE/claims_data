@@ -43,6 +43,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     row_diff <- row_count - previous_rows
     
     if (row_diff < 0) {
+      row_qa_fail <- 1
       odbc::dbGetQuery(
         conn = conn,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -59,6 +60,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
       warning(glue::glue("Fewer rows than found last time.  
                   Check metadata.qa_mcaid for details (last_run = {last_run}"))
     } else {
+      row_qa_fail <- 0
       odbc::dbGetQuery(
         conn = conn,
         glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -84,6 +86,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     conn, "SELECT COUNT (DISTINCT MEDICAID_RECIPIENT_ID) as count FROM stage.mcaid_elig"))
   
   if (id_count_timevar != id_count_elig) {
+    id_distinct_qa_fail <- 1
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -99,6 +102,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     warning(glue::glue("Number of distinct IDs doesn't match the number of rows. 
                       Check metadata.qa_mcaid for details (last_run = {last_run}"))
   } else {
+    id_distinct_qa_fail <- 0
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -126,6 +130,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   
   
   if (dup_row_count != row_count) {
+    dup_row_qa_fail <- 1
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -142,6 +147,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     warning(glue::glue("There appear to be duplicate rows. 
                       Check metadata.qa_mcaid for details (last_run = {last_run}"))
   } else {
+    dup_row_qa_fail <- 0
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid
@@ -175,6 +181,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   
   if (date_range_timevar$from_date < date_range_elig$from_date | 
       date_range_timevar$to_date > date_range_elig$to_date) {
+    date_qa_fail <- 1
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid 
@@ -194,6 +201,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     warning(glue::glue("Some from/to dates fell outside the CLNDR_YEAR_MNTH range. 
                     Check metadata.qa_mcaid for details (last_run = {last_run}"))
   } else {
+    date_qa_fail <- 0
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid 
@@ -226,6 +234,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   timevar_ind_stage <- dbGetQuery(conn, timevar_ind_sql)
   
   if (all_equal(timevar_ind_stage, select(timevar_ind, -notes)) == FALSE) {
+    ind_date_qa_fail <- 1
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid 
@@ -238,6 +247,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              'Some from/to dates did not match expected results for specific IDs')",
                      .con = conn))
   } else {
+    ind_date_qa_fail <- 0
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcaid 
@@ -265,6 +275,8 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   
   odbc::dbGetQuery(conn = conn, load_sql)
   
+  qa_total <- row_qa_fail + id_distinct_qa_fail + dup_row_qa_fail + date_qa_fail + ind_date_qa_fail
+  return(qa_total)
   
 }
 
