@@ -71,7 +71,7 @@ IF OBJECT_ID('tempdb..#temp', 'U') IS NOT NULL
 DROP TABLE #temp;
 SELECT *
 INTO #temp
-FROM [stage].[fn_mcaid_perf_enroll_member_month](201601, 201812);
+FROM [stage].[fn_mcaid_perf_enroll_member_month](201901, 201906);
 
 SELECT TOP 100 *
 FROM #temp;
