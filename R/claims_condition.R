@@ -1,6 +1,6 @@
 #' @title Find chronic health condition status for claims IDs
 #' 
-#' @description \code{claims_condition_f} builds a SQL query to return chronic health condition information.
+#' @description \code{claims_condition} builds a SQL query to return chronic health condition information.
 #' 
 #' @details LARGELY FOR INTERNAL USE
 #' This function builds and sends a SQL query to return a Medicaid member cohort with a specified chronic health condition.
@@ -23,13 +23,14 @@
 #'
 #' @examples
 #' \dontrun{
-#' condition <- mcaid_condition_f(conn = db.claims51, condition = "chr_kidney_dis")
-#' condition <- mcaid_condition_f(conn = db.claims51, condition = "asthma", join_type = "inner", df_join_name = elig_test)
-#' condition <- mcaid_condition_f(conn = db.claims51, condition = "depression", from_date = "2017-01-01", to_date = "2017-01-31")
-#' }
+#' condition <- claims_condition(con = db_claims, source = "mcaid", condition = "ccw_anemia")
+#' condition <- claims_condition(con = db_claims, source = "apcd",
+#'                               from_date = "2020-01-01", to_date = "2020-12-31", 
+#'                               condition = c("ccw_diabetes", "ccw_arthritis", "ccw_cataract", "ccw_hypertension")
+#' condition <- claims_condition(con = db_claims, source = "mcaid_mcare", condition = "ccw_depression", id = c(1, 6, 2:8))
 #' 
 #' @export
-claims_condition_f <- function(conn, 
+claims_condition <- function(conn, 
                                source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
                                condition = c("ccw_alzheimer", "ccw_alzheimer_related",
                                              "ccw_anemia", "ccw_arthritis",
