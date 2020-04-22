@@ -106,10 +106,9 @@ claims_condition <- function(conn,
     {cond_sql} {id_sql} 
     ORDER BY {id_name}, ccw_desc, from_date",
     .con = conn)
-  print(sql_call)
+  
   #Execute SQL query
   result <- DBI::dbGetQuery(conn, sql_call)
   
   return(result)
-  
 }
