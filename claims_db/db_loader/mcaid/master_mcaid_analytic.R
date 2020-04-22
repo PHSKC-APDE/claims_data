@@ -131,8 +131,6 @@ rm(last_run_elig_timevar, qa_stage_mcaid_elig_timevar)
 
 
 
-
-
 #### CREATE CLAIMS TABLES ------------------------------------------------------
 # Need to follow this order when making tables because of dependencies
 # These scripts depend only on [stage].[mcaid_claim]:
