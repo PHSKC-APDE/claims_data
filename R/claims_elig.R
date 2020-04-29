@@ -115,8 +115,6 @@
 #' @param lang_vietnamese Alone or in combination Vietnamese written or spoken language over entire member history (MD)
 #' @param lang_me Most frequently recorded spoken/written language over entire member history, 
 #' case insensitive, can take multiple values (e.g., c("chinese", "english")) (MD)
-#' @param lang_recent Most recently recorded spoken/written language, 
-#' case insensitive, can take multiple values (e.g., c("chinese", "english")) (MD)
 #' @param geo_zip Most frequently reported ZIP code during requested date range,
 #' can take multiple values (e.g., c("98104", "98105")) (A)
 #' @param geo_hra_code Most frequently reported health reporting area code during 
@@ -222,7 +220,6 @@ claims_elig <- function(conn,
                         lang_ukrainian = NULL,
                         lang_vietnamese = NULL,
                         lang_me = NULL,
-                        lang_recent = NULL,
                         # Geography
                         geo_zip = NULL,
                         geo_hra_code = NULL,
@@ -394,7 +391,8 @@ claims_elig <- function(conn,
                 lang_russian, lang_somali, lang_spanish, lang_ukrainian, lang_vietnamese), 
            function(x) {
              if (!is.null(x)) {
-               warning("Language options only available for Medicaid data")
+               warning(paste0("Language options only available for Medicaid data ", 
+                              "(including in combined Medicaid/Medicare tables"))
              }
            })
   }
@@ -556,9 +554,6 @@ claims_elig <- function(conn,
     ifelse(!is.null(lang_me), 
            lang_me_sql <- glue::glue_sql(" AND lang_me IN ({lang_me*}) ", .con = conn),
            lang_me_sql <- DBI::SQL(''))
-    ifelse(!is.null(lang_recent), 
-           lang_recent_sql <- glue::glue_sql(" AND LOWER(lang_recent) IN ({tolower(lang_recent)*}) ", .con = conn),
-           lang_recent_sql <- DBI::SQL(''))
   } else {
     lang_amharic_sql <- DBI::SQL('')
     lang_arabic_sql <- DBI::SQL('')
@@ -571,7 +566,6 @@ claims_elig <- function(conn,
     lang_ukrainian_sql <- DBI::SQL('')
     lang_vietnamese_sql <- DBI::SQL('')
     lang_me_sql <- DBI::SQL('')
-    lang_recent_sql <- DBI::SQL('')
   }
   
   
@@ -634,6 +628,9 @@ claims_elig <- function(conn,
       race_me, race_eth_me, race_recent, race_eth_recent, 
       race_aian, race_asian, race_asian_pi, race_black, race_latino, 
       race_nhpi, race_other, race_white, race_unk,
+      --language vars
+      lang_max, lang_amharic, lang_arabic, lang_chinese, lang_english, lang_korean, 
+      lang_russian, lang_somali, lang_spanish, lang_ukrainian, lang_vietnamese,
       apde_dual AS dual_ever,
       geo_kc_ever ",
       .con = conn)
@@ -649,6 +646,9 @@ claims_elig <- function(conn,
       race_me, race_eth_me, race_recent, race_eth_recent, 
       race_aian, race_asian, race_asian_pi, race_black, race_latino, 
       race_nhpi, race_other, race_white, race_unk,
+      --language vars
+      lang_max, lang_amharic, lang_arabic, lang_chinese, lang_english, lang_korean, 
+      lang_russian, lang_somali, lang_spanish, lang_ukrainian, lang_vietnamese,
       apde_dual AS dual_ever,
       geo_kc_ever ",
       .con = conn)
@@ -1392,7 +1392,7 @@ claims_elig <- function(conn,
         {race_eth_me_sql} {race_recent_sql} {race_eth_recent_sql} 
         {lang_amharic_sql} {lang_arabic_sql} {lang_chinese_sql} {lang_english_sql} 
         {lang_korean_sql} {lang_russian_sql} {lang_somali_sql} {lang_spanish_sql}
-        {lang_ukrainian_sql} {lang_vietnamese_sql} {lang_me_sql} {lang_recent_sql}
+        {lang_ukrainian_sql} {lang_vietnamese_sql} {lang_me_sql}
         {geo_kc_ever_sql}
       ) demo
       INNER JOIN
