@@ -123,7 +123,7 @@ vars:
     SYSTEM_IN_DATE: DATE
     TCN_DATE: DATE
 overall:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_202000505.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_20200505.txt
     field_term: \t
     row_term: \n
     row_count: 17334144
