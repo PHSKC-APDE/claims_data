@@ -11,7 +11,7 @@ Calls on:
 [ref].[perf_measure], table of measure characteristics
 [ref].[perf_year_month], month-by-month table of dates
 [stage].[perf_distinct_member], one row per distinct person
-[stage].[perf_enroll_denom], eligibility criteria per distinct person per month
+[stage].[mcaid_perf_enroll_denom], eligibility criteria per distinct person per month
 [stage].[perf_staging], utilization activity pre-aggregated to person-month level
 [stage].[perf_staging_event_date], utilization activity pre-aggregated to person-date level
 
@@ -88,7 +88,7 @@ FROM [ref].[perf_year_month] AS ym
 
 CROSS JOIN [stage].[perf_distinct_member] AS mem
 
-LEFT JOIN [stage].[perf_enroll_denom] AS den
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS den
 ON mem.[id_mcaid] = den.[id_mcaid]
 AND ym.[year_month] = den.[year_month]
 AND den.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
@@ -183,7 +183,7 @@ FROM [ref].[perf_year_month] AS ym
 
 CROSS JOIN [stage].[perf_distinct_member] AS mem
 
-LEFT JOIN [stage].[perf_enroll_denom] AS den
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS den
 ON mem.[id_mcaid] = den.[id_mcaid]
 AND ym.[year_month] = den.[year_month]
 AND den.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
@@ -308,18 +308,18 @@ INNER JOIN [ref].[perf_year_month] AS ym
 ON stg.[year_month] = ym.[year_month]
 
 /*
-[stage].[perf_enroll_denom] must be joined TWICE
+[stage].[mcaid_perf_enroll_denom] must be joined TWICE
 (1) Member must have comprehensive, non-dual, non-tpl, no-hospice coverage from 
 [event_date] through 30 days after [event_date]
 (2) Member must have residence in the ACH region for 11 out of 12 months in the
 measurement year. This is proxied by [enrolled_any_t_12_m]
 */
 
-LEFT JOIN [stage].[perf_enroll_denom] AS den
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS den
 ON stg.[id_mcaid] = den.[id_mcaid]
 AND stg.[year_month] = den.[year_month]
 
-LEFT JOIN [stage].[perf_enroll_denom] AS res
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS res
 ON stg.[id_mcaid] = res.[id_mcaid]
 AND res.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
 
@@ -468,18 +468,18 @@ INNER JOIN [ref].[perf_year_month] AS ym
 ON stg.[year_month] = ym.[year_month]
 
 /*
-[stage].[perf_enroll_denom] must be joined TWICE
+[stage].[mcaid_perf_enroll_denom] must be joined TWICE
 (1) Member must have comprehensive, non-dual, no-hospice coverage from 
 [event_date] through 30 days after [event_date]
 (2) Member must have residence in the ACH region for 11 out of 12 months in the
 measurement year. This is proxied by [enrolled_any_t_12_m]
 */
 
-LEFT JOIN [stage].[perf_enroll_denom] AS den
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS den
 ON stg.[id_mcaid] = den.[id_mcaid]
 AND stg.[year_month] = den.[year_month]
 
-LEFT JOIN [stage].[perf_enroll_denom] AS res
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS res
 ON stg.[id_mcaid] = res.[id_mcaid]
 AND res.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
 
@@ -628,18 +628,18 @@ INNER JOIN [ref].[perf_year_month] AS ym
 ON stg.[year_month] = ym.[year_month]
 
 /*
-[stage].[perf_enroll_denom] must be joined TWICE
+[stage].[mcaid_perf_enroll_denom] must be joined TWICE
 (1) Member must have comprehensive, non-dual, no-hospice coverage from 
 [event_date] through 30 days after [event_date]
 (2) Member must have residence in the ACH region for 11 out of 12 months in the
 measurement year. This is proxied by [enrolled_any_t_12_m]
 */
 
-LEFT JOIN [stage].[perf_enroll_denom] AS den
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS den
 ON stg.[id_mcaid] = den.[id_mcaid]
 AND stg.[year_month] = den.[year_month]
 
-LEFT JOIN [stage].[perf_enroll_denom] AS res
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS res
 ON stg.[id_mcaid] = res.[id_mcaid]
 AND res.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
 
@@ -759,7 +759,7 @@ FROM [ref].[perf_year_month] AS ym
 
 CROSS JOIN [stage].[perf_distinct_member] AS mem
 
-LEFT JOIN [stage].[perf_enroll_denom] AS den
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS den
 ON mem.[id_mcaid] = den.[id_mcaid]
 AND ym.[year_month] = den.[year_month]
 AND den.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
@@ -889,7 +889,7 @@ FROM [ref].[perf_year_month] AS ym
 
 CROSS JOIN [stage].[perf_distinct_member] AS mem
 
-LEFT JOIN [stage].[perf_enroll_denom] AS den
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS den
 ON mem.[id_mcaid] = den.[id_mcaid]
 AND ym.[year_month] = den.[year_month]
 AND den.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
@@ -1019,7 +1019,7 @@ FROM [ref].[perf_year_month] AS ym
 
 CROSS JOIN [stage].[perf_distinct_member] AS mem
 
-LEFT JOIN [stage].[perf_enroll_denom] AS den
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS den
 ON mem.[id_mcaid] = den.[id_mcaid]
 AND ym.[year_month] = den.[year_month]
 AND den.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
@@ -1184,7 +1184,7 @@ ON stg.[year_month] = ym.[year_month]
 Backward-looking and forward-looking enrollment criteria at time of index event
 are joined to year_month of index event
 */
-LEFT JOIN [stage].[perf_enroll_denom] AS den
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS den
 ON stg.[id_mcaid] = den.[id_mcaid]
 AND stg.[year_month] = den.[year_month]
 
@@ -1316,7 +1316,7 @@ FROM [ref].[perf_year_month] AS ym
 
 CROSS JOIN [stage].[perf_distinct_member] AS mem
 
-LEFT JOIN [stage].[perf_enroll_denom] AS den
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS den
 ON mem.[id_mcaid] = den.[id_mcaid]
 AND ym.[year_month] = den.[year_month]
 AND den.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
@@ -1416,7 +1416,7 @@ FROM [ref].[perf_year_month] AS ym
 
 CROSS JOIN [stage].[perf_distinct_member] AS mem
 
-LEFT JOIN [stage].[perf_enroll_denom] AS den
+LEFT JOIN [stage].[mcaid_perf_enroll_denom] AS den
 ON mem.[id_mcaid] = den.[id_mcaid]
 AND ym.[year_month] = den.[year_month]
 AND den.[year_month] = ' + CAST(@end_month_int AS CHAR(6)) + '
@@ -1515,6 +1515,28 @@ GO
 
 /*
 EXEC [stage].[sp_perf_measures]
- @end_month_int = 201906
-,@measure_name = 'MH Treatment Penetration by Diagnosis';
+ @end_month_int = 201912
+--,@measure_name = 'MH Treatment Penetration by Diagnosis';
+--,@measure_name = 'Follow-up ED visit for Alcohol/Drug Abuse';
+,@measure_name = 'Follow-up ED visit for Mental Illness';
+*/
+
+/*
+SELECT
+ [end_year_month]
+,[measure_name]
+,SUM([denominator])
+,SUM([numerator])
+,[load_date]
+FROM [stage].[mcaid_perf_measure] AS a
+LEFT JOIN [ref].[perf_measure] AS b
+ON a.[measure_id] = b.[measure_id]
+GROUP BY
+ [end_year_month]
+,[measure_name]
+,[load_date]
+ORDER BY
+ [measure_name]
+,[end_year_month]
+,[load_date];
 */
