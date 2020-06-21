@@ -16,6 +16,7 @@ library(RCurl) # Read files from Github
 library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
 library(sf) # Read shape files
+library(keyring) # Access stored credentials
 
 db_claims <- dbConnect(odbc(), "PHClaims51")
 
