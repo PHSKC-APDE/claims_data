@@ -34,7 +34,7 @@ GROUP BY [year_month], [end_quarter], [load_date]
 ORDER BY [year_month], [end_quarter], [load_date];
 */
 
-EXEC [stage].[sp_mcaid_perf_enroll_denom] @start_date_int = 201901, @end_date_int = 201912
+EXEC [stage].[sp_mcaid_perf_enroll_denom] @start_date_int = 201904, @end_date_int = 202003
 GO
 
 /*
@@ -65,7 +65,7 @@ GROUP BY [year_month], [end_quarter], [load_date]
 ORDER BY [year_month], [end_quarter], [load_date];
 */
 
-EXEC [stage].[sp_mcaid_perf_enroll_provider] @start_date_int = 201801, @end_date_int = 201912;
+EXEC [stage].[sp_mcaid_perf_enroll_provider] @start_date_int = 201904, @end_date_int = 202003;
 GO
 
 /*

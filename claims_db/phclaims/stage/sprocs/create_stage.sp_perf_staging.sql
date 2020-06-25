@@ -858,11 +858,11 @@ GO
 /*
 EXEC [stage].[sp_perf_staging]
  @start_month_int = 201901
-,@end_month_int = 201912
+,@end_month_int = 202003
 --,@measure_name = 'All-Cause ED Visits';
 --,@measure_name = 'Acute Hospital Utilization';
---,@measure_name = 'Follow-up ED visit for Alcohol/Drug Abuse';
-,@measure_name = 'Follow-up ED visit for Mental Illness';
+,@measure_name = 'Follow-up ED visit for Alcohol/Drug Abuse';
+--,@measure_name = 'Follow-up ED visit for Mental Illness';
 --,@measure_name = 'Follow-up Hospitalization for Mental Illness';
 --,@measure_name = 'Mental Health Treatment Penetration';
 --,@measure_name = 'SUD Treatment Penetration';
@@ -870,4 +870,24 @@ EXEC [stage].[sp_perf_staging]
 --,@measure_name = 'Plan All-Cause Readmissions (30 days)';
 --,@measure_name = 'Child and Adolescent Access to Primary Care'
 --,@measure_name = 'MH Treatment Penetration by Diagnosis';
+*/
+
+/*
+SELECT
+ [year_month]
+,[measure_name]
+,COUNT([denominator])
+,COUNT([numerator])
+,[load_date]
+FROM [stage].[perf_staging_event_date] AS a
+LEFT JOIN [ref].[perf_measure] AS b
+ON a.[measure_id] = b.[measure_id]
+GROUP BY
+ [year_month]
+,[measure_name]
+,[load_date]
+ORDER BY
+ [measure_name]
+,[year_month]
+,[load_date];
 */
