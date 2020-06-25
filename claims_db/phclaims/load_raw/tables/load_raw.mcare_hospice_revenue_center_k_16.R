@@ -51,5 +51,3 @@ load_table_from_file_f(conn = db.claims51,
 #1479123 rows copied.
 #Network packet size (bytes): 4096
 #Clock Time (ms.) Total     : 27672  Average : (53451.97 rows per sec.)
-> 
-
