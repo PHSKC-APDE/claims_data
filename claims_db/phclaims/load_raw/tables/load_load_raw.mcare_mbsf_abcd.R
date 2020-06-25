@@ -83,7 +83,7 @@
   sql_database_name <- "phclaims" ##Name of SQL database where table will be created
   sql_schema_name <- "load_raw" ##Name of schema where table will be created
   sql_table_name <- "mcare_mbsf_abcd"
-  glue::glue({sql_database_name}.{sql_schema_name}.{sql_table_name})
+  glue::glue("{sql_database_name}.{sql_schema_name}.{sql_table_name}")
   
 
 ## Create Empty Table ----
