@@ -353,7 +353,7 @@ step5b_sql <- glue::glue_sql(
       cov_time_day
       FROM ##timevar_04b) a
       LEFT JOIN
-      (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
+      (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
         geo_zip_centroid, geo_street_centroid, geo_countyfp10 AS geo_county_code, 
         geo_tractce10 AS geo_tract_code, geo_hra_id AS geo_hra_code, 
         geo_school_geoid10 AS geo_school_code
