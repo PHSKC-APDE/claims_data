@@ -10,7 +10,6 @@ vars:
     non_propietary_name: varchar(255)
     dosage_form_name: varchar(255)
     route_name: varchar(255)
-    productndc: varchar(255)
     start_marketing_date: date
     end_marketing_date: date
     marketing_category_name: varchar(255)
