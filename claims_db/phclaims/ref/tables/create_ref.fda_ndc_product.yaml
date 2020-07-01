@@ -18,6 +18,7 @@ vars:
     substance_name: varchar(255)
     active_numerator_strength: varchar(255)
     active_ingred_unit: varchar(255)
+    pharm_classes: varchar(255)
     dea_schedule: varchar(255)
     ndc_exclude_flag: varchar(255)
     listing_record_certified_through: date
