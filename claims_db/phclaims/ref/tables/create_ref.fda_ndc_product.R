@@ -1,20 +1,18 @@
-## Code to create ref.ed_dental_hcup
-## A lookup table for ICD-9-CM/ICD-10-CM codes relevant for define non-traumatic dental conditions in the ED
+## Code to create ref.fda_ndc_product
+## A lookup table for medications in claims data, from the FDA NDC
 ## Eli Kern
-## 2020-02
+## 2020-07
 
 ##### Set up global parameters and call in libraries #####
-options(max.print = 350, tibble.print_max = 50, scipen = 999)
-origin <- "1970-01-01" # Date origin
-library(odbc) # Connect to SQL server
-library(tidyverse) # Work with tidy data
-library(openxlsx) # Read and write data using Microsoft Excel
+options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
+library(pacman)
+pacman::p_load(tidyverse, lubridate, odbc, RCurl, configr, glue)
 
 ##### Connect to SQL Servers #####
 conn <- dbConnect(odbc(), "PHClaims51")
 
 #### Get YAML config file #####
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.geo_kc_zip.yaml"
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.fda_ndc_product.yaml"
 table_config <- yaml::yaml.load_file(config_url)
 file_path <- table_config[["file_path"]][[1]]
 schema <- table_config[["schema"]][[1]]
@@ -38,7 +36,24 @@ DBI::dbCreateTable(conn, tbl_name, fields = table_config$vars)
 
 #Read in data file
 #file <- read.xlsx(file_path)
-file <- read_csv(file_path, col_types = "ci")
+file <- read_csv(file_path, col_types = "cccccccccccccccccccc")
+
+#Replace one non-ASCII character with blank
+file <- file %>% mutate(LABELERNAME = str_replace_all(LABELERNAME, "�", ""))
+
+#Use Sys.time to add last_run column
+file <- file %>% mutate(last_run = Sys.time())
 
 #Write data to SQL
-dbWriteTable(conn, name = tbl_name, value = as.data.frame(file), append = T)
+dbWriteTable(conn, name = tbl_name, value = as.data.frame(file), overwrite = T)
+
+
+
+
+
+
+
+
+
+
+
