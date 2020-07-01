@@ -1,0 +1,26 @@
+file_path: C:/Users/kerneli/King County/King County Cross-Sector Data - Documents/References/Pharmacy/ndcxls/products.csv
+schema: ref
+to_table: fda_ndc_product
+vars:
+    product_id: varchar(255)
+    product_ndc: varchar(255)
+    product_type_name: varchar(255)
+    propietary_name: varchar(255)
+    propietary_name_suffix: varchar(255)
+    non_propietary_name: varchar(255)
+    dosage_form_name: varchar(255)
+    route_name: varchar(255)
+    productndc: varchar(255)
+    start_marketing_date: date
+    end_marketing_date: date
+    marketing_category_name: varchar(255)
+    application_number: varchar(255)
+    labeler_name: varchar(255)
+    productndc: varchar(255)
+    substance_name: varchar(255)
+    active_numerator_strength: varchar(255)
+    active_ingred_unit: varchar(255)
+    dea_schedule: varchar(255)
+    ndc_exclude_flag: varchar(255)
+    listing_record_certified_through: date
+    last_run: datetime
