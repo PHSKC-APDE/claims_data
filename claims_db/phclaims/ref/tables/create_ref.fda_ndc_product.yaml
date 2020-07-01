@@ -1,4 +1,4 @@
-file_path: C:/Users/kerneli/King County/King County Cross-Sector Data - Documents/References/Pharmacy/ndcxls/products.csv
+file_path: C:/Users/kerneli/King County/King County Cross-Sector Data - Documents/References/Pharmacy/ndcxls/product.csv
 schema: ref
 to_table: fda_ndc_product
 vars:
