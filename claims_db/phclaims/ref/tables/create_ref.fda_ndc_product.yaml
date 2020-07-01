@@ -16,7 +16,6 @@ vars:
     marketing_category_name: varchar(255)
     application_number: varchar(255)
     labeler_name: varchar(255)
-    productndc: varchar(255)
     substance_name: varchar(255)
     active_numerator_strength: varchar(255)
     active_ingred_unit: varchar(255)
