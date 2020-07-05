@@ -39,20 +39,20 @@ test <- chronic_meds_crosswalk %>%
 View(filter(test, count >1))
 rm(test)
 
+#Add last_run variable
+chronic_meds_crosswalk <- chronic_meds_crosswalk %>% mutate(last_run = Sys.time())
 
 
 
-
-#### Get YAML config file #####
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.fda_ndc_product.yaml"
+#### Step 4: Get YAML config file #####
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.chronic_meds_eli.yaml"
 table_config <- yaml::yaml.load_file(config_url)
-file_path <- table_config[["file_path"]][[1]]
 schema <- table_config[["schema"]][[1]]
 to_table <- table_config[["to_table"]][[1]]
 vars <- table_config$vars
 
 
-##### Create table shell #####
+#### Step 5: Create table shell ####
 
 # Set up table name
 tbl_name <- DBI::Id(schema = schema, table = to_table)
@@ -64,20 +64,10 @@ try(dbRemoveTable(conn, tbl_name), silent = T)
 DBI::dbCreateTable(conn, tbl_name, fields = table_config$vars)
 
 
-##### Load data to SQL table #####
-
-#Read in data file
-#file <- read.xlsx(file_path)
-file <- read_csv(file_path, col_types = "cccccccccccccccccccc")
-
-#Replace one non-ASCII character with blank
-file <- file %>% mutate(LABELERNAME = str_replace_all(LABELERNAME, "�", ""))
-
-#Use Sys.time to add last_run column
-file <- file %>% mutate(last_run = Sys.time())
+#### Step 6: Load data to SQL table ####
 
 #Write data to SQL
-dbWriteTable(conn, name = tbl_name, value = as.data.frame(file), overwrite = T)
+dbWriteTable(conn, name = tbl_name, value = as.data.frame(chronic_meds_crosswalk), append = T)
 
 
 
