@@ -207,10 +207,22 @@ if (nrow(adds_coded_unmatch) > 0) {
       geo_check_here = ifelse(is.na(geo_check_here), 0, geo_check_here),
       geo_geocode_source = case_when(
         !is.na(geo_lat.x) & 
-          locName %in% c("address_point_", "pin_address_on", "st_address_us", 
-                         "trans_network_", "Pierce_gcs", "Snohomish_gcs",
-                         "Kitsap_gcs", "king_address_point", "pir_address_point",
-                         "sno_site_address", "pir_roads") ~ "esri",
+          locName %in% c("address_point_", 
+                         "king_address_point", 
+                         "Kitsap_gcs",
+                         "ktsp_siteaddr_pin", 
+                         "ktsp_roadcl",
+                         "parcel_address_4co",
+                         "Pierce_gcs", 
+                         "pin_address_on", 
+                         "pir_address_point", 
+                         "pir_roads",
+                         "sno_site_address", 
+                         "sno_streets_centerline",
+                         "Snohomish_gcs", 
+                         "st_address_us", 
+                         "trans_network_",
+                         "trans_network_car_line") ~ "esri",
         !is.na(geo_lat.y) & address_type %in% c("houseNumber", "street") ~ "here",
         !is.na(geo_lat.x) & locName == "zip_5_digit_gc" ~ "esri",
         !is.na(geo_lat.y) & address_type %in% c("postalCode") ~ "here",
@@ -440,6 +452,32 @@ stage_rows_before_distinct <- as.numeric(dbGetQuery(
   FROM stage.address_geocode) a"))
 
 
+#### Add in checker here to make sure distinct = # rows? ####
+# Had been having problems with duplicate rows in the geocode table
+# Seems to be resolved but code below can check
+
+# geocode <- dbGetQuery(db_claims, "SELECT * FROM ref.address_geocode")
+# 
+# geocode_dedup <- geocode %>% 
+#   arrange(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
+#           geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
+#           geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
+#           geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
+#           geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
+#           geo_puma_geoid10, geo_puma_name, geo_zcta5ce10, geo_zcta_geoid10, 
+#           geo_hra_id, geo_hra, geo_region_id, geo_region, geo_school_geoid10, 
+#           geo_school, geo_kcc_dist, geo_wa_legdist, geo_scc_dist, last_run) %>%
+#   group_by(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
+#                                       geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
+#                                       geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
+#                                       geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
+#                                       geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
+#                                       geo_puma_geoid10, geo_puma_name, geo_zcta5ce10, geo_zcta_geoid10, 
+#                                       geo_hra_id, geo_hra, geo_region_id, geo_region, geo_school_geoid10, 
+#                                       geo_school, geo_kcc_dist, geo_wa_legdist, geo_scc_dist) %>% 
+#   slice(1) %>% ungroup()
+
+
 # Write data
 dbWriteTable(db_claims,
              name = DBI::Id(schema = "stage", table = "address_geocode"), 
@@ -465,8 +503,12 @@ stage_rows_after_distinct <- as.numeric(dbGetQuery(
   geo_school, geo_kcc_dist, geo_wa_legdist, geo_scc_dist
   FROM stage.address_geocode) a"))
 
-if ((stage_rows_before + row_load_ref_geo == stage_rows_after) == F) {
+if (stage_rows_before + row_load_ref_geo != stage_rows_after) {
   warning("Number of rows added to stage.address_geocode not expected value")
+}
+
+if (stage_rows_before_distinct + row_load_ref_geo != stage_rows_after_distinct) {
+  warning("There appear to be duplicate rows in stage.address_geocode")
 }
 
 
