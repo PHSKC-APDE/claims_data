@@ -17,15 +17,15 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F) {
   
   #### CALL IN CONFIG FILES TO GET VARS ####
   table_config_stage_elig <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml"
+    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml"
   ))
   
   if (full_refresh == F) {
     table_config_load_elig <- yaml::yaml.load(RCurl::getURL(
-      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
+      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
   } else {
     table_config_load_elig <- yaml::yaml.load(RCurl::getURL(
-      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_full.yaml"))
+      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_full.yaml"))
   }
 
   ### Check for 404 errors
@@ -41,20 +41,24 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F) {
   
   if (full_refresh == F) {
     archive_schema <- table_config_stage_elig$archive_schema
+    archive_table <- table_config_stage_elig$archive_table
     date_truncate <- table_config_load_elig$overall$date_min
   }
   
   
   #### CALL IN FUNCTIONS IF NOT ALREADY LOADED ####
   if (exists("alter_schema_f") == F) {
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/alter_schema.R")
   }
   if (exists("add_index_f") == F) {
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/add_index.R")
   }
   
   
   #### FIND MOST RECENT BATCH ID FROM SOURCE (LOAD_RAW) ####
+  # Now need to make ETL batch ID here as it is added to stage
+  # raw data are in an external table that points to the data warehouse. Can't add an etl column to that
+  
   current_batch_id <- as.numeric(odbc::dbGetQuery(conn,
                                                   glue::glue_sql("SELECT MAX(etl_batch_id) FROM {`from_schema`}.{`from_table`}",
                                                                  .con = conn)))
@@ -65,9 +69,10 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F) {
   
   
   #### ARCHIVE EXISTING TABLE ####
+  # No longer switching schemas, instead just renaming table. Need to drop existing archive table first
   if (full_refresh == F) {
-    alter_schema_f(conn = conn, from_schema = to_schema, to_schema = archive_schema,
-                   table_name = to_table, rename_index = F)
+    DBI::dbSendQuery(conn, glue::glue("DROP TABLE {}.{archive_table}"))
+    DBI::dbSendQuery(conn, glue::glue("EXEC sp_rename '{to_table}', '{archive_table}'"))
   }
   
   
@@ -252,7 +257,7 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F) {
   # Need to recreate stage table first (true if full_refresh == F or T)
   # Assumes create_table_f loaded as part of the master script
   create_table_f(conn = conn, 
-                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml", 
+                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml", 
                  overall = T, ind_yr = F, overwrite = T)
   
   if (full_refresh == F) {

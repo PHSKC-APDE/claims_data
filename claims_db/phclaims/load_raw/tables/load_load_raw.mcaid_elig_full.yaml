@@ -1,5 +1,7 @@
 schema: stg_claims
 table: mcaid_elig_init
+index_type: ccs
+index_name: idx_ccs_load_raw_mcaid_elig
 vars:
     CLNDR_YEAR_MNTH: INTEGER
     MEDICAID_RECIPIENT_ID: VARCHAR(255)

@@ -1,5 +1,5 @@
-schema: load_raw
-table: mcaid_elig
+schema: stg_claims
+table: mcaid_elig_incr
 index_type: ccs
 index_name: idx_ccs_load_raw_mcaid_elig
 vars:

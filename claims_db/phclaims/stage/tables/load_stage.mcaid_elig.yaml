@@ -1,8 +1,9 @@
-from_schema: load_raw
-from_table: mcaid_elig
-to_schema: stage
-to_table: mcaid_elig
-archive_schema: archive
+from_schema: claims
+from_table: raw_mcaid_elig_init
+to_schema: claims
+to_table: stage_mcaid_elig
+archive_schema: claims
+archive_table: archive_mcaid_elig
 index_type: ccs
 index_name: idx_ccs_stage_mcaid_elig
 vars:
