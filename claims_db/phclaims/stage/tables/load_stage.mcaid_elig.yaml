@@ -6,6 +6,11 @@ archive_schema: claims
 archive_table: archive_mcaid_elig
 index_type: ccs
 index_name: idx_ccs_stage_mcaid_elig
+etl:
+    row_count: 
+    date_min: 201201
+    date_max: 201912
+    date_delivery: 2020-02-07
 vars:
     CLNDR_YEAR_MNTH: INTEGER
     MEDICAID_RECIPIENT_ID: VARCHAR(255)
