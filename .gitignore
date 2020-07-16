@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 *.Rproj
+.Rprofile
 /geocoding
 /renv
 
