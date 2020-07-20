@@ -1,5 +1,8 @@
-schema: stg_claims
-table: mcaid_claim_incr
+schema: claims
+table: raw_mcaid_claims_incr
+ext_data_source: datascr_WS_EDW
+ext_schema: stg_claims
+ext_object_name: mcaid_claims_incr
 index_type: ccs
 index_name: idx_ccs_load_raw_mcaid_claims
 vars:

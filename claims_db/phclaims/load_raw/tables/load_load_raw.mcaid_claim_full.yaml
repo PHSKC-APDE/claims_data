@@ -1,5 +1,10 @@
-schema: stg_claims
-table: mcaid_claim_init
+schema: claims
+table: raw_mcaid_claims_init
+ext_data_source: datascr_WS_EDW
+ext_schema: stg_claims
+ext_object_name: mcaid_claims_init
+index_type: ccs
+index_name: idx_ccs_load_raw_mcaid_claims
 vars:
     MBR_H_SID: INT
     MEDICAID_RECIPIENT_ID: VARCHAR(255)
