@@ -1,4 +1,4 @@
-#### FUNCTIONS TO LOAD DATA TO metadata.etl_log TABLE AND RETRIEVE DATA
+#### FUNCTIONS TO LOAD DATA TO claims.metadata_etl_log TABLE AND RETRIEVE DATA
 # Alastair Matheson
 # Created:        2019-05-07
 # Last modified:  2019-06-18
@@ -23,14 +23,10 @@ load_metadata_etl_log_f <- function(conn = NULL,
   
   #### ERROR CHECKS ####
   if (is.null(conn)) {
-    print("No DB connection specificed, trying PHClaims51")
-    conn <- odbc::dbConnect(odbc(), "PHClaims51")
+    stop("No DB connection specificed")
   }
   
   batch_type <- match.arg(batch_type)
-  if (!batch_type %in% c("incremental", "full")) {
-    stop("batch_type must be 'incremental' or 'full'")
-  }
   
   if (is.null(data_source) | !data_source %in% c("APCD", "Medicaid", "Medicare")) {
     stop("Enter a data source (one of 'APCD', 'Medicaid', or 'Medicare'")
@@ -66,19 +62,19 @@ load_metadata_etl_log_f <- function(conn = NULL,
   
   #### CHECK EXISTING ENTRIES ####
   latest <- odbc::dbGetQuery(conn, 
-                             "SELECT TOP (1) * FROM metadata.etl_log
+                             "SELECT TOP (1) * FROM claims.metadata_etl_log
                              ORDER BY etl_batch_id DESC")
   
   latest_source <- odbc::dbGetQuery(conn, 
                                     glue::glue_sql(
-                                      "SELECT TOP (1) * FROM metadata.etl_log
+                                      "SELECT TOP (1) * FROM claims.metadata_etl_log
                                       WHERE data_source = {data_source} 
                                       ORDER BY etl_batch_id DESC",
                                       .con = conn))
   
   matches <- odbc::dbGetQuery(conn, 
                               glue::glue_sql(
-                                "SELECT * FROM metadata.etl_log
+                                "SELECT * FROM claims.metadata_etl_log
                                       WHERE batch_type = {batch_type} AND
                                       data_source = {data_source} AND 
                                       delivery_date = {delivery_date}
@@ -139,10 +135,13 @@ Do you still want to make a new entry?",
     stop("ETL log load cancelled at user request")
     
   } else if (proceed == F & nrow(matches) > 0) {
-    reuse <- askYesNo(msg = "Would you like to reuse the most recent existing entry that matches?")
+    reuse <- askYesNo(msg = "Would you like to reuse an existing entry that matches?")
+    
+    
     
     if (reuse == T) {
-      etl_batch_id <- matches$etl_batch_id[1]
+      etl_batch_id <- reuse <- select.list(choices = matches$etl_batch_id,
+                                           title = "Would you like to reuse the most recent existing entry that matches?")
       
       print(glue::glue("Reusing ETL batch #{etl_batch_id}"))
       return(etl_batch_id)
@@ -152,7 +151,7 @@ Do you still want to make a new entry?",
     }
   } else if (proceed == T) {
     sql_load <- glue::glue_sql(
-      "INSERT INTO metadata.etl_log 
+      "INSERT INTO claims.metadata_etl_log 
       (etl_batch_id, batch_type, data_source, date_min, date_max, delivery_date, note) 
       VALUES ({etl_batch_id}, {batch_type}, {data_source}, {date_min}, {date_max}, 
       {delivery_date}, {note})",
@@ -183,7 +182,7 @@ retrieve_metadata_etl_log_f <- function(conn = NULL, etl_batch_id = NULL) {
   
   ### run query
   odbc::dbGetQuery(conn, 
-                   glue::glue_sql("SELECT * FROM metadata.etl_log
+                   glue::glue_sql("SELECT * FROM claims.metadata_etl_log
                                   WHERE etl_batch_id = {etl_batch_id}",
                                   .con = conn))
 }
