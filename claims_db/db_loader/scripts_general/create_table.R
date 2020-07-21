@@ -1,20 +1,18 @@
 #### FUNCTION TO CREATE TABLES IN SQL
 # Alastair Matheson
 # Created:        2019-04-04
-# Last modified:  2019-07-25
 
 
 ### Plans for future improvements:
-# Add warning when overall table is about to be overwritten
+# Add warning when table is about to be overwritten
 
 
 #### PARAMETERS ####
 # conn = name of the connection to the SQL database
 # config_url = URL location of YAML config file (should be blank if using config_file)
 # config_file = path + file name of YAML config file (should be blank if using config_url)
-# overall = create overall table (default is TRUE)
-# ind_yr = create tables for individual years (default is TRUE)
 # overwrite = drop table first before creating it, if it exists (default is TRUE)
+# external = create external table (requires specifying data source details)
 # test_mode = write things to the tmp schema to test out functions (default is FALSE)
 
 
@@ -23,9 +21,8 @@ create_table_f <- function(
   conn,
   config_url = NULL,
   config_file = NULL,
-  overall = T,
-  ind_yr = T,
   overwrite = T,
+  external = F,
   test_mode = F
 ) {
   
@@ -51,6 +48,7 @@ create_table_f <- function(
                       "Check there are no duplicate variables listed"))
     }
   }
+  
   
   #### READ IN CONFIG FILE ####
   if (!is.null(config_url)) {
@@ -89,18 +87,14 @@ create_table_f <- function(
       stop("No variables specified in config file")
     }
   }
-  
-  if (!"years" %in% names(table_config) & ind_yr == T) {
-    stop("YAML file is missing a list of years")
-  } else {
-    if (ind_yr == T & is.null(unlist(table_config$years))) {
-      stop("No years specified in config file")
-    }
-  }
 
-  # Check that something will be run
-  if (overall == F & ind_yr == F) {
-    stop("At least one of 'overall and 'ind_yr' must be set to TRUE")
+  
+  # Check external table has all the relevant details
+  if (external == T & 
+      (is.null(table_config$ext_data_source) | is.null(table_config$ext_schema) |
+       is.null(table_config$ext_object_name))) {
+    stop("If using an external source, ext_data_source, ext_schema, and ext_object_name 
+         must all be provided")
   }
   
   # Alert users they are in test mode
@@ -113,7 +107,7 @@ create_table_f <- function(
   
   
   #### VARIABLES ####
-  # Set up to work with both new and old way of using YMAL files
+  # Set up to work with both new and old way of using YAML files
   if (!is.null(table_config$to_table)) {
     table_name <- table_config$to_table
   } else {
@@ -137,50 +131,32 @@ create_table_f <- function(
     schema <- table_config$schema
   }
   
-  
-  if (ind_yr == T) {
-    # Use unique in case variables are repeated
-    years <- sort(unique(table_config$years))
+  if (external == T) {
+    external_setup <- glue::glue_sql(" EXTERNAL ")
+    external_text <- glue::glue_sql(" WITH (DATA_SOURCE = {table_config$ext_data_source}, 
+                                    SCHEMA_NAME = {table_config$ext_schema},
+                                    OBJECT_NAME = {table_config$ext_object_name}", .con = conn)
+  } else {
+    external_setup <- DBI::SQL("")
+    external_text <- DBI::SQL("")
   }
   
+  message(glue::glue("Creating [{schema}].[{table_name}] table", test_msg))
   
-
-  #### OVERALL TABLE ####
-  if (overall == T) {
-    message(glue::glue("Creating overall [{schema}].[{table_name}] table", test_msg))
-    
-    tbl_name <- DBI::Id(schema = schema, table = table_name)
-    
-    if (overwrite == T) {
-      if (DBI::dbExistsTable(conn, tbl_name)) {
-        DBI::dbRemoveTable(conn, tbl_name)
-      }
+  tbl_name <- DBI::Id(schema = schema, table = table_name)
+  
+  if (overwrite == T) {
+    if (DBI::dbExistsTable(conn, tbl_name)) {
+      DBI::dbExecute(conn, 
+                     glue::glue_sql("DROP {external_setup} TABLE {`schema`}.{`table_name`}"))
     }
-
-    DBI::dbCreateTable(conn, tbl_name, fields = vars)
   }
   
-  
-  #### CALENDAR YEAR TABLES ####
-  if (ind_yr == T) {
-    message(glue::glue("Creating calendar year [{schema}].[{table_name}] tables", test_msg))
-    
-    lapply(years, function(x) {
-      tbl_name <- DBI::Id(schema = schema, table = paste0(table_name, "_", x))
-      
-      if (overwrite == T) {
-        if (DBI::dbExistsTable(conn, tbl_name)) {
-          DBI::dbRemoveTable(conn, tbl_name)
-        }
-      }
-      
-      # Add additional year-specific variables if present
-      add_vars_name <- paste0("vars_", x)
-      if (add_vars_name %in% names(table_config)) {
-        vars <- c(vars, unlist(table_config[[add_vars_name]]))
-      }
-      
-      DBI::dbCreateTable(conn, tbl_name, fields = vars)
-    })
-  }
+  DBI::dbExecute(conn, glue::glue_sql(
+    "CREATE {external_setup} TABLE {`schema`}.{`table_name`} (
+      {DBI::SQL(glue_collapse(glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}', 
+      .con = conn), sep = ', \n'))}
+      ) {external_text}", 
+    .con = conn)
+  )
 }
