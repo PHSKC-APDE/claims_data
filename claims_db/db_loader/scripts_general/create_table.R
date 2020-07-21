@@ -14,6 +14,7 @@
 # overwrite = drop table first before creating it, if it exists (default is TRUE)
 # external = create external table (requires specifying data source details)
 # test_mode = write things to the tmp schema to test out functions (default is FALSE)
+# overall/ind_yr = old code used to load multiple years of data, now deprecated
 
 
 #### FUNCTION ####
@@ -23,7 +24,9 @@ create_table_f <- function(
   config_file = NULL,
   overwrite = T,
   external = F,
-  test_mode = F
+  test_mode = F,
+  overall = NULL,
+  ind_yr = NULL
 ) {
   
   
@@ -47,6 +50,11 @@ create_table_f <- function(
       stop(glue::glue("Config file is not a YAML config file. ", 
                       "Check there are no duplicate variables listed"))
     }
+  }
+  
+  # Let people know not to use these options any more
+  if (!is.null(overall) | !is.null(ind_yr)) {
+    warning("overall and ind_yr are deprecated and should be removed from code")
   }
   
   
