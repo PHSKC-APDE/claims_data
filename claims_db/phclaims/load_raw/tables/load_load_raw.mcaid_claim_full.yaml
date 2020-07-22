@@ -8,7 +8,7 @@ index_name: idx_ccs_load_raw_mcaid_claims
 data_lake:
     file_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/init/
     schema: stg_claims
-    table: mcaid_elig_init
+    table: mcaid_claims_init
 vars:
     MBR_H_SID: INT
     MEDICAID_RECIPIENT_ID: VARCHAR(255)
