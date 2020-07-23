@@ -141,9 +141,9 @@ create_table_f <- function(
   
   if (external == T) {
     external_setup <- glue::glue_sql(" EXTERNAL ")
-    external_text <- glue::glue_sql(" WITH (DATA_SOURCE = {table_config$ext_data_source}, 
+    external_text <- glue::glue_sql(" WITH (DATA_SOURCE = {DBI::SQL(table_config$ext_data_source)}, 
                                     SCHEMA_NAME = {table_config$ext_schema},
-                                    OBJECT_NAME = {table_config$ext_object_name}", .con = conn)
+                                    OBJECT_NAME = {table_config$ext_object_name})", .con = conn)
   } else {
     external_setup <- DBI::SQL("")
     external_text <- DBI::SQL("")
@@ -156,15 +156,17 @@ create_table_f <- function(
   if (overwrite == T) {
     if (DBI::dbExistsTable(conn, tbl_name)) {
       DBI::dbExecute(conn, 
-                     glue::glue_sql("DROP {external_setup} TABLE {`schema`}.{`table_name`}"))
+                     glue::glue_sql("DROP {external_setup} TABLE {`schema`}.{`table_name`}",
+                                    .con = conn))
     }
   }
   
-  DBI::dbExecute(conn, glue::glue_sql(
+  create_code <- glue::glue_sql(
     "CREATE {external_setup} TABLE {`schema`}.{`table_name`} (
       {DBI::SQL(glue_collapse(glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}', 
       .con = conn), sep = ', \n'))}
       ) {external_text}", 
     .con = conn)
-  )
+  
+  DBI::dbExecute(conn, create_code)
 }

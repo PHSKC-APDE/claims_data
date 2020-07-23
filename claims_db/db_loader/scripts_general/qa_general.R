@@ -5,20 +5,9 @@
 
 #### FUNCTION FOR STANDARDIZED YAML ERROR CHECKS ####
 qa_error_check_f <- function(config_url_chk = config_url,
-                             config_file_chk = config_file,
-                             overall_chk = overall,
-                             ind_yr_chk = ind_yr) {
+                             config_file_chk = config_file) {
   
   #### BASIC ERROR CHECKS ####
-  # Check that something will be run (but not both things)
-  if (overall_chk == F & ind_yr_chk == F) {
-    stop("At least one of 'overall and 'ind_yr' must be set to TRUE")
-  }
-  
-  if (overall_chk == T & ind_yr_chk == T) {
-    stop("Only one of 'overall and 'ind_yr' can be set to TRUE")
-  }
-  
   # Check if the config provided is a local file or on a webpage
   if (!is.null(config_url_chk) & !is.null(config_file_chk)) {
     stop("Specify either a config_url or config_file but not both")

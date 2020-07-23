@@ -11,44 +11,57 @@ if (exists("qa_error_check_f") == F) {
 
 #### FUNCTION TO CHECK ACTUAL VS EXPECT ROW COUNTS IN SOURCE FILES ####
 qa_file_row_count_f <- function(config_url = NULL,
-                           config_file = NULL,
-                           overall = T,
-                           ind_yr = F) {
+                                config_file = NULL,
+                                schema = NULL,
+                                table = NULL,
+                                file_path = NULL,
+                                row_count = NULL
+                                ) {
   
   #### BASIC ERROR CHECKS ####
   qa_error_check_f(config_url_chk = config_url,
-                   config_file_chk = config_file,
-                   overall_chk = overall,
-                   ind_yr_chk = ind_yr)
+                   config_file_chk = config_file)
   
   
   #### READ IN CONFIG FILE ####
   if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
-  } else {
+  } else if (!is.null(config_file)) {
     table_config <- yaml::read_yaml(config_file)
   }
   
   
   #### VARIABLES ####
-  if (!is.null(table_config$to_schema)) {
-    schema <- table_config$to_schema
-  } else {
-    schema <- table_config$schema
+  # Use the supplied values if available, otherwise use config file
+  if (is.null(schema)) {
+    if (!is.null(table_config$to_schema)) {
+      schema <- table_config$to_schema
+    } else {
+      schema <- table_config$schema
+    }
+  }
+
+  if (is.null(table)) {
+    if (!is.null(table_config$to_table)) {
+      table_name <- table_config$to_table
+    } else {
+      table_name <- table_config$table
+    }
   }
   
-  if (!is.null(table_config$to_table)) {
-    table_name <- table_config$to_table
+  if (is.null(row_count)) {
+    row_exp <- as.numeric(stringr::str_remove_all(as.character(table_config$overall$row_count), "\\D"))
   } else {
-    table_name <- table_config$table
+    row_exp <- row_count
   }
   
+  
+  if (is.null(file_path)) {
+    file_path <- table_config$file_path
+  }
   
   if (overall == T) {
-    # Force rows expected to a number
-    row_exp <- as.numeric(
-      stringr::str_remove_all(as.character(table_config$overall$row_count), "\\D")
-      )
+
     
     ### Count the actual number of rows (subtract 1 for header row)
     row_cnt <- R.utils::countLines(table_config$overall$file_path) - 1
@@ -67,47 +80,6 @@ qa_file_row_count_f <- function(config_url = NULL,
                              "expected_count" = as.numeric(row_exp),
                              "actual_count" = as.numeric(row_cnt),
                              stringsAsFactors = F)
-  }
-  
-  if (ind_yr == T) {
-    ### Find which years have details
-    years <- as.list(names(table_config)[str_detect(names(table_config), "table_")])
-    
-    ### Check columns for each year
-    qa_results <- dplyr::bind_rows(lapply(years, function(x) {
-      # Make appropriate table name to match SQL
-      table_name_new <- paste0(table_name, "_", str_sub(x, -4, -1))
-      
-      # Force rows expected to a number
-      row_exp <- as.numeric(
-        stringr::str_remove_all(as.character(table_config[[x]][["row_count"]]), "\\D")
-      )
-      
-      # Count the actual number of rows (subtract 1 for header row)
-      print(glue::glue("Counting rows in {x} (could take a couple of minutes)"))
-      row_cnt <- R.utils::countLines(table_config[[x]][["file_path"]]) - 1
-      
-      # Compare counts
-      count_check <- row_exp == row_cnt
-      
-      if (count_check == T) {
-        qa_result <- TRUE
-      } else {
-        qa_result <- FALSE
-      }
-      
-      # Record counts
-      qa_result_df <- data.frame("source_year" = as.character(x),
-                                   "qa_result" = qa_result,
-                                   "expected_count" = as.numeric(row_exp),
-                                   "actual_count" = as.numeric(row_cnt),
-                                 stringsAsFactors = F)
-      
-      return(qa_result_df)
-    }))
-    
-    ### Summarize results
-    print(qa_results)
   }
   
   ### Report results back
@@ -137,36 +109,39 @@ qa_file_row_count_f <- function(config_url = NULL,
 qa_column_order_f <- function(conn = NULL,
                               config_url = NULL,
                               config_file = NULL,
-                              overall = T,
-                              ind_yr = F,
+                              schema = NULL,
+                              table = NULL,
                               drop_etl = T) {
   
   #### BASIC ERROR CHECKS ####
   qa_error_check_f(config_url_chk = config_url,
-                   config_file_chk = config_file,
-                   overall_chk = overall,
-                   ind_yr_chk = ind_yr)
+                   config_file_chk = config_file)
   
   
   #### READ IN CONFIG FILE ####
   if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
-  } else {
+  } else if (!is.null(config_file)) {
     table_config <- yaml::read_yaml(config_file)
   }
   
   
   #### VARIABLES ####
-  if (!is.null(table_config$to_schema)) {
-    schema <- table_config$to_schema
-  } else {
-    schema <- table_config$schema
+  # Use the supplied values if available, otherwise use config file
+  if (is.null(schema)) {
+    if (!is.null(table_config$to_schema)) {
+      schema <- table_config$to_schema
+    } else {
+      schema <- table_config$schema
+    }
   }
   
-  if (!is.null(table_config$to_table)) {
-    table_name <- table_config$to_table
-  } else {
-    table_name <- table_config$table
+  if (is.null(table)) {
+    if (!is.null(table_config$to_table)) {
+      table_name <- table_config$to_table
+    } else {
+      table_name <- table_config$table
+    }
   }
   
   
@@ -265,146 +240,63 @@ qa_column_order_f <- function(conn = NULL,
 qa_load_row_count_f <- function(conn,
                                config_url = NULL,
                                config_file = NULL,
-                               overall = T,
-                               ind_yr = F,
-                               combine_yr = F) {
+                               schema = NULL,
+                               table = NULL,
+                               row_count = NULL) {
   
   #### BASIC ERROR CHECKS ####
   qa_error_check_f(config_url_chk = config_url,
-                   config_file_chk = config_file,
-                   overall_chk = overall,
-                   ind_yr_chk = ind_yr)
+                   config_file_chk = config_file)
+  
   
   #### READ IN CONFIG FILE ####
   if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
-  } else {
+  } else if (!is.null(config_file)) {
     table_config <- yaml::read_yaml(config_file)
   }
   
   #### VARIABLES ####
-  if (!is.null(table_config$to_schema)) {
-    schema <- table_config$to_schema
-  } else {
-    schema <- table_config$schema
-  }
-  
-  if (!is.null(table_config$to_table)) {
-    table_name <- table_config$to_table
-  } else {
-    table_name <- table_config$table
-  }
-  
-  
-  if (overall == T) {
-    # Force rows expected to a number
-    row_exp <- as.numeric(
-      stringr::str_remove_all(as.character(table_config$overall$row_count), "\\D")
-    )
-    
-    ### Count the actual number of rows loaded to SQL
-    row_cnt <- odbc::dbGetQuery(conn,
-                                glue::glue_sql("SELECT COUNT (*)
-                                               FROM {`schema`}.{`table_name`}", 
-                                               .con = conn))
-    
-    ### Compare counts
-    count_check <- row_exp == row_cnt
-    
-    if (count_check == T) {
-      qa_result <- TRUE
+  # Use the supplied values if available, otherwise use config file
+  if (is.null(schema)) {
+    if (!is.null(table_config$to_schema)) {
+      schema <- table_config$to_schema
     } else {
-      qa_result <- FALSE
-    }
-    
-    qa_results <- data.frame("source_year" = "overall", 
-                             "qa_result" = qa_result,
-                             "expected_count" = as.numeric(row_exp),
-                             "actual_count" = as.numeric(row_cnt),
-                             stringsAsFactors = F)
-  }
-  
-  if (ind_yr == T) {
-    ### Find which years have details
-    years <- as.list(names(table_config)[str_detect(names(table_config), "table_")])
-    
-    ### Check columns for each year
-    qa_results <- dplyr::bind_rows(lapply(years, function(x) {
-      # Make appropriate table name to match SQL
-      table_name_new <- paste0(table_name, "_", str_sub(x, -4, -1))
-      
-      # Force rows expected to a number
-      row_exp <- as.numeric(
-        stringr::str_remove_all(as.character(table_config[[x]][["row_count"]]), "\\D")
-      )
-      
-      # Count the actual number of rows loaded to SQL
-      row_cnt <- odbc::dbGetQuery(conn,
-                                  glue::glue_sql("SELECT COUNT (*)
-                                                 FROM {`schema`}.{`table_name_new`}", 
-                                                 .con = conn))
-      
-      # Compare counts
-      count_check <- row_exp == row_cnt
-      
-      if (count_check == T) {
-        qa_result <- TRUE
-      } else {
-        qa_result <- FALSE
-      }
-      
-      # Record counts
-      qa_result_df <- data.frame("source_year" = as.character(x),
-                                 "qa_result" = qa_result,
-                                 "expected_count" = as.numeric(row_exp),
-                                 "actual_count" = as.numeric(row_cnt),
-                                 stringsAsFactors = F)
-      
-      return(qa_result_df)
-    }))
-    
-    ### Summarize results for individual years
-    print(qa_results)
-    
-    
-    ### Compare overall count if years were combined
-    if (combine_yr == T) {
-      # Sum up expected count (try config value first)
-      overall_exp <- as.numeric(stringr::str_remove_all(
-        as.character(table_config[["overall"]][["row_count"]]), "\\D"))
-      
-      if (!is.null(overall_exp)) {
-        print("Calculating expected overall row count from individual years")
-        overall_exp <- sum(qa_results$expected_count, na.rm = T)
-      }
-      
-      # Find actual count
-      overall_cnt <- odbc::dbGetQuery(conn,
-                                  glue::glue_sql("SELECT COUNT (*)
-                                               FROM {`schema`}.{`table_name`}", 
-                                                 .con = conn))
-      
-      # Compare counts
-      count_check <- overall_exp == overall_cnt
-      
-      if (count_check == T) {
-        qa_result <- TRUE
-      } else {
-        qa_result <- FALSE
-      }
-      
-      qa_results_combined <- data.frame("source_year" = "combined years",
-                                       "qa_result" = qa_result,
-                                       "expected_count" = as.numeric(overall_exp),
-                                       "actual_count" = as.numeric(overall_cnt),
-                                       stringsAsFactors = F)
-      
-      ### Summarize results for combined years
-      print(qa_results_combined)
+      schema <- table_config$schema
     }
   }
   
+  if (is.null(table)) {
+    if (!is.null(table_config$to_table)) {
+      table_name <- table_config$to_table
+    } else {
+      table_name <- table_config$table
+    }
+  }
   
+  if (is.null(row_count)) {
+    row_exp <- as.numeric(stringr::str_remove_all(as.character(table_config$overall$row_count), "\\D"))
+  } else {
+    row_exp <- row_count
+  }
+  
+  ### Count the actual number of rows loaded to SQL
+  row_cnt <- odbc::dbGetQuery(conn,
+                              glue::glue_sql("SELECT COUNT (*) FROM {`schema`}.{`table_name`}", 
+                                             .con = conn))
+  
+  ### Compare counts
+  count_check <- row_exp == row_cnt
+  
+  if (count_check == T) { qa_result <- TRUE} else {qa_result <- FALSE}
+  
+  qa_results <- data.frame("source_year" = "overall", 
+                           "qa_result" = qa_result,
+                           "expected_count" = as.numeric(row_exp),
+                           "actual_count" = as.numeric(row_cnt),
+                           stringsAsFactors = F)
+  
+ 
   ### Report results back
   if (min(qa_results$qa_result, na.rm = T) == 1) {
     outcome <- "PASS"
@@ -422,33 +314,7 @@ qa_load_row_count_f <- function(conn,
     result <- qa_results
   }
   
-  if (combine_yr == T) {
-    if (min(qa_results_combined$qa_result, na.rm = T) == 1) {
-      outcome_combine <- "PASS"
-      note_combine <- "Number of rows loaded to combined SQL table matches expected value"
-      result_combined <- qa_results_combined
-    } else {
-      outcome_combine <- "FAIL"
-      note_combine <- paste0("The combined years table did not match expected row counts: ",
-                     paste(qa_results_combined$source_year[qa_results_combined$qa_result == F],
-                           " (Expected: ", 
-                           qa_results_combined$expected_count[qa_results_combined$qa_result == F],
-                           ", actual: ",
-                           qa_results_combined$actual_count[qa_results_combined$qa_result == F],
-                           ")", sep = "", collapse = "; "))
-      result_combined <- qa_results_combined
-    }
-  }
-  
-  if (combine_yr == F) {
-    report <- list("outcome" = outcome, "note" = note, "result" = result)
-  } else {
-    report <- list("outcome" = c(outcome, outcome_combine), 
-                   "note" = c(note, note_combine),
-                   "result" = result,
-                   "result_combined" = result_combined)
-  }
-  
+  report <- list("outcome" = outcome, "note" = note, "result" = result)
   
   return(report)
 }
@@ -456,18 +322,17 @@ qa_load_row_count_f <- function(conn,
 
 #### FUNCTION TO CHECK THAT DATES MATCH EXPECTED RANGE ####
 qa_date_range_f <- function(conn,
-                               config_url = NULL,
-                               config_file = NULL,
-                               overall = T,
-                               ind_yr = F,
-                               combine_yr = F,
-                               date_var = NULL) {
+                            config_url = NULL,
+                            config_file = NULL,
+                            schema = NULL,
+                            table = NULL,
+                            date_min_exp = NULL,
+                            date_max_exp = NULL,
+                            date_var = NULL) {
   
   #### BASIC ERROR CHECKS ####
   qa_error_check_f(config_url_chk = config_url,
-                   config_file_chk = config_file,
-                   overall_chk = overall,
-                   ind_yr_chk = ind_yr)
+                   config_file_chk = config_file)
   
   if (is.null(date_var)) {
     stop("Specify a date variable to check")
@@ -477,152 +342,65 @@ qa_date_range_f <- function(conn,
   #### READ IN CONFIG FILE ####
   if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
-  } else {
+  } else if (!is.null(config_file)) {
     table_config <- yaml::read_yaml(config_file)
   }
   
   #### VARIABLES ####
-  if (!is.null(table_config$to_schema)) {
-    schema <- table_config$to_schema
-  } else {
-    schema <- table_config$schema
-  }
-  
-  if (!is.null(table_config$to_table)) {
-    table_name <- table_config$to_table
-  } else {
-    table_name <- table_config$table
-  }
-  
-  
-  if (overall == T) {
-    ### Find the expected date range
-    date_min_exp <- table_config$overall$date_min
-    date_max_exp <- table_config$overall$date_max
-    
-    ### Find the actual date range loaded to SQL
-    date_min <- odbc::dbGetQuery(conn,
-                                 glue::glue_sql("SELECT MIN ({`date_var`})
-                                                FROM {`schema`}.{`table_name`}", 
-                                                .con = conn)) 
-    date_max <- odbc::dbGetQuery(conn,
-                                 glue::glue_sql("SELECT MAX ({`date_var`})
-                                                FROM {`schema`}.{`table_name`}", 
-                                                .con = conn)) 
-    
-    ### Compare dates
-    date_min_check <- date_min_exp == date_min
-    date_max_check <- date_max_exp == date_max
-    
-    if (date_min_check == T & date_max_check == T) {
-      qa_result <- TRUE
+  # Use the supplied values if available, otherwise use config file
+  if (is.null(schema)) {
+    if (!is.null(table_config$to_schema)) {
+      schema <- table_config$to_schema
     } else {
-      qa_result <- FALSE
+      schema <- table_config$schema
     }
-    
-    qa_results <- data.frame("source_year" = "overall", 
-                             "qa_result" = qa_result,
-                             "expected_date_min" = date_min_exp,
-                             "actual_date_min" = date_min[[1]],
-                             "expected_date_max" = date_max_exp,
-                             "actual_date_max" = date_max[[1]],
-                             stringsAsFactors = F)
   }
   
-  if (ind_yr == T) {
-    ### Find which years have details
-    years <- as.list(names(table_config)[str_detect(names(table_config), "table_")])
-    
-    ### Check columns for each year
-    qa_results <- dplyr::bind_rows(lapply(years, function(x) {
-      
-      # Make appropriate table name to match SQL
-      table_name_new <- paste0(table_name, "_", str_sub(x, -4, -1))
-      
-      ### Find the expected date range
-      date_min_exp <- table_config[[x]][["date_min"]]
-      date_max_exp <- table_config[[x]][["date_max"]]
-      
-      ### Count the actual date range loaded to SQL
-      date_min <- odbc::dbGetQuery(conn,
-                                   glue::glue_sql("SELECT MIN ({`date_var`})
-                                                  FROM {`schema`}.{`table_name_new`}", 
-                                                  .con = conn)) 
-      date_max <- odbc::dbGetQuery(conn,
-                                   glue::glue_sql("SELECT MAX ({`date_var`})
-                                                  FROM {`schema`}.{`table_name_new`}", 
-                                                  .con = conn)) 
-
-      ### Compare dates
-      date_min_check <- date_min_exp == date_min
-      date_max_check <- date_max_exp == date_max
-      
-      if (date_min_check == T & date_max_check == T) {
-        qa_result <- TRUE
-      } else {
-        qa_result <- FALSE
-      }
-      
-      qa_result_df <- data.frame("source_year" = "overall", 
-                               "qa_result" = qa_result,
-                               "expected_date_min" = date_min_exp,
-                               "actual_date_min" = date_min[[1]],
-                               "expected_date_max" = date_max_exp,
-                               "actual_date_max" = date_max[[1]],
-                               stringsAsFactors = F)
-      
-      return(qa_result_df)
-    }))
-    
-    ### Summarize results for individual years
-    print(qa_results)
-    
-    
-    ### Compare overall count if years were combined
-    if (combine_yr == T) {
-      # Find expected combined date range (try config value first)
-      date_min_exp <- table_config$overall$date_min
-      date_max_exp <- table_config$overall$date_max
-
-      if (is.null(date_min_exp)) {
-        print("Calculating expected overall date range from individual years")
-        date_min_exp <- min(qa_results$expected_date_min, na.rm = T)
-        date_max_exp <- max(qa_results$expected_date_max, na.rm = T)
-      }
-      
-      ### Find the actual date range loaded to SQL
-      date_min <- odbc::dbGetQuery(conn,
-                                   glue::glue_sql("SELECT MIN ({`date_var`})
-                                                FROM {`schema`}.{`table_name`}", 
-                                                  .con = conn)) 
-      date_max <- odbc::dbGetQuery(conn,
-                                   glue::glue_sql("SELECT MAX ({`date_var`})
-                                                FROM {`schema`}.{`table_name`}", 
-                                                  .con = conn)) 
- 
-      
-      ### Compare dates
-      date_min_check <- date_min_exp == date_min
-      date_max_check <- date_max_exp == date_max
-      
-      if (date_min_check == T & date_max_check == T) {
-        qa_result <- TRUE
-      } else {
-        qa_result <- FALSE
-      }
-      
-      qa_results_combined <- data.frame("source_year" = "combined years", 
-                               "qa_result" = qa_result,
-                               "expected_date_min" = date_min_exp,
-                               "actual_date_min" = date_min[[1]],
-                               "expected_date_max" = date_max_exp,
-                               "actual_date_max" = date_max[[1]],
-                               stringsAsFactors = F)
-      
-      ### Summarize results for combined years
-      print(qa_results_combined)
+  if (is.null(table)) {
+    if (!is.null(table_config$to_table)) {
+      table_name <- table_config$to_table
+    } else {
+      table_name <- table_config$table
     }
   }
+  
+  if (is.null(date_min_exp)) {
+    date_min_exp <- table_config$overall$date_min
+  }
+  
+  if (is.null(date_max_exp)) {
+    date_max_exp <- table_config$overall$date_max
+  }
+  
+  
+  ### Find the actual date range loaded to SQL
+  date_min <- odbc::dbGetQuery(conn,
+                               glue::glue_sql("SELECT MIN ({`date_var`})
+                                                FROM {`schema`}.{`table_name`}", 
+                                              .con = conn)) 
+  date_max <- odbc::dbGetQuery(conn,
+                               glue::glue_sql("SELECT MAX ({`date_var`})
+                                                FROM {`schema`}.{`table_name`}", 
+                                              .con = conn)) 
+  
+  ### Compare dates
+  date_min_check <- date_min_exp == date_min
+  date_max_check <- date_max_exp == date_max
+  
+  if (date_min_check == T & date_max_check == T) {
+    qa_result <- TRUE
+  } else {
+    qa_result <- FALSE
+  }
+  
+  qa_results <- data.frame("source_year" = "overall", 
+                           "qa_result" = qa_result,
+                           "expected_date_min" = date_min_exp,
+                           "actual_date_min" = date_min[[1]],
+                           "expected_date_max" = date_max_exp,
+                           "actual_date_max" = date_max[[1]],
+                           stringsAsFactors = F)
+
   
   ### Report results back
   if (min(qa_results$qa_result, na.rm = T) == 1) {
@@ -647,40 +425,7 @@ qa_date_range_f <- function(conn,
     result <- qa_results
   }
 
-  
-  if (combine_yr == T) {
-    if (min(qa_results_combined$qa_result, na.rm = T) == 1) {
-      outcome_combine <- "PASS"
-      note_combine <- "Date range in combined SQL table matches expected values"
-      result_combined <- qa_results_combined
-    } else {
-      outcome_combine <- "FAIL"
-      note_combine <- paste0("The combined years table did not match expected row counts: ",
-                             paste(qa_results_combined$source_year[qa_results_combined$qa_result == F],
-                                   " (Expected min: ", 
-                                   qa_results_combined$expected_date_min[qa_results_combined$qa_result == F],
-                                   ", actual min: ",
-                                   qa_results_combined$actual_date_min[qa_results_combined$qa_result == F],
-                                   " / ",
-                                   " Expected max: ", 
-                                   qa_results_combined$expected_date_max[qa_results_combined$qa_result == F],
-                                   ", actual max: ",
-                                   qa_results_combined$actual_date_max[qa_results_combined$qa_result == F],
-                                   ")", 
-                                   sep = "", collapse = "; "))
-      result_combined <- qa_results_combined
-    }
-  }
-  
-  if (combine_yr == F) {
-    report <- list("outcome" = outcome, "note" = note, "result" = result)
-  } else {
-    report <- list("outcome" = c(outcome, outcome_combine), 
-                   "note" = c(note, note_combine),
-                   "result" = result,
-                   "result_combined" = result_combined)
-  }
-  
+  report <- list("outcome" = outcome, "note" = note, "result" = result)
   
   return(report)
 }
