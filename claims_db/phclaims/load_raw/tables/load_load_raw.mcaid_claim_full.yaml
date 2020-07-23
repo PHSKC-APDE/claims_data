@@ -1,14 +1,11 @@
 schema: claims
 table: raw_mcaid_claims_init
-ext_data_source: datascr_WS_EDW
-ext_schema: stg_claims
-ext_object_name: mcaid_claims_init
 index_type: ccs
 index_name: idx_ccs_load_raw_mcaid_claims
-data_lake:
-    file_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/init/
-    schema: stg_claims
-    table: mcaid_claims_init
+ext_data_source: datascr_WS_EDW
+ext_schema: stg_claims
+ext_table: mcaid_claims_init
+dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/init/
 vars:
     MBR_H_SID: INT
     MEDICAID_RECIPIENT_ID: VARCHAR(255)
