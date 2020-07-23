@@ -12,6 +12,7 @@ etl:
     date_max: 2019-02-29
     date_delivery: 2020-03-16
     note: Partial refresh of Medicaid claims data
+    date_var: FROM_SRVC_DATE
 vars:
     CLNDR_YEAR_MNTH: INT
     MBR_H_SID: INT
@@ -135,4 +136,3 @@ vars:
     SYSTEM_IN_DATE: DATE
     TCN_DATE: DATE
     etl_batch_id: SMALLINT
-date_var: FROM_SRVC_DATE
