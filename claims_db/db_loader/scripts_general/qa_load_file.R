@@ -43,9 +43,9 @@ qa_file_row_count_f <- function(config_url = NULL,
 
   if (is.null(table)) {
     if (!is.null(table_config$to_table)) {
-      table_name <- table_config$to_table
+      table <- table_config$to_table
     } else {
-      table_name <- table_config$table
+      table <- table_config$table
     }
   }
   
@@ -138,9 +138,9 @@ qa_column_order_f <- function(conn = NULL,
   
   if (is.null(table)) {
     if (!is.null(table_config$to_table)) {
-      table_name <- table_config$to_table
+      table <- table_config$to_table
     } else {
-      table_name <- table_config$table
+      table <- table_config$table
     }
   }
   
@@ -148,7 +148,7 @@ qa_column_order_f <- function(conn = NULL,
   if (overall == T) {
     ### Pull out names of existing table
     sql_name <- names(odbc::dbGetQuery(conn, glue::glue_sql(
-      "SELECT TOP(0) * FROM {`schema`}.{`table_name`}", .con = conn)))
+      "SELECT TOP(0) * FROM {`schema`}.{`table`}", .con = conn)))
     
     if (drop_etl == T) {
       ### Remove etl_batch_id as this is not likely to be in the YAML
@@ -185,11 +185,11 @@ qa_column_order_f <- function(conn = NULL,
     ### Check columns for each year
     qa_results <- lapply(years, function(x) {
       # Make appropriate table name to match SQL
-      table_name_new <- paste0(table_name, "_", str_sub(x, -4, -1))
+      table_new <- paste0(table, "_", str_sub(x, -4, -1))
       
       # Pull out names of existing table
       sql_name <- names(odbc::dbGetQuery(conn, glue::glue_sql(
-        "SELECT TOP(0) * FROM {`schema`}.{`table_name_new`}", .con = conn)))
+        "SELECT TOP(0) * FROM {`schema`}.{`table_new`}", .con = conn)))
       
       # Remove etl_batch_id as this is not likely to be in the YAML
       sql_name <- sql_name[! sql_name %in% c("etl_batch_id")]
@@ -268,9 +268,9 @@ qa_load_row_count_f <- function(conn,
   
   if (is.null(table)) {
     if (!is.null(table_config$to_table)) {
-      table_name <- table_config$to_table
+      table <- table_config$to_table
     } else {
-      table_name <- table_config$table
+      table <- table_config$table
     }
   }
   
@@ -282,7 +282,7 @@ qa_load_row_count_f <- function(conn,
   
   ### Count the actual number of rows loaded to SQL
   row_cnt <- odbc::dbGetQuery(conn,
-                              glue::glue_sql("SELECT COUNT (*) FROM {`schema`}.{`table_name`}", 
+                              glue::glue_sql("SELECT COUNT (*) FROM {`schema`}.{`table`}", 
                                              .con = conn))
   
   ### Compare counts
@@ -358,9 +358,9 @@ qa_date_range_f <- function(conn,
   
   if (is.null(table)) {
     if (!is.null(table_config$to_table)) {
-      table_name <- table_config$to_table
+      table <- table_config$to_table
     } else {
-      table_name <- table_config$table
+      table <- table_config$table
     }
   }
   
@@ -376,11 +376,11 @@ qa_date_range_f <- function(conn,
   ### Find the actual date range loaded to SQL
   date_min <- odbc::dbGetQuery(conn,
                                glue::glue_sql("SELECT MIN ({`date_var`})
-                                                FROM {`schema`}.{`table_name`}", 
+                                                FROM {`schema`}.{`table`}", 
                                               .con = conn)) 
   date_max <- odbc::dbGetQuery(conn,
                                glue::glue_sql("SELECT MAX ({`date_var`})
-                                                FROM {`schema`}.{`table_name`}", 
+                                                FROM {`schema`}.{`table`}", 
                                               .con = conn)) 
   
   ### Compare dates
