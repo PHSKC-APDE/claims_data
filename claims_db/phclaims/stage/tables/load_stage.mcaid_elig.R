@@ -97,12 +97,12 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F, config = NULL
   message("Running additional QA items")
   # Should be no combo of ID, CLNDR_YEAR_MNTH, from_date, to_date, and secondary RAC with >1 row
   # However, there are cases where there is a duplicate row but the only difference is
-  # a NULL or different END_REASON. Include END_REASON to account for this.
+  # a NULL or different END_REASON. This is addressed below in the deup section.
   distinct_rows_load_raw <- as.numeric(dbGetQuery(db_claims,
                                          glue::glue_sql("SELECT COUNT (*) FROM
                                          (SELECT DISTINCT CLNDR_YEAR_MNTH, 
                                          MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE,
-                                         RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, END_REASON 
+                                         RPRTBL_RAC_CODE, SECONDARY_RAC_CODE 
                                          FROM {`config$from_schema`}.{`config$from_table`}) a",
                                                         .con = db_claims)))
   
@@ -464,8 +464,12 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F, config = NULL
       
       if (temp_rows_02 == distinct_rows_load_raw) {
         message(glue::glue("All duplicates accounted for (new row total = {distinct_rows_load_raw})"))
+      } else if (temp_rows_02 < distinct_rows_load_raw) {
+        message(glue::glue("The {from_schema}.tmp_mcaid_elig_dedup table has {temp_rows_02} rows ",
+                           "({dedup_row_diff} fewer than tmp_mcaid_elig)",
+                           " but only {temp_rows_01 - distinct_rows_load_raw} duplicate rows were expected"))
       } else {
-        message(glue::glue("The from_schema.tmp_mcaid_elig_dedup table has {temp_rows_02} rows ",
+        message(glue::glue("The {from_schema}.tmp_mcaid_elig_dedup table has {temp_rows_02} rows ",
                            "({dedup_row_diff} fewer than tmp_mcaid_elig)",
                            " but {distinct_rows_load_raw - temp_rows_02} duplicate rows remain"))
       }
@@ -476,33 +480,7 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F, config = NULL
   }
   
   
-  
-  temp <- dbGetQuery(db_claims, 
-                     "select a.* from 
-                     (SELECT DISTINCT CLNDR_YEAR_MNTH, 
-                       MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE,
-                       RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, END_REASON,
-                       1 as dummy
-                       FROM claims.raw_mcaid_elig_init) a
-                     left join
-                     (select CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
-                     TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, END_REASON
-                     from ##mcaid_elig_dedup) b
-                     on 
-                     a.CLNDR_YEAR_MNTH = b.CLNDR_YEAR_MNTH AND 
-                     a.MEDICAID_RECIPIENT_ID = b.MEDICAID_RECIPIENT_ID AND
-                     (a.FROM_DATE = b.FROM_DATE OR (a.FROM_DATE IS NULL AND b.FROM_DATE IS NULL)) AND
-                     (a.TO_DATE = b.TO_DATE OR (a.TO_DATE IS NULL AND b.TO_DATE IS NULL)) AND
-                     (a.RPRTBL_RAC_CODE = b.RPRTBL_RAC_CODE OR
-                       (a.RPRTBL_RAC_CODE IS NULL AND b.RPRTBL_RAC_CODE IS NULL)) AND
-                     (a.SECONDARY_RAC_CODE = b.SECONDARY_RAC_CODE OR
-                       (a.SECONDARY_RAC_CODE IS NULL AND b.SECONDARY_RAC_CODE IS NULL)) AND
-                     (a.END_REASON = b.END_REASON OR
-                       (a.END_REASON IS NULL AND b.END_REASON IS NULL))
-                     where a.dummy is null")
-  
-  
-  
+
   #### LOAD TABLE ####
   # Combine relevant parts of archive and new data
   message("Loading to stage table")
@@ -534,7 +512,7 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F, config = NULL
                                     WHERE {`date_var`} < {date_truncate}
                                     UNION
                                     SELECT {`vars`*}, {current_batch_id} AS etl_batch_id FROM
-                                    ##mcaid_elig_dedup
+                                    {`from_schema`}.tmp_mcaid_elig_dedup
                                     WHERE {`date_var`} >= {date_truncate}",
                                     .con = conn)
     }
@@ -548,7 +526,7 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F, config = NULL
     } else {
       sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
                                     SELECT {`vars`*}, {current_batch_id} AS etl_batch_id 
-                                    FROM ##mcaid_elig_dedup",
+                                    FROM {`from_schema`}.tmp_mcaid_elig_dedup",
                                     .con = conn)
     }
   }
@@ -566,7 +544,7 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F, config = NULL
                                     WHERE {`date_var`} < {date_truncate}
                                     UNION
                                     SELECT {`vars`*}, {current_batch_id} AS etl_batch_id FROM
-                                    ##mcaid_elig_dedup
+                                {`from_schema`}.tmp_mcaid_elig_dedup
                                     WHERE {`date_var`} >= {date_truncate}",
                                 .con = conn)
 
@@ -585,7 +563,7 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F, config = NULL
                                     WHERE {`date_var`} < {date_truncate}
                                     UNION
                                     SELECT {`vars`*}, {current_batch_id} AS etl_batch_id FROM
-                                    ##mcaid_elig_dedup
+                                {`from_schema`}.tmp_mcaid_elig_dedup
                                     WHERE {`date_var`} >= {date_truncate}",
                                 .con = conn)
   
@@ -593,6 +571,10 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F, config = NULL
   
   
   
+  
+  #### end tests ####
+  
+  system.time(DBI::dbExecute(conn, sql_combine))
   
   
   
