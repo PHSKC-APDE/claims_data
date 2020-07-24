@@ -156,7 +156,7 @@ copy_into_f <- function(
   DBI::dbExecute(conn, glue::glue_sql(
     "COPY INTO {`dw_schema`}.{`dw_table`}
     ({`names(table_config$vars)`*})
-    FROM {table_config$data_lake$file_path}
+    FROM {table_config$dl_path}
     WITH (
       FILE_TYPE = {file_type},
       {auth_sql}
