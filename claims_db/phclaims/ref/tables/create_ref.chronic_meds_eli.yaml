@@ -1,0 +1,16 @@
+schema: ref
+to_table: chronic_meds_eli
+vars:
+    ndc_desc: varchar(255)
+    drug_category: varchar(255)
+    drug_name: varchar(255)
+    market: varchar(255)
+    hypertension: tinyint
+    diabetes: tinyint
+    heart_disease: tinyint
+    high_cholesterol: tinyint
+    asthma: tinyint
+    mental_illness: tinyint
+    depression: tinyint
+    match_name: varchar(255)
+    last_run: datetime
