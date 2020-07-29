@@ -5,7 +5,7 @@ index_name: idx_ccs_load_raw_mcaid_claims
 ext_data_source: datascr_WS_EDW
 ext_schema: stg_claims
 ext_table: mcaid_claims_incr
-dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/incr/KC_Claim_20200316.gz
+dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/incr/KC_Claim_20200505.gz
 vars:
     MBR_H_SID: INT
     MEDICAID_RECIPIENT_ID: VARCHAR(255)
