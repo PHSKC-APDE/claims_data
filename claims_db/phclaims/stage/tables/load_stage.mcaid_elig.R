@@ -531,45 +531,45 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F, config = NULL
     }
   }
   
-  
-  #### LOAD TABLE TESTS ####
-  ### Normal approach (32 mins)
-  create_table_f(conn = conn, 
-                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml", 
-                 overwrite = T)
-  
-  sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
-                                    SELECT {`vars`*}, etl_batch_id FROM
-                                    {`archive_schema`}.{`archive_table`}
-                                    WHERE {`date_var`} < {date_truncate}
-                                    UNION
-                                    SELECT {`vars`*}, {current_batch_id} AS etl_batch_id FROM
-                                {`from_schema`}.tmp_mcaid_elig_dedup
-                                    WHERE {`date_var`} >= {date_truncate}",
-                                .con = conn)
-
-  system.time(DBI::dbExecute(conn, sql_combine))
-  
-  
-  ### Create table as select (CTAS)
-  sql_combine <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
-                                    WITH (
-                                      DISTRIBUTION = ROUND_ROBIN,
-                                      CLUSTERED COLUMNSTORE INDEX
-                                    )
-                                    AS 
-                                    SELECT {`vars`*}, etl_batch_id FROM
-                                    {`archive_schema`}.{`archive_table`}
-                                    WHERE {`date_var`} < {date_truncate}
-                                    UNION
-                                    SELECT {`vars`*}, {current_batch_id} AS etl_batch_id FROM
-                                {`from_schema`}.tmp_mcaid_elig_dedup
-                                    WHERE {`date_var`} >= {date_truncate}",
-                                .con = conn)
-  
-  system.time(DBI::dbExecute(conn, sql_combine))
-  
-  
+  # 
+  # #### LOAD TABLE TESTS ####
+  # ### Normal approach (32 mins)
+  # create_table_f(conn = conn, 
+  #                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml", 
+  #                overwrite = T)
+  # 
+  # sql_combine <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
+  #                                   SELECT {`vars`*}, etl_batch_id FROM
+  #                                   {`archive_schema`}.{`archive_table`}
+  #                                   WHERE {`date_var`} < {date_truncate}
+  #                                   UNION
+  #                                   SELECT {`vars`*}, {current_batch_id} AS etl_batch_id FROM
+  #                               {`from_schema`}.tmp_mcaid_elig_dedup
+  #                                   WHERE {`date_var`} >= {date_truncate}",
+  #                               .con = conn)
+  # 
+  # system.time(DBI::dbExecute(conn, sql_combine))
+  # 
+  # 
+  # ### Create table as select (CTAS)
+  # sql_combine <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
+  #                                   WITH (
+  #                                     DISTRIBUTION = ROUND_ROBIN,
+  #                                     CLUSTERED COLUMNSTORE INDEX
+  #                                   )
+  #                                   AS 
+  #                                   SELECT {`vars`*}, etl_batch_id FROM
+  #                                   {`archive_schema`}.{`archive_table`}
+  #                                   WHERE {`date_var`} < {date_truncate}
+  #                                   UNION
+  #                                   SELECT {`vars`*}, {current_batch_id} AS etl_batch_id FROM
+  #                               {`from_schema`}.tmp_mcaid_elig_dedup
+  #                                   WHERE {`date_var`} >= {date_truncate}",
+  #                               .con = conn)
+  # 
+  # system.time(DBI::dbExecute(conn, sql_combine))
+  # 
+  # 
   
   
   #### end tests ####
