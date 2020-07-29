@@ -1,7 +1,7 @@
 #### CODE TO LOAD MCAID CLAIMS TABLES
 # Alastair Matheson, PHSKC (APDE)
 #
-# 2019-06
+# 2020-07
 
 ### Run from master_mcaid_full script
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
@@ -12,6 +12,9 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                             etl_delivery_date = NULL,
                                             etl_note = NULL,
                                             qa_file_row = F) {
+  
+
+  
   
   # qa_file_row flag will determine whether to count the number of rows in the txt files
   # Note this is VERY slow over the network so better to check row counts once in SQL
