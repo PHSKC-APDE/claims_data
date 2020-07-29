@@ -64,7 +64,7 @@ load_claims.stage_mcaid_claim_f <- function(conn = NULL, full_refresh = F, confi
   #### ARCHIVE EXISTING TABLE ####
   # No longer switching schema, instead just renaming table. Need to drop existing archive table first
   if (full_refresh == F) {
-    DBI::dbSendQuery(conn, glue::glue("DROP TABLE {archive_schema}.{archive_table}"))
+    try(DBI::dbSendQuery(conn, glue::glue("DROP TABLE {archive_schema}.{archive_table}")))
     DBI::dbSendQuery(conn, glue::glue("EXEC sp_rename '{to_schema}.{to_table}', '{archive_table}'"))
   }
   
