@@ -86,7 +86,7 @@ table_config_stage_claims <- yaml::yaml.load(RCurl::getURL("https://raw.githubus
 if (table_config_stage_claims[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
-load_stage.mcaid_claim_f(conn = db_claims, full_refresh = F, config = table_config_stage_claims)
+load_claims.stage_mcaid_claim_f(conn = db_claims, full_refresh = F, config = table_config_stage_claims)
 
 
 #### ADDRESS CLEANING ####

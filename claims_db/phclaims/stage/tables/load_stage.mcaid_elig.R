@@ -723,17 +723,14 @@ load_stage.mcaid_elig_f <- function(conn = NULL, full_refresh = F, config = NULL
   
   #### CLEAN UP ####
   # Drop global temp table
-  suppressWarnings(try(odbc::dbRemoveTable(conn, "##mcaid_elig_temp", temporary = T)))
-  suppressWarnings(try(odbc::dbRemoveTable(conn, "##mcaid_elig_dedup", temporary = T)))
-  rm(dedup_sql)
   rm(vars, var_names)
   rm(duplicate_check_reason, duplicate_check_hoh, duplicate_check_rac, duplicate_type,
      temp_rows_01, temp_rows_02, dedup_sql)
   rm(from_schema, from_table, to_schema, to_table, archive_schema, date_truncate)
   rm(rows_stage, rows_load_raw, rows_archive, distinct_rows_load_raw, null_ids)
-  rm(row_diff_qa_fail, row_diff_qa_note, null_ids_qa_fail)
+  rm(row_diff_qa_fail, null_ids_qa_fail)
   rm(config)
-  rm(sql_combine, sql_archive)
+  rm(sql_combine)
   rm(current_batch_id)
   
 }

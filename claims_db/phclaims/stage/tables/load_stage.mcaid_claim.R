@@ -258,7 +258,6 @@ load_claims.stage_mcaid_claim_f <- function(conn = NULL, full_refresh = F, confi
   suppressWarnings(rm(from_schema, from_table, to_schema, to_table, archive_schema, date_truncate, 
                       vars, vars_truncated, current_batch_id))
   suppressWarnings(rm(rows_stage, rows_raw, rows_archive, rows_diff, null_ids))
-  rm(rows_diff)
   rm(row_diff_qa_type, row_diff_qa_note)
   rm(row_diff_qa_fail, null_ids_qa_fail)
   rm(load_sql)
