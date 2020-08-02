@@ -13,6 +13,11 @@ write_path <- "\\\\kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" ##Folder t
 s3_folder <- "\"s3://waae-kc-ext/apcd_export/\"" ##Name of S3 folder containing data and format files
 
 #### Save/sync files from Amazon S3 bucket to drive ####
+#Copy and paste credentials from C:\Users\kerneli\.aws
+
+Sys.setenv("AWS_ACCESS_KEY_ID" = "FILL-IN-BLANK",
+           "AWS_SECRET_ACCESS_KEY" = "FILL-IN-BLANK",
+           "AWS_DEFAULT_REGION" = "us-west-2")
 
 #List files in S3 folder
 system2(command = "aws", args = c("s3", "ls", s3_folder))
