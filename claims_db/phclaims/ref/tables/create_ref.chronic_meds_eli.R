@@ -33,11 +33,11 @@ chronic_meds_crosswalk <- mcaid_meds %>%
 
 
 #QA Make sure there aren't any drugs in mcaid claims that join to more than one entry in chronic meds list
-test <- chronic_meds_crosswalk %>%
-  group_by(ndc_desc) %>%
-  mutate(count = n())
-View(filter(test, count >1))
-rm(test)
+# test <- chronic_meds_crosswalk %>%
+#   group_by(ndc_desc) %>%
+#   mutate(count = n())
+# View(filter(test, count >1))
+# rm(test)
 
 #Add last_run variable
 chronic_meds_crosswalk <- chronic_meds_crosswalk %>% mutate(last_run = Sys.time())
