@@ -7,10 +7,10 @@ archive_table: archive_mcaid_elig
 index_type: ccs
 index_name: idx_ccs_stage_mcaid_elig
 etl:
-    row_count: 5213261
-    date_min: 201905
-    date_max: 202004
-    date_delivery: 2020-05-20
+    row_count: 5229478
+    date_min: 201906
+    date_max: 202005
+    date_delivery: 2020-06-24
     note: Partial refresh of Medicaid elig data
     date_var: CLNDR_YEAR_MNTH
 vars:
