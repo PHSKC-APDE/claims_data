@@ -1,5 +1,5 @@
 from_schema: claims
-from_table: raw_mcaid_claims_incr
+from_table: raw_mcaid_claims_init
 to_schema: claims
 to_table: stage_mcaid_claims
 archive_schema: claims
