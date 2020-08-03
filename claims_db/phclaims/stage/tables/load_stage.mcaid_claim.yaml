@@ -7,10 +7,10 @@ archive_table: archive_mcaid_claims
 index_type: ccs
 index_name: idx_ccs_stage_mcaid_claims
 etl:
-    row_count: 16311720
-    date_min: 2019-06-01
-    date_max: 2020-05-31
-    date_delivery: 2020-06-24
+    row_count: 15833045
+    date_min: 2019-07-01
+    date_max: 2020-06-30
+    date_delivery: 2020-07-22
     note: Partial refresh of Medicaid claims data
     date_var: FROM_SRVC_DATE
 vars:
