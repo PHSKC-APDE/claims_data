@@ -266,6 +266,7 @@ load_table_from_file_f <- function(
                        ' {field_term} {row_term} -C 65001 -F 2 ',
                        ' -S KCITSQLUTPDBH51 -T -b 100000 {load_rows_inner} -c '))
     
+    print(bcp_args)
     system2(command = "bcp", args = c(bcp_args))
   }
   
