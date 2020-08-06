@@ -7,7 +7,7 @@ archive_table: archive_mcaid_claims
 index_type: ccs
 index_name: idx_ccs_stage_mcaid_claims
 etl:
-    row_count: 15833045
+    row_count: 127881634
     date_min: 2012-01-01
     date_max: 2019-12-31
     date_delivery: 2020-02-07
