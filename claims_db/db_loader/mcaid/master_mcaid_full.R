@@ -78,30 +78,22 @@ create_table_f(conn = db_claims,
 
 
 #### STAGE ELIG ####
-### Create table
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml",
-               overwrite = T)
-
 ### Load table
 # Call in config file to get vars (and check for errors)
 table_config_stage_elig <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml"))
 if (table_config_stage_elig[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
-load_stage.mcaid_elig_f(conn = db_claims, full_refresh = T, config = table_config_stage_elig)
+load_stage.mcaid_elig_f(conn_dw = dw_inthealth, conn_db = db_claims, full_refresh = T, config = table_config_stage_elig)
 
 
 #### STAGE CLAIM ####
-# Create table
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml")
 # Call in config file to get vars (and check for errors)
 table_config_stage_claims <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
 if (table_config_stage_claims[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
-load_stage.mcaid_claim_f(conn = db_claims, full_refresh = T, config = table_config_stage_claims)
+load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, conn_db = db_claims, full_refresh = T, config = table_config_stage_claims)
 
 
 
