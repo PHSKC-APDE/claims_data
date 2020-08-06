@@ -244,19 +244,13 @@ load_stage.mcaid_elig_f <- function(conn_dw = NULL, conn_db = NULL, full_refresh
   
   
   #### QA CHECK: NUMBER NULLs IN FROM_DATE ####
-  from_nulls <- dbGetQuery(conn_dw, glue::glue_sql(
-                           "SELECT a.null_dates, b.total_rows 
-                      FROM
-                      (SELECT 
-                        COUNT (*) AS null_dates, ROW_NUMBER() OVER (ORDER BY NEWID()) AS seqnum
-                        FROM {`config$from_schema`}.{`config$from_table`}
-                        WHERE FROM_DATE IS NULL) a
-                      LEFT JOIN
-                      (SELECT COUNT(*) AS total_rows, ROW_NUMBER() OVER (ORDER BY NEWID()) AS seqnum
-                        FROM {`config$from_schema`}.{`config$from_table`}) b
-                      ON a.seqnum = b.seqnum", .con = conn_dw))
+  from_nulls_null <- as.integer(dbGetQuery(conn_dw, glue::glue_sql(
+                           "SELECT COUNT (*) AS null_dates FROM {`config$from_schema`}.{`config$from_table`} 
+                           WHERE FROM_DATE IS NULL", .con = conn_dw)))
+  from_nulls_tot <- as.integer(dbGetQuery(conn_dw, glue::glue_sql(
+    "SELECT COUNT(*) AS total_rows FROM {`config$from_schema`}.{`config$from_table`}", .con = conn_dw)))
   
-  pct_null <- round(from_nulls$null_dates / from_nulls$total_rows  * 100, 3)
+  pct_null <- round(from_nulls_null / from_nulls_tot  * 100, 3)
   
   if (pct_null > 2.0) {
     qa_from_null_fail <- 1L
