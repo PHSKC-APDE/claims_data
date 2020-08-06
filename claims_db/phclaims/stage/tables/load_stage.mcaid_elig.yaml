@@ -1,17 +1,17 @@
-from_schema: claims
-from_table: raw_mcaid_elig_incr
-to_schema: claims
+from_schema: stg_claims
+from_table: mcaid_elig_init
+to_schema: stg_claims
 to_table: stage_mcaid_elig
-archive_schema: claims
+archive_schema: stg_claims
 archive_table: archive_mcaid_elig
 index_type: ccs
 index_name: idx_ccs_stage_mcaid_elig
 etl:
     row_count: 5247776
-    date_min: 201907
-    date_max: 202006
-    date_delivery: 2020-07-22
-    note: Partial refresh of Medicaid elig data
+    date_min: 201201
+    date_max: 201912
+    date_delivery: 2020-02-07
+    note: Updated elig tables to accompany corrected claims data
     date_var: CLNDR_YEAR_MNTH
 vars:
     CLNDR_YEAR_MNTH: INTEGER

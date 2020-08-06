@@ -1,17 +1,17 @@
-from_schema: claims
-from_table: raw_mcaid_claims_incr
-to_schema: claims
+from_schema: stg_claims
+from_table: mcaid_claims_init
+to_schema: stg_claims
 to_table: stage_mcaid_claims
-archive_schema: claims
+archive_schema: stg_claims
 archive_table: archive_mcaid_claims
 index_type: ccs
 index_name: idx_ccs_stage_mcaid_claims
 etl:
     row_count: 15833045
-    date_min: 2019-03-01
-    date_max: 2020-02-29
-    date_delivery: 2020-03-16
-    note: Partial refresh of Medicaid claims data
+    date_min: 2012-01-01
+    date_max: 2019-12-31
+    date_delivery: 2020-02-07
+    note: Updated claims data to correct missing mass-adjusted claims
     date_var: FROM_SRVC_DATE
 vars:
     CLNDR_YEAR_MNTH: INT
