@@ -76,7 +76,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
                    glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
-                                        'claims.raw_mcaid_elig',
+                                        'claims.raw_mcaid_claims',
                                         'Number rows loaded to SQL vs. expected value(s)', 
                                         {qa_rows_sql$outcome[1]},
                                         {Sys.time()},
