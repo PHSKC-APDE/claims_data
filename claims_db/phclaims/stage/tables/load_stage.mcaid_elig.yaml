@@ -1,5 +1,5 @@
 from_schema: stg_claims
-from_table: mcaid_elig_init
+from_table: mcaid_elig_incr
 to_schema: stg_claims
 to_table: stage_mcaid_elig
 archive_schema: stg_claims
@@ -7,10 +7,10 @@ archive_table: archive_mcaid_elig
 index_type: ccs
 index_name: idx_ccs_stage_mcaid_elig
 etl:
-    row_count: 38094277
-    date_min: 201201
-    date_max: 201912
-    date_delivery: 2020-02-07
+    row_count: 5204703
+    date_min: 201903
+    date_max: 202002
+    date_delivery: 2020-03-16
     note: Updated elig tables to accompany corrected claims data
     date_var: CLNDR_YEAR_MNTH
 vars:
