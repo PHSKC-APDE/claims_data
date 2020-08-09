@@ -154,6 +154,14 @@ table_part4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_4.csv
     field_term: ','
     row_term: \n
+table_part40:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_40.csv
+    field_term: ','
+    row_term: \n
+table_part41:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_41.csv
+    field_term: ','
+    row_term: \n
 table_part5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_5.csv
     field_term: ','
@@ -204,6 +212,8 @@ years:
     - part33
     - part34
     - part4
+    - part40
+    - part41
     - part5
     - part6
     - part7
