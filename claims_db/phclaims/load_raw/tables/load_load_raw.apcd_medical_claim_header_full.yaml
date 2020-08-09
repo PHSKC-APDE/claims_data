@@ -1,0 +1,191 @@
+schema: load_raw
+table: apcd_medical_claim_header
+vars:
+    medical_claim_header_id: bigint
+    submitter_id: integer
+    internal_member_id: bigint	
+    billing_internal_provider_id: bigint
+    product_code_id: integer
+    first_service_dt: date
+    last_service_dt: date
+    first_paid_dt: date
+    last_paid_dt: date
+    charge_amt: numeric(38,2)
+    diagnosis_code: varchar(255)
+    icd_version_ind: varchar(255)
+    header_status: varchar(255)
+    denied_header_flag: varchar(255)
+    orphaned_header_flag: varchar(255)
+    claim_type_id: integer
+    type_of_setting_id: integer
+    place_of_setting_id: integer
+    type_of_bill_code: varchar(255)
+    emergency_room_flag: tinyint
+    operating_room_flag: tinyint
+    row_number: bigint
+table_part1:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_1.csv
+    field_term: ','
+    row_term: \n
+table_part10:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_10.csv
+    field_term: ','
+    row_term: \n
+table_part11:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_11.csv
+    field_term: ','
+    row_term: \n
+table_part12:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_12.csv
+    field_term: ','
+    row_term: \n
+table_part13:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_13.csv
+    field_term: ','
+    row_term: \n
+table_part14:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_14.csv
+    field_term: ','
+    row_term: \n
+table_part15:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_15.csv
+    field_term: ','
+    row_term: \n
+table_part16:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_16.csv
+    field_term: ','
+    row_term: \n
+table_part17:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_17.csv
+    field_term: ','
+    row_term: \n
+table_part18:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_18.csv
+    field_term: ','
+    row_term: \n
+table_part19:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_19.csv
+    field_term: ','
+    row_term: \n
+table_part2:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_2.csv
+    field_term: ','
+    row_term: \n
+table_part20:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_20.csv
+    field_term: ','
+    row_term: \n
+table_part21:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_21.csv
+    field_term: ','
+    row_term: \n
+table_part22:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_22.csv
+    field_term: ','
+    row_term: \n
+table_part23:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_23.csv
+    field_term: ','
+    row_term: \n
+table_part24:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_24.csv
+    field_term: ','
+    row_term: \n
+table_part25:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_25.csv
+    field_term: ','
+    row_term: \n
+table_part26:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_26.csv
+    field_term: ','
+    row_term: \n
+table_part27:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_27.csv
+    field_term: ','
+    row_term: \n
+table_part28:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_28.csv
+    field_term: ','
+    row_term: \n
+table_part29:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_29.csv
+    field_term: ','
+    row_term: \n
+table_part3:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_3.csv
+    field_term: ','
+    row_term: \n
+table_part30:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_30.csv
+    field_term: ','
+    row_term: \n
+table_part31:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_31.csv
+    field_term: ','
+    row_term: \n
+table_part32:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_32.csv
+    field_term: ','
+    row_term: \n
+table_part33:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_33.csv
+    field_term: ','
+    row_term: \n
+table_part4:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_4.csv
+    field_term: ','
+    row_term: \n
+table_part5:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_5.csv
+    field_term: ','
+    row_term: \n
+table_part6:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_6.csv
+    field_term: ','
+    row_term: \n
+table_part7:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_7.csv
+    field_term: ','
+    row_term: \n
+table_part8:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_8.csv
+    field_term: ','
+    row_term: \n
+table_part9:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_9.csv
+    field_term: ','
+    row_term: \n
+years:
+    - part1
+    - part10
+    - part11
+    - part12
+    - part13
+    - part14
+    - part15
+    - part16
+    - part17
+    - part18
+    - part19
+    - part2
+    - part20
+    - part21
+    - part22
+    - part23
+    - part24
+    - part25
+    - part26
+    - part27
+    - part28
+    - part29
+    - part3
+    - part30
+    - part31
+    - part32
+    - part33
+    - part4
+    - part5
+    - part6
+    - part7
+    - part8
+    - part9

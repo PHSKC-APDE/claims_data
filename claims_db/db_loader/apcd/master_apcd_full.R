@@ -47,9 +47,9 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.R")
 
 system.time(load_load_raw.apcd_dental_claim_full_f(etl_date_min = "2014-01-01",
-                                       etl_date_max = "2019-03-31",
-                                       etl_delivery_date = "2019-10-01", 
-                                       etl_note = "Full refresh of APCD data using extract 187"))
+                                                   etl_date_max = "2019-12-31",
+                                                   etl_delivery_date = "2020-08-01", 
+                                                   etl_note = "Full refresh of APCD data using extract 249"))
 
 
 #### LOAD_RAW ELIGIBILITY ####
