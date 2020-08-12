@@ -20,8 +20,8 @@ vars:
     type_of_setting_id: integer
     place_of_setting_id: integer
     type_of_bill_code: varchar(255)
-    emergency_room_flag: tinyint
-    operating_room_flag: tinyint
+    emergency_room_flag: varchar(255)
+    operating_room_flag: varchar(255)
     row_number: bigint
 table_part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_1.csv
