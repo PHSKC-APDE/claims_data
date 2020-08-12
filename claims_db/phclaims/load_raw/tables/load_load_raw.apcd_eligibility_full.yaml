@@ -48,6 +48,22 @@ table_part10:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_10.csv
     field_term: ','
     row_term: \n
+table_part11:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_11.csv
+    field_term: ','
+    row_term: \n
+table_part12:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_12.csv
+    field_term: ','
+    row_term: \n
+table_part13:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_13.csv
+    field_term: ','
+    row_term: \n
+table_part14:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_14.csv
+    field_term: ','
+    row_term: \n
 table_part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_2.csv
     field_term: ','
@@ -80,29 +96,13 @@ table_part9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_9.csv
     field_term: ','
     row_term: \n
-table_part10:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_10.csv
-    field_term: ','
-    row_term: \n
-table_part11:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_11.csv
-    field_term: ','
-    row_term: \n
-table_part12:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_12.csv
-    field_term: ','
-    row_term: \n
-table_part13:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_13.csv
-    field_term: ','
-    row_term: \n
-table_part14:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_14.csv
-    field_term: ','
-    row_term: \n
 years:
     - part1
     - part10
+    - part11
+    - part12
+    - part13
+    - part14
     - part2
     - part3
     - part4
@@ -111,8 +111,3 @@ years:
     - part7
     - part8
     - part9
-    - part10
-    - part11
-    - part12
-    - part13
-    - part14
