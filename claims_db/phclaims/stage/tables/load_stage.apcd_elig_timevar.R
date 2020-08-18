@@ -177,9 +177,9 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     a.cov_time_day,
     getdate() as last_run
     from #temp5 as a
-    left join (select zip_code, zip_group_code, zip_group_desc from phclaims.ref.apcd_zip_group where zip_group_type_desc = 'County') as b
+    left join (select distinct zip_code, zip_group_code, zip_group_desc from phclaims.ref.apcd_zip_group where zip_group_type_desc = 'County') as b
     on a.zip_code = b.zip_code
-    left join (select zip_code, zip_group_code, zip_group_desc from phclaims.ref.apcd_zip_group where left(zip_group_type_desc, 3) = 'Acc') as c
+    left join (select distinct zip_code, zip_group_code, zip_group_desc from phclaims.ref.apcd_zip_group where left(zip_group_type_desc, 3) = 'Acc') as c
     on a.zip_code = c.zip_code
     left join PHClaims.ref.geo_county_code_wa as d
     on b.zip_group_code = d.countyn;",
