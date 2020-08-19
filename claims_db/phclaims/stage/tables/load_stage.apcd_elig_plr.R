@@ -719,13 +719,14 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
       where overall_mcaid_med = 0 and overall_mcaid_pharm = 1;",
     .con = db_claims))
   
-  #number of members with day counts over 365
+  #number of members with day counts over 365 or 366
+  if(leap_year(as.numeric("2016"))==T) {days <- 366} else {days <- 365}
   res9 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.{`table_name`}' as 'table', '# of members with day counts >365, expect 0' as qa_type, count(*) as qa
+    "select 'stage.{`table_name`}' as 'table', '# of members with day counts >{days}, expect 0' as qa_type, count(*) as qa
       from stage.{`table_name`}
-      where med_total_covd > 365 or med_medicaid_covd > 365 or med_commercial_covd > 365 or
-        med_medicare_covd > 365 or dual_covd > 365 or geo_ach_covd > 365 or pharm_total_covd > 365 or
-        pharm_medicaid_covd > 365 or pharm_medicare_covd > 365 or pharm_commercial_covd > 365;",
+      where med_total_covd > {days} or med_medicaid_covd > {days} or med_commercial_covd > {days} or
+        med_medicare_covd > {days} or dual_covd > {days} or geo_ach_covd > {days} or pharm_total_covd > {days} or
+        pharm_medicaid_covd > {days} or pharm_medicare_covd > {days} or pharm_commercial_covd > {days};",
     .con = db_claims))
   
   #number of members with percents > 100
