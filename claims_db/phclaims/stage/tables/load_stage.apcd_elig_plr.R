@@ -530,9 +530,9 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL) {
     			group by a.id, a.geo_zip
         ) as b
       ) as c
-    left join (select zip_code, zip_group_desc as geo_county from phclaims.ref.apcd_zip_group where zip_group_type_desc = 'County') as d
+    left join (select distinct zip_code, zip_group_desc as geo_county from phclaims.ref.apcd_zip_group where zip_group_type_desc = 'County') as d
     on c.geo_zip = d.zip_code
-    left join (select zip_code, zip_group_desc as geo_ach from phclaims.ref.apcd_zip_group where left(zip_group_type_desc, 3) = 'Acc') as e
+    left join (select distinct zip_code, zip_group_desc as geo_ach from phclaims.ref.apcd_zip_group where left(zip_group_type_desc, 3) = 'Acc') as e
     on c.geo_zip = e.zip_code
     where c.zipr = 1;
     
