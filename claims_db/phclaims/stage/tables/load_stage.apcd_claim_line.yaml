@@ -10,4 +10,9 @@ vars:
     charge_amt: numeric(38,2)
     revenue_code: varchar(255)
     place_of_service_code: varchar(255)
+    admission_date: date	
+    discharge_date: date	
+    discharge_status_code: varchar(255)	
+    admission_point_of_origin_code: varchar(255)
+    admission_type: varchar(255)
     last_run: datetime
