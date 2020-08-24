@@ -1,5 +1,5 @@
-from_schema: stage
-from_table: address_clean
+from_schema: ref
+from_table: stage_address_clean
 to_schema: ref
 to_table: address_clean
 vars:
