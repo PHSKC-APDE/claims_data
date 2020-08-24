@@ -1,5 +1,5 @@
-schema: stage
-table: mcaid_elig_demo
+schema: claims
+table: stage_mcaid_elig_demo
 vars:
     id_mcaid: VARCHAR(200)
     dob: DATE
