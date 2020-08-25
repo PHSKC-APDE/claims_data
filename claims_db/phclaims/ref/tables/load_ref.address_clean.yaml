@@ -14,7 +14,5 @@ vars:
     geo_city_clean: VARCHAR(200)
     geo_state_clean: VARCHAR(200)
     geo_zip_clean: VARCHAR(200)
-    geo_source_mcaid: TINYINT
-    geo_source_pha: TINYINT
     geo_geocode_skip: TINYINT
     last_run: DATE
