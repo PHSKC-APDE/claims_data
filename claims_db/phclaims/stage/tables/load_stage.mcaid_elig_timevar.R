@@ -10,7 +10,7 @@
 ###############################################################################
 
 
-print("Creating stage.mcaid_elig_timevar. This will take ~25 minutes to run.")
+message("Creating claims.stage_mcaid_elig_timevar. This will take ~25 minutes to run.")
 
 #### STEP 1: PULL COLUMNS FROM RAW DATA AND GET CLEAN ADDRESSES ####
 # Note, some people have 2 secondary RAC codes on separate rows.
@@ -36,7 +36,7 @@ step1a_sql <- glue::glue_sql(
       RSDNTL_ADRS_LINE_1 AS 'geo_add1_raw', RSDNTL_ADRS_LINE_2 AS 'geo_add2_raw',
       RSDNTL_CITY_NAME as 'geo_city_raw', RSDNTL_STATE_CODE AS 'geo_state_raw', 
       RSDNTL_POSTAL_CODE AS 'geo_zip_raw'
-      FROM PHClaims.stage.mcaid_elig) a
+      FROM claims.stage_mcaid_elig) a
       LEFT JOIN
       (SELECT rac_code, 
         CASE 
@@ -68,7 +68,7 @@ step1a_sql <- glue::glue_sql(
       (a.geo_zip_raw = d.geo_zip_raw OR (a.geo_zip_raw IS NULL AND d.geo_zip_raw IS NULL))",
   .con = db_claims)
 
-print("Running step 1a: pull columns from raw, join to clean addresses, and add index")
+message("Running step 1a: pull columns from raw, join to clean addresses, and add index")
 time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step1a_sql)
 
@@ -79,7 +79,7 @@ odbc::dbGetQuery(conn = db_claims,
            (id_mcaid, calmonth, fromdate)")
 
 time_end <- Sys.time()
-print(paste0("Step 1a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+message(paste0("Step 1a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
 
@@ -110,12 +110,12 @@ step1b_sql <- glue::glue_sql(
   .con = db_claims)
 
 
-print("Running step 1b: set up full_benefit flag and drop secondary RAC rows")
+message("Running step 1b: set up full_benefit flag and drop secondary RAC rows")
 time_start <- Sys.time()
 
 odbc::dbGetQuery(conn = db_claims, step1b_sql)
 time_end <- Sys.time()
-print(paste0("Step 1b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+message(paste0("Step 1b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
 
@@ -136,11 +136,11 @@ step2a_sql <- glue::glue_sql(
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, fromdate, todate",
   .con = db_claims)
 
-print("Running step 2a: Make a start and end date for each month")
+message("Running step 2a: Make a start and end date for each month")
 time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step2a_sql)
 time_end <- Sys.time()
-print(paste0("Step 2a took ", round(difftime(time_end, time_start, units = "secs"), 2),
+message(paste0("Step 2a took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
 
@@ -172,7 +172,7 @@ step2b_sql <- glue::glue_sql(
   .con = db_claims)
 
 
-print("Running step 2b: Incorporate submonth coverage")
+message("Running step 2b: Incorporate submonth coverage")
 time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step2b_sql)
 
@@ -182,7 +182,7 @@ odbc::dbGetQuery(conn = db_claims,
                  (id_mcaid, from_date, to_date)")
 
 time_end <- Sys.time()
-print(paste0("Step 2b took ", round(difftime(time_end, time_start, units = "secs"), 2),
+message(paste0("Step 2b took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
 
@@ -205,11 +205,11 @@ step3a_sql <- glue::glue_sql(
   FROM ##timevar_02b"
 )
 
-print("Running step 3a: calculate # days between each from_date and previous to_date")
+message("Running step 3a: calculate # days between each from_date and previous to_date")
 time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step3a_sql)
 time_end <- Sys.time()
-print(paste0("Step 3a took ", round(difftime(time_end, time_start, units = "secs"), 2),
+message(paste0("Step 3a took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
 
@@ -230,7 +230,7 @@ step3b_sql <- glue::glue_sql(
     FROM ##timevar_03a",
   .con = db_claims)
 
-print("Running step 3b: Generate unique ID for first date in contiguous series of dates")
+message("Running step 3b: Generate unique ID for first date in contiguous series of dates")
 time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step3b_sql)
 
@@ -240,7 +240,7 @@ odbc::dbGetQuery(conn = db_claims,
                  (id_mcaid, from_date, to_date)")
 
 time_end <- Sys.time()
-print(paste0("Step 3b took ", round(difftime(time_end, time_start, units = "secs"), 2),
+message(paste0("Step 3b took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
 
@@ -261,11 +261,11 @@ step3c_sql <- glue::glue_sql(
     FROM ##timevar_03b",
   .con = db_claims)
 
-print("Running step 3c: Replicate unique ID across contiguous dates")
+message("Running step 3c: Replicate unique ID across contiguous dates")
 time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step3c_sql)
 time_end <- Sys.time()
-print(paste0("Step 3c took ", round(difftime(time_end, time_start, units = "secs"), 2),
+message(paste0("Step 3c took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
 
@@ -287,11 +287,11 @@ step4a_sql <- glue::glue_sql(
     group_num",
   .con = db_claims)
 
-print("Running step 4a: Find the min/max dates for contiguous periods")
+message("Running step 4a: Find the min/max dates for contiguous periods")
 time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step4a_sql)
 time_end <- Sys.time()
-print(paste0("Step 4a took ", round(difftime(time_end, time_start, units = "secs"), 2),
+message(paste0("Step 4a took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
 
@@ -308,29 +308,29 @@ step4b_sql <- glue::glue_sql(
     FROM ##timevar_04a",
   .con = db_claims)
 
-print("Running step 4b: Find the min/max dates for contiguous periods")
+message("Running step 4b: Find the min/max dates for contiguous periods")
 time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step4b_sql)
 time_end <- Sys.time()
-print(paste0("Step 4b took ", round(difftime(time_end, time_start, units = "secs"), 2),
+message(paste0("Step 4b took ", round(difftime(time_end, time_start, units = "secs"), 2),
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
              " mins)"))
 
 
 
 #### STEP 5: ADD CONTIGUOUS FLAG, RECODE DUAL, JOIN TO GEOCODES, AND LOAD TO STAGE TABLE ####
-# Truncate stage.mcaid_elig_timevar (just in case)
-print("Running step 5a: Truncate stage table")
+# Truncate claims.stage_mcaid_elig_timevar (just in case)
+message("Running step 5a: Truncate stage table")
 time_start <- Sys.time()
-odbc::dbGetQuery(conn = db_claims, "TRUNCATE TABLE stage.mcaid_elig_timevar")
+odbc::dbGetQuery(conn = db_claims, "TRUNCATE TABLE claims.stage_mcaid_elig_timevar")
 time_end <- Sys.time()
-print(paste0("Step 5a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+message(paste0("Step 5a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
              " mins)"))
 
 # Now do the final transformation plus loading
 step5b_sql <- glue::glue_sql(
-  "INSERT INTO stage.mcaid_elig_timevar WITH (TABLOCK)
+  "INSERT INTO claims.stage_mcaid_elig_timevar WITH (TABLOCK)
     SELECT
     a.id_mcaid, a.from_date, a.to_date, 
     CASE WHEN DATEDIFF(day, lag(a.to_date, 1) OVER 
@@ -365,17 +365,17 @@ step5b_sql <- glue::glue_sql(
       (a.geo_zip = b.geo_zip_clean OR (a.geo_zip IS NULL AND b.geo_zip_clean IS NULL))",
   .con = db_claims)
 
-print("Running step 5b: Join to geocodes and load to stage table")
+message("Running step 5b: Join to geocodes and load to stage table")
 time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step5b_sql)
 time_end <- Sys.time()
-print(paste0("Step 5b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+message(paste0("Step 5b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
              " mins)"))
 
 
 #### STEP 6: REMOVE TEMPORARY TABLES ####
-print("Running step 6: Remove temporary tables")
+message("Running step 6: Remove temporary tables")
 time_start <- Sys.time()
 try(odbc::dbRemoveTable(db_claims, "##timevar_01a", temporary = T), silent = T)
 try(odbc::dbRemoveTable(db_claims, "##timevar_01b", temporary = T), silent = T)
@@ -388,6 +388,6 @@ try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T), silent = T)
 try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T), silent = T)
 rm(list = ls(pattern = "step(.){1,2}_sql"))
 time_end <- Sys.time()
-print(paste0("Step 6 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+message(paste0("Step 6 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
              " mins)"))

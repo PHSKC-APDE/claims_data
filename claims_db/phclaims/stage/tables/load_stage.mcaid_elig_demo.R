@@ -44,7 +44,7 @@ elig_dob <- dbGetQuery(
   
   FROM (
     SELECT DISTINCT MEDICAID_RECIPIENT_ID as 'id_mcaid'
-    FROM stage.mcaid_elig
+    FROM claims.stage_mcaid_elig
   ) id
   
   LEFT JOIN (
@@ -54,7 +54,7 @@ elig_dob <- dbGetQuery(
         (PARTITION BY a.id_mcaid order by a.id_mcaid, a.dob_cnt desc, a.dob) AS 'dob_rank'
       FROM (
         SELECT MEDICAID_RECIPIENT_ID as 'id_mcaid', BIRTH_DATE as 'dob', count(BIRTH_DATE) as 'dob_cnt'
-        FROM stage.mcaid_elig
+        FROM claims.stage_mcaid_elig
         WHERE BIRTH_DATE is not null
         GROUP BY MEDICAID_RECIPIENT_ID, BIRTH_DATE
       ) a
@@ -80,7 +80,7 @@ system.time( # Times how long this query takes (~320s)
       GENDER as gender, RACE1_NAME as race1, RACE2_NAME as race2, 
       RACE3_NAME as race3, RACE4_NAME as race4, HISPANIC_ORIGIN_NAME as hispanic, 
       SPOKEN_LNG_NAME as 'slang', WRTN_LNG_NAME as 'wlang'
-    FROM [PHClaims].[stage].[mcaid_elig]")
+    FROM claims.stage_mcaid_elig")
 )
 
 # Convert to data table
@@ -606,11 +606,11 @@ message("Loading to SQL")
 
 # Bring in table load config
 table_config_create <- yaml::yaml.load(getURL(
-  "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.yaml"))
+  "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.yaml"))
 
 # Check that something was loaded
 if (table_config_create[[1]] == "Not Found") {
-  stop("Error loading the YAML file for stage.mcaid_elig_demo. Check the URL.")
+  stop("Error loading the YAML file for claims.stage_mcaid_elig_demo. Check the URL.")
 }
 
 # Write data
