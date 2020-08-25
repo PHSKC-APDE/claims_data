@@ -39,6 +39,7 @@ dw_inthealth <- DBI::dbConnect(odbc::odbc(),
                         Authentication = "ActiveDirectoryPassword")
 
 # These are use for geocoding new addresses
+geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
 s_shapes <- "//phshare01/epe_share/WORK/REQUESTS/Maps/Shapefiles/"
 g_shapes <- "//gisdw/kclib/Plibrary2/"
 
@@ -77,7 +78,7 @@ table_config_stage_elig <- yaml::yaml.load(RCurl::getURL("https://raw.githubuser
 if (table_config_stage_elig[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
-load_stage.mcaid_elig_f(conn_dw = dw_inthealth, conn_db = db_claims, full_refresh = F, config = table_config_stage_elig)
+system.time(load_stage.mcaid_elig_f(conn_dw = dw_inthealth, conn_db = db_claims, full_refresh = F, config = table_config_stage_elig))
 
 
 #### STAGE CLAIM ####
@@ -86,19 +87,22 @@ table_config_stage_claims <- yaml::yaml.load(RCurl::getURL("https://raw.githubus
 if (table_config_stage_claims[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
-load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, conn_db = db_claims, full_refresh = F, config = table_config_stage_claims)
+system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, conn_db = db_claims, full_refresh = F, config = table_config_stage_claims))
 
 
 #### ADDRESS CLEANING ####
 ### stage.address_clean
 # Run step 1, which identifies new addresses and sets them up to be run through Informatica
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step1.R")
+load_stage.address_clean_partial_1(conn_db = db_claims)
 
 # Run step 2, which processes addresses that were through Informatica and loads to SQL
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step2.R")
+load_stage.address_clean_partial_2(conn_db = db_claims)
 
 # QA stage.address_clean
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/qa_stage.address_clean_partial.R")
+qa.address_clean_partial(conn_db = db_claims)
 
 
 ### ref.address_clean
@@ -108,7 +112,7 @@ load_table_from_sql_f(conn = db_claims,
 
 # Check appropriate # rows loaded
 rows_ref <- as.integer(dbGetQuery(db_claims, "SELECT COUNT (*) AS row_cnt FROM ref.address_clean"))
-rows_ref_new <- as.integer(dbGetQuery(db_claims, "SELECT COUNT (*) AS row_cnt FROM stage.address_clean"))
+rows_ref_new <- as.integer(dbGetQuery(db_claims, "SELECT COUNT (*) AS row_cnt FROM ref.stage_address_clean"))
 
 if (rows_ref != rows_ref_new) {
   stop("Unexpected number of rows loaded to ref.address_clean")
@@ -118,10 +122,12 @@ if (rows_ref != rows_ref_new) {
 ### stage.address_geocode
 # Currently need to run through manually until all geocoding can be done via R
 # use load_stage.address_geocode_partial.R
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.address_geocode.R")
+
 
 ### ref.address_geocode
 # Also should only be triggered manually until automatic geocoding and QA are built in to stage above
-last_run_geocode <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.address_geocode")[[1]])
+last_run_geocode <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM ref.stage_address_geocode")[[1]])
 
 load_table_from_sql_f(conn = db_claims,
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
@@ -133,7 +139,7 @@ qa_rows_final <- qa_sql_row_count_f(conn = db_claims,
 
 DBI::dbExecute(
   conn = db_claims,
-  glue::glue_sql("INSERT INTO metadata.qa_mcaid
+  glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
                  VALUES ({last_run_geocode}, 
                  'ref.address_geocode',
