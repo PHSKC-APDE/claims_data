@@ -1,5 +1,5 @@
-schema: stage
-table: address_clean
+schema: ref
+table: stage_address_clean
 index_name: 
 index:
 vars:
@@ -14,7 +14,5 @@ vars:
     geo_city_clean: VARCHAR(255)
     geo_state_clean: VARCHAR(255)
     geo_zip_clean: VARCHAR(255)
-    geo_source_mcaid: INTEGER
-    geo_source_pha: INTEGER
     last_run: DATE
   

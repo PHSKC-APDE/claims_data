@@ -1,5 +1,5 @@
-schema: stage
-table: address_geocode
+schema: ref
+table: stage_address_geocode
 vars:
     geo_add1_clean: VARCHAR(255)
     geo_city_clean: VARCHAR(255)
