@@ -1,5 +1,5 @@
-to_schema: stage
-to_table: mcaid_claim_value_set
+to_schema: claims
+to_table: stage_mcaid_claim_value_set
 index_type: ccs
 index_name: idx_ccs_mcaid_claim_value_set
 vars:
