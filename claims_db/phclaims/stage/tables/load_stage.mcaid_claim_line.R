@@ -43,7 +43,7 @@ SELECT DISTINCT
 ,RAC_CODE_L as rac_code_line
 ,getdate() as last_run
 
-from [stage].[mcaid_claim];
+from {`load_mcaid_claim_line_config$from_schema`}.{`load_mcaid_claim_line_config$from_table`};
 ", .con = db_claims)
 
 message(glue::glue("Loading to {load_mcaid_claim_line_config$to_schema}.{load_mcaid_claim_line_config$to_table}"))

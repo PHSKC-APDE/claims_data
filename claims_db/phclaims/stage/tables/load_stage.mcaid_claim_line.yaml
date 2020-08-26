@@ -1,3 +1,5 @@
+from_schema: claims
+from_table: stage_mcaid_claims
 to_schema: claims
 to_table: stage_mcaid_claim_line
 index_type: ccs
