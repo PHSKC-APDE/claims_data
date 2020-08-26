@@ -2,7 +2,7 @@
 # line-level claim information
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/azure_migration/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 #
 # Created by: Eli Kern, APDE, PHSKC, 2018-03-21
 # R functions created by Alastair Matheson, PHSKC (APDE), 2019-05 and 2019-12
@@ -12,12 +12,12 @@
 # Create Index Run Time: 7.2 min
 
 #### PULL IN CONFIG FILE ####
-config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_line.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_line.yaml"
 
 load_mcaid_claim_line_config <- yaml::yaml.load(RCurl::getURL(config_url))
 
 #### CREATE TABLE ####
-create_table_f(conn = db_claims, config_url = config_url, overall = T, ind_yr = F)
+create_table_f(conn = db_claims, config_url = config_url)
 
 #### LOAD TABLE ####
 # NB: Changes in table structure need to altered here and the YAML file
