@@ -10,12 +10,13 @@
 ###############################################################################
 
 
-message("Creating claims.stage_mcaid_elig_timevar. This will take ~25 minutes to run.")
+message("Creating claims.stage_mcaid_elig_timevar. This will take ~80 minutes to run.")
 
-#### STEP 1: PULL COLUMNS FROM RAW DATA AND GET CLEAN ADDRESSES ####
+#### STEP 1: PULL COLUMNS FROM RAW DATA AND GET CLEAN ADDRESSES (~15 MINS) ####
 # Note, some people have 2 secondary RAC codes on separate rows.
 # Need to create third RAC code field and collapse to a single row.
 # First pull in relevant columns and set an index to speed later sorting
+# Step 1a = ~10 mins
 try(odbc::dbRemoveTable(db_claims, "##timevar_01a", temporary = T), silent = T)
 
 step1a_sql <- glue::glue_sql(
@@ -43,7 +44,7 @@ step1a_sql <- glue::glue_sql(
           WHEN full_benefit = 'Y' THEN 1
           WHEN full_benefit = 'N' THEN 0
           ELSE NULL END AS full_benefit_1
-        FROM ref.mcaid_rac_code) b
+        FROM claims.ref_mcaid_rac_code) b
       ON a.rac_code_1 = b.rac_code
       LEFT JOIN
       (SELECT rac_code, 
@@ -51,15 +52,14 @@ step1a_sql <- glue::glue_sql(
           WHEN full_benefit = 'Y' THEN 1
           WHEN full_benefit = 'N' THEN 0
           ELSE NULL END AS full_benefit_2
-        FROM ref.mcaid_rac_code) c
+        FROM claims.ref_mcaid_rac_code) c
       ON a.rac_code_2 = c.rac_code
       LEFT JOIN
       (SELECT geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw,
         geo_add1_clean AS geo_add1, geo_add2_clean AS geo_add2, 
         geo_city_clean AS geo_city, geo_state_clean AS geo_state, 
         geo_zip_clean AS geo_zip
-        FROM ref.address_clean
-        WHERE geo_source_mcaid = 1) d
+        FROM ref.address_clean) d
       ON 
       (a.geo_add1_raw = d.geo_add1_raw OR (a.geo_add1_raw IS NULL AND d.geo_add1_raw IS NULL)) AND
       (a.geo_add2_raw = d.geo_add2_raw OR (a.geo_add2_raw IS NULL AND d.geo_add2_raw IS NULL)) AND 
@@ -85,6 +85,7 @@ message(paste0("Step 1a took ", round(difftime(time_end, time_start, units = "se
 
 
 # Setup full_benefit flag and drop secondary RAC rows
+# Step 1b = ~5 mins
 try(odbc::dbRemoveTable(db_claims, "##timevar_01b", temporary = T), silent = T)
 
 step1b_sql <- glue::glue_sql(
@@ -121,8 +122,9 @@ message(paste0("Step 1b took ", round(difftime(time_end, time_start, units = "se
 
 
 
-#### STEP 2: MAKE START AND END DATES ####
+#### STEP 2: MAKE START AND END DATES (~13 MINS) ####
 # Make a start and end date for each month
+# Step 2a = ~4.5 mins
 try(odbc::dbRemoveTable(db_claims, "##timevar_02a", temporary = T), silent = T)
 
 step2a_sql <- glue::glue_sql(
@@ -148,6 +150,7 @@ message(paste0("Step 2a took ", round(difftime(time_end, time_start, units = "se
 # Incorporate sub-month coverage (identify the smallest possible time interval)
 # Note that the step above leads to duplicate rows so use distinct here to clear
 #  them out once submonth coverage is accounted for
+# Step 2b = ~8.5 mins
 try(odbc::dbRemoveTable(db_claims, "##timevar_02b", temporary = T), silent = T)
 
 step2b_sql <- glue::glue_sql(
@@ -188,8 +191,9 @@ message(paste0("Step 2b took ", round(difftime(time_end, time_start, units = "se
 
 
 
-#### STEP 3: IDENTIFY CONTIGUOUS PERIODS ####
+#### STEP 3: IDENTIFY CONTIGUOUS PERIODS (~45 MINS↑) ####
 # Calculate the number of days between each from_date and the previous to_date
+# Step 3a = ~8 mins
 try(odbc::dbRemoveTable(db_claims, "##timevar_03a", temporary = T), silent = T)
 
 step3a_sql <- glue::glue_sql(
@@ -216,6 +220,7 @@ message(paste0("Step 3a took ", round(difftime(time_end, time_start, units = "se
 
 # Give a unique identifier (row number) to the first date in a continguous series of dates 
 # (meaning 0 or 1 days between each from_date and the previous to_date)
+# Step 3b = ~25 mins
 try(odbc::dbRemoveTable(db_claims, "##timevar_03b", temporary = T), silent = T)
 
 step3b_sql <- glue::glue_sql(
@@ -247,6 +252,7 @@ message(paste0("Step 3b took ", round(difftime(time_end, time_start, units = "se
 
 # Use the row number for the first in the series of contiguous dates as an 
 # identifier for that set of contiguous dates
+# Step 3c = ~11 mins
 try(odbc::dbRemoveTable(db_claims, "##timevar_03c", temporary = T), silent = T)
 
 step3c_sql <- glue::glue_sql(
@@ -271,8 +277,9 @@ message(paste0("Step 3c took ", round(difftime(time_end, time_start, units = "se
 
 
 
-#### STEP 4: FIND MIN/MAX DATES AND CONTIGUOUS PERIODS ####
+#### STEP 4: FIND MIN/MAX DATES AND CONTIGUOUS PERIODS (~6 MINS) ####
 # Find the min/max dates
+# Step 4a = ~6 mins
 try(odbc::dbRemoveTable(db_claims, "##timevar_04a", temporary = T), silent = T)
 
 step4a_sql <- glue::glue_sql(
@@ -297,6 +304,7 @@ message(paste0("Step 4a took ", round(difftime(time_end, time_start, units = "se
 
 
 # Calculate coverage time
+# Step 4b = ~<1 min
 try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T), silent = T)
 
 step4b_sql <- glue::glue_sql(
@@ -318,20 +326,21 @@ message(paste0("Step 4b took ", round(difftime(time_end, time_start, units = "se
 
 
 
-#### STEP 5: ADD CONTIGUOUS FLAG, RECODE DUAL, JOIN TO GEOCODES, AND LOAD TO STAGE TABLE ####
-# Truncate claims.stage_mcaid_elig_timevar (just in case)
-message("Running step 5a: Truncate stage table")
+#### STEP 5: ADD CONTIGUOUS FLAG, RECODE DUAL, JOIN TO GEOCODES, AND LOAD TO STAGE TABLE (~ 1.5 MINS) ####
+# Drop claims.stage_mcaid_elig_timevar (just in case)
+# Step 5a = ~<1 min
+message("Running step 5a: Drop stage table")
 time_start <- Sys.time()
-odbc::dbGetQuery(conn = db_claims, "TRUNCATE TABLE claims.stage_mcaid_elig_timevar")
+odbc::dbGetQuery(conn = db_claims, "DROP TABLE claims.stage_mcaid_elig_timevar")
 time_end <- Sys.time()
 message(paste0("Step 5a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
              " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
              " mins)"))
 
 # Now do the final transformation plus loading
+# Step 5b = ~1.5 mins
 step5b_sql <- glue::glue_sql(
-  "INSERT INTO claims.stage_mcaid_elig_timevar WITH (TABLOCK)
-    SELECT
+  "SELECT
     a.id_mcaid, a.from_date, a.to_date, 
     CASE WHEN DATEDIFF(day, lag(a.to_date, 1) OVER 
       (PARTITION BY a.id_mcaid order by a.id_mcaid, a.from_date), a.from_date) = 1
@@ -346,6 +355,7 @@ step5b_sql <- glue::glue_sql(
     b.geo_zip_centroid, b.geo_street_centroid, b.geo_county_code, b.geo_tract_code, 
     b.geo_hra_code, b.geo_school_code, a.cov_time_day,
     {Sys.time()} AS last_run
+    INTO claims.stage_mcaid_elig_timevar
     FROM
     (SELECT id_mcaid, from_date, to_date, 
       dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
@@ -357,7 +367,7 @@ step5b_sql <- glue::glue_sql(
         geo_zip_centroid, geo_street_centroid, geo_countyfp10 AS geo_county_code, 
         geo_tractce10 AS geo_tract_code, geo_hra_id AS geo_hra_code, 
         geo_school_geoid10 AS geo_school_code
-        FROM PHClaims.ref.address_geocode) b
+        FROM ref.address_geocode) b
       ON 
       (a.geo_add1 = b.geo_add1_clean OR (a.geo_add1 IS NULL AND b.geo_add1_clean IS NULL)) AND 
       (a.geo_city = b.geo_city_clean OR (a.geo_city IS NULL AND b.geo_city_clean IS NULL)) AND 

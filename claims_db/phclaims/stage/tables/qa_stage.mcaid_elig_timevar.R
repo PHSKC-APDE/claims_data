@@ -2,7 +2,7 @@
 # Alastair Matheson
 # 2019-05
 
-# Code to QA stage.mcaid_elig_timevar
+# Code to QA claims.stage_mcaid_elig_timevar
 
 ###############################################################################
 
@@ -18,10 +18,10 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   #### PULL OUT VALUES NEEDED MULTIPLE TIMES ####
   # Rows in current table
   row_count <- as.numeric(odbc::dbGetQuery(conn, 
-                                           "SELECT COUNT (*) FROM stage.mcaid_elig_timevar"))
+                                           "SELECT COUNT (*) FROM claims.stage_mcaid_elig_timevar"))
   
-  ### Pull out run date of stage.mcaid_elig_timevar
-  last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_elig_timevar")[[1]])
+  ### Pull out run date of claims.stage_mcaid_elig_timevar
+  last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM claims.stage_mcaid_elig_timevar")[[1]])
   
   
   if (load_only == F) {
@@ -30,13 +30,13 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     previous_rows <- as.numeric(
       odbc::dbGetQuery(conn, 
                        "SELECT a.qa_value FROM
-                       (SELECT * FROM metadata.qa_mcaid_values
-                         WHERE table_name = 'stage.mcaid_elig_timevar' AND
+                       (SELECT * FROM claims.metadata_qa_mcaid_values
+                         WHERE table_name = 'claims.stage_mcaid_elig_timevar' AND
                           qa_item = 'row_count') a
                        INNER JOIN
                        (SELECT MAX(qa_date) AS max_date 
-                         FROM metadata.qa_mcaid_values
-                         WHERE table_name = 'stage.mcaid_elig_timevar' AND
+                         FROM claims.metadata_qa_mcaid_values
+                         WHERE table_name = 'claims.stage_mcaid_elig_timevar' AND
                           qa_item = 'row_count') b
                        ON a.qa_date = b.max_date"))
     
@@ -46,10 +46,10 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
       row_qa_fail <- 1
       odbc::dbGetQuery(
         conn = conn,
-        glue::glue_sql("INSERT INTO metadata.qa_mcaid
+        glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_elig_timevar',
+                   'claims.stage_mcaid_elig_timevar',
                    'Number new rows compared to most recent run', 
                    'FAIL', 
                    {Sys.time()}, 
@@ -58,15 +58,15 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        .con = conn))
       
       warning(glue::glue("Fewer rows than found last time.  
-                  Check metadata.qa_mcaid for details (last_run = {last_run}"))
+                  Check claims.metadata_qa_mcaid for details (last_run = {last_run}"))
     } else {
       row_qa_fail <- 0
       odbc::dbGetQuery(
         conn = conn,
-        glue::glue_sql("INSERT INTO metadata.qa_mcaid
+        glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_elig_timevar',
+                   'claims.stage_mcaid_elig_timevar',
                    'Number new rows compared to most recent run', 
                    'PASS', 
                    {Sys.time()}, 
@@ -78,21 +78,21 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   }
   
   
-  #### CHECK DISTINCT IDS = DISTINCT IN STAGE.MCAID_ELIG ####
+  #### CHECK DISTINCT IDS = DISTINCT IN claims.stage_mcaid_elig ####
   id_count_timevar <- as.numeric(odbc::dbGetQuery(
-    conn, "SELECT COUNT (DISTINCT id_mcaid) AS count FROM stage.mcaid_elig_timevar"))
+    conn, "SELECT COUNT (DISTINCT id_mcaid) AS count FROM claims.stage_mcaid_elig_timevar"))
   
   id_count_elig <- as.numeric(odbc::dbGetQuery(
-    conn, "SELECT COUNT (DISTINCT MEDICAID_RECIPIENT_ID) as count FROM stage.mcaid_elig"))
+    conn, "SELECT COUNT (DISTINCT MEDICAID_RECIPIENT_ID) as count FROM claims.stage_mcaid_elig"))
   
   if (id_count_timevar != id_count_elig) {
     id_distinct_qa_fail <- 1
     odbc::dbGetQuery(
       conn = conn,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
+      glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({last_run}, 
-                       'stage.mcaid_elig_timevar',
+                       'claims.stage_mcaid_elig_timevar',
                        'Number distinct IDs', 
                        'FAIL', 
                        {Sys.time()}, 
@@ -100,15 +100,15 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                      .con = conn))
     
     warning(glue::glue("Number of distinct IDs doesn't match the number of rows. 
-                      Check metadata.qa_mcaid for details (last_run = {last_run}"))
+                      Check claims.metadata_qa_mcaid for details (last_run = {last_run}"))
   } else {
     id_distinct_qa_fail <- 0
     odbc::dbGetQuery(
       conn = conn,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
+      glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({last_run}, 
-                       'stage.mcaid_elig_timevar',
+                       'claims.stage_mcaid_elig_timevar',
                        'Number distinct IDs', 
                        'PASS', 
                        {Sys.time()}, 
@@ -126,17 +126,17 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip,
     cov_time_day 
-    FROM stage.mcaid_elig_timevar) a"))
+    FROM claims.stage_mcaid_elig_timevar) a"))
   
   
   if (dup_row_count != row_count) {
     dup_row_qa_fail <- 1
     odbc::dbGetQuery(
       conn = conn,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
+      glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({last_run}, 
-                       'stage.mcaid_elig_timevar',
+                       'claims.stage_mcaid_elig_timevar',
                        'Duplicate rows', 
                        'FAIL', 
                        {Sys.time()}, 
@@ -145,15 +145,15 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                      .con = conn))
     
     warning(glue::glue("There appear to be duplicate rows. 
-                      Check metadata.qa_mcaid for details (last_run = {last_run}"))
+                      Check claims.metadata_qa_mcaid for details (last_run = {last_run}"))
   } else {
     dup_row_qa_fail <- 0
     odbc::dbGetQuery(
       conn = conn,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
+      glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({last_run}, 
-                       'stage.mcaid_elig_timevar',
+                       'claims.stage_mcaid_elig_timevar',
                        'Duplicate rows', 
                        'PASS', 
                        {Sys.time()}, 
@@ -167,10 +167,10 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   #### MIN AND MAX DATES IN DATA ####
   date_range_timevar <- dbGetQuery(db_claims, 
                            "SELECT MIN(from_date) AS from_date, max(to_date) as to_date 
-                           FROM stage.mcaid_elig_timevar")
+                           FROM claims.stage_mcaid_elig_timevar")
   date_range_elig <- dbGetQuery(db_claims, 
                          "SELECT MIN(CLNDR_YEAR_MNTH) AS from_date, max(CLNDR_YEAR_MNTH) as to_date 
-                           FROM stage.mcaid_elig")
+                           FROM claims.stage_mcaid_elig")
   date_range_elig <- date_range_elig %>%
     mutate(
       from_date = as.Date(paste0(from_date, "01"), format = "%Y%m%d"),
@@ -184,10 +184,10 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     date_qa_fail <- 1
     odbc::dbGetQuery(
       conn = conn,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid 
+      glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid 
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES ({last_run}, 
-                             'stage.mcaid_elig_timevar',
+                             'claims.stage_mcaid_elig_timevar',
                              'Date range',
                              'FAIL',
                              {Sys.time()}, 
@@ -199,15 +199,15 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                      ))
     
     warning(glue::glue("Some from/to dates fell outside the CLNDR_YEAR_MNTH range. 
-                    Check metadata.qa_mcaid for details (last_run = {last_run}"))
+                    Check claims.metadata_qa_mcaid for details (last_run = {last_run}"))
   } else {
     date_qa_fail <- 0
     odbc::dbGetQuery(
       conn = conn,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid 
+      glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid 
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES ({last_run}, 
-                             'stage.mcaid_elig_timevar',
+                             'claims.stage_mcaid_elig_timevar',
                              'Date range',
                              'PASS',
                              {Sys.time()}, 
@@ -222,10 +222,12 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   
   
   #### CHECK SPECIFIC INDIVIDUALS TO ENSURE THEIR DATES WORK ####
-  timevar_ind <- read.csv("//dchs-shares01/dchsdata/DCHSPHClaimsData/Data/QA_specific/stage.mcaid_elig_timevar_qa_ind.csv",
+  timevar_ind <- read.csv("//dchs-shares01/dchsdata/DCHSPHClaimsData/Data/QA_specific/claims.stage_mcaid_elig_timevar_qa_ind.csv",
                           stringsAsFactors = F)
+  timevar_ind <- timevar_ind %>%
+    mutate_at(vars(from_date, to_date), list(~ as.Date(.)))
   
-  timevar_ind_sql <- glue::glue_sql("SELECT id_mcaid, from_date, to_date FROM stage.mcaid_elig_timevar 
+  timevar_ind_sql <- glue::glue_sql("SELECT id_mcaid, from_date, to_date FROM claims.stage_mcaid_elig_timevar 
                                     WHERE id_mcaid IN ({ind_ids*})
                                     ORDER BY id_mcaid, from_date",
                                     ind_ids = unlist(distinct(timevar_ind, id_mcaid)),
@@ -237,10 +239,10 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     ind_date_qa_fail <- 1
     odbc::dbGetQuery(
       conn = conn,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid 
+      glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid 
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES ({last_run}, 
-                             'stage.mcaid_elig_timevar',
+                             'claims.stage_mcaid_elig_timevar',
                              'Specific IDs',
                              'FAIL',
                              {Sys.time()}, 
@@ -250,10 +252,10 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     ind_date_qa_fail <- 0
     odbc::dbGetQuery(
       conn = conn,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid 
+      glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid 
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES ({last_run}, 
-                             'stage.mcaid_elig_timevar',
+                             'claims.stage_mcaid_elig_timevar',
                              'Specific IDs',
                              'PASS',
                              {Sys.time()}, 
@@ -264,9 +266,9 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   
   
   #### LOAD VALUES TO QA_VALUES TABLE ####
-  load_sql <- glue::glue_sql("INSERT INTO metadata.qa_mcaid_values
+  load_sql <- glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid_values
                              (table_name, qa_item, qa_value, qa_date, note) 
-                             VALUES ('stage.mcaid_elig_timevar',
+                             VALUES ('claims.stage_mcaid_elig_timevar',
                                      'row_count', 
                                      {row_count}, 
                                      {Sys.time()}, 
@@ -275,7 +277,13 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   
   odbc::dbGetQuery(conn = conn, load_sql)
   
-  qa_total <- row_qa_fail + id_distinct_qa_fail + dup_row_qa_fail + date_qa_fail + ind_date_qa_fail
+  
+  if (load_only == F) {
+    qa_total <- row_qa_fail + id_distinct_qa_fail + dup_row_qa_fail + date_qa_fail + ind_date_qa_fail  
+  } else {
+    qa_total <- id_distinct_qa_fail + dup_row_qa_fail + date_qa_fail + ind_date_qa_fail
+  }
+  
   return(qa_total)
   
 }
