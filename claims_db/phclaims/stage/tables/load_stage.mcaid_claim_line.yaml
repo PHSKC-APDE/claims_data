@@ -1,9 +1,9 @@
 from_schema: claims
-from_table: stage_mcaid_claims
+from_table: stage_mcaid_claim
 to_schema: claims
-to_table: stage_mcaid_claims_line
+to_table: stage_mcaid_claim_line
 index_type: ccs
-index_name: idx_ccs_stage_mcaid_claims_line
+index_name: idx_ccs_stage_mcaid_claim_line
 vars:
     id_mcaid: VARCHAR(255)
     claim_header_id: BIGINT

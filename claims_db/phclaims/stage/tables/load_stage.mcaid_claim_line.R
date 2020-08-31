@@ -32,8 +32,7 @@ INSERT INTO {`load_mcaid_claim_line_config$to_schema`}.{`load_mcaid_claim_line_c
 ,rac_code_line
 ,last_run)
 
-SELECT DISTINCT 
---top(100)
+SELECT DISTINCT
  MEDICAID_RECIPIENT_ID as id_mcaid
 ,TCN as claim_header_id
 ,CLM_LINE_TCN as claim_line_id
