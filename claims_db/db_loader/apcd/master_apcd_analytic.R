@@ -111,7 +111,7 @@ create_table_f(conn = db_claims,
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2016.yaml",
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
-#2017
+# 2017
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2017.yaml",
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
@@ -165,34 +165,6 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on final.apcd_elig_plr_2017")))
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on final.apcd_elig_plr_2018")))
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on final.apcd_elig_plr_2019")))
-
-
-## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 4: ref_apcd_denied_orphaned_header ####
-## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-
-### A) Call in functions
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_denied_orphaned_header.R")
-
-### B) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "ref", to_schema = "archive", table_name = "apcd_denied_orphaned_header")
-
-### C) Create table
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_denied_orphaned_header.yaml",
-               overall = T, ind_yr = F, overwrite = T, test_mode = F)
-
-### D) Load tables
-system.time(load_ref.apcd_denied_orphaned_header_f())
-
-### E) Table-level QA
-system.time(apcd_denied_orphaned_header_qa1 <- qa_ref.apcd_denied_orphaned_header_f())
-#rm(apcd_denied_orphaned_header_qa1)
-
-### F) Run line-level QA script on a single year only at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_ref.apcd_denied_orphaned_header.sql
-
-### F) Create a clustered index on claim header ID
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered index idx_c_ref_apcd_denied_orphaned_header on ref.apcd_denied_orphaned_header (claim_header_id)")))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
