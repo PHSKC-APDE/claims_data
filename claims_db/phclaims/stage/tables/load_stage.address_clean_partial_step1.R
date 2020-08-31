@@ -140,12 +140,8 @@ new_add_out <- new_add %>%
   distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw)
 
 write.csv(new_add_out, 
-          glue::glue("//kcitsqlutpdbh51/importdata/data/PHClaimsAddress/adds_for_informatica_{Sys.Date()}.csv"),
+          glue::glue("//kcitetldepim001/Informatica/address/adds_for_informatica_{Sys.Date()}.csv"),
           row.names = F)
-
-#write.csv(new_add_out, 
-#          glue::glue("//kcitetldepim001/Informatica/address/adds_for_informatica_{Sys.Date()}.csv"),
-#          row.names = F)
 
 message(glue::glue("{nrow(new_add_out)} addresses were exported for Informatica cleanup"))
 
