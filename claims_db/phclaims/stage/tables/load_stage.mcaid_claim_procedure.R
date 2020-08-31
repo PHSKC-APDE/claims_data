@@ -25,20 +25,7 @@ create_table_f(conn = db_claims, config_url = config_url, overall = T, ind_yr = 
 #### LOAD TABLE ####
 # NB: Changes in table structure need to altered here and the YAML file
 insert_sql <- glue::glue_sql("
-insert into [stage].[mcaid_claim_procedure] with (tablock)
-([id_mcaid]
-,[claim_header_id]
-,[first_service_date]
-,[last_service_date]
-,[procedure_code]
-,[procedure_code_number]
-,[modifier_1]
-,[modifier_2]
-,[modifier_3]
-,[modifier_4]
-,[last_run])
-
-select distinct 
+SELECT DISTINCT
  id_mcaid
 ,claim_header_id
 ,first_service_date
@@ -50,8 +37,8 @@ select distinct
 ,modifier_3
 ,modifier_4
 ,getdate() as last_run
-
-from 
+INTO {`load_mcaid_claim_procedure_config$to_schema`}.{`load_mcaid_claim_procedure_config$to_table`}
+FROM 
 (
 select
 --top(100)
@@ -76,12 +63,12 @@ select
 ,MDFR_CODE2 as [modifier_2]
 ,MDFR_CODE3 as [modifier_3]
 ,MDFR_CODE4 as [modifier_4]
-from [stage].[mcaid_claim]
+from{load_mcaid_claim_procedure_config$from_schema}.{load_mcaid_claim_procedure_config$from_table}
 ) as a
 
 unpivot(procedure_code for procedure_code_number in 
 ([01],[02],[03],[04],[05],[06],[07],[08],[09],[10],[11],[12],[line])) as procedure_code;", 
-.con = conn)
+.con = db_claims)
 
 message(glue::glue("Loading to {load_mcaid_claim_procedure_config$to_schema}.{load_mcaid_claim_procedure_config$to_table}"))
 time_start <- Sys.time()

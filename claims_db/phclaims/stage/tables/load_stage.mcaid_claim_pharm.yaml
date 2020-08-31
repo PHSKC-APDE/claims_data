@@ -1,3 +1,5 @@
+from_schema: claims
+from_table: stage_mcaid_claim
 to_schema: claims
 to_table: stage_mcaid_claim_pharm
 index_type: ccs

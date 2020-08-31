@@ -16,8 +16,9 @@ config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_mi
 
 load_mcaid_claim_line_config <- yaml::yaml.load(RCurl::getURL(config_url))
 
-#### CREATE TABLE ####
-create_table_f(conn = db_claims, config_url = config_url)
+#### DROP EXISTING TABLE TO USE SELECT INTO ####
+try(DBI::dbRemoveTable(db_Claims, DBI::Id(schema = load_mcaid_claim_line_config$to_schema,
+                                          table = load_mcaid_claim_line_config$to_Table)))
 
 #### LOAD TABLE ####
 # NB: Changes in table structure need to altered here and the YAML file

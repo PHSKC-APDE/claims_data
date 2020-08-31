@@ -18,25 +18,14 @@ config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/c
 load_mcaid_claim_pharm_config <- yaml::yaml.load(RCurl::getURL(config_url))
 
 
-#### CREATE TABLE ####
-create_table_f(conn = db_claims, config_url = config_url, overall = T, ind_yr = F)
+#### DROP EXISTING TABLE TO USE SELECT INTO ####
+try(DBI::dbRemoveTable(db_Claims, DBI::Id(schema = load_mcaid_claim_pharm_config$to_schema,
+                                          table = load_mcaid_claim_pharm_config$to_Table)))
 
 #### LOAD TABLE ####
 # NB: Changes in table structure need to altered here and the YAML file
 insert_sql <- glue::glue_sql("
-insert into [stage].[mcaid_claim_pharm] with (tablock)
-([id_mcaid]
-,[claim_header_id]
-,[ndc]
-,[rx_days_supply]
-,[rx_quantity]
-,[rx_fill_date]
-,[prescriber_id_format]
-,[prescriber_id]
-,[pharmacy_npi]
-,[last_run])
-
-select distinct 
+SELECT DISTINCT
  cast(MEDICAID_RECIPIENT_ID as varchar(255)) as id_mcaid
 ,cast(TCN as bigint) as claim_header_id
 ,cast(NDC as varchar(255)) as ndc
@@ -55,8 +44,8 @@ select distinct
 ,cast(case when (len([PRSCRBR_ID]) = 10 and isnumeric([PRSCRBR_ID]) = 1 and left([PRSCRBR_ID], 1) in (1,2)) then [PRSCRBR_ID] end as bigint) as pharmacy_npi
 
 ,getdate() as last_run
-
-from [stage].[mcaid_claim]
+INTO {`load_mcaid_claim_pharm_config$to_schema`}.{`load_mcaid_claim_pharm_config$to_table`}
+FROM {`load_mcaid_claim_pharm_config$from_schema`}.{`load_mcaid_claim_pharm_config$from_table`}
 where ndc is not null;
 ", .con = db_claims)
 

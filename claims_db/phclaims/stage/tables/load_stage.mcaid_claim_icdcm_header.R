@@ -42,19 +42,14 @@ table_config_claim_icdcm_header <- yaml::yaml.load(
   RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.yaml"))
 
 
-#### STEP 1: CREATE TABLE ####
-message("Running step 1: create table shell")
-create_table_f(conn = db_claims,
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.yaml",
-               overall = T, ind_yr = F)
+#### STEP 1: DROP EXISTING TABLE TO USE SELECT INTO ####
+try(DBI::dbRemoveTable(db_Claims, DBI::Id(schema = table_config_claim_icdcm_header$to_schema,
+                                          table = table_config_claim_icdcm_header$to_Table)))
 
 
 #### step 2: INSERT INTO TABLE ####
 step2_sql <- glue::glue_sql("
-insert into [stage].[mcaid_claim_icdcm_header] with (tablock)
-({`names(table_config_claim_icdcm_header$vars)`*})
-
-select distinct
+SELECT DISTINCT
  id_mcaid
 ,claim_header_id
 ,first_service_date
@@ -90,8 +85,8 @@ select distinct
 
 ,cast(dx_number as varchar(5)) as icdcm_number
 ,getdate() as last_run
-
-from 
+INTO {`table_config_claim_icdcm_header$to_schema`}.{`table_config_claim_icdcm_header$to_table`}
+FROM 
 (
 select 
  MEDICAID_RECIPIENT_ID as id_mcaid
@@ -113,13 +108,13 @@ select
 ,DIAGNOSIS_CODE_12 as [12]
 ,ADMTNG_DIAGNOSIS_CODE as [admit]
 
-from stage.mcaid_claim
+FROM {`table_config_claim_icdcm_header$from_schema`}.{`table_config_claim_icdcm_header$from_table`}
 ) as a
 
 unpivot(diagnoses for dx_number IN ([01], [02], [03], [04], [05], [06], [07], [08], [09], [10], [11], [12], [admit])) as diagnoses;
 ", .con = db_claims)
 
-message("Running step 2: Load to [stage].[mcaid_claim_icdcm_header]")
+message("Running step 2: Load to ", table_config_claim_icdcm_header$to_schema, ".", table_config_claim_icdcm_header$to_table)
 time_start <- Sys.time()
 DBI::dbExecute(conn = db_claims, step2_sql)
 time_end <- Sys.time()
