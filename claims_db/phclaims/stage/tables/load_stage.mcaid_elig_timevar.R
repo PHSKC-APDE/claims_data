@@ -33,10 +33,11 @@ step1a_sql <- glue::glue_sql(
       RPRTBL_RAC_CODE AS 'rac_code_1', SECONDARY_RAC_CODE AS 'rac_code_2', 
       RPRTBL_BSP_GROUP_CID AS 'bsp_group_cid', 
       COVERAGE_TYPE_IND AS 'cov_type', 
-      MC_PRVDR_ID AS 'mco_id', 
-      RSDNTL_ADRS_LINE_1 AS 'geo_add1_raw', RSDNTL_ADRS_LINE_2 AS 'geo_add2_raw',
-      RSDNTL_CITY_NAME as 'geo_city_raw', RSDNTL_STATE_CODE AS 'geo_state_raw', 
-      RSDNTL_POSTAL_CODE AS 'geo_zip_raw'
+      MC_PRVDR_ID AS 'mco_id',
+      CONVERT(char(64),HASHBYTES('SHA2_256', 
+  -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
+      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, '|', '|', RSDNTL_CITY_NAME, '|', 
+	  RSDNTL_STATE_CODE, '|', RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw
       FROM claims.stage_mcaid_elig) a
       LEFT JOIN
       (SELECT rac_code, 
@@ -55,17 +56,13 @@ step1a_sql <- glue::glue_sql(
         FROM claims.ref_mcaid_rac_code) c
       ON a.rac_code_2 = c.rac_code
       LEFT JOIN
-      (SELECT geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw,
+      (SELECT geo_hash_raw,
         geo_add1_clean AS geo_add1, geo_add2_clean AS geo_add2, 
         geo_city_clean AS geo_city, geo_state_clean AS geo_state, 
         geo_zip_clean AS geo_zip
         FROM ref.address_clean) d
       ON 
-      (a.geo_add1_raw = d.geo_add1_raw OR (a.geo_add1_raw IS NULL AND d.geo_add1_raw IS NULL)) AND
-      (a.geo_add2_raw = d.geo_add2_raw OR (a.geo_add2_raw IS NULL AND d.geo_add2_raw IS NULL)) AND 
-      (a.geo_city_raw = d.geo_city_raw OR (a.geo_city_raw IS NULL AND d.geo_city_raw IS NULL)) AND 
-      (a.geo_state_raw = d.geo_state_raw OR (a.geo_state_raw IS NULL AND d.geo_state_raw IS NULL)) AND 
-      (a.geo_zip_raw = d.geo_zip_raw OR (a.geo_zip_raw IS NULL AND d.geo_zip_raw IS NULL))",
+      a.geo_hash_raw = d.geo_hash_raw",
   .con = db_claims)
 
 message("Running step 1a: pull columns from raw, join to clean addresses, and add index")
