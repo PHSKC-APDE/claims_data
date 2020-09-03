@@ -27,9 +27,16 @@ load_stage.mcaid_elig_f <- function(conn_dw = NULL, conn_db = NULL, full_refresh
     date_var <- config$date_var
   }
   
-  # Remove etl_batch_id from list of vars as it is added at the end
+  # Remove etl_batch_id and geo_hash_raw from list of vars as they are added at the end
   vars <- unlist(names(config$vars))
-  vars <- vars[!vars %in% "etl_batch_id"]
+  vars <- vars[!vars %in% c("etl_batch_id", "geo_hash_raw")]
+  # Need to keep only the vars that come before the named ones below
+  # This is so we can recreate the address hash field
+  vars_prefix <- vars[!vars %in% c("MBR_ACES_IDNTFR", "MBR_H_SID", 
+                                      "SECONDARY_RAC_CODE", "SECONDARY_RAC_NAME", 
+                                      "etl_batch_id")]
+  vars_suffix <- c("MBR_ACES_IDNTFR", "MBR_H_SID", 
+                   "SECONDARY_RAC_CODE", "SECONDARY_RAC_NAME")
   
   if (full_refresh == F) {
     archive_schema <- config$archive_schema
@@ -493,7 +500,14 @@ load_stage.mcaid_elig_f <- function(conn_dw = NULL, conn_db = NULL, full_refresh
                                     FROM {`archive_schema`}.{`archive_table`}
                                     WHERE {`date_var`} < {date_truncate}
                                     UNION
-                                    SELECT {`vars`*}, {current_batch_id} AS etl_batch_id FROM
+                                    SELECT {`vars_prefix`*}, 
+                                    CONVERT(char(64),
+                                            HASHBYTES('SHA2_256',
+                                                      -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
+                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, '|', 
+                                                                        '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
+                                                                        RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw, 
+                                    {`vars_suffix`*}, {current_batch_id} AS etl_batch_id FROM
                                     {`from_schema`}.{`from_table`}
                                     WHERE {`date_var`} >= {date_truncate}",
                                     .con = conn_dw)
@@ -505,7 +519,14 @@ load_stage.mcaid_elig_f <- function(conn_dw = NULL, conn_db = NULL, full_refresh
                                     FROM {`archive_schema`}.{`archive_table`}
                                     WHERE {`date_var`} < {date_truncate}
                                     UNION
-                                    SELECT {`vars`*}, {current_batch_id} AS etl_batch_id FROM
+                                    SELECT {`vars_prefix`*}, 
+                                    CONVERT(char(64),
+                                            HASHBYTES('SHA2_256',
+                                                      -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
+                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, '|', 
+                                                                        '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
+                                                                        RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw, 
+                                    {`vars_suffix`*}, {current_batch_id} AS etl_batch_id FROM FROM
                                     {`from_schema`}.tmp_mcaid_elig_dedup
                                     WHERE {`date_var`} >= {date_truncate}",
                                     .con = conn_dw)
@@ -516,7 +537,14 @@ load_stage.mcaid_elig_f <- function(conn_dw = NULL, conn_db = NULL, full_refresh
       sql_combine <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
                                     WITH (CLUSTERED COLUMNSTORE INDEX, 
                                           DISTRIBUTION = HASH ({`date_var`}))
-                                    AS SELECT {`vars`*}, {current_batch_id} AS etl_batch_id 
+                                    AS SELECT {`vars_prefix`*}, 
+                                    CONVERT(char(64),
+                                            HASHBYTES('SHA2_256',
+                                                      -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
+                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, '|', 
+                                                                        '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
+                                                                        RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw, 
+                                    {`vars_suffix`*}, {current_batch_id} AS etl_batch_id FROM 
                                     FROM {`from_schema`}.{`from_table`} ",
                                     .con = conn_dw)
       
@@ -524,7 +552,14 @@ load_stage.mcaid_elig_f <- function(conn_dw = NULL, conn_db = NULL, full_refresh
       sql_combine <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
                                     WITH (CLUSTERED COLUMNSTORE INDEX, 
                                           DISTRIBUTION = HASH ({`date_var`}))
-                                    AS SELECT {`vars`*}, {current_batch_id} AS etl_batch_id 
+                                    AS SELECT {`vars_prefix`*}, 
+                                    CONVERT(char(64),
+                                            HASHBYTES('SHA2_256',
+                                                      -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
+                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, '|', 
+                                                                        '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
+                                                                        RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw, 
+                                    {`vars_suffix`*}, {current_batch_id} AS etl_batch_id FROM 
                                     FROM {`from_schema`}.tmp_mcaid_elig_dedup",
                                     .con = conn_dw)
     }
