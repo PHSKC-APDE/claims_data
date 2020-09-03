@@ -5,7 +5,7 @@
 
 #### CALL IN GENERAL QA FUNCTIONS IF NOT ALREADY LOADED ####
 if (exists("qa_error_check_f") == F) {
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_general.R")
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/qa_general.R")
 }
 
 
