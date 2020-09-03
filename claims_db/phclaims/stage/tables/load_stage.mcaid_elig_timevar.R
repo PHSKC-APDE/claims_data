@@ -16,7 +16,7 @@ message("Creating claims.stage_mcaid_elig_timevar. This will take ~80 minutes to
 # Note, some people have 2 secondary RAC codes on separate rows.
 # Need to create third RAC code field and collapse to a single row.
 # First pull in relevant columns and set an index to speed later sorting
-# Step 1a = ~10 mins
+# Step 1a = ~10 mins (latest was 35 mins)
 try(odbc::dbRemoveTable(db_claims, "##timevar_01a", temporary = T), silent = T)
 
 step1a_sql <- glue::glue_sql(
@@ -34,10 +34,7 @@ step1a_sql <- glue::glue_sql(
       RPRTBL_BSP_GROUP_CID AS 'bsp_group_cid', 
       COVERAGE_TYPE_IND AS 'cov_type', 
       MC_PRVDR_ID AS 'mco_id',
-      CONVERT(char(64),HASHBYTES('SHA2_256', 
-  -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
-      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, '|', '|', RSDNTL_CITY_NAME, '|', 
-	  RSDNTL_STATE_CODE, '|', RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw
+      geo_hash_raw
       FROM claims.stage_mcaid_elig) a
       LEFT JOIN
       (SELECT rac_code, 
@@ -55,7 +52,7 @@ step1a_sql <- glue::glue_sql(
           ELSE NULL END AS full_benefit_2
         FROM claims.ref_mcaid_rac_code) c
       ON a.rac_code_2 = c.rac_code
-      LEFT JOIN
+      LEFT HASH JOIN
       (SELECT geo_hash_raw,
         geo_add1_clean AS geo_add1, geo_add2_clean AS geo_add2, 
         geo_city_clean AS geo_city, geo_state_clean AS geo_state, 
@@ -72,13 +69,13 @@ odbc::dbGetQuery(conn = db_claims, step1a_sql)
 
 # Add an index to the temp table to make ordering much faster
 odbc::dbGetQuery(conn = db_claims,
-           "CREATE CLUSTERED INDEX [timevar_01_idx] ON ##timevar_01a 
+                 "CREATE CLUSTERED INDEX [timevar_01_idx] ON ##timevar_01a 
            (id_mcaid, calmonth, fromdate)")
 
 time_end <- Sys.time()
 message(paste0("Step 1a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
+               " mins)"))
 
 
 # Setup full_benefit flag and drop secondary RAC rows
@@ -114,8 +111,8 @@ time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step1b_sql)
 time_end <- Sys.time()
 message(paste0("Step 1b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
+               " mins)"))
 
 
 
@@ -140,8 +137,8 @@ time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step2a_sql)
 time_end <- Sys.time()
 message(paste0("Step 2a took ", round(difftime(time_end, time_start, units = "secs"), 2),
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
+               " mins)"))
 
 
 # Incorporate sub-month coverage (identify the smallest possible time interval)
@@ -183,8 +180,8 @@ odbc::dbGetQuery(conn = db_claims,
 
 time_end <- Sys.time()
 message(paste0("Step 2b took ", round(difftime(time_end, time_start, units = "secs"), 2),
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
+               " mins)"))
 
 
 
@@ -211,8 +208,8 @@ time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step3a_sql)
 time_end <- Sys.time()
 message(paste0("Step 3a took ", round(difftime(time_end, time_start, units = "secs"), 2),
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
+               " mins)"))
 
 
 # Give a unique identifier (row number) to the first date in a continguous series of dates 
@@ -243,8 +240,8 @@ odbc::dbGetQuery(conn = db_claims,
 
 time_end <- Sys.time()
 message(paste0("Step 3b took ", round(difftime(time_end, time_start, units = "secs"), 2),
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
+               " mins)"))
 
 
 # Use the row number for the first in the series of contiguous dates as an 
@@ -269,8 +266,8 @@ time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step3c_sql)
 time_end <- Sys.time()
 message(paste0("Step 3c took ", round(difftime(time_end, time_start, units = "secs"), 2),
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
+               " mins)"))
 
 
 
@@ -296,8 +293,8 @@ time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step4a_sql)
 time_end <- Sys.time()
 message(paste0("Step 4a took ", round(difftime(time_end, time_start, units = "secs"), 2),
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
+               " mins)"))
 
 
 # Calculate coverage time
@@ -318,8 +315,8 @@ time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step4b_sql)
 time_end <- Sys.time()
 message(paste0("Step 4b took ", round(difftime(time_end, time_start, units = "secs"), 2),
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
+               " mins)"))
 
 
 
@@ -331,8 +328,8 @@ time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, "DROP TABLE claims.stage_mcaid_elig_timevar")
 time_end <- Sys.time()
 message(paste0("Step 5a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
+               " mins)"))
 
 # Now do the final transformation plus loading
 # Step 5b = ~1.5 mins
@@ -377,8 +374,8 @@ time_start <- Sys.time()
 odbc::dbGetQuery(conn = db_claims, step5b_sql)
 time_end <- Sys.time()
 message(paste0("Step 5b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
+               " mins)"))
 
 
 #### STEP 6: REMOVE TEMPORARY TABLES ####
@@ -396,5 +393,5 @@ try(odbc::dbRemoveTable(db_claims, "##timevar_04b", temporary = T), silent = T)
 rm(list = ls(pattern = "step(.){1,2}_sql"))
 time_end <- Sys.time()
 message(paste0("Step 6 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
-             " mins)"))
+               " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
+               " mins)"))
