@@ -496,7 +496,7 @@ load_stage.mcaid_elig_f <- function(conn_dw = NULL, conn_db = NULL, full_refresh
       sql_combine <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
                                     WITH (CLUSTERED COLUMNSTORE INDEX, 
                                           DISTRIBUTION = HASH ({`date_var`}))
-                                    AS SELECT {`vars`*}, {current_batch_id} AS etl_batch_id 
+                                    AS SELECT {`vars`*}, etl_batch_id 
                                     FROM {`archive_schema`}.{`archive_table`}
                                     WHERE {`date_var`} < {date_truncate}
                                     UNION
@@ -515,7 +515,7 @@ load_stage.mcaid_elig_f <- function(conn_dw = NULL, conn_db = NULL, full_refresh
       sql_combine <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
                                     WITH (CLUSTERED COLUMNSTORE INDEX, 
                                           DISTRIBUTION = HASH ({`date_var`}))
-                                    AS SELECT {`vars`*}, {current_batch_id} AS etl_batch_id 
+                                    AS SELECT {`vars`*}, etl_batch_id 
                                     FROM {`archive_schema`}.{`archive_table`}
                                     WHERE {`date_var`} < {date_truncate}
                                     UNION
