@@ -185,7 +185,7 @@ if (rac_chk < 50) {
 
 
 #### Compare number of claim lines in current vs. prior analytic tables ####
-if (DBI::dbExistsTable(db_claims, DBI::Id(schema == "claims", table = "final_mcaid_claim_line"))) {
+if (DBI::dbExistsTable(db_claims, DBI::Id(schema = "claims", table = "final_mcaid_claim_line"))) {
   num_claim_current <- DBI::dbGetQuery(db_claims,
                                        "SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [current_claim_line]
  FROM claims.final_mcaid_claim_line

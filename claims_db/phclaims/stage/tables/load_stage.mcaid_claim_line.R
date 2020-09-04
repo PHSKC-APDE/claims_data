@@ -17,8 +17,8 @@ config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_mi
 load_mcaid_claim_line_config <- yaml::yaml.load(RCurl::getURL(config_url))
 
 #### DROP EXISTING TABLE TO USE SELECT INTO ####
-try(DBI::dbRemoveTable(db_Claims, DBI::Id(schema = load_mcaid_claim_line_config$to_schema,
-                                          table = load_mcaid_claim_line_config$to_Table)))
+try(DBI::dbRemoveTable(db_claims, DBI::Id(schema = load_mcaid_claim_line_config$to_schema,
+                                          table = load_mcaid_claim_line_config$to_table)))
 
 #### LOAD TABLE ####
 # NB: Changes in table structure need to altered here and the YAML file
