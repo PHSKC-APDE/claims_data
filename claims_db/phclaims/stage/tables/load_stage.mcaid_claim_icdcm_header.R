@@ -3,7 +3,7 @@
 # procedure codes in long format for Medicaid claims data
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/azure_migration/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 # 
 # SQL script created by: Eli Kern, APDE, PHSKC, 2018-03-21
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05
@@ -31,20 +31,20 @@ if (!exists("db_claims")) {
 }
 
 if (!exists("create_table_f")) {
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/create_table.R")
 }
 
 if (!exists("add_index")) {
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/add_index.R")
 }
 
 table_config_claim_icdcm_header <- yaml::yaml.load(
-  RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.yaml"))
+  RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.yaml"))
 
 
 #### STEP 1: DROP EXISTING TABLE TO USE SELECT INTO ####
 try(DBI::dbRemoveTable(db_Claims, DBI::Id(schema = table_config_claim_icdcm_header$to_schema,
-                                          table = table_config_claim_icdcm_header$to_Table)))
+                                          table = table_config_claim_icdcm_header$to_table)))
 
 
 #### step 2: INSERT INTO TABLE ####
