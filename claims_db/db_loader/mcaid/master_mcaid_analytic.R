@@ -402,38 +402,32 @@ if (fail_tot > 0) {
   message("All QA checks on stage.mcaid_claim_pharm passed, loading to final schema")
   claim_pharm_fail <- 0
   
-  # Pull out run date of stage.mcaid_claim_pharm
-  last_run_claim_pharm <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_pharm")[[1]])
   
   # Pull in config files
   final_mcaid_claim_pharm_config <- yaml::yaml.load(RCurl::getURL(
     "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_claim_pharm.yaml"))
-  archive_mcaid_claim_pharm_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/archive/tables/load_archive.mcaid_claim_pharm.yaml"))
+  
+  # Pull out run date of stage.mcaid_claim_pharm
+  last_run_claim_pharm <- as.POSIXct(odbc::dbGetQuery(
+    db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`final_mcaid_claim_pharm_config$from_schema`}.{`final_mcaid_claim_pharm_config$from_table`}",
+                              .con = db_claims))[[1]])
   
   # Track how many rows in stage
   rows_claim_pharm_stage <- as.integer(odbc::dbGetQuery(
-    db_claims, "SELECT COUNT (*) FROM stage.mcaid_claim_pharm"))
+    db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`final_mcaid_claim_pharm_config$from_schema`}.{`final_mcaid_claim_pharm_config$from_table`}",
+                              .con = db_claims)))
   
-  # Alter schema from final to archive
-  alter_schema_f(conn = db_claims, 
-                 from_schema = archive_mcaid_claim_pharm_config$from_schema, 
-                 to_schema = archive_mcaid_claim_pharm_config$to_schema,
-                 table_name = archive_mcaid_claim_pharm_config$to_table,
-                 rename_index = T,
-                 index_name = archive_mcaid_claim_pharm_config$index_name)
-  
-  # Alter schema from stage to final
-  alter_schema_f(conn = db_claims, 
-                 from_schema = final_mcaid_claim_pharm_config$from_schema, 
-                 to_schema = final_mcaid_claim_pharm_config$to_schema,
-                 table_name = final_mcaid_claim_pharm_config$to_table,
-                 rename_index = T,
-                 index_name = final_mcaid_claim_pharm_config$index_name)
+  # Rename to final table
+  try(DBI::dbSendQuery(db_claims, glue::glue_sql(
+    "DROP TABLE {`final_mcaid_claim_pharm_config$to_schema`}.{`final_mcaid_claim_pharm_config$to_table`}",
+    .con = db_claims)))
+  DBI::dbSendQuery(db_claims, glue::glue(
+    "EXEC sp_rename '{final_mcaid_claim_pharm_config$from_schema}.{final_mcaid_claim_pharm_config$from_table}',  '{final_mcaid_claim_pharm_config$to_table}'"))
   
   # QA final table
   rows_claim_pharm_final <- as.integer(odbc::dbGetQuery(
-    db_claims, "SELECT COUNT (*) FROM final.mcaid_claim_pharm"))
+    db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`final_mcaid_claim_pharm_config$to_schema`}.{`final_mcaid_claim_pharm_config$to_table`}",
+                              .con = db_claims)))
   
   if (rows_claim_pharm_stage == rows_claim_pharm_final) {
     DBI::dbExecute(
@@ -461,7 +455,7 @@ if (fail_tot > 0) {
                      .con = db_claims))
   }
   
-  rm(last_run_claim_pharm, final_mcaid_claim_pharm_config, archive_mcaid_claim_pharm_config,
+  rm(last_run_claim_pharm, final_mcaid_claim_pharm_config,
      rows_claim_pharm_stage, rows_claim_pharm_final)
 }
 rm(fail_tot)

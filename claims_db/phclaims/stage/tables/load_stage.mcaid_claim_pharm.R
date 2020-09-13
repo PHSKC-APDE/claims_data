@@ -2,7 +2,7 @@
 # pharmacy information
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/azure_migration/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 #
 # SQL script created by: Eli Kern, APDE, PHSKC, 2018-03-21
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05 and 2019-12
@@ -13,16 +13,15 @@
 
 
 #### PULL IN CONFIG FILE ####
-config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_pharm.yaml"
-
-load_mcaid_claim_pharm_config <- yaml::yaml.load(RCurl::getURL(config_url))
+load_mcaid_claim_pharm_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_pharm.yaml"))
 
 
 #### DROP EXISTING TABLE TO USE SELECT INTO ####
-try(DBI::dbRemoveTable(db_Claims, DBI::Id(schema = load_mcaid_claim_pharm_config$to_schema,
-                                          table = load_mcaid_claim_pharm_config$to_Table)))
+try(DBI::dbRemoveTable(db_claims, DBI::Id(schema = load_mcaid_claim_pharm_config$to_schema,
+                                          table = load_mcaid_claim_pharm_config$to_table)))
 
 #### LOAD TABLE ####
+# Takes ~6 minutes
 # NB: Changes in table structure need to altered here and the YAML file
 insert_sql <- glue::glue_sql("
 SELECT DISTINCT
@@ -63,6 +62,6 @@ add_index_f(db_claims, table_config = load_mcaid_claim_pharm_config)
 
 
 #### CLEAN  UP ####
-rm(config_url, load_mcaid_claim_pharm_config)
+rm(load_mcaid_claim_pharm_config)
 rm(insert_sql)
 rm(time_start, time_end)
