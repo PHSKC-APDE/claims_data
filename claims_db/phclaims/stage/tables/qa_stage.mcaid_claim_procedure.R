@@ -1,5 +1,5 @@
 
-# This code QAs table [stage].[mcaid_claim_procedure]
+# This code QAs table claims.stage_mcaid_claim_procedure
 #
 # It is designed to be run as part of the master Medicaid script:
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
@@ -21,21 +21,21 @@ if (!exists("db_claims")) {
 }
 
 last_run <- as.POSIXct(DBI::dbGetQuery(
-  db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_procedure")[[1]])
+  db_claims, "SELECT MAX (last_run) FROM claims.stage_mcaid_claim_procedure")[[1]])
 
 
 #### Check all IDs are also found in the elig_demo and time_var tables ####
 ids_demo_chk <- as.integer(DBI::dbGetQuery(db_claims,
   "SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
-  FROM stage.mcaid_claim_procedure AS a
-  LEFT JOIN final.mcaid_elig_demo AS b
+  FROM claims.stage_mcaid_claim_procedure AS a
+  LEFT JOIN claims.final_mcaid_elig_demo AS b
   ON a.id_mcaid = b.id_mcaid
   WHERE b.id_mcaid IS NULL"))
 
 ids_timevar_chk <- as.integer(DBI::dbGetQuery(db_claims,
   "SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
-  FROM stage.mcaid_claim_procedure AS a
-  LEFT JOIN final.mcaid_elig_timevar AS b
+  FROM claims.stage_mcaid_claim_procedure AS a
+  LEFT JOIN claims.final_mcaid_elig_timevar AS b
   ON a.id_mcaid = b.id_mcaid
   WHERE b.id_mcaid IS NULL"))
 
@@ -43,30 +43,30 @@ ids_timevar_chk <- as.integer(DBI::dbGetQuery(db_claims,
 if (ids_demo_chk == 0 & ids_timevar_chk == 0) {
   ids_fail <- 0
   DBI::dbExecute(conn = db_claims,
-    glue::glue_sql("INSERT INTO metadata.qa_mcaid
+    glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_claim_procedure',
+                   'claims.stage_mcaid_claim_procedure',
                    'Distinct IDs compared to elig tables', 
                    'PASS', 
                    {Sys.time()}, 
-                   'There were the same number of IDs as in the final.mcaid_elig_demo ", 
-                    "and final.mcaid_elig_timevar tables')",
+                   'There were the same number of IDs as in the claims.final_mcaid_elig_demo ", 
+                    "and claims.final_mcaid_elig_timevar tables')",
                    .con = db_claims))
 } else {
   ids_fail <- 1
   DBI::dbExecute(conn = db_claims,
-    glue::glue_sql("INSERT INTO metadata.qa_mcaid
+    glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_claim_procedure',
+                   'claims.stage_mcaid_claim_procedure',
                    'Distinct IDs compared to elig tables', 
                    'FAIL', 
                    {Sys.time()}, 
                    'There were {ids_demo_chk} {DBI::SQL(ifelse(ids_demo_chk >= 0, 'more', 'fewer'))} ",
-                      "IDs than in the final.mcaid_elig_demo table and ", 
+                      "IDs than in the claims.final_mcaid_elig_demo table and ", 
                       "{ids_timevar_chk} {DBI::SQL(ifelse(ids_timevar_chk >= 0, 'more', 'fewer'))} ", 
-                      "IDs than in the final.mcaid_elig_timevar table')",
+                      "IDs than in the claims.final_mcaid_elig_timevar table')",
                    .con = db_claims))
 }
 
@@ -85,7 +85,7 @@ SELECT
       WHEN LEN([procedure_code]) = 7 THEN 'ICD-10-PCS'
 	  ELSE 'UNKNOWN' END AS [code_system]
 ,*
-FROM [stage].[mcaid_claim_procedure]
+FROM claims.stage_mcaid_claim_procedure
 )
 
 SELECT COUNT(DISTINCT [procedure_code])
@@ -97,10 +97,10 @@ WHERE [code_system] = 'UNKNOWN';"))
 if (procedure_format_chk < 50) {
   procedure_format_fail <- 0
   DBI::dbExecute(conn = db_claims,
-                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                 glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_claim_procedure',
+                   'claims.stage_mcaid_claim_procedure',
                    'Format of procedure codes', 
                    'PASS', 
                    {Sys.time()}, 
@@ -109,10 +109,10 @@ if (procedure_format_chk < 50) {
 } else {
   procedure_format_fail <- 1
   DBI::dbExecute(conn = db_claims,
-                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                 glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_claim_procedure',
+                   'claims.stage_mcaid_claim_procedure',
                    'Format of procedure codes', 
                    'FAIL', 
                    {Sys.time()}, 
@@ -125,7 +125,7 @@ if (procedure_format_chk < 50) {
 procedure_num_chk <- as.integer(
   DBI::dbGetQuery(db_claims,
   "select count([procedure_code_number])
-  from [stage].[mcaid_claim_procedure]
+  from claims.stage_mcaid_claim_procedure
   where [procedure_code_number] not in
   ('01','02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', 'line')"))
 
@@ -133,10 +133,10 @@ procedure_num_chk <- as.integer(
 if (procedure_num_chk == 0) {
   procedure_num_fail <- 0
   DBI::dbExecute(conn = db_claims,
-                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                 glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_claim_procedure',
+                   'claims.stage_mcaid_claim_procedure',
                    'procedure_code_number = 01-12 or line', 
                    'PASS', 
                    {Sys.time()}, 
@@ -145,10 +145,10 @@ if (procedure_num_chk == 0) {
 } else {
   procedure_num_fail <- 1
   DBI::dbExecute(conn = db_claims,
-                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                 glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_claim_procedure',
+                   'claims.stage_mcaid_claim_procedure',
                    'procedure_code_number = 01-12 or line', 
                    'FAIL', 
                    {Sys.time()}, 
@@ -160,21 +160,21 @@ if (procedure_num_chk == 0) {
 #### Check if any diagnosis codes do not join to reference table ####
 procedure_chk <- as.integer(DBI::dbGetQuery(db_claims,
   "select count(distinct [procedure_code]) 
-  from [stage].[mcaid_claim_procedure] as a 
+  from claims.stage_mcaid_claim_procedure as a 
   where not exists
   (
     select 1
-    from [ref].[pcode] as b
+    from claims.ref_pcode as b
     where a.[procedure_code] = b.[pcode])"))
 
 # Write findings to metadata
 if (procedure_chk < 200) {
   procedure_fail <- 0
   DBI::dbExecute(conn = db_claims,
-                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                 glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_claim_procedure',
+                   'claims.stage_mcaid_claim_procedure',
                    'Almost all procedure codes join to reference table', 
                    'PASS', 
                    {Sys.time()}, 
@@ -183,10 +183,10 @@ if (procedure_chk < 200) {
 } else {
   procedure_fail <- 1
   DBI::dbExecute(conn = db_claims,
-                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                 glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_claim_procedure',
+                   'claims.stage_mcaid_claim_procedure',
                    'Almost all procedure codes join to reference table', 
                    'FAIL', 
                    {Sys.time()}, 
@@ -195,67 +195,76 @@ if (procedure_chk < 200) {
 }
 
 
+
 #### Compare number of dx codes in current vs. prior analytic tables ####
-num_procedure_current <- DBI::dbGetQuery(db_claims,
- "SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [current_num_procedure]
- FROM [final].[mcaid_claim_procedure]
+if (DBI::dbExistsTable(db_claims,
+                       DBI::Id(schema = "claims", table = "final_mcaid_claim_procedure"))) {
+  
+  
+  num_procedure_current <- DBI::dbGetQuery(db_claims,
+                                           "SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [current_num_procedure]
+ FROM claims.final_mcaid_claim_procedure
  GROUP BY YEAR([first_service_date]) ORDER BY YEAR([first_service_date])")
-
-num_procedure_new <- DBI::dbGetQuery(db_claims,
-"SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [new_num_procedure]
- FROM [stage].[mcaid_claim_procedure]
+  
+  num_procedure_new <- DBI::dbGetQuery(db_claims,
+                                       "SELECT YEAR([first_service_date]) AS [claim_year], COUNT(*) AS [new_num_procedure]
+ FROM claims.stage_mcaid_claim_procedure
  GROUP BY YEAR([first_service_date]) ORDER by YEAR([first_service_date])")
-
-num_procedure_overall <- left_join(num_procedure_new, num_procedure_current, by = "claim_year") %>%
-  mutate(pct_change = round((new_num_procedure - current_num_procedure) / current_num_procedure * 100, 4))
-               
-# Write findings to metadata
-if (max(num_procedure_overall$pct_change, na.rm = T) > 0 & 
-    min(num_procedure_overall$pct_change, na.rm = T) >= 0) {
-  num_procedure_fail <- 0
-  DBI::dbExecute(conn = db_claims, 
-                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+  
+  num_procedure_overall <- left_join(num_procedure_new, num_procedure_current, by = "claim_year") %>%
+    mutate(pct_change = round((new_num_procedure - current_num_procedure) / current_num_procedure * 100, 4))
+  
+  # Write findings to metadata
+  if (max(num_procedure_overall$pct_change, na.rm = T) > 0 & 
+      min(num_procedure_overall$pct_change, na.rm = T) >= 0) {
+    num_procedure_fail <- 0
+    DBI::dbExecute(conn = db_claims, 
+                   glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_claim_procedure',
+                   'claims.stage_mcaid_claim_procedure',
                    'Change in number of procedures', 
                    'PASS', 
                    {Sys.time()}, 
                    'The following years had more procedures than in the final schema table: ", 
-                                "{DBI::SQL(glue::glue_collapse(
+                                  "{DBI::SQL(glue::glue_collapse(
                  glue::glue_data(data.frame(year = num_procedure_overall$claim_year[num_procedure_overall$pct_change > 0], 
                                             pct = round(abs(num_procedure_overall$pct_change[num_procedure_overall$pct_change > 0]), 2)),
                                  '{year} ({pct}% more)'), sep = ', ', last = ' and '))}')",
-                                .con = db_claims))
-} else if (min(num_procedure_overall$pct_change, na.rm = T) + max(num_procedure_overall$pct_change, na.rm = T) == 0) {
-  num_procedure_fail <- 1
-  DBI::dbExecute(conn = db_claims, 
-  glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                                  .con = db_claims))
+  } else if (min(num_procedure_overall$pct_change, na.rm = T) + max(num_procedure_overall$pct_change, na.rm = T) == 0) {
+    num_procedure_fail <- 1
+    DBI::dbExecute(conn = db_claims, 
+                   glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_claim_procedure',
+                   'claims.stage_mcaid_claim_procedure',
                    'Change in number of procedures', 
                    'FAIL', 
                    {Sys.time()}, 
                    'No change in the number of procedures compared to final schema table')",
-                 .con = db_claims))
-} else if (min(num_procedure_overall$pct_change, na.rm = T) < 0) {
-  num_procedure_fail <- 1
-  DBI::dbExecute(conn = db_claims, 
-                 glue::glue_sql("INSERT INTO metadata.qa_mcaid
+                                  .con = db_claims))
+  } else if (min(num_procedure_overall$pct_change, na.rm = T) < 0) {
+    num_procedure_fail <- 1
+    DBI::dbExecute(conn = db_claims, 
+                   glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'stage.mcaid_claim_procedure',
+                   'claims.stage_mcaid_claim_procedure',
                    'Change in number of procedures', 
                    'FAIL', 
                    {Sys.time()}, 
                    'The following years had fewer procedures than in the final schema table: ", 
-                                "{DBI::SQL(glue::glue_collapse(
+                                  "{DBI::SQL(glue::glue_collapse(
                  glue::glue_data(data.frame(year = num_procedure_overall$claim_year[num_procedure_overall$pct_change < 0], 
                                             pct = round(abs(num_procedure_overall$pct_change[num_procedure_overall$pct_change < 0]), 2)),
                                  '{year} ({pct}% fewer)'), sep = ', ', last = ' and '))}')",
-                 .con = db_claims))
+                                  .con = db_claims))
+  }
+} else {
+  num_procedure_fail <- 0
 }
+
 
 
 #### SUM UP FAILURES ####

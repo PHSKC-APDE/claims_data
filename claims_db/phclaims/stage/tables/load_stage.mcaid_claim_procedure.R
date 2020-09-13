@@ -14,15 +14,15 @@
 
 
 #### PULL IN CONFIG FILE ####
-config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_procedure.yaml"
-
-load_mcaid_claim_procedure_config <- yaml::yaml.load(RCurl::getURL(config_url))
+load_mcaid_claim_procedure_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_procedure.yaml"))
 
 
-#### CREATE TABLE ####
-create_table_f(conn = db_claims, config_url = config_url, overall = T, ind_yr = F)
+#### STEP 1: DROP EXISTING TABLE TO USE SELECT INTO ####
+try(DBI::dbRemoveTable(db_claims, DBI::Id(schema = load_mcaid_claim_procedure_config$to_schema,
+                                          table = load_mcaid_claim_procedure_config$to_table)))
 
-#### LOAD TABLE ####
+#### STEP 2: INSERT INTO TABLE ####
+# Takes ~ 60 minutes in Azure
 # NB: Changes in table structure need to altered here and the YAML file
 insert_sql <- glue::glue_sql("
 SELECT DISTINCT
@@ -63,7 +63,7 @@ select
 ,MDFR_CODE2 as [modifier_2]
 ,MDFR_CODE3 as [modifier_3]
 ,MDFR_CODE4 as [modifier_4]
-from{load_mcaid_claim_procedure_config$from_schema}.{load_mcaid_claim_procedure_config$from_table}
+FROM {`load_mcaid_claim_procedure_config$from_schema`}.{`load_mcaid_claim_procedure_config$from_table`}
 ) as a
 
 unpivot(procedure_code for procedure_code_number in 
@@ -74,16 +74,16 @@ message(glue::glue("Loading to {load_mcaid_claim_procedure_config$to_schema}.{lo
 time_start <- Sys.time()
 DBI::dbExecute(conn = db_claims, insert_sql)
 time_end <- Sys.time()
-print(paste0("Loading took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-             " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
-             " mins)"))
+message(glue::glue("Table creation took {round(difftime(time_end, time_start, units = 'secs'), 2)} ",
+                   " secs ({round(difftime(time_end, time_start, units = 'mins'), 2)} mins)"))
 
 
-#### ADD INDEX ####
+#### STEP 3: ADD INDEX ####
+# Takes ~6 minutes in Azure
 add_index_f(db_claims, table_config = load_mcaid_claim_procedure_config)
 
 
 #### CLEAN  UP ####
-rm(config_url, load_mcaid_claim_procedure_config)
+rm(load_mcaid_claim_procedure_config)
 rm(insert_sql)
 rm(time_start, time_end)

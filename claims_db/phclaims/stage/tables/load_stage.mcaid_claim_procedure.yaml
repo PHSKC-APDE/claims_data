@@ -3,7 +3,7 @@ from_table: stage_mcaid_claim
 to_schema: claims
 to_table: stage_mcaid_claim_procedure
 index_type: ccs
-index_name: idx_ccs_stage_mcaid_claim_procedure
+index_name: idx_ccs_mcaid_claim_procedure
 vars:
     id_mcaid: VARCHAR(255)
     claim_header_id: BIGINT

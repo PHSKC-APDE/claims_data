@@ -43,11 +43,12 @@ table_config_claim_icdcm_header <- yaml::yaml.load(
 
 
 #### STEP 1: DROP EXISTING TABLE TO USE SELECT INTO ####
-try(DBI::dbRemoveTable(db_Claims, DBI::Id(schema = table_config_claim_icdcm_header$to_schema,
+try(DBI::dbRemoveTable(db_claims, DBI::Id(schema = table_config_claim_icdcm_header$to_schema,
                                           table = table_config_claim_icdcm_header$to_table)))
 
 
-#### step 2: INSERT INTO TABLE ####
+#### STEP 2: INSERT INTO TABLE ####
+# Takes ~ 90 minutes in Azure
 step2_sql <- glue::glue_sql("
 SELECT DISTINCT
  id_mcaid
@@ -123,6 +124,7 @@ message(glue::glue("Step 2 took {round(difftime(time_end, time_start, units = 's
 
 
 #### STEP 3: ADD INDEX ####
+# Takes ~6 minutes in Azure
 message("Running step 3: create index")
 time_start <- Sys.time()
 add_index_f(db_claims, table_config = table_config_claim_icdcm_header)
