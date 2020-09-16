@@ -33,7 +33,7 @@ load_stage.apcd_claim_line_f <- function() {
     a.admission_point_of_origin_code,
     a.admission_type,
     getdate() as last_run
-    from PHClaims.stage.apcd_claim_line as a
+    from PHClaims.stage.apcd_claim_line_raw as a
     --exclude denined/orphaned claims
     left join PHClaims.stage.apcd_medical_claim_header as b
     on a.claim_header_id = b.medical_claim_header_id
