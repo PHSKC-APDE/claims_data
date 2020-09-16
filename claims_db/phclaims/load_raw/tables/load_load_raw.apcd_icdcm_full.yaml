@@ -1,5 +1,5 @@
 schema: load_raw
-table: apcd_icdcm
+table: apcd_claim_icdcm_raw
 vars:
     internal_member_id: bigint
     medical_claim_header_id: bigint	

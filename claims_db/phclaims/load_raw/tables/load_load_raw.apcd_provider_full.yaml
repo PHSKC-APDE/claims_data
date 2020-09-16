@@ -1,5 +1,5 @@
 schema: load_raw
-table: apcd_provider
+table: apcd_provider_raw
 vars:
     provider_id: bigint
     extract_id: bigint

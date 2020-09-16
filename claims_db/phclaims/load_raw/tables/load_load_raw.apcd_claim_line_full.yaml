@@ -1,5 +1,5 @@
 schema: load_raw
-table: apcd_claim_line
+table: apcd_claim_line_raw
 vars:
     id_apcd: bigint
     claim_header_id: bigint	
