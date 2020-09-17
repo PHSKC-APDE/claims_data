@@ -1,5 +1,13 @@
-schema: claims
-table: stage_mcaid_elig_demo
+phclaims:
+    from_schema: stage
+    from_table: mcaid_elig
+    to_schema: stage
+    to_table: mcaid_elig_demo
+hhsaw:
+    from_schema: claims
+    from_table: stage_mcaid_elig
+    to_schema: claims
+    to_table: stage_mcaid_elig_demo
 vars:
     id_mcaid: VARCHAR(200)
     dob: DATE
