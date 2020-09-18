@@ -1,0 +1,39 @@
+phclaims:
+    from_schema: stage
+    from_table: mcaid_elig
+    to_schema: stage
+    to_table: mcaid_elig_demo
+    ref_schema: ref
+    ref_table: 
+hhsaw:
+    from_schema: claims
+    from_table: stage_mcaid_elig
+    to_schema: claims
+    to_table: stage_mcaid_elig_demo
+    ref_schema: claims
+    ref_table: ref_
+vars:
+    id_mcaid: VARCHAR(255)
+    from_date: DATE
+    to_date: DATE
+    contiguous: TINYINT
+    dual: TINYINT
+    tpl: TINYINT
+    bsp_group_cid: INTEGER
+    full_benefit: TINYINT
+    full_criteria: TINYINT
+    cov_type: CHAR(3)
+    mco_id: INT
+    geo_add1: VARCHAR(255)
+    geo_add2: VARCHAR(255)
+    geo_city: VARCHAR(255)
+    geo_state: VARCHAR(255)
+    geo_zip: VARCHAR(255)
+    geo_zip_centroid: TINYINT
+    geo_street_centroid: TINYINT
+    geo_county_code: varchar(255)
+    geo_tract_code: VARCHAR(255)
+    geo_hra_code: SMALLINT
+    geo_school_code: VARCHAR(255)
+    cov_time_day: SMALLINT
+    last_run: DATETIME
