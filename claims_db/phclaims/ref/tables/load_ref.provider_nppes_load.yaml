@@ -331,6 +331,6 @@ vars:
     healthcare_provider_taxonomy_group_14: varchar(255)
     healthcare_provider_taxonomy_group_15: varchar(255)
 overall:
-    file_path: \\\\phdata01/epe_data/nppes/npidata_pfile.csv
+    file_path: //phdata01/epe_data/nppes/npidata_pfile.csv
     field_term: ','
     row_term: \n
