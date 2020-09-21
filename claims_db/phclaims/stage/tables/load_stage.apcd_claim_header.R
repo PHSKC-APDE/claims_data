@@ -38,7 +38,7 @@ load_stage.apcd_claim_header_f <- function() {
     as varchar(100)) as claim_type_apcd_id,
     
     --ED performance temp flags (RDA measure)
-    cast(case when a.emergency_room_flag = 'Y' then 1 else 0 end) as tinyint) as ed_perform_temp,
+    cast(case when a.emergency_room_flag = 'Y' then 1 else 0 end as tinyint) as ed_perform_temp,
     
     --ED population health temp flags (Yale measure)
     b.ed_pos_temp,
