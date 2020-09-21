@@ -3,7 +3,7 @@
 # header-level claim information in long format for Medicaid claims data
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/azure_migration/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 # 
 # SQL script created by: Eli Kern, APDE, PHSKC, 2018-03-21
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05 and 2019-12
@@ -101,15 +101,15 @@ if (!exists("db_claims")) {
 }
 
 if (!exists("create_table_f")) {
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/create_table.R")
 }
 
 if (!exists("add_index")) {
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/add_index.R")
 }
 
 table_config_claim_header <- yaml::yaml.load(
-  RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.yaml"))
+  RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.yaml"))
 
 
 #### STEP 0: SET UP TEMP TABLE ####
@@ -142,7 +142,7 @@ DBI::dbExecute(db_claims,
            ,cast([DRVD_DRG_CODE] as varchar(255)) as drvd_drg_code
            ,cast([PRIMARY_DIAGNOSIS_POA_LKPCD] as varchar(255)) as primary_diagnosis_poa
            ,cast([INSRNC_CVRG_CODE] as varchar(255)) as insrnc_cvrg_code
-           ,cast([LAST_PYMNT_DATE] as date) as last_pymnt_date
+           ,cast([LT_PYMNT_DATE] as date) as last_pymnt_date -- Change this back to LAST_ when the external table is remade
            ,cast([BILL_DATE] as date) as bill_date
            ,cast([SYSTEM_IN_DATE] as date) as system_in_date
            ,cast([TCN_DATE] as date) as claim_header_id_date
@@ -317,47 +317,41 @@ SELECT
 ,1 AS [inpatient]
 
 INTO ##hedis_inpatient_definition
---SELECT COUNT(*)
 FROM claims.final_mcaid_claim_line AS a
-INNER JOIN claims.archive_hedis_code_system] AS b
-ON [value_set_name] IN 
-('Inpatient Stay')
+
+INNER JOIN claims.ref_hedis_code_system AS b
+ON [value_set_name] IN ('Inpatient Stay')
 AND [code_system] = 'UBREV'
 AND a.[rev_code] = b.[code]
 
 EXCEPT
+  (SELECT  
+    [id_mcaid]
+    ,[claim_header_id]
+    ,[first_service_date]
+    ,1 AS [inpatient]
+  FROM claims.final_mcaid_claim_line AS a
 
-(
-SELECT 
- [id_mcaid]
-,[claim_header_id]
-,[first_service_date]
-,1 AS [inpatient]
+  INNER JOIN claims.ref_hedis_code_system AS b
+  ON [value_set_name] IN ('Nonacute Inpatient Stay')
+    AND [code_system] = 'UBREV'
+    AND a.[rev_code] = b.[code]
 
---SELECT COUNT(*)
-FROM claims.final_mcaid_claim_line AS a
-INNER JOIN claims.archive_hedis_code_system] AS b
-ON [value_set_name] IN 
-('Nonacute Inpatient Stay')
-AND [code_system] = 'UBREV'
-AND a.[rev_code] = b.[code]
+  UNION
 
-UNION
+  SELECT 
+    [id_mcaid]
+    ,[claim_header_id]
+    ,[first_service_date]
+    ,1 AS [inpatient
+  FROM claims.final_mcaid_claim_header AS a
 
-SELECT 
- [id_mcaid]
-,[claim_header_id]
-,[first_service_date]
-,1 AS [inpatient]
-
---SELECT COUNT(*)
-FROM claims.final_mcaid_claim_header AS a
-INNER JOIN claims.archive_hedis_code_system] AS b
-ON [value_set_name] IN 
-('Nonacute Inpatient Stay')
-AND [code_system] = 'UBTOB'
-AND a.[type_of_bill_code] = b.[code]
-);")
+  INNER JOIN claims.ref_hedis_code_system AS b
+  ON [value_set_name] IN ('Nonacute Inpatient Stay')
+    AND [code_system] = 'UBTOB'
+    AND a.[type_of_bill_code] = b.[code]
+  );
+")
 
 # Add index
 DBI::dbExecute(db_claims, "create clustered index idx_cl_##hedis_inpatient_definition on ##hedis_inpatient_definition([claim_header_id])")
@@ -458,7 +452,7 @@ DBI::dbExecute(db_claims,
            b.claim_header_id
            ,max(a.ed_avoid_ca) as 'ed_avoid_ca'
            into ##avoid_ca
-           from (select dx, dx_ver, ed_avoid_ca from [ref].[dx_lookup] where ed_avoid_ca = 1) as a
+           from (select dx, dx_ver, ed_avoid_ca from claims.ref_dx_lookup where ed_avoid_ca = 1) as a
            inner join (select claim_header_id, icdcm_norm, icdcm_version from claims.final_mcaid_claim_icdcm_header where icdcm_number = '01') as b
            on (a.dx_ver = b.icdcm_version) and (a.dx = b.icdcm_norm)
            group by b.claim_header_id")
@@ -482,7 +476,7 @@ DBI::dbExecute(db_claims,
            ,a.ed_injury_nyu
            ,a.ed_unclass_nyu
            into ##avoid_nyu
-           from [ref].[dx_lookup] as a
+           from claims.ref_dx_lookup as a
            inner join (select claim_header_id, icdcm_norm, icdcm_version 
            from claims.final_mcaid_claim_icdcm_header where icdcm_number = '01') as b
            on a.dx_ver = b.icdcm_version and a.dx = b.icdcm_norm")
@@ -508,7 +502,7 @@ DBI::dbExecute(db_claims,
            ,a.ccs_final_description
            ,a.ccs_final_plain_lang
            into ##ccs
-           from [ref].[dx_lookup] as a
+           from claims.ref_dx_lookup as a
            inner join (select claim_header_id, icdcm_norm, icdcm_version 
            from claims.final_mcaid_claim_icdcm_header where icdcm_number = '01') as b
            on a.dx_ver = b.icdcm_version and a.dx = b.icdcm_norm")
@@ -525,7 +519,7 @@ DBI::dbExecute(db_claims,
            ,max(a.mental_dx_rda) as 'mental_dx_rda_any'
            ,max(a.sud_dx_rda) as 'sud_dx_rda_any'
            into ##rda
-           from [ref].[dx_lookup] as a
+           from claims.ref_dx_lookup as a
            inner join claims.final_mcaid_claim_icdcm_header as b
            on a.dx_ver = b.icdcm_version and a.dx = b.icdcm_norm
            group by b.claim_header_id")
@@ -550,7 +544,7 @@ DBI::dbExecute(db_claims,
              ,intent
              ,mechanism
              ,row_number() over (partition by b.claim_header_id order by b.icdcm_number) as 'diag_rank'
-             from (select dx, intent, mechanism from [ref].[dx_lookup] where intent is not null and dx_ver = 9) as a
+             from (select dx, intent, mechanism from claims.ref_dx_lookup where intent is not null and dx_ver = 9) as a
              inner join (select claim_header_id, icdcm_norm, icdcm_number from claims.final_mcaid_claim_icdcm_header where icdcm_version = 9) as b
              on (a.dx = b.icdcm_norm)
            ) as c
@@ -564,7 +558,7 @@ DBI::dbExecute(db_claims,
            "select 
            b.claim_header_id
            into ##inj10_temp1
-           from (select dx, injury_icd10cm from [ref].[dx_lookup] where injury_icd10cm = 1 and dx_ver = 10) as a
+           from (select dx, injury_icd10cm from claims.ref_dx_lookup where injury_icd10cm = 1 and dx_ver = 10) as a
            inner join (select claim_header_id, icdcm_norm from claims.final_mcaid_claim_icdcm_header where icdcm_number = '01' and icdcm_version = 10) as b
            on a.dx = b.icdcm_norm;
            
@@ -595,7 +589,7 @@ DBI::dbExecute(db_claims,
              ,intent
              ,mechanism
              ,row_number() over (partition by b.claim_header_id order by b.icdcm_number) as 'diag_rank'
-             from (select dx, dx_ver, intent, mechanism from [ref].[dx_lookup] where intent is not null and dx_ver = 10) as a
+             from (select dx, dx_ver, intent, mechanism from claims.ref_dx_lookup where intent is not null and dx_ver = 10) as a
              inner join ##inj10_temp2 as b
              on a.dx = b.icdcm_norm
            ) as c
@@ -900,7 +894,7 @@ DBI::dbExecute(db_claims, "create clustered index [idx_cl_##temp2] on ##temp2(cl
 
 #### STEP 17: CREATE FINAL TABLE STRUCTURE ####
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.yaml",
                overall = T, ind_yr = F, overwrite = T)
 
 

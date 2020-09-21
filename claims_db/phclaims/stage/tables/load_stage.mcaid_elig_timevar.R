@@ -41,7 +41,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                       config[[server]][["ref_table"]])
   
-  message("Creating claims.stage_mcaid_elig_timevar. This will take ~80 minutes to run.")
+  message("Creating ", to_schema, ".", to_table, ". This will take ~80 minutes to run.")
   
 
   #### STEP 1: PULL COLUMNS FROM RAW DATA AND GET CLEAN ADDRESSES (~15 MINS) ####

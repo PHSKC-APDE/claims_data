@@ -20,6 +20,7 @@
 #### FUNCTION ####
 create_table_f <- function(
   conn,
+  server = NULL,
   config_url = NULL,
   config_file = NULL,
   overwrite = T,
@@ -29,6 +30,14 @@ create_table_f <- function(
   ind_yr = NULL
 ) {
   
+  
+  ### SET UP SERVER
+  if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!is.null(server)) {
+    message("Server must be phclaims or hhsaw")
+    server <- NA
+  }
   
   #### INITIAL ERROR CHECK ####
   # Check if the config provided is a local file or on a webpage
@@ -115,28 +124,32 @@ create_table_f <- function(
   
   
   #### VARIABLES ####
-  # Set up to work with both new and old way of using YAML files
-  if (!is.null(table_config$to_table)) {
-    table_name <- table_config$to_table
-  } else {
-    table_name <- table_config$table
+  ### VARIABLES
+  if (!is.na(server)) {
+    to_schema <- table_config[[server]][["to_schema"]]
+    to_table <- table_config[[server]][["to_table"]]}
+  else {
+    # Set up to work with both new and old way of using YAML files
+    if (!is.null(table_config$to_schema)) {
+      schema <- table_config$to_schema
+    } else {
+      schema <- table_config$schema
+    }
+    
+    if (!is.null(table_config$to_table)) {
+      to_table <- table_config$to_table
+    } else {
+      to_table <- table_config$table
+    }
   }
+  
   
   vars <- unlist(table_config$vars)  
 
   
   if (test_mode == T) {
+    to_table <- glue::glue("{to_schema}_{to_table}")
     schema <- "tmp"
-    
-    if (!is.null(table_config$to_schema)) {
-      table_name <- glue::glue("{table_config$to_schema}_{table_name}")
-    } else {
-      table_name <- glue::glue("{table_config$schema}_{table_name}")
-    }
-  } else if (!is.null(table_config$to_schema)) {
-    schema <- table_config$to_schema
-  } else {
-    schema <- table_config$schema
   }
   
   if (external == T) {
@@ -149,20 +162,20 @@ create_table_f <- function(
     external_text <- DBI::SQL("")
   }
   
-  message(glue::glue("Creating [{schema}].[{table_name}] table", test_msg))
+  message(glue::glue("Creating [{schema}].[{to_table}] table", test_msg))
   
-  tbl_name <- DBI::Id(schema = schema, table = table_name)
+  tbl_name <- DBI::Id(schema = schema, table = to_table)
   
   if (overwrite == T) {
     if (DBI::dbExistsTable(conn, tbl_name)) {
       DBI::dbExecute(conn, 
-                     glue::glue_sql("DROP {external_setup} TABLE {`schema`}.{`table_name`}",
+                     glue::glue_sql("DROP {external_setup} TABLE {`schema`}.{`to_table`}",
                                     .con = conn))
     }
   }
   
   create_code <- glue::glue_sql(
-    "CREATE {external_setup} TABLE {`schema`}.{`table_name`} (
+    "CREATE {external_setup} TABLE {`schema`}.{`to_table`} (
       {DBI::SQL(glue_collapse(glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}', 
       .con = conn), sep = ', \n'))}
       ) {external_text}", 

@@ -19,15 +19,23 @@ library(glue) # Safely combine SQL code
 library(keyring) # Access stored credentials
 
 
-db_claims <- DBI::dbConnect(odbc::odbc(),
-                            driver = "ODBC Driver 17 for SQL Server",
-                            server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
-                            database = "hhs_analytics_workspace",
-                            uid = keyring::key_list("hhsaw_dev")[["username"]],
-                            pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
-                            Encrypt = "yes",
-                            TrustServerCertificate = "yes",
-                            Authentication = "ActiveDirectoryPassword")
+
+server <- select.list(choices = c("phclaims", "hhsaw"))
+
+
+if (server == "phclaims") {
+  db_claims <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
+} else if (server == "hhsaw") {
+  db_claims <- DBI::dbConnect(odbc::odbc(),
+                              driver = "ODBC Driver 17 for SQL Server",
+                              server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
+                              database = "hhs_analytics_workspace",
+                              uid = keyring::key_list("hhsaw_dev")[["username"]],
+                              pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
+                              Encrypt = "yes",
+                              TrustServerCertificate = "yes",
+                              Authentication = "ActiveDirectoryPassword")
+}
 
 
 #### SET UP FUNCTIONS ####
@@ -38,49 +46,58 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/a
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/load_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/qa_load_sql.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/yaml_import.R")
 
 
 
 #### CREATE ELIG TABLES --------------------------------------------------------
 #### MCAID_ELIG_DEMO ####
+### Bring in function and config file
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.R")
+stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.yaml")
 
-# Pull out run date of claims.stage_mcaid_elig_demo
-last_run_elig_demo <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM claims.stage_mcaid_elig_demo")[[1]])
+# Run function
+load_stage_mcaid_elig_demo_f(conn = db_claims, server = server, config = stage_mcaid_elig_demo_config)
 
-# QA stage version
+# Pull out run date of stage_mcaid_elig_demo
+last_run_elig_demo <- as.POSIXct(odbc::dbGetQuery(
+  db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_demo_config[[server]][['to_schema']]`}{`stage_mcaid_elig_demo_config[[server]][['to_table']]`}",
+                            .con = db_claims))[[1]])
+
+### QA stage version
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
-qa_stage_mcaid_elig_demo <- qa_mcaid_elig_demo_f(conn = db_claims, load_only = F)
+qa_stage_mcaid_elig_demo <- qa_mcaid_elig_demo_f(conn = db_claims, server = server, 
+                                                 config = stage_mcaid_elig_demo_config, load_only = F)
 
 
 # Check that things passed QA before loading final table
 if (qa_stage_mcaid_elig_demo == 0) {
   # Check if the table exists and, if not, create it
   final_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
-  if (DBI::dbExistsTable(db_claims, DBI::Id(schema = final_mcaid_elig_demo_config$to_schema,
-                                            table = final_mcaid_elig_demo_config$to_table)) == F) {
-    create_table_f(db_claims, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
-    rm(final_mcaid_elig_demo_config)
+  
+  if (DBI::dbExistsTable(db_claims, DBI::Id(schema = final_mcaid_elig_demo_config[[server]][["to_schema"]],
+                                            table = final_mcaid_elig_demo_config[[server]][["to_table"]])) == F) {
+    create_table_f(db_claims, server = server, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
   }
   
-  # Load final table (assumes no changes to table structure)
-  load_table_from_sql_f(
-    conn = db_claims,
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml", 
-    truncate = T, truncate_date = F)
+  #### Load final table (assumes no changes to table structure)
+  load_table_from_sql_f(conn = db_claims,
+                        server = server,
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml", 
+                        truncate = T, truncate_date = F)
   
   # QA final table
-  qa_rows_final_elig_demo <- qa_sql_row_count_f(
-    conn = db_claims,
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml",
-    overall = T, ind_yr = F)
+  qa_rows_final_elig_demo <- qa_sql_row_count_f(conn = db_claims, 
+                                                server = server,
+                                                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
   
   DBI::dbExecute(
     conn = db_claims,
-    glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
+    glue::glue_sql("INSERT INTO {`final_mcaid_elig_demo_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(final_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
                  VALUES ({last_run_elig_demo}, 
-                 'final.mcaid_elig_demo',
+                 '{DBI::SQL(final_mcaid_elig_demo_config[[server]][['to_schema']])}.{DBI::SQL(final_mcaid_elig_demo_config[[server]][['to_table']])}',
                  'Number final rows compared to stage', 
                  {qa_rows_final_elig_demo$qa_result}, 
                  {Sys.time()}, 
@@ -89,45 +106,63 @@ if (qa_stage_mcaid_elig_demo == 0) {
   
   rm(qa_rows_final_elig_demo)
 } else {
-  stop("Something went wrong with the mcaid_elig_demo run. See claims.metadata_qa_mcaid_values")
+  stop(glue::glue("Something went wrong with the mcaid_elig_demo run. See {`final_mcaid_elig_demo_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(final_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid"))
 }
-rm(qa_stage_mcaid_elig_demo, last_run_elig_demo)
+
+
+### Clean up
+rm(qa_stage_mcaid_elig_demo, stage_mcaid_elig_demo_config, load_stage_mcaid_elig_demo_f, 
+   last_run_elig_demo, final_mcaid_elig_demo_config)
 
 
 
 #### MCAID_ELIG_TIMEVAR ####
-# Create and load stage version
-system.time(devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R"))
+### Bring in function and config file
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R")
+stage_mcaid_elig_timevar_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.yaml")
 
+# Run function
+load_stage_mcaid_elig_timevar_f(conn = db_claims, server = server, config = stage_mcaid_elig_timevar_config)
 
-# Pull out run date of claims.stage_mcaid_elig_timevar
-last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM claims.stage_mcaid_elig_timevar")[[1]])
+# Pull out run date of stage_mcaid_elig_timevar
+last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(
+  db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_timevar_config[[server]][['to_schema']]`}{`stage_mcaid_elig_timevar_config[[server]][['to_table']]`}",
+                            .con = db_claims))[[1]])
 
-# QA stage version
+### QA stage version
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
-qa_stage_mcaid_elig_timevar <- qa_mcaid_elig_timevar_f(conn = db_claims, load_only = F)
-
+qa_stage_mcaid_elig_timevar <- qa_mcaid_elig_timevar_f(conn = db_claims, server = server, 
+                                                 config = stage_mcaid_elig_timevar_config, load_only = F)
 
 # Check that things passed QA before loading final table
-if (qa_stage_mcaid_elig_timevar == 0) { 
-  # Create and load final table
-  create_table_f(conn = db_claims,
-                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml", overwrite = T)
+if (qa_stage_mcaid_elig_timevar == 0) {
+  # Check if the table exists and, if not, create it
+  final_mcaid_elig_timevar_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
   
+  if (DBI::dbExistsTable(db_claims, DBI::Id(schema = final_mcaid_elig_timevar_config[[server]][["to_schema"]],
+                                            table = final_mcaid_elig_timevar_config[[server]][["to_table"]])) == F) {
+    create_table_f(db_claims, server = server, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
+  }
+  
+  #### Load final table (assumes no changes to table structure)
   load_table_from_sql_f(conn = db_claims,
-                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
+                        server = server,
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml", 
                         truncate = T, truncate_date = F)
   
   # QA final table
-  qa_rows_final_elig_timevar <- qa_sql_row_count_f(conn = db_claims,
-                                                   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
+  qa_rows_final_elig_timevar <- qa_sql_row_count_f(conn = db_claims, 
+                                                server = server,
+                                                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
   
   DBI::dbExecute(
     conn = db_claims,
-    glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
+    glue::glue_sql("INSERT INTO {`final_mcaid_elig_timevar_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(final_mcaid_elig_timevar_config[[server]][['qa_table']])}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
                  VALUES ({last_run_elig_timevar}, 
-                 'final.mcaid_elig_timevar',
+                 '{DBI::SQL(final_mcaid_elig_timevar_config[[server]][['to_schema']])}.{DBI::SQL(final_mcaid_elig_timevar_config[[server]][['to_table']])}',
                  'Number final rows compared to stage', 
                  {qa_rows_final_elig_timevar$qa_result}, 
                  {Sys.time()}, 
@@ -136,10 +171,14 @@ if (qa_stage_mcaid_elig_timevar == 0) {
   
   rm(qa_rows_final_elig_timevar)
 } else {
-  stop("Something went wrong with the mcaid_elig_timevar run. See claims.metadata_qa_mcaid_values")
-  }
+  stop(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {`final_mcaid_elig_timevar_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(final_mcaid_elig_timevar_config[[server]][['qa_table']])}qa_mcaid"))
+}
 
-rm(last_run_elig_timevar, qa_stage_mcaid_elig_timevar)
+
+### Clean up
+rm(qa_stage_mcaid_elig_timevar, stage_mcaid_elig_timevar_config, load_stage_mcaid_elig_timevar_f, 
+   last_run_elig_timevar, final_mcaid_elig_timevar_config)
 
 
 

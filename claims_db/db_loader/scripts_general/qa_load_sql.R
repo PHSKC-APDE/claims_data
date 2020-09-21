@@ -11,19 +11,23 @@ if (exists("qa_error_check_f") == F) {
 
 #### FUNCTION TO CHECK ROW COUNTS MATCH in FROM and TO TABLES ####
 qa_sql_row_count_f <- function(conn = db_claims,
+                               server = NULL,
                                config_url = NULL,
-                               config_file = NULL,
-                               overall = T,
-                               ind_yr = F) {
+                               config_file = NULL) {
   
   # Don't really need overall and ind_yr but the error checking function
   # currently uses them
   
   ### BASIC ERROR CHECKS
-  qa_error_check_f(config_url_chk = config_url,
-                   config_file_chk = config_file,
-                   overall_chk = overall,
-                   ind_yr_chk = ind_yr)
+  qa_error_check_f(config_url_chk = config_url, config_file_chk = config_file)
+  
+  ### SET UP SERVER
+  if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!is.null(server)) {
+    message("Server must be phclaims or hhsaw")
+    server <- NA
+  }
   
   ### READ IN CONFIG FILE
   if (!is.null(config_url)) {
@@ -34,22 +38,28 @@ qa_sql_row_count_f <- function(conn = db_claims,
   
   
   ### VARIABLES
-  from_schema <- table_config$from_schema
-  from_table <- table_config$from_table
-  to_schema <- table_config$to_schema
-  to_table <- table_config$to_table
+  if (!is.na(server)) {
+    from_schema <- table_config[[server]][["from_schema"]]
+    from_table <- table_config[[server]][["from_table"]]
+    to_schema <- table_config[[server]][["to_schema"]]
+    to_table <- table_config[[server]][["to_table"]]}
+  else {
+    from_schema <- table_config$from_schema
+    from_table <- table_config$from_table
+    to_schema <- table_config$to_schema
+    to_table <- table_config$to_table
+  }
+
   
   ### VALUES
   rows_from <- odbc::dbGetQuery(conn = conn,
                                 glue::glue_sql(
-                                  "SELECT COUNT (*) 
-                                  FROM {`from_schema`}.{`from_table`}",
+                                  "SELECT COUNT (*) FROM {`from_schema`}.{`from_table`}",
                                   .con = conn))
   
   rows_to <- odbc::dbGetQuery(conn = conn,
                                 glue::glue_sql(
-                                  "SELECT COUNT (*) 
-                                  FROM {`to_schema`}.{`to_table`}",
+                                  "SELECT COUNT (*) FROM {`to_schema`}.{`to_table`}",
                                   .con = conn))
   
   

@@ -3,11 +3,15 @@ phclaims:
     from_table: mcaid_elig
     to_schema: stage
     to_table: mcaid_elig_demo
+    qa_schema: metadata
+    qa_table: 
 hhsaw:
     from_schema: claims
     from_table: stage_mcaid_elig
     to_schema: claims
     to_table: stage_mcaid_elig_demo
+    qa_schema: claims
+    qa_table: metadata_
 vars:
     id_mcaid: VARCHAR(200)
     dob: DATE

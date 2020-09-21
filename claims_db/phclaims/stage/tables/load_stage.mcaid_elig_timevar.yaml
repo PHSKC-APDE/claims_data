@@ -5,6 +5,8 @@ phclaims:
     to_table: mcaid_elig_demo
     ref_schema: ref
     ref_table: 
+    qa_schema: metadata
+    qa_table: 
 hhsaw:
     from_schema: claims
     from_table: stage_mcaid_elig
@@ -12,6 +14,8 @@ hhsaw:
     to_table: stage_mcaid_elig_demo
     ref_schema: claims
     ref_table: ref_
+    qa_schema: claims
+    qa_table: metadata_
 vars:
     id_mcaid: VARCHAR(255)
     from_date: DATE

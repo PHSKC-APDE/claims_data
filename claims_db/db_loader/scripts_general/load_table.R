@@ -446,6 +446,7 @@ load_table_from_file_f <- function(
 #### FUNCTION TO LOAD DATA FROM EXISTING SQL TABLES ####
 ### PARAMETERS
 # conn = name of the connection to the SQL database
+# server = name of server being used (if using newer YAML format)
 # config_file = path + file name of YAML config file
 # truncate = whether to FULLY truncate the table before loading
 # date_truncate = whether to PARTIALLY truncate the table from a specified date
@@ -458,10 +459,11 @@ load_table_from_file_f <- function(
 
 load_table_from_sql_f <- function(
   conn,
+  server = NULL,
   config_url = NULL,
   config_file = NULL,
   truncate = F,
-  truncate_date = T,
+  truncate_date = F,
   auto_date = F,
   test_mode = F,
   mcaid_claim = F # Specific recoding of Medicaid claims variables
@@ -491,6 +493,15 @@ load_table_from_sql_f <- function(
     
   }
   
+  #### SET UP SERVER ####
+  if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!is.null(server)) {
+    message("Server must be phclaims or hhsaw")
+    server <- NA
+  }
+  
+  
   #### READ IN CONFIG FILE ####
   if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
@@ -506,38 +517,6 @@ load_table_from_sql_f <- function(
   }
   
   # Check that the yaml config file has necessary components
-  if (!"from_schema" %in% names(table_config) & test_mode == F) {
-    stop("YAML file is missing a from_schema section")
-  } else {
-    if (is.null(table_config$from_schema)) {
-      stop("from_schema name is blank in config file")
-    }
-  }
-  
-  if (!"from_table" %in% names(table_config)) {
-    stop("YAML file is missing a from_table section")
-  } else {
-    if (is.null(table_config$from_table)) {
-      stop("from_table name is blank in config file")
-    }
-  }
-  
-  if (!"to_schema" %in% names(table_config) & test_mode == F) {
-    stop("YAML file is missing a to_schema section")
-  } else {
-    if (is.null(table_config$to_schema)) {
-      stop("to_schema name is blank in config file")
-    }
-  }
-  
-  if (!"to_table" %in% names(table_config)) {
-    stop("YAML file is missing a to_table section")
-  } else {
-    if (is.null(table_config$to_table)) {
-      stop("to_table name is blank in config file")
-    }
-  }
-  
   if (!"vars" %in% names(table_config)) {
     stop("YAML file is missing a variables (vars) section")
   } else {
@@ -579,9 +558,23 @@ load_table_from_sql_f <- function(
   
   
   #### VARIABLES ####
-  from_schema <- table_config$from_schema
-  from_table <- table_config$from_table
-  to_table <- table_config$to_table
+  if (!is.na(server)) {
+    from_schema <- table_config[[server]][["from_schema"]]
+    from_table <- table_config[[server]][["from_table"]]
+    to_schema <- table_config[[server]][["to_schema"]]
+    to_table <- table_config[[server]][["to_table"]]
+    if ("archive_schema" %in% table_config[[server]]) {
+      archive_schema <- table_config[[server]][["archive_schema"]]
+    }
+  } else {
+    from_schema <- table_config$from_schema
+    from_table <- table_config$from_table
+    to_schema <- table_config$to_schema
+    to_table <- table_config$to_table
+    archive_schema <- "archive"
+    archive_table_name <- to_table
+  }
+  
   
   if (!is.null(names(table_config$vars))) {
     vars <- unlist(names(table_config$vars))
@@ -597,7 +590,8 @@ load_table_from_sql_f <- function(
   }
   
   if (test_mode == T) {
-    to_schema <- "tmp"
+    # Overwrite existing values
+    to_schema <- "tmp" 
     archive_schema <- "tmp"
     archive_table_name <- glue("archive_{to_table}")
     to_table <- glue("{table_config$to_schema}_{to_table}")
@@ -605,9 +599,6 @@ load_table_from_sql_f <- function(
     archive_rows <- " TOP (4000) " # When unioning tables in test mode, ensure a mix from both
     new_rows <- " TOP (1000) " # When unioning tables in test mode, ensure a mix from both
   } else {
-    to_schema <- table_config$to_schema
-    archive_schema <- "archive"
-    archive_table_name <- to_table
     load_rows <- ""
     archive_rows <- ""
     new_rows <- ""
