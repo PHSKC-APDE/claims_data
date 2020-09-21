@@ -17,9 +17,9 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
     --Exclude all denied and orphaned claim lines
     -------------------
     insert into PHClaims.stage.apcd_claim_icdcm_header with (tablock)
-    select internal_member_id as id_apcd, medical_claim_header_id as 'claim_header_id', first_service_dt as first_service_date, 
-      last_service_dt as last_service_date, icdcm_raw, icdcm_norm, icdcm_version, icdcm_number, getdate() as last_run
-    from PHClaims.stage.apcd_claim_icdcm_raw
+    select a.internal_member_id as id_apcd, a.medical_claim_header_id as 'claim_header_id', a.first_service_dt as first_service_date, 
+      a.last_service_dt as last_service_date, a.icdcm_raw, a.icdcm_norm, a.icdcm_version, a.icdcm_number, getdate() as last_run
+    from PHClaims.stage.apcd_claim_icdcm_raw as a
     --exclude denined/orphaned claims
     left join PHClaims.stage.apcd_medical_claim_header as b
     on a.medical_claim_header_id = b.medical_claim_header_id
