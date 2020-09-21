@@ -572,7 +572,7 @@ load_table_from_sql_f <- function(
     to_schema <- table_config$to_schema
     to_table <- table_config$to_table
     archive_schema <- "archive"
-    archive_table_name <- to_table
+    archive_table <- to_table
   }
   
   
@@ -591,10 +591,10 @@ load_table_from_sql_f <- function(
   
   if (test_mode == T) {
     # Overwrite existing values
+    to_table <- glue("{to_schema}_{to_table}")
+    archive_table <- glue("archive_{to_table}")
     to_schema <- "tmp" 
     archive_schema <- "tmp"
-    archive_table_name <- glue("archive_{to_table}")
-    to_table <- glue("{table_config$to_schema}_{to_table}")
     load_rows <- " TOP (5000) " # Using 5,000 to better test data from multiple years
     archive_rows <- " TOP (4000) " # When unioning tables in test mode, ensure a mix from both
     new_rows <- " TOP (1000) " # When unioning tables in test mode, ensure a mix from both
@@ -663,23 +663,23 @@ load_table_from_sql_f <- function(
   # 'Truncate' from a given date if desired (really move existing data to archive then copy back)
   if (truncate == F & truncate_date == T) {
     # Check if the archive table exists and move table over. If not, show message.
-    tbl_id <- DBI::Id(catalog = "PHClaims", schema = archive_schema, table = archive_table_name)
+    tbl_id <- DBI::Id(catalog = "PHClaims", schema = archive_schema, table = archive_table)
     if (dbExistsTable(conn, tbl_id)) {
       message("Truncating existing archive table")
-      dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`archive_schema`}.{`archive_table_name`}", .con = conn))
+      dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`archive_schema`}.{`archive_table`}", .con = conn))
     } else {
       # Note currently only set up to create table if using newer YAML format with vartypes
       if (!is.null(names(table_config$vars))) {
-        message(glue("Note: {archive_schema}.{archive_table_name} did not exist so was created"))
-        DBI::dbCreateTable(conn, name = DBI::Id(schema = archive_schema, table = archive_table_name), 
+        message(glue("Note: {archive_schema}.{archive_table} did not exist so was created"))
+        DBI::dbCreateTable(conn, name = DBI::Id(schema = archive_schema, table = archive_table), 
                            fields = table_config$vars)
       } else {
-        message(glue("Note: {archive_schema}.{archive_table_name} does not exist, please create it"))
+        message(glue("Note: {archive_schema}.{archive_table} does not exist, please create it"))
       }
     }
     
     # Use real to_schema and to_table here to obtain actual data
-    sql_archive <- glue::glue_sql("INSERT INTO {`archive_schema`}.{`archive_table_name`} WITH (TABLOCK) 
+    sql_archive <- glue::glue_sql("INSERT INTO {`archive_schema`}.{`archive_table`} WITH (TABLOCK) 
                                 SELECT {`archive_rows`} {`vars`*} FROM 
                                 {`table_config$to_schema`}.{`table_config$to_table`}", 
                                   .con = conn,
@@ -692,7 +692,7 @@ load_table_from_sql_f <- function(
     # Check that the full number of rows are in the archive table
     if (test_mode == F) {
       archive_row_cnt <- as.numeric(odbc::dbGetQuery(
-        db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`archive_schema`}.{`archive_table_name`}", .con = conn)))
+        db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`archive_schema`}.{`archive_table`}", .con = conn)))
       stage_row_cnt <- as.numeric(odbc::dbGetQuery(
         db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`table_config$to_schema`}.{`table_config$to_table`}", .con = conn)))
       
@@ -768,7 +768,7 @@ load_table_from_sql_f <- function(
       sql_combine <- glue::glue_sql(
         "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
         ({`vars`*}) 
-        SELECT {`vars`*} FROM {`archive_schema`}.{`archive_table_name`}
+        SELECT {`vars`*} FROM {`archive_schema`}.{`archive_table`}
           WHERE {`date_var`} < {date_truncate}
         UNION
         SELECT {load_rows} CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
@@ -779,7 +779,7 @@ load_table_from_sql_f <- function(
     } else {
       sql_combine <- glue::glue_sql(
         "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
-        SELECT {`vars`*} FROM {`archive_schema`}.{`archive_table_name`}
+        SELECT {`vars`*} FROM {`archive_schema`}.{`archive_table`}
           WHERE {`date_var`} < {date_truncate}  
         UNION 
         SELECT {load_rows} {`vars`*} FROM {`from_schema`}.{`from_table`}

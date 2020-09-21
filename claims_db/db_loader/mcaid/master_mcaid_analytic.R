@@ -195,8 +195,17 @@ rm(qa_stage_mcaid_elig_timevar, stage_mcaid_elig_timevar_config, load_stage_mcai
 
 
 #### MCAID_CLAIM_LINE ####
-### Create and load table, add index
+### Bring in function and config file
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_line.R")
+stage_mcaid_claim_line_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_line.yaml")
+
+# Run function, which also adds index
+load_stage_mcaid_claim_line_f(conn = db_claims, server = server, config = stage_mcaid_claim_line_config)
+
+
+
+
+
 
 ### QA table and load to final
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_line.R",
