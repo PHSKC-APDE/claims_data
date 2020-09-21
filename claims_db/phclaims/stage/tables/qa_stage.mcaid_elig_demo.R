@@ -1,11 +1,17 @@
-###############################################################################
 # Alastair Matheson
 # 2019-05
 
 # Code to QA stage_mcaid_elig_demo
 
-###############################################################################
 
+
+### Function elements
+# conn = database connection
+# server = whether we are working in HHSAW or PHClaims
+# config = the YAML config file. Can be either an object already loaded into 
+#   R or a URL that should be used
+# get_config = if a URL is supplied, set this to T so the YAML file is loaded
+# load_only = only enter new values to that table, no other QA
 
 qa_mcaid_elig_demo_f <- function(conn = NULL,
                                  server = c("hhsaw", "phclaims"),
@@ -35,7 +41,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                       config[[server]][["qa_table"]])
   
   
-  message("Running QA on ", from_schema, ".", from_table)
+  message("Running QA on ", to_schema, ".", to_table)
   
   
   #### PULL OUT VALUES NEEDED MULTIPLE TIMES ####
@@ -98,21 +104,19 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                    'There were {row_diff} more rows in the most recent table 
                        ({row_count} vs. {previous_rows})')",
                        .con = conn))
-      
     }
     
-  }
-  
-  #### CHECK DISTINCT IDS = NUMBER OF ROWS ####
-  id_count <- as.numeric(odbc::dbGetQuery(
-    conn, glue::glue_sql("SELECT COUNT (DISTINCT id_mcaid) 
+    
+    #### CHECK DISTINCT IDS = NUMBER OF ROWS ####
+    id_count <- as.numeric(odbc::dbGetQuery(
+      conn, glue::glue_sql("SELECT COUNT (DISTINCT id_mcaid) 
                          FROM {`to_schema`}.{`to_table`}", .con = conn)))
-  
-  if (id_count != row_count) {
-    id_distinct_qa_fail <- 1
-    DBI::dbExecute(
-      conn = conn,
-      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+    
+    if (id_count != row_count) {
+      id_distinct_qa_fail <- 1
+      DBI::dbExecute(
+        conn = conn,
+        glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({last_run}, 
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
@@ -120,15 +124,15 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        'FAIL', 
                        {Sys.time()}, 
                        'There were {id_count} distinct IDs but {row_count} rows (should be the same)')",
-                     .con = conn))
-    
-    message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
+                       .con = conn))
+      
+      message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
                       Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {last_run}"))
-  } else {
-    id_distinct_qa_fail <- 0
-    DBI::dbExecute(
-      conn = conn,
-      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+    } else {
+      id_distinct_qa_fail <- 0
+      DBI::dbExecute(
+        conn = conn,
+        glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({last_run}, 
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
@@ -136,21 +140,20 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        'PASS', 
                        {Sys.time()}, 
                        'The number of distinct IDs matched the number of rows ({id_count})')",
-                     .con = conn))
+                       .con = conn))
+    }
     
-  }
-  
-  
-  #### CHECK DISTINCT IDS = DISTINCT IDS IN STAGE.MCAID_ELIG ####
-  id_count_raw <- as.numeric(odbc::dbGetQuery(
-    conn, glue::glue_sql("SELECT COUNT (DISTINCT MEDICAID_RECIPIENT_ID) 
+    
+    #### CHECK DISTINCT IDS = DISTINCT IDS IN STAGE.MCAID_ELIG ####
+    id_count_raw <- as.numeric(odbc::dbGetQuery(
+      conn, glue::glue_sql("SELECT COUNT (DISTINCT MEDICAID_RECIPIENT_ID) 
                          FROM {`from_schema`}.{`from_table`}", .con = conn)))
-  
-  if (id_count != id_count_raw) {
-    id_stage_qa_fail <- 1
-    DBI::dbExecute(
-      conn = conn,
-      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+    
+    if (id_count != id_count_raw) {
+      id_stage_qa_fail <- 1
+      DBI::dbExecute(
+        conn = conn,
+        glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({last_run}, 
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
@@ -158,15 +161,15 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        'FAIL', 
                        {Sys.time()}, 
                        'There were {id_count} distinct IDs but {id_count_raw} IDs in the raw data (should be the same)')",
-                     .con = conn))
-    
-    message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
+                       .con = conn))
+      
+      message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
                       Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {last_run}"))
-  } else {
-    id_stage_qa_fail <- 0
-    DBI::dbExecute(
-      conn = conn,
-      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+    } else {
+      id_stage_qa_fail <- 0
+      DBI::dbExecute(
+        conn = conn,
+        glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({last_run}, 
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
@@ -174,13 +177,13 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        'PASS', 
                        {Sys.time()}, 
                        'The number of distinct IDs matched the number in the raw data ({id_count})')",
-                     .con = conn))
-    
+                       .con = conn))
+    }
   }
   
   
   #### LOAD VALUES TO QA_VALUES TABLE ####
-  message("Loading values to claims.metadata_qa_mcaid_values")
+  message("Loading values to ", qa_schema, ".", qa_table, "qa_mcaid_values")
   
   load_sql <- glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid_values
                              (table_name, qa_item, qa_value, qa_date, note) 
@@ -204,5 +207,3 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
   return(qa_total)
   
 }
-
-

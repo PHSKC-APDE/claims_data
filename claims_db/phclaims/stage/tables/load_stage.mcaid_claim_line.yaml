@@ -3,6 +3,10 @@ phclaims:
     from_table: mcaid_claim
     to_schema: stage
     to_table: mcaid_claim_line
+    final_schema: final
+    final_table: 
+    ref_schema: ref
+    ref_table: 
     qa_schema: metadata
     qa_table: 
 hhsaw:
@@ -10,6 +14,10 @@ hhsaw:
     from_table: stage_mcaid_claim
     to_schema: claims
     to_table: stage_mcaid_claim_line
+    final_schema: claims
+    final_table: final_
+    ref_schema: claims
+    ref_table: ref_
     qa_schema: claims
     qa_table: metadata_
 index_type: ccs
