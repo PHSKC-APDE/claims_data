@@ -333,4 +333,4 @@ vars:
 overall:
     file_path: //phdata01/epe_data/nppes/npidata_pfile.csv
     field_term: ','
-    row_term: \n
+    row_term: \r
