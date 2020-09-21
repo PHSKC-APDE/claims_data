@@ -6,6 +6,9 @@
 .Rprofile
 /geocoding
 /renv
+.vs/
+claims_db/phclaims/.vs
+claims_db/phclaims/obj
 
 ##Ignore personal folders on Eli's machine
 analysis/Archived
