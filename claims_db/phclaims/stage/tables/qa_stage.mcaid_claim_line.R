@@ -62,19 +62,21 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   
   
   #### Check all IDs are also found in the elig_demo and time_var tables ####
-  ids_demo_chk <- as.integer(DBI::dbGetQuery(conn,
-                                             "SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
-  FROM {`to_schema`}.{`to_table`} AS a
-  LEFT JOIN {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_demo AS b
-  ON a.id_mcaid = b.id_mcaid
-  WHERE b.id_mcaid IS NULL"))
+  ids_demo_chk <- as.integer(DBI::dbGetQuery(
+    conn, glue::glue_sql("SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
+                         FROM {`to_schema`}.{`to_table`} AS a
+                         LEFT JOIN {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_demo AS b
+                         ON a.id_mcaid = b.id_mcaid
+                         WHERE b.id_mcaid IS NULL",
+                         .con = conn)))
   
-  ids_timevar_chk <- as.integer(DBI::dbGetQuery(conn,
-                                                "SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
-  FROM {`to_schema`}.{`to_table`} AS a
-  LEFT JOIN {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_demo AS b
-  ON a.id_mcaid = b.id_mcaid
-  WHERE b.id_mcaid IS NULL"))
+  ids_timevar_chk <- as.integer(DBI::dbGetQuery(
+    conn, glue::glue_sql("SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
+                         FROM {`to_schema`}.{`to_table`} AS a
+                         LEFT JOIN {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_timevar AS b
+                         ON a.id_mcaid = b.id_mcaid
+                         WHERE b.id_mcaid IS NULL",
+                         .con = conn)))
   
   # Write findings to metadata
   if (ids_demo_chk == 0 & ids_timevar_chk == 0) {
@@ -110,9 +112,13 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   
   #### Check number of rows compared to raw ####
   rows_line <- as.integer(odbc::dbGetQuery(
-    conn = conn, "SELECT COUNT(DISTINCT [claim_line_id]) FROM {`to_schema`}.{`to_table`}"))
+    conn = conn, 
+    glue::glue_sql("SELECT COUNT(DISTINCT [claim_line_id]) FROM {`to_schema`}.{`to_table`}",
+                   .con = conn)))
   rows_raw <- as.integer(odbc::dbGetQuery(
-    conn = conn, "SELECT COUNT(DISTINCT [CLM_LINE_TCN]) FROM {`from_schema`}.{`from_table`}"))
+    conn = conn, 
+    glue::glue_sql("SELECT COUNT(DISTINCT [CLM_LINE_TCN]) FROM {`from_schema`}.{`from_table`}",
+                   .con = conn)))
   
   if (rows_line == rows_raw) {
     rows_fail <- 0
@@ -145,8 +151,9 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   #### Check format of rev_code ####
   rev_format <- as.integer(odbc::dbGetQuery(
     conn = conn,
-    "SELECT count(*) FROM {`to_schema`}.{`to_table`}
-  WHERE rev_code IS NOT NULL AND (len(rev_code) <> 4 OR isnumeric(rev_code) = 0)"))
+    glue::glue_sql("SELECT count(*) FROM {`to_schema`}.{`to_table`}
+                   WHERE rev_code IS NOT NULL AND (len(rev_code) <> 4 OR isnumeric(rev_code) = 0",
+                   .con = conn)))
   
   if (rev_format == 0) {
     rev_code_fail <- 0
@@ -216,15 +223,17 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   
   #### Compare number of claim lines in current vs. prior analytic tables ####
   if (DBI::dbExistsTable(conn, DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_line")))) {
+    
     num_claim_current <- DBI::dbGetQuery(
       conn, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS current_claim_line
- FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line
- GROUP BY YEAR(first_service_date) ORDER BY YEAR(first_service_date)", .con = conn))
+                           FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line
+                           GROUP BY YEAR(first_service_date) ORDER BY YEAR(first_service_date)",
+                           .con = conn))
     
     num_claim_new <- DBI::dbGetQuery(
       conn, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS new_claim_line
- FROM {`to_schema`}.{`to_table`}
- GROUP BY YEAR(first_service_date) ORDER by YEAR(first_service_date)", .con = conn))
+                         FROM {`to_schema`}.{`to_table`}
+                         GROUP BY YEAR(first_service_date) ORDER by YEAR(first_service_date", .con = conn))
     
     num_claim_overall <- left_join(num_claim_new, num_claim_current, by = "claim_year") %>%
       mutate(pct_change = round((new_claim_line - current_claim_line) / current_claim_line * 100, 4))

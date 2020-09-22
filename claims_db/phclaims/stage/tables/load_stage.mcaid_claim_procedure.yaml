@@ -1,7 +1,25 @@
-from_schema: claims
-from_table: stage_mcaid_claim
-to_schema: claims
-to_table: stage_mcaid_claim_procedure
+phclaims:
+    from_schema: stage
+    from_table: mcaid_claim
+    to_schema: stage
+    to_table: mcaid_claim_procedure
+    final_schema: final
+    final_table: 
+    ref_schema: ref
+    ref_table: 
+    qa_schema: metadata
+    qa_table: 
+hhsaw:
+    from_schema: claims
+    from_table: stage_mcaid_claim
+    to_schema: claims
+    to_table: stage_mcaid_claim_procedure
+    final_schema: claims
+    final_table: final_
+    ref_schema: claims
+    ref_table: ref_
+    qa_schema: claims
+    qa_table: metadata_
 index_type: ccs
 index_name: idx_ccs_mcaid_claim_procedure
 vars:
