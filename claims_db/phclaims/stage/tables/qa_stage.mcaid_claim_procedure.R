@@ -58,7 +58,9 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   
   
   #### PULL OUT VALUES NEEDED MULTIPLE TIMES ####
-  last_run <- as.POSIXct(odbc::dbGetQuery(conn, "SELECT MAX (last_run) FROM {`to_schema`}.{`to_table`}")[[1]])
+  last_run <- as.POSIXct(odbc::dbGetQuery(
+    conn, glue::glue_sql("SELECT MAX (last_run) FROM {`to_schema`}.{`to_table`}",
+                         .con = conn))[[1]])
   
   
   #### Check all IDs are also found in the elig_demo and time_var tables ####

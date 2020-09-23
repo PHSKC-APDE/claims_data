@@ -9,6 +9,8 @@
 
 #### PARAMETERS ####
 # conn = name of the connection to the SQL database
+# server = name of server being used (if using newer YAML format)
+# config = config file already in memory
 # config_url = URL location of YAML config file (should be blank if using config_file)
 # config_file = path + file name of YAML config file (should be blank if using config_url)
 # overwrite = drop table first before creating it, if it exists (default is TRUE)
@@ -21,6 +23,7 @@
 create_table_f <- function(
   conn,
   server = NULL,
+  config = NULL,
   config_url = NULL,
   config_file = NULL,
   overwrite = T,
@@ -41,8 +44,8 @@ create_table_f <- function(
   
   #### INITIAL ERROR CHECK ####
   # Check if the config provided is a local file or on a webpage
-  if (!is.null(config_url) & !is.null(config_file)) {
-    stop("Specify either a config_url or config_file but not both")
+  if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
+    stop("Specify either alocal config object, config_url, or config_file but only one")
   }
   
   if (!is.null(config_url)) {
@@ -68,7 +71,9 @@ create_table_f <- function(
   
   
   #### READ IN CONFIG FILE ####
-  if (!is.null(config_url)) {
+  if (!is.null(config)) {
+    table_config <- config
+  } else if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
   } else {
     table_config <- yaml::read_yaml(config_file)
