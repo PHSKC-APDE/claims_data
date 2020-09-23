@@ -12,7 +12,7 @@ hhsaw:
     to_table: final_mcaid_elig_demo
     qa_schema: claims
     qa_table: metadata_
-index_name: idx_ccs_final_mcaid_elig_demo
+index_name: idx_ccs_mcaid_elig_demo
 index_type: ccs
 vars:
     id_mcaid: VARCHAR(200)

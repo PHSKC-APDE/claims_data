@@ -354,39 +354,45 @@ if (sum(claim_line_fail, claim_icdcm_header_fail, claim_procedure_fail, claim_ph
 
 
 
-### CCW
+#### MCAID_CLAIM_CCW ####
 # Load table to SQL
-load_ccw(conn = db_claims, source = "mcaid")
+ccw_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_ccw.yaml")
+load_ccw(conn = db_claims, server = server, source = "mcaid",
+         config = ccw_config)
 
 # QA table
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_ccw.R",
-                     echo = T)
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_ccw.R")
+ccw_qa_result <- qa_stage_mcaid_claim_ccw_f(conn = db_claims, server = server, config = ccw_config)
+
 
 # If QA passes, load to final table
 if (ccw_qa_result == "PASS") {
+  # Check if the table exists and, if not, create it
+  final_mcaid_claim_ccw_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml")
   
-  create_table_f(
-    conn = db_claims, 
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml",
-    overall = T, ind_yr = F, overwrite = T)
+  if (DBI::dbExistsTable(db_claims, DBI::Id(schema = final_mcaid_claim_ccw_config[[server]][["to_schema"]],
+                                            table = final_mcaid_claim_ccw_config[[server]][["to_table"]])) == F) {
+    create_table_f(db_claims, server = server, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml")
+  }
   
-  load_table_from_sql_f(
-    conn = db_claims,
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml", 
-    truncate = T, truncate_date = F)
+  #### Load final table (assumes no changes to table structure)
+  load_table_from_sql_f(conn = db_claims,
+                        server = server,
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml", 
+                        truncate = T, truncate_date = F)
   
   # QA final table
-  qa_rows_final_claim_ccw <- qa_sql_row_count_f(
-    conn = db_claims,
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml",
-    overall = T, ind_yr = F)
+  qa_rows_final_claim_ccw <- qa_sql_row_count_f(conn = db_claims, 
+                                                server = server,
+                                                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml")
   
-  odbc::dbGetQuery(
+  DBI::dbExecute(
     conn = db_claims,
-    glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
+    glue::glue_sql("INSERT INTO {`final_mcaid_claim_ccw_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(final_mcaid_claim_ccw_config[[server]][['qa_table']])}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
                  VALUES ({last_run_claim_ccw}, 
-                 'final.mcaid_claim_ccw',
+                 '{DBI::SQL(final_mcaid_claim_ccw_config[[server]][['to_schema']])}.{DBI::SQL(final_mcaid_claim_ccw_config[[server]][['to_table']])}',
                  'Number final rows compared to stage', 
                  {qa_rows_final_claim_ccw$qa_result}, 
                  {Sys.time()}, 
@@ -395,8 +401,10 @@ if (ccw_qa_result == "PASS") {
   
   rm(qa_rows_final_claim_ccw)
 } else {
-  warning("CCW table failed QA and was not loaded to final schema")
+  stop(glue::glue("Something went wrong with the mcaid_claim_ccw run. See {`final_mcaid_claim_ccw_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(final_mcaid_claim_ccw_config[[server]][['qa_table']])}qa_mcaid"))
 }
+
 
 
 #### PERFORMANCE MEASURES ------------------------------------------------------

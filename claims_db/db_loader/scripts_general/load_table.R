@@ -558,7 +558,7 @@ load_table_from_sql_f <- function(
   
   
   #### VARIABLES ####
-  if (!is.na(server)) {
+  if (server %in% names(table_config)) {
     from_schema <- table_config[[server]][["from_schema"]]
     from_table <- table_config[[server]][["from_table"]]
     to_schema <- table_config[[server]][["to_schema"]]

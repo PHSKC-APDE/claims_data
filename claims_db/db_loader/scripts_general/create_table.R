@@ -129,8 +129,7 @@ create_table_f <- function(
   
   
   #### VARIABLES ####
-  ### VARIABLES
-  if (!is.na(server)) {
+  if (server %in% names(table_config)) {
     to_schema <- table_config[[server]][["to_schema"]]
     to_table <- table_config[[server]][["to_table"]]}
   else {

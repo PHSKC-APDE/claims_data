@@ -1,4 +1,4 @@
-# This code QAs table {`to_schema`}.{`to_table`}
+# This code QAs the stage mcaid claim header table
 #
 # It is designed to be run as part of the master Medicaid script:
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
@@ -44,9 +44,6 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
   final_schema <- config[[server]][["final_schema"]]
   final_table <- ifelse(is.null(config[[server]][["final_table"]]), '',
                         config[[server]][["final_table"]])
-  ref_schema <- config[[server]][["ref_schema"]]
-  ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
-                      config[[server]][["ref_table"]])
   qa_schema <- config[[server]][["qa_schema"]]
   qa_table <- ifelse(is.null(config[[server]][["qa_table"]]), '',
                      config[[server]][["qa_table"]])
