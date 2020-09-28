@@ -1,0 +1,48 @@
+phclaims:
+    to_schema: stage
+    to_table: mcaid_perf_enroll_denom
+    stage_schema: stage
+    stage_table: 
+    ref_schema: ref
+    ref_table: 
+    final_schema: final
+    final_table: 
+hhsaw:
+    to_schema: claims
+    to_table: stage_mcaid_perf_enroll_denom
+    stage_schema: claims
+    stage_table: stage_
+    ref_schema: claims
+    ref_table: ref_
+    qfinal_schema: claims
+    final_table: final_
+index_type: cl
+index_name: idx_cl_mcaid_perf_enroll_provider_id_mcaid_year_month
+index:
+    id_mcaid
+    year_month
+vars:
+    year_month: INT
+    end_quarter: INT
+    id_mcaid: VARCHAR(255)
+    dob: DATE
+    end_month_age: INT
+    age_in_months: INT
+    last_zip_code: VARCHAR(255)
+    enrolled_any: INT 
+    enrolled_any_t_12_m: INT
+    full_benefit: INT
+    full_benefit_t_12_m: INT
+    dual: INT
+    dual_t_12_m: INT
+    tpl: INT
+    tpl_t_12_m: INT
+    hospice: INT
+    hospice_t_12_m: INT
+    hospice_prior_t_12_m: INT
+    hospice_p_2_m: INT
+    full_criteria: INT
+    full_criteria_t_12_m: INT
+    full_criteria_prior_t_12_m: INT
+    full_criteria_p_2_m: INT
+    load_date: DATE

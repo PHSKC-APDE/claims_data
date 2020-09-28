@@ -411,24 +411,47 @@ if (ccw_qa_result == "PASS") {
 # All these tables will be renamed to have a mcaid_ prefix at some point
 
 #### PERF_ELIG_MEMBER_MONTH ####
-DBI::dbExecute(db_claims, "EXEC [stage].[sp_perf_elig_member_month]")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage_mcaid_perf_elig_member_month.R")
+load_stage_mcaid_perf_elig_member_month_f(conn = db_claims, server = server)
+
 
 #### PERF_ENROLL_DENOM ####
+# Bring in config file
+stage_mcaid_perf_enroll_denom_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_enroll_denom.yaml")
+
 # Need to find which months have been refreshed and run for those
 # Assumes a 12-month refresh. Change manually for other options
-max_elig_month <- odbc::dbGetQuery(db_claims, "SELECT MAX (CLNDR_YEAR_MNTH) FROM stage.mcaid_elig")[[1]]
-min_elig_month <- max_elig_month - 99
+max_elig_month <- odbc::dbGetQuery(
+  db_claims, 
+  glue::glue_sql("SELECT MAX (CLNDR_YEAR_MNTH) 
+                 FROM {`stage_mcaid_perf_enroll_denom_config$final_schema`}.{DBI::SQL(stage_mcaid_perf_enroll_denom_config$final_table)}mcaid_elig",
+                                                  .con = db_claims))[[1]]
+min_elig_month <- odbc::dbGetQuery(
+  db_claims, 
+  glue::glue_sql("SELECT YEAR([12_month_prior]) * 100 + MONTH([12_month_prior])
+                 FROM
+                 (SELECT MAX(b.[12_month_prior]) AS [12_month_prior]
+                   FROM {`stage_mcaid_perf_enroll_denom_config$stage_schema`}.{DBI::SQL(stage_mcaid_perf_enroll_denom_config$stage_table)}mcaid_perf_enroll_denom AS agg
+                  LEFT JOIN {`stage_mcaid_perf_enroll_denom_config$ref_schema`}.{DBI::SQL(stage_mcaid_perf_enroll_denom_config$ref_table)}perf_year_month AS b
+                  ON a.[year_month] = b.[year_month]) AS a",
+                 .con = db_claims))[[1]]
 
-# Run stored procedure
-DBI::dbExecute(db_claims, 
-               glue_sql("EXEC [stage].[sp_perf_enroll_denom] 
-                        @start_date_int = {min_elig_month}, @end_date_int = {max_elig_month}",
-               .con = db_claims))
 
-rm(max_elig_month, min_elig_month)
+
+# Load and run function
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_enroll_denom.R")
+load_stage_mcaid_perf_enroll_denom_f(conn = db_claims, server = server,
+                                     start_date_int = min_elig_month,
+                                     end_date_int = max_elig_month,
+                                     config = stage_mcaid_perf_enroll_denom_config)
+
+rm(max_elig_month, min_elig_month, stage_mcaid_perf_enroll_denom_config, load_stage_mcaid_perf_enroll_denom_f)
+
 
 #### PERF_DISTINCT_MEMBER ####
-DBI::dbExecute(db_claims, "EXEC [stage].[sp_perf_distinct_member]")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage_mcaid_perf_distinct_member.R")
+load_stage_mcaid_perf_distinct_member_f(conn = db_claims, server = server)
+
 
 
 #### ASTHMA MEDICATION RATIO ####
