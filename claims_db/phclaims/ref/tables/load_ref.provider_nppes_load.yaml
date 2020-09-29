@@ -1,9 +1,9 @@
 schema: ref
 table: provider_nppes_load
 vars:
-    npi: bigint
-    entity_type_code: tinyint
-    npi_replacement: bigint
+    npi: varchar(255)
+    entity_type_code: varchar(255)
+    npi_replacement: varchar(255)
     ein: varchar(255)
     name_org: varchar(255)
     name_last: varchar(255)
@@ -37,11 +37,11 @@ vars:
     address_practice_country_code: varchar(255)
     address_practice_phone: varchar(255)
     address_practice_fax: varchar(255)
-    enumeration_date: date
-    last_update: date
+    enumeration_varchar(255): varchar(255)
+    last_upvarchar(255): varchar(255)
     deactivation_reason_code: varchar(255)
-    deactivation_date: date
-    reactivation_date: date
+    deactivation_varchar(255): varchar(255)
+    reactivation_varchar(255): varchar(255)
     gender_code: varchar(255)
     name_official_last: varchar(255)
     name_official_first: varchar(255)
