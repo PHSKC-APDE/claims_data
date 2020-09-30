@@ -44,10 +44,10 @@ vars:
     SECONDARY_RAC_CODE: INTEGER
     SECONDARY_RAC_NAME: VARCHAR(200)
 overall:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_20200821.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_09282020.txt
     field_term: \t
     row_term: \n
-    row_count: 4814166
+    row_count: 5736640
     date_min: 201908
-    date_max: 202006
-    date_delivery: 2020-08-25
+    date_max: 202008
+    date_delivery: 2020-09-30
