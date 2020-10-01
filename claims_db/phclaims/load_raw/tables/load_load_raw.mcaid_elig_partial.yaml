@@ -44,7 +44,11 @@ vars:
     SECONDARY_RAC_CODE: INTEGER
     SECONDARY_RAC_NAME: VARCHAR(200)
 overall:
+<<<<<<< HEAD
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_20200928.txt
+=======
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_09282020.txt
+>>>>>>> 56ff061a99cbf7bc1834e4352241ff7de7ddcbc4
     field_term: \t
     row_term: \n
     row_count: 5736640
