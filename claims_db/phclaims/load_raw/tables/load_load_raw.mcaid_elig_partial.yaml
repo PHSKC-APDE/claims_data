@@ -47,7 +47,7 @@ overall:
     file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_20200928.txt
     field_term: \t
     row_term: \n
-    row_count: 5736641
+    row_count: 5736640
     date_min: 201908
     date_max: 202008
     date_delivery: 2020-09-30
