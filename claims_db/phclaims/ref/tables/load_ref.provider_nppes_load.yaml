@@ -38,7 +38,7 @@ vars:
     address_practice_phone: varchar(255)
     address_practice_fax: varchar(255)
     enumeration_date: varchar(255)
-    last_upvarchar(255): varchar(255)
+    last_update: varchar(255)
     deactivation_reason_code: varchar(255)
     deactivation_date: varchar(255)
     reactivation_date: varchar(255)
