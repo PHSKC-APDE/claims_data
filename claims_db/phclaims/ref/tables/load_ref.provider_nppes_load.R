@@ -49,6 +49,19 @@ data <- data %>% mutate(last_run = Sys.time())
 #Set column names using YAML file
 data.table::setnames(data, names(data), col_names_sql)
 
+#Store row count for QA
+row_count_raw <- nrow(data)
 
 #### Load data to SQL table shell ####
 dbWriteTable(conn, name = tbl_name, value = as.data.frame(data), append = T)
+
+
+#### QA by comparing row counts
+row_count_sql <- dbGetQuery(conn = conn, 
+                            "SELECT count(*) FROM [PHClaims].[ref].[provider_nppes_load]")[[1]]
+
+if(row_count_raw == row_count_sql){
+  print("QA passed, row counts match")
+} else {
+  print("QA failed")
+}
