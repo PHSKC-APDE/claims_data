@@ -69,7 +69,7 @@ load_ccw <- function(conn = NULL,
     table_config <- config
   } else if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
-  } else {
+  } else if (!is.null(config_file)) {
     table_config <- yaml::read_yaml(config_file)
   } else {
     table_config <- yaml::yaml.load(RCurl::getURL(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.", source, "claim_ccw.yaml")))
