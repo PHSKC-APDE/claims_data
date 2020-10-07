@@ -34,6 +34,8 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
     }
   }
   
+  from_schema <- config[[server]][["from_schema"]]
+  from_table <- config[[server]][["from_table"]]
   to_schema <- config[[server]][["to_schema"]]
   to_table <- config[[server]][["to_table"]]
   qa_schema <- config[[server]][["qa_schema"]]
@@ -52,7 +54,9 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
   
   
   ### Pull out run date of stage_mcaid_elig_demo
-  last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM {`to_schema`}.{`to_table`}")[[1]])
+  last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, 
+                                          glue::glue_sql("SELECT MAX (last_run) FROM {`to_schema`}.{`to_table`}",
+                                                         .con = conn))[[1]])
   
   if (load_only == F) {
     #### COUNT NUMBER OF ROWS ####

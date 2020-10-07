@@ -623,14 +623,14 @@ load_stage_mcaid_elig_demo_f <- function(conn = NULL,
   
   # Write data
   dbWriteTable(conn, 
-               name = DBI::Id(schema = to_schema, table = to_schema), 
+               name = DBI::Id(schema = to_schema, table = to_table), 
                value = as.data.frame(elig_demoever_final),
                overwrite = T, append = F,
                field.types = unlist(config$vars))
   
   
   #### CLEAN UP ####
-  message(to_schema, ".", to_table, "created")
+  message(to_schema, ".", to_table, " created")
   
   rm(elig_dob, elig_gender_final, elig_race_final, elig_lang_final, elig_demoever)
   rm(elig_demoever_final)
