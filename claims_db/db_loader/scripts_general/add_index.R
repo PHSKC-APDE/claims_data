@@ -29,11 +29,11 @@ add_index_f <- function(conn,
   
   
   #### SET UP SERVER ####
-  if (server %in% c("phclaims", "hhsaw")) {
-    server <- server
-  } else if (!is.null(server)) {
+  if (is.null(server)) {
     message("Server must be phclaims or hhsaw")
     server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
   }
   
   
@@ -93,13 +93,13 @@ add_index_f <- function(conn,
                      (SELECT object_id, name, type_desc FROM sys.indexes
                        WHERE type_desc LIKE 'CLUSTERED%') ind
                     JOIN
-                     (SELECT name, to_schema_id, object_id FROM sys.tables
+                     (SELECT name, schema_id, object_id FROM sys.tables
                        WHERE name = {to_table}) t
                     ON ind.object_id = t.object_id
                   INNER JOIN
-                  (SELECT name, to_schema_id FROM sys.to_schemas
+                  (SELECT name, schema_id FROM sys.schemas
                     WHERE name = {to_schema}) s
-                  ON t.to_schema_id = s.to_schema_id) a", 
+                  ON t.schema_id = s.schema_id) a", 
                    .con = conn))[[1]]
     
     if (length(existing_index) != 0) {

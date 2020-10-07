@@ -494,11 +494,11 @@ load_table_from_sql_f <- function(
   }
   
   #### SET UP SERVER ####
-  if (server %in% c("phclaims", "hhsaw")) {
-    server <- server
-  } else if (!is.null(server)) {
+  if (is.null(server)) {
     message("Server must be phclaims or hhsaw")
     server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
   }
   
   
@@ -799,6 +799,6 @@ load_table_from_sql_f <- function(
       devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
     }
     message("Adding index")
-    add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
+    add_index_f(conn = conn, server = server, table_config = table_config, test_mode = test_mode)
   }
 }
