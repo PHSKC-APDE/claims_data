@@ -135,9 +135,9 @@ create_table_f <- function(
   else {
     # Set up to work with both new and old way of using YAML files
     if (!is.null(table_config$to_schema)) {
-      schema <- table_config$to_schema
+      to_schema <- table_config$to_schema
     } else {
-      schema <- table_config$schema
+      to_schema <- table_config$schema
     }
     
     if (!is.null(table_config$to_table)) {
@@ -153,7 +153,7 @@ create_table_f <- function(
   
   if (test_mode == T) {
     to_table <- glue::glue("{to_schema}_{to_table}")
-    schema <- "tmp"
+    to_schema <- "tmp"
   }
   
   if (external == T) {
@@ -166,20 +166,20 @@ create_table_f <- function(
     external_text <- DBI::SQL("")
   }
   
-  message(glue::glue("Creating [{schema}].[{to_table}] table", test_msg))
+  message(glue::glue("Creating [{to_schema}].[{to_table}] table", test_msg))
   
-  tbl_name <- DBI::Id(schema = schema, table = to_table)
+  tbl_name <- DBI::Id(schema = to_schema, table = to_table)
   
   if (overwrite == T) {
     if (DBI::dbExistsTable(conn, tbl_name)) {
       DBI::dbExecute(conn, 
-                     glue::glue_sql("DROP {external_setup} TABLE {`schema`}.{`to_table`}",
+                     glue::glue_sql("DROP {external_setup} TABLE {`to_schema`}.{`to_table`}",
                                     .con = conn))
     }
   }
   
   create_code <- glue::glue_sql(
-    "CREATE {external_setup} TABLE {`schema`}.{`to_table`} (
+    "CREATE {external_setup} TABLE {`to_schema`}.{`to_table`} (
       {DBI::SQL(glue_collapse(glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}', 
       .con = conn), sep = ', \n'))}
       ) {external_text}", 
