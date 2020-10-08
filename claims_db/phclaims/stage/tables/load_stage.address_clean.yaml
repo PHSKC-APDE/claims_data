@@ -1,5 +1,17 @@
-schema: ref
-table: stage_address_clean
+phclaims:
+    from_schema: stage
+    from_table: mcaid_elig
+    to_schema: stage
+    to_table: address_clean
+    ref_schema: ref
+    ref_table: address_clean
+hhsaw:
+    from_schema: claims
+    from_table: stage_mcaid_elig
+    to_schema: ref
+    to_table: stage_address_clean
+    ref_schema: ref
+    ref_table: address_clean
 index_name: 
 index:
 vars:
@@ -9,10 +21,12 @@ vars:
     geo_city_raw: VARCHAR(255)
     geo_state_raw: VARCHAR(255)
     geo_zip_raw: VARCHAR(255)
+    geo_hash_raw: CHAR(64)
     geo_add1_clean: VARCHAR(255)
     geo_add2_clean: VARCHAR(255)
     geo_city_clean: VARCHAR(255)
     geo_state_clean: VARCHAR(255)
     geo_zip_clean: VARCHAR(255)
+    geo_hash_clean: CHAR(64)
     last_run: DATE
   

@@ -19,42 +19,63 @@
 # STEP 2B: Remove any records already in the manually corrected data
 # STEP 2C: APPEND to SQL
 
-### NOTE
-# Make sure only finding rows where geo_add3_raw IS NULL since this isn't used 
-#   in the Medicaid data.
 
 
-load_stage.address_clean_partial_1 <- function(conn_db = NULL) {
+### Function elements
+# conn = database connection
+# server = whether we are working in HHSAW or PHClaims
+# config = the YAML config file. Can be either an object already loaded into 
+#   R or a URL that should be used
+# get_config = if a URL is supplied, set this to T so the YAML file is loaded
+
+load_stage.address_clean_partial_1 <- function(conn = NULL,
+                                               server = c("hhsaw", "phclaims"),
+                                               config = NULL,
+                                               get_config = F) {
+  
+  
+  # Set up variables specific to the server
+  server <- match.arg(server)
+  
+  if (get_config == T){
+    if (stringr::str_detect(config, "^http")) {
+      config <- yaml::yaml.load(getURL(config))
+    } else{
+      stop("A URL must be specified in config if using get_config = T")
+    }
+  }
+  
+  from_schema <- config[[server]][["from_schema"]]
+  from_table <- config[[server]][["from_table"]]
+  to_schema <- config[[server]][["to_schema"]]
+  to_table <- config[[server]][["to_table"]]
+  ref_schema <- config[[server]][["ref_schema"]]
+  ref_table <- config[[server]][["ref_table"]]
+  
   
   #### STEP 1A: Take address data from Medicaid that don't match to the ref table ####
   ### Bring in all Medicaid addresses not in the ref table
   # Include ETL batch ID to know where the addresses are coming from
-  new_add <- dbGetQuery(conn_db,
-                        "SELECT DISTINCT a.geo_add1_raw, a.geo_add2_raw, a.geo_city_raw,
-            a.geo_state_raw, a.geo_zip_raw, a.etl_batch_id, 1 AS geo_source_mcaid,
-            b.[exists]
-           FROM
-           (SELECT 
-            CASE WHEN RSDNTL_ADRS_LINE_1 IN ('NA', 'N/A') THEN NULL ELSE RSDNTL_ADRS_LINE_1 END AS 'geo_add1_raw', 
-            CASE WHEN RSDNTL_ADRS_LINE_2 IN ('NA', 'N/A') THEN NULL ELSE RSDNTL_ADRS_LINE_2 END AS 'geo_add2_raw', 
-            RSDNTL_CITY_NAME AS 'geo_city_raw', 
-            RSDNTL_STATE_CODE AS 'geo_state_raw', 
-            RSDNTL_POSTAL_CODE AS 'geo_zip_raw', 
-            etl_batch_id
-           FROM claims.stage_mcaid_elig) a
-           LEFT JOIN
-           (SELECT geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw,
-             geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
-             1 AS [exists] 
-             FROM ref.address_clean
-             WHERE geo_add3_raw IS NULL) b
-           ON 
-           (a.geo_add1_raw = b.geo_add1_raw OR (a.geo_add1_raw IS NULL AND b.geo_add1_raw IS NULL)) AND
-           (a.geo_add2_raw = b.geo_add2_raw OR (a.geo_add2_raw IS NULL AND b.geo_add2_raw IS NULL)) AND 
-           (a.geo_city_raw = b.geo_city_raw OR (a.geo_city_raw IS NULL AND b.geo_city_raw IS NULL)) AND 
-           (a.geo_state_raw = b.geo_state_raw OR (a.geo_state_raw IS NULL AND b.geo_state_raw IS NULL)) AND 
-           (a.geo_zip_raw = b.geo_zip_raw OR (a.geo_zip_raw IS NULL AND b.geo_zip_raw IS NULL))
-           where b.[exists] IS NULL")
+  new_add <- dbGetQuery(
+    conn,
+    glue::glue_sql("SELECT DISTINCT a.geo_add1_raw, a.geo_add2_raw, a.geo_city_raw,
+                   a.geo_state_raw, a.geo_zip_raw, a.geo_hash_raw, a.etl_batch_id,
+                   b.[exists]
+                   FROM
+                   (SELECT 
+                     CASE WHEN RSDNTL_ADRS_LINE_1 IN ('NA', 'N/A') THEN NULL ELSE RSDNTL_ADRS_LINE_1 END AS 'geo_add1_raw', 
+                     CASE WHEN RSDNTL_ADRS_LINE_2 IN ('NA', 'N/A') THEN NULL ELSE RSDNTL_ADRS_LINE_2 END AS 'geo_add2_raw', 
+                     RSDNTL_CITY_NAME AS 'geo_city_raw', 
+                     RSDNTL_STATE_CODE AS 'geo_state_raw', 
+                     RSDNTL_POSTAL_CODE AS 'geo_zip_raw', 
+                     geo_hash_raw
+                     FROM {`from_schema`}.{`from_table`}) a
+                   LEFT JOIN
+                   (SELECT geo_hash_raw, 1 AS [exists] FROM {`ref_schema`}{`ref_table`}) b
+                   ON a.geo_hash_raw = b.geo_hash_raw
+                   WHERE b.[exists] IS NULL",
+                        .con = conn))
+  
   
   #### STEP 1B: Output data to run through Informatica ####
   new_add_out <- new_add %>%
@@ -64,9 +85,5 @@ load_stage.address_clean_partial_1 <- function(conn_db = NULL) {
             glue::glue("//kcitetldepim001/Informatica/address/adds_for_informatica_{Sys.Date()}.csv"),
             row.names = F)
   
-  message(glue::glue("{nrow(new_add_out)} addresses were exported for Informatica cleanup"))
-  
-  #### CLEAN UP ####
-  rm(update_source, update_sql)
-  rm(list = ls(pattern = "^new_add"))
+  message(nrow(new_add_out), " addresses were exported for Informatica cleanup")
 }
