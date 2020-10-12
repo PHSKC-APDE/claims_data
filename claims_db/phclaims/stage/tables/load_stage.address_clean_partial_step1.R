@@ -63,8 +63,8 @@ load_stage.address_clean_partial_1 <- function(conn = NULL,
                    b.[exists]
                    FROM
                    (SELECT 
-                     CASE WHEN RSDNTL_ADRS_LINE_1 IN ('NA', 'N/A') THEN NULL ELSE RSDNTL_ADRS_LINE_1 END AS 'geo_add1_raw', 
-                     CASE WHEN RSDNTL_ADRS_LINE_2 IN ('NA', 'N/A') THEN NULL ELSE RSDNTL_ADRS_LINE_2 END AS 'geo_add2_raw', 
+                     RSDNTL_ADRS_LINE_1 END AS 'geo_add1_raw', 
+                     RSDNTL_ADRS_LINE_2 END AS 'geo_add2_raw', 
                      RSDNTL_CITY_NAME AS 'geo_city_raw', 
                      RSDNTL_STATE_CODE AS 'geo_state_raw', 
                      RSDNTL_POSTAL_CODE AS 'geo_zip_raw', 
@@ -79,7 +79,7 @@ load_stage.address_clean_partial_1 <- function(conn = NULL,
   
   #### STEP 1B: Output data to run through Informatica ####
   new_add_out <- new_add %>%
-    distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw)
+    distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw, geo_hash_raw)
   
   write.csv(new_add_out, 
             glue::glue("//kcitetldepim001/Informatica/address/adds_for_informatica_{Sys.Date()}.csv"),

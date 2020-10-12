@@ -17,7 +17,35 @@
 # STEP 2C: APPEND to SQL
 
 
-load_stage.address_clean_partial_2 <- function(conn_db = NULL) {
+### Function elements
+# conn = database connection
+# server = whether we are working in HHSAW or PHClaims
+# config = the YAML config file. Can be either an object already loaded into 
+#   R or a URL that should be used
+# get_config = if a URL is supplied, set this to T so the YAML file is loaded
+
+load_stage.address_clean_partial_2 <- function(conn = NULL,
+                                               server = c("hhsaw", "phclaims"),
+                                               config = NULL,
+                                               get_config = F) {
+  
+  # Set up variables specific to the server
+  server <- match.arg(server)
+  
+  if (get_config == T){
+    if (stringr::str_detect(config, "^http")) {
+      config <- yaml::yaml.load(getURL(config))
+    } else{
+      stop("A URL must be specified in config if using get_config = T")
+    }
+  }
+  
+  from_schema <- config[[server]][["from_schema"]]
+  from_table <- config[[server]][["from_table"]]
+  to_schema <- config[[server]][["to_schema"]]
+  to_table <- config[[server]][["to_table"]]
+  ref_schema <- config[[server]][["ref_schema"]]
+  ref_table <- config[[server]][["ref_table"]]
   
   geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
   
@@ -32,6 +60,10 @@ load_stage.address_clean_partial_2 <- function(conn_db = NULL) {
   new_add_in <- data.table::fread(
     file = glue::glue("//kcitetldepim001/Informatica/address/{max(informatica_add)}"),
     stringsAsFactors = F)
+  
+  
+  #### NEED TO SEE HOW geo_hash_raw LOOKS AFTER INFORMATICA PROCESS ####
+  ### THEN EDIT CODE HERE
   
   
   ### Convert missing to NA so joins work and take distinct
@@ -117,27 +149,42 @@ load_stage.address_clean_partial_2 <- function(conn_db = NULL) {
   
   
   ### Bring it all together
+  ## NB THE PASTE COMMAND IN R WILL ADD THE STRING 'NA' WHEN IT ENCOUNTERS A TRUE NA VALUE.
+  # THIS IS UNDESIREABLE WHEN IT COMES OT MAKING HASHES SO NAs ARE REPLACED BY EMPTY STRINGS.
+  # THIS MEANS THE HAS WILL MATCH WHAT IS MADE IN SQL WITH THE SAME INPUTS.
+  
   new_add_final <- bind_rows(new_add_trim, in_manual) %>%
     # Set up columns only found in the PHA data or used for skipping geocoding later
     mutate(geo_add3_raw = NA_character_,
            geo_geocode_skip = 0L,
-           geo_hash_raw = openssl::sha256(paste(geo_add1_raw, geo_add2_raw, geo_add3_raw, geo_city_raw, 
-                                                geo_state_raw, geo_zip_raw, sep = "|")),
-           geo_hash_clean = openssl::sha256(paste(geo_add1_clean, geo_add2_clean, geo_city_clean, 
-                                                  geo_state_clean, geo_zip_clean, sep = "|")),
+           geo_hash_raw = ifelse(is.na(geo_hash_raw),
+                                 toupper(openssl::sha256(paste(stringr::str_replace_na(geo_add1_raw, ''), 
+                                                               stringr::str_replace_na(geo_add2_raw, ''), 
+                                                               stringr::str_replace_na(geo_add3_raw, ''), 
+                                                               stringr::str_replace_na(geo_city_raw, ''), 
+                                                               stringr::str_replace_na(geo_state_raw, ''), 
+                                                               stringr::str_replace_na(geo_zip_raw, ''), 
+                                                               sep = "|"))),
+                                 geo_hash_raw),
+           geo_hash_clean = toupper(openssl::sha256(paste(stringr::str_replace_na(geo_add1_clean, ''), 
+                                                          stringr::str_replace_na(geo_add2_clean, ''), 
+                                                          stringr::str_replace_na(geo_city_clean, ''), 
+                                                          stringr::str_replace_na(geo_state_clean, ''), 
+                                                          stringr::str_replace_na(geo_zip_clean, ''), 
+                                                          sep = "|"))),
            last_run = Sys.time()) %>%
     select(geo_add1_raw, geo_add2_raw, geo_add3_raw, geo_city_raw, 
            geo_state_raw, geo_zip_raw, geo_hash_raw,
-           geo_add1_clean, geo_add2_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
-           geo_hash_clean,
+           geo_add1_clean, geo_add2_clean, geo_city_clean, 
+           geo_state_clean, geo_zip_clean, geo_hash_clean,
            geo_geocode_skip, last_run) %>%
     # Convert all blank fields to be NA
     mutate_if(is.character, list(~ ifelse(. == "", NA_character_, .)))
   
   
   #### STEP 2C: APPEND to SQL ####
-  dbWriteTable(conn_db, 
-               name = DBI::Id(schema = "ref",  table = "stage_address_clean"),
+  dbWriteTable(conn, 
+               name = DBI::Id(schema = to_schema,  table = to_table),
                new_add_final,
                overwrite = F, append = T)
   

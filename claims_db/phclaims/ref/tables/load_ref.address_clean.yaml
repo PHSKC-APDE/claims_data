@@ -8,8 +8,8 @@ hhsaw:
     from_table: stage_address_clean
     to_schema: ref
     to_table: address_clean
-index_name: 
-index:
+index_type: ccs
+index_name: idx_ccs_ref_address_clean
 vars:
     geo_add1_raw: VARCHAR(255)
     geo_add2_raw: VARCHAR(255)
@@ -25,4 +25,4 @@ vars:
     geo_zip_clean: VARCHAR(255)
     geo_hash_clean: CHAR(64)
     geo_geocode_skip: TINYINT
-    last_run: DATE
+    last_run: DATETIME
