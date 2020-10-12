@@ -1,8 +1,10 @@
 phclaims:
     from_schema: stage
     from_table: mcaid_elig
-    to_schema: ref
+    to_schema: stage
     to_table: address_geocode
+    ref_schema: ref
+    ref_table: address_geocode
     qa_schema: metadata
     qa_table: 
 hhsaw:
@@ -10,6 +12,8 @@ hhsaw:
     from_table: stage_mcaid_elig
     to_schema: ref
     to_table: stage_address_geocode
+    ref_schema: ref
+    ref_table: address_geocode
     qa_schema: claims
     qa_table: metadata_
 vars:
