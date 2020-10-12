@@ -85,40 +85,6 @@ create_table_f <- function(
     stop("Invalid URL for YAML file")
   }
   
-  # Check that the yaml config file has necessary components
-  if (max(c("schema", "to_schema") %in% names(table_config)) == 0 & test_mode == F) {
-    stop("YAML file is missing a schema")
-    } else {
-      if (is.null(table_config$schema) & is.null(table_config$to_schema)) {
-        stop("schema/to_schema is blank in config file")
-        }
-    }
-  
-  if (max(c("table", "to_table") %in% names(table_config)) == 0) {
-    stop("YAML file is missing a table name")
-    } else {
-      if (is.null(table_config$table) & is.null(table_config$to_table)) {
-        stop("table/to_table is blank in config file")
-      }
-    }
-  
-  if (!"vars" %in% names(table_config)) {
-    stop("YAML file is missing a list of variables")
-  } else {
-    if (is.null(table_config$vars)) {
-      stop("No variables specified in config file")
-    }
-  }
-
-  
-  # Check external table has all the relevant details
-  if (external == T & 
-      (is.null(table_config$ext_data_source) | is.null(table_config$ext_schema) |
-       is.null(table_config$ext_object_name))) {
-    stop("If using an external source, ext_data_source, ext_schema, and ext_object_name 
-         must all be provided")
-  }
-  
   # Alert users they are in test mode
   if (test_mode == T) {
     message("FUNCTION WILL BE RUN IN TEST MODE, WRITING TO TMP SCHEMA")
@@ -166,6 +132,8 @@ create_table_f <- function(
     external_text <- DBI::SQL("")
   }
   
+  
+  #### CREATE TABLE ####
   message(glue::glue("Creating [{to_schema}].[{to_table}] table", test_msg))
   
   tbl_name <- DBI::Id(schema = to_schema, table = to_table)
