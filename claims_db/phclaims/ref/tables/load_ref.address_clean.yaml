@@ -3,11 +3,15 @@ phclaims:
     from_table: address_clean
     to_schema: ref
     to_table: address_clean
+    qa_schema: metadata
+    qa_table: 
 hhsaw:
     from_schema: ref
     from_table: stage_address_clean
     to_schema: ref
     to_table: address_clean
+    qa_schema: claims
+    qa_table: metadata_
 index_type: ccs
 index_name: idx_ccs_ref_address_clean
 vars:

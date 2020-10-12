@@ -49,13 +49,14 @@ qa.address_clean_partial <- function(conn = NULL,
   
   ### Check rows in stage vs ref
   rows_stage <- as.integer(dbGetQuery(conn, 
-                                      glue::glue_sql("SELECT COUNT (*) AS row_cnt FROM {`stage_schema`}.{`stage_table`}",
+                                      glue::glue_sql("SELECT COUNT (*) AS row_cnt FROM {`to_schema`}.{`to_table`}",
                                                      .con = conn)))
   rows_ref <- as.integer(dbGetQuery(conn, 
                                     glue::glue_sql("SELECT COUNT (*) AS row_cnt FROM {`ref_schema`}.{`ref_table`}",
                                                    .con = conn)))
   
   if (rows_stage < rows_ref) {
+    row_qa_fail <- 1
     dbGetQuery(conn,
                glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
@@ -68,6 +69,7 @@ qa.address_clean_partial <- function(conn = NULL,
                               .con = conn))
     message(glue::glue("FAIL: Stage table has {rows_stage - rows_ref} fewer rows than ref table"))
   } else {
+    row_qa_fail <- 0
     dbGetQuery(conn,
                glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
@@ -84,13 +86,14 @@ qa.address_clean_partial <- function(conn = NULL,
   
   ### Check names of fields
   names_stage <- names(odbc::dbGetQuery(conn = conn, 
-                                        glue::glue_sql("SELECT TOP (0) * FROM {`stage_schema`}.{`stage_table`}",
+                                        glue::glue_sql("SELECT TOP (0) * FROM {`to_schema`}.{`to_table`}",
                                                        .con = conn)))
   names_ref <- names(odbc::dbGetQuery(conn = conn, 
                                       glue::glue_sql("SELECT TOP (0) * FROM {`ref_schema`}.{`ref_table`}",
                                                      .con = conn)))
   
   if (min(names_stage == names_ref) == 0) {
+    col_qa_fail <- 1
     dbGetQuery(conn,
                glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
@@ -103,6 +106,7 @@ qa.address_clean_partial <- function(conn = NULL,
                               .con = conn))
     message("FAIL: Column order does not match between stage and ref.address_clean tables")
   } else if (min(names_stage == names_ref) == 1) {
+    col_qa_fail <- 0
     dbGetQuery(conn,
                glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
@@ -115,11 +119,13 @@ qa.address_clean_partial <- function(conn = NULL,
                               .con = conn))
     message("PASS: Column order matches between stage and ref.address_clean tables")
   } else {
+    col_qa_fail <- 1
     message("FAIL: Something went wrong when checking columns in ref.stage_address_clean")
   }
   
   
-  ### Clean up
-  # rm(rows_stage, rows_ref) # Keep this to make sure the correct # rows are loaded to ref
-  rm(names_stage, names_ref)
+  
+  ### Summarize
+  qa_total <- row_qa_fail + col_qa_fail
+  return(qa_total)
 }

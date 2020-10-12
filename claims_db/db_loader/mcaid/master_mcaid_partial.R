@@ -93,31 +93,83 @@ system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, conn_db = db
 
 #### ADDRESS CLEANING ####
 ### stage.address_clean
+# Call in config file to get vars (and check for errors)
+stage_address_clean_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
+
 # Run step 1, which identifies new addresses and sets them up to be run through Informatica
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step1.R")
-load_stage.address_clean_partial_1(conn_db = db_claims)
+
+load_stage.address_clean_partial_1(conn = db_claims, server = server, config = stage_address_clean_config)
+
+
+#### MANUAL PAUSE ####
+# Need to get the Informatica process automated
 
 # Run step 2, which processes addresses that were through Informatica and loads to SQL
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step2.R")
-load_stage.address_clean_partial_2(conn_db = db_claims)
+load_stage.address_clean_partial_2(conn = db_claims, server = server, config = stage_address_clean_config)
 
 # QA stage.address_clean
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/qa_stage.address_clean_partial.R")
-qa.address_clean_partial(conn_db = db_claims)
+qa_stage_address_clean <- qa.address_clean_partial(conn = db_claims, server = server, config = stage_address_clean_config)
 
 
-### ref.address_clean
-load_table_from_sql_f(conn = db_claims, 
-                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
-                      truncate = T, truncate_date = F)
-
-# Check appropriate # rows loaded
-rows_ref <- as.integer(dbGetQuery(db_claims, "SELECT COUNT (*) AS row_cnt FROM ref.address_clean"))
-rows_ref_new <- as.integer(dbGetQuery(db_claims, "SELECT COUNT (*) AS row_cnt FROM ref.stage_address_clean"))
-
-if (rows_ref != rows_ref_new) {
-  stop("Unexpected number of rows loaded to ref.address_clean")
+# Check that things passed QA before loading final table
+if (qa_stage_address_clean == 0) {
+  # Pull out run date
+  last_run_stage_address_clean <- as.POSIXct(odbc::dbGetQuery(
+    db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_address_clean_config[[server]][['to_schema']]`}.{`stage_address_clean_config[[server]][['to_table']]`}",
+                              .con = db_claims))[[1]])
+  
+  # Check if the table exists and, if not, create it
+  ref_address_clean_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
+  
+  to_schema <- ref_address_clean_config[[server]][["to_schema"]]
+  to_table <- ref_address_clean_config[[server]][["to_table"]]
+  qa_schema <- ref_address_clean_config[[server]][["qa_schema"]]
+  qa_table <- ifelse(is.null(ref_address_clean_config[[server]][["qa_table"]]), '',
+                     ref_address_clean_config[[server]][["qa_table"]])
+  
+  if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {
+    create_table_f(db_claims, server = server, config = ref_address_clean_config)
+  }
+  
+  #### Load final table (assumes no changes to table structure)
+  load_table_from_sql_f(conn = db_claims, 
+                        server = server,
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
+                        truncate = T, truncate_date = F)
+  
+  # QA final table
+  message("QA final table")
+  qa_rows_ref_address_clean <- qa_sql_row_count_f(conn = db_claims, 
+                                                server = server,
+                                                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml")
+  
+  DBI::dbExecute(
+    conn = db_claims,
+    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                 VALUES ({last_run_stage_address_clean}, 
+                 '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
+                 'Number final rows compared to stage', 
+                 {qa_rows_ref_address_clean$qa_result}, 
+                 {Sys.time()}, 
+                 {qa_rows_ref_address_clean$note})",
+                   .con = db_claims))
+  
+  
+  rm(qa_rows_ref_address_clean, to_schema, to_table, qa_schema, qa_table)
+} else {
+  stop(glue::glue("Something went wrong with the stage.address_clean run. See {`ref_address_clean_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(ref_address_clean_config[[server]][['qa_table']])}qa_mcaid"))
 }
+
+
+### Clean up
+rm(qa_stage_mcaid_elig_demo, stage_mcaid_elig_demo_config, load_stage_mcaid_elig_demo_f, 
+   last_run_elig_demo, ref_address_clean_config)
+
 
 
 ### stage.address_geocode
