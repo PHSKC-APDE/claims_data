@@ -5,6 +5,8 @@ phclaims:
     to_table: address_clean
     ref_schema: ref
     ref_table: address_clean
+    qa_schema: metadata
+    qa_table: 
 hhsaw:
     from_schema: claims
     from_table: stage_mcaid_elig
@@ -12,6 +14,8 @@ hhsaw:
     to_table: stage_address_clean
     ref_schema: ref
     ref_table: address_clean
+    qa_schema: claims
+    qa_table: metadata_
 index_type: ccs
 index_name: idx_ccs_ref_address_clean
 vars:

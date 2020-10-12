@@ -79,7 +79,8 @@ load_stage.address_clean_partial_1 <- function(conn = NULL,
   
   #### STEP 1B: Output data to run through Informatica ####
   new_add_out <- new_add %>%
-    distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw, geo_hash_raw)
+    distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw, geo_hash_raw) %>%
+    mutate(add_id = n())
   
   write.csv(new_add_out, 
             glue::glue("//kcitetldepim001/Informatica/address/adds_for_informatica_{Sys.Date()}.csv"),

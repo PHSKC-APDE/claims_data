@@ -64,15 +64,29 @@ load_stage.address_clean_partial_2 <- function(conn = NULL,
   
   #### NEED TO SEE HOW geo_hash_raw LOOKS AFTER INFORMATICA PROCESS ####
   ### THEN EDIT CODE HERE
+  ### ALSO ADD IN IDS TO JOIN TO OLD DATA BECAUSE <NA>s are being converted to 
+  #     'NA' strings at some point, which messes up joins
   
   
   ### Convert missing to NA so joins work and take distinct
-  new_add_in <- new_add_in %>%
-    mutate_at(vars(add1, add2, po_box, city, state, zip, 
-                   old_add1, old_add2, old_city, old_state, old_zip),
-              list( ~ ifelse(. == "" | . == "NA" | is.na(.), NA_character_, .))) %>%
-    select(-`#id`, -mailabilty_score) %>%
-    distinct()
+  # The latest version produced by Informatica had a different column structure
+  # so need to account for that
+  if ("#id" %in% names(new_add_in)) {
+    new_add_in <- new_add_in %>%
+      mutate_at(vars(add1, add2, po_box, city, state, zip, 
+                     old_add1, old_add2, old_city, old_state, old_zip),
+                list( ~ ifelse(. == "" | . == "NA" | is.na(.), NA_character_, .))) %>%
+      select(-`#id`, -mailabilty_score) %>%
+      distinct()
+  } else {
+    new_add_in <- new_add_in %>%
+      rename(add1 = "#add1") %>%
+      mutate_at(vars(add1, add2, po_box, city, state, zip,
+                     old_add1, old_add2, old_city, old_state, old_zip),
+                list( ~ ifelse(. == "" | . == "NA" | is.na(.), NA_character_, .))) %>%
+      select(-mailabilty_score) %>%
+      distinct()
+  }
   
   
   ### Informatica seems to drop secondary designators when they start with #
@@ -148,11 +162,21 @@ load_stage.address_clean_partial_2 <- function(conn = NULL,
     select(-overridden)
   
   
-  ### Bring it all together
+  ### Add in geo_has columns if needed
+  if (!"geo_hash_raw" %in% names(new_add_trim)) {
+    new_add_trim <- new_add_trim %>% mutate(geo_hash_raw = NA_character_)
+  }
+  if (!"geo_hash_clean" %in% names(new_add_trim)) {
+    new_add_trim <- new_add_trim %>% mutate(geo_hash_clean = NA_character_)
+  }
+  
+  
+  
+  #### Bring it all together ####
   ## NB THE PASTE COMMAND IN R WILL ADD THE STRING 'NA' WHEN IT ENCOUNTERS A TRUE NA VALUE.
   # THIS IS UNDESIREABLE WHEN IT COMES OT MAKING HASHES SO NAs ARE REPLACED BY EMPTY STRINGS.
   # THIS MEANS THE HAS WILL MATCH WHAT IS MADE IN SQL WITH THE SAME INPUTS.
-  
+
   new_add_final <- bind_rows(new_add_trim, in_manual) %>%
     # Set up columns only found in the PHA data or used for skipping geocoding later
     mutate(geo_add3_raw = NA_character_,
