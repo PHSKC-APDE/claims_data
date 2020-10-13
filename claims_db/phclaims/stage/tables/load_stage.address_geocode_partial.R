@@ -11,33 +11,69 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
-stage_address_geocode_f <- function(conn_db = NULL, full_refresh = F) {
+### Function elements
+# conn = database connection
+# server = whether we are working in HHSAW or PHClaims
+# config = the YAML config file. Can be either an object already loaded into 
+#   R or a URL that should be used
+# get_config = if a URL is supplied, set this to T so the YAML file is loaded
+
+stage_address_geocode_f <- function(conn = NULL,
+                                    server = c("hhsaw", "phclaims"),
+                                    config = NULL,
+                                    get_config = F,
+                                    full_refresh = F) {
  
+  
+  # Set up variables specific to the server
+  server <- match.arg(server)
+  
+  if (get_config == T){
+    if (stringr::str_detect(config, "^http")) {
+      config <- yaml::yaml.load(getURL(config))
+    } else{
+      stop("A URL must be specified in config if using get_config = T")
+    }
+  }
+  
+  from_schema <- config[[server]][["from_schema"]]
+  from_table <- config[[server]][["from_table"]]
+  to_schema <- config[[server]][["to_schema"]]
+  to_table <- config[[server]][["to_table"]]
+  stage_schema <- config[[server]][["stage_schema"]]
+  stage_table <- ifelse(is.null(config[[server]][["stage_table"]]), '',
+                      config[[server]][["stage_table"]])
+  ref_schema <- config[[server]][["ref_schema"]]
+  ref_table <- config[[server]][["ref_table"]]
+  
+  
   
   #### PULL IN DATA ####
   if (full_refresh == F) {
     # Join ref.address_clean to ref.address_geocode to find addresses not geocoded
     adds_to_code <- dbGetQuery(
-      conn_db,
-      "SELECT DISTINCT a.*, b.geocoded
-    FROM
-  (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean
-  FROM ref.address_clean WHERE geo_geocode_skip = 0) a
-  LEFT JOIN
-  (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
-  1 as geocoded
-  FROM ref.address_geocode) b
-  ON 
-  (a.geo_add1_clean = b.geo_add1_clean OR (a.geo_add1_clean IS NULL AND b.geo_add1_clean IS NULL)) AND
-  (a.geo_city_clean = b.geo_city_clean OR (a.geo_city_clean IS NULL AND b.geo_city_clean IS NULL)) AND
-  (a.geo_state_clean = b.geo_state_clean OR (a.geo_state_clean IS NULL AND b.geo_state_clean IS NULL)) AND
-  (a.geo_zip_clean = b.geo_zip_clean OR (a.geo_zip_clean IS NULL AND b.geo_zip_clean IS NULL))
-  WHERE b.geocoded IS NULL")
+      conn,
+      glue::glue_sql("SELECT DISTINCT a.*, b.geocoded
+                     FROM
+                     (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean
+                       FROM {`ref_schema`}.address_clean WHERE geo_geocode_skip = 0) a
+                     LEFT JOIN
+                     (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
+                       1 as geocoded
+                       FROM {`ref_schema`}.address_geocode) b
+                     ON 
+                     (a.geo_add1_clean = b.geo_add1_clean OR (a.geo_add1_clean IS NULL AND b.geo_add1_clean IS NULL)) AND
+                     (a.geo_city_clean = b.geo_city_clean OR (a.geo_city_clean IS NULL AND b.geo_city_clean IS NULL)) AND
+                     (a.geo_state_clean = b.geo_state_clean OR (a.geo_state_clean IS NULL AND b.geo_state_clean IS NULL)) AND
+                     (a.geo_zip_clean = b.geo_zip_clean OR (a.geo_zip_clean IS NULL AND b.geo_zip_clean IS NULL))
+                     WHERE b.geocoded IS NULL",
+                     .con = conn))
   } else {
-    adds_to_code <- dbGetQuery(conn_db,
-                                "SELECT DISTINCT geo_add1_clean, geo_city_clean, 
-                            geo_state_clean, geo_zip_clean
-                            FROM ref.address_clean")
+    adds_to_code <- dbGetQuery(conn,
+                               glue::glue_sql("SELECT DISTINCT geo_add1_clean, geo_city_clean, 
+                                              geo_state_clean, geo_zip_clean
+                                              FROM {`ref_schema`}.address_clean",
+                                              .con = conn))
   }
   
   
@@ -299,39 +335,48 @@ stage_address_geocode_f <- function(conn_db = NULL, full_refresh = F) {
     select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean)
   
   if (nrow(adds_geocode_skip) > 0) {
-    # Set up SQL to update values
+    # Set up SQL to update values in stage table
     update_sql <- glue::glue_data_sql(adds_geocode_skip, 
-                                      "UPDATE ref.stage_address_clean 
+                                      "UPDATE {`stage_schema`}.{DBI::SQL(stage_table)}address_clean 
                                     SET geo_geocode_skip = 1 
                                     WHERE (geo_add1_clean = {geo_add1_clean} AND geo_city_clean = {geo_city_clean} AND
                                     geo_state_clean = {geo_state_clean} AND geo_zip_clean = {geo_zip_clean})",
-                                      .con = conn_db)
+                                      .con = conn)
     # Need to account for NULL values properly
     update_sql <- str_replace_all(update_sql, "= NULL", "Is NULL")
     # Run code
-    DBI::dbExecute(conn_db, glue::glue_collapse(update_sql, sep = "; "))
+    DBI::dbExecute(conn, glue::glue_collapse(update_sql, sep = "; "))
     
     # Check that more addresses were flagged for skipping
     stage_geocode_skip <- as.integer(DBI::dbGetQuery(
-      conn_db, "SELECT SUM(geo_geocode_skip) AS skip_cnt FROM ref.stage_address_clean"))
+      conn, 
+      glue::glue_sql("SELECT SUM(geo_geocode_skip) AS skip_cnt FROM {`stage_schema`}.{DBI::SQL(stage_table)}address_clean",
+                     .con = conn)))
     ref_geocode_skip <- as.integer(DBI::dbGetQuery(
-      conn_db, "SELECT SUM(geo_geocode_skip) AS skip_cnt FROM ref.address_clean"))
+      conn, glue::glue_sql("SELECT SUM(geo_geocode_skip) AS skip_cnt FROM {`ref_schema`}.address_clean",
+                           .con = conn)))
     
     if (stage_geocode_skip >= ref_geocode_skip) {
       # Update in ref table
-      update_sql <- str_replace_all(update_sql, "ref.stage_address_clean", "ref.address_clean")
-      DBI::dbExecute(conn_db, glue::glue_collapse(update_sql, sep = "; "))
+      update_sql <- glue::glue_data_sql(adds_geocode_skip, 
+                                        "UPDATE {`ref_schema`}.address_clean 
+                                    SET geo_geocode_skip = 1 
+                                    WHERE (geo_add1_clean = {geo_add1_clean} AND geo_city_clean = {geo_city_clean} AND
+                                    geo_state_clean = {geo_state_clean} AND geo_zip_clean = {geo_zip_clean})",
+                                        .con = conn)
+      DBI::dbExecute(conn, glue::glue_collapse(update_sql, sep = "; "))
       
       # Check counts
       ref_geocode_skip_new <- as.integer(DBI::dbGetQuery(
-        conn_db, "SELECT SUM(geo_geocode_skip) AS skip_cnt FROM ref.address_clean"))
+        conn, glue::glue_sql("SELECT SUM(geo_geocode_skip) AS skip_cnt FROM {`ref_schema`}.address_clean",
+                             .con = conn)))
       
       if (stage_geocode_skip == ref_geocode_skip_new) {
         message("Succesfully updated ref.address_clean with geocode_skip flags")
       }
     } else {
-      message(paste0("Number of rows in set to skip geocode in stage (", stage_geocode_skip,
-                     ") is less than the current ref table (", ref_geocode_skip, ")"))
+      message("Number of rows in set to skip geocode in stage (", stage_geocode_skip,
+                     ") is less than the current ref table (", ref_geocode_skip, ")")
     }
   }
   
@@ -445,29 +490,32 @@ stage_address_geocode_f <- function(conn_db = NULL, full_refresh = F) {
   #### LOAD TO SQL ####
   if (full_refresh == F) {
     # Check how many rows are already in the stage table
-    stage_rows_before <- as.numeric(dbGetQuery(conn_db, "SELECT COUNT (*) FROM ref.stage_address_geocode"))
+    stage_rows_before <- as.numeric(dbGetQuery(
+      conn, glue::glue_sql("SELECT COUNT (*) FROM {`to_schema`}.{`to_table`}",
+                           .con = conn)))
     stage_rows_before_distinct <- as.numeric(dbGetQuery(
-      conn_db, 
-      "SELECT COUNT (*) 
-  FROM
-  (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
-  geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
-  geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
-  geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
-  geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
-  geo_puma_geoid10, geo_puma_name, geo_zcta5ce10, geo_zcta_geoid10, 
-  geo_hra_id, geo_hra, geo_region_id, geo_region, geo_school_geoid10, 
-  geo_school, geo_kcc_dist, geo_wa_legdist, geo_scc_dist
-  FROM ref.stage_address_geocode) a"))
+      conn, 
+      glue::glue_sql("SELECT COUNT (*) 
+                     FROM
+                     (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
+                       geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
+                       geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
+                       geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
+                       geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
+                       geo_puma_geoid10, geo_puma_name, geo_zcta5ce10, geo_zcta_geoid10, 
+                       geo_hra_id, geo_hra, geo_region_id, geo_region, geo_school_geoid10, 
+                       geo_school, geo_kcc_dist, geo_wa_legdist, geo_scc_dist
+                       FROM {`to_schema`}.{`to_table`}) a",
+                     .con = conn)))
   } else if (full_refresh == T) {
     # Create new table if it doesn't exist
-    try(create_table_f(conn = conn_db, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
+    try(create_table_f(conn = conn, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
   }
 
   
   # Write data
-  dbWriteTable(conn_db,
-               name = DBI::Id(schema = "ref", table = "stage_address_geocode"), 
+  dbWriteTable(conn,
+               name = DBI::Id(schema = to_schema, table = to_table), 
                value = as.data.frame(adds_coded_load), 
                append = T, overwrite = F)
   
@@ -476,20 +524,22 @@ stage_address_geocode_f <- function(conn_db = NULL, full_refresh = F) {
   if (full_refresh == F) {
     ### Compare row counts now
     row_load_ref_geo <- nrow(adds_coded_load)
-    stage_rows_after <- as.numeric(dbGetQuery(conn_db, "SELECT COUNT (*) FROM ref.stage_address_geocode"))
+    stage_rows_after <- as.numeric(dbGetQuery(
+      conn, glue::glue_sql("SELECT COUNT (*) FROM {`to_schema`}.{`to_table`}", .con = conn)))
     stage_rows_after_distinct <- as.numeric(dbGetQuery(
-      conn_db, 
-      "SELECT COUNT (*) 
-  FROM
-  (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
-  geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
-  geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
-  geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
-  geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
-  geo_puma_geoid10, geo_puma_name, geo_zcta5ce10, geo_zcta_geoid10, 
-  geo_hra_id, geo_hra, geo_region_id, geo_region, geo_school_geoid10,   
-  geo_school, geo_kcc_dist, geo_wa_legdist, geo_scc_dist
-  FROM ref.stage_address_geocode) a"))
+      conn, 
+      glue::glue_sql("SELECT COUNT (*) 
+                     FROM
+                     (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
+                       geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
+                       geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
+                       geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
+                       geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
+                       geo_puma_geoid10, geo_puma_name, geo_zcta5ce10, geo_zcta_geoid10, 
+                       geo_hra_id, geo_hra, geo_region_id, geo_region, geo_school_geoid10,   
+                       geo_school, geo_kcc_dist, geo_wa_legdist, geo_scc_dist
+                       FROM {`to_schema`}.{`to_table`}) a",
+                     .con = conn)))
     
     if ((stage_rows_before + row_load_ref_geo == stage_rows_after) == F) {
       warning("Number of rows added to ref.stage_address_geocode not expected value")
