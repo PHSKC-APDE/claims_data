@@ -1,42 +1,54 @@
-from_schema: ref
-from_table: stage_address_geocode
-to_schema: ref
-to_table: address_geocode
+phclaims:
+    from_schema: stage
+    from_table: address_geocode
+    to_schema: ref
+    to_table: address_geocode
+    qa_schema: metadata
+    qa_table: 
+hhsaw:
+    from_schema: ref
+    from_table: stage_address_geocode
+    to_schema: ref
+    to_table: address_geocode
+    qa_schema: claims
+    qa_table: metadata_
+index_type: ccs
+index_name: idx_ccs_ref_address_geocode
 vars:
-  - geo_add1_clean
-  - geo_city_clean
-  - geo_state_clean
-  - geo_zip_clean
-  - geo_add_geocoded
-  - geo_zip_geocoded
-  - geo_add_type
-  - geo_check_esri
-  - geo_check_here
-  - geo_geocode_source
-  - geo_zip_centroid
-  - geo_street_centroid
-  - geo_lon
-  - geo_lat
-  - geo_x
-  - geo_y
-  - geo_statefp10
-  - geo_countyfp10
-  - geo_tractce10
-  - geo_blockce10
-  - geo_block_geoid10
-  - geo_pumace10
-  - geo_puma_geoid10
-  - geo_puma_name
-  - geo_zcta5ce10
-  - geo_zcta_geoid10
-  - geo_hra_id
-  - geo_hra
-  - geo_region_id
-  - geo_region
-  - geo_school_geoid10
-  - geo_school
-  - geo_kcc_dist
-  - geo_wa_legdist
-  - geo_scc_dist
-  - last_run
+    geo_add1_clean: VARCHAR(255)
+    geo_city_clean: VARCHAR(255)
+    geo_state_clean: VARCHAR(255)
+    geo_zip_clean: VARCHAR(255)
+    geo_add_geocoded: VARCHAR(255)
+    geo_zip_geocoded: VARCHAR(255)
+    geo_add_type: VARCHAR(255)
+    geo_check_esri: TINYINT
+    geo_check_here: TINYINT
+    geo_geocode_source: VARCHAR(255)
+    geo_zip_centroid: TINYINT
+    geo_street_centroid: TINYINT
+    geo_lon: FLOAT
+    geo_lat: FLOAT
+    geo_x: FLOAT
+    geo_y: FLOAT
+    geo_statefp10: VARCHAR(255)
+    geo_countyfp10: VARCHAR(255)
+    geo_tractce10: VARCHAR(255)
+    geo_blockce10: VARCHAR(255)
+    geo_block_geoid10: VARCHAR(255)
+    geo_pumace10: VARCHAR(255)
+    geo_puma_geoid10: VARCHAR(255)
+    geo_puma_name: VARCHAR(255)
+    geo_zcta5ce10: VARCHAR(255)
+    geo_zcta_geoid10: VARCHAR(255)
+    geo_hra_id: SMALLINT
+    geo_hra: VARCHAR(255)
+    geo_region_id: INTEGER
+    geo_region: VARCHAR(255)
+    geo_school_geoid10: VARCHAR(255)
+    geo_school: VARCHAR(255)
+    geo_kcc_dist: TINYINT
+    geo_wa_legdist: TINYINT
+    geo_scc_dist: TINYINT
+    last_run: DATETIME
 
