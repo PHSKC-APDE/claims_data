@@ -2,7 +2,7 @@ phclaims:
     from_schema: stage
     from_table: mcaid_elig
     to_schema: stage
-    to_table: mcaid_elig_demo
+    to_table: mcaid_elig_timevar
     ref_schema: ref
     ref_table: 
     qa_schema: metadata
@@ -11,7 +11,7 @@ hhsaw:
     from_schema: claims
     from_table: stage_mcaid_elig
     to_schema: claims
-    to_table: stage_mcaid_elig_demo
+    to_table: stage_mcaid_elig_timevar
     ref_schema: claims
     ref_table: ref_
     qa_schema: claims

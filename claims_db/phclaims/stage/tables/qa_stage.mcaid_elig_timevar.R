@@ -46,7 +46,10 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                          .con = conn)))
   
   ### Pull out run date of claims.stage_mcaid_elig_timevar
-  last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM {`to_schema`}.{`to_table`}")[[1]])
+  last_run <- as.POSIXct(odbc::dbGetQuery(
+    db_claims, 
+    glue::glue_sql("SELECT MAX (last_run) FROM {`to_schema`}.{`to_table`}",
+                   .con = conn))[[1]])
   
   
   if (load_only == F) {
@@ -149,19 +152,19 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   #### CHECK FOR DUPLICATE ROWS  ####
   dup_row_count <- as.numeric(odbc::dbGetQuery(
     conn, 
-    "SELECT COUNT (*) AS count FROM 
+    glue::glue_sql("SELECT COUNT (*) AS count FROM 
     (SELECT DISTINCT id_mcaid, from_date, to_date, 
     dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip,
     cov_time_day 
-    FROM {`to_schema`}.{`to_table`}) a"))
+    FROM {`to_schema`}.{`to_table`}) a",
+                   .con = conn)))
   
   
   if (dup_row_count != row_count) {
     dup_row_qa_fail <- 1
-    odbc::dbGetQuery(
-      conn = conn,
-      DBI::dbExecute("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+    DBI::dbExecute(conn = conn,
+      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({last_run}, 
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
@@ -220,11 +223,8 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              'FAIL',
                              {Sys.time()}, 
                              'Some from/to dates fell outside the CLNDR_YEAR_MNTH range \\
-                             (min: {`from`}, max: {`to`})')",
-                     .con = conn,
-                     from = dbQuoteIdentifier(conn, as.character(date_range_timevar$from_date)),
-                     to = dbQuoteIdentifier(conn, as.character(date_range_timevar$to_date))
-                     ))
+                             (min: {date_range_timevar$from_date}, max: {date_range_timevar$to_date})')",
+                     .con = conn))
     
     warning(glue::glue("Some from/to dates fell outside the CLNDR_YEAR_MNTH range. 
                     Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {last_run}"))
@@ -240,11 +240,8 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              'PASS',
                              {Sys.time()}, 
                              'All from/to dates fell within the CLNDR_YEAR_MNTH range \\
-                             (min: {`from`}, max: {`to`})')",
-                     .con = conn,
-                     from = dbQuoteIdentifier(conn, as.character(date_range_elig$from_date)),
-                     to = dbQuoteIdentifier(conn, as.character(date_range_elig$to_date))
-                     ))
+                             (min: {date_range_elig$from_date}, max: {date_range_elig$to_date})')",
+                     .con = conn))
   }
   
   
