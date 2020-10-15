@@ -224,5 +224,10 @@ qa_stage.apcd_elig_timevar_f <- function() {
     from stage.apcd_elig_timevar
     where med_covgrp = 0 and pharm_covgrp = 0 and dental_coverage = 0;",
     .con = db_claims))
+  res8 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_elig_timevar' as 'table', 'max to_date, expect max to_date of latest extract' as qa_type, max(to_date) as qa
+    from stage.apcd_elig_timevar;",
+    .con = db_claims))
+  
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }
