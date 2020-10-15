@@ -29,6 +29,8 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     }
   }
   
+  from_schema <- config[[server]][["from_schema"]]
+  from_table <- config[[server]][["from_table"]]
   to_schema <- config[[server]][["to_schema"]]
   to_table <- config[[server]][["to_table"]]
   qa_schema <- config[[server]][["qa_schema"]]
@@ -36,7 +38,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                      config[[server]][["qa_table"]])
   
   
-  message("Running QA on ", from_schema, ".", from_table)
+  message("Running QA on ", to_schema, ".", to_table)
   
   
   #### PULL OUT VALUES NEEDED MULTIPLE TIMES ####
@@ -73,34 +75,30 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     
     if (row_diff < 0) {
       row_qa_fail <- 1
-      DBI::dbExecute(
-        conn = conn,
+      DBI::dbExecute(conn,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'claims.stage_mcaid_elig_timevar',
+                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Number new rows compared to most recent run', 
                    'FAIL', 
                    {Sys.time()}, 
-                   'There were {row_diff} fewer rows in the most recent table \\
-                       ({row_count} vs. {previous_rows})')",
+                   'There were {row_diff} fewer rows in the most recent table ({row_count} vs. {previous_rows})')",
                        .con = conn))
       
       warning(glue::glue("Fewer rows than found last time.  
                   Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {last_run}"))
     } else {
       row_qa_fail <- 0
-      DBI::dbExecute(
-        conn = conn,
+      DBI::dbExecute(conn,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({last_run}, 
-                   'claims.stage_mcaid_elig_timevar',
+                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Number new rows compared to most recent run', 
                    'PASS', 
                    {Sys.time()}, 
-                   'There were {row_diff} more rows in the most recent table \\
-                       ({row_count} vs. {previous_rows})')",
+                   'There were {row_diff} more rows in the most recent table ({row_count} vs. {previous_rows})')",
                        .con = conn))
       
     }
@@ -203,11 +201,8 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     conn, glue::glue_sql("SELECT MIN(CLNDR_YEAR_MNTH) AS from_date, max(CLNDR_YEAR_MNTH) as to_date 
                            FROM {`from_schema`}.{`from_table`}", .con = conn))
   date_range_elig <- date_range_elig %>%
-    mutate(
-      from_date = as.Date(paste0(from_date, "01"), format = "%Y%m%d"),
-      to_date = 
-        as.Date(paste0(to_date, "01"), format = "%Y%m%d") + months(1) - ddays(1)
-    )
+    mutate(from_date = as.character(as.Date(paste0(from_date, "01"), format = "%Y%m%d")),
+           to_date = as.character(as.Date(paste0(to_date, "01"), format = "%Y%m%d") + months(1) - ddays(1)))
   
   
   if (date_range_timevar$from_date < date_range_elig$from_date | 
@@ -223,7 +218,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              'FAIL',
                              {Sys.time()}, 
                              'Some from/to dates fell outside the CLNDR_YEAR_MNTH range \\
-                             (min: {date_range_timevar$from_date}, max: {date_range_timevar$to_date})')",
+                             (min: {`date_range_timevar$from_date`}, max: {`date_range_timevar$to_date`})')",
                      .con = conn))
     
     warning(glue::glue("Some from/to dates fell outside the CLNDR_YEAR_MNTH range. 
@@ -240,7 +235,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              'PASS',
                              {Sys.time()}, 
                              'All from/to dates fell within the CLNDR_YEAR_MNTH range \\
-                             (min: {date_range_elig$from_date}, max: {date_range_elig$to_date})')",
+                             (min: {`date_range_elig$from_date`}, max: {`date_range_elig$to_date`})')",
                      .con = conn))
   }
   
