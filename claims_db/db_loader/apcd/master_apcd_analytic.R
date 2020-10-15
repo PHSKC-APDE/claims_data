@@ -71,8 +71,8 @@ create_table_f(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_elig_timevar.yaml",
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
 
-### C) Load tables
-system.time(load_stage.apcd_elig_timevar_f(extract_end_date = "2019-03-31"))
+### C) Load tables [CHANGE EXTRACT END DATE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!]
+system.time(load_stage.apcd_elig_timevar_f(extract_end_date = "2019-12-31"))
 
 ### D) Table-level QA
 system.time(apcd_timevar_qa1 <- qa_stage.apcd_elig_timevar_f())
