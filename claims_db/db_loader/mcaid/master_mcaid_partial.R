@@ -93,7 +93,7 @@ system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, conn_db = db
 
 #### ADDRESS CLEANING ####
 ### stage.address_clean
-# Call in config file to get vars (and check for errors)
+# Call in config file to get vars
 stage_address_clean_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
 
 # Run step 1, which identifies new addresses and sets them up to be run through Informatica
@@ -121,7 +121,7 @@ if (qa_stage_address_clean == 0) {
     db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_address_clean_config[[server]][['to_schema']]`}.{`stage_address_clean_config[[server]][['to_table']]`}",
                               .con = db_claims))[[1]])
   
-  # Check if the table exists and, if not, create it
+  # Pull in the config file
   ref_address_clean_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
   
   to_schema <- ref_address_clean_config[[server]][["to_schema"]]
@@ -130,18 +130,19 @@ if (qa_stage_address_clean == 0) {
   qa_table <- ifelse(is.null(ref_address_clean_config[[server]][["qa_table"]]), '',
                      ref_address_clean_config[[server]][["qa_table"]])
   
+  # Check if the table exists and, if not, create it
   if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {
     create_table_f(db_claims, server = server, config = ref_address_clean_config)
   }
   
-  #### Load final table (assumes no changes to table structure)
+  # Load final table (assumes no changes to table structure)
   load_table_from_sql_f(conn = db_claims, 
                         server = server,
                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
                         truncate = T, truncate_date = F)
   
   # QA final table
-  message("QA final table")
+  message("QA final address clean table")
   qa_rows_ref_address_clean <- qa_sql_row_count_f(conn = db_claims, 
                                                 server = server,
                                                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml")
@@ -158,48 +159,80 @@ if (qa_stage_address_clean == 0) {
                  {qa_rows_ref_address_clean$note})",
                    .con = db_claims))
   
-  
-  rm(qa_rows_ref_address_clean, to_schema, to_table, qa_schema, qa_table)
+  rm(last_run_stage_address_clean, ref_address_clean_config,
+     qa_rows_ref_address_clean, to_schema, to_table, qa_schema, qa_table)
 } else {
   stop(glue::glue("Something went wrong with the stage.address_clean run. See {`ref_address_clean_config[[server]][['qa_schema']]`}.
     {DBI::SQL(ref_address_clean_config[[server]][['qa_table']])}qa_mcaid"))
 }
 
-
 ### Clean up
-rm(qa_stage_mcaid_elig_demo, stage_mcaid_elig_demo_config, load_stage_mcaid_elig_demo_f, 
-   last_run_elig_demo, ref_address_clean_config)
+rm(stage_address_clean_config, load_stage.address_clean_partial_1, load_stage.address_clean_partial_2, 
+   qa.address_clean_partial, qa_stage_address_clean)
 
 
 
-### stage.address_geocode
-# Currently need to run through manually until all geocoding can be done via R
-# use load_stage.address_geocode_partial.R
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.address_geocode.R")
+#### STAGE.ADDRESS_GEOCODE ####
+# Call in config file to get vars
+stage_address_geocode_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
 
 
-### ref.address_geocode
-# Also should only be triggered manually until automatic geocoding and QA are built in to stage above
-last_run_geocode <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM ref.stage_address_geocode")[[1]])
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.address_geocode_partial.R")
 
-load_table_from_sql_f(conn = db_claims,
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
-truncate = T, truncate_date = F)
+qa_stage_address_geocode <- stage_address_geocode_f(conn = db_claims, 
+                                                    server = server, 
+                                                    config = stage_address_geocode_config, 
+                                                    full_refresh = F)
 
-qa_rows_final <- qa_sql_row_count_f(conn = db_claims,
-                                    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
-                                    overall = T, ind_yr = F)
 
-DBI::dbExecute(
-  conn = db_claims,
-  glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
+#### REF.ADDRESS_GEOCODE ####
+if (qa_stage_address_geocode == 0) {
+  # Pull out run date
+  last_run_stage_address_geocode <- as.POSIXct(odbc::dbGetQuery(
+    db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_address_geocode_config[[server]][['to_schema']]`}.{`stage_address_geocode_config[[server]][['to_table']]`}",
+                              .con = db_claims))[[1]])
+
+  
+  # Pull in the config file
+  ref_address_geocode_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml"))
+  
+  to_schema <- ref_address_geocode_config[[server]][["to_schema"]]
+  to_table <- ref_address_geocode_config[[server]][["to_table"]]
+  qa_schema <- ref_address_geocode_config[[server]][["qa_schema"]]
+  qa_table <- ifelse(is.null(ref_address_geocode_config[[server]][["qa_table"]]), '',
+                     ref_address_geocode_config[[server]][["qa_table"]])
+  
+  # Check if the table exists and, if not, create it
+  if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {
+    create_table_f(db_claims, server = server, config = ref_address_geocode_config)
+  }
+  
+  
+  # Load final table (assumes no changes to table structure)
+  load_table_from_sql_f(conn = db_claims,
+                        server = server,
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
+                        truncate = T, truncate_date = F)
+  
+  
+  # QA final table
+  message("QA final address geocode table")
+  qa_rows_final <- qa_sql_row_count_f(conn = db_claims,
+                                      server = server,
+                                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml")
+  
+  DBI::dbExecute(
+    conn = db_claims,
+    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_geocode}, 
-                 'ref.address_geocode',
+                 VALUES ({last_run_stage_address_geocode}, 
+                 '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                  'Number final rows compared to stage', 
                  {qa_rows_final$qa_result}, 
                  {Sys.time()}, 
                  {qa_rows_final$note})",
-                 .con = db_claims))
-
-rm(last_run_geocode, qa_rows_final)
+                   .con = db_claims))
+  
+  rm(last_run_stage_address_geocode, qa_rows_final, to_schema, to_table, qa_schema, qa_table)
+}
+rm(stage_address_geocode_config, qa_stage_address_geocode, stage_address_geocode_f)

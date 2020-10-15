@@ -133,7 +133,7 @@ load_stage_mcaid_elig_timevar_f(conn = db_claims, server = server, config = stag
 
 # Pull out run date
 last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(
-  db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_timevar_config[[server]][['to_schema']]`}{`stage_mcaid_elig_timevar_config[[server]][['to_table']]`}",
+  db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_timevar_config[[server]][['to_schema']]`}.{`stage_mcaid_elig_timevar_config[[server]][['to_table']]`}",
                             .con = db_claims))[[1]])
 
 ### QA stage version
@@ -169,18 +169,17 @@ if (qa_stage_mcaid_elig_timevar == 0) {
   
   DBI::dbExecute(
     conn = db_claims,
-    glue::glue_sql("INSERT INTO {`final_mcaid_elig_timevar_config[[server]][['qa_schema']]`}.
-    {DBI::SQL(final_mcaid_elig_timevar_config[[server]][['qa_table']])}qa_mcaid
+    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
                  VALUES ({last_run_elig_timevar}, 
-                 '{DBI::SQL(final_mcaid_elig_timevar_config[[server]][['to_schema']])}.{DBI::SQL(final_mcaid_elig_timevar_config[[server]][['to_table']])}',
+                 '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                  'Number final rows compared to stage', 
                  {qa_rows_final_elig_timevar$qa_result}, 
                  {Sys.time()}, 
                  {qa_rows_final_elig_timevar$note})",
                    .con = db_claims))
   
-  rm(qa_rows_final_elig_timevar)
+  rm(qa_rows_final_elig_timevar, to_schema, to_table, qa_schema, qa_table)
 } else {
   stop(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {`final_mcaid_elig_timevar_config[[server]][['qa_schema']]`}.
     {DBI::SQL(final_mcaid_elig_timevar_config[[server]][['qa_table']])}qa_mcaid"))
@@ -226,7 +225,7 @@ claim_load_f <- function(table = c("icdcm_header", "header", "line",
     load_stage_mcaid_claim_icdcm_header_f(conn = db_claims, server = server, config = stage_config)
   } else if (table == "header") {
     load_stage_mcaid_claim_header_f(conn = db_claims, server = server, config = stage_config)
-  } else if (table == "") {
+  } else if (table == "line") {
     load_stage_mcaid_claim_line_f(conn = db_claims, server = server, config = stage_config)
   } else if (table == "pharm") {
     load_stage_mcaid_claim_pharm_f(conn = db_claims, server = server, config = stage_config)
@@ -236,7 +235,7 @@ claim_load_f <- function(table = c("icdcm_header", "header", "line",
   
   # Pull out run date
   last_run_claim <- as.POSIXct(odbc::dbGetQuery(
-    db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_config[[server]][['to_schema']]`}{`stage_config[[server]][['to_table']]`}",
+    db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_config[[server]][['to_schema']]`}.{`stage_config[[server]][['to_table']]`}",
                               .con = db_claims))[[1]])
   
   
@@ -247,7 +246,7 @@ claim_load_f <- function(table = c("icdcm_header", "header", "line",
     qa_stage <- qa_stage_mcaid_claim_icdcm_header_f(conn = db_claims, server = server, config = stage_config)
   } else if (table == "header") {
     qa_stage <- qa_stage_mcaid_claim_header_f(conn = db_claims, server = server, config = stage_config)
-  } else if (table == "") {
+  } else if (table == "line") {
     qa_stage <- qa_stage_mcaid_claim_line_f(conn = db_claims, server = server, config = stage_config)
   } else if (table == "pharm") {
     qa_stage <- qa_stage_mcaid_claim_pharm_f(conn = db_claims, server = server, config = stage_config)
