@@ -30,7 +30,7 @@ add_index_f <- function(conn,
   
   #### SET UP SERVER ####
   if (is.null(server)) {
-    message("Server must be phclaims or hhsaw")
+    message("No server name provided (must be phclaims or hhsaw)")
     server <- NA
   } else if (server %in% c("phclaims", "hhsaw")) {
     server <- server

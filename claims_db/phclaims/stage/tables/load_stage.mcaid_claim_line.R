@@ -85,5 +85,5 @@ load_stage_mcaid_claim_line_f <- function(conn = NULL,
   
   
   #### ADD INDEX ####
-  add_index_f(conn, table_config = config)
+  add_index_f(conn, server = server, table_config = config)
 }

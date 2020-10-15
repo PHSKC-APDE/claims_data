@@ -140,7 +140,7 @@ load_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
   # Takes ~6 minutes in Azure
   message("Running step 3: create index")
   time_start <- Sys.time()
-  add_index_f(conn, table_config = config)
+  add_index_f(conn, server = server, table_config = config)
   time_end <- Sys.time()
   message(glue::glue("Index creation took {round(difftime(time_end, time_start, units = 'secs'), 2)} ",
                      " secs ({round(difftime(time_end, time_start, units = 'mins'), 2)} mins)"))
