@@ -223,7 +223,7 @@ qa_stage.apcd_elig_timevar_f <- function() {
       and zip in (select zip_code from phclaims.ref.apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
     .con = db_claims))
   res7 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'count of member elig segments with no coverage, expect 1' as qa_type, count(distinct id_apcd) as qa
+    "select 'stage.apcd_elig_timevar' as 'table', 'count of member elig segments with no coverage, expect 0' as qa_type, count(distinct id_apcd) as qa
     from stage.apcd_elig_timevar
     where med_covgrp = 0 and pharm_covgrp = 0 and dental_coverage = 0;",
     .con = db_claims))
@@ -231,6 +231,11 @@ qa_stage.apcd_elig_timevar_f <- function() {
     "select 'stage.apcd_elig_timevar' as 'table', 'max to_date, expect max to_date of latest extract' as qa_type,
     cast(left(max(to_date),4) + SUBSTRING(cast(max(to_date) as varchar(255)),6,2) + right(max(to_date),2) as integer) as qa
     from stage.apcd_elig_timevar;",
+    .con = db_claims))
+  res9 <- dbGetQuery(conn = db_claims, glue_sql(
+    "select 'stage.apcd_elig_timevar' as 'table', 'mcaid-mcare duals with dual flag = 0, expect 0' as qa_type, count(*) as qa
+    from stage.apcd_elig_timevar
+    where (med_covgrp = 4 or pharm_covgrp = 4) and dual = 0;",
     .con = db_claims))
   
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()
