@@ -91,28 +91,31 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
       
       --create coverage categorical variable for medical coverage
       case
-        when a.med_medicaid_eligibility_id is not null and a.med_commercial_eligibility_id is null and a.med_medicare_eligibility_id is null then 1 --Medicaid only
-        when a.med_medicaid_eligibility_id is null and a.med_commercial_eligibility_id is null and a.med_medicare_eligibility_id is not null then 2 --Medicare only
-        when a.med_medicaid_eligibility_id is null and a.med_commercial_eligibility_id is not null and a.med_medicare_eligibility_id is null then 3 --Commercial only
-        when a.med_medicaid_eligibility_id is not null and a.med_commercial_eligibility_id is null and a.med_medicare_eligibility_id is not null then 4 -- Medicaid-Medicare dual
-        when a.med_medicaid_eligibility_id is not null  and a.med_commercial_eligibility_id is not null and a.med_medicare_eligibility_id is null then 5 --Medicaid-commercial dual
-        when a.med_medicaid_eligibility_id is null and a.med_commercial_eligibility_id is not null and a.med_medicare_eligibility_id is not null then 6 --Medicare-commercial dual
-        when a.med_medicaid_eligibility_id is not null and a.med_commercial_eligibility_id is not null and a.med_medicare_eligibility_id is not null then 7 -- All three
+        when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is null and (a.med_medicare_eligibility_id is null) then 1 --Medicaid only
+        when (a.med_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.med_commercial_eligibility_id is null and (a.med_medicare_eligibility_id is not null) then 2 --Medicare only
+        when (a.med_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.med_commercial_eligibility_id is not null and a.med_medicare_eligibility_id is null then 3 --Commercial only
+	      when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is null and (a.med_medicare_eligibility_id is not null) then 4 -- Medicaid-Medicare dual
+        when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is not null and (a.med_medicare_eligibility_id is null) then 5 --Medicaid-commercial dual
+        when (a.med_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.med_commercial_eligibility_id is not null and (a.med_medicare_eligibility_id is not null) then 6 --Medicare-commercial dual
+        when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is not null and (a.med_medicare_eligibility_id is not null) then 7 -- All three
         else 0 --no medical coverage
-      end as med_covgrp,
-      --create coverage categorical variable for medical coverage
+       end as med_covgrp,
+       
+      --create coverage categorical variable for pharmacy coverage
       case
-        when a.rx_medicaid_eligibility_id is not null and a.rx_commercial_eligibility_id is null and a.rx_medicare_eligibility_id is null then 1 --Medicaid only
-        when a.rx_medicaid_eligibility_id is null and a.rx_commercial_eligibility_id is null and a.rx_medicare_eligibility_id is not null then 2 --Medicare only
-        when a.rx_medicaid_eligibility_id is null and a.rx_commercial_eligibility_id is not null and a.rx_medicare_eligibility_id is null then 3 --Commercial only
-        when a.rx_medicaid_eligibility_id is not null and a.rx_commercial_eligibility_id is null and a.rx_medicare_eligibility_id is not null then 4 -- Medicaid-Medicare dual
-        when a.rx_medicaid_eligibility_id is not null  and a.rx_commercial_eligibility_id is not null and a.rx_medicare_eligibility_id is null then 5 --Medicaid-commercial dual
-        when a.rx_medicaid_eligibility_id is null and a.rx_commercial_eligibility_id is not null and a.rx_medicare_eligibility_id is not null then 6 --Medicare-commercial dual
-        when a.rx_medicaid_eligibility_id is not null and a.rx_commercial_eligibility_id is not null and a.rx_medicare_eligibility_id is not null then 7 -- All three
+        when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is null and (a.rx_medicare_eligibility_id is null) then 1 --Medicaid only
+        when (a.rx_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.rx_commercial_eligibility_id is null and (a.rx_medicare_eligibility_id is not null) then 2 --Medicare only
+        when (a.rx_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.rx_commercial_eligibility_id is not null and a.rx_medicare_eligibility_id is null then 3 --Commercial only
+	      when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is null and (a.rx_medicare_eligibility_id is not null) then 4 -- Medicaid-Medicare dual
+        when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is not null and (a.rx_medicare_eligibility_id is null) then 5 --Medicaid-commercial dual
+        when (a.rx_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.rx_commercial_eligibility_id is not null and (a.rx_medicare_eligibility_id is not null) then 6 --Medicare-commercial dual
+        when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is not null and (a.rx_medicare_eligibility_id is not null) then 7 -- All three
         else 0 --no pharm coverage
-      end as pharm_covgrp,
+       end as pharm_covgrp,
+       
       --dental coverage
       b.dental_coverage
+      
     into #temp3
     from (
     select *, convert(date, cast(year_month as varchar(200)) + '01') as first_day_month
