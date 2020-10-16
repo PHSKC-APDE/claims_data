@@ -156,7 +156,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
     num_rx_new <- DBI::dbGetQuery(
       conn, glue::glue_sql("SELECT YEAR(rx_fill_date) AS claim_year, COUNT(*) AS new_num_rx
                          FROM {`to_schema`}.{`to_table`}
-                         GROUP BY YEAR(rx_fill_date) ORDER by YEAR(rx_fill_date", .con = conn))
+                         GROUP BY YEAR(rx_fill_date) ORDER by YEAR(rx_fill_date)", .con = conn))
     
     num_rx_overall <- left_join(num_rx_new, num_rx_current, by = "claim_year") %>%
       mutate(pct_change = round((new_num_rx - current_num_rx) / current_num_rx * 100, 4))

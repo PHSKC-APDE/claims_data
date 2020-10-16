@@ -273,7 +273,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     num_dx_new <- DBI::dbGetQuery(
       conn, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS new_num_dx
                          FROM {`to_schema`}.{`to_table`}
-                         GROUP BY YEAR(first_service_date) ORDER by YEAR(first_service_date", .con = conn))
+                         GROUP BY YEAR(first_service_date) ORDER by YEAR(first_service_date)", .con = conn))
     
     num_dx_overall <- left_join(num_dx_new, num_dx_current, by = "claim_year") %>%
       mutate(pct_change = round((new_num_dx - current_num_dx) / current_num_dx * 100, 4))

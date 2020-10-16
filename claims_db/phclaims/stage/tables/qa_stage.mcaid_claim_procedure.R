@@ -263,7 +263,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
     num_procedure_new <- DBI::dbGetQuery(
       conn, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS new_num_procedure
                          FROM {`to_schema`}.{`to_table`}
-                         GROUP BY YEAR(first_service_date) ORDER by YEAR(first_service_date", .con = conn))
+                         GROUP BY YEAR(first_service_date) ORDER by YEAR(first_service_date)", .con = conn))
     
     num_procedure_overall <- left_join(num_procedure_new, num_procedure_current, by = "claim_year") %>%
       mutate(pct_change = round((new_num_procedure - current_num_procedure) / current_num_procedure * 100, 4))

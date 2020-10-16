@@ -154,7 +154,7 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   rev_format <- as.integer(odbc::dbGetQuery(
     conn = conn,
     glue::glue_sql("SELECT count(*) FROM {`to_schema`}.{`to_table`}
-                   WHERE rev_code IS NOT NULL AND (len(rev_code) <> 4 OR isnumeric(rev_code) = 0",
+                   WHERE rev_code IS NOT NULL AND (len(rev_code) <> 4 OR isnumeric(rev_code) = 0)",
                    .con = conn)))
   
   if (rev_format == 0) {
@@ -235,7 +235,7 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
     num_claim_new <- DBI::dbGetQuery(
       conn, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS new_claim_line
                          FROM {`to_schema`}.{`to_table`}
-                         GROUP BY YEAR(first_service_date) ORDER by YEAR(first_service_date", .con = conn))
+                         GROUP BY YEAR(first_service_date) ORDER by YEAR(first_service_date)", .con = conn))
     
     num_claim_overall <- left_join(num_claim_new, num_claim_current, by = "claim_year") %>%
       mutate(pct_change = round((new_claim_line - current_claim_line) / current_claim_line * 100, 4))
