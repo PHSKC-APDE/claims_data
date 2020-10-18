@@ -133,7 +133,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   #### STEP 0: SET UP TEMP TABLE ####
   ### Remove table if it exists
-  try(DBI::dbRemoveTable(conn, name = DBI::Id(schema = to_schema, 
+  try(DBI::dbRemoveTable(conn, name = DBI::Id(schema = temp_schema, 
                                               table = paste0(temp_table, "mcaid_claim_header"))))
   
   ### Set up temp table
@@ -166,7 +166,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            ,cast([SYSTEM_IN_DATE] as date) as system_in_date
            ,cast([TCN_DATE] as date) as claim_header_id_date
            
-           INTO {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claims_header
+           INTO {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claim_header
            from {`from_schema`}.{`from_table`} as clm
            left join {`ref_schema`}.{DBI::SQL(ref_table)}kc_claim_type_crosswalk as ref
            on cast(clm.CLM_TYPE_CID as varchar(20)) = ref.source_clm_type_id",
@@ -1002,6 +1002,8 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   #### STEP 19: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER ####
   message("Loading to final table")
+  try(DBI::dbRemoveTable(conn, name = DBI::Id(schema = to_schema, table = to_table)))
+  
   DBI::dbExecute(conn,
                  glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} 
                           ({`names(config$vars)`*}) 
