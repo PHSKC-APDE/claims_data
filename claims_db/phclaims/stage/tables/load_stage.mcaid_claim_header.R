@@ -347,7 +347,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                   AND [code_system] = 'UBREV'
                   AND a.[rev_code] = b.[code]
                   
-                EXCEPT
+                  EXCEPT
                   (SELECT [id_mcaid]
                     ,[claim_header_id]
                     ,[first_service_date]
