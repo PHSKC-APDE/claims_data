@@ -55,7 +55,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
   
   
   #### PULL OUT VALUES NEEDED MULTIPLE TIMES ####
-  last_run <- as.POSIXct(odbc::dbGetQuery(
+  last_run <- as.POSIXct(DBI::dbGetQuery(
     conn, glue::glue_sql("SELECT MAX (last_run) FROM {`to_schema`}.{`to_table`}",
                          .con = conn))[[1]])
   
