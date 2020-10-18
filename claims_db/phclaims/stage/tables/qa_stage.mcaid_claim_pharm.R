@@ -21,9 +21,9 @@
 
 
 qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
-                                             server = c("hhsaw", "phclaims"),
-                                             config = NULL,
-                                             get_config = F) {
+                                         server = c("hhsaw", "phclaims"),
+                                         config = NULL,
+                                         get_config = F) {
   
   # Set up variables specific to the server
   server <- match.arg(server)
@@ -114,7 +114,8 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
     conn = conn,
     glue::glue_sql("SELECT count(*) FROM {`to_schema`}.{`to_table`}
                  WHERE [ndc] IS NOT NULL AND 
-                 (len([ndc]) <> 11 OR isnumeric([ndc]) = 0)")))
+                 (len([ndc]) <> 11 OR isnumeric([ndc]) = 0)",
+                   .con = conn)))
   
   if (ndc_format == 0) {
     ndc_format_fail <- 0
