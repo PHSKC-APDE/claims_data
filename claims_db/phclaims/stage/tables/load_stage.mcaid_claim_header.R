@@ -361,7 +361,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                   SELECT [id_mcaid]
                     ,[claim_header_id]
                     ,[first_service_date]
-                    ,1 AS [inpatient
+                    ,1 AS [inpatient]
                     FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_header AS a
                     INNER JOIN {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system AS b
                     ON [value_set_name] IN ('Nonacute Inpatient Stay')
