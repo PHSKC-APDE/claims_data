@@ -161,7 +161,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            ,cast([DRVD_DRG_CODE] as varchar(255)) as drvd_drg_code
            ,cast([PRIMARY_DIAGNOSIS_POA_LKPCD] as varchar(255)) as primary_diagnosis_poa
            ,cast([INSRNC_CVRG_CODE] as varchar(255)) as insrnc_cvrg_code
-           ,cast([LT_PYMNT_DATE] as date) as last_pymnt_date -- Change this back to LAST_ when the external table is remade
+           ,cast([LAST_PYMNT_DATE] as date) as last_pymnt_date -- Change this back to LAST_ when the external table is remade
            ,cast([BILL_DATE] as date) as bill_date
            ,cast([SYSTEM_IN_DATE] as date) as system_in_date
            ,cast([TCN_DATE] as date) as claim_header_id_date
