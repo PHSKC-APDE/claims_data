@@ -1001,8 +1001,10 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 19: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER ####
-  message("Loading to final table")
-  try(DBI::dbRemoveTable(conn, name = DBI::Id(schema = to_schema, table = to_table)))
+  message("Loading to stage table")
+  
+  # Delete and remake table
+    create_table_f(conn - conn, server = server, config = config, overwrite = T)
   
   DBI::dbExecute(conn,
                  glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} 
