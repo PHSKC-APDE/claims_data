@@ -1004,10 +1004,11 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   message("Loading to stage table")
   
   # Delete and remake table
-    create_table_f(conn - conn, server = server, config = config, overwrite = T)
+  create_table_f(conn = conn, server = server, config = config, overwrite = T)
   
   DBI::dbExecute(conn,
                  glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} 
+                 {DBI::SQL(ifelse(server == 'phclaims', ' WITH (TABLOCK) ', ''))}
                           ({`names(config$vars)`*}) 
                           SELECT {`names(config$vars)[names(config$vars) != 'last_run']`*}
                           , getdate() AS [last_run] 
