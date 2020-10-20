@@ -37,11 +37,11 @@ vars:
     address_practice_country_code: varchar(255)
     address_practice_phone: varchar(255)
     address_practice_fax: varchar(255)
-    enumeration_varchar(255): varchar(255)
-    last_upvarchar(255): varchar(255)
+    enumeration_date: varchar(255)
+    last_update: varchar(255)
     deactivation_reason_code: varchar(255)
-    deactivation_varchar(255): varchar(255)
-    reactivation_varchar(255): varchar(255)
+    deactivation_date: varchar(255)
+    reactivation_date: varchar(255)
     gender_code: varchar(255)
     name_official_last: varchar(255)
     name_official_first: varchar(255)
@@ -331,6 +331,7 @@ vars:
     healthcare_provider_taxonomy_group_14: varchar(255)
     healthcare_provider_taxonomy_group_15: varchar(255)
     certification_date: varchar(255)
+    last_run: datetime
 overall:
     file_path: //phdata01/epe_data/nppes/npidata_pfile.csv
     field_term: ','
