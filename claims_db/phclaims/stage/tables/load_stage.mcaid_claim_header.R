@@ -506,7 +506,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 10: CCS GROUPINGS (CCS, CCS-LEVEL 1, CCS-LEVEL 2), PRIMARY DX, FINAL CATEGORIZATION ####
-  try(DBI::dbRemoveTable(conn, "##ccs'", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##ccs", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
            b.claim_header_id
@@ -533,7 +533,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 11: RDA MENTAL HEALTH AND SUBSTANCE USE DISORDER DX FLAGS, ANY DX ####
-  try(DBI::dbRemoveTable(conn, "##rda'", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##rda", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
            b.claim_header_id
@@ -1034,9 +1034,9 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   try(DBI::dbRemoveTable(conn, "##pc_provider", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##temp1", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##avoid_ca", temporary = T), silent = T)
-  try(DBI::dbRemoveTable(conn, "##avoid_nyu'", temporary = T), silent = T)
-  try(DBI::dbRemoveTable(conn, "##ccs'", temporary = T), silent = T)
-  try(DBI::dbRemoveTable(conn, "##rda'", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##avoid_nyu", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##ccs", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##rda", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##injury9cm", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##injury10cm", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##injury", temporary = T), silent = T)
