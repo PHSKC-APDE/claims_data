@@ -481,7 +481,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 9: ED CLASSIFICATION, NYU ALGORITHM ####
-  try(DBI::dbRemoveTable(conn, "##avoid_nyu'", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##avoid_nyu", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("select 
            b.claim_header_id
