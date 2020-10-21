@@ -34,12 +34,12 @@ create_table_f <- function(
 ) {
   
   
-  ### SET UP SERVER
-  if (server %in% c("phclaims", "hhsaw")) {
-    server <- server
-  } else if (!is.null(server)) {
+  #### SET UP SERVER ####
+  if (is.null(server)) {
     message("Server must be phclaims or hhsaw")
     server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
   }
   
   #### INITIAL ERROR CHECK ####
@@ -148,7 +148,7 @@ create_table_f <- function(
   
   create_code <- glue::glue_sql(
     "CREATE {external_setup} TABLE {`to_schema`}.{`to_table`} (
-      {DBI::SQL(glue_collapse(glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}', 
+      {DBI::SQL(glue::glue_collapse(glue::glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}', 
       .con = conn), sep = ', \n'))}
       ) {external_text}", 
     .con = conn)
