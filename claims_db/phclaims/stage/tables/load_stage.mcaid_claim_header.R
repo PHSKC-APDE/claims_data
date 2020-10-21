@@ -134,7 +134,8 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   #### STEP 0: SET UP TEMP TABLE ####
   ### Remove table if it exists
   try(DBI::dbRemoveTable(conn, name = DBI::Id(schema = temp_schema, 
-                                              table = paste0(temp_table, "mcaid_claim_header"))))
+                                              table = paste0(temp_table, "mcaid_claim_header"))),
+      silent = T)
   
   ### Set up temp table
   # Could turn this code into a function and add test options if desired

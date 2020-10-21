@@ -146,7 +146,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
     
     num_header_current <- DBI::dbGetQuery(
       conn, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS current_num_header
-                           FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line
+                           FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_header
                            GROUP BY YEAR(first_service_date) ORDER BY YEAR(first_service_date)",
                            .con = conn))
     
@@ -211,7 +211,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
     #### Compare number of ED visits in current vs. prior analytic tables ####
     num_ed_current <- DBI::dbGetQuery(
       conn, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS current_num_ed
-                           FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line
+                           FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_header
                            GROUP BY YEAR(first_service_date) ORDER BY YEAR(first_service_date)",
                            .con = conn))
     
