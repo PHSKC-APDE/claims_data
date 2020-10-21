@@ -10,7 +10,7 @@ vars:
     timestamp: DATETIME
     geo_add1_clean: VARCHAR(255)
     geo_add2_clean: VARCHAR(255)
-    geo_po_box: VARCHAR(255)
+    geo_po_box_clean: VARCHAR(255)
     geo_city_clean: VARCHAR(255)
     geo_state_clean: VARCHAR(255)
     geo_zip_clean: VARCHAR(255)
