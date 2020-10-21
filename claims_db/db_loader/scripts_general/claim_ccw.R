@@ -237,12 +237,12 @@ load_ccw <- function(conn = NULL,
             left join (
             SELECT diag.claim_header_id, max(ref.{`dx_exclude1`}) as exclude1, 
               max(ref.{`dx_exclude2`}) as exclude2 
-            
+
           --pull out claim and diagnosis fields
             FROM (
               SELECT {top_rows} {`id_source`}, claim_header_id, icdcm_norm, icdcm_version, icdcm_number
               FROM {`icdcm_from_schema`}.{`icdcm_from_table`}) diag
-            
+
           --join to diagnosis reference table, subset to those with CCW exclusion flag
             inner join (
             SELECT {top_rows} dx, dx_ver, {`dx_exclude1`}, {`dx_exclude2`} 
