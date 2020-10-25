@@ -1,4 +1,4 @@
-##Code to create ref.provider_nppes_wa_load
+##Code to create ref.provider_nppes_apde_load
 ##Lookup table for provider NPIs and other information
 ##Reference: https://download.cms.gov/nppes/NPI_Files.html
 ##Eli Kern (PHSKC-APDE)
@@ -20,7 +20,7 @@ conn <- dbConnect(odbc(), "PHClaims51")
 #Create variables for primary and secondary taxonomy
 
 # Remove table if it exists
-tbl_name <- DBI::Id(schema = "ref", table = "provider_nppes_wa_load")
+tbl_name <- DBI::Id(schema = "ref", table = "provider_nppes_apde_load")
 try(dbRemoveTable(conn, tbl_name), silent = T)
 
 # Create new table, keep subset of columns, and create new variables as needed
@@ -28,7 +28,6 @@ dbSendQuery(conn = conn,
 
 "---------------------------
 --Step 1: Pull out and reshape provider taxonomy columns
---Run: 1 min
 ---------------------------
 if object_id('tempdb..#tax_long') is not null drop table #tax_long;
 select distinct npi, taxonomy, taxonomy_number
@@ -50,14 +49,12 @@ from (
 		healthcare_provider_taxonomy_code_14 as [14],
 		healthcare_provider_taxonomy_code_15 as [15]
 	from phclaims.ref.provider_nppes_load
-	where address_practice_state = 'WA' or address_practice_state = 'WASHINGTON'
 ) as a
 unpivot(taxonomy for taxonomy_number in ([01], [02], [03], [04], [05], [06], [07], [08], [09], [10], [11], [12], [13], [14], [15])) as taxonomy;
 
 
 ---------------------------
 --Step 2: Pull out and reshape provider taxonomy primary flag columns
---Run: <1 min
 ---------------------------
 if object_id('tempdb..#tax_primary_flag_long') is not null drop table #tax_primary_flag_long;
 select distinct npi, primary_flag, taxonomy_number
@@ -79,14 +76,12 @@ from (
 		healthcare_provider_primary_taxonomy_switch_14 as [14],
 		healthcare_provider_primary_taxonomy_switch_15 as [15]
 	from phclaims.ref.provider_nppes_load
-	where address_practice_state = 'WA' or address_practice_state = 'WASHINGTON'
 ) as a
 unpivot(primary_flag for taxonomy_number in ([01], [02], [03], [04], [05], [06], [07], [08], [09], [10], [11], [12], [13], [14], [15])) as primary_flag;
 
 
 ---------------------------
 --Step 3: Join taxonomy and primary flag columns into new table
---Run: <1 min
 ---------------------------
 if object_id('tempdb..#tax_long_joined') is not null drop table #tax_long_joined;
 select a.npi, a.taxonomy, a.taxonomy_number, b.primary_flag
@@ -98,7 +93,6 @@ on (a.npi = b.npi) and (a.taxonomy_number = b.taxonomy_number);
 
 ---------------------------
 --Step 4: Create primary and secondary taxonomy fields for each NPI
---Run: <1 min
 ---------------------------
 
 --select primary taxonomy
@@ -137,7 +131,6 @@ on a.npi = b.npi;
 
 ---------------------------
 --Step 5: Join taxonomy information to remainder of desired columns and insert into persistent table shell
---Run: 1 min
 ---------------------------
 select cast(a.npi as bigint) as npi,
 	a.entity_type_code,
@@ -153,6 +146,7 @@ select cast(a.npi as bigint) as npi,
 	a.address_practice_city,
 	a.address_practice_state,
 	a.address_practice_zip_code,
+	case when a.address_practice_state = 'WA' or a.address_practice_state = 'WASHINGTON' then 1 else 0 end as geo_wa,
 	cast(a.enumeration_date as date) as enumeration_date,
 	cast(a.last_update as date) as last_update,
 	a.gender_code,
@@ -163,16 +157,15 @@ select cast(a.npi as bigint) as npi,
 	a.parent_organization_lbn,
 	getdate() as last_run
 
-into PHClaims.ref.provider_nppes_wa_load
+into PHClaims.ref.provider_nppes_apde_load
 from PHClaims.ref.provider_nppes_load as a
 left join #tax_final as b
-on cast(a.npi as bigint) = b.npi
-where a.address_practice_state = 'WA' or a.address_practice_state = 'WASHINGTON';")
+on cast(a.npi as bigint) = b.npi;")
 
 
 ##### STEP 2: Write addresses to Informatica cleaning table #####
 
-#bring data into R
+#bring WA providers address data into R
 nppes_address <- dbGetQuery(conn = conn, 
 "select distinct address_practice_first as geo_add1_raw,
   address_practice_second as geo_add2_raw,
@@ -181,7 +174,8 @@ nppes_address <- dbGetQuery(conn = conn,
   left(address_practice_zip_code,5) as geo_zip_raw,
   'nppes' as geo_source,
   getdate() as timestamp
-  from phclaims.ref.provider_nppes_wa_load;")
+  from phclaims.ref.provider_nppes_apde_load
+  where geo_wa = 1;")
 
 #change connection to analytic workspace
 conn <- dbConnect(odbc(), "hhsaw_dev", uid = "eli.kern@kingcounty.gov") #will prompt for password in popup window
