@@ -130,7 +130,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
            per_diff = abs_diff / prop * 100)
   
   # Show results for review
-  distinct_id_chk %>% filter(!is.na(abs_diff))
+  print(distinct_id_chk %>% filter(!is.na(abs_diff)))
   
   prop_chk <- askYesNo(msg = glue("Are the deviations from the APCD estimates ", 
                                   "within acceptable parameters? Ideally a small ",
@@ -230,7 +230,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
       end as age_grp7
       FROM (
 	      SELECT id_mcaid
-	      FROM {`final_schema`}.{DBI::SQL(final_table)}caid_elig_timevar
+	      FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_timevar
 	      where year(from_date) <= {year} and year(to_date) >= {year}
 	      ) as a
 	    left join (
@@ -301,64 +301,77 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   
   
   #### STEP 2: VALIDATE STATUS OF ONE PERSON PER CONDITION WITH 2+ TIME PERIODS ####
-  # Bring in csv file with specific individuals
-  ids_csv <- read.csv(file = "//dchs-shares01/dchsdata/DCHSPHClaimsData/Data/QA_specific/stage.mcaid_claim_ccw_qa_ind.csv",
-                      stringsAsFactors = F)
+  ### Only run this when checking manually because end dates in the csv file get 
+  # out of date.
   
-  
-  # Restrict to relevant columns
-  ids_csv <- ids_csv %>% select(id_mcaid, ccw_desc, from_date, to_date) %>%
-    arrange(id_mcaid, from_date)
-  
-  # Pull relevant people from ccw table
-  # Note, need to use glue instead of glue_sql to get quotes to work in collapse
-  ids_ccw <- dbGetQuery(
-    conn,
-    glue_sql("SELECT id_mcaid, ccw_desc, from_date, to_date 
-           FROM {`to_schema`}.{`to_table`}
-           WHERE {glue_collapse(glue_data_sql(
-             ids_csv, '(id_mcaid = {id_mcaid} and ccw_desc = {ccw_desc})', 
-             .con = conn), sep = ' OR ')} 
-           ORDER BY id_mcaid, from_date",
-             .con = conn))
-  
-  
-  if (isTRUE(all_equal(ids_csv, ids_ccw))) {
-    ccw_qa <- rbind(ccw_qa,
-                    data.frame(etl_batch_id = NA_integer_,
-                               last_run = last_run,
-                               table_name = paste0(to_schema, ".", to_table),
-                               qa_item = "Specific individuals",
-                               qa_result = "PASS",
-                               qa_date = Sys.time(),
-                               note = glue("From/to dates matched what was expected")))
-  } else {
-    ccw_qa <- rbind(ccw_qa,
-                    data.frame(etl_batch_id = NA_integer_,
-                               last_run = last_run,
-                               table_name = paste0(to_schema, ".", to_table),
-                               qa_item = "Specific individuals",
-                               qa_result = "FAIL",
-                               qa_date = Sys.time(),
-                               note = glue("From/to dates DID NOT match what was expected")))
-  }
+  # # Bring in csv file with specific individuals
+  # ids_csv <- read.csv(file = "//dchs-shares01/dchsdata/DCHSPHClaimsData/Data/QA_specific/stage.mcaid_claim_ccw_qa_ind.csv",
+  #                     stringsAsFactors = F)
+  # 
+  # 
+  # # Restrict to relevant columns
+  # ids_csv <- ids_csv %>% select(id_mcaid, ccw_desc, from_date, to_date) %>%
+  #   arrange(id_mcaid, from_date)
+  # 
+  # # Pull relevant people from ccw table
+  # # Note, need to use glue instead of glue_sql to get quotes to work in collapse
+  # ids_ccw <- dbGetQuery(
+  #   conn,
+  #   glue_sql("SELECT id_mcaid, ccw_desc, from_date, to_date 
+  #          FROM {`to_schema`}.{`to_table`}
+  #          WHERE {DBI::SQL(
+  #             glue_collapse(
+  #               glue_data_sql(
+  #                 ids_csv, 
+  #                 '(id_mcaid = {id_mcaid} and ccw_desc = {ccw_desc})', .con = conn), 
+  #               sep = ' OR '))} 
+  #          ORDER BY id_mcaid, from_date",
+  #            .con = conn))
+  # 
+  # 
+  # if (isTRUE(all_equal(ids_csv, ids_ccw))) {
+  #   ccw_qa <- rbind(ccw_qa,
+  #                   data.frame(etl_batch_id = NA_integer_,
+  #                              last_run = last_run,
+  #                              table_name = paste0(to_schema, ".", to_table),
+  #                              qa_item = "Specific individuals",
+  #                              qa_result = "PASS",
+  #                              qa_date = Sys.time(),
+  #                              note = glue("From/to dates matched what was expected")))
+  # } else {
+  #   ccw_qa <- rbind(ccw_qa,
+  #                   data.frame(etl_batch_id = NA_integer_,
+  #                              last_run = last_run,
+  #                              table_name = paste0(to_schema, ".", to_table),
+  #                              qa_item = "Specific individuals",
+  #                              qa_result = "FAIL",
+  #                              qa_date = Sys.time(),
+  #                              note = glue("From/to dates DID NOT match what was expected")))
+  # }
   
   
   #### STEP 3: LOAD QA RESULTS TO SQL AND RETURN RESULT ####
   DBI::dbExecute(
-    conn, glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid 
-                       (etl_batch_id, last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES 
-                       {glue_data_sql(ccw_qa, '({etl_batch_id}, {last_run}, {table_name}, {qa_item}, {qa_result}, {qa_date}, {note})', .con = conn)*} ",
-                         .con = conn))
+    conn, 
+    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid 
+                   (etl_batch_id, last_run, table_name, qa_item, qa_result, qa_date, note) 
+                   VALUES 
+                   {DBI::SQL(glue_collapse(
+                     glue_data_sql(ccw_qa, 
+                                   '({etl_batch_id}, {last_run}, {table_name}, {qa_item}, 
+                                   {qa_result}, {qa_date}, {note})', 
+                                   .con = conn), 
+                     sep = ', ')
+                   )};",
+                   .con = conn))
   
   
   if (max(str_detect(ccw_qa$qa_result, "FAIL")) == 0) {
-    ccw_qa_result <- "PASS"
+    ccw_qa_fail <- 0L
   } else {
-    ccw_qa_result <- "FAIL"
+    ccw_qa_fail <- 1L
   }
   
   message(glue::glue("QA of stage.mcaid_claim_ccw complete. Result: {ccw_qa_result}"))
-  return(ccw_qa_result)
+  return(ccw_qa_fail)
 }
