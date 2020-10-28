@@ -123,10 +123,10 @@ vars:
     SYSTEM_IN_DATE: DATE
     TCN_DATE: DATE
 overall:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_20201021.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_20201027.txt
     field_term: \t
     row_term: \n
-    row_count: 15910420
+    row_count: 16067829
     date_min: 2019-10-01
     date_max: 2020-09-30
-    date_delivery: 2020-10-21
+    date_delivery: 2020-10-27
