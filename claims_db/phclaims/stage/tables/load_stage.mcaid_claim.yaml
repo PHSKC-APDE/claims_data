@@ -18,7 +18,7 @@ hhsaw:
     to_table: stage_mcaid_claims
     archive_schema: stg_claims
     archive_table: archive_mcaid_claims
-    bho_archive_schema: claims
+    bho_archive_schema: stg_claims
     bho_archive_table: archive_mcaid_missing_bh_claims
     qa_schema: claims
     qa_table: metadata_
