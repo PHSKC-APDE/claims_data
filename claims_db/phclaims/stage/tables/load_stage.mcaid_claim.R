@@ -8,18 +8,45 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/azure_migration/claims_db/db_loader/mcaid/master_mcaid_full.R
 
 
-load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full_refresh = F, config = NULL) {
+load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, 
+                                            conn_db = NULL, 
+                                            server = c("hhsaw", "phclaims"),
+                                            full_refresh = F, 
+                                            config = NULL) {
   ### Error checks
   if (is.null(conn_dw)) {stop("No DW connection specificed")}
   if (is.null(conn_db)) {stop("No DB connection specificed")}
   if (is.null(config)) {stop("Specify a list with config details")}
   
   
+  # Set up variables specific to the server
+  server <- match.arg(server)
+  
+  if (get_config == T){
+    if (stringr::str_detect(config, "^http")) {
+      config <- yaml::yaml.load(getURL(config))
+    } else{
+      stop("A URL must be specified in config if using get_config = T")
+    }
+  }
+  
   #### GET VARS FROM CONFIG FILE ####
-  from_schema <- config$from_schema
-  from_table <- config$from_table
-  to_schema <- config$to_schema
-  to_table <- config$to_table
+  from_schema <- config[[server]][["from_schema"]]
+  from_table <- ifelse(full_refresh == F, 
+                       config[[server]][["from_table_incr"]],
+                       config[[server]][["from_table_init"]])
+  to_schema <- config[[server]][["to_schema"]]
+  to_table <- config[[server]][["to_table"]]
+  archive_schema <- config[[server]][["archive_schema"]]
+  archive_table <- ifelse(is.null(config[[server]][["archive_table"]]), '',
+                      config[[server]][["archive_table"]])
+  bho_archive_schema <- config[[server]][["bho_archive_schema"]]
+  bho_archive_table <- ifelse(is.null(config[[server]][["bho_archive_table"]]), '',
+                       config[[server]][["bho_archive_table"]])
+  qa_schema <- config[[server]][["qa_schema"]]
+  qa_table <- ifelse(is.null(config[[server]][["qa_table"]]), '',
+                     config[[server]][["qa_table"]])
+  
   
   vars <- unlist(names(config$vars))
   # Need to keep only the vars that come after the named ones below
@@ -39,41 +66,42 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
   
   
   if (full_refresh == F) {
-    archive_schema <- config$archive_schema
-    archive_table <- config$archive_table
     date_truncate <- config$etl$date_min
-    
     etl_batch_type <- "incremental"
   } else {
     etl_batch_type <- "full"
   }
 
   
-  #### FIND MOST RECENT BATCH ID FROM SOURCE (raw) ####
-  # Now need to make ETL batch ID here as it is added to stage.
-  # Raw data are in an external table that points to the data warehouse. Can't add an ETL column to that.
-
-  current_batch_id <- load_metadata_etl_log_f(conn = conn_db, 
-                                              batch_type = etl_batch_type,
-                                              data_source = "Medicaid", 
-                                              date_min = config$etl$date_min,
-                                              date_max = config$etl$date_max,
-                                              delivery_date = config$etl$date_delivery, 
-                                              note = config$etl$note)
-
-  
-  #### QA RAW DATA ####
-  # Now that we have a batch_etl_id we can do some basic QA on the raw data
-  
-  #### QA CHECK: ROW COUNTS MATCH SOURCE FILE COUNT ####
-  message("Checking loaded row counts vs. expected")
-  # Use the load config file for the list of tables to check and their expected row counts
-  qa_rows_sql <- qa_load_row_count_f(conn = conn_dw, schema = config$from_schema,
-                                     table = config$from_table, row_count = config$etl$row_count)
-  
-  # Report individual results out to SQL table
-  odbc::dbGetQuery(conn = conn_db,
-                   glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
+  if (server == "hhsaw") {
+    ### Currently a discrepancy between how the raw data are loaded
+    #   QA done in this file for HHSAW but should be harmonized eventually
+    
+    #### FIND MOST RECENT BATCH ID FROM SOURCE (raw) ####
+    # Now need to make ETL batch ID here as it is added to stage.
+    # Raw data are in an external table that points to the data warehouse. Can't add an ETL column to that.
+    
+    current_batch_id <- load_metadata_etl_log_f(conn = conn_db, 
+                                                batch_type = etl_batch_type,
+                                                data_source = "Medicaid", 
+                                                date_min = config$etl$date_min,
+                                                date_max = config$etl$date_max,
+                                                delivery_date = config$etl$date_delivery, 
+                                                note = config$etl$note)
+    
+    
+    #### QA RAW DATA ####
+    # Now that we have a batch_etl_id we can do some basic QA on the raw data
+    
+    #### QA CHECK: ROW COUNTS MATCH SOURCE FILE COUNT ####
+    message("Checking loaded row counts vs. expected")
+    # Use the load config file for the list of tables to check and their expected row counts
+    qa_rows_sql <- qa_load_row_count_f(conn = conn_dw, schema = config$from_schema,
+                                       table = config$from_table, row_count = config$etl$row_count)
+    
+    # Report individual results out to SQL table
+    odbc::dbGetQuery(conn = conn_db,
+                     glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
                                         '{`from_schema`}.{`from_table`}',
@@ -81,15 +109,17 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
                                         {qa_rows_sql$outcome[1]},
                                         {Sys.time()},
                                         {qa_rows_sql$note[1]})",
-                                  .con = conn_db))
-  
-  if (qa_rows_sql$outcome[1] == "FAIL") {
-    qa_row_fail <- 1L
-    warning(glue::glue("Mismatching row count between source file and SQL table. 
-                  Check claims.metadata_qa_mcaid for details (etl_batch_id = {current_batch_id}"))
-  } else {
-    qa_row_fail <- 0L
+                                    .con = conn_db))
+    
+    if (qa_rows_sql$outcome[1] == "FAIL") {
+      qa_row_fail <- 1L
+      warning(glue::glue("Mismatching row count between source file and SQL table. 
+                  Check {qa_schema}.{qa_table}qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+    } else {
+      qa_row_fail <- 0L
+    }
   }
+  
   
   
   
@@ -97,7 +127,16 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
   # No longer switching schema, instead just renaming table. Need to drop existing archive table first
   if (full_refresh == F) {
     try(DBI::dbSendQuery(conn_dw, glue::glue("DROP TABLE {archive_schema}.{archive_table}")))
-    DBI::dbSendQuery(conn_dw, glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
+    
+    if (server == "hhsaw") {
+      DBI::dbSendQuery(conn_dw, glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
+    } else {
+      alter_schema_f(conn = conn_db, 
+                     from_schema = to_schema, 
+                     to_schema = archive_schema,
+                     table_name = to_table, 
+                     rename_index = F)
+    }
   }
   
 
@@ -105,8 +144,9 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
   # Can't use default load function because some transformation is needed
   # Need to make two new variables
   if (full_refresh == F) {
-    load_sql <- glue::glue_sql(
-      "CREATE TABLE {`to_schema`}.{`to_table`} 
+    if (server == "hhsaw") {
+      load_sql <- glue::glue_sql(
+        "CREATE TABLE {`to_schema`}.{`to_table`} 
       WITH (CLUSTERED COLUMNSTORE INDEX, 
             DISTRIBUTION = HASH ({`date_var`}))
       AS SELECT {`vars`*}  
@@ -119,10 +159,25 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
         {current_batch_id} AS etl_batch_id FROM
       {`from_schema`}.{`from_table`}
       WHERE {`date_var`} >= {date_truncate}",
-      .con = conn_dw)
-  } else {
-    load_sql <- glue::glue_sql(
-      "CREATE TABLE {`to_schema`}.{`to_table`} 
+        .con = conn_dw)
+    } else {
+      load_sql <- glue::glue_sql(
+        "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
+        ({`vars`*}) 
+        SELECT {`vars`*} FROM {`archive_schema`}.{`to_table`}
+          WHERE {`date_var`} < {date_truncate}
+        UNION
+        SELECT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
+        MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
+        CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE, {`vars_truncated`*}
+        FROM {`from_schema`}.{`from_table`}",
+        .con = conn_db,
+        date_var = table_config_stage_claim$date_var)
+    }
+  } else if (full_refresh == T) {
+    if (server == "hhsaw") {
+      load_sql <- glue::glue_sql(
+        "CREATE TABLE {`to_schema`}.{`to_table`} 
       ({`vars`*})
       WITH (CLUSTERED COLUMNSTORE INDEX, 
             DISTRIBUTION = HASH ({`date_var`}))
@@ -130,30 +185,51 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
       MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
       CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE,
       {`vars_truncated`*}, {current_batch_id} AS etl_batch_id
-      FROM {`from_schema`}.{`from_table`}",
-      .con = conn_dw)
+      FROM {`from_schema`}.{`from_table`}
+      UNION
+      SELECT {`vars`*} FROM {bho_archive_schema}.{bho_archive_table}",
+        .con = conn_dw)
+    } else {
+      load_sql <- glue::glue_sql(
+        "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
+        ({`vars`*}) 
+        SELECT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
+        MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
+        CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE,
+        {`vars_truncated`*}
+        FROM {`from_schema`}.{`from_table`} 
+        UNION 
+        SELECT {`vars`*} FROM {bho_archive_schema}.{bho_archive_table}",
+        .con = conn_db)
+    }
   }
-  
-  
-  
   
   message("Loading to stage table")
   system.time(DBI::dbExecute(conn_dw, load_sql))
   
   
+  ### Add index if needed
+  if (server == "phclaims") {
+    add_index_f(conn = conn_db, table_config = config)
+  }
+  
+  
   
   #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
   message("Running QA checks")
+  
   rows_stage <- as.numeric(dbGetQuery(
     conn_dw, glue::glue_sql("SELECT COUNT (*) FROM {`to_schema`}.{`to_table`}", .con = conn_dw)))
   rows_raw <- as.numeric(dbGetQuery(
     conn_dw, glue::glue_sql("SELECT COUNT (*) FROM {`from_schema`}.{`from_table`}", .con = conn_dw)))
   
+  
   if (full_refresh == F) {
     rows_archive <- as.numeric(dbGetQuery(
       conn_dw, glue::glue_sql("SELECT COUNT (*) FROM {`archive_schema`}.{`archive_table`} 
                             WHERE {`date_var`} < {date_truncate}", 
-                                .con = conn_dw)))
+                              .con = conn_dw)))
+    
     
     rows_diff <- rows_stage - (rows_raw + rows_archive)
     row_diff_qa_type <- 'Rows passed from raw AND archive to stage'
@@ -179,10 +255,10 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
   if (rows_diff != 0) {
     row_diff_qa_fail <- 1
     DBI::dbExecute(conn = conn_db,
-                   glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
+                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'claims.stage_mcaid_claim',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   {row_diff_qa_type}, 
                                   'FAIL',
                                   {Sys.time()},
@@ -192,10 +268,10 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
   } else {
     row_diff_qa_fail <- 0
     DBI::dbExecute(conn = conn_db,
-                   glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
+                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'claims.stage_mcaid_claim',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   {row_diff_qa_type}, 
                                   'PASS',
                                   {Sys.time()},
@@ -214,10 +290,10 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
   if (null_ids != 0) {
     null_ids_qa_fail <- 1
     DBI::dbExecute(conn = conn_db,
-                   glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
+                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'claims.stage_mcaid_claim',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Null Medicaid IDs', 
                                   'FAIL',
                                   {Sys.time()},
@@ -227,10 +303,10 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
   } else {
     null_ids_qa_fail <- 0
     DBI::dbExecute(conn = conn_db,
-                   glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
+                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'claims.stage_mcaid_claim',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Null Medicaid IDs', 
                                   'PASS',
                                   {Sys.time()},
@@ -243,9 +319,9 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
   # Number of new rows
   DBI::dbExecute(
     conn = conn_db,
-    glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid_values
+    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid_values
                    (table_name, qa_item, qa_value, qa_date, note) 
-                   VALUES ('claims.stage_mcaid_claim',
+                   VALUES ('{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'row_count', 
                    '{rows_stage}', 
                    {Sys.time()}, 
@@ -261,10 +337,10 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
   #    which is used by the integrated data hub to check for new data to run
   if (max(row_diff_qa_fail, null_ids_qa_fail) == 1) {
     DBI::dbExecute(conn = conn_db,
-                   glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
+                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'claims.stage_mcaid_claim',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Overall QA result', 
                                   'FAIL',
                                   {Sys.time()},
@@ -273,10 +349,10 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, conn_db = NULL, full
     stop("One or more QA steps failed. See claims.metadata_qa_mcaid for more details")
   } else {
     DBI::dbExecute(conn = conn_db,
-                   glue::glue_sql("INSERT INTO claims.metadata_qa_mcaid
+                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'claims.stage_mcaid_claim',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Overall QA result', 
                                   'PASS',
                                   {Sys.time()},

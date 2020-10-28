@@ -1,9 +1,27 @@
-from_schema: stg_claims
-from_table: mcaid_claims_incr
-to_schema: stg_claims
-to_table: stage_mcaid_claims
-archive_schema: stg_claims
-archive_table: archive_mcaid_claims
+phclaims:
+    from_schema: load_raw
+    from_table_incr: mcaid_claim
+    from_table_init: mcaid_claim
+    to_schema: stage
+    to_table: mcaid_claim
+    archive_schema: archive
+    archive_table: mcaid_claim
+    bho_archive_schema: claims
+    bho_archive_table: archive_mcaid_missing_bh_claims 
+    qa_schema: metadata
+    qa_table: 
+hhsaw:
+    from_schema: stg_claims
+    from_table_incr: mcaid_claims_incr
+    from_table_init: mcaid_claims_init
+    to_schema: stg_claims
+    to_table: stage_mcaid_claims
+    archive_schema: stg_claims
+    archive_table: archive_mcaid_claims
+    bho_archive_schema: claims
+    bho_archive_table: archive_mcaid_missing_bh_claims
+    qa_schema: claims
+    qa_table: metadata_
 index_type: ccs
 index_name: idx_ccs_stage_mcaid_claims
 etl:
