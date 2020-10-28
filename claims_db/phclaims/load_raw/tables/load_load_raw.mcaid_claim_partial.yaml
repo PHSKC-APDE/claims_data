@@ -5,15 +5,13 @@ index_name: idx_ccs_load_raw_mcaid_claims
 ext_data_source: datascr_WS_EDW
 ext_schema: stg_claims
 ext_table: mcaid_claims_incr
-dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/init/KC_Claim_missing_bh_claims.gz
+dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/incr/KC_Claim_20200928.gz
 vars:
-    CLNDR_YEAR_MNTH: INT
     MBR_H_SID: INT
     MEDICAID_RECIPIENT_ID: VARCHAR(255)
     BABY_ON_MOM_IND: VARCHAR(255)
     TCN: BIGINT
     CLM_LINE_TCN: BIGINT
-    CLM_LINE: SMALLINT
     ORGNL_TCN: BIGINT
     RAC_CODE_H: INT
     RAC_CODE_L: INT
@@ -95,7 +93,7 @@ vars:
     PRSCRBR_ID: VARCHAR(255)
     PRVDR_LCTN_H_SID: BIGINT
     NPI: BIGINT
-    PRVDR_LAST_NAME: VARCHAR(255)
+    PRVDR_LT_NAME: VARCHAR(255)
     PRVDR_FIRST_NAME: VARCHAR(255)
     TXNMY_CODE: VARCHAR(255)
     TXNMY_NAME: VARCHAR(255)
@@ -110,7 +108,7 @@ vars:
     ADMSN_HOUR: INT
     ADMTNG_DIAGNOSIS_CODE: VARCHAR(255)
     BLNG_PRVDR_FIRST_NAME: VARCHAR(255)
-    BLNG_PRVDR_LAST_NAME: VARCHAR(255)
+    BLNG_PRVDR_LT_NAME: VARCHAR(255)
     BLNG_PRVDR_NAME: VARCHAR(255)
     DRVD_DRG_CODE: VARCHAR(255)
     DRVD_DRG_NAME: VARCHAR(255)
@@ -124,8 +122,7 @@ vars:
     PRVDR_COUNTY_CODE: VARCHAR(255)
     SPCL_PRGRM_LKPCD: VARCHAR(255)
     BSP_GROUP_CID: INT
-    LAST_PYMNT_DATE: DATE
+    LT_PYMNT_DATE: DATE
     BILL_DATE: DATE
     SYSTEM_IN_DATE: DATE
     TCN_DATE: DATE
-    etl_batch_id: SMALLINT
