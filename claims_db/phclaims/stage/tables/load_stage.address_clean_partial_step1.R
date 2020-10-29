@@ -52,7 +52,7 @@ new_add <- dbGetQuery(db_claims,
                 RSDNTL_CITY_NAME AS 'geo_city_raw', 
                 RSDNTL_STATE_CODE AS 'geo_state_raw', 
                 RSDNTL_POSTAL_CODE AS 'geo_zip_raw', 
-                geo_hash_raw
+                geo_hash_raw, etl_batch_id
                 FROM PHClaims.stage.mcaid_elig) a
               LEFT JOIN
               (SELECT geo_hash_raw, 1 AS [exists] FROM ref.address_clean) b
