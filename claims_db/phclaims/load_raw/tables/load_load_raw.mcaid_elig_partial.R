@@ -7,7 +7,8 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
-load_load_raw.mcaid_elig_partial_f <- function(etl_date_min = NULL,
+load_load_raw.mcaid_elig_partial_f <- function(server = NULL,
+                                               etl_date_min = NULL,
                                                etl_date_max = NULL,
                                                etl_delivery_date = NULL,
                                                etl_note = NULL) {
@@ -97,6 +98,7 @@ load_load_raw.mcaid_elig_partial_f <- function(etl_date_min = NULL,
   #### LOAD TABLES ####
   print("Loading tables to SQL")
   load_table_from_file_f(conn = db_claims,
+                         server = server,
                          config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml",
                          overall = T, ind_yr = F, combine_yr = F)
   

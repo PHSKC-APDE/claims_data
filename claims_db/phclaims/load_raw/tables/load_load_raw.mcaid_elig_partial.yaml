@@ -1,11 +1,22 @@
-schema: stg_claims
-table: mcaid_elig_incr
+phclaims:
+    to_schema: load_raw
+    to_table: mcaid_elig
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_20201027.txt
+    field_term: \t
+    row_term: \n
+    row_count: 5337883
+    date_min: 201910
+    date_max: 202009
+    date_delivery: 2020-10-27
+hhsaw:
+    schema: stg_claims
+    table: mcaid_elig_incr
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: mcaid_elig_incr
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/incr/KC_Elig_20200928.gz
 index_type: ccs
 index_name: idx_ccs_load_raw_mcaid_elig
-ext_data_source: datascr_WS_EDW
-ext_schema: stg_claims
-ext_table: mcaid_elig_incr
-dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/incr/KC_Elig_20200928.gz
 vars:
     CLNDR_YEAR_MNTH: INTEGER
     MEDICAID_RECIPIENT_ID: VARCHAR(255)
