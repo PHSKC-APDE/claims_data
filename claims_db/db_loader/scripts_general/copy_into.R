@@ -18,6 +18,8 @@
 #### FUNCTION ####
 copy_into_f <- function(
   conn,
+  server = NULL,
+  config = NULL,
   config_url = NULL,
   config_file = NULL,
   file_type = c("csv", "parquet", "orc"),
@@ -31,11 +33,20 @@ copy_into_f <- function(
   first_row = 2,
   overwrite = T) {
   
+  
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    message("Server must be phclaims or hhsaw")
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  }
+  
  
   #### INITIAL ERROR CHECK ####
   # Check if the config provided is a local file or on a webpage
-  if (!is.null(config_url) & !is.null(config_file)) {
-    stop("Specify either a config_url or config_file but not both")
+  if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
+    stop("Specify either alocal config object, config_url, or config_file but only one")
   }
   
   if (!is.null(config_url)) {
@@ -56,11 +67,14 @@ copy_into_f <- function(
   
   
   #### READ IN CONFIG FILE ####
-  if (!is.null(config_url)) {
+  if (!is.null(config)) {
+    table_config <- config
+  } else if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
   } else {
     table_config <- yaml::read_yaml(config_file)
   }
+  
 
   #### ERROR CHECKS AND OVERALL MESSAGES ####
   # Make sure a valid URL was found
@@ -117,8 +131,15 @@ copy_into_f <- function(
   max_errors <- round(max_errors, 0)
   compression <- match.arg(compression)
   first_row <- round(first_row, 0)
-  dw_schema <- table_config$ext_schema
-  dw_table <- table_config$ext_table
+  
+  if (!is.null(server)) {
+    dw_schema <- table_config[[server]][["ext_schema"]]
+    dw_table <- table_config[[server]][["ext_table"]]
+  } else {
+    dw_schema <- table_config$ext_schema
+    dw_table <- table_config$ext_table
+  }
+  
   
   if (compression == "none") {
     compression <- DBI::SQL("")
