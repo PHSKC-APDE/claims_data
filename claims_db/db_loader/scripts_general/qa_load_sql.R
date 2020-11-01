@@ -3,23 +3,18 @@
 #
 # 2019-05
 
-#### CALL IN GENERAL QA FUNCTIONS IF NOT ALREADY LOADED ####
-if (exists("qa_error_check_f") == F) {
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_general.R")
-}
-
-
 #### FUNCTION TO CHECK ROW COUNTS MATCH in FROM and TO TABLES ####
 qa_sql_row_count_f <- function(conn = db_claims,
                                server = NULL,
+                               config = NULL,
                                config_url = NULL,
                                config_file = NULL) {
   
-  # Don't really need overall and ind_yr but the error checking function
-  # currently uses them
-  
-  ### BASIC ERROR CHECKS
-  qa_error_check_f(config_url_chk = config_url, config_file_chk = config_file)
+  #### BASIC ERROR CHECKS ####
+  # Check if the config provided is a local object, file, or on a web page
+  if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
+    stop("Specify either a local config object, config_url, or config_file but only one")
+  }
   
   ### SET UP SERVER
   if (server %in% c("phclaims", "hhsaw")) {
@@ -29,8 +24,10 @@ qa_sql_row_count_f <- function(conn = db_claims,
     server <- NA
   }
   
-  ### READ IN CONFIG FILE
-  if (!is.null(config_url)) {
+  #### READ IN CONFIG FILE ####
+  if (!is.null(config)) {
+    table_config <- config
+  } else if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
   } else {
     table_config <- yaml::read_yaml(config_file)

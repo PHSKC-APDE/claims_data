@@ -36,7 +36,7 @@ load_table_from_file_f <- function(
   
   #### SET UP SERVER ####
   if (is.null(server) | !server %in% c("phclaims", "hhsaw")) {
-    message("Server must be phclaims or hhsaw")
+    message("Server must be NULL, 'phclaims', or 'hhsaw'")
     server <- NA
   } else if (server %in% c("phclaims", "hhsaw")) {
     server <- server
@@ -481,8 +481,8 @@ load_table_from_sql_f <- function(
   }
   
   #### SET UP SERVER ####
-  if (is.null(server)) {
-    message("Server must be phclaims or hhsaw")
+  if (is.null(server) | !server %in% c("phclaims", "hhsaw")) {
+    message("Server must be NULL, 'phclaims', or 'hhsaw'")
     server <- NA
   } else if (server %in% c("phclaims", "hhsaw")) {
     server <- server

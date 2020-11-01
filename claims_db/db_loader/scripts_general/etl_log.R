@@ -1,18 +1,17 @@
-#### FUNCTIONS TO LOAD DATA TO claims.metadata_etl_log TABLE AND RETRIEVE DATA
+#### FUNCTIONS TO LOAD DATA TO METADATA ETL LOG TABLE AND RETRIEVE DATA
 # Alastair Matheson
-# Created:        2019-05-07
-# Last modified:  2019-06-18
 
 # Note: these functions are for claims data
 # Use https://github.com/PHSKC-APDE/DOHdata/blob/master/ETL/general/scripts_general/etl_log.R
 #  for non-claims data
 
-# auto_proceed = T allows skipping of checks against existing ETL entries. 
+# auto_proceed = T allows skipping of checks against existing ETL entries.
 # Use with caution to avoid creating duplicate entries.
-# Note that this will not overwrite checking for near-exact matches. 
+# Note that this will not overwrite checking for near-exact matches but will auto-reuse them. 
 
 
 load_metadata_etl_log_f <- function(conn = NULL,
+                                    server = NULL,
                                     batch_type = c("incremental", "full"),
                                     data_source = NULL,
                                     date_min = NULL,
@@ -55,34 +54,52 @@ load_metadata_etl_log_f <- function(conn = NULL,
   }
   
   
+  #### SET UP SERVER ####
+  if (is.null(server) | !server %in% c("phclaims", "hhsaw")) {
+    message("Server must be NULL, 'phclaims', or 'hhsaw'")
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  }
+  
+  if (server == "phclaims") {
+    schema <- "metadata"
+    table <- "etl_log"
+  } else if (server == "hhsaw") {
+    schema <- "claims"
+    table <- "metadata_etl_log"
+  }
+  
+  
   #### REDO batch_type VARIABLE ####
-  batch_type <- ifelse(batch_type == "incremental", "Incremental refresh",
+  batch_type <- ifelse(batch_type == "incremental", 
+                       "Incremental refresh",
                        "Full refresh")
   
   
   #### CHECK EXISTING ENTRIES ####
-  latest <- odbc::dbGetQuery(conn, 
-                             "SELECT TOP (1) * FROM claims.metadata_etl_log
-                             ORDER BY etl_batch_id DESC")
+  latest <- DBI::dbGetQuery(conn, 
+                            glue::glue_sql("SELECT TOP (1) * FROM {`schema`}.{`table`}
+                             ORDER BY etl_batch_id DESC",
+                                           .con = conn))
   
-  latest_source <- odbc::dbGetQuery(conn, 
+  latest_source <- DBI::dbGetQuery(conn, 
                                     glue::glue_sql(
-                                      "SELECT TOP (1) * FROM claims.metadata_etl_log
+                                      "SELECT TOP (1) * FROM {`schema`}.{`table`}
                                       WHERE data_source = {data_source} 
                                       ORDER BY etl_batch_id DESC",
                                       .con = conn))
   
-  matches <- odbc::dbGetQuery(conn, 
+  matches <- DBI::dbGetQuery(conn, 
                               glue::glue_sql(
-                                "SELECT * FROM claims.metadata_etl_log
+                                "SELECT * FROM {`schema`}.{`table`}
                                       WHERE batch_type = {batch_type} AND
                                       data_source = {data_source} AND 
                                       delivery_date = {delivery_date}
                                       ORDER BY etl_batch_id DESC",
                                 .con = conn))
 
-  #### SET DEFAULTS ####
-  proceed <- T # Move ahead with the load
+  #### SET UP ID ####
   if (nrow(latest) > 0) {
     etl_batch_id <- latest$etl_batch_id + 1
   } else {
@@ -90,29 +107,26 @@ load_metadata_etl_log_f <- function(conn = NULL,
   }
   
   
-  #### CHECK AGAINST EXISTING ENTRIES ####
-  # (assume if there is no record for this data source already then yes)
-  if (nrow(matches) > 0) {
-    print(matches)
-    
-    proceed_msg <- glue::glue("There are already entries in the table that \\
+  #### CHECK ABOUT CREATING NEW ENTRY ####
+  if ((auto_proceed == T )& nrow(matches == 0) | nrow(latest_source) == 0) {
+    proceed <- T
+    } 
+  
+  if (auto_proceed == F) {
+    # Check if wanting to make a new ID when there is a close match
+    if (nrow(matches) > 0) {
+      print(matches)
+      
+      proceed_msg <- glue::glue("There are already entries in the table that \\
                               look similar to what you are attempting to enter. \\
                               See the console window.
                               
                               Do you still want to make a new entry?")
-    proceed <- askYesNo(msg = proceed_msg)
-  } else {
-    if (nrow(latest) > 0 & nrow(latest_source) > 0 & auto_proceed == F) {
-      proceed_msg <- glue::glue("
-The most recent entry in the etl_log is as follows:
-etl_batch_id: {latest[1]}
-batch_type: {latest[2]}
-data_source: {latest[3]}
-date_min: {latest[4]}
-date_max: {latest[5]}
-delivery_date: {latest[6]}
-note: {latest[7]}
-
+      proceed <- askYesNo(msg = proceed_msg)
+    } else {
+      # Check against most recent entry for this data source
+      if (nrow(latest_source) > 0 & auto_proceed == F) {
+        proceed_msg <- glue::glue("
 The most recent entry in the etl_log FOR THIS DATA SOURCE is as follows:
 etl_batch_id: {latest_source[1]}
 batch_type: {latest_source[2]}
@@ -123,54 +137,71 @@ delivery_date: {latest_source[6]}
 note: {latest_source[7]}
 
 Do you still want to make a new entry?",
-                                .con = conn)
-      
-      proceed <- askYesNo(msg = proceed_msg)
-      
+                                  .con = conn)
+        
+        proceed <- askYesNo(msg = proceed_msg)
+      }
     }
   }
- 
   
+ 
   if (is.na(proceed)) {
     stop("ETL log load cancelled at user request")
-    
+  }
+  
+  
+  #### CHECK ABOUT REUSING ID ####
+  if (auto_proceed == T & nrow(matches) > 0) {
+    # Reuse most recent etl_batch_id automatically if there is a match
+    reuse <- T
   } else if (proceed == F & nrow(matches) > 0) {
     reuse <- askYesNo(msg = "Would you like to reuse an existing entry that matches?")
     
-    
-    
-    if (reuse == T) {
-      etl_batch_id <- reuse <- select.list(choices = matches$etl_batch_id,
-                                           title = "Would you like to reuse the most recent existing entry that matches?")
+    if (is.na(reuse)) {stop("ETL log load cancelled at user request")}
+  } 
+  
+  ### Use existing etl_batch_id
+  if (reuse == T) {
+    if (auto_proceed == F) {
+      etl_batch_id <- select.list(choices = matches$etl_batch_id,
+                                  title = "Which existing entry would you like to reuse?")
       
-      print(glue::glue("Reusing ETL batch #{etl_batch_id}"))
+      message("Reusing ETL batch #", etl_batch_id)
       return(etl_batch_id)
-      
-    } else {
-      stop("ETL log load cancelled at user request")
+    } else if (auto_proceed == T) {
+      etl_batch_id <- max(matches$etl_batch_id)
+      message("Reusing most recent matching ETL batch (#", etl_batch_id, ")")
     }
-  } else if (proceed == T) {
+  } 
+  
+  
+  #### REGISTER NEW ID ####
+  if (proceed == T) {
     sql_load <- glue::glue_sql(
-      "INSERT INTO claims.metadata_etl_log 
+      "INSERT INTO {`schema`}.{`table`} 
       (etl_batch_id, batch_type, data_source, date_min, date_max, delivery_date, note) 
       VALUES ({etl_batch_id}, {batch_type}, {data_source}, {date_min}, {date_max}, 
       {delivery_date}, {note})",
       .con = conn)
   
-    odbc::dbGetQuery(conn, sql_load)
+    DBI::dbGetQuery(conn, sql_load)
     
     # Finish with a message and return the latest etl_batch_id
     # (users should be assigning this to a current_batch_id object)
-    print(glue::glue("ETL batch #{etl_batch_id} loaded"))
-    return(etl_batch_id)
+    message("ETL batch #", etl_batch_id, " loaded")
   }
+  
+  #### RETURN etl_batch_id ####
+  return(etl_batch_id)
 }
 
 
 #### FUNCTION TO DISPLAY DATA ASSOCIATED WITH AN ETL_BATCH_ID
 # Used to check that the right current_etl_id is being used
-retrieve_metadata_etl_log_f <- function(conn = NULL, etl_batch_id = NULL) {
-  ### Error checks
+retrieve_metadata_etl_log_f <- function(conn = NULL, 
+                                        server = NULL,
+                                        etl_batch_id = NULL) {
+  #### ERROR CHECKS ####
   if (is.null(conn)) {
     print("No DB connection specificed, trying PHClaims51")
     conn <- odbc::dbConnect(odbc(), "PHClaims51")
@@ -180,9 +211,26 @@ retrieve_metadata_etl_log_f <- function(conn = NULL, etl_batch_id = NULL) {
     stop("Enter an etl_batch_id")
   }
   
+  #### SET UP SERVER ####
+  if (is.null(server) | !server %in% c("phclaims", "hhsaw")) {
+    message("Server must be NULL, 'phclaims', or 'hhsaw'")
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  }
+  
+  if (server == "phclaims") {
+    schema <- "metadata"
+    table <- "etl_log"
+  } else if (server == "hhsaw") {
+    schema <- "claims"
+    table <- "metadata_etl_log"
+  }
+  
+  
   ### run query
-  odbc::dbGetQuery(conn, 
-                   glue::glue_sql("SELECT * FROM claims.metadata_etl_log
+  DBI::dbGetQuery(conn, 
+                   glue::glue_sql("SELECT * FROM {`schema`}.{`table`}
                                   WHERE etl_batch_id = {etl_batch_id}",
                                   .con = conn))
 }
