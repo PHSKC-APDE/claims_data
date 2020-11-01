@@ -16,7 +16,8 @@
 # overwrite = drop table first before creating it, if it exists (default is TRUE)
 # external = create external table (requires specifying data source details)
 # test_mode = write things to the tmp schema to test out functions (default is FALSE)
-# overall/ind_yr = old code used to load multiple years of data, now deprecated
+# overall = create single table (default is TRUE)
+# ind_yr = create multiple years of data (default is FALSE)
 
 
 #### FUNCTION ####
@@ -29,8 +30,8 @@ create_table_f <- function(
   overwrite = T,
   external = F,
   test_mode = F,
-  overall = NULL,
-  ind_yr = NULL
+  overall = T,
+  ind_yr = F
 ) {
   
   
@@ -62,11 +63,6 @@ create_table_f <- function(
       stop(glue::glue("Config file is not a YAML config file. ", 
                       "Check there are no duplicate variables listed"))
     }
-  }
-  
-  # Let people know not to use these options any more
-  if (!is.null(overall) | !is.null(ind_yr)) {
-    warning("overall and ind_yr are deprecated and should be removed from code")
   }
   
   
@@ -112,9 +108,6 @@ create_table_f <- function(
       to_table <- table_config$table
     }
   }
-  
-  
-  vars <- unlist(table_config$vars)  
 
   
   if (test_mode == T) {
@@ -133,25 +126,62 @@ create_table_f <- function(
   }
   
   
-  #### CREATE TABLE ####
-  message(glue::glue("Creating [{to_schema}].[{to_table}] table", test_msg))
-  
-  tbl_name <- DBI::Id(schema = to_schema, table = to_table)
-  
-  if (overwrite == T) {
-    if (DBI::dbExistsTable(conn, tbl_name)) {
-      DBI::dbExecute(conn, 
-                     glue::glue_sql("DROP {external_setup} TABLE {`to_schema`}.{`to_table`}",
-                                    .con = conn))
+  #### OVERALL TABLE ####
+  if (overall == T) {
+    message(glue::glue("Creating overall [{to_schema}].[{to_table}] table", test_msg))
+    
+    if (overwrite == T) {
+      if (DBI::dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table))) {
+        DBI::dbExecute(conn, 
+                       glue::glue_sql("DROP {external_setup} TABLE {`to_schema`}.{`to_table`}",
+                                      .con = conn))
+      }
     }
-  }
-  
-  create_code <- glue::glue_sql(
-    "CREATE {external_setup} TABLE {`to_schema`}.{`to_table`} (
+    
+    create_code <- glue::glue_sql(
+      "CREATE {external_setup} TABLE {`to_schema`}.{`to_table`} (
       {DBI::SQL(glue::glue_collapse(glue::glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}', 
       .con = conn), sep = ', \n'))}
       ) {external_text}", 
-    .con = conn)
+      .con = conn)
+    
+    DBI::dbExecute(conn, create_code)
+  }
   
-  DBI::dbExecute(conn, create_code)
+  
+  #### CALENDAR YEAR TABLES ####
+  if (ind_yr == T) {
+    # Use unique in case variables are repeated
+    years <- sort(unique(table_config$years))
+    
+    # Set up new table name
+    to_table <- paste0(to_table, "_", x)
+    
+    # Add additional year-specific variables if present
+    if ("vars" %in% names(table_config[[x]])) {
+      vars <- c(table_config$vars, table_config[[add_vars_name]][[vars]])
+    }
+    
+    
+    message(glue::glue("Creating calendar year [{to_schema}].[{to_table}] tables", test_msg))
+    
+    lapply(years, function(x) {
+      if (overwrite == T) {
+        if (DBI::dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table))) {
+          DBI::dbExecute(conn, 
+                         glue::glue_sql("DROP {external_setup} TABLE {`to_schema`}.{`to_table`}",
+                                        .con = conn))
+        }
+      }
+      
+      create_code <- glue::glue_sql(
+        "CREATE {external_setup} TABLE {`to_schema`}.{`to_table`} (
+      {DBI::SQL(glue::glue_collapse(glue::glue_sql('{`names(vars)`} {DBI::SQL(vars)}', 
+      .con = conn), sep = ', \n'))}
+      ) {external_text}", 
+        .con = conn)
+      
+      DBI::dbExecute(conn, create_code)
+    })
+  }
 }

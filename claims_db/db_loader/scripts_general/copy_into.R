@@ -35,8 +35,8 @@ copy_into_f <- function(
   
   
   #### SET UP SERVER ####
-  if (is.null(server)) {
-    message("Server must be phclaims or hhsaw")
+  if (is.null(server) | !server %in% c("phclaims", "hhsaw")) {
+    message("Server must be NULL, 'phclaims', or 'hhsaw'")
     server <- NA
   } else if (server %in% c("phclaims", "hhsaw")) {
     server <- server
@@ -44,9 +44,9 @@ copy_into_f <- function(
   
  
   #### INITIAL ERROR CHECK ####
-  # Check if the config provided is a local file or on a webpage
+  # Check if the config provided is a local object, file, or on a web page
   if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
-    stop("Specify either alocal config object, config_url, or config_file but only one")
+    stop("Specify either a local config object, config_url, or config_file but only one")
   }
   
   if (!is.null(config_url)) {
@@ -83,30 +83,6 @@ copy_into_f <- function(
   }
   
   # Check that the yaml config file has necessary components
-  if (!"dl_path" %in% names(table_config)) {
-    stop("YAML file is missing a data lake file_path (dl_path)")
-  } else {
-    if (is.null(table_config$dl_path)) {
-      stop("Data lake file path (dl_path) is blank in config file")
-    }
-  }
-  
-  if (!"ext_schema" %in% names(table_config)) {
-    stop("YAML file is missing a data warehouse schema")
-    } else {
-      if (is.null(table_config$ext_schema)) {
-        stop("Data warehouse schema is blank in config file")
-        }
-    }
-  
-  if (!"ext_table" %in% names(table_config)) {
-    stop("YAML file is missing a data warehouse table")
-  } else {
-    if (is.null(table_config$ext_table)) {
-      stop("Data warehouse table is blank in config file")
-    }
-  }
-  
   if (!"vars" %in% names(table_config)) {
     stop("YAML file is missing a list of variables")
   } else {
@@ -115,7 +91,7 @@ copy_into_f <- function(
     }
   }
   
-  # Check for issues with numberic values
+  # Check for issues with numeric values
   if (!is.numeric(max_errors)) {
     stop("max_errors must be numeric")
   }
@@ -133,11 +109,11 @@ copy_into_f <- function(
   first_row <- round(first_row, 0)
   
   if (!is.null(server)) {
-    dw_schema <- table_config[[server]][["ext_schema"]]
-    dw_table <- table_config[[server]][["ext_table"]]
+    to_schema <- table_config[[server]][["to_schema"]]
+    to_table <- table_config[[server]][["to_table"]]
   } else {
-    dw_schema <- table_config$ext_schema
-    dw_table <- table_config$ext_table
+    to_schema <- table_config$to_schema
+    to_table <- table_config$to_table
   }
   
   
@@ -156,13 +132,13 @@ copy_into_f <- function(
   if (overwrite == T) {
     message("Removing existing table and creating new one")
     # Need to drop and recreate so that the field types are what is desired
-    if (DBI::dbExistsTable(conn, DBI::Id(schema = dw_schema, table = dw_table))) {
+    if (DBI::dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table))) {
       DBI::dbExecute(conn,
-                     glue::glue_sql("DROP TABLE {`dw_schema`}.{`dw_table`}",
+                     glue::glue_sql("DROP TABLE {`to_schema`}.{`to_table`}",
                                     .con = conn))
 
       DBI::dbExecute(conn, glue::glue_sql(
-        "CREATE TABLE {`dw_schema`}.{`dw_table`} (
+        "CREATE TABLE {`to_schema`}.{`to_table`} (
           {DBI::SQL(glue_collapse(glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}',
                                            .con = conn), sep = ', \n'))}
         )", .con = conn))
@@ -172,10 +148,10 @@ copy_into_f <- function(
   
 
   
-  message(glue::glue("Creating [{dw_schema}].[{dw_table}] table"))
+  message(glue::glue("Creating [{to_schema}].[{to_table}] table"))
   
   DBI::dbExecute(conn, glue::glue_sql(
-    "COPY INTO {`dw_schema`}.{`dw_table`}
+    "COPY INTO {`to_schema`}.{`to_table`}
     ({`names(table_config$vars)`*})
     FROM {table_config$dl_path}
     WITH (

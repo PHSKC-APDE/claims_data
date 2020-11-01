@@ -35,7 +35,7 @@ load_table_from_file_f <- function(
   
   
   #### SET UP SERVER ####
-  if (is.null(server)) {
+  if (is.null(server) | !server %in% c("phclaims", "hhsaw")) {
     message("Server must be phclaims or hhsaw")
     server <- NA
   } else if (server %in% c("phclaims", "hhsaw")) {
@@ -94,13 +94,6 @@ load_table_from_file_f <- function(
   
   
   # Check that the yaml config file has necessary components
-  if (overall == T) {
-    if (!("overall" %in% names(table_config) |
-          "overall" %in% names(table_config[[server]]))) {
-      stop("YAML file is missing details for overall file")
-    }
-  }
-  
   if (ind_yr == T) {
     if (max(str_detect(names(table_config), "table_")) == 0) {
       stop("YAML file is missing details for individual years")

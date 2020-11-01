@@ -4,13 +4,14 @@
 # 2019-05
 
 #### FUNCTION FOR STANDARDIZED YAML ERROR CHECKS ####
-qa_error_check_f <- function(config_url_chk = config_url,
+qa_error_check_f <- function(config_chk = config,
+                             config_url_chk = config_url,
                              config_file_chk = config_file) {
   
   #### BASIC ERROR CHECKS ####
-  # Check if the config provided is a local file or on a webpage
-  if (!is.null(config_url_chk) & !is.null(config_file_chk)) {
-    stop("Specify either a config_url or config_file but not both")
+  # Check if the config provided is a local object, file, or on a web page
+  if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
+    stop("Specify either a local config object, config_url, or config_file but only one")
   }
   
   # Check that the yaml config file exists in the right format
