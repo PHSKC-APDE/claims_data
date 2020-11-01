@@ -305,7 +305,9 @@ system.time(load_ref.apcd_provider_npi_f())
 system.time(apcd_provider_npi_qa1 <- qa_ref.apcd_provider_npi_f())
 #rm(apcd_provider_npi_qa1)
 
-### F) Create clustered columnstore index
+### F) Run line-level QA script at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_ref.apcd_provider_npi.sql
+
+### G) Create clustered columnstore index
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_ref_apcd_provider_npi on ref.apcd_provider_npi")))
 
 
