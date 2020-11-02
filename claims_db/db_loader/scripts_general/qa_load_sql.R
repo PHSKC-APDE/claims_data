@@ -16,12 +16,13 @@ qa_sql_row_count_f <- function(conn = db_claims,
     stop("Specify either a local config object, config_url, or config_file but only one")
   }
   
-  ### SET UP SERVER
-  if (server %in% c("phclaims", "hhsaw")) {
-    server <- server
-  } else if (!is.null(server)) {
-    message("Server must be phclaims or hhsaw")
+  #### SET UP SERVER ####
+  if (is.null(server)) {
     server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
   }
   
   #### READ IN CONFIG FILE ####

@@ -4,7 +4,8 @@
 # 2019-05
 
 #### FUNCTION TO CHECK ACTUAL VS EXPECT ROW COUNTS IN SOURCE FILES ####
-qa_file_row_count_f <- function(config = NULL,
+qa_file_row_count_f <- function(server = NULL,
+                                config = NULL,
                                 config_url = NULL,
                                 config_file = NULL,
                                 schema = NULL,
@@ -18,6 +19,15 @@ qa_file_row_count_f <- function(config = NULL,
   # Check if the config provided is a local object, file, or on a web page
   if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
     stop("Specify either a local config object, config_url, or config_file but only one")
+  }
+  
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
   }
   
   #### READ IN CONFIG FILE ####
@@ -34,14 +44,18 @@ qa_file_row_count_f <- function(config = NULL,
   if (is.null(schema)) {
     if (!is.null(table_config$to_schema)) {
       schema <- table_config$to_schema
+    } else if (!is.null(table_config[[server]][["to_schema"]])) {
+      schema <- table_config[[server]][["to_schema"]]
     } else {
       schema <- table_config$schema
     }
   }
-
+  
   if (is.null(table)) {
     if (!is.null(table_config$to_table)) {
       table <- table_config$to_table
+    } else if (!is.null(table_config[[server]][["to_table"]])) {
+      table <- table_config[[server]][["to_table"]]
     } else {
       table <- table_config$table
     }
@@ -62,10 +76,14 @@ qa_file_row_count_f <- function(config = NULL,
     }
     
     
-    if (is.null(file_path) & "file_path" %in% names(table_config$overall)) {
-      file_path <- table_config$overall$file_path
-    } else if (is.null(file_path)) {
-      file_path <- table_config$file_path
+    if (is.null(file_path)) {
+      if (!is.null(table_config$overall$file_path)) {
+        file_path <- table_config$overall$file_path
+      } else if (!is.null(table_config[[server]][["file_path"]])) {
+        file_path <- table_config[[server]][["file_path"]]
+      } else {
+        file_path <- table_config$file_path
+      }
     }
     
     
@@ -146,6 +164,7 @@ qa_file_row_count_f <- function(config = NULL,
 
 #### FUNCTION TO CHECK COLUMNS MATCH SQL TABLES ####
 qa_column_order_f <- function(conn = NULL,
+                              server = NULL,
                               config = NULL,
                               config_url = NULL,
                               config_file = NULL,
@@ -160,6 +179,15 @@ qa_column_order_f <- function(conn = NULL,
   # Check if the config provided is a local object, file, or on a web page
   if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
     stop("Specify either a local config object, config_url, or config_file but only one")
+  }
+  
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
   }
   
   #### READ IN CONFIG FILE ####
@@ -177,6 +205,8 @@ qa_column_order_f <- function(conn = NULL,
   if (is.null(schema)) {
     if (!is.null(table_config$to_schema)) {
       schema <- table_config$to_schema
+    } else if (!is.null(table_config[[server]][["to_schema"]])) {
+      schema <- table_config[[server]][["to_schema"]]
     } else {
       schema <- table_config$schema
     }
@@ -185,6 +215,8 @@ qa_column_order_f <- function(conn = NULL,
   if (is.null(table)) {
     if (!is.null(table_config$to_table)) {
       table <- table_config$to_table
+    } else if (!is.null(table_config[[server]][["to_table"]])) {
+      table <- table_config[[server]][["to_table"]]
     } else {
       table <- table_config$table
     }
@@ -194,10 +226,14 @@ qa_column_order_f <- function(conn = NULL,
   #### OVERALL TABLE ####
   if (overall == T) {
     # Get file path
-    if (is.null(file_path) & "file_path" %in% names(table_config$overall)) {
-      file_path <- table_config$overall$file_path
-    } else if (is.null(file_path)) {
-      file_path <- table_config$file_path
+    if (is.null(file_path)) {
+      if (!is.null(table_config$overall$file_path)) {
+        file_path <- table_config$overall$file_path
+      } else if (!is.null(table_config[[server]][["file_path"]])) {
+        file_path <- table_config[[server]][["file_path"]]
+      } else {
+        file_path <- table_config$file_path
+      }
     }
     
     ### Pull out names of existing table
@@ -288,6 +324,7 @@ qa_column_order_f <- function(conn = NULL,
 
 #### FUNCTION TO CHECK LOADED VS EXPECT ROW COUNTS IN SOURCE FILES ####
 qa_load_row_count_f <- function(conn,
+                                server = NULL,
                                 config = NULL,
                                 config_url = NULL,
                                 config_file = NULL,
@@ -301,6 +338,15 @@ qa_load_row_count_f <- function(conn,
   # Check if the config provided is a local object, file, or on a web page
   if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
     stop("Specify either a local config object, config_url, or config_file but only one")
+  }
+  
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
   }
   
   #### READ IN CONFIG FILE ####
@@ -317,6 +363,8 @@ qa_load_row_count_f <- function(conn,
   if (is.null(schema)) {
     if (!is.null(table_config$to_schema)) {
       schema <- table_config$to_schema
+    } else if (!is.null(table_config[[server]][["to_schema"]])) {
+      schema <- table_config[[server]][["to_schema"]]
     } else {
       schema <- table_config$schema
     }
@@ -325,10 +373,13 @@ qa_load_row_count_f <- function(conn,
   if (is.null(table)) {
     if (!is.null(table_config$to_table)) {
       table <- table_config$to_table
+    } else if (!is.null(table_config[[server]][["to_table"]])) {
+      table <- table_config[[server]][["to_table"]]
     } else {
       table <- table_config$table
     }
   }
+  
   
   
   #### OVERALL TABLE ####
@@ -342,13 +393,6 @@ qa_load_row_count_f <- function(conn,
       row_exp <- as.numeric(stringr::str_remove_all(as.character(table_config$overall$row_count), "\\D"))
     } else {
       row_exp <- as.numeric(stringr::str_remove_all(as.character(table_config$row_count), "\\D"))
-    }
-    
-    
-    if (is.null(file_path) & "file_path" %in% names(table_config$overall)) {
-      file_path <- table_config$overall$file_path
-    } else if (is.null(file_path)) {
-      file_path <- table_config$file_path
     }
     
     
@@ -433,6 +477,7 @@ qa_load_row_count_f <- function(conn,
 
 #### FUNCTION TO CHECK THAT DATES MATCH EXPECTED RANGE ####
 qa_date_range_f <- function(conn,
+                            server = NULL,
                             config = NULL,
                             config_url = NULL,
                             config_file = NULL,
@@ -454,6 +499,15 @@ qa_date_range_f <- function(conn,
     stop("Specify a date variable to check")
   }
   
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+  }
+  
   #### READ IN CONFIG FILE ####
   if (!is.null(config)) {
     table_config <- config
@@ -469,6 +523,8 @@ qa_date_range_f <- function(conn,
   if (is.null(schema)) {
     if (!is.null(table_config$to_schema)) {
       schema <- table_config$to_schema
+    } else if (!is.null(table_config[[server]][["to_schema"]])) {
+      schema <- table_config[[server]][["to_schema"]]
     } else {
       schema <- table_config$schema
     }
@@ -477,6 +533,8 @@ qa_date_range_f <- function(conn,
   if (is.null(table)) {
     if (!is.null(table_config$to_table)) {
       table <- table_config$to_table
+    } else if (!is.null(table_config[[server]][["to_table"]])) {
+      table <- table_config[[server]][["to_table"]]
     } else {
       table <- table_config$table
     }
@@ -488,17 +546,26 @@ qa_date_range_f <- function(conn,
     # Pull out expected date ranges
     # Details could be provided when calling the function, under the overall section,
     # or generally in the YAML file
-    if (is.null(date_min_exp) & "date_min_exp" %in% names(table_config$overall)) {
-      date_min_exp <- table_config$overall$date_min_exp
-    } else if (is.null(date_min_exp)) {
-      date_min_exp <- table_config$date_min_exp
+    if (is.null(date_min_exp)) {
+      if (!is.null(table_config$date_min)) {
+        date_min_exp <- table_config$date_min
+      } else if (!is.null(table_config[[server]][["date_min"]])) {
+        date_min_exp <- table_config[[server]][["date_min"]]
+      } else {
+        date_min_exp <- table_config$date_min
+      }
     }
     
-    if (is.null(date_max_exp) & "date_max_exp" %in% names(table_config$overall)) {
-      date_max_exp <- table_config$overall$date_max_exp
-    } else if (is.null(date_max_exp)) {
-      date_max_exp <- table_config$date_max_exp
+    if (is.null(date_max_exp)) {
+      if (!is.null(table_config$date_max)) {
+        date_max_exp <- table_config$date_max
+      } else if (!is.null(table_config[[server]][["date_max"]])) {
+        date_max_exp <- table_config[[server]][["date_max"]]
+      } else {
+        date_max_exp <- table_config$date_max
+      }
     }
+    
     
     
     ### Find the actual date range loaded to SQL
@@ -608,6 +675,4 @@ qa_date_range_f <- function(conn,
   
   return(report)
 }
-
-
 

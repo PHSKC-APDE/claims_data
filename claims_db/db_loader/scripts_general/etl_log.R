@@ -55,11 +55,12 @@ load_metadata_etl_log_f <- function(conn = NULL,
   
   
   #### SET UP SERVER ####
-  if (is.null(server) | !server %in% c("phclaims", "hhsaw")) {
-    message("Server must be NULL, 'phclaims', or 'hhsaw'")
+  if (is.null(server)) {
     server <- NA
   } else if (server %in% c("phclaims", "hhsaw")) {
     server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
   }
   
   if (server == "phclaims") {
@@ -131,13 +132,12 @@ The most recent entry in the etl_log FOR THIS DATA SOURCE is as follows:
 etl_batch_id: {latest_source[1]}
 batch_type: {latest_source[2]}
 data_source: {latest_source[3]}
-date_min: {latest_source[4]}
-date_max: {latest_source[5]}
-delivery_date: {latest_source[6]}
+date_min: {format(latest_source[4], '%Y-%m-%d')}
+date_max: {format(latest_source[5], '%Y-%m-%d')}
+delivery_date: {format(latest_source[6], '%Y-%m-%d')}
 note: {latest_source[7]}
 
-Do you still want to make a new entry?",
-                                  .con = conn)
+Do you still want to make a new entry?")
         
         proceed <- askYesNo(msg = proceed_msg)
       }
@@ -158,7 +158,9 @@ Do you still want to make a new entry?",
     reuse <- askYesNo(msg = "Would you like to reuse an existing entry that matches?")
     
     if (is.na(reuse)) {stop("ETL log load cancelled at user request")}
-  } 
+  } else {
+    reuse <- F
+  }
   
   ### Use existing etl_batch_id
   if (reuse == T) {
@@ -189,6 +191,8 @@ Do you still want to make a new entry?",
     # Finish with a message and return the latest etl_batch_id
     # (users should be assigning this to a current_batch_id object)
     message("ETL batch #", etl_batch_id, " loaded")
+  } else if (proceed == F & reuse == F) {
+    message("No ETL batch ID was created or reused")
   }
   
   #### RETURN etl_batch_id ####

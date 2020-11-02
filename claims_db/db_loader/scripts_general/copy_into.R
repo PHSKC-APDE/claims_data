@@ -35,11 +35,12 @@ copy_into_f <- function(
   
   
   #### SET UP SERVER ####
-  if (is.null(server) | !server %in% c("phclaims", "hhsaw")) {
-    message("Server must be NULL, 'phclaims', or 'hhsaw'")
+  if (is.null(server)) {
     server <- NA
   } else if (server %in% c("phclaims", "hhsaw")) {
     server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
   }
   
  
@@ -111,9 +112,11 @@ copy_into_f <- function(
   if (!is.null(server)) {
     to_schema <- table_config[[server]][["to_schema"]]
     to_table <- table_config[[server]][["to_table"]]
+    dl_path <- table_config[[server]][["dl_path"]]
   } else {
     to_schema <- table_config$to_schema
     to_table <- table_config$to_table
+    dl_path <- tabel_config$dl_path
   }
   
   
@@ -153,7 +156,7 @@ copy_into_f <- function(
   DBI::dbExecute(conn, glue::glue_sql(
     "COPY INTO {`to_schema`}.{`to_table`}
     ({`names(table_config$vars)`*})
-    FROM {table_config$dl_path}
+    FROM {dl_path}
     WITH (
       FILE_TYPE = {file_type},
       {auth_sql}
