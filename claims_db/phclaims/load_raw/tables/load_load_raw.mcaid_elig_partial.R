@@ -50,7 +50,6 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   
   
   #### LOAD FUNCTIONS IF NEEDED ####
-  # Load ETL and QA functions if not already present
   if (exists("load_metadata_etl_log_f") == F) {
     devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/etl_log.R")
   }
@@ -109,7 +108,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     
     if (qa_rows_file$outcome == "FAIL") {
       stop(glue::glue("Mismatching row count between source file and expected number. 
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
     }
     
     #### QA CHECK: ORDER OF COLUMNS IN SOURCE FILE MATCH TABLE SHELLS IN SQL ####
@@ -131,7 +130,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     
     if (qa_column$outcome == "FAIL") {
       stop(glue::glue("Mismatching column order between source file and SQL table. 
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
     }
   }
   
@@ -177,7 +176,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   
   if (qa_rows_sql$outcome[1] == "FAIL") {
     stop(glue::glue("Mismatching row count between source file and SQL table. 
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
   }
   
   
@@ -247,7 +246,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   
   if (qa_date_range$outcome[1] == "FAIL") {
     stop(glue::glue("Mismatching date range between source file and SQL table. 
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
   }
   
   
@@ -272,7 +271,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                      .con = conn))
     
     stop(glue::glue("Some Medicaid IDs are not 11 characters long.  
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
   } else {
     DBI::dbExecute(
       conn = conn,
@@ -313,7 +312,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                      .con = conn))
     
     stop(glue::glue("Some RAC codes are not 4 characters long.  
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
   } else {
     DBI::dbExecute(
       conn = conn,
@@ -359,7 +358,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                      .con = conn))
     
     stop(glue::glue(">2% FROM_DATE rows are null.  
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
   } else {
     DBI::dbExecute(
       conn = conn,

@@ -1,11 +1,26 @@
-schema: claims
-table: raw_mcaid_claims_incr
+phclaims:
+    to_schema: load_raw
+    to_table: mcaid_claim
+    qa_schema: metadata
+    qa_table: qa_mcaid
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_20201027.txt
+    field_term: \t
+    row_term: \n
+hhsaw:
+    to_schema: stg_claims
+    to_table: mcaid_claims_incr
+    qa_schema: claims
+    qa_table: metadata_qa_mcaid
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: mcaid_claims_incr
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/incr/KC_Claim_20201027.gz
+row_count: 16067829
+date_min: 2019-10-01
+date_max: 2020-09-30
+date_delivery: 2020-10-27
 index_type: ccs
 index_name: idx_ccs_load_raw_mcaid_claims
-ext_data_source: datascr_WS_EDW
-ext_schema: stg_claims
-ext_table: mcaid_claims_incr
-dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/incr/KC_Claim_20200928.gz
 vars:
     MBR_H_SID: INT
     MEDICAID_RECIPIENT_ID: VARCHAR(255)

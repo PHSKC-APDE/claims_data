@@ -71,9 +71,8 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/a
 
 ### ELIGIBILITY
 ### Bring in yaml file and function
-load_mcaid_elig_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
-# Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R")
+load_mcaid_elig_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R")
 
 ### Extract dates
 load_elig_date_min <- as.Date(paste0(str_sub(load_mcaid_elig_config[["date_min"]], 1, 4), "-",
@@ -116,30 +115,33 @@ rm(load_mcaid_elig_config, load_elig_date_min, load_elig_date_max)
 
 
 ### CLAIMS
-### Bring in yaml file
-load_mcaid_elig_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml"))
+### Bring in yaml file and function
+load_mcaid_elig_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml"))
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R")
 
 
 if (server == "hhsaw") {
-  copy_into_f(conn = dw_inthealth, 
-              config = load_mcaid_elig_config,
-              file_type = "csv", compression = "gzip",
-              identity = "Storage Account Key", secret = key_get("inthealth_edw"),
-              overwrite = T)
-} else {
+  load_load_raw.mcaid_claim_partial_f(conn = db_claims,
+                                      conn_dw = dw_inthealth,
+                                      server = server,
+                                      etl_date_min = load_mcaid_claim_config[["date_min"]],
+                                      etl_date_max = load_mcaid_claim_config[["date_max"]],
+                                      etl_delivery_date = load_mcaid_claim_config[["date_delivery"]], 
+                                      etl_note = "Partial refresh of Medicaid claims data",
+                                      qa_file_row = F)
+} else if (server == "phclaims") {
   ### Create tables
   create_table_f(conn = db_claims, 
-                 server = phclaims,
+                 server = server,
                  config_url = load_mcaid_elig_config,
                  overwrite = T)
   
   ### Load tables
-  # Call in function
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R")
-  
-  load_load_raw.mcaid_claim_partial_f(etl_date_min = load_mcaid_claim_config[[server]][["date_min"]],
-                                      etl_date_max = load_mcaid_claim_config[[server]][["date_max"]],
-                                      etl_delivery_date = load_mcaid_claim_config[[server]][["date_delivery"]], 
+  load_load_raw.mcaid_claim_partial_f(conn = db_claims,
+                                      server = server,
+                                      etl_date_min = load_mcaid_claim_config[["date_min"]],
+                                      etl_date_max = load_mcaid_claim_config[["date_max"]],
+                                      etl_delivery_date = load_mcaid_claim_config[["date_delivery"]], 
                                       etl_note = "Partial refresh of Medicaid claims data",
                                       qa_file_row = F)
 }
