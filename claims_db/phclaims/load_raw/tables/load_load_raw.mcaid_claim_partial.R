@@ -79,6 +79,7 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
   #### SET UP BATCH ID ####
   # Eventually switch this function over to using glue_sql to stop unwanted SQL behavior
   current_batch_id <- load_metadata_etl_log_f(conn = conn, 
+                                              server = server,
                                               batch_type = "incremental", 
                                               data_source = "Medicaid", 
                                               date_min = etl_date_min,
@@ -165,8 +166,9 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
   message("Checking loaded row counts vs. expected")
   # Use the load config file for the list of tables to check and their expected row counts
   qa_rows_sql <- qa_load_row_count_f(conn = conn_dw,
-                                     config_url = table_config,
-                                     overall = T, ind_yr = F, combine_yr = F)
+                                     server = server,
+                                     config = table_config,
+                                     overall = T, ind_yr = F)
   
   # Report individual results out to SQL table
   DBI::dbExecute(conn = conn,
@@ -217,13 +219,13 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
       PRCDR_CODE_7, PRCDR_CODE_8, PRCDR_CODE_9, PRCDR_CODE_10, PRCDR_CODE_11, PRCDR_CODE_12, 
       LINE_PRCDR_CODE, MDFR_CODE1, MDFR_CODE2, MDFR_CODE3, MDFR_CODE4, NDC, NDC_DESC, 
       DRUG_STRENGTH, PRSCRPTN_FILLED_DATE, DAYS_SUPPLY, DRUG_DOSAGE, PACKAGE_SIZE_UOM, 
-      SBMTD_DISPENSED_QUANTITY, PRSCRBR_ID, PRVDR_LCTN_H_SID, NPI, PRVDR_LAST_NAME, 
+      SBMTD_DISPENSED_QUANTITY, PRSCRBR_ID, PRVDR_LCTN_H_SID, NPI, PRVDR_LT_NAME, 
       PRVDR_FIRST_NAME, TXNMY_CODE, TXNMY_NAME, PRVDR_TYPE_CODE, SPCLTY_CODE, SPCLTY_NAME, 
       ADMSN_SOURCE_LKPCD, PATIENT_STATUS_LKPCD, ADMSN_DATE, ADMSN_HOUR, ADMTNG_DIAGNOSIS_CODE, 
-      BLNG_PRVDR_FIRST_NAME, BLNG_PRVDR_LAST_NAME, BLNG_PRVDR_NAME, DRVD_DRG_CODE, 
+      BLNG_PRVDR_FIRST_NAME, BLNG_PRVDR_LT_NAME, BLNG_PRVDR_NAME, DRVD_DRG_CODE, 
       DRVD_DRG_NAME, DSCHRG_DATE, FCLTY_TYPE_CODE, INSRNC_CVRG_CODE, INVC_TYPE_LKPCD, 
       MDCL_RECORD_NMBR, PRIMARY_DIAGNOSIS_POA_LKPCD, PRIMARY_DIAGNOSIS_POA_NAME, 
-      PRVDR_COUNTY_CODE, SPCL_PRGRM_LKPCD, BSP_GROUP_CID, LAST_PYMNT_DATE, BILL_DATE, 
+      PRVDR_COUNTY_CODE, SPCL_PRGRM_LKPCD, BSP_GROUP_CID, LT_PYMNT_DATE, BILL_DATE, 
       SYSTEM_IN_DATE, TCN_DATE
       FROM {`to_schema`}.{`to_table`}) a",
     .con = conn_dw)))
@@ -262,8 +264,9 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
   
   #### QA CHECK: DATE RANGE MATCHES EXPECTED RANGE ####
   qa_date_range <- qa_date_range_f(conn = conn_dw,
+                                   server = server,
                                    config = table_config,
-                                   overall = T, ind_yr = F, combine_yr = F,
+                                   overall = T, ind_yr = F,
                                    date_var = "FROM_SRVC_DATE")
   
   # Report individual results out to SQL table
@@ -290,12 +293,16 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
   #### ADD BATCH ID COLUMN ####
   message("Adding batch ID to SQL table")
   # Add column to the SQL table and set current batch to the default
-  DBI::dbGetQuery(conn_dw,
-                  glue::glue_sql(
-                    "ALTER TABLE {`to_schema`}.{`to_table`} 
-                   ADD etl_batch_id INTEGER 
-                   DEFAULT {current_batch_id} WITH VALUES",
-                    .con = conn_dw))
+  # NB. In Azure data warehouse, the WITH VALUES code failed so split into 
+  #      two statements, one to make the column and one to update it to default
+  DBI::dbExecute(conn_dw,
+                 glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`} 
+                  ADD etl_batch_id INTEGER DEFAULT {current_batch_id}",
+                                .con = conn_dw))
+  DBI::dbExecute(conn_dw,
+                 glue::glue_sql("UPDATE {`to_schema`}.{`to_table`} 
+                  SET etl_batch_id = {current_batch_id}",
+                                .con = conn_dw))
   
 
   message("All claims data loaded to SQL and QA checked")

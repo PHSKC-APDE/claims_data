@@ -159,8 +159,9 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   message("Checking loaded row counts vs. expected")
   # Use the load config file for the list of tables to check and their expected row counts
   qa_rows_sql <- qa_load_row_count_f(conn = conn_dw,
-                                     config_url = table_config,
-                                     overall = T, ind_yr = F, combine_yr = F)
+                                     server = server,
+                                     config = table_config,
+                                     overall = T, ind_yr = F)
   
   # Report individual results out to SQL table
   DBI::dbExecute(conn = conn,
@@ -228,8 +229,9 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   
   #### QA CHECK: DATE RANGE MATCHES EXPECTED RANGE ####
   qa_date_range <- qa_date_range_f(conn = conn_dw,
+                                   server = server,
                                    config = table_config,
-                                   overall = T, ind_yr = F, combine_yr = F,
+                                   overall = T, ind_yr = F,
                                    date_var = "CLNDR_YEAR_MNTH")
   
   # Report individual results out to SQL table
@@ -379,12 +381,17 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   #### ADD BATCH ID COLUMN ####
   message("Adding batch ID to SQL table")
   # Add column to the SQL table and set current batch to the default
-  DBI::dbGetQuery(conn_dw,
-                  glue::glue_sql(
-                    "ALTER TABLE {`to_schema`}.{`to_table`} 
-                   ADD etl_batch_id INTEGER 
-                   DEFAULT {current_batch_id} WITH VALUES",
-                    .con = conn_dw))
+  # NB. In Azure data warehouse, the WITH VALUES code failed so split into 
+  #      two statements, one to make the column and one to update it to default
+  DBI::dbExecute(conn_dw,
+                  glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`} 
+                  ADD etl_batch_id INTEGER DEFAULT {current_batch_id}",
+                                 .con = conn_dw))
+  DBI::dbExecute(conn_dw,
+                 glue::glue_sql("UPDATE {`to_schema`}.{`to_table`} 
+                  SET etl_batch_id = {current_batch_id}",
+                                .con = conn_dw))
+  
   
   message("All eligibility data loaded to SQL and QA checked")
   
