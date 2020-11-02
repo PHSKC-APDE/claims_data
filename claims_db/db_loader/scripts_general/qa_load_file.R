@@ -3,12 +3,6 @@
 #
 # 2019-05
 
-#### CALL IN GENERAL QA FUNCTIONS IF NOT ALREADY LOADED ####
-if (exists("qa_error_check_f") == F) {
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/qa_general.R")
-}
-
-
 #### FUNCTION TO CHECK ACTUAL VS EXPECT ROW COUNTS IN SOURCE FILES ####
 qa_file_row_count_f <- function(config = NULL,
                                 config_url = NULL,
@@ -152,7 +146,7 @@ qa_file_row_count_f <- function(config = NULL,
 
 #### FUNCTION TO CHECK COLUMNS MATCH SQL TABLES ####
 qa_column_order_f <- function(conn = NULL,
-                              config = config,
+                              config = NULL,
                               config_url = NULL,
                               config_file = NULL,
                               schema = NULL,
@@ -439,6 +433,7 @@ qa_load_row_count_f <- function(conn,
 
 #### FUNCTION TO CHECK THAT DATES MATCH EXPECTED RANGE ####
 qa_date_range_f <- function(conn,
+                            config = NULL,
                             config_url = NULL,
                             config_file = NULL,
                             schema = NULL,

@@ -18,25 +18,35 @@ library(glue) # Safely combine SQL code
 library(sf) # Read shape files
 library(keyring) # Access stored credentials
 
-db_claims <- DBI::dbConnect(odbc::odbc(),
-                            driver = "ODBC Driver 17 for SQL Server",
-                            server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
-                            database = "hhs_analytics_workspace",
-                            uid = keyring::key_list("hhsaw_dev")[["username"]],
-                            pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
-                            Encrypt = "yes",
-                            TrustServerCertificate = "yes",
-                            Authentication = "ActiveDirectoryPassword")
 
-dw_inthealth <- DBI::dbConnect(odbc::odbc(),
-                        driver = "ODBC Driver 17 for SQL Server",
-                        server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
-                        database = "inthealth_edw",
-                        uid = keyring::key_list("hhsaw_dev")[["username"]],
-                        pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
-                        Encrypt = "yes",
-                        TrustServerCertificate = "yes",
-                        Authentication = "ActiveDirectoryPassword")
+server <- select.list(choices = c("phclaims", "hhsaw"))
+
+
+
+if (server == "phclaims") {
+  db_claims <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
+} else if (server == "hhsaw") {
+  db_claims <- DBI::dbConnect(odbc::odbc(),
+                              driver = "ODBC Driver 17 for SQL Server",
+                              server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
+                              database = "hhs_analytics_workspace",
+                              uid = keyring::key_list("hhsaw_dev")[["username"]],
+                              pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
+                              Encrypt = "yes",
+                              TrustServerCertificate = "yes",
+                              Authentication = "ActiveDirectoryPassword")
+  
+  dw_inthealth <- DBI::dbConnect(odbc::odbc(),
+                                 driver = "ODBC Driver 17 for SQL Server",
+                                 server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
+                                 database = "inthealth_edw",
+                                 uid = keyring::key_list("hhsaw_dev")[["username"]],
+                                 pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
+                                 Encrypt = "yes",
+                                 TrustServerCertificate = "yes",
+                                 Authentication = "ActiveDirectoryPassword")
+}
+
 
 # These are use for geocoding new addresses
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
@@ -60,16 +70,81 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/a
 # NB. QA now happens in the stage step once an etl_batch_id is created
 
 ### ELIGIBILITY
-copy_into_f(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml",
-            file_type = "csv", compression = "gzip",
-            identity = "Storage Account Key", secret = key_get("inthealth_edw"),
-            overwrite = T)
+### Bring in yaml file and function
+load_mcaid_elig_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
+# Call in function
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R")
+
+### Extract dates
+load_elig_date_min <- as.Date(paste0(str_sub(load_mcaid_elig_config[["date_min"]], 1, 4), "-",
+                                     str_sub(load_mcaid_elig_config[["date_min"]], 5, 6), "-",
+                                     "01"), format = "%Y-%m-%d")
+load_elig_date_max <- as.Date(paste0(str_sub(load_mcaid_elig_config[["date_max"]], 1, 4), "-",
+                                     str_sub(load_mcaid_elig_config[["date_max"]], 5, 6), "-",
+                                     "01"), format = "%Y-%m-%d") %m+% months(1) - days(1)
+
+
+if (server == "hhsaw") {
+  load_load_raw.mcaid_elig_partial_f(conn = db_claims,
+                                     conn_dw = dw_inthealth,
+                                     server = server,
+                                     config = load_mcaid_elig_config,
+                                     etl_date_min = load_elig_date_min, 
+                                     etl_date_max = load_elig_date_max,
+                                     etl_delivery_date = load_mcaid_elig_config[["date_delivery"]], 
+                                     etl_note = "Partial refresh of Medicaid elig data")
+} else if (server == "phclaims") {
+  ### Create tables
+  # Need to do this each time because of the etl_batch_id variable
+  create_table_f(conn = db_claims, 
+                 server = server,
+                 config = load_mcaid_elig_config,
+                 overwrite = T)
+  
+  
+  ### Load tables
+  load_load_raw.mcaid_elig_partial_f(conn = db_claims,
+                                     server = server,
+                                     config = load_mcaid_elig_config,
+                                     etl_date_min = load_elig_date_min, 
+                                     etl_date_max = load_elig_date_max,
+                                     etl_delivery_date = load_mcaid_elig_config[["date_delivery"]], 
+                                     etl_note = "Partial refresh of Medicaid elig data")
+}
+### Clean up
+rm(load_mcaid_elig_config, load_elig_date_min, load_elig_date_max)
+
 
 ### CLAIMS
-copy_into_f(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml",
-            file_type = "csv", compression = "gzip",
-            identity = "Storage Account Key", secret = key_get("inthealth_edw"),
-            overwrite = T)
+### Bring in yaml file
+load_mcaid_elig_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml"))
+
+
+if (server == "hhsaw") {
+  copy_into_f(conn = dw_inthealth, 
+              config = load_mcaid_elig_config,
+              file_type = "csv", compression = "gzip",
+              identity = "Storage Account Key", secret = key_get("inthealth_edw"),
+              overwrite = T)
+} else {
+  ### Create tables
+  create_table_f(conn = db_claims, 
+                 server = phclaims,
+                 config_url = load_mcaid_elig_config,
+                 overwrite = T)
+  
+  ### Load tables
+  # Call in function
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R")
+  
+  load_load_raw.mcaid_claim_partial_f(etl_date_min = load_mcaid_claim_config[[server]][["date_min"]],
+                                      etl_date_max = load_mcaid_claim_config[[server]][["date_max"]],
+                                      etl_delivery_date = load_mcaid_claim_config[[server]][["date_delivery"]], 
+                                      etl_note = "Partial refresh of Medicaid claims data",
+                                      qa_file_row = F)
+}
+### Clean up
+rm(load_mcaid_elig_config)
 
 
 
