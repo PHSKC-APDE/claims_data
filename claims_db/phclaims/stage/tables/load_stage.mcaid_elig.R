@@ -57,6 +57,8 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   
   
   vars <- unlist(names(config$vars))
+  # also make version without geo_hash_raw for deduplication section
+  vars_dedup <- vars[!vars %in% c("geo_hash_raw")]
   
   # Need to keep only the vars that come before the named ones below
   # This is so we can recreate the address hash field
@@ -96,7 +98,8 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
       try(DBI::dbSendQuery(conn_dw, 
                            glue::glue_sql("DROP TABLE {`archive_schema`}.{`archive_table`}",
                                           .con = conn_dw)))
-      DBI::dbSendQuery(conn_dw, glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
+      DBI::dbSendQuery(conn_dw, 
+                       glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
     } else if (server == "phclaims") {
       alter_schema_f(conn = conn, 
                      from_schema = to_schema, 
@@ -191,7 +194,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
       # Need to specify which temp table the vars come from
       # Can't handle this just with glue_sql
       # (see https://community.rstudio.com/t/using-glue-sql-s-collapse-with-table-name-identifiers/11633)
-      var_names <- lapply(vars, function(nme) DBI::Id(table = "a", column = nme))
+      var_names <- lapply(vars_dedup, function(nme) DBI::Id(table = "a", column = nme))
       
       
       # Use priority set out below (higher resaon score = higher priority)
@@ -208,7 +211,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
       
       system.time(DBI::dbExecute(conn_dw,
         glue::glue_sql(
-          "SELECT {`vars`*},
+          "SELECT {`vars_dedup`*},
       CASE WHEN END_REASON IS NULL THEN 1
         WHEN END_REASON = 'Other' THEN 2
         WHEN END_REASON = 'Other - For User Generation Only' THEN 3
@@ -236,7 +239,11 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
       }
       
       # Check no dups exist by recording row counts
-      temp_rows_01 <- as.numeric(dbGetQuery(conn_dw, glue::glue_sql("SELECT COUNT (*) FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig ", .con = conn_dw)))
+      temp_rows_01 <- as.numeric(dbGetQuery(
+        conn_dw,
+        glue::glue_sql("SELECT COUNT (*) FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig ", 
+                       .con = conn_dw)))
+      
       if (rows_load_raw != temp_rows_01) {
         stop("Not all rows were copied to the temp table")
       } else {
@@ -254,7 +261,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
         "SELECT DISTINCT {`var_names`*}
         INTO {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig_dedup
         FROM
-      (SELECT {`vars`*}, reason_score FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig ) a
+      (SELECT {`vars_dedup`*}, reason_score FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig ) a
         LEFT JOIN
         (SELECT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE,
           TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, 
@@ -394,7 +401,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   
   
   
-  g#### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
+  #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
   message("Running QA checks")
   
   # Obtain row counts for other tables (rows_load_raw already calculated above)
@@ -426,6 +433,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     row_diff_qa_type <- 'Rows passed from load_raw to stage'
   }
   
+  # Load to metadata table
   if (row_diff != 0) {
     row_diff_qa_fail <- 1
     DBI::dbExecute(conn = conn_db,
