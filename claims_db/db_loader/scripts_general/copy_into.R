@@ -139,16 +139,17 @@ copy_into_f <- function(
       DBI::dbExecute(conn,
                      glue::glue_sql("DROP TABLE {`to_schema`}.{`to_table`}",
                                     .con = conn))
-
-      DBI::dbExecute(conn, glue::glue_sql(
-        "CREATE TABLE {`to_schema`}.{`to_table`} (
-          {DBI::SQL(glue_collapse(glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}',
-                                           .con = conn), sep = ', \n'))}
-        )", .con = conn))
     }
   }
   
-  
+  ### Create table if it doesn't exist
+  if (DBI::dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table)) == F) {
+    DBI::dbExecute(conn, glue::glue_sql(
+      "CREATE TABLE {`to_schema`}.{`to_table`} (
+          {DBI::SQL(glue_collapse(glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}',
+                                           .con = conn), sep = ', \n'))}
+        )", .con = conn))
+  }
 
   
   message(glue::glue("Creating [{to_schema}].[{to_table}] table"))
