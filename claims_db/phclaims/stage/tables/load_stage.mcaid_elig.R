@@ -28,6 +28,9 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     stop("Server must be NULL, 'phclaims', or 'hhsaw'")
   }
   
+  # Set up both connections so they work in either server
+  if (server == "phclaims") {conn_dw <- conn_db}
+  
   
   #### GET VARS FROM CONFIG FILE ####
   from_schema <- config[[server]][["from_schema"]]
@@ -45,10 +48,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
                       config[[server]][["qa_table"]])
   
   
-  # Set up both connections so they work in either server
-  if (server == "phclaims") {conn_dw <- conn}
-  
-  
+
   if (!is.null(config$etl$date_var)) {
     date_var <- config$etl$date_var
   } else {

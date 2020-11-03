@@ -10,7 +10,7 @@
 
 load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, 
                                             conn_db = NULL, 
-                                            server = c("hhsaw", "phclaims"),
+                                            server = NULL,
                                             full_refresh = F, 
                                             config = NULL) {
   ### Error checks
@@ -19,16 +19,18 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   if (is.null(config)) {stop("Specify a list with config details")}
   
   
-  # Set up variables specific to the server
-  server <- match.arg(server)
-  
-  if (get_config == T){
-    if (stringr::str_detect(config, "^http")) {
-      config <- yaml::yaml.load(getURL(config))
-    } else{
-      stop("A URL must be specified in config if using get_config = T")
-    }
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
   }
+  
+  # Set up both connections so they work in either server
+  if (server == "phclaims") {conn_dw <- conn_db}
+  
   
   #### GET VARS FROM CONFIG FILE ####
   from_schema <- config[[server]][["from_schema"]]
@@ -40,19 +42,23 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   archive_schema <- config[[server]][["archive_schema"]]
   archive_table <- ifelse(is.null(config[[server]][["archive_table"]]), '',
                       config[[server]][["archive_table"]])
-  bho_archive_schema <- config[[server]][["bho_archive_schema"]]
-  bho_archive_table <- ifelse(is.null(config[[server]][["bho_archive_table"]]), '',
-                       config[[server]][["bho_archive_table"]])
   qa_schema <- config[[server]][["qa_schema"]]
   qa_table <- ifelse(is.null(config[[server]][["qa_table"]]), '',
                      config[[server]][["qa_table"]])
   
   
+  if (full_refresh == T) {
+    bho_archive_schema <- config[[server]][["bho_archive_schema"]]
+    bho_archive_table <- ifelse(is.null(config[[server]][["bho_archive_table"]]), '',
+                                config[[server]][["bho_archive_table"]])
+  }
+  
   vars <- unlist(names(config$vars))
-  # Need to keep only the vars that come after the named ones below
+  # Need to keep only the vars that come after the named ones below because some
+  # of these are transformed
   vars_truncated <- vars[!vars %in% c("CLNDR_YEAR_MNTH", "MBR_H_SID", 
                                       "MEDICAID_RECIPIENT_ID", "BABY_ON_MOM_IND", 
-                                      "TCN", "CLM_LINE_TCN", "CLM_LINE", "etl_batch_id")]
+                                      "TCN", "CLM_LINE_TCN", "CLM_LINE")]
   # Adjust vars to account for different names in raw data
   # This fix isn't ideal and somewhat defeats the point of the YAML files
   vars_truncated <- str_replace(vars_truncated, "LAST_", "LT_")
@@ -66,72 +72,29 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   
   
   if (full_refresh == F) {
-    date_truncate <- config$etl$date_min
     etl_batch_type <- "incremental"
+    date_truncate <- DBI::dbGetQuery(
+      conn_dw,
+      glue::glue_sql("SELECT MIN({`date_var`}) FROM {`from_schema`}.{`from_table`}",
+                     .con = conn_dw))
   } else {
     etl_batch_type <- "full"
   }
 
   
-  if (server == "hhsaw") {
-    ### Currently a discrepancy between how the raw data are loaded
-    #   QA done in this file for HHSAW but should be harmonized eventually
-    
-    #### FIND MOST RECENT BATCH ID FROM SOURCE (raw) ####
-    # Now need to make ETL batch ID here as it is added to stage.
-    # Raw data are in an external table that points to the data warehouse. Can't add an ETL column to that.
-    
-    current_batch_id <- load_metadata_etl_log_f(conn = conn_db, 
-                                                batch_type = etl_batch_type,
-                                                data_source = "Medicaid", 
-                                                date_min = config$etl$date_min,
-                                                date_max = config$etl$date_max,
-                                                delivery_date = config$etl$date_delivery, 
-                                                note = config$etl$note)
-    
-    
-    #### QA RAW DATA ####
-    # Now that we have a batch_etl_id we can do some basic QA on the raw data
-    
-    #### QA CHECK: ROW COUNTS MATCH SOURCE FILE COUNT ####
-    message("Checking loaded row counts vs. expected")
-    # Use the load config file for the list of tables to check and their expected row counts
-    qa_rows_sql <- qa_load_row_count_f(conn = conn_dw, schema = config$from_schema,
-                                       table = config$from_table, row_count = config$etl$row_count)
-    
-    # Report individual results out to SQL table
-    odbc::dbGetQuery(conn = conn_db,
-                     glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
-                                (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
-                                VALUES ({current_batch_id}, 
-                                        '{`from_schema`}.{`from_table`}',
-                                        'Number rows loaded to SQL vs. expected value(s)', 
-                                        {qa_rows_sql$outcome[1]},
-                                        {Sys.time()},
-                                        {qa_rows_sql$note[1]})",
-                                    .con = conn_db))
-    
-    if (qa_rows_sql$outcome[1] == "FAIL") {
-      qa_row_fail <- 1L
-      warning(glue::glue("Mismatching row count between source file and SQL table. 
-                  Check {qa_schema}.{qa_table}qa_mcaid for details (etl_batch_id = {current_batch_id}"))
-    } else {
-      qa_row_fail <- 0L
-    }
-  }
-  
-  
   
   
   #### ARCHIVE EXISTING TABLE ####
-  # No longer switching schema, instead just renaming table. Need to drop existing archive table first
+  # Different approaches between Azure data warehouse (rename) and on-prem SQL DB (alter schema)
   if (full_refresh == F) {
-    try(DBI::dbSendQuery(conn_dw, glue::glue("DROP TABLE {archive_schema}.{archive_table}")))
-    
     if (server == "hhsaw") {
-      DBI::dbSendQuery(conn_dw, glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
-    } else {
-      alter_schema_f(conn = conn_db, 
+      try(DBI::dbSendQuery(conn_dw, 
+                           glue::glue_sql("DROP TABLE {`archive_schema`}.{`archive_table`}",
+                                          .con = conn_dw)))
+      DBI::dbSendQuery(conn_dw, 
+                       glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
+    } else if (server == "phclaims") {
+      alter_schema_f(conn = conn, 
                      from_schema = to_schema, 
                      to_schema = archive_schema,
                      table_name = to_table, 
@@ -143,65 +106,44 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   #### LOAD TABLE ####
   # Can't use default load function because some transformation is needed
   # Need to make two new variables
+  
+  # Different start to the SQL depending on server
+  if (server == "hhsaw") {
+    load_intro <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
+                                   WITH (CLUSTERED COLUMNSTORE INDEX, 
+                                         DISTRIBUTION = HASH ({`date_var`}))
+                                   AS ",
+                                 .con = conn_dw)
+  } else if (server == "phclaims") {
+    load_intro <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
+                                   ({`vars`*})",
+                                 .con = conn_dw)
+  }
+  
   if (full_refresh == F) {
-    if (server == "hhsaw") {
-      load_sql <- glue::glue_sql(
-        "CREATE TABLE {`to_schema`}.{`to_table`} 
-      WITH (CLUSTERED COLUMNSTORE INDEX, 
-            DISTRIBUTION = HASH ({`date_var`}))
-      AS SELECT {`vars`*}  
-      FROM {`archive_schema`}.{`archive_table`}
-      WHERE {`date_var`} < {date_truncate}
-      UNION
-      SELECT DISTINCT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
-        MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
-        CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE, {`vars_truncated`*},
-        {current_batch_id} AS etl_batch_id FROM
-      {`from_schema`}.{`from_table`}
-      WHERE {`date_var`} >= {date_truncate}",
-        .con = conn_dw)
-    } else {
-      load_sql <- glue::glue_sql(
-        "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
-        ({`vars`*}) 
-        SELECT {`vars`*} FROM {`archive_schema`}.{`to_table`}
-          WHERE {`date_var`} < {date_truncate}
+    load_sql <- glue::glue_sql(
+      "{DBI::SQL(load_intro)}  
+        SELECT {`vars`*} 
+        FROM {`archive_schema`}.{`archive_table`}
+          WHERE {`date_var`} < {format(date_truncate, '%Y-%m-%d')}
         UNION
-        SELECT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
+        SELECT DISTINCT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
         MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
         CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE, {`vars_truncated`*}
-        FROM {`from_schema`}.{`from_table`}",
-        .con = conn_db,
-        date_var = table_config_stage_claim$date_var)
-    }
+        FROM {`from_schema`}.{`from_table`} 
+      WHERE {`date_var`} >= {format(date_truncate, '%Y-%m-%d')}",
+      .con = conn_dw)
   } else if (full_refresh == T) {
-    if (server == "hhsaw") {
-      load_sql <- glue::glue_sql(
-        "CREATE TABLE {`to_schema`}.{`to_table`} 
-      ({`vars`*})
-      WITH (CLUSTERED COLUMNSTORE INDEX, 
-            DISTRIBUTION = HASH ({`date_var`}))
-      AS SELECT DISTINCT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
+    load_sql <- glue::glue_sql(
+      "{DBI::SQL(load_intro)} 
+      SELECT DISTINCT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
       MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
       CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE,
       {`vars_truncated`*}, {current_batch_id} AS etl_batch_id
       FROM {`from_schema`}.{`from_table`}
       UNION
       SELECT {`vars`*} FROM {bho_archive_schema}.{bho_archive_table}",
-        .con = conn_dw)
-    } else {
-      load_sql <- glue::glue_sql(
-        "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
-        ({`vars`*}) 
-        SELECT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
-        MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
-        CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE,
-        {`vars_truncated`*}
-        FROM {`from_schema`}.{`from_table`} 
-        UNION 
-        SELECT {`vars`*} FROM {bho_archive_schema}.{bho_archive_table}",
-        .con = conn_db)
-    }
+      .con = conn_dw)
   }
   
   message("Loading to stage table")
@@ -227,12 +169,13 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   if (full_refresh == F) {
     rows_archive <- as.numeric(dbGetQuery(
       conn_dw, glue::glue_sql("SELECT COUNT (*) FROM {`archive_schema`}.{`archive_table`} 
-                            WHERE {`date_var`} < {date_truncate}", 
+                            WHERE {`date_var`} < {format(date_truncate, '%Y-%m-%d')}", 
                               .con = conn_dw)))
     
     
     rows_diff <- rows_stage - (rows_raw + rows_archive)
     row_diff_qa_type <- 'Rows passed from raw AND archive to stage'
+    
     
     if (rows_diff != 0) {
       row_diff_qa_note <- paste0('Number of rows in stage ({rows_stage}) does not match ',
