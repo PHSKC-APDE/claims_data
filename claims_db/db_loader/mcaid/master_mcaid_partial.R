@@ -64,12 +64,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/a
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/copy_into.R")
 
 
-
-#### LOAD_RAW ####
-# Refresh data warehouse tables that the external tables point to
-# NB. QA now happens in the stage step once an etl_batch_id is created
-
-### ELIGIBILITY
+#### RAW ELIG ####
 ### Bring in yaml file and function
 load_mcaid_elig_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R")
@@ -111,12 +106,12 @@ if (server == "hhsaw") {
                                      etl_note = "Partial refresh of Medicaid elig data")
 }
 ### Clean up
-rm(load_mcaid_elig_config, load_elig_date_min, load_elig_date_max)
+rm(load_mcaid_elig_config, load_elig_date_min, load_elig_date_max, load_load_raw.mcaid_elig_partial_f)
 
 
-### CLAIMS
+#### RAW CLAIMS ####
 ### Bring in yaml file and function
-load_mcaid_elig_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml"))
+load_mcaid_claim_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml"))
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R")
 
 
@@ -156,7 +151,20 @@ table_config_stage_elig <- yaml::yaml.load(RCurl::getURL("https://raw.githubuser
 if (table_config_stage_elig[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
-system.time(load_stage.mcaid_elig_f(conn_dw = dw_inthealth, conn_db = db_claims, full_refresh = F, config = table_config_stage_elig))
+
+if (server == "hhsaw") {
+  system.time(load_stage.mcaid_elig_f(conn_dw = dw_inthealth, 
+                                      conn_db = db_claims, 
+                                      server = server,
+                                      full_refresh = F, 
+                                      config = table_config_stage_elig))
+} else if (server == "phclaims") {
+  system.time(load_stage.mcaid_elig_f(conn_db = db_claims, 
+                                      server = server,
+                                      full_refresh = F, 
+                                      config = table_config_stage_elig))
+}
+
 
 
 #### STAGE CLAIM ####
@@ -165,7 +173,10 @@ table_config_stage_claims <- yaml::yaml.load(RCurl::getURL("https://raw.githubus
 if (table_config_stage_claims[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
-system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, conn_db = db_claims, full_refresh = F, config = table_config_stage_claims))
+system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, 
+                                            conn_db = db_claims, 
+                                            full_refresh = F, 
+                                            config = table_config_stage_claims))
 
 
 #### ADDRESS CLEANING ####
@@ -176,7 +187,9 @@ stage_address_clean_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubu
 # Run step 1, which identifies new addresses and sets them up to be run through Informatica
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step1.R")
 
-load_stage.address_clean_partial_1(conn = db_claims, server = server, config = stage_address_clean_config)
+load_stage.address_clean_partial_1(conn = db_claims, 
+                                   server = server, 
+                                   config = stage_address_clean_config)
 
 
 #### MANUAL PAUSE ####
@@ -184,18 +197,23 @@ load_stage.address_clean_partial_1(conn = db_claims, server = server, config = s
 
 # Run step 2, which processes addresses that were through Informatica and loads to SQL
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step2.R")
-load_stage.address_clean_partial_2(conn = db_claims, server = server, config = stage_address_clean_config)
+load_stage.address_clean_partial_2(conn = db_claims, 
+                                   server = server, 
+                                   config = stage_address_clean_config)
 
 # QA stage.address_clean
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/qa_stage.address_clean_partial.R")
-qa_stage_address_clean <- qa.address_clean_partial(conn = db_claims, server = server, config = stage_address_clean_config)
+qa_stage_address_clean <- qa.address_clean_partial(conn = db_claims, 
+                                                   server = server, 
+                                                   config = stage_address_clean_config)
 
 
 # Check that things passed QA before loading final table
 if (qa_stage_address_clean == 0) {
   # Pull out run date
   last_run_stage_address_clean <- as.POSIXct(odbc::dbGetQuery(
-    db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_address_clean_config[[server]][['to_schema']]`}.{`stage_address_clean_config[[server]][['to_table']]`}",
+    db_claims, glue::glue_sql("SELECT MAX (last_run) 
+                              FROM {`stage_address_clean_config[[server]][['to_schema']]`}.{`stage_address_clean_config[[server]][['to_table']]`}",
                               .con = db_claims))[[1]])
   
   # Pull in the config file
@@ -288,7 +306,7 @@ if (qa_stage_address_geocode == 0) {
   # Load final table (assumes no changes to table structure)
   load_table_from_sql_f(conn = db_claims,
                         server = server,
-                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
+                        config = ref_address_geocode_config,
                         truncate = T, truncate_date = F)
   
   
@@ -296,7 +314,7 @@ if (qa_stage_address_geocode == 0) {
   message("QA final address geocode table")
   qa_rows_final <- qa_sql_row_count_f(conn = db_claims,
                                       server = server,
-                                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml")
+                                      config = ref_address_geocode_config)
   
   DBI::dbExecute(
     conn = db_claims,

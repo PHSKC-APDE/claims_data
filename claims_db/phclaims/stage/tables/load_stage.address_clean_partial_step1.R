@@ -29,13 +29,19 @@
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
 load_stage.address_clean_partial_1 <- function(conn = NULL,
-                                               server = c("hhsaw", "phclaims"),
+                                               server = NULL,
                                                config = NULL,
                                                get_config = F) {
   
   
-  # Set up variables specific to the server
-  server <- match.arg(server)
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+  }
   
   if (get_config == T){
     if (stringr::str_detect(config, "^http")) {
