@@ -36,11 +36,12 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
   
   
   #### SET UP SERVER ####
-  if (is.null(server) | !server %in% c("phclaims", "hhsaw")) {
-    message("Server must be NULL, 'phclaims', or 'hhsaw'")
+  if (is.null(server)) {
     server <- NA
   } else if (server %in% c("phclaims", "hhsaw")) {
     server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
   }
   
   
@@ -71,9 +72,7 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
   qa_table <- table_config[[server]][["qa_table"]]
   
   # Set up both connections so they work in either server
-  if (server == "phclaims") {
-    conn_dw <- conn
-  }
+  if (server == "phclaims") {conn_dw <- conn}
   
   
   #### SET UP BATCH ID ####
