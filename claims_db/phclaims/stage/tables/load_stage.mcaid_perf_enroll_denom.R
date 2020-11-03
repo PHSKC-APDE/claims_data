@@ -1,7 +1,7 @@
 # This code creates the the mcaid performance measures enrollment denominator table
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/azure_migration/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 #
 # R script developed by Alastair Matheson based on Philip Sylling's stored procedure
 

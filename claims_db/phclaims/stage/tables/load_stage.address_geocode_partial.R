@@ -509,7 +509,7 @@ stage_address_geocode_f <- function(conn = NULL,
                      .con = conn)))
   } else if (full_refresh == T) {
     # Create new table if it doesn't exist
-    try(create_table_f(conn = conn, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
+    try(create_table_f(conn = conn, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
   }
 
 
