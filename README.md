@@ -31,3 +31,46 @@ Current functionality of the *claims* package (v 0.1.3):
 Training resources:
 - R users can view a [training video](https://kc1-my.sharepoint.com/:v:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/Medicaid%20R%20Package%20Training_2018.mp4?csf=1&e=3OydL9) for how to use the *claims* package.
 - Users can also view the [R script used in the training video](https://github.com/PHSKC-APDE/Medicaid/blob/master/Medicaid%20package%20orientation.R).
+
+## ETL Folder Access and Credentials Requirements for Claims and Housing Projects
+Folder Access:
+- \\\\kcitsqlutpdbh51\importdata\data - zip/csv files
+  - KC_Claim
+  - KC_Elig
+- \\\\dchs-shares01\DCHSDATA\DCHSPHClaimsData - Geocoding/clean address data
+- \\\\kcitetldepim001\informatica\address - Clean address data
+- \\\\phdata01\DROF_DATA\DOH DATA\Housing - Public housing data
+  - Organized_data
+  - KCHA
+  - SHA
+  - Geocoding
+  
+SQL Database Access:
+- KCITSQLUTPDBH51
+  - KCIT SQL Server (local)
+  - Windows Authentication
+  - ODBC - User DSN - SQL Server - /w Windows NT authentication - PHClaims51
+- KCITSQLPRPDBM50
+  - KCIT SQL Server (local)
+  - Windows Authentication
+  - ODBC - User DSN - SQL Server - /w Windows NT authentication - PHClaims50
+ - KCITSQLUTPDBH51
+   - KCIT SQL Server (local)
+   - Windows Authentication
+   - ODBC - User DSN - SQL Server - /w Windows NT authentication - PH_APDEStore51
+ - KCITSQLPRPDBM50
+   - KCIT SQL Server (local)
+   - Windows Authentication
+   - ODBC - User DSN - SQL Server - /w Windows NT authentication - PH_APDE_Store50
+ - kcitazrhpasqldev20.database.windows.net
+   - Azure SQL Server (cloud)
+   - Azure Active Directory - Universal with MFA
+ - kcitazrhpasqlprp16.azds.kingcounty.gov
+   - Azure SQL Server (cloud)
+   - Azure Active Directory - Universal with MFA
+
+R Keyrings:
+- hca_sftp - Access to HCA SFTP file portal
+- here - Sign up for HERE freemium API (https://developer.here.com/) -  App ID and API Key
+- hhsaw_dev - Access to Azure SQL Servers, will require to update as you update your KC and PH domain passwords
+ 

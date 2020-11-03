@@ -120,6 +120,26 @@ table_part31:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_31.csv
     field_term: ','
     row_term: \n
+table_part32:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_32.csv
+    field_term: ','
+    row_term: \n
+table_part33:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_33.csv
+    field_term: ','
+    row_term: \n
+table_part34:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_34.csv
+    field_term: ','
+    row_term: \n
+table_part35:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_35.csv
+    field_term: ','
+    row_term: \n
+table_part36:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_36.csv
+    field_term: ','
+    row_term: \n
 table_part4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_4.csv
     field_term: ','
@@ -170,6 +190,11 @@ years:
     - part3
     - part30
     - part31
+    - part32
+    - part33
+    - part34
+    - part35
+    - part36
     - part4
     - part5
     - part6

@@ -1,0 +1,385 @@
+schema: load_raw
+table: apcd_claim_procedure_raw
+vars:
+    internal_member_id: bigint
+    medical_claim_header_id: bigint	
+    first_service_dt: date
+    last_service_dt: date
+    procedure_code: varchar(255)
+    procedure_code_number: varchar(255)
+    procedure_modifier_code_1: varchar(255)
+    procedure_modifier_code_2: varchar(255)
+    procedure_modifier_code_3: varchar(255)
+    procedure_modifier_code_4: varchar(255)
+    row_number: bigint
+table_part1:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_1.csv
+    field_term: ','
+    row_term: \n
+table_part10:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_10.csv
+    field_term: ','
+    row_term: \n
+table_part11:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_11.csv
+    field_term: ','
+    row_term: \n
+table_part12:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_12.csv
+    field_term: ','
+    row_term: \n
+table_part13:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_13.csv
+    field_term: ','
+    row_term: \n
+table_part14:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_14.csv
+    field_term: ','
+    row_term: \n
+table_part15:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_15.csv
+    field_term: ','
+    row_term: \n
+table_part16:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_16.csv
+    field_term: ','
+    row_term: \n
+table_part17:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_17.csv
+    field_term: ','
+    row_term: \n
+table_part18:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_18.csv
+    field_term: ','
+    row_term: \n
+table_part19:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_19.csv
+    field_term: ','
+    row_term: \n
+table_part2:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_2.csv
+    field_term: ','
+    row_term: \n
+table_part20:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_20.csv
+    field_term: ','
+    row_term: \n
+table_part21:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_21.csv
+    field_term: ','
+    row_term: \n
+table_part22:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_22.csv
+    field_term: ','
+    row_term: \n
+table_part23:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_23.csv
+    field_term: ','
+    row_term: \n
+table_part24:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_24.csv
+    field_term: ','
+    row_term: \n
+table_part25:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_25.csv
+    field_term: ','
+    row_term: \n
+table_part26:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_26.csv
+    field_term: ','
+    row_term: \n
+table_part27:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_27.csv
+    field_term: ','
+    row_term: \n
+table_part28:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_28.csv
+    field_term: ','
+    row_term: \n
+table_part29:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_29.csv
+    field_term: ','
+    row_term: \n
+table_part3:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_3.csv
+    field_term: ','
+    row_term: \n
+table_part30:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_30.csv
+    field_term: ','
+    row_term: \n
+table_part31:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_31.csv
+    field_term: ','
+    row_term: \n
+table_part32:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_32.csv
+    field_term: ','
+    row_term: \n
+table_part33:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_33.csv
+    field_term: ','
+    row_term: \n
+table_part34:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_34.csv
+    field_term: ','
+    row_term: \n
+table_part35:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_35.csv
+    field_term: ','
+    row_term: \n
+table_part36:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_36.csv
+    field_term: ','
+    row_term: \n
+table_part37:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_37.csv
+    field_term: ','
+    row_term: \n
+table_part38:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_38.csv
+    field_term: ','
+    row_term: \n
+table_part39:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_39.csv
+    field_term: ','
+    row_term: \n
+table_part4:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_4.csv
+    field_term: ','
+    row_term: \n
+table_part40:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_40.csv
+    field_term: ','
+    row_term: \n
+table_part41:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_41.csv
+    field_term: ','
+    row_term: \n
+table_part42:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_42.csv
+    field_term: ','
+    row_term: \n
+table_part43:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_43.csv
+    field_term: ','
+    row_term: \n
+table_part44:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_44.csv
+    field_term: ','
+    row_term: \n
+table_part45:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_45.csv
+    field_term: ','
+    row_term: \n
+table_part46:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_46.csv
+    field_term: ','
+    row_term: \n
+table_part47:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_47.csv
+    field_term: ','
+    row_term: \n
+table_part48:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_48.csv
+    field_term: ','
+    row_term: \n
+table_part49:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_49.csv
+    field_term: ','
+    row_term: \n
+table_part5:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_5.csv
+    field_term: ','
+    row_term: \n
+table_part50:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_50.csv
+    field_term: ','
+    row_term: \n
+table_part51:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_51.csv
+    field_term: ','
+    row_term: \n
+table_part52:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_52.csv
+    field_term: ','
+    row_term: \n
+table_part53:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_53.csv
+    field_term: ','
+    row_term: \n
+table_part54:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_54.csv
+    field_term: ','
+    row_term: \n
+table_part55:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_55.csv
+    field_term: ','
+    row_term: \n
+table_part56:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_56.csv
+    field_term: ','
+    row_term: \n
+table_part57:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_57.csv
+    field_term: ','
+    row_term: \n
+table_part58:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_58.csv
+    field_term: ','
+    row_term: \n
+table_part59:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_59.csv
+    field_term: ','
+    row_term: \n
+table_part6:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_6.csv
+    field_term: ','
+    row_term: \n
+table_part60:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_60.csv
+    field_term: ','
+    row_term: \n
+table_part61:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_61.csv
+    field_term: ','
+    row_term: \n
+table_part62:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_62.csv
+    field_term: ','
+    row_term: \n
+table_part63:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_63.csv
+    field_term: ','
+    row_term: \n
+table_part64:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_64.csv
+    field_term: ','
+    row_term: \n
+table_part65:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_65.csv
+    field_term: ','
+    row_term: \n
+table_part66:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_66.csv
+    field_term: ','
+    row_term: \n
+table_part67:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_67.csv
+    field_term: ','
+    row_term: \n
+table_part68:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_68.csv
+    field_term: ','
+    row_term: \n
+table_part69:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_69.csv
+    field_term: ','
+    row_term: \n
+table_part7:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_7.csv
+    field_term: ','
+    row_term: \n
+table_part70:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_70.csv
+    field_term: ','
+    row_term: \n
+table_part71:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_71.csv
+    field_term: ','
+    row_term: \n
+table_part72:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_72.csv
+    field_term: ','
+    row_term: \n
+table_part73:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_73.csv
+    field_term: ','
+    row_term: \n
+table_part74:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_74.csv
+    field_term: ','
+    row_term: \n	
+table_part8:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_8.csv
+    field_term: ','
+    row_term: \n
+table_part9:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/procedure_export/procedure_9.csv
+    field_term: ','
+    row_term: \n
+years:
+    - part1
+    - part10
+    - part11
+    - part12
+    - part13
+    - part14
+    - part15
+    - part16
+    - part17
+    - part18
+    - part19
+    - part2
+    - part20
+    - part21
+    - part22
+    - part23
+    - part24
+    - part25
+    - part26
+    - part27
+    - part28
+    - part29
+    - part3
+    - part30
+    - part31
+    - part32
+    - part33
+    - part34
+    - part35
+    - part36
+    - part37
+    - part38
+    - part39
+    - part4
+    - part40
+    - part41
+    - part42
+    - part43
+    - part44
+    - part45
+    - part46
+    - part47
+    - part48
+    - part49
+    - part5
+    - part50
+    - part51
+    - part52
+    - part53
+    - part54
+    - part55
+    - part56
+    - part57
+    - part58
+    - part59
+    - part6
+    - part60
+    - part61
+    - part62
+    - part63
+    - part64
+    - part65
+    - part66
+    - part67
+    - part68
+    - part69
+    - part7
+    - part70
+    - part71
+    - part72
+    - part73
+    - part74
+    - part8
+    - part9

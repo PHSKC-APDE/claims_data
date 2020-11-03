@@ -70,6 +70,10 @@ table_part9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_9.csv
     field_term: ','
     row_term: \n
+table_part10:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_10.csv
+    field_term: ','
+    row_term: \n
 years:
     - part1
     - part2
@@ -80,3 +84,4 @@ years:
     - part7
     - part8
     - part9
+    - part10	

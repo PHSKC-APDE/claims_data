@@ -1,5 +1,5 @@
 schema: load_raw
-table: apcd_provider
+table: apcd_provider_raw
 vars:
     provider_id: bigint
     extract_id: bigint
@@ -27,6 +27,11 @@ table_part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_2.csv
     field_term: ','
     row_term: \n
+table_part3:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_3.csv
+    field_term: ','
+    row_term: \n
 years:
     - part1
     - part2
+    - part3	

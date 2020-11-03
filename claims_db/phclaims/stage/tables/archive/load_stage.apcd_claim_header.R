@@ -20,52 +20,44 @@ load_stage.apcd_claim_header_f <- function() {
     --Run time: ~30-40 min
     -------------------
     if object_id('tempdb..#temp1') is not null drop table #temp1;
-    select a.internal_member_id as id_apcd, 
-    a.medical_claim_header_id as claim_header_id,
-    case when a.product_code_id in (-1,-2) then null else a.product_code_id end as product_code_id,
-    a.first_service_dt as first_service_date,
-    a.last_service_dt as last_service_date,
-    a.first_paid_dt as first_paid_date,
-    a.last_paid_dt as last_paid_date,
-    a.charge_amt,
-    case when a.header_status in (-1,-2) then null else a.header_status end as claim_status_id,
-    case when a.type_of_bill_code in (-1,-2) then null else a.type_of_bill_code end as type_of_bill_code,
+    select internal_member_id as id_apcd, 
+    medical_claim_header_id as claim_header_id,
+    min(case when product_code_id in (-1,-2) then null else product_code_id end) as product_code_id,
+    min(first_service_dt) as first_service_date,
+    max(last_service_dt) as last_service_date,
+    min(first_paid_dt) as first_paid_date,
+    max(last_paid_dt) as last_paid_date,
+    min(case when claim_status_id in (-1,-2) then null else claim_status_id end) as claim_status_id,
+    min(case when type_of_bill_code in (-1,-2) then null else type_of_bill_code end) as type_of_bill_code,
     
     --concatenate claim type variables
-    cast(convert(varchar(100), a.claim_type_id)
-    	+ '.' + convert(varchar(100), a.type_of_setting_id)
-    	+ '.' + convert(varchar(100), case when a.place_of_setting_id in (-1,-2) then null else a.place_of_setting_id end)
+    cast(convert(varchar(100), max(claim_type_id))
+    	+ '.' + convert(varchar(100), max(type_of_setting_id))
+    	+ '.' + convert(varchar(100), min(case when place_of_setting_id in (-1,-2) then null else place_of_setting_id end))
     as varchar(100)) as claim_type_apcd_id,
     
     --ED performance temp flags (RDA measure)
-    cast(case when a.emergency_room_flag = 'Y' then 1 else 0 end as tinyint) as ed_perform_temp,
+    cast(max(case when emergency_room_flag = 'Y' then 1 else 0 end) as tinyint) as ed_perform_temp,
     
     --ED population health temp flags (Yale measure)
-    b.ed_pos_temp,
-    b.ed_revenue_code_temp,
+    max(case when place_of_service_code = '23' then 1 else 0 end) as ed_pos_temp,
+    max(case when revenue_code like '045[01269]' or revenue_code = '0981' then 1 else 0 end) as ed_revenue_code_temp,
     
     --inpatient visit
-    case when a.claim_type_id = '1' and a.type_of_setting_id = '1' and a.place_of_setting_id = '1'
-    	and a.header_status in (-1, -2, 1, 5, 2, 6) -- only include primary and secondary claims
-    	and b.discharge_date is not null
-    then 1 else 0 end as ipt_flag,
-    b.discharge_date
+    max(case when claim_type_id = '1' and type_of_setting_id = '1' and place_of_setting_id = '1'
+    	and claim_status_id in (-1, -2, 1, 5, 2, 6) -- only include primary and secondary claims
+    	and discharge_dt is not null
+    then 1 else 0 end) as ipt_flag,
+    max(discharge_dt) as discharge_date
     
     into #temp1
-    from PHClaims.stage.apcd_medical_claim_header as a
-    
-    --join to claim_line table to grab place of service and revenue code for ED visit, and discharge date for IPT
-    left join (
-      select claim_header_id, max(discharge_date) as discharge_date,
-        max(case when place_of_service_code = '23' then 1 else 0 end) as ed_pos_temp,
-        max(case when revenue_code like '045[01269]' or revenue_code = '0981' then 1 else 0 end) as ed_revenue_code_temp
-        from PHClaims.final.apcd_claim_line
-        group by claim_header_id
-        ) as b
-    on a.medical_claim_header_id = b.claim_header_id
-    
+    from PHClaims.stage.apcd_medical_claim as a
     --exclude denined/orphaned claims
-    where a.denied_header_flag = 'N' and a.orphaned_header_flag = 'N';
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where b.denied_header_min = 0 and b.orphaned_header_min = 0
+    --grouping statement for consolidation to person-header level
+    group by a.internal_member_id, a.medical_claim_header_id;
     
     
     ------------------
@@ -79,12 +71,14 @@ load_stage.apcd_claim_header_f <- function() {
     from (
       select a.medical_claim_header_id,
       	max(case when b.procedure_code like '9928[12345]' or b.procedure_code = '99291' then 1 else 0 end) as ed_procedure_code_temp
-      from PHClaims.stage.apcd_medical_claim_header as a
+      from PHClaims.stage.apcd_medical_claim as a
       --procedure code table
       left join PHClaims.final.apcd_claim_procedure as b
       on a.medical_claim_header_id = b.claim_header_id
       --exclude denined/orphaned claims
-      where a.denied_header_flag = 'N' and a.orphaned_header_flag = 'N'
+      left join PHClaims.ref.apcd_denied_orphaned_header as c
+      on a.medical_claim_header_id = c.claim_header_id
+      where c.denied_header_min = 0 and c.orphaned_header_min = 0
       --cluster to claim header
       group by a.medical_claim_header_id
     ) as x
@@ -104,7 +98,7 @@ load_stage.apcd_claim_header_f <- function() {
     max(case when b.code is not null then 1 else 0 end) as pc_procedure_temp,
     max(case when c.code is not null then 1 else 0 end) as pc_zcode_temp,
     max(case when d.code is not null then 1 else 0 end) as pc_taxonomy_temp
-    from PHClaims.stage.apcd_medical_claim_header as a
+    from PHClaims.stage.apcd_medical_claim as a
     
     --procedure codes
     left join (
@@ -146,12 +140,29 @@ load_stage.apcd_claim_header_f <- function() {
     on a.medical_claim_header_id = d.claim_header_id
     
     --exclude denined/orphaned claims
-      where a.denied_header_flag = 'N' and a.orphaned_header_flag = 'N'
+    left join PHClaims.ref.apcd_denied_orphaned_header as e
+    on a.medical_claim_header_id = e.claim_header_id
+    where e.denied_header_min = 0 and e.orphaned_header_min = 0
     
     --cluster to claim header
     group by a.medical_claim_header_id
     ) as x
     where (x.pc_procedure_temp = 1 or x.pc_zcode_temp = 1) and x.pc_taxonomy_temp = 1;
+    
+    
+    ------------------
+    --STEP 4: Prepare header-level charge_amt separately as denied and orphaned amounts must be included in sum
+    --Run time: 4 min
+    -------------------
+    if object_id('tempdb..#charge') is not null drop table #charge;
+    select medical_claim_header_id, sum(charge_amt) as charge_amt
+    into #charge
+    from PHClaims.stage.apcd_medical_claim as a
+    --exclude denined/orphaned claims
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where b.denied_header_min = 0 and b.orphaned_header_min = 0
+    group by a.medical_claim_header_id;
     
     
     ------------------
@@ -181,7 +192,7 @@ load_stage.apcd_claim_header_f <- function() {
     a.last_service_date,
     a.first_paid_date,
     a.last_paid_date,
-    a.charge_amt,
+    c.charge_amt,
     d.primary_diagnosis,
     d.icdcm_version,
     a.claim_status_id,
@@ -218,6 +229,8 @@ load_stage.apcd_claim_header_f <- function() {
     from #temp1 as a
     left join (select * from PHClaims.ref.kc_claim_type_crosswalk where source_desc = 'apcd') as b
     on a.claim_type_apcd_id = b.source_clm_type_id
+    left join #charge as c
+    on a.claim_header_id = c.medical_claim_header_id
     left join #icd1 as d
     on a.claim_header_id = d.claim_header_id
     left join #ed_procedure_code as e
@@ -227,6 +240,7 @@ load_stage.apcd_claim_header_f <- function() {
     
     --drop other temp tables to make space
     if object_id('tempdb..#temp1') is not null drop table #temp1;
+    if object_id('tempdb..#charge') is not null drop table #charge;
     if object_id('tempdb..#icd1') is not null drop table #icd1;
     if object_id('tempdb..#ed_procedure_code') is not null drop table #ed_procedure_code;
     if object_id('tempdb..#pc_visit') is not null drop table #pc_visit;
@@ -430,11 +444,13 @@ qa_stage.apcd_claim_header_f <- function() {
     .con = db_claims))
   
   res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_medical_claim_header' as 'table', 'qa1 = distinct IDs, qa2 = distinct headers' as qa_type,
+    "select 'stage.apcd_medical_claim' as 'table', 'qa1 = distinct IDs, qa2 = distinct headers' as qa_type,
     count(distinct internal_member_id) as qa1, count(distinct medical_claim_header_id) as qa2
-    from PHClaims.stage.apcd_medical_claim_header as a
+    from PHClaims.stage.apcd_medical_claim as a
     --exclude denined/orphaned claims
-    where denied_header_flag = 'N' and orphaned_header_flag = 'N';",
+    left join PHClaims.ref.apcd_denied_orphaned_header as b
+    on a.medical_claim_header_id = b.claim_header_id
+    where b.denied_header_min = 0 and b.orphaned_header_min = 0;",
     .con = db_claims))
   
   #all members should be in elig_demo table

@@ -18,62 +18,34 @@ load_stage.apcd_claim_line_f <- function() {
     -------------------
     insert into PHClaims.stage.apcd_claim_line with (tablock)
     select distinct
-    internal_member_id as id_apcd,
-    a.medical_claim_header_id as claim_header_id,
-    medical_claim_service_line_id as claim_line_id,
-    line_counter,
-    first_service_dt as first_service_date,
-    last_service_dt as last_service_date,
-    charge_amt,
-    revenue_code,
-    place_of_service_code,
+    a.id_apcd,
+    a.claim_header_id,
+    a.claim_line_id,
+    a.line_counter,
+    a.first_service_dt as first_service_date,
+    a.last_service_dt as last_service_date,
+    a.charge_amt,
+    a.revenue_code,
+    a.place_of_service_code,
+    a.admission_dt as admission_date,
+    a.discharge_dt as discharge_date,
+    a.discharge_status_code,
+    a.admission_point_of_origin_code,
+    a.admission_type,
     getdate() as last_run
-    from PHClaims.stage.apcd_medical_claim as a
+    from PHClaims.stage.apcd_claim_line_raw as a
     --exclude denined/orphaned claims
-    left join PHClaims.ref.apcd_denied_orphaned_header as b
-    on a.medical_claim_header_id = b.claim_header_id
-    where b.denied_header_min = 0 and b.orphaned_header_min = 0;",
+    left join PHClaims.stage.apcd_medical_claim_header as b
+    on a.claim_header_id = b.medical_claim_header_id
+    where b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N';",
     .con = db_claims))
 }
 
 #### Table-level QA script ####
 qa_stage.apcd_claim_line_f <- function() {
   
-  #compare sum of member ID and claim_line ID columns
-  res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_claim_line' as 'table', 'sum of member ID' as qa_type,
-    sum(cast(id_apcd as decimal(38,0))) as qa
-    from stage.apcd_claim_line;",
-    .con = db_claims))
-  
-  res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_claim_line' as 'table', 'sum of claim line ID' as qa_type,
-    sum(cast(claim_line_id as decimal(38,0))) as qa
-    from stage.apcd_claim_line;",
-    .con = db_claims))
-  
-  res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_medical_claim' as 'table', 'sum of member ID' as qa_type,
-    sum(cast(internal_member_id as decimal(38,0))) as qa
-    from PHClaims.stage.apcd_medical_claim as a
-    --exclude denined/orphaned claims
-    left join PHClaims.ref.apcd_denied_orphaned_header as b
-    on a.medical_claim_header_id = b.claim_header_id
-    where b.denied_header_min = 0 and b.orphaned_header_min = 0;",
-    .con = db_claims))
-  
-  res4 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_medical_claim' as 'table', 'sum of claim line ID' as qa_type,
-    sum(cast(medical_claim_service_line_id as decimal(38,0))) as qa
-    from PHClaims.stage.apcd_medical_claim as a
-    --exclude denined/orphaned claims
-    left join PHClaims.ref.apcd_denied_orphaned_header as b
-    on a.medical_claim_header_id = b.claim_header_id
-    where b.denied_header_min = 0 and b.orphaned_header_min = 0;",
-    .con = db_claims))
-  
   #make sure everyone is in elig_demo
-  res5 <- dbGetQuery(conn = db_claims, glue_sql(
+  res1 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_claim_line' as 'table', '# members not in elig_demo, expect 0' as qa_type,
     count(a.id_apcd) as qa
     from stage.apcd_claim_line as a
@@ -83,7 +55,7 @@ qa_stage.apcd_claim_line_f <- function() {
     .con = db_claims))
   
   #make sure everyone is in elig_timevar
-  res6 <- dbGetQuery(conn = db_claims, glue_sql(
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_claim_line' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
     count(a.id_apcd) as qa
     from stage.apcd_claim_line as a

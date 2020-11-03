@@ -50,36 +50,23 @@ load_ref.apcd_provider_npi_f <- function() {
     ) as b
     where npi_rank = 1;
     
-    --join all ranked information together
-    --subset to providers not in provider_master table above and to providers tha thave a non-null NPI
-    --for joining, i have to join on NPI and provider_id_apcd, and then take inner joing of that (as some NPIs in provider table have typos)
-    --check out provider_id_apcd 627423 as an example of this, where it would end up having two records in final table due to NPI typo
-    if object_id('tempdb..#provider') is not null drop table #provider;
-    select distinct c.provider_id_apcd, cast(d.npi as bigint) as npi, 0 as provider_master_flag
-    into #provider
-    from (
-    	--select distinct provider IDs in provider table where NPI is not in provider master table
-    	select distinct a.provider_id_apcd
-    	from (
-    		--join provider master and provider temp tables on NPI
-    		select distinct x.provider_id_apcd
-    		from (select distinct provider_id_apcd, npi from #temp1 where npi is not null) as x
-    		left join #provider_master as y
-    		on (x.npi = y.npi)
-    		where y.provider_master_flag is null
-    	) as a
-    	inner join (
-    		--join provider master and provider temp tables on provider ID
-    		select distinct x.provider_id_apcd
-    		from (select distinct provider_id_apcd, npi from #temp1 where npi is not null) as x
-    		left join #provider_master as y
-    		on (x.provider_id_apcd = y.provider_id_apcd)
-    		where y.provider_master_flag is null
-    	) as b
-    	on a.provider_id_apcd = b.provider_id_apcd
-    ) as c
-    left join #npi_rank as d
-    on c.provider_id_apcd = d.provider_id_apcd;
+  	--join all ranked information together
+      --subset to providers not in provider_master table above and to providers that have a non-null NPI
+  	--provider for QA: prevent provider_id_apcd 627423 from having two records in final table due to NPI typo
+  	--provider for QA: same NPI for 2 different provider IDs (1329892971, 2278968) want to make sure both make it into final table
+      if object_id('tempdb..#provider') is not null drop table #provider;
+      select distinct a.provider_id_apcd, cast(b.npi as bigint) as npi, 0 as provider_master_flag
+      into #provider
+      from (
+      	--join provider master and provider temp tables on provider ID
+      	select distinct x.provider_id_apcd
+      	from (select distinct provider_id_apcd from #temp1 where npi is not null) as x
+      	left join #provider_master as y
+      	on (x.provider_id_apcd = y.provider_id_apcd)
+      	where y.provider_master_flag is null
+      	) as a
+      left join #npi_rank as b
+      on a.provider_id_apcd = b.provider_id_apcd;
     
     
     ------------------
