@@ -1,53 +1,64 @@
-schema: load_raw
-table: mcaid_elig
+phclaims:
+    to_schema: load_raw
+    to_table: mcaid_elig
+    qa_schema: metadata
+    qa_table: qa_mcaid
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_20201027.txt
+    field_term: \t
+    row_term: \n
+hhsaw:
+    to_schema: stg_claims
+    to_table: mcaid_elig_incr
+    qa_schema: claims
+    qa_table: metadata_qa_mcaid
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: mcaid_elig_incr
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/incr/KC_Elig_20201027.gz
+row_count: 5337883
+date_min: 201910
+date_max: 202009
+date_delivery: 2020-10-27
 index_type: ccs
 index_name: idx_ccs_load_raw_mcaid_elig
 vars:
     CLNDR_YEAR_MNTH: INTEGER
-    MEDICAID_RECIPIENT_ID: VARCHAR(200)
-    HOH_ID: VARCHAR(200)
-    SOCIAL_SECURITY_NMBR: VARCHAR(200)
-    FIRST_NAME: VARCHAR(200)
-    MIDDLE_NAME: VARCHAR(200)
-    LAST_NAME: VARCHAR(200)
-    GENDER: VARCHAR(200)
-    RACE1_NAME: VARCHAR(200)
-    RACE2_NAME: VARCHAR(200)
-    RACE3_NAME: VARCHAR(200)
-    RACE4_NAME: VARCHAR(200)
-    HISPANIC_ORIGIN_NAME: VARCHAR(200)
+    MEDICAID_RECIPIENT_ID: VARCHAR(255)
+    HOH_ID: VARCHAR(255)
+    SOCIAL_SECURITY_NMBR: VARCHAR(255)
+    FIRST_NAME: VARCHAR(255)
+    MIDDLE_NAME: VARCHAR(255)
+    LAST_NAME: VARCHAR(255)
+    GENDER: VARCHAR(255)
+    RACE1_NAME: VARCHAR(255)
+    RACE2_NAME: VARCHAR(255)
+    RACE3_NAME: VARCHAR(255)
+    RACE4_NAME: VARCHAR(255)
+    HISPANIC_ORIGIN_NAME: VARCHAR(255)
     BIRTH_DATE: DATE
-    SPOKEN_LNG_NAME: VARCHAR(200)
-    WRTN_LNG_NAME: VARCHAR(200)
+    SPOKEN_LNG_NAME: VARCHAR(255)
+    WRTN_LNG_NAME: VARCHAR(255)
     PRGNCY_DUE_DATE: DATE
     RPRTBL_RAC_CODE: INTEGER
-    RPRTBL_RAC_NAME: VARCHAR(200)
+    RPRTBL_RAC_NAME: VARCHAR(255)
     RPRTBL_BSP_GROUP_CID: INTEGER
-    RPRTBL_BSP_GROUP_NAME: VARCHAR(200)
+    RPRTBL_BSP_GROUP_NAME: VARCHAR(255)
     FROM_DATE: DATE
     TO_DATE: DATE
-    END_REASON: VARCHAR(200)
-    COVERAGE_TYPE_IND: VARCHAR(200)
-    MC_PRVDR_ID: VARCHAR(200)
-    MC_PRVDR_NAME: VARCHAR(200)
-    DUAL_ELIG: VARCHAR(200)
-    TPL_FULL_FLAG: VARCHAR(200)
-    RSDNTL_ADRS_LINE_1: VARCHAR(200)
-    RSDNTL_ADRS_LINE_2: VARCHAR(200)
-    RSDNTL_CITY_NAME: VARCHAR(200)
-    RSDNTL_STATE_CODE: VARCHAR(200)
-    RSDNTL_POSTAL_CODE: VARCHAR(200)
-    RSDNTL_COUNTY_CODE: VARCHAR(200)
-    RSDNTL_COUNTY_NAME: VARCHAR(200)
-    MBR_ACES_IDNTFR: VARCHAR(200)
-    MBR_H_SID: VARCHAR(200)
+    END_REASON: VARCHAR(255)
+    COVERAGE_TYPE_IND: VARCHAR(255)
+    MC_PRVDR_ID: VARCHAR(255)
+    MC_PRVDR_NAME: VARCHAR(255)
+    DUAL_ELIG: VARCHAR(255)
+    TPL_FULL_FLAG: VARCHAR(255)
+    RSDNTL_ADRS_LINE_1: VARCHAR(255)
+    RSDNTL_ADRS_LINE_2: VARCHAR(255)
+    RSDNTL_CITY_NAME: VARCHAR(255)
+    RSDNTL_STATE_CODE: VARCHAR(255)
+    RSDNTL_POSTAL_CODE: VARCHAR(255)
+    RSDNTL_COUNTY_CODE: VARCHAR(255)
+    RSDNTL_COUNTY_NAME: VARCHAR(255)
+    MBR_ACES_IDNTFR: VARCHAR(255)
+    MBR_H_SID: VARCHAR(255)
     SECONDARY_RAC_CODE: INTEGER
-    SECONDARY_RAC_NAME: VARCHAR(200)
-overall:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_20201027.txt
-    field_term: \t
-    row_term: \n
-    row_count: 5337883
-    date_min: 201910
-    date_max: 202009
-    date_delivery: 2020-10-27
+    SECONDARY_RAC_NAME: VARCHAR(255)

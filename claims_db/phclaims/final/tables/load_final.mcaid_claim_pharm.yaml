@@ -1,9 +1,19 @@
-from_schema: stage
-from_table: mcaid_claim_pharm
-to_schema: final
-to_table: mcaid_claim_pharm
+phclaims:
+    from_schema: stage
+    from_table: mcaid_claim_pharm
+    to_schema: final
+    to_table: mcaid_claim_pharm
+    qa_schema: metadata
+    qa_table: 
+hhsaw:
+    from_schema: claims
+    from_table: stage_mcaid_claim_pharm
+    to_schema: claims
+    to_table: final_mcaid_claim_pharm
+    qa_schema: claims
+    qa_table: metadata_
 index_type: ccs
-index_name: idx_ccs_final_mcaid_claim_pharm
+index_name: idx_ccs_mcaid_claim_pharm
 vars:
     id_mcaid: VARCHAR(255)
     claim_header_id: BIGINT

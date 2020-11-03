@@ -1,0 +1,17 @@
+to_schema: ref
+to_table: informatica_address_output
+vars:
+    geo_add1_raw: VARCHAR(255)
+    geo_add2_raw: VARCHAR(255)
+    geo_city_raw: VARCHAR(255)
+    geo_state_raw: VARCHAR(255)
+    geo_zip_raw: VARCHAR(255)
+    geo_source: VARCHAR(255)
+    timestamp: DATETIME
+    geo_add1_clean: VARCHAR(255)
+    geo_add2_clean: VARCHAR(255)
+    geo_po_box_clean: VARCHAR(255)
+    geo_city_clean: VARCHAR(255)
+    geo_state_clean: VARCHAR(255)
+    geo_zip_clean: VARCHAR(255)
+    geo_mailability_score: TINYINT

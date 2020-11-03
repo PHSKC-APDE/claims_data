@@ -1,7 +1,26 @@
-schema: load_raw
-table: mcaid_claim
+phclaims:
+    to_schema: load_raw
+    to_table: mcaid_claim
+    qa_schema: metadata
+    qa_table: qa_mcaid
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_20201027.txt
+    field_term: \t
+    row_term: \n
+hhsaw:
+    to_schema: stg_claims
+    to_table: mcaid_claims_incr
+    qa_schema: claims
+    qa_table: metadata_qa_mcaid
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: mcaid_claims_incr
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/incr/KC_Claim_20201027.gz
+row_count: 16067829
+date_min: 2019-10-01
+date_max: 2020-09-30
+date_delivery: 2020-10-27
 index_type: ccs
-index_name: idx_ccs_load_raw_mcaid_elig
+index_name: idx_ccs_load_raw_mcaid_claims
 vars:
     MBR_H_SID: INT
     MEDICAID_RECIPIENT_ID: VARCHAR(255)
@@ -89,7 +108,7 @@ vars:
     PRSCRBR_ID: VARCHAR(255)
     PRVDR_LCTN_H_SID: BIGINT
     NPI: BIGINT
-    PRVDR_LAST_NAME: VARCHAR(255)
+    PRVDR_LT_NAME: VARCHAR(255)
     PRVDR_FIRST_NAME: VARCHAR(255)
     TXNMY_CODE: VARCHAR(255)
     TXNMY_NAME: VARCHAR(255)
@@ -104,7 +123,7 @@ vars:
     ADMSN_HOUR: INT
     ADMTNG_DIAGNOSIS_CODE: VARCHAR(255)
     BLNG_PRVDR_FIRST_NAME: VARCHAR(255)
-    BLNG_PRVDR_LAST_NAME: VARCHAR(255)
+    BLNG_PRVDR_LT_NAME: VARCHAR(255)
     BLNG_PRVDR_NAME: VARCHAR(255)
     DRVD_DRG_CODE: VARCHAR(255)
     DRVD_DRG_NAME: VARCHAR(255)
@@ -118,15 +137,7 @@ vars:
     PRVDR_COUNTY_CODE: VARCHAR(255)
     SPCL_PRGRM_LKPCD: VARCHAR(255)
     BSP_GROUP_CID: INT
-    LAST_PYMNT_DATE: DATE
+    LT_PYMNT_DATE: DATE
     BILL_DATE: DATE
     SYSTEM_IN_DATE: DATE
     TCN_DATE: DATE
-overall:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_20201027.txt
-    field_term: \t
-    row_term: \n
-    row_count: 16067829
-    date_min: 2019-10-01
-    date_max: 2020-09-30
-    date_delivery: 2020-10-27

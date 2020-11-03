@@ -3,30 +3,32 @@
 #
 # 2019-05
 
-#### CALL IN GENERAL QA FUNCTIONS IF NOT ALREADY LOADED ####
-if (exists("qa_error_check_f") == F) {
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_general.R")
-}
-
-
 #### FUNCTION TO CHECK ROW COUNTS MATCH in FROM and TO TABLES ####
 qa_sql_row_count_f <- function(conn = db_claims,
+                               server = NULL,
+                               config = NULL,
                                config_url = NULL,
-                               config_file = NULL,
-                               overall = T,
-                               ind_yr = F) {
+                               config_file = NULL) {
   
-  # Don't really need overall and ind_yr but the error checking function
-  # currently uses them
+  #### BASIC ERROR CHECKS ####
+  # Check if the config provided is a local object, file, or on a web page
+  if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
+    stop("Specify either a local config object, config_url, or config_file but only one")
+  }
   
-  ### BASIC ERROR CHECKS
-  qa_error_check_f(config_url_chk = config_url,
-                   config_file_chk = config_file,
-                   overall_chk = overall,
-                   ind_yr_chk = ind_yr)
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+  }
   
-  ### READ IN CONFIG FILE
-  if (!is.null(config_url)) {
+  #### READ IN CONFIG FILE ####
+  if (!is.null(config)) {
+    table_config <- config
+  } else if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
   } else {
     table_config <- yaml::read_yaml(config_file)
@@ -34,22 +36,28 @@ qa_sql_row_count_f <- function(conn = db_claims,
   
   
   ### VARIABLES
-  from_schema <- table_config$from_schema
-  from_table <- table_config$from_table
-  to_schema <- table_config$to_schema
-  to_table <- table_config$to_table
+  if (!is.na(server)) {
+    from_schema <- table_config[[server]][["from_schema"]]
+    from_table <- table_config[[server]][["from_table"]]
+    to_schema <- table_config[[server]][["to_schema"]]
+    to_table <- table_config[[server]][["to_table"]]}
+  else {
+    from_schema <- table_config$from_schema
+    from_table <- table_config$from_table
+    to_schema <- table_config$to_schema
+    to_table <- table_config$to_table
+  }
+
   
   ### VALUES
   rows_from <- odbc::dbGetQuery(conn = conn,
                                 glue::glue_sql(
-                                  "SELECT COUNT (*) 
-                                  FROM {`from_schema`}.{`from_table`}",
+                                  "SELECT COUNT (*) FROM {`from_schema`}.{`from_table`}",
                                   .con = conn))
   
   rows_to <- odbc::dbGetQuery(conn = conn,
                                 glue::glue_sql(
-                                  "SELECT COUNT (*) 
-                                  FROM {`to_schema`}.{`to_table`}",
+                                  "SELECT COUNT (*) FROM {`to_schema`}.{`to_table`}",
                                   .con = conn))
   
   

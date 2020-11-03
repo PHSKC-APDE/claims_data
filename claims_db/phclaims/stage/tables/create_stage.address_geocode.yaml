@@ -1,5 +1,25 @@
-schema: stage
-table: address_geocode
+phclaims:
+    from_schema: stage
+    from_table: mcaid_elig
+    to_schema: stage
+    to_table: address_geocode
+    stage_schema: stage
+    stage_table: 
+    ref_schema: ref
+    ref_table: address_geocode
+    qa_schema: metadata
+    qa_table: 
+hhsaw:
+    from_schema: claims
+    from_table: stage_mcaid_elig
+    to_schema: ref
+    to_table: stage_address_geocode
+    stage_schema: ref
+    stage_table: stage_
+    ref_schema: ref
+    ref_table: address_geocode
+    qa_schema: claims
+    qa_table: metadata_
 vars:
     geo_add1_clean: VARCHAR(255)
     geo_city_clean: VARCHAR(255)

@@ -1,39 +1,53 @@
 #### FUNCTION TO CREATE TABLES IN SQL
 # Alastair Matheson
 # Created:        2019-04-04
-# Last modified:  2019-07-25
 
 
 ### Plans for future improvements:
-# Add warning when overall table is about to be overwritten
+# Add warning when table is about to be overwritten
 
 
 #### PARAMETERS ####
 # conn = name of the connection to the SQL database
+# server = name of server being used (if using newer YAML format)
+# config = config file already in memory
 # config_url = URL location of YAML config file (should be blank if using config_file)
 # config_file = path + file name of YAML config file (should be blank if using config_url)
-# overall = create overall table (default is TRUE)
-# ind_yr = create tables for individual years (default is TRUE)
 # overwrite = drop table first before creating it, if it exists (default is TRUE)
+# external = create external table (requires specifying data source details)
 # test_mode = write things to the tmp schema to test out functions (default is FALSE)
+# overall = create single table (default is TRUE)
+# ind_yr = create multiple years of data (default is FALSE)
 
 
 #### FUNCTION ####
 create_table_f <- function(
   conn,
+  server = NULL,
+  config = NULL,
   config_url = NULL,
   config_file = NULL,
-  overall = T,
-  ind_yr = T,
   overwrite = T,
-  test_mode = F
+  external = F,
+  test_mode = F,
+  overall = T,
+  ind_yr = F
 ) {
   
   
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+  }
+  
   #### INITIAL ERROR CHECK ####
   # Check if the config provided is a local file or on a webpage
-  if (!is.null(config_url) & !is.null(config_file)) {
-    stop("Specify either a config_url or config_file but not both")
+  if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
+    stop("Specify either alocal config object, config_url, or config_file but only one")
   }
   
   if (!is.null(config_url)) {
@@ -52,8 +66,11 @@ create_table_f <- function(
     }
   }
   
+  
   #### READ IN CONFIG FILE ####
-  if (!is.null(config_url)) {
+  if (!is.null(config)) {
+    table_config <- config
+  } else if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
   } else {
     table_config <- yaml::read_yaml(config_file)
@@ -63,44 +80,6 @@ create_table_f <- function(
   # Make sure a valid URL was found
   if ('404' %in% names(table_config)) {
     stop("Invalid URL for YAML file")
-  }
-  
-  # Check that the yaml config file has necessary components
-  if (max(c("schema", "to_schema") %in% names(table_config)) == 0 & test_mode == F) {
-    stop("YAML file is missing a schema")
-    } else {
-      if (is.null(table_config$schema) & is.null(table_config$to_schema)) {
-        stop("schema/to_schema is blank in config file")
-        }
-    }
-  
-  if (max(c("table", "to_table") %in% names(table_config)) == 0) {
-    stop("YAML file is missing a table name")
-    } else {
-      if (is.null(table_config$table) & is.null(table_config$to_table)) {
-        stop("table/to_table is blank in config file")
-      }
-    }
-  
-  if (!"vars" %in% names(table_config)) {
-    stop("YAML file is missing a list of variables")
-  } else {
-    if (is.null(table_config$vars)) {
-      stop("No variables specified in config file")
-    }
-  }
-  
-  if (!"years" %in% names(table_config) & ind_yr == T) {
-    stop("YAML file is missing a list of years")
-  } else {
-    if (ind_yr == T & is.null(unlist(table_config$years))) {
-      stop("No years specified in config file")
-    }
-  }
-
-  # Check that something will be run
-  if (overall == F & ind_yr == F) {
-    stop("At least one of 'overall and 'ind_yr' must be set to TRUE")
   }
   
   # Alert users they are in test mode
@@ -113,74 +92,97 @@ create_table_f <- function(
   
   
   #### VARIABLES ####
-  # Set up to work with both new and old way of using YMAL files
-  if (!is.null(table_config$to_table)) {
-    table_name <- table_config$to_table
-  } else {
-    table_name <- table_config$table
+  if (server %in% names(table_config)) {
+    to_schema <- table_config[[server]][["to_schema"]]
+    to_table <- table_config[[server]][["to_table"]]}
+  else {
+    # Set up to work with both new and old way of using YAML files
+    if (!is.null(table_config$to_schema)) {
+      to_schema <- table_config$to_schema
+    } else {
+      to_schema <- table_config$schema
+    }
+    
+    if (!is.null(table_config$to_table)) {
+      to_table <- table_config$to_table
+    } else {
+      to_table <- table_config$table
+    }
   }
-  
-  vars <- unlist(table_config$vars)  
 
   
   if (test_mode == T) {
-    schema <- "tmp"
-    
-    if (!is.null(table_config$to_schema)) {
-      table_name <- glue::glue("{table_config$to_schema}_{table_name}")
-    } else {
-      table_name <- glue::glue("{table_config$schema}_{table_name}")
-    }
-  } else if (!is.null(table_config$to_schema)) {
-    schema <- table_config$to_schema
+    to_table <- glue::glue("{to_schema}_{to_table}")
+    to_schema <- "tmp"
+  }
+  
+  if (external == T) {
+    external_setup <- glue::glue_sql(" EXTERNAL ")
+    external_text <- glue::glue_sql(" WITH (DATA_SOURCE = {DBI::SQL(table_config$ext_data_source)}, 
+                                    SCHEMA_NAME = {table_config$ext_schema},
+                                    OBJECT_NAME = {table_config$ext_object_name})", .con = conn)
   } else {
-    schema <- table_config$schema
+    external_setup <- DBI::SQL("")
+    external_text <- DBI::SQL("")
   }
   
   
-  if (ind_yr == T) {
-    # Use unique in case variables are repeated
-    years <- sort(unique(table_config$years))
-  }
-  
-  
-
   #### OVERALL TABLE ####
   if (overall == T) {
-    message(glue::glue("Creating overall [{schema}].[{table_name}] table", test_msg))
-    
-    tbl_name <- DBI::Id(schema = schema, table = table_name)
+    message(glue::glue("Creating overall [{to_schema}].[{to_table}] table", test_msg))
     
     if (overwrite == T) {
-      if (DBI::dbExistsTable(conn, tbl_name)) {
-        DBI::dbRemoveTable(conn, tbl_name)
+      if (DBI::dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table))) {
+        DBI::dbExecute(conn, 
+                       glue::glue_sql("DROP {external_setup} TABLE {`to_schema`}.{`to_table`}",
+                                      .con = conn))
       }
     }
-
-    DBI::dbCreateTable(conn, tbl_name, fields = vars)
+    
+    create_code <- glue::glue_sql(
+      "CREATE {external_setup} TABLE {`to_schema`}.{`to_table`} (
+      {DBI::SQL(glue::glue_collapse(glue::glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}', 
+      .con = conn), sep = ', \n'))}
+      ) {external_text}", 
+      .con = conn)
+    
+    DBI::dbExecute(conn, create_code)
   }
   
   
   #### CALENDAR YEAR TABLES ####
   if (ind_yr == T) {
-    message(glue::glue("Creating calendar year [{schema}].[{table_name}] tables", test_msg))
+    # Use unique in case variables are repeated
+    years <- sort(unique(table_config$years))
+    
+    # Set up new table name
+    to_table <- paste0(to_table, "_", x)
+    
+    # Add additional year-specific variables if present
+    if ("vars" %in% names(table_config[[x]])) {
+      vars <- c(table_config$vars, table_config[[add_vars_name]][[vars]])
+    }
+    
+    
+    message(glue::glue("Creating calendar year [{to_schema}].[{to_table}] tables", test_msg))
     
     lapply(years, function(x) {
-      tbl_name <- DBI::Id(schema = schema, table = paste0(table_name, "_", x))
-      
       if (overwrite == T) {
-        if (DBI::dbExistsTable(conn, tbl_name)) {
-          DBI::dbRemoveTable(conn, tbl_name)
+        if (DBI::dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table))) {
+          DBI::dbExecute(conn, 
+                         glue::glue_sql("DROP {external_setup} TABLE {`to_schema`}.{`to_table`}",
+                                        .con = conn))
         }
       }
       
-      # Add additional year-specific variables if present
-      add_vars_name <- paste0("vars_", x)
-      if (add_vars_name %in% names(table_config)) {
-        vars <- c(vars, unlist(table_config[[add_vars_name]]))
-      }
+      create_code <- glue::glue_sql(
+        "CREATE {external_setup} TABLE {`to_schema`}.{`to_table`} (
+      {DBI::SQL(glue::glue_collapse(glue::glue_sql('{`names(vars)`} {DBI::SQL(vars)}', 
+      .con = conn), sep = ', \n'))}
+      ) {external_text}", 
+        .con = conn)
       
-      DBI::dbCreateTable(conn, tbl_name, fields = vars)
+      DBI::dbExecute(conn, create_code)
     })
   }
 }

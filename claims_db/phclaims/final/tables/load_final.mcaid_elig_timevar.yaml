@@ -1,8 +1,18 @@
-from_schema: stage
-from_table: mcaid_elig_timevar
-to_schema: final
-to_table: mcaid_elig_timevar
-index_name: idx_ccs_final_mcaid_elig_timevar
+phclaims:
+    from_schema: stage
+    from_table: mcaid_elig_timevar
+    to_schema: final
+    to_table: mcaid_elig_timevar
+    qa_schema: metadata
+    qa_table: 
+hhsaw:
+    from_schema: claims
+    from_table: stage_mcaid_elig_timevar
+    to_schema: claims
+    to_table: final_mcaid_elig_timevar
+    qa_schema: claims
+    qa_table: metadata_
+index_name: idx_ccs_mcaid_elig_timevar
 index_type: ccs
 vars:
     id_mcaid: VARCHAR(255)

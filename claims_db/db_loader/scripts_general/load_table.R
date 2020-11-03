@@ -22,6 +22,8 @@
 
 load_table_from_file_f <- function(
   conn,
+  server = NULL,
+  config = NULL,
   config_url = NULL,
   config_file = NULL,
   truncate = T,
@@ -32,10 +34,20 @@ load_table_from_file_f <- function(
 ) {
   
   
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+  }
+  
+  
   #### INITIAL ERROR CHECK ####
   # Check if the config provided is a local file or on a webpage
-  if (!is.null(config_url) & !is.null(config_file)) {
-    stop("Specify either a config_url or config_file but not both")
+  if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
+    stop("Specify either alocal config object, config_url, or config_file but only one")
   }
   
   if (!is.null(config_url)) {
@@ -57,7 +69,9 @@ load_table_from_file_f <- function(
   }
   
   #### READ IN CONFIG FILE ####
-  if (!is.null(config_url)) {
+  if (!is.null(config)) {
+    table_config <- config
+  } else if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
   } else {
     table_config <- yaml::read_yaml(config_file)
@@ -81,43 +95,7 @@ load_table_from_file_f <- function(
   
   
   # Check that the yaml config file has necessary components
-  if (max(c("schema", "to_schema") %in% names(table_config)) == 0 & test_mode == F) {
-    stop("YAML file is missing a schema")
-  } else {
-    if (is.null(table_config$schema) & is.null(table_config$to_schema)) {
-      stop("schema/to_schema is blank in config file")
-    }
-  }
-  
-  if (max(c("table", "to_table") %in% names(table_config)) == 0) {
-    stop("YAML file is missing a table name")
-  } else {
-    if (is.null(table_config$table) & is.null(table_config$to_table)) {
-      stop("table/to_table is blank in config file")
-    }
-  }
-  
-  if (!is.null(table_config$index_name)) {
-    if (is.null(table_config$index) & is.null(table_config$index_type)) {
-      stop("YAML file has an index name but no index columns or an index_type = ccs")
-    }
-  }
-
-  if (overall == T) {
-    if (!"overall" %in% names(table_config)) {
-      stop("YAML file is missing details for overall file")
-    }
-    
-    if (is.null(table_config$overall$file_path)) {
-      stop("YAML file is missing a file path to the new data")
-    }
-  }
-  
   if (ind_yr == T) {
-    if ("overall" %in% names(table_config)) {
-      warning("YAML file has details for an overall file. \n
-              This will be ignored since ind_yr == T.")
-    }
     if (max(str_detect(names(table_config), "table_")) == 0) {
       stop("YAML file is missing details for individual years")
     }
@@ -146,7 +124,17 @@ load_table_from_file_f <- function(
   
   #### VARIABLES ####
   # Set up to work with both new and old way of using YAML files
-  if (!is.null(table_config$to_table)) {
+  if (!is.null(server)) {
+    schema_name <- schema_config[[server]][["to_schema"]]
+  } else if (!is.null(schema_config$to_schema)) {
+    schema_name <- schema_config$to_schema
+  } else {
+    schema_name <- schema_config$schema
+  }
+  
+  if (!is.null(server)) {
+    table_name <- table_config[[server]][["to_table"]]
+  } else if (!is.null(table_config$to_table)) {
     table_name <- table_config$to_table
   } else {
     table_name <- table_config$table
@@ -159,19 +147,10 @@ load_table_from_file_f <- function(
   }
   
   if (test_mode == T) {
-    schema <- "tmp"
+    table_name <- glue("{schema_name}_{table_name}")
+    schema_name <- "tmp"
     load_rows <- " -L 1001 "
-    
-    if (!is.null(table_config$to_schema)) {
-      table_name <- glue("{table_config$to_schema}_{table_name}")
-    } else {
-      table_name <- glue("{table_config$schema}_{table_name}")
-    }
-  } else if (!is.null(table_config$to_schema)) {
-    schema <- table_config$to_schema
-    load_rows <- ""
   } else {
-    schema <- table_config$schema
     load_rows <- ""
   }
   
@@ -194,7 +173,7 @@ load_table_from_file_f <- function(
   loading_process_f <- function(conn_inner = conn,
                                 test_msg_inner = test_msg,
                                 ind_yr_inner = ind_yr,
-                                schema_inner = schema,
+                                schema_inner = schema_name,
                                 table_name_inner = table_name,
                                 table_config_inner = table_config,
                                 load_rows_inner = load_rows,
@@ -275,7 +254,12 @@ load_table_from_file_f <- function(
   #### OVERALL TABLE ####
   if (overall == T) {
     # Run loading function
-    loading_process_f(config_section = "overall")
+    if (!is.null(server)) {
+      loading_process_f(config_section = server)
+    } else {
+      loading_process_f(config_section = "overall")
+    }
+    
     
     if (add_index == T) {
       if (!exists("add_index_f")) {
@@ -287,6 +271,10 @@ load_table_from_file_f <- function(
   }
   
   #### CALENDAR YEAR TABLES ####
+  
+  ### NB Need to redo this section to work with servers
+  # Not currently an issue since partial loads don't use the individual years piece
+  
   if (ind_yr == T) {
     # Find which years have details
     years <- as.list(names(table_config)[str_detect(names(table_config), "table_")])
@@ -306,7 +294,7 @@ load_table_from_file_f <- function(
           # Clustered columnstore index
           dbGetQuery(conn,
                      glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name_new`}",
+                              {`schema_name`}.{`table_name_new`}",
                                     .con = conn))
         } else {
           stop("Invalid index_type specified")
@@ -315,7 +303,7 @@ load_table_from_file_f <- function(
         # Clustered index
         dbGetQuery(conn,
                    glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name_new`}({`index_vars`*})",
+                              {`schema_name`}.{`table_name_new`}({`index_vars`*})",
                                   index_vars = table_config$index,
                                   .con = conn))
         }
@@ -328,7 +316,7 @@ load_table_from_file_f <- function(
     message("Combining years into a single table")
     if (truncate == T) {
       # Remove data from existing combined table if desired
-      dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`schema`}.{`table_name`}", 
+      dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`schema_name`}.{`table_name`}", 
                                       .con = conn))
     }
     
@@ -352,12 +340,12 @@ load_table_from_file_f <- function(
                                                   ON t.schema_id = s.schema_id) a",
                                               .con = conn,
                                               table = dbQuoteString(conn, table_name),
-                                              schema = dbQuoteString(conn, schema)))[[1]]
+                                              schema = dbQuoteString(conn, schema_name)))[[1]]
       
       if (length(index_name) != 0) {
         dbGetQuery(conn_inner,
                    glue::glue_sql("DROP INDEX {`index_name`} ON 
-                                  {`schema`}.{`table_name`}", .con = conn))
+                                  {`schema_name`}.{`table_name`}", .con = conn))
       }
     }
     
@@ -387,7 +375,7 @@ load_table_from_file_f <- function(
     
     
     # Set up SQL code to load columns
-    sql_combine <- glue::glue_sql("INSERT INTO {`schema`}.{`table_name`} WITH (TABLOCK) 
+    sql_combine <- glue::glue_sql("INSERT INTO {`schema_name`}.{`table_name`} WITH (TABLOCK) 
                                     ({`vars`*}) 
                                     SELECT {`vars`*} FROM (", 
                                   .con = conn,
@@ -418,12 +406,12 @@ load_table_from_file_f <- function(
       # Add to main SQL statement
       if (x < length(combine_years)) {
         sql_combine <<- glue::glue_sql("{`sql_combine`} SELECT {`vars_to_load`*}
-                                         FROM {`schema`}.{`table`} UNION ALL ",
+                                         FROM {`schema_name`}.{`table`} UNION ALL ",
                                        .con = conn,
                                        table = table_name_new)
       } else {
         sql_combine <<- glue::glue_sql("{`sql_combine`} SELECT {`vars_to_load`*}
-                                         FROM {`schema`}.{`table`}) AS tmp",
+                                         FROM {`schema_name`}.{`table`}) AS tmp",
                                        .con = conn,
                                        table = table_name_new)
       }
@@ -447,6 +435,7 @@ load_table_from_file_f <- function(
 #### FUNCTION TO LOAD DATA FROM EXISTING SQL TABLES ####
 ### PARAMETERS
 # conn = name of the connection to the SQL database
+# server = name of server being used (if using newer YAML format)
 # config_file = path + file name of YAML config file
 # truncate = whether to FULLY truncate the table before loading
 # date_truncate = whether to PARTIALLY truncate the table from a specified date
@@ -459,10 +448,11 @@ load_table_from_file_f <- function(
 
 load_table_from_sql_f <- function(
   conn,
+  server = NULL,
   config_url = NULL,
   config_file = NULL,
   truncate = F,
-  truncate_date = T,
+  truncate_date = F,
   auto_date = F,
   test_mode = F,
   mcaid_claim = F # Specific recoding of Medicaid claims variables
@@ -492,6 +482,16 @@ load_table_from_sql_f <- function(
     
   }
   
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+  }
+  
+  
   #### READ IN CONFIG FILE ####
   if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(RCurl::getURL(config_url))
@@ -507,38 +507,6 @@ load_table_from_sql_f <- function(
   }
   
   # Check that the yaml config file has necessary components
-  if (!"from_schema" %in% names(table_config) & test_mode == F) {
-    stop("YAML file is missing a from_schema section")
-  } else {
-    if (is.null(table_config$from_schema)) {
-      stop("from_schema name is blank in config file")
-    }
-  }
-  
-  if (!"from_table" %in% names(table_config)) {
-    stop("YAML file is missing a from_table section")
-  } else {
-    if (is.null(table_config$from_table)) {
-      stop("from_table name is blank in config file")
-    }
-  }
-  
-  if (!"to_schema" %in% names(table_config) & test_mode == F) {
-    stop("YAML file is missing a to_schema section")
-  } else {
-    if (is.null(table_config$to_schema)) {
-      stop("to_schema name is blank in config file")
-    }
-  }
-  
-  if (!"to_table" %in% names(table_config)) {
-    stop("YAML file is missing a to_table section")
-  } else {
-    if (is.null(table_config$to_table)) {
-      stop("to_table name is blank in config file")
-    }
-  }
-  
   if (!"vars" %in% names(table_config)) {
     stop("YAML file is missing a variables (vars) section")
   } else {
@@ -580,9 +548,23 @@ load_table_from_sql_f <- function(
   
   
   #### VARIABLES ####
-  from_schema <- table_config$from_schema
-  from_table <- table_config$from_table
-  to_table <- table_config$to_table
+  if (server %in% names(table_config)) {
+    from_schema <- table_config[[server]][["from_schema"]]
+    from_table <- table_config[[server]][["from_table"]]
+    to_schema <- table_config[[server]][["to_schema"]]
+    to_table <- table_config[[server]][["to_table"]]
+    if ("archive_schema" %in% table_config[[server]]) {
+      archive_schema <- table_config[[server]][["archive_schema"]]
+    }
+  } else {
+    from_schema <- table_config$from_schema
+    from_table <- table_config$from_table
+    to_schema <- table_config$to_schema
+    to_table <- table_config$to_table
+    archive_schema <- "archive"
+    archive_table <- to_table
+  }
+  
   
   if (!is.null(names(table_config$vars))) {
     vars <- unlist(names(table_config$vars))
@@ -598,17 +580,15 @@ load_table_from_sql_f <- function(
   }
   
   if (test_mode == T) {
-    to_schema <- "tmp"
+    # Overwrite existing values
+    to_table <- glue("{to_schema}_{to_table}")
+    archive_table <- glue("archive_{to_table}")
+    to_schema <- "tmp" 
     archive_schema <- "tmp"
-    archive_table_name <- glue("archive_{to_table}")
-    to_table <- glue("{table_config$to_schema}_{to_table}")
     load_rows <- " TOP (5000) " # Using 5,000 to better test data from multiple years
     archive_rows <- " TOP (4000) " # When unioning tables in test mode, ensure a mix from both
     new_rows <- " TOP (1000) " # When unioning tables in test mode, ensure a mix from both
   } else {
-    to_schema <- table_config$to_schema
-    archive_schema <- "archive"
-    archive_table_name <- to_table
     load_rows <- ""
     archive_rows <- ""
     new_rows <- ""
@@ -673,23 +653,23 @@ load_table_from_sql_f <- function(
   # 'Truncate' from a given date if desired (really move existing data to archive then copy back)
   if (truncate == F & truncate_date == T) {
     # Check if the archive table exists and move table over. If not, show message.
-    tbl_id <- DBI::Id(catalog = "PHClaims", schema = archive_schema, table = archive_table_name)
+    tbl_id <- DBI::Id(catalog = "PHClaims", schema = archive_schema, table = archive_table)
     if (dbExistsTable(conn, tbl_id)) {
       message("Truncating existing archive table")
-      dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`archive_schema`}.{`archive_table_name`}", .con = conn))
+      dbGetQuery(conn, glue::glue_sql("TRUNCATE TABLE {`archive_schema`}.{`archive_table`}", .con = conn))
     } else {
       # Note currently only set up to create table if using newer YAML format with vartypes
       if (!is.null(names(table_config$vars))) {
-        message(glue("Note: {archive_schema}.{archive_table_name} did not exist so was created"))
-        DBI::dbCreateTable(conn, name = DBI::Id(schema = archive_schema, table = archive_table_name), 
+        message(glue("Note: {archive_schema}.{archive_table} did not exist so was created"))
+        DBI::dbCreateTable(conn, name = DBI::Id(schema = archive_schema, table = archive_table), 
                            fields = table_config$vars)
       } else {
-        message(glue("Note: {archive_schema}.{archive_table_name} does not exist, please create it"))
+        message(glue("Note: {archive_schema}.{archive_table} does not exist, please create it"))
       }
     }
     
     # Use real to_schema and to_table here to obtain actual data
-    sql_archive <- glue::glue_sql("INSERT INTO {`archive_schema`}.{`archive_table_name`} WITH (TABLOCK) 
+    sql_archive <- glue::glue_sql("INSERT INTO {`archive_schema`}.{`archive_table`} WITH (TABLOCK) 
                                 SELECT {`archive_rows`} {`vars`*} FROM 
                                 {`table_config$to_schema`}.{`table_config$to_table`}", 
                                   .con = conn,
@@ -702,7 +682,7 @@ load_table_from_sql_f <- function(
     # Check that the full number of rows are in the archive table
     if (test_mode == F) {
       archive_row_cnt <- as.numeric(odbc::dbGetQuery(
-        db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`archive_schema`}.{`archive_table_name`}", .con = conn)))
+        db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`archive_schema`}.{`archive_table`}", .con = conn)))
       stage_row_cnt <- as.numeric(odbc::dbGetQuery(
         db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`table_config$to_schema`}.{`table_config$to_table`}", .con = conn)))
       
@@ -778,7 +758,7 @@ load_table_from_sql_f <- function(
       sql_combine <- glue::glue_sql(
         "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
         ({`vars`*}) 
-        SELECT {`vars`*} FROM {`archive_schema`}.{`archive_table_name`}
+        SELECT {`vars`*} FROM {`archive_schema`}.{`archive_table`}
           WHERE {`date_var`} < {date_truncate}
         UNION
         SELECT {load_rows} CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
@@ -789,7 +769,7 @@ load_table_from_sql_f <- function(
     } else {
       sql_combine <- glue::glue_sql(
         "INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)
-        SELECT {`vars`*} FROM {`archive_schema`}.{`archive_table_name`}
+        SELECT {`vars`*} FROM {`archive_schema`}.{`archive_table`}
           WHERE {`date_var`} < {date_truncate}  
         UNION 
         SELECT {load_rows} {`vars`*} FROM {`from_schema`}.{`from_table`}
@@ -809,6 +789,6 @@ load_table_from_sql_f <- function(
       devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
     }
     message("Adding index")
-    add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
+    add_index_f(conn = conn, server = server, table_config = table_config, test_mode = test_mode)
   }
 }

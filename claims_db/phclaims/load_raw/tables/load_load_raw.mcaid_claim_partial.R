@@ -7,7 +7,13 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
-load_load_raw.mcaid_claim_partial_f <- function(etl_date_min = NULL,
+load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
+                                                conn_dw = NULL,
+                                                server = NULL,
+                                                config = NULL,
+                                                config_url = NULL,
+                                                config_file = NULL,
+                                                etl_date_min = NULL,
                                                 etl_date_max = NULL,
                                                 etl_delivery_date = NULL,
                                                 etl_note = NULL,
@@ -17,13 +23,39 @@ load_load_raw.mcaid_claim_partial_f <- function(etl_date_min = NULL,
   # Note this is VERY slow over the network so better to check row counts once in SQL
   
   
+  #### ERROR CHECKS ####
   ### Check entries are in place for ETL function
   if (is.null(etl_delivery_date) | is.null(etl_note)) {
     stop("Enter a delivery date and note for the ETL batch ID function")
   }
   
+  # Check if the config provided is a local object, file, or on a web page
+  if (!is.null(config) & !is.null(config_url) & !is.null(config_file)) {
+    stop("Specify either a local config object, config_url, or config_file but only one")
+  }
   
-  # Load ETL and QA functions if not already present
+  
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+  }
+  
+  
+  #### READ IN CONFIG FILE ####
+  if (!is.null(config)) {
+    table_config <- config
+  } else if (!is.null(config_url)) {
+    table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+  } else {
+    table_config <- yaml::read_yaml(config_file)
+  }
+  
+  
+  #### LOAD FUNCTIONS IF NEEDED ####
   if (exists("load_metadata_etl_log_f") == F) {
     devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
   }
@@ -33,10 +65,20 @@ load_load_raw.mcaid_claim_partial_f <- function(etl_date_min = NULL,
   }
   
   
+  #### SET UP VARIABLES ####
+  to_schema <- table_config[[server]][["to_schema"]]
+  to_table <- table_config[[server]][["to_table"]]
+  qa_schema <- table_config[[server]][["qa_schema"]]
+  qa_table <- table_config[[server]][["qa_table"]]
+  
+  # Set up both connections so they work in either server
+  if (server == "phclaims") {conn_dw <- conn}
+  
   
   #### SET UP BATCH ID ####
   # Eventually switch this function over to using glue_sql to stop unwanted SQL behavior
-  current_batch_id <- load_metadata_etl_log_f(conn = db_claims, 
+  current_batch_id <- load_metadata_etl_log_f(conn = conn, 
+                                              server = server,
                                               batch_type = "incremental", 
                                               data_source = "Medicaid", 
                                               date_min = etl_date_min,
@@ -49,100 +91,113 @@ load_load_raw.mcaid_claim_partial_f <- function(etl_date_min = NULL,
   }
   
   
-  #### QA CHECK: ACTUAL VS EXPECTED ROW COUNTS ####
-  if (qa_file_row == T) {
-    print("Checking expected vs. actual row counts (will take a while")
-    # Use the load config file for the list of tables to check and their expected row counts
-    qa_rows_file <- qa_file_row_count_f(config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml",
-                                        overall = F, ind_yr = T)
-    
-    # Report results out to SQL table
-    odbc::dbGetQuery(conn = db_claims,
-                     glue::glue_sql("INSERT INTO metadata.qa_mcaid
+  #### INITAL QA (PHCLAIMS ONLY) ####
+  if (server == "phclaims") {
+    #### QA CHECK: ACTUAL VS EXPECTED ROW COUNTS ####
+    if (qa_file_row == T) {
+      message("Checking expected vs. actual row counts (will take a while")
+      # Use the load config file for the list of tables to check and their expected row counts
+      qa_rows_file <- qa_file_row_count_f(config = table_config, overall = T, ind_yr = F)
+      
+      # Report results out to SQL table
+      DBI::dbExecute(conn = conn,
+                       glue::glue_sql("INSERT INTO {`qa_schema`}.{`qa_table`}
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
-                                        'load_raw.mcaid_claim',
+                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                         'Number of rows in source file(s) match(es) expected value', 
                                         {qa_rows_file$outcome},
                                         {Sys.time()},
                                         {qa_rows_file$note})",
-                                    .con = db_claims))
-    
-    if (qa_rows_file$outcome == "FAIL") {
-      stop(glue::glue("Mismatching row count between source file and expected number. 
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+                                      .con = conn))
+      
+      if (qa_rows_file$outcome == "FAIL") {
+        stop(glue::glue("Mismatching row count between source file and expected number. 
+                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
+      }
     }
-  }
-  
-  
-
-  #### QA CHECK: ORDER OF COLUMNS IN SOURCE FILE MATCH TABLE SHELLS IN SQL ####
-  print("Checking column order")
-  qa_column <- qa_column_order_f(conn = db_claims,
-                                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml",
-                                 overall = T, ind_yr = F)
-  
-  # Report results out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
-                   glue::glue_sql("INSERT INTO metadata.qa_mcaid
+    
+    
+    #### QA CHECK: ORDER OF COLUMNS IN SOURCE FILE MATCH TABLE SHELLS IN SQL ####
+    message("Checking column order")
+    qa_column <- qa_column_order_f(conn = conn_dw,
+                                   config = table_config, overall = T, ind_yr = F)
+    
+    # Report results out to SQL table
+    DBI::dbExecute(conn = conn,
+                     glue::glue_sql("INSERT INTO {`qa_schema`}.{`qa_table`}
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
-                                        'load_raw.mcaid_claim',
+                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                         'Order of columns in source file matches SQL table', 
                                         {qa_column$outcome},
                                         {Sys.time()},
                                         {qa_column$note})",
-                                  .con = db_claims))
-  
-  if (qa_column$outcome == "FAIL") {
-    stop(glue::glue("Mismatching column order between source file and SQL table. 
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id})"))
+                                    .con = conn))
+    
+    if (qa_column$outcome == "FAIL") {
+      stop(glue::glue("Mismatching column order between source file and SQL table. 
+                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id})"))
+    }
   }
   
   
   
   #### LOAD TABLES ####
-  print("Loading tables to SQL")
-  load_table_from_file_f(conn = db_claims,
-                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml",
-                         overall = T, ind_yr = F, combine_yr = F)
+  message("Loading tables to SQL")
+  
+  if (server == "hhsaw") {
+    copy_into_f(conn = conn_dw, 
+                server = server,
+                config = table_config,
+                file_type = "csv", compression = "gzip",
+                identity = "Storage Account Key", secret = key_get("inthealth_edw"),
+                overwrite = T)
+  } else if (server == "phclaims") {
+    load_table_from_file_f(conn = conn_dw,
+                           server = server,
+                           config = table_config,
+                           overall = T, ind_yr = F, combine_yr = F)
+  }
   
   
   #### QA CHECK: ROW COUNTS MATCH SOURCE FILE COUNT ####
-  print("Checking loaded row counts vs. expected")
+  message("Checking loaded row counts vs. expected")
   # Use the load config file for the list of tables to check and their expected row counts
-  qa_rows_sql <- qa_load_row_count_f(conn = db_claims,
-                                    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml",
-                                    overall = T, ind_yr = F, combine_yr = F)
+  qa_rows_sql <- qa_load_row_count_f(conn = conn_dw,
+                                     server = server,
+                                     config = table_config,
+                                     overall = T, ind_yr = F)
   
   # Report individual results out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
-                   glue::glue_sql("INSERT INTO metadata.qa_mcaid
+  DBI::dbExecute(conn = conn,
+                   glue::glue_sql("INSERT INTO {`qa_schema`}.{`qa_table`}
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
-                                        'load_raw.mcaid_claim',
+                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                         'Number rows loaded to SQL vs. expected value(s)', 
                                         {qa_rows_sql$outcome[1]},
                                         {Sys.time()},
                                         {qa_rows_sql$note[1]})",
-                                  .con = db_claims))
+                                  .con = conn))
   
   if (qa_rows_sql$outcome[1] == "FAIL") {
     stop(glue::glue("Mismatching row count between source file and SQL table. 
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
   }
   
   
   
   #### QA CHECK: COUNT OF DISTINCT ROWS (MINUS ADDRESS FIELDS) ####
-  print("Running additional QA items")
+  message("Running additional QA items")
   # Should be no duplicate TCNs once address fields are ignored
   
   # Currently fields are hard coded. Switch over to reading in YAML file and 
   # excluding the address fields
   
-  distinct_rows <- as.numeric(dbGetQuery(
-    db_claims,
+  distinct_rows <- as.numeric(DBI::dbGetQuery(
+    conn_dw,
+    glue::glue_sql(
     "SELECT COUNT (*) FROM
     (SELECT DISTINCT MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN, 
       ORGNL_TCN, RAC_CODE_H, RAC_CODE_L, FROM_SRVC_DATE, TO_SRVC_DATE, 
@@ -163,83 +218,93 @@ load_load_raw.mcaid_claim_partial_f <- function(etl_date_min = NULL,
       PRCDR_CODE_7, PRCDR_CODE_8, PRCDR_CODE_9, PRCDR_CODE_10, PRCDR_CODE_11, PRCDR_CODE_12, 
       LINE_PRCDR_CODE, MDFR_CODE1, MDFR_CODE2, MDFR_CODE3, MDFR_CODE4, NDC, NDC_DESC, 
       DRUG_STRENGTH, PRSCRPTN_FILLED_DATE, DAYS_SUPPLY, DRUG_DOSAGE, PACKAGE_SIZE_UOM, 
-      SBMTD_DISPENSED_QUANTITY, PRSCRBR_ID, PRVDR_LCTN_H_SID, NPI, PRVDR_LAST_NAME, 
+      SBMTD_DISPENSED_QUANTITY, PRSCRBR_ID, PRVDR_LCTN_H_SID, NPI, PRVDR_LT_NAME, 
       PRVDR_FIRST_NAME, TXNMY_CODE, TXNMY_NAME, PRVDR_TYPE_CODE, SPCLTY_CODE, SPCLTY_NAME, 
       ADMSN_SOURCE_LKPCD, PATIENT_STATUS_LKPCD, ADMSN_DATE, ADMSN_HOUR, ADMTNG_DIAGNOSIS_CODE, 
-      BLNG_PRVDR_FIRST_NAME, BLNG_PRVDR_LAST_NAME, BLNG_PRVDR_NAME, DRVD_DRG_CODE, 
+      BLNG_PRVDR_FIRST_NAME, BLNG_PRVDR_LT_NAME, BLNG_PRVDR_NAME, DRVD_DRG_CODE, 
       DRVD_DRG_NAME, DSCHRG_DATE, FCLTY_TYPE_CODE, INSRNC_CVRG_CODE, INVC_TYPE_LKPCD, 
       MDCL_RECORD_NMBR, PRIMARY_DIAGNOSIS_POA_LKPCD, PRIMARY_DIAGNOSIS_POA_NAME, 
-      PRVDR_COUNTY_CODE, SPCL_PRGRM_LKPCD, BSP_GROUP_CID, LAST_PYMNT_DATE, BILL_DATE, 
+      PRVDR_COUNTY_CODE, SPCL_PRGRM_LKPCD, BSP_GROUP_CID, LT_PYMNT_DATE, BILL_DATE, 
       SYSTEM_IN_DATE, TCN_DATE
-      FROM load_raw.mcaid_claim) a"))
+      FROM {`to_schema`}.{`to_table`}) a",
+    .con = conn_dw)))
   
-  distinct_tcn <- as.numeric(dbGetQuery(db_claims, "SELECT COUNT (DISTINCT CLM_LINE_TCN) FROM load_raw.mcaid_claim"))
+  distinct_tcn <- as.numeric(DBI::dbGetQuery(
+    conn_dw, 
+    glue::glue_sql("SELECT COUNT (DISTINCT CLM_LINE_TCN) FROM {`to_schema`}.{`to_table`}",
+                   .con = conn_dw)))
   
   
   if (distinct_rows != distinct_tcn) {
-    odbc::dbGetQuery(conn = db_claims,
-                     glue::glue_sql("INSERT INTO metadata.qa_mcaid
+    DBI::dbExecute(conn = conn,
+                     glue::glue_sql("INSERT INTO {`qa_schema`}.{`qa_table`}
                                     (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                     VALUES ({current_batch_id}, 
-                                    'load_raw.mcaid_claim',
+                                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                     'Distinct TCNs', 
                                     'FAIL',
                                     {Sys.time()},
                                     'No. distinct TCNs did not match rows even after excluding addresses')",
-                                    .con = db_claims))
+                                    .con = conn))
     stop("Number of distinct rows does not match total expected")
     } else {
-    odbc::dbGetQuery(conn = db_claims,
-                     glue::glue_sql("INSERT INTO metadata.qa_mcaid
+    DBI::dbExecute(conn = conn,
+                     glue::glue_sql("INSERT INTO {`qa_schema`}.{`qa_table`}
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'load_raw.mcaid_claim',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Distinct TCNs', 
                                   'PASS',
                                   {Sys.time()},
                                   'Number of distinct TCNs equals total # rows (after excluding address fields)')",
-                                    .con = db_claims))
+                                    .con = conn))
   }
   
   
   #### QA CHECK: DATE RANGE MATCHES EXPECTED RANGE ####
-  qa_date_range <- qa_date_range_f(conn = db_claims,
-                                   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml",
-                                   overall = T, ind_yr = F, combine_yr = F,
+  qa_date_range <- qa_date_range_f(conn = conn_dw,
+                                   server = server,
+                                   config = table_config,
+                                   overall = T, ind_yr = F,
                                    date_var = "FROM_SRVC_DATE")
   
   # Report individual results out to SQL table
-  odbc::dbGetQuery(conn = db_claims,
-                   glue::glue_sql("INSERT INTO metadata.qa_mcaid
+  DBI::dbExecute(conn = conn,
+                   glue::glue_sql("INSERT INTO {`qa_schema`}.{`qa_table`}
                                 (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                 VALUES ({current_batch_id}, 
-                                        'load_raw.mcaid_claim',
+                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                         'Actual vs. expected date range in data', 
                                         {qa_date_range$outcome[1]},
                                         {Sys.time()},
                                         {qa_date_range$note[1]})",
-                                  .con = db_claims))
+                                  .con = conn))
   
   if (qa_date_range$outcome[1] == "FAIL") {
     stop(glue::glue("Mismatching date range between source file and SQL table. 
-                  Check metadata.qa_mcaid for details (etl_batch_id = {current_batch_id}"))
+                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
   }
   
 
-  print("All QA items passed, see results in metadata.qa_mcaid")
+  message("All QA items passed, see results in metadata.qa_mcaid")
+  
   
   #### ADD BATCH ID COLUMN ####
-  print("Adding batch ID to SQL table")
+  message("Adding batch ID to SQL table")
   # Add column to the SQL table and set current batch to the default
-  odbc::dbGetQuery(db_claims,
-                   glue::glue_sql(
-                     "ALTER TABLE load_raw.mcaid_claim 
-                   ADD etl_batch_id INTEGER 
-                   DEFAULT {current_batch_id} WITH VALUES",
-                     .con = db_claims))
+  # NB. In Azure data warehouse, the WITH VALUES code failed so split into 
+  #      two statements, one to make the column and one to update it to default
+  DBI::dbExecute(conn_dw,
+                 glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`} 
+                  ADD etl_batch_id INTEGER DEFAULT {current_batch_id}",
+                                .con = conn_dw))
+  DBI::dbExecute(conn_dw,
+                 glue::glue_sql("UPDATE {`to_schema`}.{`to_table`} 
+                  SET etl_batch_id = {current_batch_id}",
+                                .con = conn_dw))
   
 
-  print("All claims data loaded to SQL and QA checked")
+  message("All claims data loaded to SQL and QA checked")
 
 }
 

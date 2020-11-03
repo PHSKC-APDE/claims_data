@@ -1,10 +1,29 @@
-source_data: mcaid
-claim_header_from_schema: final
-claim_header_from_table: mcaid_claim_header
-icdcm_from_schema: final
-icdcm_from_table: mcaid_claim_icdcm_header
-schema: stage
-to_table: mcaid_claim_ccw
+phclaims:
+    claim_header_from_schema: final
+    claim_header_from_table: mcaid_claim_header
+    icdcm_from_schema: final
+    icdcm_from_table: mcaid_claim_icdcm_header
+    to_schema: stage
+    to_table: mcaid_claim_ccw
+    final_schema: final
+    final_table: 
+    ref_schema: ref
+    ref_table: 
+    qa_schema: metadata
+    qa_table: 
+hhsaw:
+    claim_header_from_schema: claims
+    claim_header_from_table: final_mcaid_claim_header
+    icdcm_from_schema: claims
+    icdcm_from_table: final_mcaid_claim_icdcm_header
+    to_schema: claims
+    to_table: stage_mcaid_claim_ccw
+    final_schema: claims
+    final_table: final_
+    ref_schema: claims
+    ref_table: ref_
+    qa_schema: claims
+    qa_table: metadata_
 vars:
     id_mcaid: varchar(255)
     from_date: date

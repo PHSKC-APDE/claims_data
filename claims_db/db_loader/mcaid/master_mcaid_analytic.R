@@ -16,118 +16,178 @@ library(odbc) # Read to and write from SQL
 library(RCurl) # Read files from Github
 library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
+library(keyring) # Access stored credentials
 
 
-db_claims <- dbConnect(odbc(), "PHClaims51")
+
+server <- select.list(choices = c("phclaims", "hhsaw"))
+
+
+if (server == "phclaims") {
+  db_claims <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
+} else if (server == "hhsaw") {
+  db_claims <- DBI::dbConnect(odbc::odbc(),
+                              driver = "ODBC Driver 17 for SQL Server",
+                              server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
+                              database = "hhs_analytics_workspace",
+                              uid = keyring::key_list("hhsaw_dev")[["username"]],
+                              pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
+                              Encrypt = "yes",
+                              TrustServerCertificate = "yes",
+                              Authentication = "ActiveDirectoryPassword")
+}
+
 
 #### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/claim_ccw.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/add_index.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/alter_schema.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/claim_ccw.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/create_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/etl_log.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/load_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/db_loader/scripts_general/qa_load_sql.R")
 
 
 
 #### CREATE ELIG TABLES --------------------------------------------------------
 #### MCAID_ELIG_DEMO ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.R")
+### Bring in function and config file
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.R")
+stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.yaml")
 
-# Pull out run date of stage.mcaid_elig_demo
-last_run_elig_demo <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_elig_demo")[[1]])
+# Run function
+load_stage_mcaid_elig_demo_f(conn = db_claims, server = server, config = stage_mcaid_elig_demo_config)
 
-# QA stage version
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
-qa_stage_mcaid_elig_demo <- qa_mcaid_elig_demo_f(conn = db_claims, load_only = F)
+# Pull out run date
+last_run_elig_demo <- as.POSIXct(odbc::dbGetQuery(
+  db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_demo_config[[server]][['to_schema']]`}.{`stage_mcaid_elig_demo_config[[server]][['to_table']]`}",
+                            .con = db_claims))[[1]])
+
+### QA stage version
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
+qa_stage_mcaid_elig_demo <- qa_mcaid_elig_demo_f(conn = db_claims, server = server, 
+                                                 config = stage_mcaid_elig_demo_config, load_only = F)
 
 
 # Check that things passed QA before loading final table
 if (qa_stage_mcaid_elig_demo == 0) {
-  # Load final table (assumes no changes to table structure)
-  load_table_from_sql_f(
-    conn = db_claims,
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml", 
-    truncate = T, truncate_date = F)
+  # Check if the table exists and, if not, create it
+  final_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
+  
+  to_schema <- final_mcaid_elig_demo_config[[server]][["to_schema"]]
+  to_table <- final_mcaid_elig_demo_config[[server]][["to_table"]]
+  qa_schema <- final_mcaid_elig_demo_config[[server]][["qa_schema"]]
+  qa_table <- ifelse(is.null(final_mcaid_elig_demo_config[[server]][["qa_table"]]), '',
+                     final_mcaid_elig_demo_config[[server]][["qa_table"]])
+  
+  if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {
+    create_table_f(db_claims, server = server, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
+  }
+  
+  #### Load final table (assumes no changes to table structure)
+  load_table_from_sql_f(conn = db_claims,
+                        server = server,
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml", 
+                        truncate = T, truncate_date = F)
   
   # QA final table
-  qa_rows_final_elig_demo <- qa_sql_row_count_f(
-    conn = db_claims,
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml",
-    overall = T, ind_yr = F)
+  message("QA final table")
+  qa_rows_final_elig_demo <- qa_sql_row_count_f(conn = db_claims, 
+                                                server = server,
+                                                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
   
-  odbc::dbGetQuery(
+  DBI::dbExecute(
     conn = db_claims,
-    glue::glue_sql("INSERT INTO metadata.qa_mcaid
+    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
                  VALUES ({last_run_elig_demo}, 
-                 'final.mcaid_elig_demo',
+                 '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                  'Number final rows compared to stage', 
                  {qa_rows_final_elig_demo$qa_result}, 
                  {Sys.time()}, 
                  {qa_rows_final_elig_demo$note})",
                    .con = db_claims))
   
-  rm(qa_rows_final_elig_demo)
+  
+  rm(qa_rows_final_elig_demo, to_schema, to_table, qa_schema, qa_table)
 } else {
-  stop("Something went wrong with the mcaid_elig_demo run. See metadata.qa_mcaid_values")
+  stop(glue::glue("Something went wrong with the mcaid_elig_demo run. See {`final_mcaid_elig_demo_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(final_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid"))
 }
-rm(qa_stage_mcaid_elig_demo, last_run_elig_demo)
+
+
+### Clean up
+rm(qa_stage_mcaid_elig_demo, stage_mcaid_elig_demo_config, load_stage_mcaid_elig_demo_f, 
+   last_run_elig_demo, final_mcaid_elig_demo_config)
 
 
 
 #### MCAID_ELIG_TIMEVAR ####
-# Create and load stage version
-create_table_f(conn = db_claims,
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.mcaid_elig_timevar.yaml",
-               overall = T, ind_yr = F, overwrite = T)
+### Bring in function and config file
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R")
+stage_mcaid_elig_timevar_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.yaml")
 
-system.time(devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R"))
+# Run function
+load_stage_mcaid_elig_timevar_f(conn = db_claims, server = server, config = stage_mcaid_elig_timevar_config)
 
+# Pull out run date
+last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(
+  db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_timevar_config[[server]][['to_schema']]`}.{`stage_mcaid_elig_timevar_config[[server]][['to_table']]`}",
+                            .con = db_claims))[[1]])
 
-# Pull out run date of stage.mcaid_elig_timevar
-last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_elig_timevar")[[1]])
-
-# QA stage version
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
-qa_stage_mcaid_elig_timevar <- qa_mcaid_elig_timevar_f(conn = db_claims, load_only = F)
-
+### QA stage version
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
+qa_stage_mcaid_elig_timevar <- qa_mcaid_elig_timevar_f(conn = db_claims, server = server, 
+                                                 config = stage_mcaid_elig_timevar_config, load_only = F)
 
 # Check that things passed QA before loading final table
-if (qa_stage_mcaid_elig_timevar == 0) { 
-  # Create and load final table
-  create_table_f(conn = db_claims,
-                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
-                 overall = T, ind_yr = F, overwrite = T)
+if (qa_stage_mcaid_elig_timevar == 0) {
+  # Check if the table exists and, if not, create it
+  final_mcaid_elig_timevar_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
   
+  to_schema <- final_mcaid_elig_timevar_config[[server]][["to_schema"]]
+  to_table <- final_mcaid_elig_timevar_config[[server]][["to_table"]]
+  qa_schema <- final_mcaid_elig_timevar_config[[server]][["qa_schema"]]
+  qa_table <- ifelse(is.null(final_mcaid_elig_timevar_config[[server]][["qa_table"]]), '',
+                     final_mcaid_elig_timevar_config[[server]][["qa_table"]])
+  
+  if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {
+    create_table_f(db_claims, server = server, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
+  }
+  
+  #### Load final table (assumes no changes to table structure)
   load_table_from_sql_f(conn = db_claims,
-                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
+                        server = server,
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml", 
                         truncate = T, truncate_date = F)
   
   # QA final table
-  qa_rows_final_elig_timevar <- qa_sql_row_count_f(conn = db_claims,
-                                                   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml",
-                                                   overall = T, ind_yr = F)
+  qa_rows_final_elig_timevar <- qa_sql_row_count_f(conn = db_claims, 
+                                                server = server,
+                                                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
   
   DBI::dbExecute(
     conn = db_claims,
-    glue::glue_sql("INSERT INTO metadata.qa_mcaid
+    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
                  VALUES ({last_run_elig_timevar}, 
-                 'final.mcaid_elig_timevar',
+                 '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                  'Number final rows compared to stage', 
                  {qa_rows_final_elig_timevar$qa_result}, 
                  {Sys.time()}, 
                  {qa_rows_final_elig_timevar$note})",
                    .con = db_claims))
   
-  rm(qa_rows_final_elig_timevar)
+  rm(qa_rows_final_elig_timevar, to_schema, to_table, qa_schema, qa_table)
 } else {
-  stop("Something went wrong with the mcaid_elig_timevar run. See metadata.qa_mcaid_values")
-  }
+  stop(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {`final_mcaid_elig_timevar_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(final_mcaid_elig_timevar_config[[server]][['qa_table']])}qa_mcaid"))
+}
 
-rm(last_run_elig_timevar, qa_stage_mcaid_elig_timevar)
+
+### Clean up
+rm(qa_stage_mcaid_elig_timevar, stage_mcaid_elig_timevar_config, load_stage_mcaid_elig_timevar_f, 
+   last_run_elig_timevar, final_mcaid_elig_timevar_config)
 
 
 
@@ -143,489 +203,227 @@ rm(last_run_elig_timevar, qa_stage_mcaid_elig_timevar)
 # The mcaid_claim_value_set table relies on the tables above
 
 
-#### MCAID_CLAIM_LINE ####
-### Create and load table, add index
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_line.R")
+#### GENERIC CLAIM LOAD PROCESS ####
+# The general loading process for many claim tables is the same so this function can 
+# be used. Will look for the value of server in the general environment. Fine for 
+# now but might want to tighten that up at some point.
 
-### QA table and load to final
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_line.R",
-                     echo = T)
-
-if (fail_tot > 0) {
-  message("One or more QA checks on stage.mcaid_claim_line failed. See metadata.qa_mcaid for details")
-  claim_line_fail <- 1
-} else {
-  message("All QA checks on stage.mcaid_claim_line passed, loading to final schema")
-  claim_line_fail <- 0
+claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line", 
+                                   "pharm", "procedure")) {
   
-  # Pull out run date of stage.mcaid_claim_line
-  last_run_claim_line <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_line")[[1]])
+  table <- match.arg(table)
   
-  # Pull in config files
-  final_mcaid_claim_line_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_line.yaml"))
-  archive_mcaid_claim_line_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.mcaid_claim_line.yaml"))
+  ### Bring in function and config file
+  # ccw script already called in above
+  if (table != "ccw") {
+    devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".R"))
+  }
+  stage_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".yaml"))
   
-  # Track how many rows in stage
-  rows_claim_line_stage <- as.integer(odbc::dbGetQuery(
-    db_claims, "SELECT COUNT (*) FROM stage.mcaid_claim_line"))
   
-  # Alter schema from final to archive
-  alter_schema_f(conn = db_claims, 
-                 from_schema = archive_mcaid_claim_line_config$from_schema, 
-                 to_schema = archive_mcaid_claim_line_config$to_schema,
-                 table_name = archive_mcaid_claim_line_config$to_table,
-                 rename_index = T,
-                 index_name = archive_mcaid_claim_line_config$index_name)
-  
-  # Alter schema to final table
-  alter_schema_f(conn = db_claims, 
-                 from_schema = final_mcaid_claim_line_config$from_schema, 
-                 to_schema = final_mcaid_claim_line_config$to_schema,
-                 table_name = final_mcaid_claim_line_config$to_table,
-                 rename_index = T,
-                 index_name = final_mcaid_claim_line_config$index_name)
-  
-  # Rename index
-  DBI::dbExecute(db_claims,
-    glue::glue_sql("EXEC sp_rename N'final.mcaid_claim_line.{`stage_mcaid_claim_line_config$index_name`}', 
-                   N'{`final_mcaid_claim_line_config$index_name`}', N'INDEX';",
-                   .con = db_claims))
-  
-  # QA final table
-  rows_claim_line_final <- as.integer(odbc::dbGetQuery(
-    db_claims, "SELECT COUNT (*) FROM final.mcaid_claim_line"))
-  
-  if (rows_claim_line_stage == rows_claim_line_final) {
-    DBI::dbExecute(
-      conn = db_claims,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_line}, 
-                 'final.mcaid_claim_line',
-                 'Number final rows compared to stage', 
-                 'PASS', 
-                 {Sys.time()}, 
-                 'All rows transferred to final schema')",
-                     .con = db_claims))
-  } else {
-    DBI::dbExecute(
-      conn = db_claims,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_line}, 
-                 'final.mcaid_claim_line',
-                 'Number final rows compared to stage', 
-                 'FAIL', 
-                 {Sys.time()}, 
-                 '{rows_claim_line_final} rows in final schema (expecting {rows_claim_line_stage})')",
-                     .con = db_claims))
+  # Run function, which also adds index
+  if (table == "ccw") {
+    load_ccw(conn = db_claims, server = server, source = "mcaid", config = stage_config)
+  } else if (table == "icdcm_header") {
+    load_stage_mcaid_claim_icdcm_header_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "header") {
+    load_stage_mcaid_claim_header_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "line") {
+    load_stage_mcaid_claim_line_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "pharm") {
+    load_stage_mcaid_claim_pharm_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "procedure") {
+    load_stage_mcaid_claim_procedure_f(conn = db_claims, server = server, config = stage_config)
   }
   
-  rm(last_run_claim_line, final_mcaid_claim_line_config, archive_mcaid_claim_line_config,
-     rows_claim_line_stage, rows_claim_line_final)
-}
-rm(fail_tot)
-
-
-#### MCAID_CLAIM_ICDCM_HEADER ####
-### Create and load table, add index
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_icdcm_header.R")
-
-### QA table
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_icdcm_header.R",
-                     echo = T)
-
-if (fail_tot > 0) {
-  message("One or more QA checks on stage.mcaid_claim_icdcm_header failed. See metadata.qa_mcaid for details")
-  claim_icdcm_fail <- 1
-} else {
-  message("All QA checks on stage.mcaid_claim_icdcm_header passed")
-  claim_icdcm_fail <- 0
+  # Pull out run date
+  last_run_claim <- as.POSIXct(odbc::dbGetQuery(
+    db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_config[[server]][['to_schema']]`}.{`stage_config[[server]][['to_table']]`}",
+                              .con = db_claims))[[1]])
   
-  # Pull out run date of stage.mcaid_claim_icdcm_header
-  last_run_claim_icdcm_header <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_icdcm_header")[[1]])
-  
-  # Pull in config files
-  final_mcaid_claim_icdcm_header_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_icdcm_header.yaml"))
-  archive_mcaid_claim_icdcm_header_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.mcaid_claim_icdcm_header.yaml"))
-  
-  
-   # Track how many rows in stage
-  rows_claim_icdcm_header_stage <- as.integer(odbc::dbGetQuery(
-    db_claims, "SELECT COUNT (*) FROM stage.mcaid_claim_icdcm_header"))
-  
-  # Alter schema from final to archive
-  alter_schema_f(conn = db_claims, 
-                 from_schema = archive_mcaid_claim_icdcm_header_config$from_schema, 
-                 to_schema = archive_mcaid_claim_icdcm_header_config$to_schema,
-                 table_name = archive_mcaid_claim_icdcm_header_config$to_table,
-                 rename_index = T,
-                 index_name = archive_mcaid_claim_icdcm_header_config$index_name)
-  
-  # Alter schema from stage to final
-  alter_schema_f(conn = db_claims, 
-                 from_schema = final_mcaid_claim_icdcm_header_config$from_schema, 
-                 to_schema = final_mcaid_claim_icdcm_header_config$to_schema,
-                 table_name = final_mcaid_claim_icdcm_header_config$to_table,
-                 rename_index = T,
-                 index_name = final_mcaid_claim_icdcm_header_config$index_name)
-  
-  # QA final table
-  rows_claim_icdcm_header_final <- as.integer(odbc::dbGetQuery(
-    db_claims, "SELECT COUNT (*) FROM final.mcaid_claim_icdcm_header"))
-  
-  if (rows_claim_icdcm_header_stage == rows_claim_icdcm_header_final) {
-    DBI::dbExecute(
-      conn = db_claims,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_icdcm_header}, 
-                 'final.mcaid_claim_icdcm_header',
-                 'Number final rows compared to stage', 
-                 'PASS', 
-                 {Sys.time()}, 
-                 'All rows transferred to final schema')",
-                     .con = db_claims))
-  } else {
-    DBI::dbExecute(
-      conn = db_claims,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_icdcm_header}, 
-                 'final.mcaid_claim_icdcm_header',
-                 'Number final rows compared to stage', 
-                 'FAIL', 
-                 {Sys.time()}, 
-                 '{rows_claim_icdcm_header_final} rows in final schema (expecting {rows_claim_icdcm_header_stage})')",
-                     .con = db_claims))
-  }
-  
-  rm(last_run_claim_icdcm_header, final_mcaid_claim_icdcm_header_config, 
-     archive_mcaid_claim_icdcm_header_config, rows_claim_icdcm_header_stage, rows_claim_icdcm_header_final)
-}
-rm(fail_tot)
-
-
-
-#### MCAID_CLAIM_PROCEDURE ####
-### Create and load table, add index
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_procedure.R")
-
-### QA table and load to final
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_procedure.R",
-                     echo = T)
-
-if (fail_tot > 0) {
-  message("One or more QA checks on stage.mcaid_claim_procedure failed. See metadata.qa_mcaid for details")
-  claim_procedure_fail <- 1
-} else {
-  message("All QA checks on stage.mcaid_claim_procedure passed, loading to final schema")
-  claim_procedure_fail <- 0
-  
-  # Pull out run date of stage.mcaid_claim_procedure
-  last_run_claim_procedure <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_procedure")[[1]])
-  
-  # Pull in config files
-  final_mcaid_claim_procedure_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_procedure.yaml"))
-  archive_mcaid_claim_procedure_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.mcaid_claim_procedure.yaml"))
-  
-  # Track how many rows in stage
-  rows_claim_procedure_stage <- as.integer(odbc::dbGetQuery(
-    db_claims, "SELECT COUNT (*) FROM stage.mcaid_claim_procedure"))
-  
-  # Alter schema from final to archive
-  alter_schema_f(conn = db_claims, 
-                 from_schema = archive_mcaid_claim_procedure_config$from_schema, 
-                 to_schema = archive_mcaid_claim_procedure_config$to_schema,
-                 table_name = archive_mcaid_claim_procedure_config$to_table,
-                 rename_index = T,
-                 index_name = archive_mcaid_claim_procedure_config$index_name)
-  
-  # Alter schema from stage to final
-  alter_schema_f(conn = db_claims, 
-                 from_schema = final_mcaid_claim_procedure_config$from_schema, 
-                 to_schema = final_mcaid_claim_procedure_config$to_schema,
-                 table_name = final_mcaid_claim_procedure_config$to_table,
-                 rename_index = T,
-                 index_name = final_mcaid_claim_procedure_config$index_name)
-  
-  # QA final table
-  rows_claim_procedure_final <- as.integer(odbc::dbGetQuery(
-    db_claims, "SELECT COUNT (*) FROM final.mcaid_claim_procedure"))
-  
-  if (rows_claim_procedure_stage == rows_claim_procedure_final) {
-    DBI::dbExecute(
-      conn = db_claims,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_procedure}, 
-                 'final.mcaid_claim_procedure',
-                 'Number final rows compared to stage', 
-                 'PASS', 
-                 {Sys.time()}, 
-                 'All rows transferred to final schema')",
-                     .con = db_claims))
-  } else {
-    DBI::dbExecute(
-      conn = db_claims,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_procedure}, 
-                 'final.mcaid_claim_procedure',
-                 'Number final rows compared to stage', 
-                 'FAIL', 
-                 {Sys.time()}, 
-                 '{rows_claim_procedure_final} rows in final schema (expecting {rows_claim_procedure_stage})')",
-                     .con = db_claims))
-  }
-  
-  rm(last_run_claim_procedure, final_mcaid_claim_procedure_config, 
-     archive_mcaid_claim_procedure_config, rows_claim_procedure_stage, rows_claim_procedure_final)
-}
-rm(fail_tot)
-
-
-#### MCAID_CLAIM_PHARM ####
-### Create and load table, add index
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_pharm.R")
-
-### QA table and load to final
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_pharm.R",
-                     echo = T)
-
-if (fail_tot > 0) {
-  message("One or more QA checks on stage.mcaid_claim_pharm failed. See metadata.qa_mcaid for details")
-  claim_pharm_fail <- 1
-} else {
-  message("All QA checks on stage.mcaid_claim_pharm passed, loading to final schema")
-  claim_pharm_fail <- 0
-  
-  # Pull out run date of stage.mcaid_claim_pharm
-  last_run_claim_pharm <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_pharm")[[1]])
-  
-  # Pull in config files
-  final_mcaid_claim_pharm_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_pharm.yaml"))
-  archive_mcaid_claim_pharm_config <- yaml::yaml.load(RCurl::getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.mcaid_claim_pharm.yaml"))
-  
-  # Track how many rows in stage
-  rows_claim_pharm_stage <- as.integer(odbc::dbGetQuery(
-    db_claims, "SELECT COUNT (*) FROM stage.mcaid_claim_pharm"))
-  
-  # Alter schema from final to archive
-  alter_schema_f(conn = db_claims, 
-                 from_schema = archive_mcaid_claim_pharm_config$from_schema, 
-                 to_schema = archive_mcaid_claim_pharm_config$to_schema,
-                 table_name = archive_mcaid_claim_pharm_config$to_table,
-                 rename_index = T,
-                 index_name = archive_mcaid_claim_pharm_config$index_name)
-  
-  # Alter schema from stage to final
-  alter_schema_f(conn = db_claims, 
-                 from_schema = final_mcaid_claim_pharm_config$from_schema, 
-                 to_schema = final_mcaid_claim_pharm_config$to_schema,
-                 table_name = final_mcaid_claim_pharm_config$to_table,
-                 rename_index = T,
-                 index_name = final_mcaid_claim_pharm_config$index_name)
-  
-  # QA final table
-  rows_claim_pharm_final <- as.integer(odbc::dbGetQuery(
-    db_claims, "SELECT COUNT (*) FROM final.mcaid_claim_pharm"))
-  
-  if (rows_claim_pharm_stage == rows_claim_pharm_final) {
-    DBI::dbExecute(
-      conn = db_claims,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_pharm}, 
-                 'final.mcaid_claim_pharm',
-                 'Number final rows compared to stage', 
-                 'PASS', 
-                 {Sys.time()}, 
-                 'All rows transferred to final schema')",
-                     .con = db_claims))
-  } else {
-    DBI::dbExecute(
-      conn = db_claims,
-      glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_pharm}, 
-                 'final.mcaid_claim_pharm',
-                 'Number final rows compared to stage', 
-                 'FAIL', 
-                 {Sys.time()}, 
-                 '{rows_claim_pharm_final} rows in final schema (expecting {rows_claim_pharm_stage})')",
-                     .con = db_claims))
-  }
-  
-  rm(last_run_claim_pharm, final_mcaid_claim_pharm_config, archive_mcaid_claim_pharm_config,
-     rows_claim_pharm_stage, rows_claim_pharm_final)
-}
-rm(fail_tot)
-
-
-
-
-#### MCAID_CLAIM_HEADER ####
-if (sum(claim_line_fail, claim_icdcm_fail, claim_procedure_fail, claim_pharm_fail) > 0) {
-  stop("One or more claims analytic tables failed, mcaid_claim_header not created. See metadata.mcaid_qa for details")
-} else {
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_header.R")
   
   ### QA table and load to final
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_header.R",
-                       echo = T)
+  devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_", table, ".R"))
   
-  if (fail_tot > 0) {
-    message("One or more QA checks on stage.mcaid_claim_header failed. See metadata.qa_mcaid for details")
+  if (table == "ccw") {
+    qa_stage <- qa_stage_mcaid_claim_ccw_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "icdcm_header") {
+    qa_stage <- qa_stage_mcaid_claim_icdcm_header_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "header") {
+    qa_stage <- qa_stage_mcaid_claim_header_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "line") {
+    qa_stage <- qa_stage_mcaid_claim_line_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "pharm") {
+    qa_stage <- qa_stage_mcaid_claim_pharm_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "procedure") {
+    qa_stage <- qa_stage_mcaid_claim_procedure_f(conn = db_claims, server = server, config = stage_config)
+  }
+  
+  
+  if (qa_stage > 0) {
+    message("One or more QA checks on ", stage_config[[server]][['to_schema']], ".", stage_config[[server]][['to_table']], " failed. See ", stage_config[[server]][['qa_schema']], ".", stage_config[[server]][['qa_table']], "qa_mcaid for details")
+    table_fail <- 1
   } else {
-    message("All QA checks on stage.mcaid_claim_header passed, loading to final schema")
-    # Pull out run date of stage.mcaid_claim_header
-    last_run_claim_header <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_claim_header")[[1]])
+    ### Load to final
+    message("All QA checks on ", stage_config[[server]][['to_schema']], ".", stage_config[[server]][['to_table']], " passed, loading to final table")
     
-    # Pull in config files
-    final_mcaid_claim_header_config <- yaml::yaml.load(RCurl::getURL(
-      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_header.yaml"))
-    archive_mcaid_claim_header_config <- yaml::yaml.load(RCurl::getURL(
-      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/archive/tables/load_archive.mcaid_claim_header.yaml"))
+    
+    # Bring in config file
+    final_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/final/tables/load_final.mcaid_claim_", table, ".yaml"))
+    
+    from_schema <- final_config[[server]][["from_schema"]]
+    from_table <- final_config[[server]][["from_table"]]
+    to_schema <- final_config[[server]][["to_schema"]]
+    to_table <- final_config[[server]][["to_table"]]
+    qa_schema <- final_config[[server]][["qa_schema"]]
+    qa_table <- ifelse(is.null(final_config[[server]][["qa_table"]]), '',
+                       final_config[[server]][["qa_table"]])
+    
     
     # Track how many rows in stage
-    rows_claim_header_stage <- as.integer(odbc::dbGetQuery(
-      db_claims, "SELECT COUNT (*) FROM stage.mcaid_claim_header"))
+    rows_claim_stage <- as.integer(odbc::dbGetQuery(
+      db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`from_schema`}.{`from_table`}",
+                                .con = db_claims)))
     
-    # Alter schema from final to archive
-    alter_schema_f(conn = db_claims, 
-                   from_schema = archive_mcaid_claim_header_config$from_schema, 
-                   to_schema = archive_mcaid_claim_header_config$to_schema,
-                   table_name = archive_mcaid_claim_header_config$to_table,
-                   rename_index = T,
-                   index_name = archive_mcaid_claim_header_config$index_name)
+    # Remove final table
+    try(DBI::dbSendQuery(db_claims, 
+                         glue::glue_sql("DROP TABLE {`to_schema`}.{`to_table`}", .con = db_claims)), 
+        silent = T)
     
-    # Alter schema from stage to final
-    alter_schema_f(conn = db_claims, 
-                   from_schema = final_mcaid_claim_header_config$from_schema, 
-                   to_schema = final_mcaid_claim_header_config$to_schema,
-                   table_name = final_mcaid_claim_header_config$to_table,
-                   rename_index = T,
-                   index_name = final_mcaid_claim_header_config$index_name)
-
+    # Rename to final table
+    if (server == "hhsaw") {
+      DBI::dbSendQuery(db_claims, glue::glue_sql(
+        "EXEC sp_rename '{DBI::SQL(from_schema)}.{DBI::SQL(from_table)}',  {to_table}", .con = db_Claims))
+    } else if (server == "phclaims") {
+      alter_schema_f(conn = db_claims, 
+                     from_schema = from_schema, 
+                     to_schema = to_schema,
+                     table_name = to_table,
+                     rename_index = F)
+    }
+    
     # QA final table
-    rows_claim_header_final <- as.integer(odbc::dbGetQuery(
-      db_claims, "SELECT COUNT (*) FROM final.mcaid_claim_header"))
+    rows_claim_final <- as.integer(odbc::dbGetQuery(
+      db_claims, glue::glue_sql("SELECT COUNT (*) FROM {`to_schema`}.{`to_table`}",
+                                .con = db_claims)))
     
-    if (rows_claim_header_stage == rows_claim_header_final) {
+    
+    if (rows_claim_stage == rows_claim_final) {
       DBI::dbExecute(
         conn = db_claims,
-        glue::glue_sql("INSERT INTO metadata.qa_mcaid
+        glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_header}, 
-                 'final.mcaid_claim_header',
+                 VALUES ({last_run_claim}, 
+                 '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                  'Number final rows compared to stage', 
                  'PASS', 
                  {Sys.time()}, 
-                 'All rows transferred to final schema')",
+                 'All rows transferred to final table ({rows_claim_stage})')",
                        .con = db_claims))
+      
+      # Track success
+      table_fail <- 0
     } else {
       DBI::dbExecute(
         conn = db_claims,
-        glue::glue_sql("INSERT INTO metadata.qa_mcaid
+        glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_header}, 
-                 'final.mcaid_claim_header',
+                 VALUES ({last_run_claim}, 
+                 '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                  'Number final rows compared to stage', 
                  'FAIL', 
                  {Sys.time()}, 
-                 '{rows_claim_header_final} rows in final schema (expecting {rows_claim_header_stage})')",
+                 '{rows_claim_final} rows in final table (expecting {rows_claim_stage})')",
                        .con = db_claims))
+      
+      # Note failure
+      table_fail <- 1
     }
-    
-    rm(last_run_claim_header, final_mcaid_claim_header_config, archive_mcaid_claim_header_config, 
-       rows_claim_header_stage, rows_claim_header_final)
   }
-  rm(claim_line_fail, claim_icdcm_fail, claim_procedure_fail, claim_pharm_fail)
-  rm(fail_tot)
+  
+  # Export out results of load
+  return(table_fail)
 }
+
+
+#### MCAID_CLAIM_LINE ####
+claim_line_fail <- claim_load_f(table = "line")
+
+
+#### MCAID_CLAIM_ICDCM_HEADER ####
+claim_icdcm_header_fail <- claim_load_f(table = "icdcm_header")
+
+
+#### MCAID_CLAIM_PROCEDURE ####
+claim_procedure_fail <- claim_load_f(table = "procedure")
+
+
+#### MCAID_CLAIM_PHARM ####
+claim_pharm_fail <- claim_load_f(table = "pharm")
+
+
+#### MCAID_CLAIM_HEADER ####
+if (sum(claim_line_fail, claim_icdcm_header_fail, claim_procedure_fail, claim_pharm_fail) > 0) {
+  stop("One or more claims analytic tables failed, mcaid_claim_header not created. See metadata.mcaid_qa for details")
+} else {
+  claim_load_f(table = "header")
+}
+
+
+
+#### MCAID_CLAIM_CCW ####
+claim_ccw_fail <- claim_load_f(table = "ccw")
+
 
 
 #### MCAID_CLAIM_VALUE_SET ####
 
 
 
-
-### CCW
-# Load table to SQL
-load_ccw(conn = db_claims, source = "mcaid")
-
-# QA table
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_ccw.R",
-                     echo = T)
-
-# If QA passes, load to final table
-if (ccw_qa_result == "PASS") {
-  
-  create_table_f(
-    conn = db_claims, 
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml",
-    overall = T, ind_yr = F, overwrite = T)
-  
-  load_table_from_sql_f(
-    conn = db_claims,
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml", 
-    truncate = T, truncate_date = F)
-  
-  # QA final table
-  qa_rows_final_claim_ccw <- qa_sql_row_count_f(
-    conn = db_claims,
-    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/final/tables/load_final.mcaid_claim_ccw.yaml",
-    overall = T, ind_yr = F)
-  
-  odbc::dbGetQuery(
-    conn = db_claims,
-    glue::glue_sql("INSERT INTO metadata.qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim_ccw}, 
-                 'final.mcaid_claim_ccw',
-                 'Number final rows compared to stage', 
-                 {qa_rows_final_claim_ccw$qa_result}, 
-                 {Sys.time()}, 
-                 {qa_rows_final_claim_ccw$note})",
-                   .con = db_claims))
-  
-  rm(qa_rows_final_claim_ccw)
-} else {
-  warning("CCW table failed QA and was not loaded to final schema")
-}
-
-
 #### PERFORMANCE MEASURES ------------------------------------------------------
-# All these tables will be renamed to have a mcaid_ prefix at some point
-
 #### PERF_ELIG_MEMBER_MONTH ####
-DBI::dbExecute(db_claims, "EXEC [stage].[sp_perf_elig_member_month]")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage_mcaid_perf_elig_member_month.R")
+load_stage_mcaid_perf_elig_member_month_f(conn = db_claims, server = server)
+
 
 #### PERF_ENROLL_DENOM ####
+# Bring in config file
+stage_mcaid_perf_enroll_denom_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_enroll_denom.yaml")
+
 # Need to find which months have been refreshed and run for those
 # Assumes a 12-month refresh. Change manually for other options
-max_elig_month <- odbc::dbGetQuery(db_claims, "SELECT MAX (CLNDR_YEAR_MNTH) FROM stage.mcaid_elig")[[1]]
-min_elig_month <- max_elig_month - 99
+max_elig_month <- odbc::dbGetQuery(
+  db_claims, 
+  glue::glue_sql("SELECT MAX (CLNDR_YEAR_MNTH) 
+                 FROM {`stage_mcaid_perf_enroll_denom_config$final_schema`}.{DBI::SQL(stage_mcaid_perf_enroll_denom_config$final_table)}mcaid_elig",
+                                                  .con = db_claims))[[1]]
+min_elig_month <- odbc::dbGetQuery(
+  db_claims, 
+  glue::glue_sql("SELECT YEAR([12_month_prior]) * 100 + MONTH([12_month_prior])
+                 FROM
+                 (SELECT MAX(b.[12_month_prior]) AS [12_month_prior]
+                   FROM {`stage_mcaid_perf_enroll_denom_config$stage_schema`}.{DBI::SQL(stage_mcaid_perf_enroll_denom_config$stage_table)}mcaid_perf_enroll_denom AS agg
+                  LEFT JOIN {`stage_mcaid_perf_enroll_denom_config$ref_schema`}.{DBI::SQL(stage_mcaid_perf_enroll_denom_config$ref_table)}perf_year_month AS b
+                  ON a.[year_month] = b.[year_month]) AS a",
+                 .con = db_claims))[[1]]
 
-# Run stored procedure
-DBI::dbExecute(db_claims, 
-               glue_sql("EXEC [stage].[sp_perf_enroll_denom] 
-                        @start_date_int = {min_elig_month}, @end_date_int = {max_elig_month}",
-               .con = db_claims))
 
-rm(max_elig_month, min_elig_month)
+
+# Load and run function
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_enroll_denom.R")
+load_stage_mcaid_perf_enroll_denom_f(conn = db_claims, server = server,
+                                     start_date_int = min_elig_month,
+                                     end_date_int = max_elig_month,
+                                     config = stage_mcaid_perf_enroll_denom_config)
+
+rm(max_elig_month, min_elig_month, stage_mcaid_perf_enroll_denom_config, load_stage_mcaid_perf_enroll_denom_f)
+
 
 #### PERF_DISTINCT_MEMBER ####
-DBI::dbExecute(db_claims, "EXEC [stage].[sp_perf_distinct_member]")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/azure_migration/claims_db/phclaims/stage/tables/load_stage_mcaid_perf_distinct_member.R")
+load_stage_mcaid_perf_distinct_member_f(conn = db_claims, server = server)
+
+
 
 
 #### ASTHMA MEDICATION RATIO ####

@@ -1,128 +1,49 @@
-schema: load_raw
-table: mcaid_elig
-index_name: idx_cl_load_raw_mcaid_elig_CLNDR_YEAR_MNTH_MEDICAID_RECIPIENT_ID
-index:
-    - CLNDR_YEAR_MNTH
-    - MEDICAID_RECIPIENT_ID
+schema: stg_claims
+table: raw_mcaid_elig_init
+index_type: ccs
+index_name: idx_ccs_load_raw_mcaid_elig
+ext_data_source: datascr_WS_EDW
+ext_schema: stg_claims
+ext_table: raw_mcaid_elig_init
+dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/init/
 vars:
     CLNDR_YEAR_MNTH: INTEGER
-    MEDICAID_RECIPIENT_ID: VARCHAR(200)
-    HOH_ID: VARCHAR(200)
-    SOCIAL_SECURITY_NMBR: VARCHAR(200)
-    FIRST_NAME: VARCHAR(200)
-    MIDDLE_NAME: VARCHAR(200)
-    LAST_NAME: VARCHAR(200)
-    GENDER: VARCHAR(200)
-    RACE1_NAME: VARCHAR(200)
-    RACE2_NAME: VARCHAR(200)
-    RACE3_NAME: VARCHAR(200)
-    RACE4_NAME: VARCHAR(200)
-    HISPANIC_ORIGIN_NAME: VARCHAR(200)
+    MEDICAID_RECIPIENT_ID: VARCHAR(255)
+    HOH_ID: VARCHAR(255)
+    SOCIAL_SECURITY_NMBR: VARCHAR(255)
+    FIRST_NAME: VARCHAR(255)
+    MIDDLE_NAME: VARCHAR(255)
+    LAST_NAME: VARCHAR(255)
+    GENDER: VARCHAR(255)
+    RACE1_NAME: VARCHAR(255)
+    RACE2_NAME: VARCHAR(255)
+    RACE3_NAME: VARCHAR(255)
+    RACE4_NAME: VARCHAR(255)
+    HISPANIC_ORIGIN_NAME: VARCHAR(255)
     BIRTH_DATE: DATE
-    SPOKEN_LNG_NAME: VARCHAR(200)
-    WRTN_LNG_NAME: VARCHAR(200)
+    SPOKEN_LNG_NAME: VARCHAR(255)
+    WRTN_LNG_NAME: VARCHAR(255)
     PRGNCY_DUE_DATE: DATE
     RPRTBL_RAC_CODE: INTEGER
-    RPRTBL_RAC_NAME: VARCHAR(200)
+    RPRTBL_RAC_NAME: VARCHAR(255)
     RPRTBL_BSP_GROUP_CID: INTEGER
-    RPRTBL_BSP_GROUP_NAME: VARCHAR(200)
+    RPRTBL_BSP_GROUP_NAME: VARCHAR(255)
     FROM_DATE: DATE
     TO_DATE: DATE
-    END_REASON: VARCHAR(200)
-    COVERAGE_TYPE_IND: VARCHAR(200)
-    MC_PRVDR_ID: VARCHAR(200)
-    MC_PRVDR_NAME: VARCHAR(200)
-    DUAL_ELIG: VARCHAR(200)
-    TPL_FULL_FLAG: VARCHAR(200)
-    RSDNTL_ADRS_LINE_1: VARCHAR(200)
-    RSDNTL_ADRS_LINE_2: VARCHAR(200)
-    RSDNTL_CITY_NAME: VARCHAR(200)
-    RSDNTL_STATE_CODE: VARCHAR(200)
-    RSDNTL_POSTAL_CODE: VARCHAR(200)
-    RSDNTL_COUNTY_CODE: VARCHAR(200)
-    RSDNTL_COUNTY_NAME: VARCHAR(200)
-    MBR_ACES_IDNTFR: VARCHAR(200)
-    MBR_H_SID: VARCHAR(200)
+    END_REASON: VARCHAR(255)
+    COVERAGE_TYPE_IND: VARCHAR(255)
+    MC_PRVDR_ID: VARCHAR(255)
+    MC_PRVDR_NAME: VARCHAR(255)
+    DUAL_ELIG: VARCHAR(255)
+    TPL_FULL_FLAG: VARCHAR(255)
+    RSDNTL_ADRS_LINE_1: VARCHAR(255)
+    RSDNTL_ADRS_LINE_2: VARCHAR(255)
+    RSDNTL_CITY_NAME: VARCHAR(255)
+    RSDNTL_STATE_CODE: VARCHAR(255)
+    RSDNTL_POSTAL_CODE: VARCHAR(255)
+    RSDNTL_COUNTY_CODE: VARCHAR(255)
+    RSDNTL_COUNTY_NAME: VARCHAR(255)
+    MBR_ACES_IDNTFR: VARCHAR(255)
+    MBR_H_SID: VARCHAR(255)
     SECONDARY_RAC_CODE: INTEGER
-    SECONDARY_RAC_NAME: VARCHAR(200)
-table_2012:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2012.txt
-    vars_2012: null
-    field_term: \t
-    row_term: \n
-    row_count: 3277595
-    date_min: 201201
-    date_max: 201212
-    date_delivery: 2020-01-31
-table_2013:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2013.txt
-    vars_2013: null
-    field_term: \t
-    row_term: \n
-    row_count: 3317936
-    date_min: 201301
-    date_max: 201312
-    date_delivery: 2020-01-31
-table_2014:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2014.txt
-    vars_2014: null
-    field_term: \t
-    row_term: \n
-    row_count: 4612406
-    date_min: 201401
-    date_max: 201412
-    date_delivery: 2020-02-04
-table_2015:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2015.txt
-    vars_2015: null
-    field_term: \t
-    row_term: \n
-    row_count: 5292523
-    date_min: 201501
-    date_max: 201512
-    date_delivery: 2020-02-04
-table_2016:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2016.txt
-    vars_2016: null
-    field_term: \t
-    row_term: \n
-    row_count: 5521060
-    date_min: 201601
-    date_max: 201612
-    date_delivery: 2020-02-05
-table_2017:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2017.txt
-    vars_2017: null
-    field_term: \t
-    row_term: \n
-    row_count: 5509546
-    date_min: 201701
-    date_max: 201712
-    date_delivery: 2020-02-05
-table_2018:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2018.txt
-    vars_2018: null
-    field_term: \t
-    row_term: \n
-    row_count: 5350380
-    date_min: 201801
-    date_max: 201812
-    date_delivery: 2020-02-07
-table_2019:
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_CY2019.txt
-    vars_2019: null
-    field_term: \t
-    row_term: \n
-    row_count: 5212831
-    date_min: 201901
-    date_max: 201912
-    date_delivery: 2020-02-07
-years:
-    - 2012
-    - 2013
-    - 2014
-    - 2015
-    - 2016
-    - 2017
-    - 2018
-    - 2019
+    SECONDARY_RAC_NAME: VARCHAR(255)

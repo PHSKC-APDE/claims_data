@@ -8,21 +8,37 @@
 
 ### PARAMETERS
 # conn = name of the connection to the SQL database
+# server = name of server being used (if using newer YAML format)
 # table_config = name of config object that has index details
 # Usually based on a YAML file that has been read in.
 # Looks for a combination of index_type, index_name and index fields.
 # Also need index_name but the other two fields will depend on type of index desired.
-# Config must also include schema/to_schema and table/to_table fields.
+# Config must also include to_schema/to_schema and table/to_table fields.
 # drop_index = remove any existing clustered or clustered columnstore indices
 
-add_index_f <- function(conn, table_config, drop_index = T, test_mode = F) {
+add_index_f <- function(conn, 
+                        server = NULL,
+                        table_config, 
+                        drop_index = T, 
+                        test_mode = F) {
   
-  ### Error check
+  #### ERROR CHECK ####
   if (is.null(table_config$index_name)) {
     stop("Index name must be specified in table_config file")
   }
   
-  ### Deduce the index type to load
+  
+  #### SET UP SERVER ####
+  if (is.null(server)) {
+    server <- NA
+  } else if (server %in% c("phclaims", "hhsaw")) {
+    server <- server
+  } else if (!server %in% c("phclaims", "hhsaw")) {
+    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+  }
+  
+  
+  #### DEDUCE INDEX TYPE ####
   # See if the index_type variable exists
   if (!is.null(table_config$index_type)) {
     if (table_config$index_type == 'ccs') {
@@ -40,37 +56,34 @@ add_index_f <- function(conn, table_config, drop_index = T, test_mode = F) {
   }
 
   
-  ### Pull out schema and table names
-  if (test_mode == T) {
-    message("FUNCTION WILL BE RUN IN TEST MODE, INDEXING TABLE IN TMP SCHEMA")
-    schema <- "tmp"
-    
-    if (!is.null(table_config$to_schema) & !is.null(table_config$to_table)) {
-      table_name <- glue("{table_config$to_schema}_{table_config$to_table}")
-    } else if (!is.null(table_config$schema) & !is.null(table_config$table)) {
-      table_name <- glue("{table_config$schema}_{table_config$table}")
-    }
+  #### PULL OUT to_schema AND TABLE NAMES ####
+  if (!is.na(server)) {
+    to_schema <- table_config[[server]][["to_schema"]]
+    to_table <- table_config[[server]][["to_table"]]
   } else {
+    # Set up to work with both new and old way of using YAML files
     if (!is.null(table_config$to_schema)) {
-      schema <- table_config$to_schema
-    } else if (!is.null(table_config$schema)) {
-      schema <- table_config$schema
+      to_schema <- table_config$to_schema
     } else {
-      stop("schema field not found in config")
+      to_schema <- table_config$to_schema
     }
     
     if (!is.null(table_config$to_table)) {
-      table_name <- table_config$to_table
-    } else if (!is.null(table_config$table)) {
-      table_name <- table_config$table
+      to_table <- table_config$to_table
     } else {
-      stop("table field not found in config")
+      to_table <- table_config$table
     }
+  }
+  
+  if (test_mode == T) {
+    message("FUNCTION WILL BE RUN IN TEST MODE, INDEXING TABLE IN TMP to_schema")
+    to_table <- glue::glue("{to_schema}_{to_table}")
+    to_schema <- "tmp"
   }
   
 
   
-  # Remove existing index if desired (and an index exists)
+  #### REMOVE EXISTING INDEX ID DESIRED ####
   if (drop_index == T) {
     # This code pulls out the index name
     existing_index <- dbGetQuery(conn, 
@@ -82,11 +95,11 @@ add_index_f <- function(conn, table_config, drop_index = T, test_mode = F) {
                        WHERE type_desc LIKE 'CLUSTERED%') ind
                     JOIN
                      (SELECT name, schema_id, object_id FROM sys.tables
-                       WHERE name = {table_name}) t
+                       WHERE name = {to_table}) t
                     ON ind.object_id = t.object_id
                   INNER JOIN
                   (SELECT name, schema_id FROM sys.schemas
-                    WHERE name = {schema}) s
+                    WHERE name = {to_schema}) s
                   ON t.schema_id = s.schema_id) a", 
                    .con = conn))[[1]]
     
@@ -94,25 +107,26 @@ add_index_f <- function(conn, table_config, drop_index = T, test_mode = F) {
       message("Removing existing clustered/clustered columnstore index")
       dbGetQuery(conn,
                  glue::glue_sql("DROP INDEX {`existing_index`} ON 
-                                  {`schema`}.{`table_name`}", .con = conn))
+                                  {`to_schema`}.{`to_table`}", .con = conn))
     }
   }
   
   
-  message(glue::glue("Adding index ({table_config$index_name}) to {schema}.{table_name}"))
+  #### ADD INDEX ####
+  message(glue::glue("Adding index ({table_config$index_name}) to {to_schema}.{to_table}"))
   
   
   if (index_type == 'ccs') {
     # Clustered columnstore index
     dbGetQuery(conn,
                glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}",
+                              {`to_schema`}.{`to_table`}",
                               .con = conn))
   } else {
     # Clustered index
     dbGetQuery(conn,
                glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
-                              {`schema`}.{`table_name`}({`index_vars`*})",
+                              {`to_schema`}.{`to_table`}({`index_vars`*})",
                               index_vars = table_config$index,
                               .con = conn))
   }

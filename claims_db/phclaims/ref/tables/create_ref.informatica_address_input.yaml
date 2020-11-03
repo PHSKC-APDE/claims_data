@@ -1,0 +1,10 @@
+to_schema: ref
+to_table: informatica_address_input
+vars:
+    geo_add1_raw: VARCHAR(255)
+    geo_add2_raw: VARCHAR(255)
+    geo_city_raw: VARCHAR(255)
+    geo_state_raw: VARCHAR(255)
+    geo_zip_raw: VARCHAR(255)
+    geo_source: VARCHAR(255)
+    timestamp: DATETIME
