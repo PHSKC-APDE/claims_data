@@ -8,9 +8,9 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
-load_stage.mcaid_elig_f <- function(server = NULL,
-                                    conn_dw = NULL, 
-                                    conn_db = NULL, 
+load_stage.mcaid_elig_f <- function(conn_db = NULL,
+                                    conn_dw = NULL,
+                                    server = NULL,
                                     full_refresh = F, 
                                     config = NULL) {
   ### Error checks
@@ -45,29 +45,34 @@ load_stage.mcaid_elig_f <- function(server = NULL,
                       config[[server]][["qa_table"]])
   
   
+  # Set up both connections so they work in either server
+  if (server == "phclaims") {conn_dw <- conn}
+  
+  
   if (!is.null(config$etl$date_var)) {
     date_var <- config$etl$date_var
   } else {
     date_var <- config$date_var
   }
   
-  # Remove etl_batch_id and geo_hash_raw from list of vars as they are added at the end
+  
   vars <- unlist(names(config$vars))
-  vars <- vars[!vars %in% c("etl_batch_id", "geo_hash_raw")]
+  
   # Need to keep only the vars that come before the named ones below
   # This is so we can recreate the address hash field
-  vars_prefix <- vars[!vars %in% c("MBR_ACES_IDNTFR", "MBR_H_SID", 
+  vars_prefix <- vars[!vars %in% c("geo_hash_raw", "MBR_ACES_IDNTFR", "MBR_H_SID", 
                                       "SECONDARY_RAC_CODE", "SECONDARY_RAC_NAME", 
                                       "etl_batch_id")]
   vars_suffix <- c("MBR_ACES_IDNTFR", "MBR_H_SID", 
-                   "SECONDARY_RAC_CODE", "SECONDARY_RAC_NAME")
+                   "SECONDARY_RAC_CODE", "SECONDARY_RAC_NAME", "etl_batch_id")
+  
   
   if (full_refresh == F) {
-    archive_schema <- config$archive_schema
-    archive_table <- config$archive_table
-    date_truncate <- config$etl$date_min
-    
     etl_batch_type <- "incremental"
+    date_truncate <- DBI::dbGetQuery(
+      conn_dw,
+      glue::glue_sql("SELECT MIN({`date_var`}) FROM {`from_schema`}.{`from_table`}",
+                     .con = conn_dw))
   } else {
     etl_batch_type <- "full"
   }
@@ -75,9 +80,9 @@ load_stage.mcaid_elig_f <- function(server = NULL,
   
   #### FIND MOST RECENT BATCH ID FROM SOURCE (LOAD_RAW) ####
   current_batch_id <- as.numeric(odbc::dbGetQuery(
-    conn,
+    conn_dw,
     glue::glue_sql("SELECT MAX(etl_batch_id) FROM {`from_schema`}.{`from_table`}",
-                   .con = conn)))
+                   .con = conn_dw)))
   
   if (is.na(current_batch_id)) {
     stop(glue::glue_sql("Missing etl_batch_id in {`from_schema`}.{`from_table`}"))
@@ -88,7 +93,9 @@ load_stage.mcaid_elig_f <- function(server = NULL,
   # Different approaches between Azure data warehouse (rename) and on-prem SQL DB (alter schema)
   if (full_refresh == F) {
     if (server == "hhsaw") {
-      try(DBI::dbSendQuery(conn_dw, glue::glue("DROP TABLE {archive_schema}.{archive_table}")))
+      try(DBI::dbSendQuery(conn_dw, 
+                           glue::glue_sql("DROP TABLE {`archive_schema`}.{`archive_table`}",
+                                          .con = conn_dw)))
       DBI::dbSendQuery(conn_dw, glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
     } else if (server == "phclaims") {
       alter_schema_f(conn = conn, 
@@ -108,7 +115,21 @@ load_stage.mcaid_elig_f <- function(server = NULL,
   # 3) RAC name (usually secondary) spelled incorrectly 
   #  (Involuntary Inpatient Psychiactric Treatment (ITA) vs Involuntary Inpatient Psychiatric Treatment (ITA))
   #
-  # Note: the initial check is now done above in the QA steps. Can use results here.
+  
+  message("Checking for any duplicates")
+  
+  rows_load_raw <- as.numeric(dbGetQuery(
+    conn_dw,
+    glue::glue_sql("SELECT COUNT (*) FROM {`from_schema`}.{`from_table`}", 
+                   .con = conn_dw)))
+  
+  distinct_rows_load_raw <- as.numeric(dbGetQuery(
+    conn_dw,
+    glue::glue_sql("SELECT COUNT (*) FROM
+  (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE,
+  RPRTBL_RAC_CODE, SECONDARY_RAC_CODE 
+  FROM {`from_schema`}.{`from_table`}) a", .con = conn_dw)))
+  
   
   # If a match, don't bother checking any further
   if (rows_load_raw != distinct_rows_load_raw) {
@@ -185,7 +206,7 @@ load_stage.mcaid_elig_f <- function(server = NULL,
                                                table = paste0(tmp_table, "mcaid_elig"))), 
           silent = T)
       
-      system.time(odbc::dbGetQuery(conn_dw,
+      system.time(DBI::dbExecute(conn_dw,
         glue::glue_sql(
           "SELECT {`vars`*},
       CASE WHEN END_REASON IS NULL THEN 1
@@ -201,16 +222,14 @@ load_stage.mcaid_elig_f <- function(server = NULL,
       
       
       
-      
-      
       # Fix spelling of RAC if needed
       if (duplicate_check_rac != rows_load_raw) {
-        dbGetQuery(conn_dw, glue::glue_sql(
+        DBI::dbExecute(conn_dw, glue::glue_sql(
                    "UPDATE {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig  
                SET RPRTBL_RAC_NAME = 'Involuntary Inpatient Psychiatric Treatment (ITA)' 
                WHERE RPRTBL_RAC_NAME = 'Involuntary Inpatient Psychiactric Treatment (ITA)'", .con = conn_dw))
         
-        dbGetQuery(conn_dw, glue::glue_sql(
+        DBI::dbExecute(conn_dw, glue::glue_sql(
                    "UPDATE {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig 
                SET SECONDARY_RAC_NAME = 'Involuntary Inpatient Psychiatric Treatment (ITA)' 
                WHERE SECONDARY_RAC_NAME = 'Involuntary Inpatient Psychiactric Treatment (ITA)'", .con = conn_dw))
@@ -233,7 +252,7 @@ load_stage.mcaid_elig_f <- function(server = NULL,
       
       dedup_sql <- glue::glue_sql(
         "SELECT DISTINCT {`var_names`*}
-        INTO {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig _dedup
+        INTO {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig_dedup
         FROM
       (SELECT {`vars`*}, reason_score FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig ) a
         LEFT JOIN
@@ -255,12 +274,12 @@ load_stage.mcaid_elig_f <- function(server = NULL,
         (a.HOH_ID = b.max_hoh OR (a.HOH_ID IS NULL AND b.max_hoh IS NULL))",
         .con = conn_dw)
       
-      odbc::dbGetQuery(conn_dw, dedup_sql)
+      DBI::dbExecute(conn_dw, dedup_sql)
       
       # Keep track of how many of the duplicate rows are accounted for
       temp_rows_02 <- as.numeric(dbGetQuery(
         conn_dw, glue::glue_sql("SELECT COUNT (*) 
-                                FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig _dedup", 
+                                FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig_dedup", 
                                 .con = conn_dw)))
       
       dedup_row_diff <- temp_rows_01 - temp_rows_02
@@ -291,77 +310,81 @@ load_stage.mcaid_elig_f <- function(server = NULL,
   # First drop existing table
   try(odbc::dbRemoveTable(conn_dw, DBI::Id(schema = to_schema, table = to_table)), silent = T)
   
+  
+  # Then set up first block of SQL, which varies by server
+  if (server == "hhsaw") {
+    load_intro <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
+                                    WITH (CLUSTERED COLUMNSTORE INDEX, 
+                                          DISTRIBUTION = HASH ({`date_var`}))",
+                                 .con = conn_dw)
+  } else if (server == "phclaims") {
+    load_intro <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)",
+                                 .con = conn_dw)
+  }
+  
   if (full_refresh == F) {
     # Select the source, depending on if deduplication has been carried out
     if (is.na(duplicate_type)) {
-      sql_combine <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
-                                    WITH (CLUSTERED COLUMNSTORE INDEX, 
-                                          DISTRIBUTION = HASH ({`date_var`}))
-                                    AS SELECT {`vars`*}, etl_batch_id 
-                                    FROM {`archive_schema`}.{`archive_table`}
+      sql_combine <- glue::glue_sql("{DBI::SQL(load_intro)}
+                                    AS SELECT {`vars`*} FROM 
+                                    {`archive_schema`}.{`archive_table`}
                                     WHERE {`date_var`} < {date_truncate}
                                     UNION
                                     SELECT {`vars_prefix`*}, 
                                     CONVERT(char(64),
                                             HASHBYTES('SHA2_256',
                                                       -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
-                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, '|', 
-                                                                        '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
-                                                                        RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw, 
-                                    {`vars_suffix`*}, {current_batch_id} AS etl_batch_id FROM
+                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, 
+                                                      '|', '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
+                                                      RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw, 
+                                    {`vars_suffix`*} FROM
                                     {`from_schema`}.{`from_table`}
                                     WHERE {`date_var`} >= {date_truncate}",
                                     .con = conn_dw)
     } else {
-      sql_combine <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
-                                    WITH (CLUSTERED COLUMNSTORE INDEX, 
-                                          DISTRIBUTION = HASH ({`date_var`}))
-                                    AS SELECT {`vars`*}, etl_batch_id 
-                                    FROM {`archive_schema`}.{`archive_table`}
+      sql_combine <- glue::glue_sql("{DBI::SQL(load_intro)} 
+                                     AS SELECT {`vars`*} FROM 
+                                     {`archive_schema`}.{`archive_table`}
                                     WHERE {`date_var`} < {date_truncate}
                                     UNION
                                     SELECT {`vars_prefix`*}, 
                                     CONVERT(char(64),
                                             HASHBYTES('SHA2_256',
                                                       -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
-                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, '|', 
-                                                                        '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
-                                                                        RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw, 
-                                    {`vars_suffix`*}, {current_batch_id} AS etl_batch_id FROM FROM
-                                    {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig _dedup
+                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, 
+                                                      '|', '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
+                                                      RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw, 
+                                    {`vars_suffix`*} FROM 
+                                    {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig_dedup
                                     WHERE {`date_var`} >= {date_truncate}",
                                     .con = conn_dw)
     }
   } else if (full_refresh == T) {
     # Select the source, depending on if deduplication has been carried out
     if (is.na(duplicate_type)) {
-      sql_combine <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
-                                    WITH (CLUSTERED COLUMNSTORE INDEX, 
-                                          DISTRIBUTION = HASH ({`date_var`}))
+      sql_combine <- glue::glue_sql("{DBI::SQL(load_intro)} 
                                     AS SELECT {`vars_prefix`*}, 
                                     CONVERT(char(64),
                                             HASHBYTES('SHA2_256',
                                                       -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
-                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, '|', 
-                                                                        '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
-                                                                        RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw, 
-                                    {`vars_suffix`*}, {current_batch_id} AS etl_batch_id FROM 
+                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, 
+                                                      '|', '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
+                                                      RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw, 
+                                    {`vars_suffix`*} FROM 
                                     FROM {`from_schema`}.{`from_table`} ",
                                     .con = conn_dw)
       
     } else {
-      sql_combine <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
-                                    WITH (CLUSTERED COLUMNSTORE INDEX, 
-                                          DISTRIBUTION = HASH ({`date_var`}))
+      sql_combine <- glue::glue_sql("{DBI::SQL(load_intro)} 
                                     AS SELECT {`vars_prefix`*}, 
                                     CONVERT(char(64),
                                             HASHBYTES('SHA2_256',
                                                       -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
-                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, '|', 
-                                                                        '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
-                                                                        RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw, 
-                                    {`vars_suffix`*}, {current_batch_id} AS etl_batch_id FROM 
-                                    FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig _dedup",
+                                                      CAST(UPPER(CONCAT(RSDNTL_ADRS_LINE_1, '|', RSDNTL_ADRS_LINE_2, 
+                                                      '|', '|', RSDNTL_CITY_NAME, '|', RSDNTL_STATE_CODE, '|', 
+                                                      RSDNTL_POSTAL_CODE)) AS VARCHAR(1275))),2) AS geo_hash_raw,
+                                    {`vars_suffix`*} FROM 
+                                    FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig_dedup",
                                     .con = conn_dw)
     }
   }
@@ -371,7 +394,7 @@ load_stage.mcaid_elig_f <- function(server = NULL,
   
   
   
-  #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
+  g#### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
   message("Running QA checks")
   
   # Obtain row counts for other tables (rows_load_raw already calculated above)
@@ -409,7 +432,7 @@ load_stage.mcaid_elig_f <- function(server = NULL,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'DBI::SQL(to_schmea)}.{DBI::SQL(to_table)}',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   {row_diff_qa_type}, 
                                   'FAIL',
                                   {Sys.time()},
@@ -422,7 +445,7 @@ load_stage.mcaid_elig_f <- function(server = NULL,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'DBI::SQL(to_schmea)}.{DBI::SQL(to_table)}',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   {row_diff_qa_type}, 
                                   'PASS',
                                   {Sys.time()},
@@ -443,7 +466,7 @@ load_stage.mcaid_elig_f <- function(server = NULL,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'DBI::SQL(to_schmea)}.{DBI::SQL(to_table)}',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Null Medicaid IDs', 
                                   'FAIL',
                                   {Sys.time()},
@@ -456,7 +479,7 @@ load_stage.mcaid_elig_f <- function(server = NULL,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'DBI::SQL(to_schmea)}.{DBI::SQL(to_table)}',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Null Medicaid IDs', 
                                   'PASS',
                                   {Sys.time()},
@@ -470,7 +493,7 @@ load_stage.mcaid_elig_f <- function(server = NULL,
     conn = conn_db,
     glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid_values
                    (table_name, qa_item, qa_value, qa_date, note) 
-                   VALUES ('DBI::SQL(to_schmea)}.{DBI::SQL(to_table)}',
+                   VALUES ('{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'row_count', 
                    '{rows_stage}', 
                    {Sys.time()}, 
@@ -489,7 +512,7 @@ load_stage.mcaid_elig_f <- function(server = NULL,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'DBI::SQL(to_schmea)}.{DBI::SQL(to_table)}',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Overall QA result', 
                                   'FAIL',
                                   {Sys.time()},
@@ -501,7 +524,7 @@ load_stage.mcaid_elig_f <- function(server = NULL,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
-                                  'DBI::SQL(to_schmea)}.{DBI::SQL(to_table)}',
+                                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Overall QA result', 
                                   'PASS',
                                   {Sys.time()},
