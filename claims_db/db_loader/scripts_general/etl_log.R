@@ -132,9 +132,9 @@ The most recent entry in the etl_log FOR THIS DATA SOURCE is as follows:
 etl_batch_id: {latest_source[1]}
 batch_type: {latest_source[2]}
 data_source: {latest_source[3]}
-date_min: {latest_source[4], '%Y-%m-%d')}
-date_max: {latest_source[5], '%Y-%m-%d')}
-delivery_date: {latest_source[6], '%Y-%m-%d')}
+date_min: {format(latest_source[4], '%Y-%m-%d')}
+date_max: {format(latest_source[5], '%Y-%m-%d')}
+delivery_date: {format(latest_source[6], '%Y-%m-%d')}
 note: {latest_source[7]}
 
 Do you still want to make a new entry?")
