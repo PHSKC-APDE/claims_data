@@ -125,11 +125,11 @@ load_table_from_file_f <- function(
   #### VARIABLES ####
   # Set up to work with both new and old way of using YAML files
   if (!is.null(server)) {
-    schema_name <- schema_config[[server]][["to_schema"]]
-  } else if (!is.null(schema_config$to_schema)) {
-    schema_name <- schema_config$to_schema
+    schema_name <- table_config[[server]][["to_schema"]]
+  } else if (!is.null(table_config$to_schema)) {
+    schema_name <- table_config$to_schema
   } else {
-    schema_name <- schema_config$schema
+    schema_name <- table_config$schema
   }
   
   if (!is.null(server)) {
