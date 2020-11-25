@@ -93,7 +93,8 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     # Use the load config file for the list of tables to check and their expected row counts
     qa_rows_file <- qa_file_row_count_f(config = table_config, 
                                         server = server,
-                                        overall = T, ind_yr = F)
+                                        overall = T, 
+                                        ind_yr = F)
     
     # Report results out to SQL table
     DBI::dbExecute(conn = conn,
@@ -115,7 +116,10 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     #### QA CHECK: ORDER OF COLUMNS IN SOURCE FILE MATCH TABLE SHELLS IN SQL ####
     message("Checking column order")
     qa_column <- qa_column_order_f(conn = conn_dw,
-                                   config = table_config, overall = T, ind_yr = F)
+                                   config = table_config, 
+                                   server = server,
+                                   overall = T, 
+                                   ind_yr = F)
     
     # Report results out to SQL table
     DBI::dbExecute(conn = conn,
