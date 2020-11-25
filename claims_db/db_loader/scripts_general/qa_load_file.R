@@ -88,7 +88,7 @@ qa_file_row_count_f <- function(server = NULL,
     
     
     ### Count the actual number of rows (subtract 1 for header row)
-    row_cnt <- R.utils::countLines(table_config$overall$file_path) - 1
+    row_cnt <- R.utils::countLines(file_path) - 1
     
     ### Compare counts
     count_check <- row_exp == row_cnt
