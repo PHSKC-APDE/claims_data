@@ -115,10 +115,12 @@ load_mcaid_claim_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubuser
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R")
 
 
+
 if (server == "hhsaw") {
   load_load_raw.mcaid_claim_partial_f(conn = db_claims,
                                       conn_dw = dw_inthealth,
                                       server = server,
+                                      config = load_mcaid_claim_config,
                                       etl_date_min = load_mcaid_claim_config[["date_min"]],
                                       etl_date_max = load_mcaid_claim_config[["date_max"]],
                                       etl_delivery_date = load_mcaid_claim_config[["date_delivery"]], 
@@ -128,12 +130,13 @@ if (server == "hhsaw") {
   ### Create tables
   create_table_f(conn = db_claims, 
                  server = server,
-                 config_url = load_mcaid_elig_config,
+                 config = load_mcaid_claim_config,
                  overwrite = T)
   
   ### Load tables
   load_load_raw.mcaid_claim_partial_f(conn = db_claims,
                                       server = server,
+                                      config = load_mcaid_claim_config,
                                       etl_date_min = load_mcaid_claim_config[["date_min"]],
                                       etl_date_max = load_mcaid_claim_config[["date_max"]],
                                       etl_delivery_date = load_mcaid_claim_config[["date_delivery"]], 
@@ -141,7 +144,7 @@ if (server == "hhsaw") {
                                       qa_file_row = F)
 }
 ### Clean up
-rm(load_mcaid_elig_config)
+rm(load_mcaid_claim_config)
 
 
 
