@@ -91,7 +91,9 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     #### QA CHECK: ACTUAL VS EXPECTED ROW COUNTS ####
     message("Checking expected vs. actual row counts")
     # Use the load config file for the list of tables to check and their expected row counts
-    qa_rows_file <- qa_file_row_count_f(config = table_config, overall = T, ind_yr = F)
+    qa_rows_file <- qa_file_row_count_f(config = table_config, 
+                                        server = server,
+                                        overall = T, ind_yr = F)
     
     # Report results out to SQL table
     DBI::dbExecute(conn = conn,
