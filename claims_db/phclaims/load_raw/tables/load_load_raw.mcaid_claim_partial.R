@@ -208,7 +208,7 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
   distinct_rows <- as.numeric(DBI::dbGetQuery(
     conn_dw,
     glue::glue_sql(
-    "SELECT COUNT (*) FROM (SELECT DISTINCT {`vars_distinct`*} FROM {`to_schema`}.{`to_table`}) a",
+    "SELECT COUNT (*) FROM (SELECT DISTINCT {`names(vars_distinct)`*} FROM {`to_schema`}.{`to_table`}) a",
     .con = conn_dw)))
   
   distinct_tcn <- as.numeric(DBI::dbGetQuery(
