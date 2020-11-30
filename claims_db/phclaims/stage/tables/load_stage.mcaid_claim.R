@@ -59,9 +59,6 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   vars_truncated <- vars[!vars %in% c("CLNDR_YEAR_MNTH", "MBR_H_SID", 
                                       "MEDICAID_RECIPIENT_ID", "BABY_ON_MOM_IND", 
                                       "TCN", "CLM_LINE_TCN", "CLM_LINE")]
-  # Adjust vars to account for different names in raw data
-  # This fix isn't ideal and somewhat defeats the point of the YAML files
-  vars_truncated <- str_replace(vars_truncated, "LAST_", "LT_")
   
   
   if (!is.null(config$etl$date_var)) {
