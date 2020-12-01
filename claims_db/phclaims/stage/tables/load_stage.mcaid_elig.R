@@ -104,7 +104,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
       DBI::dbSendQuery(conn_dw, 
                        glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
     } else if (server == "phclaims") {
-      alter_schema_f(conn = conn, 
+      alter_schema_f(conn = conn_db, 
                      from_schema = to_schema, 
                      to_schema = archive_schema,
                      table_name = to_table, 
