@@ -5,7 +5,7 @@ phclaims:
     to_table: mcaid_elig
     archive_schema: archive
     archive_table: mcaid_elig 
-    tmp_schema: tmp_schema
+    tmp_schema: tmp
     tmp_table: 
     qa_schema: metadata
     qa_table: 
