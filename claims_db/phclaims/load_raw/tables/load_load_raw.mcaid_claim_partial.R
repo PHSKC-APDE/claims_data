@@ -71,7 +71,7 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
   qa_schema <- table_config[[server]][["qa_schema"]]
   qa_table <- table_config[[server]][["qa_table"]]
   vars = table_config$vars
-  vars_distinct = vars[!vars %in% c("BILLING_PRVDR_ADDRESS",
+  vars_distinct = vars[!names(vars) %in% c("BILLING_PRVDR_ADDRESS",
                                     "SERVICING_PRVDR_ADDRESS",
                                     "MCO_PRVDR_ADDRESS", "MCO_PRVDR_COUNTY")]
   
