@@ -13,6 +13,9 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
                                     server = NULL,
                                     full_refresh = F, 
                                     config = NULL) {
+  
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
+  
   ### Error checks
   if (is.null(conn_dw)) {stop("No DW connection specificed")}
   if (is.null(conn_db)) {stop("No DB connection specificed")}
