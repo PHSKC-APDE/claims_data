@@ -143,6 +143,7 @@ if (server == "hhsaw") {
                                       etl_note = "Partial refresh of Medicaid claims data",
                                       qa_file_row = F)
 }
+
 ### Clean up
 rm(load_mcaid_claim_config)
 
@@ -162,7 +163,8 @@ if (server == "hhsaw") {
                                       full_refresh = F, 
                                       config = table_config_stage_elig))
 } else if (server == "phclaims") {
-  system.time(load_stage.mcaid_elig_f(conn_db = db_claims, 
+  system.time(load_stage.mcaid_elig_f(conn_dw = db_claims, 
+                                      conn_db = db_claims, 
                                       server = server,
                                       full_refresh = F, 
                                       config = table_config_stage_elig))
