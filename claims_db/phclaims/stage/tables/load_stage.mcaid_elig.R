@@ -328,15 +328,11 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
                                           DISTRIBUTION = HASH ({`date_var`})) AS ",
                                  .con = conn_dw)
   } else if (server == "phclaims") {
-    load_intro <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) ({`vars`*}) ",
+    load_intro <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} AS ",
                                  .con = conn_dw)
+    
+    #load_intro <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) ({`vars`*}) ", .con = conn_dw)
   }
-  
-  # Always create table, archive was removed and prev stage moved to archive.
-  load_intro <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
-                                    WITH (CLUSTERED COLUMNSTORE INDEX, 
-                                          DISTRIBUTION = HASH ({`date_var`})) AS ",
-                               .con = conn_dw)
   
   if (full_refresh == F) {
     # Select the source, depending on if deduplication has been carried out
