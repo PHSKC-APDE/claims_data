@@ -112,6 +112,10 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
                                    AS ",
                                  .con = conn_dw)
   } else if (server == "phclaims") {
+    create_table_f(conn = conn_dw, 
+                   server = server,
+                   config = config,
+                   overwrite = T)
     load_intro <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
                                    ({`vars`*})",
                                  .con = conn_dw)
