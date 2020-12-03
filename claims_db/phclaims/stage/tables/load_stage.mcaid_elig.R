@@ -325,10 +325,10 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   if (server == "hhsaw") {
     load_intro <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
                                     WITH (CLUSTERED COLUMNSTORE INDEX, 
-                                          DISTRIBUTION = HASH ({`date_var`}))",
+                                          DISTRIBUTION = HASH ({`date_var`})) AS ",
                                  .con = conn_dw)
   } else if (server == "phclaims") {
-    load_intro <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK)",
+    load_intro <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) ({`vars`*}) ",
                                  .con = conn_dw)
   }
   
@@ -336,7 +336,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     # Select the source, depending on if deduplication has been carried out
     if (is.na(duplicate_type)) {
       sql_combine <- glue::glue_sql("{DBI::SQL(load_intro)}
-                                    AS SELECT {`vars`*} FROM 
+                                    SELECT {`vars`*} FROM 
                                     {`archive_schema`}.{`archive_table`}
                                     WHERE {`date_var`} < {date_truncate}
                                     UNION
@@ -353,7 +353,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
                                     .con = conn_dw)
     } else {
       sql_combine <- glue::glue_sql("{DBI::SQL(load_intro)} 
-                                     AS SELECT {`vars`*} FROM 
+                                     SELECT {`vars`*} FROM 
                                      {`archive_schema`}.{`archive_table`}
                                     WHERE {`date_var`} < {date_truncate}
                                     UNION
@@ -373,7 +373,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     # Select the source, depending on if deduplication has been carried out
     if (is.na(duplicate_type)) {
       sql_combine <- glue::glue_sql("{DBI::SQL(load_intro)} 
-                                    AS SELECT {`vars_prefix`*}, 
+                                    SELECT {`vars_prefix`*}, 
                                     CONVERT(char(64),
                                             HASHBYTES('SHA2_256',
                                                       -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
@@ -386,7 +386,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
       
     } else {
       sql_combine <- glue::glue_sql("{DBI::SQL(load_intro)} 
-                                    AS SELECT {`vars_prefix`*}, 
+                                    SELECT {`vars_prefix`*}, 
                                     CONVERT(char(64),
                                             HASHBYTES('SHA2_256',
                                                       -- NOTE: NEED FILLER BECAUSE THERE IS NO geo_add3_raw
