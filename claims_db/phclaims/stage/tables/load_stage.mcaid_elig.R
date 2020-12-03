@@ -328,10 +328,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
                                           DISTRIBUTION = HASH ({`date_var`})) AS ",
                                  .con = conn_dw)
   } else if (server == "phclaims") {
-    load_intro <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} AS ",
-                                 .con = conn_dw)
-    
-    #load_intro <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) ({`vars`*}) ", .con = conn_dw)
+    load_intro <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} AS ", .con = conn_dw)
   }
   
   if (full_refresh == F) {
