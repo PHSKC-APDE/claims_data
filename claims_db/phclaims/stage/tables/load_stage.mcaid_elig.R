@@ -332,6 +332,12 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
                                  .con = conn_dw)
   }
   
+  # Always create table, archive was removed and prev stage moved to archive.
+  load_intro <- glue::glue_sql("CREATE TABLE {`to_schema`}.{`to_table`} 
+                                    WITH (CLUSTERED COLUMNSTORE INDEX, 
+                                          DISTRIBUTION = HASH ({`date_var`})) AS ",
+                               .con = conn_dw)
+  
   if (full_refresh == F) {
     # Select the source, depending on if deduplication has been carried out
     if (is.na(duplicate_type)) {
