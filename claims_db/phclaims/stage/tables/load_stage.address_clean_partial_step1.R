@@ -75,7 +75,7 @@ load_stage.address_clean_partial_1 <- function(conn = NULL,
                      RSDNTL_CITY_NAME AS 'geo_city_raw', 
                      RSDNTL_STATE_CODE AS 'geo_state_raw', 
                      RSDNTL_POSTAL_CODE AS 'geo_zip_raw', 
-                     geo_hash_raw
+                     geo_hash_raw, etl_batch_id
                      FROM {`from_schema`}.{`from_table`}) a
                    LEFT JOIN
                    (SELECT geo_hash_raw, 1 AS [exists] FROM {`ref_schema`}.{`ref_table`}) b
