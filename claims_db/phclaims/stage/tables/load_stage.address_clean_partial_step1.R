@@ -77,7 +77,7 @@ load_stage.address_clean_partial_1 <- function(conn = NULL,
                      geo_hash_raw
                      FROM {`from_schema`}.{`from_table`}) a
                    LEFT JOIN
-                   (SELECT geo_hash_raw, 1 AS [exists] FROM {`ref_schema`}{`ref_table`}) b
+                   (SELECT geo_hash_raw, 1 AS [exists] FROM {`ref_schema`}.{`ref_table`}) b
                    ON a.geo_hash_raw = b.geo_hash_raw
                    WHERE b.[exists] IS NULL",
                         .con = conn))
