@@ -69,8 +69,8 @@ load_stage.address_clean_partial_1 <- function(conn = NULL,
                    b.[exists]
                    FROM
                    (SELECT 
-                     RSDNTL_ADRS_LINE_1 END AS 'geo_add1_raw', 
-                     RSDNTL_ADRS_LINE_2 END AS 'geo_add2_raw', 
+                     RSDNTL_ADRS_LINE_1 AS 'geo_add1_raw', 
+                     RSDNTL_ADRS_LINE_2 AS 'geo_add2_raw', 
                      RSDNTL_CITY_NAME AS 'geo_city_raw', 
                      RSDNTL_STATE_CODE AS 'geo_state_raw', 
                      RSDNTL_POSTAL_CODE AS 'geo_zip_raw', 
