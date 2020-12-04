@@ -152,10 +152,10 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   
   
   ### Add index if needed
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
   if (server == "phclaims") {
-    add_index_f(conn = conn_db, table_config = config)
+    add_index_f(conn = conn_db, server = server, table_config = config)
   }
-  
   
   
   #### QA CHECK: NUMBER OF ROWS IN SQL TABLE ####
@@ -194,8 +194,8 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
       row_diff_qa_note <- paste0('Number of rows in stage matches raw (', rows_stage, ')')
     }
   }
-
   
+
   if (rows_diff != 0) {
     row_diff_qa_fail <- 1
     DBI::dbExecute(conn = conn_db,
