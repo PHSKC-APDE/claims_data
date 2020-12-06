@@ -7,16 +7,28 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/apcd/master_apcd_analytic.R
 
 #### Load script ####
-load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL) {
+load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calendar_year = T, table_name = NULL) {
   
   ### Require extract_end_date
   if (is.null(from_date) | is.null(to_date)) {
     stop("Enter the from and to date for this PLR table: \"YYYY-MM-DD\"")
   }
   
+  ### Require table name if not running on a complete calendar year
+  if (calendar_year = F & is.null(table_name)) {
+    stop("Enter a table name for this non-calendar year table: \"YYYYMMDD\"")
+  }
+  
   ### Process year for table name
-  table_name_year <- stringr::str_sub(from_date,1,4)
-  table_name_year <- paste0("apcd_elig_plr_", table_name_year)
+  if (calendar_year = T) {
+    table_name_year <- stringr::str_sub(from_date,1,4)
+    table_name_year <- paste0("apcd_elig_plr_", table_name_year)
+  }
+  
+  if (calendar_year = F) {
+    table_name_year <- table_name
+  }
+  
   
   ### Run SQL query
   odbc::dbGetQuery(db_claims, glue::glue_sql(
