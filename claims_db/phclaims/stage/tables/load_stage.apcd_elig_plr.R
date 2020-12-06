@@ -26,9 +26,8 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
   }
   
   if (calendar_year == F) {
-    table_name_year <- table_name
+    table_name_year <- paste0("apcd_elig_plr_", table_name)
   }
-  
   
   ### Run SQL query
   odbc::dbGetQuery(db_claims, glue::glue_sql(
