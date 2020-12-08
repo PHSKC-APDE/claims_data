@@ -18,6 +18,9 @@ hhsaw:
     qa_table: metadata_
 index_type: ccs
 index_name: idx_ccs_ref_address_clean
+informatica_ref_schema: ref
+informatica_input_table: informatica_address_input_test
+informatica_output_table: informatica_address_output
 vars:
     geo_add1_raw: VARCHAR(255)
     geo_add2_raw: VARCHAR(255)
