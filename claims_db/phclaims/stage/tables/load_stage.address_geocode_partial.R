@@ -23,8 +23,7 @@ stage_address_geocode_f <- function(conn = NULL,
                                     config = NULL,
                                     get_config = F,
                                     full_refresh = F) {
- 
-  
+
   # Set up variables specific to the server
   server <- match.arg(server)
   
@@ -96,6 +95,7 @@ stage_address_geocode_f <- function(conn = NULL,
   adds_coded_esri <- bind_rows(lapply(adds_to_code$geo_add_single, kc_geocode, 
                                       street = NULL, city = NULL, zip = NULL, max_return = 10,
                                       best_result = T))
+  
   
   
   ### Convert CRS and set up fields of interest
@@ -464,8 +464,7 @@ stage_address_geocode_f <- function(conn = NULL,
     select(geo_add1_clean:geo_wa_legdist, SCCDST,
            geometry) %>%
     rename(geo_scc_dist = SCCDST)
-  
-  
+
   ### Convert factors to character etc.
   adds_coded_load <- adds_coded_joined %>%
     mutate_at(vars(geo_zip_clean, 
@@ -474,12 +473,12 @@ stage_address_geocode_f <- function(conn = NULL,
                    geo_zcta5ce10, geo_zcta_geoid10, geo_hra, geo_region, 
                    geo_school_geoid10, geo_school),
               list( ~ as.character(.))) %>%
+    mutate(geo_scc_dist = str_replace(geo_scc_dist, "SCC", "")) %>%
     mutate_at(vars(geo_kcc_dist, geo_wa_legdist, geo_scc_dist),
               list( ~ as.integer(.))) %>%
     st_drop_geometry() %>%
     mutate(last_run = Sys.time())
-  
-  
+
   #### RENAME FIELDS ####
   # Not currently doing this. Think through more.
   # If doing, need to finish renames here and change YAML file
