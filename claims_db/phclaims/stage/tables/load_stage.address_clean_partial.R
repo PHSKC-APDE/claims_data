@@ -314,7 +314,6 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   
   #### CLEAN UP ####
   rm(list = ls(pattern = "^new_add"))
-  rm(informatica_add)
   rm(manual_add, in_manual)
   rm(geocode_path)
   
