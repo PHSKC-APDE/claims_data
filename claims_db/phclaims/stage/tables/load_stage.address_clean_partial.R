@@ -114,6 +114,7 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
                                                    source = NULL,
                                                    informatica_timestamp = NULL,
                                                    get_config = F) {
+
   #### SET UP SERVER ####
   if (is.null(server)) {
     server <- NA
@@ -165,8 +166,8 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
                                     [geo_state_raw] AS 'old_state', 
                                     [geo_zip_raw] AS 'old_zip'
                                   FROM {`informatica_ref_schema`}.{`informatica_output_table`}
-                                  WHERE geo_source = {`source`} AND timestamp = {`timestamp`}",
-                   .con = conn))
+                                  WHERE geo_source = {source} AND timestamp = {informatica_timestamp}"
+                   ,.con = conn))
   
   
   #### NEED TO SEE HOW geo_hash_raw LOOKS AFTER INFORMATICA PROCESS ####
@@ -178,22 +179,12 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   ### Convert missing to NA so joins work and take distinct
   # The latest version produced by Informatica had a different column structure
   # so need to account for that
-  if ("#id" %in% names(new_add_in)) {
-    new_add_in <- new_add_in %>%
-      mutate_at(vars(add1, add2, po_box, city, state, zip, 
-                     old_add1, old_add2, old_city, old_state, old_zip),
-                list( ~ ifelse(. == "" | . == "NA" | is.na(.), NA_character_, .))) %>%
-      select(-`#id`, -mailabilty_score) %>%
-      distinct()
-  } else {
-    new_add_in <- new_add_in %>%
-      rename(add1 = "#add1") %>%
+  new_add_in <- new_add_in %>%
       mutate_at(vars(add1, add2, po_box, city, state, zip,
                      old_add1, old_add2, old_city, old_state, old_zip),
                 list( ~ ifelse(. == "" | . == "NA" | is.na(.), NA_character_, .))) %>%
-      select(-mailabilty_score) %>%
       distinct()
-  }
+
   
   
   ### Informatica seems to drop secondary designators when they start with #
@@ -316,7 +307,7 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   #### STEP 2C: APPEND to SQL ####
   conn <- create_db_connection(server)
   dbWriteTable(conn, 
-               name = DBI::Id(schema = to_schema,  table = 'address_clean_test'),
+               name = DBI::Id(schema = to_schema,  table = to_table),
                new_add_final,
                overwrite = F, append = T)
   
