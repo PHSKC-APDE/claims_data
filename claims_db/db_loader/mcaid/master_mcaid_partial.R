@@ -17,52 +17,32 @@ library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
 library(sf) # Read shape files
 library(keyring) # Access stored credentials
-
-
-server <- select.list(choices = c("phclaims", "hhsaw"))
-
-
-
-if (server == "phclaims") {
-  db_claims <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
-} else if (server == "hhsaw") {
-  db_claims <- DBI::dbConnect(odbc::odbc(),
-                              driver = "ODBC Driver 17 for SQL Server",
-                              server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
-                              database = "hhs_analytics_workspace",
-                              uid = keyring::key_list("hhsaw_dev")[["username"]],
-                              pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
-                              Encrypt = "yes",
-                              TrustServerCertificate = "yes",
-                              Authentication = "ActiveDirectoryPassword")
-  
-  dw_inthealth <- DBI::dbConnect(odbc::odbc(),
-                                 driver = "ODBC Driver 17 for SQL Server",
-                                 server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
-                                 database = "inthealth_edw",
-                                 uid = keyring::key_list("hhsaw_dev")[["username"]],
-                                 pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
-                                 Encrypt = "yes",
-                                 TrustServerCertificate = "yes",
-                                 Authentication = "ActiveDirectoryPassword")
-}
-
+library(dplyr)
+library(magrittr)
 
 # These are use for geocoding new addresses
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
 s_shapes <- "//phshare01/epe_share/WORK/REQUESTS/Maps/Shapefiles/"
 g_shapes <- "//gisdw/kclib/Plibrary2/"
 
-
-
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/copy_into.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/mcaid/create_db_connection.R")
 
+#### CHOOSE SERVER AND CREATE CONNECTION ####
+server <- select.list(choices = c("phclaims", "hhsaw"))
+db_claims <- create_db_connection(server)
+
+if (server == "hhsaw") {
+  dw_inthealth <- create_db_connection("inthealth")
+}
 
 #### RAW ELIG ####
 ### Bring in yaml file and function
@@ -170,46 +150,49 @@ if (server == "hhsaw") {
                                       config = table_config_stage_elig))
 }
 
-
-
 #### STAGE CLAIM ####
 # Call in config file to get vars (and check for errors)
 table_config_stage_claims <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
 if (table_config_stage_claims[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
-system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, 
+if (server == "hhsaw") {
+ system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, 
                                             conn_db = db_claims, 
+                                            server = server,
                                             full_refresh = F, 
                                             config = table_config_stage_claims))
-
+} else if (server == "phclaims") {
+  system.time(load_claims.stage_mcaid_claim_f(conn_dw = db_claims, 
+                                              conn_db = db_claims, 
+                                              server = server,
+                                              full_refresh = F, 
+                                              config = table_config_stage_claims))
+}
 
 #### ADDRESS CLEANING ####
 ### stage.address_clean
 # Call in config file to get vars
 stage_address_clean_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial.R")
 
 # Run step 1, which identifies new addresses and sets them up to be run through Informatica
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step1.R")
-
-load_stage.address_clean_partial_1(conn = db_claims, 
-                                   server = server, 
-                                   config = stage_address_clean_config)
-
-
-#### MANUAL PAUSE ####
-# Need to get the Informatica process automated
+stage_address_clean_timestamp <- load_stage.address_clean_partial_step1(server = server,
+                                                                        config = stage_address_clean_config,
+                                                                        source = 'mcaid')
+#### PAUSE ####
+# Wait for Informatica process overnight
 
 # Run step 2, which processes addresses that were through Informatica and loads to SQL
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial_step2.R")
-load_stage.address_clean_partial_2(conn = db_claims, 
-                                   server = server, 
-                                   config = stage_address_clean_config)
+load_stage.address_clean_partial_step2(server = server,
+                                       config = stage_address_clean_config,
+                                       source = 'mcaid',
+                                       informatica_timestamp = stage_address_clean_timestamp)
 
 # QA stage.address_clean
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.address_clean_partial.R")
-qa_stage_address_clean <- qa.address_clean_partial(conn = db_claims, 
-                                                   server = server, 
+qa_stage_address_clean <- qa.address_clean_partial(conn = db_claims,
+                                                   server = server,
                                                    config = stage_address_clean_config)
 
 
@@ -267,8 +250,7 @@ if (qa_stage_address_clean == 0) {
 }
 
 ### Clean up
-rm(stage_address_clean_config, load_stage.address_clean_partial_1, load_stage.address_clean_partial_2, 
-   qa.address_clean_partial, qa_stage_address_clean)
+rm(stage_address_clean_config, qa.address_clean_partial, qa_stage_address_clean)
 
 
 
@@ -311,7 +293,7 @@ if (qa_stage_address_geocode == 0) {
   # Load final table (assumes no changes to table structure)
   load_table_from_sql_f(conn = db_claims,
                         server = server,
-                        config = ref_address_geocode_config,
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
                         truncate = T, truncate_date = F)
   
   
