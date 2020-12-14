@@ -14,11 +14,11 @@ hhsaw:
     ext_data_source: datascr_WS_EDW
     ext_schema: stg_claims
     ext_table: mcaid_elig_incr
-    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/incr/KC_Elig_20201027.gz
-row_count: 5337883
-date_min: 201910
-date_max: 20209
-date_delivery: 2020-10-27
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/incr/KC_Elig_20201118.gz
+row_count: 5378252
+date_min: 201911
+date_max: 202010
+date_delivery: 2020-11-24
 index_type: ccs
 index_name: idx_ccs_load_raw_mcaid_elig
 vars:
