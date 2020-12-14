@@ -84,18 +84,20 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
                    .con = conn))
   
   #### STEP 1B: Output data to run through Informatica ####
-  library(magrittr)
-  library(dplyr)
-  new_add_out <- new_add %>% 
-    distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw, geo_hash_raw)
+  # Record current time
   cur_timestamp <- Sys.time()
-  drops <- c("geo_hash_raw")
-  new_add_out <- new_add_out[ , !(names(new_add_out) %in% drops)]
-  new_add_out["geo_source"] = "mcaid"
-  new_add_out["timestamp"] = cur_timestamp
+  
+  new_add_out <- new_add %>% 
+    distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw, geo_hash_raw) %>%
+    mutate(geo_source = source,
+           timestamp = cur_timestamp) %>%
+    select(-geo_hash_raw)
 
-  conn <- create_db_connection("hhsaw")
-  DBI::dbAppendTable(conn, DBI::Id(schema = informatica_ref_schema, table = informatica_input_table), new_add_out)
+
+  # Make connection to HHSAW
+  conn_hhsaw <- create_db_connection("hhsaw")
+  DBI::dbAppendTable(conn_hhsaw, DBI::Id(schema = informatica_ref_schema, table = informatica_input_table), 
+                     new_add_out)
   message(nrow(new_add_out), " addresses were exported for Informatica cleanup")
   return(cur_timestamp)
 }
