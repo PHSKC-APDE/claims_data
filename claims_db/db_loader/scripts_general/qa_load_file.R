@@ -454,7 +454,12 @@ qa_load_row_count_f <- function(conn,
   #### REPORT RESULTS BACK ####
   if (min(qa_results$qa_result, na.rm = T) == 1) {
     outcome <- "PASS"
-    note <- "Number of rows loaded to SQL match expected value(s)"
+    note <- paste0("Number of rows loaded to SQL match expected value(s) (")
+    note <- paste0("Number of rows loaded to SQL match expected value(s): ",
+                   paste(qa_results$source_year[qa_results$qa_result == F],
+                         " (Expected/actual: ", 
+                         qa_results$expected_count[qa_results$qa_result == F],
+                         ")", sep = "", collapse = "; "))
     result <- qa_results
   } else {
     outcome <- "FAIL"
