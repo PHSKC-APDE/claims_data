@@ -111,8 +111,8 @@ if (qa_stage_mcaid_elig_demo == 0) {
   
   rm(qa_rows_final_elig_demo, to_schema, to_table, qa_schema, qa_table)
 } else {
-  stop(glue::glue("Something went wrong with the mcaid_elig_demo run. See {`final_mcaid_elig_demo_config[[server]][['qa_schema']]`}.
-    {DBI::SQL(final_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid"))
+  stop(glue::glue("Something went wrong with the mcaid_elig_demo run. See {`stage_mcaid_elig_demo_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid"))
 }
 
 
@@ -180,8 +180,8 @@ if (qa_stage_mcaid_elig_timevar == 0) {
   
   rm(qa_rows_final_elig_timevar, to_schema, to_table, qa_schema, qa_table)
 } else {
-  stop(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {`final_mcaid_elig_timevar_config[[server]][['qa_schema']]`}.
-    {DBI::SQL(final_mcaid_elig_timevar_config[[server]][['qa_table']])}qa_mcaid"))
+  stop(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {`stage_mcaid_elig_timevar_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(stage_mcaid_elig_timevar_config[[server]][['qa_table']])}qa_mcaid"))
 }
 
 
@@ -293,7 +293,7 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
     # Rename to final table
     if (server == "hhsaw") {
       DBI::dbSendQuery(db_claims, glue::glue_sql(
-        "EXEC sp_rename '{DBI::SQL(from_schema)}.{DBI::SQL(from_table)}',  {to_table}", .con = db_Claims))
+        "EXEC sp_rename '{DBI::SQL(from_schema)}.{DBI::SQL(from_table)}',  {to_table}", .con = db_claims))
     } else if (server == "phclaims") {
       alter_schema_f(conn = db_claims, 
                      from_schema = from_schema, 
@@ -370,6 +370,8 @@ if (sum(claim_line_fail, claim_icdcm_header_fail, claim_procedure_fail, claim_ph
 }
 
 
+# NB. The script does not stop if the header table fails because it is not within a function.
+# Need to check that the header table passes QA then set the rest up within an if statement.
 
 #### MCAID_CLAIM_CCW ####
 claim_ccw_fail <- claim_load_f(table = "ccw")
