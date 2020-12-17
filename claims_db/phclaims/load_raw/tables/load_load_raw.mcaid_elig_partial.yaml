@@ -3,7 +3,7 @@ phclaims:
     to_table: mcaid_elig
     qa_schema: metadata
     qa_table: qa_mcaid
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_20201118.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_20201216.txt
     field_term: \t
     row_term: \n
 hhsaw:
@@ -14,11 +14,11 @@ hhsaw:
     ext_data_source: datascr_WS_EDW
     ext_schema: stg_claims
     ext_table: mcaid_elig_incr
-    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/incr/KC_Elig_20201118.gz
-row_count: 5378252
-date_min: 201911
-date_max: 202010
-date_delivery: 2020-11-24
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/incr/KC_Elig_20201216.gz
+row_count: 5421805
+date_min: 201912
+date_max: 202011
+date_delivery: 2020-12-17
 index_type: ccs
 index_name: idx_ccs_load_raw_mcaid_elig
 vars:
