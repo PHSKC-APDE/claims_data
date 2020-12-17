@@ -5,8 +5,8 @@ phclaims:
     stage_table: 
     ref_schema: ref
     ref_table: 
-    final_schema: final
-    final_table: 
+    archive_schema: archive
+    archive_table: 
 hhsaw:
     to_schema: claims
     to_table: stage_mcaid_perf_enroll_denom
@@ -14,8 +14,8 @@ hhsaw:
     stage_table: stage_
     ref_schema: claims
     ref_table: ref_
-    final_schema: claims
-    final_table: final_
+    archive_schema: claims
+    archive_table: archive_
 index_type: cl
 index_name: idx_cl_mcaid_perf_enroll_provider_id_mcaid_year_month
 index:

@@ -37,8 +37,8 @@ load_stage_mcaid_perf_elig_member_month_f <- function(conn = NULL,
   
   #### Create table for temporary work ####
   # Drop existing table
-  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..#temp') IS NOT NULL 
-                 DROP TABLE #temp;")
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##temp') IS NOT NULL 
+                 DROP TABLE ##temp;")
   
   # Make table
   DBI::dbExecute(conn,
@@ -135,7 +135,7 @@ load_stage_mcaid_perf_elig_member_month_f <- function(conn = NULL,
                                 .con = conn))
   
   # Drop temp table
-  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..#temp') IS NOT NULL 
-                 DROP TABLE #temp;")
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##temp') IS NOT NULL 
+                 DROP TABLE ##temp;")
   
 }
