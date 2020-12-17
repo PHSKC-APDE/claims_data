@@ -21,15 +21,15 @@ load_stage_mcaid_perf_elig_member_month_f <- function(conn = NULL,
   if (server == "hhsaw") {
     to_schema <- "claims"
     to_table <- "stage_"
-    final_schema <- "claims"
-    final_table <- "final_"
+    from_schema <- "claims"
+    from_table <- "stage"
     ref_schema <- "claims"
     ref_table <- "ref_"
   } else if (server == "phclaims") {
     to_schema <- "stage"
     to_table <- ""
-    final_schema <- "final"
-    final_table <- ""
+    from_schema <- "stage"
+    from_table <- ""
     ref_schema <- "ref"
     ref_table <- ""
   }
@@ -60,7 +60,7 @@ load_stage_mcaid_perf_elig_member_month_f <- function(conn = NULL,
                  ,[TPL_FULL_FLAG]
                  ,[RSDNTL_POSTAL_CODE]
                  INTO #temp
-                 FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig;",
+                 FROM {`from_schema`}.{DBI::SQL(from_table)}mcaid_elig;",
                                 .con = conn))
   
   ### Make index
