@@ -1,5 +1,5 @@
 
-# This code creates table (claims.tmp_mcaid_claims_header) to hold DISTINCT 
+# This code creates table (claims.mcaid_claims_header) to hold DISTINCT 
 # header-level claim information in long format for Medicaid claims data
 #
 # It is designed to be run as part of the master Medicaid script:
@@ -1027,7 +1027,9 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 21: CLEAN UP TEMP TABLES ####
-  try(DBI::dbRemoveTable(conn, name = DBI::Id(schema = "tmp", table = "mcaid_claim_header")), silent = T)
+  try(DBI::dbRemoveTable(conn, 
+                         name = DBI::Id(schema = temp_schema, table = paste0(temp_table, "mcaid_claim_header"))),
+      silent = T)
   try(DBI::dbRemoveTable(conn, "##header", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##line", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##diag", temporary = T), silent = T)
