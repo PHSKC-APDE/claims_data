@@ -135,6 +135,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 0: SET UP TEMP TABLE ####
+  message("STEP 0: SET UP TEMP TABLE")
   ### Remove table if it exists
   try(DBI::dbRemoveTable(conn, name = DBI::Id(schema = temp_schema, 
                                               table = paste0(temp_table, "mcaid_claim_header"))),
@@ -178,6 +179,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 1: SELECT HEADER-LEVEL INFORMATION NEEDED FOR EVENT FLAGS ####
+  message("STEP 1: SELECT HEADER-LEVEL INFORMATION NEEDED FOR EVENT FLAGS")
   try(DBI::dbRemoveTable(conn, "##header", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
@@ -226,6 +228,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 2: SELECT LINE-LEVEL INFORMATION NEEDED FOR EVENT FLAGS ####
+  message("STEP 2: SELECT LINE-LEVEL INFORMATION NEEDED FOR EVENT FLAGS")
   try(DBI::dbRemoveTable(conn, "##line", temporary = T), silent = T)
   DBI::dbExecute(
     conn, glue::glue_sql(
@@ -248,6 +251,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 3: SELECT DX CODE INFORMATION NEEDED FOR EVENT FLAGS ####
+  message("STEP 3: SELECT DX CODE INFORMATION NEEDED FOR EVENT FLAGS")
   try(DBI::dbRemoveTable(conn, "##diag", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT dx.claim_header_id
@@ -315,6 +319,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 4: SELECT PROCEDURE CODE INFORMATION NEEDED FOR EVENT FLAGS ####
+  message("STEP 4: SELECT PROCEDURE CODE INFORMATION NEEDED FOR EVENT FLAGS")
   try(DBI::dbRemoveTable(conn, "##procedure_code", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT px.claim_header_id 
@@ -337,6 +342,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 5: HEDIS INPATIENT DEFINITION ####
+  message("STEP 5: HEDIS INPATIENT DEFINITION")
   try(DBI::dbRemoveTable(conn, "##hedis_inpatient_definition", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql(
@@ -370,7 +376,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                     INNER JOIN {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system AS b
                     ON [value_set_name] IN ('Nonacute Inpatient Stay')
                       AND [code_system] = 'UBTOB'
-                      AND a.[type_of_bill_code] = b.[code]
+                      AND a.[rev_code] = b.[code]
                   );", .con = conn))
   
   # Add index
