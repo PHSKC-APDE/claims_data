@@ -70,10 +70,9 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   
   if (full_refresh == F) {
     etl_batch_type <- "incremental"
-    date_truncate <- DBI::dbGetQuery(
-      conn_dw,
+    date_truncate <- as.Date(DBI::dbGetQuery(conn_dw,
       glue::glue_sql("SELECT MIN({`date_var`}) FROM {`from_schema`}.{`from_table`}",
-                     .con = conn_dw))
+                     .con = conn_dw))[[1]])
   } else {
     etl_batch_type <- "full"
   }
@@ -126,13 +125,13 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
       "{DBI::SQL(load_intro)}  
         SELECT {`vars`*} 
         FROM {`archive_schema`}.{`archive_table`}
-          WHERE {`date_var`} < {format(date_truncate, '%Y-%m-%d')}
+          WHERE {`date_var`} < {date_truncate}
         UNION
         SELECT DISTINCT CAST(YEAR([FROM_SRVC_DATE]) AS INT) * 100 + CAST(MONTH([FROM_SRVC_DATE]) AS INT) AS [CLNDR_YEAR_MNTH],
         MBR_H_SID, MEDICAID_RECIPIENT_ID, BABY_ON_MOM_IND, TCN, CLM_LINE_TCN,
         CAST(RIGHT(CLM_LINE_TCN, 3) AS INTEGER) AS CLM_LINE, {`vars_truncated`*}
         FROM {`from_schema`}.{`from_table`} 
-      WHERE {`date_var`} >= {format(date_truncate, '%Y-%m-%d')}",
+      WHERE {`date_var`} >= {date_truncate}",
       .con = conn_dw)
   } else if (full_refresh == T) {
     load_sql <- glue::glue_sql(
@@ -170,7 +169,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   if (full_refresh == F) {
     rows_archive <- as.numeric(dbGetQuery(
       conn_dw, glue::glue_sql("SELECT COUNT (*) FROM {`archive_schema`}.{`archive_table`} 
-                            WHERE {`date_var`} < {format(date_truncate, '%Y-%m-%d')}", 
+                            WHERE {`date_var`} < {date_truncate}", 
                               .con = conn_dw)))
     
     
