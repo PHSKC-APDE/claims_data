@@ -1,5 +1,5 @@
 
-# This code creates table (claims.mcaid_claims_header) to hold DISTINCT 
+# This code creates table (claims.mcaid_claim_header) to hold DISTINCT 
 # header-level claim information in long format for Medicaid claims data
 #
 # It is designed to be run as part of the master Medicaid script:
@@ -215,7 +215,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
               drvd_drg_code between '765' and '782' 
            then 1 else 0 end as 'maternal_drg_tob'
            INTO ##header
-           FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claims_header",
+           FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claim_header",
                                 .con = conn))
   
   # Add index
@@ -684,7 +684,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                       WHERE [procedure_code] in ('99281','99282','99283','99284','99285','99291')
                         AND [claim_header_id] in 
                           (SELECT [claim_header_id]
-                           FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claims_header
+                           FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claim_header
                            WHERE [place_of_service_code] = '23'
                            -- [claim_type_id] = 5, Provider/Professional
                            AND [claim_type_id] = 5)
@@ -698,7 +698,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                       WHERE [rev_code] in ('0450','0451','0452','0456','0459','0981')
                         AND [claim_header_id] in
                           (SELECT [claim_header_id]
-                           FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claims_header
+                           FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claim_header
                            -- [claim_type_id] = 5, Provider/Professional
                            WHERE [claim_type_id] = 5)
                       UNION
@@ -711,7 +711,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                       WHERE [procedure_code] in ('99281','99282','99283','99284','99285','99291')
                         AND [claim_header_id] in 
                           (SELECT [claim_header_id]
-                           FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claims_header
+                           FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claim_header
                            -- [claim_type_id] = 1, Inpatient Facility, [claim_type_id] = 4, Outpatient Facility
                            WHERE [claim_type_id] IN (1, 4))
                       UNION
@@ -720,7 +720,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                         ,[first_service_date]
                         ,[last_service_date]
                         ,'Facility' as [ed_type]
-                      FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claims_header
+                      FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claim_header
                       WHERE [place_of_service_code] = '23'
                         -- [claim_type_id] = 1, Inpatient Facility, [claim_type_id] = 4, Outpatient Facility
                         AND [claim_type_id] IN (1, 4)
@@ -734,7 +734,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                       WHERE [rev_code] in ('0450','0451','0452','0456','0459','0981')
                         AND [claim_header_id] in 
                           (SELECT [claim_header_id]
-                           FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claims_header
+                           FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claim_header
                            -- [claim_type_id] = 1, Inpatient Facility, [claim_type_id] = 4, Outpatient Facility
                            WHERE [claim_type_id] IN (1, 4));",
                          .con = conn))
