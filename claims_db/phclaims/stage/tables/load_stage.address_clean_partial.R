@@ -168,7 +168,9 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
                                     [geo_state_raw] AS 'old_state', 
                                     [geo_zip_raw] AS 'old_zip'
                                   FROM {`informatica_ref_schema`}.{`informatica_output_table`}
-                                  WHERE geo_source = {source} AND timestamp = {informatica_timestamp}"
+                                  WHERE geo_source = {source} AND 
+                                 convert(varchar, timestamp, 20) = 
+                                 {lubridate::with_tz(stage_address_clean_timestamp, 'utc')}"
                    ,.con = conn))
   
   
@@ -274,7 +276,7 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   
   #### Bring it all together ####
   ## NB THE PASTE COMMAND IN R WILL ADD THE STRING 'NA' WHEN IT ENCOUNTERS A TRUE NA VALUE.
-  # THIS IS UNDESIREABLE WHEN IT COMES OT MAKING HASHES SO NAs ARE REPLACED BY EMPTY STRINGS.
+  # THIS IS UNDESIREABLE WHEN IT COMES TO MAKING HASHES SO NAs ARE REPLACED BY EMPTY STRINGS.
   # THIS MEANS THE HAS WILL MATCH WHAT IS MADE IN SQL WITH THE SAME INPUTS.
   
   new_add_final <- bind_rows(new_add_trim, in_manual) %>%
