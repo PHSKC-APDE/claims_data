@@ -208,11 +208,17 @@ DBI::dbWriteTable(db_claims,
 conn_hhsaw <- create_db_connection("hhsaw")
 # Check to see if any addresses exist
 # Note need to round SQL time stamp to nearest second
+# NB. The code adds the current timestamp in Pacific time to the server, but the server
+#     stores it as UTC. Same is true when loading to the qa_mcaid_values table.
+#     However, the same is not true when checking the Informatica output table.
+#     Therefore need to do some timezone conversion.
+#     If loading from the qa_mcaid_values table, use as.POSIXct(<value>, tz = "UTC")
 add_output <- DBI::dbGetQuery(conn_hhsaw, 
                               glue::glue_sql("SELECT TOP (1) * 
                                FROM {`stage_address_clean_config[['informatica_ref_schema']]`}.{`stage_address_clean_config[['informatica_output_table']]`} 
-                               WHERE geo_source = 'mcaid2' AND 
-                                             convert(varchar, timestamp, 20) = {stage_address_clean_timestamp}",
+                               WHERE geo_source = 'mcaid' AND 
+                                             convert(varchar, timestamp, 20) = 
+                                             {lubridate::with_tz(stage_address_clean_timestamp, 'utc')}",
                                              .con = conn_hhsaw))
 
 while(nrow(add_output) == 0) {
@@ -224,7 +230,8 @@ while(nrow(add_output) == 0) {
   add_output <- DBI::dbGetQuery(conn_hhsaw, 
                                 glue::glue_sql("SELECT TOP (1) * 
                                FROM {`stage_address_clean_config[['informatica_ref_schema']]`}.{`stage_address_clean_config[['informatica_output_table']]`} 
-                               WHERE geo_source = 'mcaid2' AND convert(varchar, timestamp, 20) = {stage_address_clean_timestamp}",
+                               WHERE geo_source = 'mcaid2' AND convert(varchar, timestamp, 20) = 
+                                               {lubridate::with_tz(stage_address_clean_timestamp, 'utc')}",
                                                .con = conn_hhsaw))
 }
 
@@ -379,27 +386,28 @@ rm(stage_address_geocode_config, qa_stage_address_geocode, stage_address_geocode
 # Not always clear which server will be loaded first with new addresses, so check both 
 #   and update the other table accordingly
 
-# Call in config file to get vars
-ref_address_clean_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
-ref_address_geocode_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml"))
-
-
 ### Set up server-specific connections
 conn_hhsaw <- create_db_connection("hhsaw")
 conn_phclaims <- create_db_connection("phclaims")
 
-
 ### address_clean table
+# Call in config file to get vars
+ref_address_clean_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
+
+hhsaw_schema <- ref_address_clean_config[['hhsaw']][['to_schema']]
+hhsaw_table <- ref_address_clean_config[['hhsaw']][['to_table']]
+phclaims_schema <- ref_address_clean_config[['phclaims']][['to_schema']]
+phclaims_table <- ref_address_clean_config[['phclaims']][['to_table']]
+
+
 # Bring in all addresses
 address_clean_hhsaw <- DBI::dbGetQuery(
   conn_hhsaw,
-  glue::glue_sql("SELECT * FROM {`ref_address_clean_config[['hhsaw']][['to_schema']]`}.{`ref_address_clean_config[['hhsaw']][['to_table']]`}",
-                 .con = conn_hhsaw))
+  glue::glue_sql("SELECT * FROM {`hhsaw_schema`}.{`hhsaw_table`}", .con = conn_hhsaw))
 
 address_clean_phclaims <- DBI::dbGetQuery(
   conn_phclaims,
-  glue::glue_sql("SELECT * FROM {`ref_address_clean_config[['phclaims']][['to_schema']]`}.{`ref_address_clean_config[['phclaims']][['to_table']]`}",
-                 .con = conn_phclaims))
+  glue::glue_sql("SELECT * FROM {`phclaims_schema`}.{`phclaims_table`}", .con = conn_phclaims))
 
 # Compare and find differences
 update_hhsaw <- anti_join(address_clean_phclaims, address_clean_hhsaw,
@@ -412,31 +420,38 @@ update_phclaims <- anti_join(address_clean_hhsaw, address_clean_phclaims,
 # Update tables so they are in sync
 if (nrow(update_hhsaw) > 0) {
   DBI::dbWriteTable(conn_hhsaw, 
-                    name = DBI::Id(schema = ref_address_clean_config[['hhsaw']][['to_schema']],
-                                   table = ref_address_clean_config[['hhsaw']][['to_table']]),
+                    name = DBI::Id(schema = hhsaw_schema, table = hhsaw_table),
                     value = update_hhsaw,
                     append = T)
 }
+message(nrow(update_hhsaw), " address rows loaded from PHClaims to HHSAW")
 
 if (nrow(update_phclaims) > 0) {
   DBI::dbWriteTable(conn_phclaims, 
-                    name = DBI::Id(schema = ref_address_clean_config[['phclaims']][['to_schema']],
-                                   table = ref_address_clean_config[['phclaims']][['to_table']]),
+                    name = DBI::Id(schema = phclaims_schema, table = phclaims_table),
                     value = update_phclaims,
                     append = T)
 }
+message(nrow(update_phclaims), " address rows loaded from HHSAW to PHClaims")
 
 
 ### address_geocode table
+# Call in config file to get vars
+ref_address_geocode_config <- yaml::yaml.load(RCurl::getURL("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml"))
+
+hhsaw_schema <- ref_address_geocode_config[['hhsaw']][['to_schema']]
+hhsaw_table <- ref_address_geocode_config[['hhsaw']][['to_table']]
+phclaims_schema <- ref_address_geocode_config[['phclaims']][['to_schema']]
+phclaims_table <- ref_address_geocode_config[['phclaims']][['to_table']]
+
 # Bring in all addresses
 address_geocode_hhsaw <- DBI::dbGetQuery(
   conn_hhsaw,
-  glue::glue_sql("SELECT * FROM {`ref_address_geocode_config[['hhsaw']][['to_schema']]`}.{`ref_address_geocode_config[['hhsaw']][['to_table']]`}",
-                 .con = conn_hhsaw))
+  glue::glue_sql("SELECT * FROM {`hhsaw_schema`}.{`hhsaw_table`}", .con = conn_hhsaw))
 
 address_geocode_phclaims <- DBI::dbGetQuery(
   conn_phclaims,
-  glue::glue_sql("SELECT * FROM {`ref_address_geocode_config[['phclaims']][['to_schema']]`}.{`ref_address_geocode_config[['phclaims']][['to_table']]`}",
+  glue::glue_sql("SELECT * FROM {`phclaims_schema`}.{`phclaims_table`}",
                  .con = conn_phclaims))
 
 # Compare and find differences
@@ -450,19 +465,19 @@ update_phclaims <- anti_join(address_geocode_hhsaw, address_geocode_phclaims,
 # Update tables so they are in sync
 if (nrow(update_hhsaw) > 0) {
   DBI::dbWriteTable(conn_hhsaw, 
-                    name = DBI::Id(schema = ref_address_geocode_config[['hhsaw']][['to_schema']],
-                                   table = ref_address_geocode_config[['hhsaw']][['to_table']]),
+                    name = DBI::Id(schema = hhsaw_schema, table = hhsaw_table),
                     value = update_hhsaw,
                     append = T)
 }
+message(nrow(update_hhsaw), " geocode rows loaded from PHClaims to HHSAW")
 
 if (nrow(update_phclaims) > 0) {
   DBI::dbWriteTable(conn_phclaims, 
-                    name = DBI::Id(schema = ref_address_geocode_config[['phclaims']][['to_schema']],
-                                   table = ref_address_geocode_config[['phclaims']][['to_table']]),
+                    name = DBI::Id(schema = phclaims_schema, table = phclaims_table),
                     value = update_phclaims,
                     append = T)
 }
+message(nrow(update_phclaims), " geocode rows loaded from HHSAW to PHClaims")
 
 
 ### Should think about updating QA tables here too

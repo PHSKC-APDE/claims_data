@@ -109,7 +109,7 @@ if (qa_stage_mcaid_elig_demo == 0) {
                    .con = db_claims))
   
   
-  rm(qa_rows_final_elig_demo, to_schema, to_table, qa_schema, qa_table)
+  rm(final_mcaid_elig_demo_config, qa_rows_final_elig_demo, to_schema, to_table, qa_schema, qa_table)
 } else {
   stop(glue::glue("Something went wrong with the mcaid_elig_demo run. See {`stage_mcaid_elig_demo_config[[server]][['qa_schema']]`}.
     {DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid"))
@@ -118,7 +118,7 @@ if (qa_stage_mcaid_elig_demo == 0) {
 
 ### Clean up
 rm(qa_stage_mcaid_elig_demo, stage_mcaid_elig_demo_config, load_stage_mcaid_elig_demo_f, 
-   last_run_elig_demo, final_mcaid_elig_demo_config)
+   last_run_elig_demo)
 
 
 
@@ -178,7 +178,7 @@ if (qa_stage_mcaid_elig_timevar == 0) {
                  {qa_rows_final_elig_timevar$note})",
                    .con = db_claims))
   
-  rm(qa_rows_final_elig_timevar, to_schema, to_table, qa_schema, qa_table)
+  rm(final_mcaid_elig_timevar_config, qa_rows_final_elig_timevar, to_schema, to_table, qa_schema, qa_table)
 } else {
   stop(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {`stage_mcaid_elig_timevar_config[[server]][['qa_schema']]`}.
     {DBI::SQL(stage_mcaid_elig_timevar_config[[server]][['qa_table']])}qa_mcaid"))
@@ -187,7 +187,7 @@ if (qa_stage_mcaid_elig_timevar == 0) {
 
 ### Clean up
 rm(qa_stage_mcaid_elig_timevar, stage_mcaid_elig_timevar_config, load_stage_mcaid_elig_timevar_f, 
-   last_run_elig_timevar, final_mcaid_elig_timevar_config)
+   last_run_elig_timevar)
 
 
 
@@ -293,7 +293,7 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
     # Rename to final table
     if (server == "hhsaw") {
       DBI::dbSendQuery(db_claims, glue::glue_sql(
-        "EXEC sp_rename '{DBI::SQL(from_schema)}.{DBI::SQL(from_table)}',  {to_table}", .con = db_claims))
+        "EXEC sp_rename '{DBI::SQL(from_schema)}.{DBI::SQL(from_table)}',  {to_table}", .con = db_Claims))
     } else if (server == "phclaims") {
       alter_schema_f(conn = db_claims, 
                      from_schema = from_schema, 
@@ -370,8 +370,6 @@ if (sum(claim_line_fail, claim_icdcm_header_fail, claim_procedure_fail, claim_ph
 }
 
 
-# NB. The script does not stop if the header table fails because it is not within a function.
-# Need to check that the header table passes QA then set the rest up within an if statement.
 
 #### MCAID_CLAIM_CCW ####
 claim_ccw_fail <- claim_load_f(table = "ccw")
