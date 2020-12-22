@@ -384,6 +384,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 6: PRIMARY CARE PROVIDERS ####
+  message("STEP 6: PRIMARY CARE PROVIDERS")
   try(DBI::dbRemoveTable(conn, "##pc_provider", temporary = T), silent = T)
   
   DBI::dbExecute(conn,
@@ -403,6 +404,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 7: CREATE TEMP SUMMARY CLAIMS TABLE WITH EVENT-BASED FLAGS ####
+  message("STEP 7: CREATE TEMP SUMMARY CLAIMS TABLE WITH EVENT-BASED FLAGS")
   try(DBI::dbRemoveTable(conn, "##temp1", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
@@ -474,6 +476,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 8: AVOIDABLE ED VISIT FLAG, CALIFORNIA ALGORITHM ####
+  message("STEP 8: AVOIDABLE ED VISIT FLAG, CALIFORNIA ALGORITHM")
   try(DBI::dbRemoveTable(conn, "##avoid_ca", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
@@ -491,6 +494,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 9: ED CLASSIFICATION, NYU ALGORITHM ####
+  message("STEP 9: ED CLASSIFICATION, NYU ALGORITHM")
   try(DBI::dbRemoveTable(conn, "##avoid_nyu", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("select 
@@ -516,6 +520,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 10: CCS GROUPINGS (CCS, CCS-LEVEL 1, CCS-LEVEL 2), PRIMARY DX, FINAL CATEGORIZATION ####
+  message("STEP 10: CCS GROUPINGS (CCS, CCS-LEVEL 1, CCS-LEVEL 2), PRIMARY DX, FINAL CATEGORIZATION")
   try(DBI::dbRemoveTable(conn, "##ccs", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
@@ -543,6 +548,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 11: RDA MENTAL HEALTH AND SUBSTANCE USE DISORDER DX FLAGS, ANY DX ####
+  message("STEP 11: RDA MENTAL HEALTH AND SUBSTANCE USE DISORDER DX FLAGS, ANY DX")
   try(DBI::dbRemoveTable(conn, "##rda", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
@@ -561,6 +567,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 12: INJURY INTENT AND MECHANISM, ICD9-CM ####
+  message("STEP 12: INJURY INTENT AND MECHANISM, ICD9-CM")
   try(DBI::dbRemoveTable(conn, "##injury9cm", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
@@ -590,6 +597,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 13: INJURY INTENT AND MECHANISM, ICD10-CM ####
+  message("STEP 13: INJURY INTENT AND MECHANISM, ICD10-CM")
   try(DBI::dbRemoveTable(conn, "##injury10cm", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
@@ -649,6 +657,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 14: UNION ICD9-CM AND ICD10-CM INJURY TABLES ####
+  message("STEP 14: UNION ICD9-CM AND ICD10-CM INJURY TABLES")
   try(DBI::dbRemoveTable(conn, "##injury", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT claim_header_id, intent, mechanism 
@@ -664,6 +673,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 15: CREATE ID COLUMNS FOR EVENTS THAT ARE ONLY COUNTED ONCE PER DAY ####
+  message("STEP 15: CREATE ID COLUMNS FOR EVENTS THAT ARE ONLY COUNTED ONCE PER DAY")
   # [ed_pophealth_id] (YALE ED MEASURE)
   # [ed_perform_id]
   # [inpatient_id]
@@ -871,6 +881,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 16: CREATE FLAGS THAT REQUIRE COMPARISON OF PREVIOUSLY CREATED EVENT-BASED FLAGS ACROSS TIME ####
+  message("STEP 16: CREATE FLAGS THAT REQUIRE COMPARISON OF PREVIOUSLY CREATED EVENT-BASED FLAGS ACROSS TIME")
   try(DBI::dbRemoveTable(conn, "##temp2", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  "SELECT temp1.*, case when ed_nohosp.ed_nohosp = 1 then 1 else 0 end as 'ed_nohosp'
@@ -911,6 +922,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 17: CREATE FINAL TABLE STRUCTURE ####
+  message("STEP 17: CREATE FINAL TABLE STRUCTURE")
   create_table_f(conn = conn, 
                  config = config,
                  server = server,
@@ -918,6 +930,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 18: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE) ####
+  message("STEP 18: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE)")
   try(DBI::dbRemoveTable(conn, "##temp_final", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  "SELECT 
@@ -1011,6 +1024,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 19: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER ####
+  message("STEP 19: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER")
   message("Loading to stage table")
   
   # Delete and remake table
@@ -1026,6 +1040,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 20: ADD INDEX ####
+  message("STEP 20: ADD INDEX")
   message("Creating index on final table")
   time_start <- Sys.time()
   add_index_f(conn, server = server, table_config = config)
@@ -1036,6 +1051,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   #### STEP 21: CLEAN UP TEMP TABLES ####
+  message("STEP 21: CLEAN UP TEMP TABLES")
   try(DBI::dbRemoveTable(conn, 
                          name = DBI::Id(schema = temp_schema, table = paste0(temp_table, "mcaid_claim_header"))),
       silent = T)
