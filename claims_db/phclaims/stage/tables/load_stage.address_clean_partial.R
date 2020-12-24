@@ -93,13 +93,18 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
            timestamp = cur_timestamp) %>%
     select(-geo_hash_raw)
 
+  if (nrow(new_add_out) > 0) {
+    # Make connection to HHSAW
+    conn_hhsaw <- create_db_connection("hhsaw")
+    DBI::dbAppendTable(conn_hhsaw, DBI::Id(schema = informatica_ref_schema, table = informatica_input_table), 
+                       new_add_out)
+    message(nrow(new_add_out), " addresses were exported for Informatica cleanup")
+    return(cur_timestamp)
+  } else {
+    message("There were ", nrow(new_add_out), " new addresses. Nothing was exported for Informatica cleanup")
+    return(nrow(new_add_out))
+  }
 
-  # Make connection to HHSAW
-  conn_hhsaw <- create_db_connection("hhsaw")
-  DBI::dbAppendTable(conn_hhsaw, DBI::Id(schema = informatica_ref_schema, table = informatica_input_table), 
-                     new_add_out)
-  message(nrow(new_add_out), " addresses were exported for Informatica cleanup")
-  return(cur_timestamp)
 }
 
 
