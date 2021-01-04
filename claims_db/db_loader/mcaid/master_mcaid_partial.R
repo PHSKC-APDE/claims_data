@@ -218,9 +218,8 @@ if (stage_address_clean_timestamp != 0) {
   add_output <- DBI::dbGetQuery(conn_hhsaw, 
                                 glue::glue_sql("SELECT TOP (1) * 
                                FROM {`stage_address_clean_config[['informatica_ref_schema']]`}.{`stage_address_clean_config[['informatica_output_table']]`} 
-                               WHERE geo_source = 'mcaid' AND 
-                                             convert(varchar, timestamp, 20) = 
-                                             {lubridate::with_tz(stage_address_clean_timestamp, 'utc')}",
+                               WHERE convert(varchar, timestamp, 20) = 
+                                               {lubridate::with_tz(stage_address_clean_timestamp, 'utc')}",
                                                .con = conn_hhsaw))
   
   while(nrow(add_output) == 0) {
@@ -232,8 +231,8 @@ if (stage_address_clean_timestamp != 0) {
     add_output <- DBI::dbGetQuery(conn_hhsaw, 
                                   glue::glue_sql("SELECT TOP (1) * 
                                FROM {`stage_address_clean_config[['informatica_ref_schema']]`}.{`stage_address_clean_config[['informatica_output_table']]`} 
-                               WHERE geo_source = 'mcaid2' AND convert(varchar, timestamp, 20) = 
-                                               {lubridate::with_tz(stage_address_clean_timestamp, 'utc')}",
+                               WHERE convert(varchar, timestamp, 20) = 
+                                                 {lubridate::with_tz(stage_address_clean_timestamp, 'utc')}",
                                                  .con = conn_hhsaw))
   }
   

@@ -89,7 +89,8 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
   
   new_add_out <- new_add %>% 
     distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw, geo_hash_raw) %>%
-    mutate(geo_source = source,
+    # Keep geo_source blank so it is not obvious which addresses come from Medicaid
+    mutate(geo_source = "",
            timestamp = cur_timestamp) %>%
     select(-geo_hash_raw)
 
@@ -173,8 +174,7 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
                                     [geo_state_raw] AS 'old_state', 
                                     [geo_zip_raw] AS 'old_zip'
                                   FROM {`informatica_ref_schema`}.{`informatica_output_table`}
-                                  WHERE geo_source = {source} AND 
-                                 convert(varchar, timestamp, 20) = 
+                                  WHERE convert(varchar, timestamp, 20) = 
                                  {lubridate::with_tz(stage_address_clean_timestamp, 'utc')}"
                    ,.con = conn))
   
