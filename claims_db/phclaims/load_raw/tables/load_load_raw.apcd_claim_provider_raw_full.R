@@ -13,7 +13,7 @@ load_load_raw.apcd_claim_provider_full_f <- function(etl_date_min = NULL,
                                             etl_note = NULL) {
   
   ### Set table name part
-  table_name_part <- "apcd_claim_provider"
+  table_name_part <- "apcd_claim_provider_raw"
   
   ### Check entries are in place for ETL function
   if (is.null(etl_delivery_date) | is.null(etl_note)) {
