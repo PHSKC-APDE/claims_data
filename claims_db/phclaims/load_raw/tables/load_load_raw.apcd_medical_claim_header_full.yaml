@@ -1,27 +1,27 @@
 schema: load_raw
 table: apcd_medical_claim_header
 vars:
-    medical_claim_header_id: bigint
-    submitter_id: integer
-    internal_member_id: bigint	
-    billing_internal_provider_id: bigint
-    product_code_id: integer
+    medical_claim_header_id: numeric(38)
+    submitter_id: numeric(38)
+    internal_member_id: numeric(38)
+    billing_internal_provider_id: numeric(38)
+    product_code_id: numeric(38)
     first_service_dt: date
     last_service_dt: date
     first_paid_dt: date
     last_paid_dt: date
     charge_amt: numeric(38,2)
-    diagnosis_code: varchar(255)
-    icd_version_ind: varchar(255)
-    header_status: varchar(255)
-    denied_header_flag: varchar(255)
-    orphaned_header_flag: varchar(255)
-    claim_type_id: integer
-    type_of_setting_id: integer
-    place_of_setting_id: integer
-    type_of_bill_code: varchar(255)
-    emergency_room_flag: varchar(255)
-    operating_room_flag: varchar(255)
+    diagnosis_code: varchar(20)
+    icd_version_ind: varchar(2)
+    header_status: varchar(2)
+    denied_header_flag: varchar(1)
+    orphaned_header_flag: varchar(1)
+    claim_type_id: numeric(38)
+    type_of_setting_id: numeric(38)
+    place_of_setting_id: numeric(38)
+    type_of_bill_code: varchar(4)
+    emergency_room_flag: varchar(1)
+    operating_room_flag: varchar(1)
     row_number: bigint
 table_part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_1.csv
@@ -131,6 +131,14 @@ table_part33:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_33.csv
     field_term: ','
     row_term: \n
+table_part34:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_34.csv
+    field_term: ','
+    row_term: \n
+table_part35:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_35.csv
+    field_term: ','
+    row_term: \n
 table_part4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_4.csv
     field_term: ','
@@ -183,6 +191,8 @@ years:
     - part31
     - part32
     - part33
+    - part34
+    - part35
     - part4
     - part5
     - part6

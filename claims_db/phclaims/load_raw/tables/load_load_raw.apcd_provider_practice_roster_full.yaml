@@ -7,7 +7,7 @@ vars:
     last_name: varchar(100)
     professional_credential: varchar(100)
     practice_organization_id: numeric(38)
-    primary_organization_ind: numeric(1)
+    primary_organization_ind: integer
     affiliation_begin_dt: date
     affiliation_end_dt: date
     organization_name: varchar(400)

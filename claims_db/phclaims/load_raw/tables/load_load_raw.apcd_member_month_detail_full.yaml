@@ -1,20 +1,20 @@
 schema: load_raw
 table: apcd_member_month_detail
 vars:
-    internal_member_id: bigint
+    internal_member_id: numeric(38)
     year_month: integer
-    medical_product_code_id: integer
-    medical_submitter_id: integer
-    medical_eligibility_id: bigint
-    med_commercial_eligibility_id: bigint
-    med_medicare_eligibility_id: bigint
-    med_medicaid_eligibility_id: bigint
-    pharmacy_product_code_id: integer
-    pharmacy_submitter_id: integer
-    pharmacy_eligibility_id: bigint
-    rx_commercial_eligibility_id: bigint
-    rx_medicare_eligibility_id: bigint
-    rx_medicaid_eligibility_id: bigint
+    medical_product_code_id: numeric(38)
+    medical_submitter_id: numeric(38)
+    medical_eligibility_id: numeric(38)
+    med_commercial_eligibility_id: numeric(38)
+    med_medicare_eligibility_id: numeric(38)
+    med_medicaid_eligibility_id: numeric(38)
+    pharmacy_product_code_id: numeric(38)
+    pharmacy_submitter_id: numeric(38)
+    pharmacy_eligibility_id: numeric(38)
+    rx_commercial_eligibility_id: numeric(38)
+    rx_medicare_eligibility_id: numeric(38)
+    rx_medicaid_eligibility_id: numeric(38)
     age: integer
     age_in_months: integer
     gender_code: varchar(1)
@@ -140,6 +140,18 @@ table_part36:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_36.csv
     field_term: ','
     row_term: \n
+table_part37:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_37.csv
+    field_term: ','
+    row_term: \n
+table_part38:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_38.csv
+    field_term: ','
+    row_term: \n
+table_part39:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_39.csv
+    field_term: ','
+    row_term: \n
 table_part4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_4.csv
     field_term: ','
@@ -195,6 +207,9 @@ years:
     - part34
     - part35
     - part36
+    - part37
+    - part38
+    - part39
     - part4
     - part5
     - part6
