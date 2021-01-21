@@ -39,7 +39,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 #### LOAD_RAW ICDCM ####
 ### Create tables
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_icdcm_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
                overall = T,
                ind_yr = T,
                overwrite = T,
@@ -47,7 +47,7 @@ create_table_f(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_icdcm_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.R")
 
 system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = "2014-01-01",
                                             etl_date_max = "2020-06-30",
@@ -77,7 +77,7 @@ system.time(load_load_raw.apcd_claim_line_full_f(etl_date_min = "2014-01-01",
 #### LOAD_RAW PROCEDURE ####
 ### Create tables
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_procedure_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.yaml",
                overall = T,
                ind_yr = T,
                overwrite = T,
@@ -85,7 +85,7 @@ create_table_f(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_procedure_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.R")
 
 system.time(load_load_raw.apcd_procedure_full_f(etl_date_min = "2014-01-01",
                                                 etl_date_max = "2020-06-30",
@@ -96,7 +96,7 @@ system.time(load_load_raw.apcd_procedure_full_f(etl_date_min = "2014-01-01",
 #### LOAD_RAW CLAIM_PROVIDER ####
 ### Create tables
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.yaml",
                overall = T,
                ind_yr = T,
                overwrite = T,
@@ -104,7 +104,7 @@ create_table_f(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.R")
 
 system.time(load_load_raw.apcd_claim_provider_full_f(etl_date_min = "2014-01-01",
                                                      etl_date_max = "2020-06-30",
