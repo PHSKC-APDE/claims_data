@@ -41,9 +41,6 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                       config[[server]][["ref_table"]])
-  final_schema <- config[[server]][["final_schema"]]
-  final_table <- ifelse(is.null(config[[server]][["final_table"]]), '',
-                       config[[server]][["final_table"]])
   
   
   
@@ -63,11 +60,15 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
   
   
   #### Clear out existing data based on dates ####
-  DBI::dbExecute(conn,
-                 glue::glue_sql("DELETE FROM {`to_schema`}.{`to_table`}
+  if (DBI::dbExistsTable(conn, 
+                         name = glue::glue_sql("{`to_schema`}.{`to_table`}", .con = conn))) {
+    DBI::dbExecute(conn,
+                   glue::glue_sql("DELETE FROM {`to_schema`}.{`to_table`}
                                 WHERE year_month >= {start_date_int}
                                 AND year_month <= {end_date_int}",
-                                .con = conn))
+                                  .con = conn))
+  }
+
   
   look_back_date_int <- odbc::dbGetQuery(
     conn, glue::glue_sql("SELECT YEAR(24_month_prior) * 100 + MONTH(24_month_prior) FROM 
@@ -78,28 +79,26 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
   
   #### Set up initial temp table ####
   # Delete existing table
-  DBI::dbExecute(conn,
-                 "IF OBJECT_ID('tempdb..#temp', 'U') IS NOT NULL DROP TABLE #temp")
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##temp', 'U') IS NOT NULL DROP TABLE ##temp")
   
   
   # Load into temp table
   DBI::dbExecute(conn,
-                 glue::glue_sql("SELECT * INTO #temp
+                 glue::glue_sql("SELECT * INTO ##temp
                                 FROM {`stage_schema`}.{DBI::SQL(stage_table)}_mcaid_perf_enroll_member_month
                                 (CAST({look_back_date_int} AS VARCHAR(20)), CAST({end_date_int} AS VARCHAR(20)))",
                                 .con = conn))
   
   # Set up an index
   DBI::dbExecute(conn,
-                 "CREATE CLUSTERED INDEX [idx_cl_#temp_id_mcaid_year_month] ON #temp([id_mcaid], [year_month])")
+                 "CREATE CLUSTERED INDEX [idx_cl_#temp_id_mcaid_year_month] ON ##temp([id_mcaid], [year_month])")
 
 
 
   #### Set up second temp table ####
   # Delete existing table
-  DBI::dbExecute(conn,
-                 "IF OBJECT_ID('tempdb..#mcaid_perf_enroll_denom', 'U') IS NOT NULL
-                              DROP TABLE #mcaid_perf_enroll_denom")
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##mcaid_perf_enroll_denom', 'U') IS NOT NULL
+                 DROP TABLE ##mcaid_perf_enroll_denom")
   
   # Load into temp table
   DBI::dbExecute(conn,
@@ -148,20 +147,19 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
                    ORDER BY [year_month] ROWS BETWEEN CURRENT ROW AND 1 FOLLOWING) AS [full_criteria_p_2_m]
                  ,[zip_code]
                  ,[row_num]
-                 INTO #mcaid_perf_enroll_denom
-                 FROM #temp")
+                 INTO ##mcaid_perf_enroll_denom
+                 FROM ##temp")
   
   # Set up an index
   DBI::dbExecute(conn,
                  "CREATE CLUSTERED INDEX [idx_cl_#mcaid_perf_enroll_denom_id_mcaid_year_month] 
-                                         ON #mcaid_perf_enroll_denom([id_mcaid], [year_month])")
+                                         ON ##mcaid_perf_enroll_denom([id_mcaid], [year_month])")
  
   
   #### Set up third temp table ####
   # Delete existing table
-  DBI::dbExecute(conn,
-                 "IF OBJECT_ID('tempdb..#last_year_month', 'U') IS NOT NULL
-                              DROP TABLE #last_year_month")
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##last_year_month', 'U') IS NOT NULL
+                 DROP TABLE ##last_year_month")
   
   # Load into temp table
   DBI::dbExecute(conn,
@@ -195,14 +193,14 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
                    ORDER BY [year_month] ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS [last_year_month]
                  ,[row_num]
                  
-                 INTO #last_year_month
-                 FROM #mcaid_perf_enroll_denom
+                 INTO ##last_year_month
+                 FROM ##mcaid_perf_enroll_denom
                  CROSS APPLY(VALUES(CASE WHEN [zip_code] IS NOT NULL 
                                     THEN [year_month] END)) AS a([relevant_year_month])")
   
   # Set up an index
   DBI::dbExecute(conn,
-                 "CREATE CLUSTERED INDEX idx_cl_#last_year_month ON #last_year_month([id_mcaid], [last_year_month])")
+                 "CREATE CLUSTERED INDEX idx_cl_#last_year_month ON ##last_year_month([id_mcaid], [last_year_month])")
   
 
   
@@ -236,7 +234,7 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
                      ,[full_criteria_prior_t_12_m]
                      ,[full_criteria_p_2_m]
                      ,CAST(GETDATE() AS DATE) AS [load_date]
-                     FROM #last_year_month
+                     FROM ##last_year_month
                    )
                    INSERT INTO {`to_schema`}.{`to_table`}
                    SELECT *
@@ -262,5 +260,13 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
                                 .con = conn))
   
   message("Performance measure enrollment denominator table created")
+  
+  
+  #### Clean up temp tables ####
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##temp', 'U') IS NOT NULL DROP TABLE ##temp")
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##mcaid_perf_enroll_denom', 'U') IS NOT NULL
+                 DROP TABLE ##mcaid_perf_enroll_denom")
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##last_year_month', 'U') IS NOT NULL
+                 DROP TABLE ##last_year_month")
   
 }

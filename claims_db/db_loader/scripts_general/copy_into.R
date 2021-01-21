@@ -43,6 +43,16 @@ copy_into_f <- function(
     stop("Server must be NULL, 'phclaims', or 'hhsaw'")
   }
   
+  
+  #### TEMPORARY FIX FOR ODBC ISSUES ####
+  # The odbc package isn't encoding the secret key properly right now so produces
+  # a Base-64 error. The RODBC doesn't seem to have that issue so for now we are
+  # forcing the COPY INTO statement to use an RODBC connection
+  if (server == "hhsaw") {
+    conn_rodbc <- RODBC::odbcConnect(dsn = "int_edw_20", 
+                                     uid = keyring::key_list("hhsaw_dev")[["username"]])
+  }
+  
  
   #### INITIAL ERROR CHECK ####
   # Check if the config provided is a local object, file, or on a web page
@@ -154,7 +164,9 @@ copy_into_f <- function(
   
   message(glue::glue("Creating [{to_schema}].[{to_table}] table"))
   
-  DBI::dbExecute(conn, glue::glue_sql(
+  
+  # Set up SQL
+  load_sql <- glue::glue_sql(
     "COPY INTO {`to_schema`}.{`to_table`}
     ({`names(table_config$vars)`*})
     FROM {dl_path}
@@ -169,6 +181,12 @@ copy_into_f <- function(
       FIRSTROW = {first_row}
     );",
     .con = conn)
-  )
+  
+  if (server == "hhsaw") {
+    RODBC::sqlQuery(channel = conn_rodbc, query = load_sql)
+  } else {
+    DBI::dbExecute(conn, load_sql)
+  }
+  
   
 }

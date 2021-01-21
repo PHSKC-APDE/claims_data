@@ -233,7 +233,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                          .con = conn)))
   
   # Write findings to metadata
-  if (dx_chk < 200) {
+  if (dx_chk < 350) {
     dx_fail <- 0
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
@@ -243,7 +243,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    'Almost all dx codes join to ICD-CM reference table', 
                    'PASS', 
                    {Sys.time()}, 
-                   'There were {dx_chk} dx values not in {DBI::SQL(ref_schema)}.{DBI::SQL(ref_table)}dx_lookup (acceptable is < 200)')",
+                   'There were {dx_chk} dx values not in {DBI::SQL(ref_schema)}.{DBI::SQL(ref_table)}dx_lookup (acceptable is < 350)')",
                                   .con = conn))
   } else {
     dx_fail <- 1
@@ -255,7 +255,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    'Almost all dx codes join to ICD-CM reference table', 
                    'FAIL', 
                    {Sys.time()}, 
-                   'There were {dx_chk} dx values not in {DBI::SQL(ref_schema)}.{DBI::SQL(ref_table)}dx_lookup table (acceptable is < 200)')",
+                   'There were {dx_chk} dx values not in {DBI::SQL(ref_schema)}.{DBI::SQL(ref_table)}dx_lookup table (acceptable is < 350)')",
                                   .con = conn))
   }
   

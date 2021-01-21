@@ -70,10 +70,9 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   
   if (full_refresh == F) {
     etl_batch_type <- "incremental"
-    date_truncate <- DBI::dbGetQuery(
-      conn_dw,
+    date_truncate <- as.Date(DBI::dbGetQuery(conn_dw,
       glue::glue_sql("SELECT MIN({`date_var`}) FROM {`from_schema`}.{`from_table`}",
-                     .con = conn_dw))
+                     .con = conn_dw))[[1]])
   } else {
     etl_batch_type <- "full"
   }
@@ -83,7 +82,8 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   
   #### ARCHIVE EXISTING TABLE ####
   # Different approaches between Azure data warehouse (rename) and on-prem SQL DB (alter schema)
-  if (full_refresh == F) {
+  # Check that the stage table actually exists so we don't accidentally wipe the archive table
+  if (full_refresh == F & DBI::dbExistsTable(conn_dw, DBI::Id(schema = to_schema, name = to_table))) {
     if (server == "hhsaw") {
       try(DBI::dbSendQuery(conn_dw, 
                            glue::glue_sql("DROP TABLE {`archive_schema`}.{`archive_table`}",

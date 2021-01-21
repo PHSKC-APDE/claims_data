@@ -21,24 +21,24 @@ load_stage_mcaid_perf_elig_member_month_f <- function(conn = NULL,
   if (server == "hhsaw") {
     to_schema <- "claims"
     to_table <- "stage_"
-    final_schema <- "claims"
-    final_table <- "final_"
+    from_schema <- "claims"
+    from_table <- "stage_"
     ref_schema <- "claims"
     ref_table <- "ref_"
   } else if (server == "phclaims") {
     to_schema <- "stage"
     to_table <- ""
-    final_schema <- "final"
-    final_table <- ""
+    from_schema <- "stage"
+    from_table <- ""
     ref_schema <- "ref"
     ref_table <- ""
   }
   
   
-  ### Create table for temporary work
+  #### Create table for temporary work ####
   # Drop existing table
-  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..#temp') IS NOT NULL 
-                 DROP TABLE #temp;")
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##temp') IS NOT NULL 
+                 DROP TABLE ##temp;")
   
   # Make table
   DBI::dbExecute(conn,
@@ -59,28 +59,28 @@ load_stage_mcaid_perf_elig_member_month_f <- function(conn = NULL,
                  ,[DUAL_ELIG]
                  ,[TPL_FULL_FLAG]
                  ,[RSDNTL_POSTAL_CODE]
-                 INTO #temp
-                 FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig;",
+                 INTO ##temp
+                 FROM {`from_schema`}.{DBI::SQL(from_table)}mcaid_elig;",
                                 .con = conn))
   
-  ### Make index
+  # Make index
   DBI::dbExecute(conn, "CREATE CLUSTERED INDEX [idx_cl_#temp] 
-                 ON #temp([MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]);")
+                 ON ##temp([MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]);")
   
   
-  ### Clear out stage table
+  #### Clear out stage table ####
   DBI::dbExecute(conn, 
   glue::glue_sql("IF OBJECT_ID('{`to_schema`}.{DBI::SQL(to_table)}mcaid_perf_elig_member_month', 'U') IS NOT NULL
                  DROP TABLE {`to_schema`}.{DBI::SQL(to_table)}mcaid_perf_elig_member_month;",
                  .con = conn))
                             
   
-  ### Load new table
+  #### Load new table ####
   DBI::dbExecute(conn,
                  glue::glue_sql("WITH CTE AS
                  (
                    SELECT
-                   CAST([CLNDR_YEAR_MNTH]) AS INT AS CLNDR_YEAR_MNTH
+                   CAST([CLNDR_YEAR_MNTH] AS INT) AS CLNDR_YEAR_MNTH
                    ,[MEDICAID_RECIPIENT_ID]
                    ,[RPRTBL_RAC_CODE]
                    ,[FROM_DATE]
@@ -92,7 +92,7 @@ load_stage_mcaid_perf_elig_member_month_f <- function(conn = NULL,
                    ,[RSDNTL_POSTAL_CODE]
                    ,ROW_NUMBER() OVER(PARTITION BY [MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH] 
                                       ORDER BY DATEDIFF(DAY, [FROM_DATE], [TO_DATE]) DESC) AS [row_num]
-                   FROM #temp AS a
+                   FROM ##temp AS a
                    INNER JOIN {`ref_schema`}.{DBI::SQL(ref_table)}apcd_zip AS b
                    ON a.[RSDNTL_POSTAL_CODE] = b.[zip_code]
                    WHERE b.[state] = 'WA' AND b.[county_name] = 'King'
@@ -118,11 +118,24 @@ load_stage_mcaid_perf_elig_member_month_f <- function(conn = NULL,
                                 .con = conn))
                             
                   
-  # Make primary key
+  #### Make primary key ####
+  # First make columns not null so we can add key
   DBI::dbExecute(conn,
-                 glue::glue_sql("ALTER TABLE {`to_schema`}.{DBI::SQL(to_table)}mcaid_perf_elig_member_month]
+                 glue::glue_sql("ALTER TABLE {`to_schema`}.{DBI::SQL(to_table)}mcaid_perf_elig_member_month
+                                ALTER COLUMN [CLNDR_YEAR_MNTH] INT NOT NULL;", .con = conn))
+  DBI::dbExecute(conn,
+                 glue::glue_sql("ALTER TABLE {`to_schema`}.{DBI::SQL(to_table)}mcaid_perf_elig_member_month
+                                ALTER COLUMN [MEDICAID_RECIPIENT_ID] VARCHAR(200) NOT NULL;", .con = conn))
+  
+  # Then add the key
+  DBI::dbExecute(conn,
+                 glue::glue_sql("ALTER TABLE {`to_schema`}.{DBI::SQL(to_table)}mcaid_perf_elig_member_month
                                 ADD CONSTRAINT [pk_mcaid_perf_elig_member_month_MEDICAID_RECIPIENT_ID_CLNDR_YEAR_MNTH] 
                                 PRIMARY KEY ([MEDICAID_RECIPIENT_ID], [CLNDR_YEAR_MNTH]);",
                                 .con = conn))
+  
+  # Drop temp table
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##temp') IS NOT NULL 
+                 DROP TABLE ##temp;")
   
 }

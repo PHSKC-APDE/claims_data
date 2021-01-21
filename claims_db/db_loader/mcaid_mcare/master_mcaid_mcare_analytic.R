@@ -18,7 +18,22 @@ library(glue) # Safely combine SQL code
 library(RecordLinkage)
 
 
-db_claims <- dbConnect(odbc(), "PHClaims51")
+# NB. Currently Medicare data can only be loaded to on-prem servers so DO NOT USE HHSAW
+server <- select.list(choices = c("phclaims", "hhsaw"))
+
+if (server == "phclaims") {
+  db_claims <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
+} else if (server == "hhsaw") {
+  db_claims <- DBI::dbConnect(odbc::odbc(),
+                              driver = "ODBC Driver 17 for SQL Server",
+                              server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
+                              database = "hhs_analytics_workspace",
+                              uid = keyring::key_list("hhsaw_dev")[["username"]],
+                              pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
+                              Encrypt = "yes",
+                              TrustServerCertificate = "yes",
+                              Authentication = "ActiveDirectoryPassword")
+}
 
 
 #### SET UP FUNCTIONS ####
@@ -33,6 +48,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 #### IDENTITY LINKAGE ####
 # Make stage version of linkage
+stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.yaml")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.R")
 
 # QA stage version

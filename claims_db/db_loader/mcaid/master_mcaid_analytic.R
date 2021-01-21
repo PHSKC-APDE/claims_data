@@ -109,16 +109,16 @@ if (qa_stage_mcaid_elig_demo == 0) {
                    .con = db_claims))
   
   
-  rm(qa_rows_final_elig_demo, to_schema, to_table, qa_schema, qa_table)
+  rm(final_mcaid_elig_demo_config, qa_rows_final_elig_demo, to_schema, to_table, qa_schema, qa_table)
 } else {
-  stop(glue::glue("Something went wrong with the mcaid_elig_demo run. See {`final_mcaid_elig_demo_config[[server]][['qa_schema']]`}.
-    {DBI::SQL(final_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid"))
+  stop(glue::glue("Something went wrong with the mcaid_elig_demo run. See {`stage_mcaid_elig_demo_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid"))
 }
 
 
 ### Clean up
 rm(qa_stage_mcaid_elig_demo, stage_mcaid_elig_demo_config, load_stage_mcaid_elig_demo_f, 
-   last_run_elig_demo, final_mcaid_elig_demo_config)
+   last_run_elig_demo)
 
 
 
@@ -178,16 +178,16 @@ if (qa_stage_mcaid_elig_timevar == 0) {
                  {qa_rows_final_elig_timevar$note})",
                    .con = db_claims))
   
-  rm(qa_rows_final_elig_timevar, to_schema, to_table, qa_schema, qa_table)
+  rm(final_mcaid_elig_timevar_config, qa_rows_final_elig_timevar, to_schema, to_table, qa_schema, qa_table)
 } else {
-  stop(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {`final_mcaid_elig_timevar_config[[server]][['qa_schema']]`}.
-    {DBI::SQL(final_mcaid_elig_timevar_config[[server]][['qa_table']])}qa_mcaid"))
+  stop(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {`stage_mcaid_elig_timevar_config[[server]][['qa_schema']]`}.
+    {DBI::SQL(stage_mcaid_elig_timevar_config[[server]][['qa_table']])}qa_mcaid"))
 }
 
 
 ### Clean up
 rm(qa_stage_mcaid_elig_timevar, stage_mcaid_elig_timevar_config, load_stage_mcaid_elig_timevar_f, 
-   last_run_elig_timevar, final_mcaid_elig_timevar_config)
+   last_run_elig_timevar)
 
 
 
