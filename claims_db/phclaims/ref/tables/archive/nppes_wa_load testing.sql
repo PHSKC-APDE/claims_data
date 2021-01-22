@@ -1,13 +1,11 @@
-
 ---------------------------
 --Step 1: Pull out and reshape provider taxonomy columns
---Run: 1 min
 ---------------------------
 if object_id('tempdb..#tax_long') is not null drop table #tax_long;
 select distinct npi, taxonomy, taxonomy_number
 into #tax_long
 from (
-	select npi, healthcare_provider_taxonomy_code_1 as [01],
+	select cast(npi as bigint) as npi, healthcare_provider_taxonomy_code_1 as [01],
 		healthcare_provider_taxonomy_code_2 as [02],
 		healthcare_provider_taxonomy_code_3 as [03],
 		healthcare_provider_taxonomy_code_4 as [04],
@@ -23,20 +21,18 @@ from (
 		healthcare_provider_taxonomy_code_14 as [14],
 		healthcare_provider_taxonomy_code_15 as [15]
 	from phclaims.ref.provider_nppes_load
-	where address_practice_state = 'WA' or address_practice_state = 'WASHINGTON'
 ) as a
 unpivot(taxonomy for taxonomy_number in ([01], [02], [03], [04], [05], [06], [07], [08], [09], [10], [11], [12], [13], [14], [15])) as taxonomy;
 
 
 ---------------------------
 --Step 2: Pull out and reshape provider taxonomy primary flag columns
---Run: <1 min
 ---------------------------
 if object_id('tempdb..#tax_primary_flag_long') is not null drop table #tax_primary_flag_long;
 select distinct npi, primary_flag, taxonomy_number
 into #tax_primary_flag_long
 from (
-	select npi, healthcare_provider_primary_taxonomy_switch_1 as [01],
+	select cast(npi as bigint) as npi, healthcare_provider_primary_taxonomy_switch_1 as [01],
 		healthcare_provider_primary_taxonomy_switch_2 as [02],
 		healthcare_provider_primary_taxonomy_switch_3 as [03],
 		healthcare_provider_primary_taxonomy_switch_4 as [04],
@@ -52,14 +48,12 @@ from (
 		healthcare_provider_primary_taxonomy_switch_14 as [14],
 		healthcare_provider_primary_taxonomy_switch_15 as [15]
 	from phclaims.ref.provider_nppes_load
-	where address_practice_state = 'WA' or address_practice_state = 'WASHINGTON'
 ) as a
 unpivot(primary_flag for taxonomy_number in ([01], [02], [03], [04], [05], [06], [07], [08], [09], [10], [11], [12], [13], [14], [15])) as primary_flag;
 
 
 ---------------------------
 --Step 3: Join taxonomy and primary flag columns into new table
---Run: <1 min
 ---------------------------
 if object_id('tempdb..#tax_long_joined') is not null drop table #tax_long_joined;
 select a.npi, a.taxonomy, a.taxonomy_number, b.primary_flag
@@ -70,61 +64,38 @@ on (a.npi = b.npi) and (a.taxonomy_number = b.taxonomy_number);
 
 
 ---------------------------
---Step 4: Create primary and secondary taxonomy fields for each NPI
---Run: <1 min
+--Step 4: Collapse table to distinct taxonomy codes by NPI
 ---------------------------
+if object_id('tempdb..#tax_distinct') is not null drop table #tax_distinct;
+select npi, taxonomy, max(case when primary_flag = 'Y' then 1 else 0 end) as primary_flag
+into #tax_distinct
+from #tax_long_joined
+group by npi, taxonomy;
 
---select primary taxonomy
-if object_id('tempdb..#tax_primary') is not null drop table #tax_primary
-select a.npi, a.taxonomy as primary_taxonomy, a.taxonomy_number, a.primary_flag, a.primary_flag_max
-into #tax_primary
-from (
-	select npi, taxonomy, taxonomy_number, primary_flag,
-		max(case when primary_flag = 'Y' then 1 else 0 end) over (partition by npi) as primary_flag_max
-	from #tax_long_joined
-) as a
-where a.primary_flag = 'Y' or (a.primary_flag_max = 0 and a.taxonomy_number = '01');
-
-
---select secondary taxonomy
-if object_id('tempdb..#tax_secondary') is not null drop table #tax_secondary
-select a.npi, a.taxonomy as secondary_taxonomy, a.taxonomy_number, a.primary_flag, a.primary_tax_position
-into #tax_secondary
-from (
-	select npi, taxonomy, taxonomy_number, primary_flag,
-		max(case when primary_flag = 'Y' then taxonomy_number else 0 end) over (partition by npi) as primary_tax_position
-	from #tax_long_joined
-) as a
-where (a.primary_tax_position = 1 and a.taxonomy_number = '02') or (a.primary_tax_position > 1 and a.taxonomy_number = '01')
-	or (a.primary_tax_position = 0 and a.taxonomy_number = '02');
+--Add a new taxonomy # column based on order of taxonomies A-Z (after primary taxonomy)
+if object_id('tempdb..#tax_ranked') is not null drop table #tax_ranked;
+select *, rank() over (partition by npi order by primary_flag desc, taxonomy) as taxonomy_number
+into #tax_ranked
+from #tax_distinct;
 
 
---join primary and secondary taxonomies
+---------------------------
+--Step 5: Create three taxonomy fields for each NPI
+---------------------------
 if object_id('tempdb..#tax_final') is not null drop table #tax_final
-select a.npi, a.primary_taxonomy, b.secondary_taxonomy
+select a.npi, a.taxonomy as taxonomy_1, b.taxonomy as taxonomy_2, c.taxonomy as taxonomy_3, a.primary_flag as taxonomy_primary_flag
 into #tax_final
-from #tax_primary as a
-left join #tax_secondary as b
-on a.npi = b.npi;
-
---QA: PASS
-select *
-from #tax_final
-where npi in ('1003074410', '1003003153', '1003025081')
-order by npi;
-
-select npi, healthcare_provider_taxonomy_code_1, healthcare_provider_primary_taxonomy_switch_1, healthcare_provider_taxonomy_code_2, healthcare_provider_primary_taxonomy_switch_2,
-	healthcare_provider_taxonomy_code_3, healthcare_provider_primary_taxonomy_switch_3
-from PHClaims.ref.provider_nppes_load
-where npi in ('1003074410', '1003003153', '1003025081')
-order by npi;
+from (select * from #tax_ranked where primary_flag = 1 or taxonomy_number = 1) as a
+left join (select * from #tax_ranked where taxonomy_number = 2) as b
+on a.npi = b.npi
+left join (select * from #tax_ranked where taxonomy_number = 3) as c
+on a.npi = c.npi;
 
 
 ---------------------------
 --Step 5: Join taxonomy information to remainder of desired columns and insert into persistent table shell
---Run: 1 min
 ---------------------------
-select a.npi,
+select cast(a.npi as bigint) as npi,
 	a.entity_type_code,
 	a.name_org,
 	a.name_last,
@@ -138,18 +109,22 @@ select a.npi,
 	a.address_practice_city,
 	a.address_practice_state,
 	a.address_practice_zip_code,
+	case when a.address_practice_state = 'WA' or a.address_practice_state = 'WASHINGTON' then 1 else 0 end as geo_wa,
 	cast(a.enumeration_date as date) as enumeration_date,
 	cast(a.last_update as date) as last_update,
+	case when a.entity_type_code is null and a.deactivation_date is not null then 1 else 0 end as deactivation_flag,
+	cast(a.deactivation_date as date) as deactivation_date,
 	a.gender_code,
-	b.primary_taxonomy,
-	b.secondary_taxonomy,
+	b.taxonomy_1,
+	b.taxonomy_2,
+	b.taxonomy_3,
+	b.taxonomy_primary_flag,
 	a.is_sole_proprietor,
 	a.is_organization_subpart,
 	a.parent_organization_lbn,
 	getdate() as last_run
 
-into PHClaims.ref.provider_nppes_wa_load
+into PHClaims.ref.provider_nppes_apde_load
 from PHClaims.ref.provider_nppes_load as a
 left join #tax_final as b
-on a.npi = b.npi
-where a.address_practice_state = 'WA' or a.address_practice_state = 'WASHINGTON';
+on cast(a.npi as bigint) = b.npi;

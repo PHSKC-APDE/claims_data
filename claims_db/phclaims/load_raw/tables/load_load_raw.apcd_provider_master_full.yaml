@@ -1,8 +1,8 @@
 schema: load_raw
 table: apcd_provider_master
 vars:
-    internal_provider_id: integer
-    extract_id: integer
+    internal_provider_id: numeric(38)
+    extract_id: numeric(38)
     entity_type: varchar(20)
     organization_name_legal: varchar(100)
     last_name_legal: varchar(100)

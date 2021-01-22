@@ -16,17 +16,18 @@ options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 
 library(tidyverse)
 library(openxlsx)
 read_dir <- "//kcitsqlutpdbh51/ImportData/Data/APCD_data_import"
-write_path <- "C:/Users/kerneli/King County/King County Cross-Sector Data - Documents/ETL/"
+#write_path <- "C:/Users/kerneli/King County/King County Cross-Sector Data - General/ETL/"
+write_path <- "//kcitsqlutpdbh51/ImportData/Data/APCD_data_import/"
 
 #Create list of tables
-table_list <- list("dental_claim_export", "eligibility_export", "medical_claim_export", "member_month_detail_export", "pharmacy_claim_export", 
-                   "provider_export", "provider_master_export", "provider_practice_roster_export")
+table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
+                   "member_month_detail", "pharmacy_claim", "provider", "provider_master", "provider_practice_roster")
 
 #Loop over table chunks within each table folder and count lines
 system.time(apcd_row_count <- lapply(table_list, function(x) {
   
   #Loop over table chunk list
-  file_list <- as.list(list.files(path = file.path(read_dir, x), pattern = "*.csv", full.names = T))
+  file_list <- as.list(list.files(path = file.path(read_dir, paste0(x, "_export")), pattern = "*.csv", full.names = T))
   
   #Count lines and save as data frame
   inner_df <- lapply(file_list, function(x) {

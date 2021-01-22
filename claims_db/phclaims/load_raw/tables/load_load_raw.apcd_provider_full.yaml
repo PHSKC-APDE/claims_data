@@ -1,10 +1,10 @@
 schema: load_raw
-table: apcd_provider_raw
+table: apcd_provider
 vars:
-    provider_id: bigint
-    extract_id: bigint
-    submitter_id: bigint
-    internal_provider_id: bigint
+    provider_id: numeric(38)
+    extract_id: numeric(38)
+    submitter_id: numeric(38)
+    internal_provider_id: numeric(38)
     organization_name: varchar(100)
     last_name: varchar(100)
     first_name: varchar(35)
@@ -13,7 +13,7 @@ vars:
     entity_type: varchar(20)
     professional_credential_code: varchar(20)
     orig_npi: varchar(20)
-    primary_specialty_id: bigint
+    primary_specialty_id: numeric(38)
     primary_specialty_code: varchar(20)
     city: varchar(100)
     state: varchar(2)
@@ -34,4 +34,4 @@ table_part3:
 years:
     - part1
     - part2
-    - part3	
+    - part3

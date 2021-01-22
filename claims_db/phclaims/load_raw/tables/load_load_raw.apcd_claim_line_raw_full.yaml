@@ -1,13 +1,13 @@
 schema: load_raw
 table: apcd_claim_line_raw
 vars:
-    id_apcd: bigint
-    claim_header_id: bigint	
-    claim_line_id: bigint	
-    line_counter: integer
+    id_apcd: numeric(38)
+    claim_header_id: bigint
+    claim_line_id: numeric(38)
+    line_counter: numeric(38)
     first_service_dt: date
     last_service_dt: date
-    charge_amt: numeric(38,2)	
+    charge_amt: numeric(38,2)
     revenue_code: varchar(20)
     place_of_service_code: varchar(2)
     admission_dt: date
@@ -17,339 +17,363 @@ vars:
     admission_type: varchar(2)
     row_number: bigint
 table_part1:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_1.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_1.csv
     field_term: ','
     row_term: \n
 table_part10:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_10.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_10.csv
     field_term: ','
     row_term: \n
 table_part11:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_11.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_11.csv
     field_term: ','
     row_term: \n
 table_part12:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_12.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_12.csv
     field_term: ','
     row_term: \n
 table_part13:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_13.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_13.csv
     field_term: ','
     row_term: \n
 table_part14:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_14.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_14.csv
     field_term: ','
     row_term: \n
 table_part15:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_15.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_15.csv
     field_term: ','
     row_term: \n
 table_part16:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_16.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_16.csv
     field_term: ','
     row_term: \n
 table_part17:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_17.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_17.csv
     field_term: ','
     row_term: \n
 table_part18:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_18.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_18.csv
     field_term: ','
     row_term: \n
 table_part19:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_19.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_19.csv
     field_term: ','
     row_term: \n
 table_part2:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_2.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_2.csv
     field_term: ','
     row_term: \n
 table_part20:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_20.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_20.csv
     field_term: ','
     row_term: \n
 table_part21:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_21.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_21.csv
     field_term: ','
     row_term: \n
 table_part22:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_22.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_22.csv
     field_term: ','
     row_term: \n
 table_part23:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_23.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_23.csv
     field_term: ','
     row_term: \n
 table_part24:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_24.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_24.csv
     field_term: ','
     row_term: \n
 table_part25:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_25.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_25.csv
     field_term: ','
     row_term: \n
 table_part26:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_26.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_26.csv
     field_term: ','
     row_term: \n
 table_part27:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_27.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_27.csv
     field_term: ','
     row_term: \n
 table_part28:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_28.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_28.csv
     field_term: ','
     row_term: \n
 table_part29:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_29.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_29.csv
     field_term: ','
     row_term: \n
 table_part3:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_3.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_3.csv
     field_term: ','
     row_term: \n
 table_part30:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_30.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_30.csv
     field_term: ','
     row_term: \n
 table_part31:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_31.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_31.csv
     field_term: ','
     row_term: \n
 table_part32:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_32.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_32.csv
     field_term: ','
     row_term: \n
 table_part33:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_33.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_33.csv
     field_term: ','
     row_term: \n
 table_part34:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_34.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_34.csv
     field_term: ','
     row_term: \n
 table_part35:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_35.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_35.csv
     field_term: ','
     row_term: \n
 table_part36:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_36.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_36.csv
     field_term: ','
     row_term: \n
 table_part37:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_37.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_37.csv
     field_term: ','
     row_term: \n
 table_part38:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_38.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_38.csv
     field_term: ','
     row_term: \n
 table_part39:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_39.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_39.csv
     field_term: ','
     row_term: \n
 table_part4:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_4.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_4.csv
     field_term: ','
     row_term: \n
 table_part40:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_40.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_40.csv
     field_term: ','
     row_term: \n
 table_part41:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_41.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_41.csv
     field_term: ','
     row_term: \n
 table_part42:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_42.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_42.csv
     field_term: ','
     row_term: \n
 table_part43:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_43.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_43.csv
     field_term: ','
     row_term: \n
 table_part44:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_44.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_44.csv
     field_term: ','
     row_term: \n
 table_part45:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_45.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_45.csv
     field_term: ','
     row_term: \n
 table_part46:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_46.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_46.csv
     field_term: ','
     row_term: \n
 table_part47:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_47.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_47.csv
     field_term: ','
     row_term: \n
 table_part48:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_48.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_48.csv
     field_term: ','
     row_term: \n
 table_part49:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_49.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_49.csv
     field_term: ','
     row_term: \n
 table_part5:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_5.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_5.csv
     field_term: ','
     row_term: \n
 table_part50:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_50.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_50.csv
     field_term: ','
     row_term: \n
 table_part51:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_51.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_51.csv
     field_term: ','
     row_term: \n
 table_part52:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_52.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_52.csv
     field_term: ','
     row_term: \n
 table_part53:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_53.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_53.csv
     field_term: ','
     row_term: \n
 table_part54:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_54.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_54.csv
     field_term: ','
     row_term: \n
 table_part55:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_55.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_55.csv
     field_term: ','
     row_term: \n
 table_part56:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_56.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_56.csv
     field_term: ','
     row_term: \n
 table_part57:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_57.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_57.csv
     field_term: ','
     row_term: \n
 table_part58:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_58.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_58.csv
     field_term: ','
     row_term: \n
 table_part59:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_59.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_59.csv
     field_term: ','
     row_term: \n
 table_part6:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_6.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_6.csv
     field_term: ','
     row_term: \n
 table_part60:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_60.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_60.csv
     field_term: ','
     row_term: \n
 table_part61:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_61.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_61.csv
     field_term: ','
     row_term: \n
 table_part62:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_62.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_62.csv
     field_term: ','
     row_term: \n
 table_part63:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_63.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_63.csv
     field_term: ','
     row_term: \n
 table_part64:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_64.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_64.csv
     field_term: ','
     row_term: \n
 table_part65:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_65.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_65.csv
     field_term: ','
     row_term: \n
 table_part66:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_66.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_66.csv
     field_term: ','
     row_term: \n
 table_part67:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_67.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_67.csv
     field_term: ','
     row_term: \n
 table_part68:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_68.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_68.csv
     field_term: ','
     row_term: \n
 table_part69:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_69.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_69.csv
     field_term: ','
     row_term: \n
 table_part7:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_7.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_7.csv
     field_term: ','
     row_term: \n
 table_part70:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_70.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_70.csv
     field_term: ','
     row_term: \n
 table_part71:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_71.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_71.csv
     field_term: ','
     row_term: \n
 table_part72:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_72.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_72.csv
     field_term: ','
     row_term: \n
 table_part73:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_73.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_73.csv
     field_term: ','
     row_term: \n
 table_part74:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_74.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_74.csv
     field_term: ','
     row_term: \n
 table_part75:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_75.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_75.csv
     field_term: ','
     row_term: \n
 table_part76:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_76.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_76.csv
     field_term: ','
     row_term: \n
 table_part77:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_77.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_77.csv
     field_term: ','
     row_term: \n
 table_part78:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_78.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_78.csv
     field_term: ','
     row_term: \n
 table_part79:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_79.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_79.csv
     field_term: ','
-    row_term: \n	
+    row_term: \n
 table_part8:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_8.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_8.csv
     field_term: ','
     row_term: \n
 table_part80:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_80.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_80.csv
     field_term: ','
     row_term: \n
 table_part81:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_81.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_81.csv
     field_term: ','
     row_term: \n
 table_part82:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_82.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_82.csv
     field_term: ','
     row_term: \n
 table_part83:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_83.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_83.csv
     field_term: ','
     row_term: \n
 table_part84:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_84.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_84.csv
+    field_term: ','
+    row_term: \n
+table_part85:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_85.csv
+    field_term: ','
+    row_term: \n
+table_part86:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_86.csv
+    field_term: ','
+    row_term: \n
+table_part87:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_87.csv
+    field_term: ','
+    row_term: \n
+table_part88:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_88.csv
+    field_term: ','
+    row_term: \n
+table_part89:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_89.csv
     field_term: ','
     row_term: \n
 table_part9:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_export/claim_line_9.csv
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_9.csv
+    field_term: ','
+    row_term: \n
+table_part90:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_90.csv
     field_term: ','
     row_term: \n
 years:
@@ -436,4 +460,10 @@ years:
     - part82
     - part83
     - part84
+    - part85
+    - part86
+    - part87
+    - part88
+    - part89
     - part9
+    - part90

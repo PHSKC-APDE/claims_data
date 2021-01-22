@@ -2,7 +2,7 @@
 # APDE, PHSKC
 # 2019-6-29
 
-#### Import APCD data from Amazon S3 bucket to SQL Server - load_raw.apcd_eligibility ####
+#### Create YAML files from XML format files for all non-reference files ####
 
 ##### Set up global parameters and call in libraries #####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
@@ -16,8 +16,9 @@ read_path <- "\\\\kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" #Folder con
 write_path <- "C:/Users/kerneli/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Local GitHub folder
 
 sql_schema_name <- "load_raw" ##Name of schema where table will be created
-table_list <- list("dental_claim", "eligibility", "medical_claim", "member_month_detail", "pharmacy_claim", "provider",
-                   "provider_master", "provider_practice_roster")
+table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
+                   "member_month_detail", "pharmacy_claim", "provider", "provider_master", "provider_practice_roster")
+
 
 #### STEP 2: Loop over APCD tables, saving create YAML file for each table ####
 

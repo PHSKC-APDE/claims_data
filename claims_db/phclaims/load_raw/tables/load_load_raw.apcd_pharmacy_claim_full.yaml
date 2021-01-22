@@ -1,33 +1,33 @@
 schema: load_raw
 table: apcd_pharmacy_claim
 vars:
-    pharmacy_claim_service_line_id: bigint
-    submitter_id: integer
-    internal_member_id: bigint
+    pharmacy_claim_service_line_id: numeric(38)
+    submitter_id: numeric(38)
+    internal_member_id: numeric(38)
     submitter_clm_control_num: varchar(272)
-    product_code_id: integer
-    subscriber_relationship_id: bigint
-    line_counter: integer
+    product_code_id: numeric(38)
+    subscriber_relationship_id: numeric(38)
+    line_counter: numeric(38)
     prescription_filled_dt: date
     first_paid_dt: date
     last_paid_dt: date
     national_drug_code: varchar(11)
     drug_name: varchar(80)
-    claim_status_id: integer
+    claim_status_id: numeric(38)
     quantity: numeric(38,2)
-    days_supply: integer
-    thirty_day_equivalent: integer
+    days_supply: numeric(38)
+    thirty_day_equivalent: numeric(38)
     charge_amt: numeric(38,2)
-    refill_number: integer
-    generic_drug_ind_id: integer
-    compound_drug_code_id: integer
-    dispense_as_written_id: integer
+    refill_number: numeric(38)
+    generic_drug_ind_id: numeric(38)
+    compound_drug_code_id: numeric(38)
+    dispense_as_written_id: numeric(38)
     pharmacy_mail_order_code: varchar(2)
-    pharmacy_provider_id: integer
-    pharmacy_internal_provider_id: integer
-    prscrbing_provider_id: integer
-    prscrbing_internal_provider_id: integer
-    network_indicator_id: integer
+    pharmacy_provider_id: numeric(38)
+    pharmacy_internal_provider_id: numeric(38)
+    prscrbing_provider_id: numeric(38)
+    prscrbing_internal_provider_id: numeric(38)
+    network_indicator_id: numeric(38)
     out_of_state_flag: varchar(1)
     orphaned_adjustment_flag: varchar(1)
     denied_claim_flag: varchar(1)
@@ -182,6 +182,18 @@ table_part41:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_41.csv
     field_term: ','
     row_term: \n
+table_part42:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_42.csv
+    field_term: ','
+    row_term: \n
+table_part43:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_43.csv
+    field_term: ','
+    row_term: \n
+table_part44:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_44.csv
+    field_term: ','
+    row_term: \n
 table_part5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_5.csv
     field_term: ','
@@ -239,6 +251,9 @@ years:
     - part4
     - part40
     - part41
+    - part42
+    - part43
+    - part44
     - part5
     - part6
     - part7

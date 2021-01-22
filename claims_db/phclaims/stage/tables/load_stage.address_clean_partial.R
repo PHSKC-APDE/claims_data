@@ -89,17 +89,23 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
   
   new_add_out <- new_add %>% 
     distinct(geo_add1_raw, geo_add2_raw, geo_city_raw, geo_state_raw, geo_zip_raw, geo_hash_raw) %>%
-    mutate(geo_source = source,
+    # Keep geo_source blank so it is not obvious which addresses come from Medicaid
+    mutate(geo_source = "",
            timestamp = cur_timestamp) %>%
     select(-geo_hash_raw)
 
+  if (nrow(new_add_out) > 0) {
+    # Make connection to HHSAW
+    conn_hhsaw <- create_db_connection("hhsaw")
+    DBI::dbAppendTable(conn_hhsaw, DBI::Id(schema = informatica_ref_schema, table = informatica_input_table), 
+                       new_add_out)
+    message(nrow(new_add_out), " addresses were exported for Informatica cleanup")
+    return(cur_timestamp)
+  } else {
+    message("There were ", nrow(new_add_out), " new addresses. Nothing was exported for Informatica cleanup")
+    return(nrow(new_add_out))
+  }
 
-  # Make connection to HHSAW
-  conn_hhsaw <- create_db_connection("hhsaw")
-  DBI::dbAppendTable(conn_hhsaw, DBI::Id(schema = informatica_ref_schema, table = informatica_input_table), 
-                     new_add_out)
-  message(nrow(new_add_out), " addresses were exported for Informatica cleanup")
-  return(cur_timestamp)
 }
 
 
@@ -168,7 +174,8 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
                                     [geo_state_raw] AS 'old_state', 
                                     [geo_zip_raw] AS 'old_zip'
                                   FROM {`informatica_ref_schema`}.{`informatica_output_table`}
-                                  WHERE geo_source = {source} AND timestamp = {informatica_timestamp}"
+                                  WHERE convert(varchar, timestamp, 20) = 
+                                 {lubridate::with_tz(stage_address_clean_timestamp, 'utc')}"
                    ,.con = conn))
   
   
@@ -274,7 +281,7 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   
   #### Bring it all together ####
   ## NB THE PASTE COMMAND IN R WILL ADD THE STRING 'NA' WHEN IT ENCOUNTERS A TRUE NA VALUE.
-  # THIS IS UNDESIREABLE WHEN IT COMES OT MAKING HASHES SO NAs ARE REPLACED BY EMPTY STRINGS.
+  # THIS IS UNDESIREABLE WHEN IT COMES TO MAKING HASHES SO NAs ARE REPLACED BY EMPTY STRINGS.
   # THIS MEANS THE HAS WILL MATCH WHAT IS MADE IN SQL WITH THE SAME INPUTS.
   
   new_add_final <- bind_rows(new_add_trim, in_manual) %>%

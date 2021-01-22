@@ -12,6 +12,7 @@
 # 2019-10
 
 #2020-08 modification for extract 249: Added new tables that were created from medical_claim table to facilitate Enclave export
+#2021-01 - no modifications needed for extract 277 (same format as extract 249)
 
 
 #### Set up global parameter and call in libraries ####
@@ -35,7 +36,26 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 #### STEP 1: Load and QA new raw data to load_raw schema, and reference tables to ref schema ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-#### LOAD_RAW CLAIM_LINE (Extract 249 modification) ####
+#### LOAD_RAW ICDCM ####
+### Create tables
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
+               overall = T,
+               ind_yr = T,
+               overwrite = T,
+               test_mode = F)
+
+### Load tables
+# Call in function
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.R")
+
+system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = "2014-01-01",
+                                            etl_date_max = "2020-06-30",
+                                            etl_delivery_date = "2021-01-20", 
+                                            etl_note = "Full refresh of APCD data using extract 277"))
+
+
+#### LOAD_RAW CLAIM_LINE ####
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_line_raw_full.yaml",
@@ -49,15 +69,15 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_line_raw_full.R")
 
 system.time(load_load_raw.apcd_claim_line_full_f(etl_date_min = "2014-01-01",
-                                                 etl_date_max = "2019-12-31",
-                                                 etl_delivery_date = "2020-08-01", 
-                                                 etl_note = "Full refresh of APCD data using extract 249"))
+                                                 etl_date_max = "2020-06-30",
+                                                 etl_delivery_date = "2021-01-20", 
+                                                 etl_note = "Full refresh of APCD data using extract 277"))
 
 
-#### LOAD_RAW CLAIM_PROVIDER (Extract 249 modification) ####
+#### LOAD_RAW PROCEDURE ####
 ### Create tables
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.yaml",
                overall = T,
                ind_yr = T,
                overwrite = T,
@@ -65,12 +85,31 @@ create_table_f(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.R")
+
+system.time(load_load_raw.apcd_procedure_full_f(etl_date_min = "2014-01-01",
+                                                etl_date_max = "2020-06-30",
+                                                etl_delivery_date = "2021-01-20", 
+                                                etl_note = "Full refresh of APCD data using extract 277"))
+
+
+#### LOAD_RAW CLAIM_PROVIDER ####
+### Create tables
+create_table_f(conn = db_claims, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.yaml",
+               overall = T,
+               ind_yr = T,
+               overwrite = T,
+               test_mode = F)
+
+### Load tables
+# Call in function
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.R")
 
 system.time(load_load_raw.apcd_claim_provider_full_f(etl_date_min = "2014-01-01",
-                                                     etl_date_max = "2019-12-31",
-                                                     etl_delivery_date = "2020-08-01", 
-                                                     etl_note = "Full refresh of APCD data using extract 249"))
+                                                     etl_date_max = "2020-06-30",
+                                                     etl_delivery_date = "2021-01-20", 
+                                                     etl_note = "Full refresh of APCD data using extract 277"))
 
 
 #### LOAD_RAW DENTAL CLAIMS ####
@@ -87,9 +126,9 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.R")
 
 system.time(load_load_raw.apcd_dental_claim_full_f(etl_date_min = "2014-01-01",
-                                                   etl_date_max = "2019-12-31",
-                                                   etl_delivery_date = "2020-08-01", 
-                                                   etl_note = "Full refresh of APCD data using extract 249"))
+                                                   etl_date_max = "2020-06-30",
+                                                   etl_delivery_date = "2021-01-20", 
+                                                   etl_note = "Full refresh of APCD data using extract 277"))
 
 
 #### LOAD_RAW ELIGIBILITY ####
@@ -106,31 +145,12 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.R")
 
 system.time(load_load_raw.apcd_eligibility_full_f(etl_date_min = "2014-01-01",
-                                                  etl_date_max = "2019-12-31",
-                                                  etl_delivery_date = "2020-08-01", 
-                                                  etl_note = "Full refresh of APCD data using extract 249"))
+                                                  etl_date_max = "2020-06-30",
+                                                  etl_delivery_date = "2021-01-20", 
+                                                  etl_note = "Full refresh of APCD data using extract 277"))
 
 
-#### LOAD_RAW ICDCM (Extract 249 modification) ####
-### Create tables
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_icdcm_full.yaml",
-               overall = T,
-               ind_yr = T,
-               overwrite = T,
-               test_mode = F)
-
-### Load tables
-# Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_icdcm_full.R")
-
-system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = "2014-01-01",
-                                            etl_date_max = "2019-12-31",
-                                            etl_delivery_date = "2020-08-01", 
-                                            etl_note = "Full refresh of APCD data using extract 249"))
-
-
-#### LOAD_RAW MEDICAL_CLAIM_HEADER (Extract 249 modification) ####
+#### LOAD_RAW MEDICAL_CLAIM_HEADER ####
 ### Create tables
 create_table_f(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_header_full.yaml",
@@ -144,9 +164,9 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_header_full.R")
 
 system.time(load_load_raw.apcd_medical_claim_header_full_f(etl_date_min = "2014-01-01",
-                                                           etl_date_max = "2019-12-31",
-                                                           etl_delivery_date = "2020-08-01", 
-                                                           etl_note = "Full refresh of APCD data using extract 249"))
+                                                           etl_date_max = "2020-06-30",
+                                                           etl_delivery_date = "2021-01-20", 
+                                                           etl_note = "Full refresh of APCD data using extract 277"))
 
 
 #### LOAD_RAW MEMBER_MONTH_DETAIL ####
@@ -163,9 +183,9 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_member_month_detail_full.R")
 
 system.time(load_load_raw.apcd_member_month_detail_full_f(etl_date_min = "2014-01-01",
-                                                          etl_date_max = "2019-12-31",
-                                                          etl_delivery_date = "2020-08-01", 
-                                                          etl_note = "Full refresh of APCD data using extract 249"))
+                                                          etl_date_max = "2020-06-30",
+                                                          etl_delivery_date = "2021-01-20", 
+                                                          etl_note = "Full refresh of APCD data using extract 277"))
 
 
 #### LOAD_RAW PHARMACY_CLAIM ####
@@ -182,28 +202,9 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_pharmacy_claim_full.R")
 
 system.time(load_load_raw.apcd_pharmacy_claim_full_f(etl_date_min = "2014-01-01",
-                                                     etl_date_max = "2019-12-31",
-                                                     etl_delivery_date = "2020-08-01", 
-                                                     etl_note = "Full refresh of APCD data using extract 249"))
-
-
-#### LOAD_RAW PROCEDURE ####
-### Create tables
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_procedure_full.yaml",
-               overall = T,
-               ind_yr = T,
-               overwrite = T,
-               test_mode = F)
-
-### Load tables
-# Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_procedure_full.R")
-
-system.time(load_load_raw.apcd_procedure_full_f(etl_date_min = "2014-01-01",
-                                                etl_date_max = "2019-12-31",
-                                                etl_delivery_date = "2020-08-01", 
-                                                etl_note = "Full refresh of APCD data using extract 249"))
+                                                     etl_date_max = "2020-06-30",
+                                                     etl_delivery_date = "2021-01-20", 
+                                                     etl_note = "Full refresh of APCD data using extract 277"))
 
 
 #### LOAD_RAW PROVIDER ####
@@ -220,9 +221,9 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.R")
 
 system.time(load_load_raw.apcd_provider_full_f(etl_date_min = "2014-01-01",
-                                               etl_date_max = "2019-12-31",
-                                               etl_delivery_date = "2020-08-01", 
-                                               etl_note = "Full refresh of APCD data using extract 249"))
+                                               etl_date_max = "2020-06-30",
+                                               etl_delivery_date = "2021-01-20", 
+                                               etl_note = "Full refresh of APCD data using extract 277"))
 
 #### LOAD_RAW PROVIDER_MASTER ####
 ### Create tables
@@ -238,9 +239,9 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_master_full.R")
 
 system.time(load_load_raw.apcd_provider_master_full_f(etl_date_min = "2014-01-01",
-                                                      etl_date_max = "2019-12-31",
-                                                      etl_delivery_date = "2020-08-01", 
-                                                      etl_note = "Full refresh of APCD data using extract 249"))
+                                                      etl_date_max = "2020-06-30",
+                                                      etl_delivery_date = "2021-01-20", 
+                                                      etl_note = "Full refresh of APCD data using extract 277"))
 
 
 #### LOAD_RAW PROVIDER_PRACTICE_ROSTER ####
@@ -257,9 +258,9 @@ create_table_f(conn = db_claims,
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_practice_roster_full.R")
 
 system.time(load_load_raw.apcd_provider_practice_roster_full_f(etl_date_min = "2014-01-01",
-                                                               etl_date_max = "2019-12-31",
-                                                               etl_delivery_date = "2020-08-01", 
-                                                               etl_note = "Full refresh of APCD data using extract 249"))
+                                                               etl_date_max = "2020-06-30",
+                                                               etl_delivery_date = "2021-01-20", 
+                                                               etl_note = "Full refresh of APCD data using extract 277"))
 
 
 #### REF APCD REFERENCE TABLES ####

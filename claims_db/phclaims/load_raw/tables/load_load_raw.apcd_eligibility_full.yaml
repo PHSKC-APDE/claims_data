@@ -1,39 +1,39 @@
 schema: load_raw
 table: apcd_eligibility
 vars:
-    eligibility_id: bigint
-    submitter_id: integer
-    internal_member_id: bigint
+    eligibility_id: numeric(38)
+    submitter_id: numeric(38)
+    internal_member_id: numeric(38)
     coverage_class: varchar(10)
     eligibility_start_dt: date
     eligibility_end_dt: date
-    product_code_id: integer
-    primary_insurance_indicator_id: integer
-    subscriber_relationship_id: integer
+    product_code_id: numeric(38)
+    primary_insurance_indicator_id: numeric(38)
+    subscriber_relationship_id: numeric(38)
     gender_code: varchar(2)
     age: integer
-    coverage_level_id: integer
-    coverage_type_id: integer
-    market_category_id: integer
-    entitlement_code_id: integer
-    entitlement_code_id_orig: integer
-    medicare_advantage_id: integer
-    medicare_status_id: integer
-    dual_eligibility_code_id: integer
-    aid_category_id: integer
+    coverage_level_id: numeric(38)
+    coverage_type_id: numeric(38)
+    market_category_id: numeric(38)
+    entitlement_code_id: numeric(38)
+    entitlement_code_id_orig: numeric(38)
+    medicare_advantage_id: numeric(38)
+    medicare_status_id: numeric(38)
+    dual_eligibility_code_id: numeric(38)
+    aid_category_id: numeric(38)
     managed_care_flag: varchar(1)
     purchased_through_exchange: varchar(100)
     exchange_market_type: varchar(2)
-    exchange_metallic_tier_id: integer
+    exchange_metallic_tier_id: numeric(38)
     city: varchar(100)
     state: varchar(2)
     zip: varchar(5)
     medicaid_ffs_flag: varchar(2)
-    race_id1: integer
-    race_id2: integer
-    ethnicity_id1: integer
-    ethnicity_id2: integer
-    hispanic_id: integer
+    race_id1: numeric(38)
+    race_id2: numeric(38)
+    ethnicity_id1: numeric(38)
+    ethnicity_id2: numeric(38)
+    hispanic_id: numeric(38)
     behavioral_health_ind_code: varchar(10)
     out_of_state_flag: varchar(1)
     dup_flag_pbm_tpa: varchar(1)
@@ -62,6 +62,10 @@ table_part13:
     row_term: \n
 table_part14:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_14.csv
+    field_term: ','
+    row_term: \n
+table_part15:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_15.csv
     field_term: ','
     row_term: \n
 table_part2:
@@ -103,6 +107,7 @@ years:
     - part12
     - part13
     - part14
+    - part15
     - part2
     - part3
     - part4
