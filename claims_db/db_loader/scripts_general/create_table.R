@@ -132,7 +132,7 @@ create_table_f <- function(
     message(glue::glue("Creating overall [{to_schema}].[{to_table}] table", test_msg))
     
     if (overwrite == T) {
-      if (DBI::dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table))) {
+      if (DBI::dbExistsTable(conn, DBI::Id(catalog = server, schema = to_schema, table = to_table))) {
         DBI::dbExecute(conn, 
                        glue::glue_sql("DROP {external_setup} TABLE {`to_schema`}.{`to_table`}",
                                       .con = conn))
