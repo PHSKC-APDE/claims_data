@@ -126,6 +126,7 @@ create_table_f <- function(
     external_text <- DBI::SQL("")
   }
   
+  message(glue(to_schema, ".", to_table))
   
   #### OVERALL TABLE ####
   if (overall == T) {
