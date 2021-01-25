@@ -115,7 +115,7 @@ create_table_f <- function(
     to_table <- glue::glue("{to_schema}_{to_table}")
     to_schema <- "tmp"
   }
-  
+  message(glue(to_schema, ".", to_table))
   if (external == T) {
     external_setup <- glue::glue_sql(" EXTERNAL ")
     external_text <- glue::glue_sql(" WITH (DATA_SOURCE = {DBI::SQL(table_config$ext_data_source)}, 
@@ -126,20 +126,23 @@ create_table_f <- function(
     external_text <- DBI::SQL("")
   }
   
-  message(glue(to_schema, ".", to_table))
+  message(1)
   
   #### OVERALL TABLE ####
   if (overall == T) {
+    message(2)
     message(glue::glue("Creating overall [{to_schema}].[{to_table}] table", test_msg))
     
     if (overwrite == T) {
+      message(3)
       if (DBI::dbExistsTable(conn, DBI::Id( schema = to_schema, table = to_table))) {
+        message(4)
         DBI::dbExecute(conn, 
                        glue::glue_sql("DROP {external_setup} TABLE {`to_schema`}.{`to_table`}",
                                       .con = conn))
       }
     }
-    
+    message(5)
     create_code <- glue::glue_sql(
       "CREATE {external_setup} TABLE {`to_schema`}.{`to_table`} (
       {DBI::SQL(glue::glue_collapse(glue::glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}', 
@@ -149,7 +152,7 @@ create_table_f <- function(
     
     DBI::dbExecute(conn, create_code)
   }
-  
+  message(10)
   
   #### CALENDAR YEAR TABLES ####
   if (ind_yr == T) {
