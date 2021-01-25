@@ -18,7 +18,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   if (is.null(conn_db)) {stop("No DB connection specificed")}
   if (is.null(config)) {stop("Specify a list with config details")}
   
-  
+  message("21")
   #### SET UP SERVER ####
   if (is.null(server)) {
     server <- NA
@@ -46,7 +46,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   qa_table <- ifelse(is.null(config[[server]][["qa_table"]]), '',
                      config[[server]][["qa_table"]])
   
-  
+  message("49")
   if (full_refresh == T) {
     bho_archive_schema <- config[[server]][["bho_archive_schema"]]
     bho_archive_table <- ifelse(is.null(config[[server]][["bho_archive_table"]]), '',
@@ -77,9 +77,9 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
     etl_batch_type <- "full"
   }
 
+  message("80")
   
-  
-  
+  message(glue(to_schema, ".", to_table))
   #### ARCHIVE EXISTING TABLE ####
   # Different approaches between Azure data warehouse (rename) and on-prem SQL DB (alter schema)
   # Check that the stage table actually exists so we don't accidentally wipe the archive table
@@ -91,11 +91,13 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
       DBI::dbSendQuery(conn_dw, 
                        glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
     } else if (server == "phclaims") {
+      message("94")
       alter_schema_f(conn = conn_db, 
                      from_schema = to_schema, 
                      to_schema = archive_schema,
                      table_name = to_table, 
                      rename_index = F)
+      message("100")
     }
   }
   
@@ -112,10 +114,12 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
                                    AS ",
                                  .con = conn_dw)
   } else if (server == "phclaims") {
+    message("117")
     create_table_f(conn = conn_dw, 
                    server = server,
                    config = config,
                    overwrite = T)
+    message("122")
     load_intro <- glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} WITH (TABLOCK) 
                                    ({`vars`*})",
                                  .con = conn_dw)
