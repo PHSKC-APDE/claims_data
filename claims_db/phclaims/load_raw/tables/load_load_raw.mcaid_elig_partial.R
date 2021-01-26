@@ -44,7 +44,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   if (!is.null(config)) {
     table_config <- config
   } else if (!is.null(config_url)) {
-    table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+    table_config <- yaml::yaml.load(httr::GET(config_url))
   } else {
     table_config <- yaml::read_yaml(config_file)
   }

@@ -109,7 +109,7 @@ load_stage.mcare_snf_revenue_center_f <- function() {
 qa_stage.mcare_snf_revenue_center_qa_f <- function() {
   
   #load expected counts from YAML file
-  table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+  table_config <- yaml::yaml.load(httr::GET(config_url))
   
   #confirm that row counts match expected
   row_sum_union <- dbGetQuery(conn = db_claims, glue_sql(

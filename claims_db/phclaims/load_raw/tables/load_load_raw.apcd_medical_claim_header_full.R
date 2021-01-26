@@ -69,7 +69,7 @@ load_load_raw.apcd_medical_claim_header_full_f <- function(etl_date_min = NULL,
   #### LOAD YAML CONFIG FILE FOR FINAL COMMANDS ####
   config_url <- paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.", table_name_part, "_full.yaml")
   if (!is.null(config_url)) {
-    table_config <- yaml::yaml.load(RCurl::getURL(config_url))
+    table_config <- yaml::yaml.load(httr::GET(config_url))
   } else {
     table_config <- yaml::read_yaml(config_file)
   }
