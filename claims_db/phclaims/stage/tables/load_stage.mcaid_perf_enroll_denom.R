@@ -70,8 +70,8 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
   }
 
   
-  look_back_date_int <- odbc::dbGetQuery(
-    conn, glue::glue_sql("SELECT YEAR(24_month_prior) * 100 + MONTH(24_month_prior) FROM 
+  look_back_date_int <- DBI::dbGetQuery(
+    conn, glue::glue_sql("SELECT YEAR([24_month_prior]) * 100 + MONTH([24_month_prior]) FROM 
                          {`ref_schema`}.{DBI::SQL(ref_table)}perf_year_month 
                          WHERE year_month = {start_date_int}",
                          .con = conn))
@@ -85,7 +85,7 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
   # Load into temp table
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT * INTO ##temp
-                                FROM {`stage_schema`}.{DBI::SQL(stage_table)}_mcaid_perf_enroll_member_month
+                                FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_elig_member_month
                                 (CAST({look_back_date_int} AS VARCHAR(20)), CAST({end_date_int} AS VARCHAR(20)))",
                                 .con = conn))
   
