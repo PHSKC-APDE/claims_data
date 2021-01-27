@@ -41,7 +41,8 @@ load_load_raw.apcd_provider_master_full_f <- function(etl_date_min = NULL,
                                               date_min = etl_date_min,
                                               date_max = etl_date_max,
                                               delivery_date = etl_delivery_date, 
-                                              note = etl_note)
+                                              note = etl_note,
+                                              server = "phclaims")
   
   if (is.na(current_batch_id)) {
     stop("No etl_batch_id. Check metadata.etl_log table")
@@ -53,7 +54,7 @@ load_load_raw.apcd_provider_master_full_f <- function(etl_date_min = NULL,
   load_table_from_file_f(conn = db_claims,
                          config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.",
                                              table_name_part, "_full.yaml"),
-                         overall = T, ind_yr = F, combine_yr = F)
+                         overall = T, ind_yr = F, combine_yr = F, server = NULL)
   
   
   #### ADD BATCH ID COLUMN ####
