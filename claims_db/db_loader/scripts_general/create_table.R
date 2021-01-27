@@ -153,18 +153,19 @@ create_table_f <- function(
     # Use unique in case variables are repeated
     years <- sort(unique(table_config$years))
     
-    # Set up new table name
-    to_table <- paste0(to_table, "_", x)
-    
-    # Add additional year-specific variables if present
-    if ("vars" %in% names(table_config[[x]])) {
-      vars <- c(table_config$vars, table_config[[add_vars_name]][[vars]])
-    }
-    
-    
     message(glue::glue("Creating calendar year [{to_schema}].[{to_table}] tables", test_msg))
     
     lapply(years, function(x) {
+      
+      # Set up new table name
+      to_table <- paste0(to_table, "_", x)
+      
+      # Add additional year-specific variables if present
+      if ("vars" %in% names(table_config[[x]])) {
+        vars <- c(table_config$vars, table_config[[add_vars_name]][[vars]])
+      }
+      else vars <- table_config$vars
+      
       if (overwrite == T) {
         if (DBI::dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table))) {
           DBI::dbExecute(conn, 
