@@ -36,7 +36,7 @@ load_table_from_file_f <- function(
   
   #### SET UP SERVER ####
   if (is.null(server)) {
-    server <- NA
+    server <- NULL
   } else if (server %in% c("phclaims", "hhsaw")) {
     server <- server
   } else if (!server %in% c("phclaims", "hhsaw")) {
