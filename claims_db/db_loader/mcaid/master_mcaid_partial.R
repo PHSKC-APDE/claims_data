@@ -186,6 +186,7 @@ stage_address_clean_timestamp <- load_stage.address_clean_partial_step1(server =
 
 if (stage_address_clean_timestamp != 0) {
   # Load time stamp value to metadata table in case R breaks and needs a restart
+  db_claims <- create_db_connection(server, interactive = interactive_auth)
   elig_etl <- as.integer(DBI::dbGetQuery(db_claims, 
                                          glue::glue_sql("SELECT max(etl_batch_id) 
                                FROM {`stage_address_clean_config[[server]][['from_schema']]`}.{`stage_address_clean_config[[server]][['from_table']]`}",
