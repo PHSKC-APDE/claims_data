@@ -149,7 +149,8 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                 config = table_config,
                 file_type = "csv", compression = "gzip",
                 identity = "Storage Account Key", secret = key_get("inthealth_edw"),
-                overwrite = T)
+                overwrite = T,
+                rodbc = F)
   } else if (server == "phclaims") {
     load_table_from_file_f(conn = conn_dw,
                            server = server,

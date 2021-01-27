@@ -13,6 +13,7 @@
 # config_url = URL location of YAML config file (should be blank if using config_file)
 # config_file = path + file name of YAML config file (should be blank if using config_url)
 # overwrite = truncate table first before creating it, if it exists (default is TRUE)
+# rodbc = if wanting to use RODBC package to run query (avoids encoding error if using a secret key)
 
 
 #### FUNCTION ####
@@ -31,7 +32,8 @@ copy_into_f <- function(
   field_terminator = "\\t",
   row_terminator = "\\n",
   first_row = 2,
-  overwrite = T) {
+  overwrite = T,
+  rodbc = F) {
   
   
   #### SET UP SERVER ####
@@ -48,7 +50,7 @@ copy_into_f <- function(
   # The odbc package isn't encoding the secret key properly right now so produces
   # a Base-64 error. The RODBC doesn't seem to have that issue so for now we are
   # forcing the COPY INTO statement to use an RODBC connection
-  if (server == "hhsaw") {
+  if (rodbc == T) {
     conn_rodbc <- RODBC::odbcConnect(dsn = "int_edw_20", 
                                      uid = keyring::key_list("hhsaw_dev")[["username"]])
   }
@@ -182,7 +184,7 @@ copy_into_f <- function(
     );",
     .con = conn)
   
-  if (server == "hhsaw") {
+  if (rodbc == T) {
     RODBC::sqlQuery(channel = conn_rodbc, query = load_sql)
   } else {
     DBI::dbExecute(conn, load_sql)
