@@ -109,7 +109,7 @@ load_metadata_etl_log_f <- function(conn = NULL,
   
   
   #### CHECK ABOUT CREATING NEW ENTRY ####
-  if ((auto_proceed == T )& nrow(matches == 0) | nrow(latest_source) == 0) {
+  if ((auto_proceed == T )& nrow(matches) == 0 | nrow(latest_source) == 0) {
     proceed <- T
     } 
   
