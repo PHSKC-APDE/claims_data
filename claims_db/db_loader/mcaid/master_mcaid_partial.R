@@ -152,6 +152,7 @@ if (server == "hhsaw") {
                                       config = table_config_stage_elig))
 }
 
+
 #### STAGE CLAIM ####
 # Call in config file to get vars (and check for errors)
 table_config_stage_claims <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
@@ -171,6 +172,7 @@ if (server == "hhsaw") {
                                               full_refresh = F, 
                                               config = table_config_stage_claims))
 }
+
 
 #### STAGE.ADDRESS_CLEAN ####
 # Call in config file to get vars
