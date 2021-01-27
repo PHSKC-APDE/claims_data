@@ -91,7 +91,7 @@
       
 ## (8) Write to SQL ----              
   # Pull YAML from GitHub
-    table_config <- yaml::yaml.load(RCurl::getURL(yaml.url))
+    table_config <- yaml::yaml.load(httr::GET(yaml.url))
   
   # Ensure columns are in same order in R & SQL
     setcolorder(elig, names(table_config$vars))

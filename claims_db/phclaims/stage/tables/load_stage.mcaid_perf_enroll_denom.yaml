@@ -14,7 +14,7 @@ hhsaw:
     stage_table: stage_
     ref_schema: claims
     ref_table: ref_
-    archive_schema: claims
+    archive_schema: stg_claims
     archive_table: archive_
 index_type: cl
 index_name: idx_cl_mcaid_perf_enroll_provider_id_mcaid_year_month

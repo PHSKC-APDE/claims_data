@@ -17,7 +17,7 @@
 ## (1) Connect to SQL Server & get YAML data ----    
     db.claims51 <- dbConnect(odbc(), "PHClaims51") 
     
-    table_config <- yaml::yaml.load(RCurl::getURL(yaml.url))
+    table_config <- yaml::yaml.load(httr::GET(yaml.url))
 
 ## (2) Read in ssn (names) data ----
     ssn <- data.table::setDT( dbGetQuery(conn = db.claims51, "SELECT DISTINCT * FROM [load_raw].[mcare_xwalk_bene_ssn]") )

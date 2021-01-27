@@ -172,7 +172,7 @@
         dt[, last_run := Sys.time()]
             
     # Pull YAML from GitHub
-        table_config <- yaml::yaml.load(RCurl::getURL(yaml.url))
+        table_config <- yaml::yaml.load(httr::GET(yaml.url))
         
     # Create table ID
         tbl_id <- DBI::Id(schema = table_config$schema, 

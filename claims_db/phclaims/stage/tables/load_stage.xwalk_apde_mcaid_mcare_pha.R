@@ -12,7 +12,7 @@
   #        When there is a chance in race, we will treat it like a change in dob, meaning we assuming the most recent is correct  
   #
   #        When there is a change in gender, we will record both (i.e., we'll have a male and a female column, both binary)
-  #        this will allow us to have sex== unknown, male, female, mutliple
+  #        this will allow us to have sex== unknown, male, female, multiple
   #
   #
   #
@@ -30,12 +30,6 @@
   # 7) Create 4-way linkage (APDE-MCARE-MCAID-PHA)
   # 8) Drop all temporary SQL tables 
 
-## SET UP R ENVIRONMENT ----
-    rm(list=ls()) # clear memory
-    pacman::p_load(data.table, tidyverse, odbc, DBI, tidyr, RecordLinkage, lubridate) # load packages
-    options("scipen"=999) # turn off scientific notation  
-    options(warning.length = 8170) # get lengthy warnings, needed for SQL
-    
     start.time <- Sys.time()
 
 ## FUNCTIONS ... general data cleaning / prep procedures ----

@@ -10,34 +10,40 @@
 ### Function elements
 # server = whether we are working in HHSAW or PHClaims or other
 
-create_db_connection <- function(server = "phclaims") {
+create_db_connection <- function(server = c("phclaims", "hhsaw", "inthealth"),
+                                 interactive = F) {
   
-  library(odbc) # Read to and write from SQL
+  server <- match.arg(server)
   
   if (server == "hhsaw") {
+    db_name <- "hhs_analytics_workspace"
+  } else if (server == "inthealth") {
+    db_name <- "inthealth_edw"
+  }
+
+  
+  if (server == "phclaims") {
+    conn <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
+  } else if (interactive == F) {
     conn <- DBI::dbConnect(odbc::odbc(),
                            driver = "ODBC Driver 17 for SQL Server",
                            server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
-                           database = "hhs_analytics_workspace",
+                           database = db_name,
                            uid = keyring::key_list("hhsaw_dev")[["username"]],
                            pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
                            Encrypt = "yes",
                            TrustServerCertificate = "yes",
                            Authentication = "ActiveDirectoryPassword")
-  }
-  else if (server == "inthealth") {
+  } else if (interactive == T) {
     conn <- DBI::dbConnect(odbc::odbc(),
-                                   driver = "ODBC Driver 17 for SQL Server",
-                                   server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
-                                   database = "inthealth_edw",
-                                   uid = keyring::key_list("hhsaw_dev")[["username"]],
-                                   pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
-                                   Encrypt = "yes",
-                                   TrustServerCertificate = "yes",
-                                   Authentication = "ActiveDirectoryPassword")
+                           driver = "ODBC Driver 17 for SQL Server",
+                           server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
+                           database = db_name,
+                           uid = keyring::key_list("hhsaw_dev")[["username"]],
+                           Encrypt = "yes",
+                           TrustServerCertificate = "yes",
+                           Authentication = "ActiveDirectoryInteractive")
   }
-  else {
-    conn <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
-  }
+  
   return(conn)
 }

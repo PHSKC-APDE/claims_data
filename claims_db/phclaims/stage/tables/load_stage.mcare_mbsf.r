@@ -31,7 +31,7 @@
 ## (1) Connect to SQL Server & get YAML data ----    
     db_claims <- dbConnect(odbc(), "PHClaims51") 
 
-    table_config <- yaml::yaml.load(RCurl::getURL(yaml.url))
+    table_config <- yaml::yaml.load(httr::GET(yaml.url))
     
 ## (2) Identify data that does not already exist in MBSF Stage ----
     # get tables of all counts by year

@@ -38,11 +38,12 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 #### CHOOSE SERVER AND CREATE CONNECTION ####
 server <- select.list(choices = c("phclaims", "hhsaw"))
+interactive_auth <- select.list(choices = c("TRUE", "FALSE"))
 
-db_claims <- create_db_connection(server)
+db_claims <- create_db_connection(server, interactive = interactive_auth)
 
 if (server == "hhsaw") {
-  dw_inthealth <- create_db_connection("inthealth")
+  dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth)
 }
 
 #### RAW ELIG ####
@@ -209,7 +210,7 @@ if (stage_address_clean_timestamp != 0) {
   
   ### Check to see if the results are in the output table
   # Set up specific HHSAW connection
-  conn_hhsaw <- create_db_connection("hhsaw")
+  conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
   # Check to see if any addresses exist
   # Note need to round SQL time stamp to nearest second
   # NB. The code adds the current timestamp in Pacific time to the server, but the server
@@ -229,7 +230,7 @@ if (stage_address_clean_timestamp != 0) {
     Sys.sleep(3600)
     
     # Likely need to re-establish the HHSAW connection due to timeouts
-    conn_hhsaw <- create_db_connection("hhsaw")
+    conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
     add_output <- DBI::dbGetQuery(conn_hhsaw, 
                                   glue::glue_sql("SELECT TOP (1) * 
                                FROM {`stage_address_clean_config[['informatica_ref_schema']]`}.{`stage_address_clean_config[['informatica_output_table']]`} 
@@ -240,9 +241,9 @@ if (stage_address_clean_timestamp != 0) {
   
   
   ### Likely need to re-establish the server connections due to timeouts
-  db_claims <- create_db_connection(server)
+  db_claims <- create_db_connection(server, interactive = interactive_auth)
   if (server == "hhsaw") {
-    dw_inthealth <- create_db_connection("inthealth")
+    dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth)
   }
   
   
@@ -392,8 +393,8 @@ rm(stage_address_geocode_config, qa_stage_address_geocode, stage_address_geocode
 #   and update the other table accordingly
 
 ### Set up server-specific connections
-conn_hhsaw <- create_db_connection("hhsaw")
-conn_phclaims <- create_db_connection("phclaims")
+conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
+conn_phclaims <- create_db_connection("phclaims", interactive = interactive_auth)
 
 ### address_clean table
 # Call in config file to get vars
