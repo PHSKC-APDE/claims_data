@@ -31,7 +31,8 @@
 load_stage.address_clean_partial_step1 <- function(server = NULL,
                                                    config = NULL,
                                                    source = NULL,
-                                                   get_config = F) {
+                                                   get_config = F,
+                                                   interactive_auth = NULL) {
   #### SET UP SERVER ####
   if (is.null(server)) {
     server <- NA
@@ -49,7 +50,7 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
     }
   }
   
-  conn <- create_db_connection(server)
+  conn <- create_db_connection(server, interactive = interactive_auth)
   from_schema <- config[[server]][["from_schema"]]
   from_table <- config[[server]][["from_table"]]
   to_schema <- config[[server]][["to_schema"]]
@@ -96,7 +97,7 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
 
   if (nrow(new_add_out) > 0) {
     # Make connection to HHSAW
-    conn_hhsaw <- create_db_connection("hhsaw")
+    conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
     DBI::dbAppendTable(conn_hhsaw, DBI::Id(schema = informatica_ref_schema, table = informatica_input_table), 
                        new_add_out)
     message(nrow(new_add_out), " addresses were exported for Informatica cleanup")
@@ -121,7 +122,8 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
                                                    config = NULL,
                                                    source = NULL,
                                                    informatica_timestamp = NULL,
-                                                   get_config = F) {
+                                                   get_config = F,
+                                                   interactive_auth = NULL) {
 
   #### SET UP SERVER ####
   if (is.null(server)) {
@@ -140,7 +142,7 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
     }
   }
   
-  conn <- create_db_connection("hhsaw")
+  conn <- create_db_connection("hhsaw", interactive = interactive_auth)
   from_schema <- config[[server]][["from_schema"]]
   from_table <- config[[server]][["from_table"]]
   to_schema <- config[[server]][["to_schema"]]
@@ -314,7 +316,7 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   
   
   #### STEP 2C: APPEND to SQL ####
-  conn <- create_db_connection(server)
+  conn <- create_db_connection(server, interactive = interactive_auth)
   dbWriteTable(conn, 
                name = DBI::Id(schema = to_schema,  table = to_table),
                new_add_final,
