@@ -136,7 +136,7 @@ copy_into_f <- function(
     compression <- DBI::SQL("")
   }
   
-  if (!is.null(identity) | !is.null(secret)) {
+  if (rodbc == T & (!is.null(identity) | !is.null(secret))) {
     auth_sql <- glue::glue_sql("CREDENTIAL = (IDENTITY = {identity},
                                SECRET = {secret}),", .con = conn)
   } else {
