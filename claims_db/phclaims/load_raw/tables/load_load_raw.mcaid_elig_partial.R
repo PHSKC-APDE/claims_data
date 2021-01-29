@@ -16,7 +16,8 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                                etl_date_min = NULL,
                                                etl_date_max = NULL,
                                                etl_delivery_date = NULL,
-                                               etl_note = NULL) {
+                                               etl_note = NULL,
+                                               interactive_auth = F) {
   
   #### ERROR CHECKS ####
   ### Check entries are in place for ETL function
@@ -65,6 +66,13 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   to_table <- table_config[[server]][["to_table"]]
   qa_schema <- table_config[[server]][["qa_schema"]]
   qa_table <- table_config[[server]][["qa_table"]]
+  
+  # If using interactive auth, don't use RODBC in COPY INTO
+  if (interactive_auth == F) {
+    rodbc <- F
+  } else {
+    rodbc <- T
+  }
   
   # Set up both connections so they work in either server
   if (server == "phclaims") {conn_dw <- conn}
@@ -150,7 +158,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                 file_type = "csv", compression = "gzip",
                 identity = "Storage Account Key", secret = key_get("inthealth_edw"),
                 overwrite = T,
-                rodbc = F)
+                rodbc = rodbc)
   } else if (server == "phclaims") {
     load_table_from_file_f(conn = conn_dw,
                            server = server,

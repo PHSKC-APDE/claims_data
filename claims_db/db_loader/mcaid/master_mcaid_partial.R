@@ -182,7 +182,8 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 # Run step 1, which identifies new addresses and sets them up to be run through Informatica
 stage_address_clean_timestamp <- load_stage.address_clean_partial_step1(server = server,
                                                                         config = stage_address_clean_config,
-                                                                        source = 'mcaid')
+                                                                        source = 'mcaid',
+                                                                        interactive_auth = interactive_auth)
 
 if (stage_address_clean_timestamp != 0) {
   # Load time stamp value to metadata table in case R breaks and needs a restart
@@ -252,7 +253,8 @@ if (stage_address_clean_timestamp != 0) {
   load_stage.address_clean_partial_step2(server = server,
                                          config = stage_address_clean_config,
                                          source = 'mcaid',
-                                         informatica_timestamp = stage_address_clean_timestamp)
+                                         informatica_timestamp = stage_address_clean_timestamp,
+                                         interactive_auth = interactive_auth)
   
   # QA stage.address_clean
   devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.address_clean_partial.R")
