@@ -25,6 +25,7 @@ vars:
     geo_city_clean: VARCHAR(255)
     geo_state_clean: VARCHAR(255)
     geo_zip_clean: VARCHAR(255)
+    geo_hash_geocode: CHAR(64)
     geo_add_geocoded: VARCHAR(255)
     geo_zip_geocoded: VARCHAR(255)
     geo_add_type: VARCHAR(255)
