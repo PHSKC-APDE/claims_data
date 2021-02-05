@@ -20,6 +20,8 @@ hhsaw:
     ref_table: address_geocode
     qa_schema: claims
     qa_table: metadata_
+index_name: idx_ccs_ref_address_geocode
+index_type: ccs
 vars:
     geo_add1_clean: VARCHAR(255)
     geo_city_clean: VARCHAR(255)
