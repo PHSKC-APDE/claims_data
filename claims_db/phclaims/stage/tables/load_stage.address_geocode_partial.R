@@ -84,11 +84,7 @@ stage_address_geocode_f <- function(conn = NULL,
     
     #### RUN THROUGH ESRI GEOCODER ####
     ### Source geocoding function
-    # Currently in a temporary location but will be moved eventually
-    auth <- Sys.getenv("GITHUB_TOKEN")
-    eval(parse(text = httr::GET(
-      url = "https://raw.githubusercontent.com/PHSKC-APDE/pers_alastair/master/general_functions/kc_geocode.R",
-      httr::authenticate(auth, "")) %>% httr::content(as = "text")))
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/kc_geocode.R")
     
     
     ### Run the addresses through the geocoder, taking the best result only
