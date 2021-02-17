@@ -19,7 +19,7 @@
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
 
 library(pacman)
-pacman::p_load(tidyverse, lubridate, odbc, RCurl, configr, glue)
+pacman::p_load(tidyverse, lubridate, odbc, glue)
 
 db_claims <- dbConnect(odbc(), "PHClaims51")
 
