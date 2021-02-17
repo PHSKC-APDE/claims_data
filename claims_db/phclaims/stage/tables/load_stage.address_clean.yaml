@@ -35,6 +35,7 @@ vars:
     geo_state_clean: VARCHAR(255)
     geo_zip_clean: VARCHAR(255)
     geo_hash_clean: CHAR(64)
+    geo_hash_geocode: CHAR(64)
     geo_geocode_skip: TINYINT
     last_run: DATETIME
   
