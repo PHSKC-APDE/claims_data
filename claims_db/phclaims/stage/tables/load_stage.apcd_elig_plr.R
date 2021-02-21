@@ -745,7 +745,7 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
     start_feb <- ymd(paste0(str_sub(start_date,1,4),"0201"))
     end_feb <- ymd(paste0(str_sub(end_date,1,4),"0201"))
     
-    if((ymd(start_feb) %within% interval & leap_year(start_date)) | (ymd(end_feb) %within% interval & leap_year(end_date))) {
+    if((ymd(start_feb) %within% interval & leap_year(start_date)==T) | (ymd(end_feb) %within% interval & leap_year(end_date)==T)) {
       days <- 366} else {
         days <- 365}
   }
