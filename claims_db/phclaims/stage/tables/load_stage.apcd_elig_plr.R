@@ -738,7 +738,7 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
   
   if(nchar(year) > 4) {
     
-    start_date <- ymd(year) - months(12) + days(1)
+    start_date <- ymd(year) %m-% months(12) %m+% days(1)
     end_date <- ymd(year)
     interval <- interval(start_date, end_date)
     
