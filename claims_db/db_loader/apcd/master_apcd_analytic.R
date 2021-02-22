@@ -255,7 +255,7 @@ system.time(apcd_procedure_qa1 <- qa_stage.apcd_claim_procedure_f())
 #rm(apcd_procedure_qa1)
 
 ### F) Archive current table
-#alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_procedure")
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_procedure")
 
 ### G) Alter schema on new table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_procedure")
@@ -284,7 +284,7 @@ system.time(apcd_provider_qa1 <- qa_stage.apcd_claim_provider_f())
 #rm(apcd_provider_qa1)
 
 ### F) Archive current table
-#alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_provider")
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_provider")
 
 ### G) Alter schema on new table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_provider")
