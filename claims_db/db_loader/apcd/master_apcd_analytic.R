@@ -388,7 +388,8 @@ create_table_f(conn = db_claims,
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
 
 ### C) Load tables
-system.time(load_ccw(conn = db_claims, source = c("apcd")))
+system.time(load_ccw(server = "phclaims", conn = db_claims, source = c("apcd"),
+                     config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"))
 
 ### D) Table-level QA
 
