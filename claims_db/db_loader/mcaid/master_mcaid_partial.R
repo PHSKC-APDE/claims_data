@@ -36,15 +36,23 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/mcaid/create_db_connection.R")
 
+
 #### CHOOSE SERVER AND CREATE CONNECTION ####
 server <- select.list(choices = c("phclaims", "hhsaw"))
 interactive_auth <- select.list(choices = c("TRUE", "FALSE"))
+if (server == "hhsaw") {
+  prod <- select.list(choices = c("TRUE", "FALSE"))
+} else {
+  prod <- F
+}
 
-db_claims <- create_db_connection(server, interactive = interactive_auth)
+
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
 if (server == "hhsaw") {
-  dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth)
+  dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 }
+
 
 #### RAW ELIG ####
 ### Bring in yaml file and function
@@ -396,10 +404,55 @@ rm(stage_address_geocode_config, qa_stage_address_geocode, stage_address_geocode
 #   and update the other table accordingly
 
 ### Set up server-specific connections
-conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
-conn_phclaims <- create_db_connection("phclaims", interactive = interactive_auth)
+conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+conn_phclaims <- create_db_connection("phclaims", interactive = interactive_auth, prod = prod)
 
-### address_clean table
+#### stage_address_clean table ####
+# Call in config file to get vars
+stage_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
+
+hhsaw_schema <- stage_address_clean_config[['hhsaw']][['to_schema']]
+hhsaw_table <- stage_address_clean_config[['hhsaw']][['to_table']]
+phclaims_schema <- stage_address_clean_config[['phclaims']][['to_schema']]
+phclaims_table <- stage_address_clean_config[['phclaims']][['to_table']]
+
+
+# Bring in all addresses
+address_clean_hhsaw <- DBI::dbGetQuery(
+  conn_hhsaw,
+  glue::glue_sql("SELECT * FROM {`hhsaw_schema`}.{`hhsaw_table`}", .con = conn_hhsaw))
+
+address_clean_phclaims <- DBI::dbGetQuery(
+  conn_phclaims,
+  glue::glue_sql("SELECT * FROM {`phclaims_schema`}.{`phclaims_table`}", .con = conn_phclaims))
+
+# Compare and find differences
+update_hhsaw <- anti_join(address_clean_phclaims, address_clean_hhsaw,
+                          by = "geo_hash_raw")
+
+update_phclaims <- anti_join(address_clean_hhsaw, address_clean_phclaims,
+                             by = "geo_hash_raw")
+
+
+# Update tables so they are in sync
+if (nrow(update_hhsaw) > 0) {
+  DBI::dbWriteTable(conn_hhsaw, 
+                    name = DBI::Id(schema = hhsaw_schema, table = hhsaw_table),
+                    value = update_hhsaw,
+                    append = T)
+}
+message(nrow(update_hhsaw), " stage address rows loaded from PHClaims to HHSAW")
+
+if (nrow(update_phclaims) > 0) {
+  DBI::dbWriteTable(conn_phclaims, 
+                    name = DBI::Id(schema = phclaims_schema, table = phclaims_table),
+                    value = update_phclaims,
+                    append = T)
+}
+message(nrow(update_phclaims), " stage address rows loaded from HHSAW to PHClaims")
+
+
+#### address_clean table ####
 # Call in config file to get vars
 ref_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
 
@@ -444,7 +497,52 @@ if (nrow(update_phclaims) > 0) {
 message(nrow(update_phclaims), " address rows loaded from HHSAW to PHClaims")
 
 
-### address_geocode table
+#### address_geocode table ####
+# Call in config file to get vars
+stage_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
+
+hhsaw_schema <- stage_address_geocode_config[['hhsaw']][['to_schema']]
+hhsaw_table <- stage_address_geocode_config[['hhsaw']][['to_table']]
+phclaims_schema <- stage_address_geocode_config[['phclaims']][['to_schema']]
+phclaims_table <- stage_address_geocode_config[['phclaims']][['to_table']]
+
+# Bring in all addresses
+address_geocode_hhsaw <- DBI::dbGetQuery(
+  conn_hhsaw,
+  glue::glue_sql("SELECT * FROM {`hhsaw_schema`}.{`hhsaw_table`}", .con = conn_hhsaw))
+
+address_geocode_phclaims <- DBI::dbGetQuery(
+  conn_phclaims,
+  glue::glue_sql("SELECT * FROM {`phclaims_schema`}.{`phclaims_table`}",
+                 .con = conn_phclaims))
+
+# Compare and find differences
+update_hhsaw <- anti_join(address_geocode_phclaims, address_geocode_hhsaw,
+                          by = c("geo_add1_clean", "geo_city_clean", "geo_state_clean", "geo_zip_clean"))
+
+update_phclaims <- anti_join(address_geocode_hhsaw, address_geocode_phclaims,
+                             by = c("geo_add1_clean", "geo_city_clean", "geo_state_clean", "geo_zip_clean"))
+
+
+# Update tables so they are in sync
+if (nrow(update_hhsaw) > 0) {
+  DBI::dbWriteTable(conn_hhsaw, 
+                    name = DBI::Id(schema = hhsaw_schema, table = hhsaw_table),
+                    value = update_hhsaw,
+                    append = T)
+}
+message(nrow(update_hhsaw), " stage geocode rows loaded from PHClaims to HHSAW")
+
+if (nrow(update_phclaims) > 0) {
+  DBI::dbWriteTable(conn_phclaims, 
+                    name = DBI::Id(schema = phclaims_schema, table = phclaims_table),
+                    value = update_phclaims,
+                    append = T)
+}
+message(nrow(update_phclaims), " stage geocode rows loaded from HHSAW to PHClaims")
+
+
+#### address_geocode table ####
 # Call in config file to get vars
 ref_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml"))
 
