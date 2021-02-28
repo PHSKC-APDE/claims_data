@@ -305,12 +305,17 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
                                                           stringr::str_replace_na(geo_state_clean, ''), 
                                                           stringr::str_replace_na(geo_zip_clean, ''), 
                                                           sep = "|"))),
+           geo_hash_geocode = toupper(openssl::sha256(paste(stringr::str_replace_na(geo_add1_clean, ''),  
+                                                          stringr::str_replace_na(geo_city_clean, ''), 
+                                                          stringr::str_replace_na(geo_state_clean, ''), 
+                                                          stringr::str_replace_na(geo_zip_clean, ''), 
+                                                          sep = "|"))),
            last_run = Sys.time()) %>%
     select(geo_add1_raw, geo_add2_raw, geo_add3_raw, geo_city_raw, 
            geo_state_raw, geo_zip_raw, geo_hash_raw,
            geo_add1_clean, geo_add2_clean, geo_city_clean, 
            geo_state_clean, geo_zip_clean, geo_hash_clean,
-           geo_geocode_skip, last_run) %>%
+           geo_hash_geocode, geo_geocode_skip, last_run) %>%
     # Convert all blank fields to be NA
     mutate_if(is.character, list(~ ifelse(. == "", NA_character_, .)))
   

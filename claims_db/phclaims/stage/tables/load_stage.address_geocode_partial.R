@@ -54,23 +54,19 @@ stage_address_geocode_f <- function(conn = NULL,
       conn,
       glue::glue_sql("SELECT DISTINCT a.*, b.geocoded
                      FROM
-                     (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean
+                     (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, geo_hash_geocode
                        FROM {`ref_schema`}.address_clean WHERE geo_geocode_skip = 0) a
                      LEFT JOIN
-                     (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
-                       1 as geocoded
+                     (SELECT geo_hash_geocode, 1 as geocoded
                        FROM {`ref_schema`}.address_geocode) b
                      ON 
-                     (a.geo_add1_clean = b.geo_add1_clean OR (a.geo_add1_clean IS NULL AND b.geo_add1_clean IS NULL)) AND
-                     (a.geo_city_clean = b.geo_city_clean OR (a.geo_city_clean IS NULL AND b.geo_city_clean IS NULL)) AND
-                     (a.geo_state_clean = b.geo_state_clean OR (a.geo_state_clean IS NULL AND b.geo_state_clean IS NULL)) AND
-                     (a.geo_zip_clean = b.geo_zip_clean OR (a.geo_zip_clean IS NULL AND b.geo_zip_clean IS NULL))
+                     a.geo_hash_geocode = b.geo_hash_geocode
                      WHERE b.geocoded IS NULL",
                      .con = conn))
   } else {
     adds_to_code <- dbGetQuery(conn,
                                glue::glue_sql("SELECT DISTINCT geo_add1_clean, geo_city_clean, 
-                                              geo_state_clean, geo_zip_clean
+                                              geo_state_clean, geo_zip_clean, geo_hash_geocode
                                               FROM {`ref_schema`}.address_clean",
                                               .con = conn))
   }
@@ -116,7 +112,7 @@ stage_address_geocode_f <- function(conn = NULL,
       mutate(geo_x = st_coordinates(adds_coded)[,1],
              geo_y = st_coordinates(adds_coded)[,2]) %>%
       mutate_at(vars(geo_x, geo_y), list( ~ ifelse(is.na(.), 0, .))) %>%
-      select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
+      select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, geo_hash_geocode,
              locName, score, geo_x, geo_y, matchAddr, addressType, drop)
     
     # Convert to WSG84 geographic coordinate system to obtain lat/lon
@@ -135,7 +131,7 @@ stage_address_geocode_f <- function(conn = NULL,
       filter(locName == "zip_5_digit_gc" | is.na(locName)) %>%
       mutate(geo_add_single = paste(geo_add1_clean, geo_city_clean, geo_state_clean,
                                     geo_zip_clean, "USA", sep = ", ")) %>%
-      select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, geo_add_single)
+      select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, geo_hash_geocode, geo_add_single)
     
     
     if (nrow(adds_coded_unmatch) > 0) {
@@ -218,7 +214,7 @@ stage_address_geocode_f <- function(conn = NULL,
       # Combine HERE results back to unmatched data
       adds_coded_here <- left_join(adds_coded_unmatch, adds_here,
                                    by = c("geo_add_single" = "input_add")) %>%
-        select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
+        select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, geo_hash_geocode,
                lat, lon, formatted_address, address_type, geo_check_here) %>%
         mutate_at(vars(lat, lon), list( ~ replace_na(., 0)))
       
@@ -241,7 +237,7 @@ stage_address_geocode_f <- function(conn = NULL,
       # Collapse to useful columns and select matching from each source as appropriate
       adds_coded <- left_join(adds_coded, adds_coded_here, 
                               by = c("geo_add1_clean", "geo_city_clean", "geo_state_clean",
-                                     "geo_zip_clean")) 
+                                     "geo_zip_clean", "geo_hash_geocode")) 
       
       # Look at how the HERE geocodes improved things
       print(adds_coded %>% group_by(locName, address_type) %>% summarise(count = n()))
@@ -303,7 +299,7 @@ stage_address_geocode_f <- function(conn = NULL,
                geo_y = ifelse(geo_geocode_source == "esri", geo_y.x, geo_y.y)
         ) %>%
         select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
-               geo_add_geocoded, geo_zip_geocoded, geo_add_type,
+               geo_hash_geocode, geo_add_geocoded, geo_zip_geocoded, geo_add_type,
                geo_check_esri, geo_check_here, geo_geocode_source, 
                geo_zip_centroid, geo_street_centroid,
                geo_lon, geo_lat, geo_x, geo_y, drop) %>%
@@ -322,7 +318,7 @@ stage_address_geocode_f <- function(conn = NULL,
                geo_zip_centroid = 0L,
                geo_street_centroid = 0L) %>%
         select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
-               geo_add_geocoded, geo_zip_geocoded, geo_add_type,
+               geo_hash_geocode, geo_add_geocoded, geo_zip_geocoded, geo_add_type,
                geo_check_esri, geo_check_here, geo_geocode_source, 
                geo_zip_centroid, geo_street_centroid,
                geo_lon, geo_lat, geo_x, geo_y, drop)
@@ -334,7 +330,7 @@ stage_address_geocode_f <- function(conn = NULL,
     # Will flag them in ref.address_clean as addresses to skip future geocoding attempts
     adds_geocode_skip <- adds_coded %>% 
       filter(is.na(geo_geocode_source) | (drop == 1 & geo_geocode_source == "esri")) %>% 
-      select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean)
+      select(geo_hash_geocode)
     
     if (nrow(adds_geocode_skip) > 0) {
       # Set up SQL to update values in stage table
@@ -499,7 +495,7 @@ stage_address_geocode_f <- function(conn = NULL,
         glue::glue_sql("SELECT COUNT (*) 
                      FROM
                      (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
-                       geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
+                       geo_hash_geocode, geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
                        geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
                        geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
                        geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
@@ -533,7 +529,7 @@ stage_address_geocode_f <- function(conn = NULL,
         glue::glue_sql("SELECT COUNT (*) 
                      FROM
                      (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
-                       geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
+                       geo_hash_geocode, geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
                        geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
                        geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
                        geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
