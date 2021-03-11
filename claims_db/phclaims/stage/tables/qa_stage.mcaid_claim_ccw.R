@@ -372,6 +372,6 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
     ccw_qa_fail <- 1L
   }
   
-  message(glue::glue("QA of stage.mcaid_claim_ccw complete. Result: {ccw_qa_result}"))
+  message(glue::glue("QA of stage.mcaid_claim_ccw complete. Result: {min(ccw_qa$qa_result)}"))
   return(ccw_qa_fail)
 }

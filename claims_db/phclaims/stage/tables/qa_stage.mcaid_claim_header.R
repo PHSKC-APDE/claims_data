@@ -267,7 +267,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
                                     .con = conn))
     }
   } else {
-    num_claim_fail <- 0
+    num_header_fail <- 0
     num_ed_fail <- 0
   }
   
