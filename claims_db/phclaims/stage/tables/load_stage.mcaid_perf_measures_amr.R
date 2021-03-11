@@ -1,5 +1,3 @@
-################################################################
-#
 # Calculate the ages 5-64 asthma medication ratio quality measure (HEDIS)
 #
 # Measure available here: 
@@ -8,9 +6,8 @@
 #
 # Alastair Matheson
 # APDE, PHSKC
-# 2019-04
+# 2019-04, turned into a function 2021-03
 #
-################################################################
 
 #### STEPS ####
 # PART 1 - GENERATE DENOMINATOR POPULATION
@@ -25,105 +22,126 @@
 
 # PART 3 - BRING NUMERATOR AND DENOMINATOR TOGETHER
 
-
-#### BRING IN LIBRARIES AND SET OPTIONS ####
-library(tidyverse)
-library(lubridate)
-library(odbc)
-
-options(max.print = 600, tibble.print_max = 50, scipen = 999, warning.length = 5000)
-
-db_claims <- dbConnect(odbc(), "PHClaims51")
+### Function elements
+# conn = database connection
+# server = whether we are working in HHSAW or PHClaims
+# max_month = date up to which analyses should be run (usually MAX(year_month) FROM stage.mcaid_perf_enroll_denom)
+# return_data = returns the denominator data and # people excluded for additional analyses
 
 
-#### SET UP PARAMETERS FOR TABLE CREATION ####
-# Find the most recent month we have enrollment summaries for
-# Comes in as year-month
-max_month <- unlist(dbGetQuery(db_claims, "SELECT MAX(year_month) FROM stage.mcaid_perf_enroll_denom"))
-# Now find last day of the month for going forward a month then back a day
-max_month <- as.Date(parse_date_time(max_month, "Ym") %m+% months(1) - days(1))
-
-# Set up years to run over
-months_list <- as.list(seq(as.Date("2013-01-01"), as.Date(max_month) + 1, by = "year") - 1)
-
-
-##################################################
-#### PART 1 - GENERATE DENOMINATOR POPULATION ####
-
-#### Start with people who were enrolled for at least 11 months ####
-# Currently making use of a temp table that will become permanent after QA processes
-
-# For the first quarter, create the temp table. Need to set a counter
-i <- 1
-lapply(months_list, function(x) {
+stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
+                                           server = c("hhsaw", "phclaims"),
+                                           max_month = NULL,
+                                           return_data = F) {
   
-  sql_temp <- paste0("(SELECT id_mcaid, year_month, end_month_age 
-                      FROM [PHClaims].[stage].[mcaid_perf_enroll_denom]
+  
+  #### SET UP PARAMETERS FOR TABLE CREATION ####
+  # Set up variables specific to the server
+  server <- match.arg(server)
+  
+  if (server == "hhsaw") {
+    final_schema <- "claims"
+    final_table <- "final_"
+    ref_schema <- "claims"
+    ref_table <- "ref_"
+    stage_schema <- "claims"
+    stage_table <- "stage_"
+    view_schema <- "claims"
+  } else {
+    final_schema <- "final"
+    final_table <- ""
+    ref_schema <- "ref"
+    ref_table <- ""
+    stage_schema <- "stage"
+    stage_table <- ""
+    view_schema <- "stage"
+  }
+  
+  
+  # Find the most recent month we have enrollment summaries for
+  # Comes in as year-month
+  max_month <- unlist(dbGetQuery(db_claims, "SELECT MAX(year_month) FROM stage.mcaid_perf_enroll_denom"))
+  # Now find last day of the month for going forward a month then back a day
+  max_month <- as.Date(parse_date_time(max_month, "Ym") %m+% months(1) - days(1))
+  
+  # Set up years to run over
+  months_list <- as.list(seq(as.Date("2013-01-01"), as.Date(max_month) + 1, by = "year") - 1)
+  
+  
+  #### PART 1 - GENERATE DENOMINATOR POPULATION ####
+  #### Start with people who were enrolled for at least 11 months ####
+  # Currently making use of a temp table that will become permanent after QA processes
+  
+  # For the first quarter, create the temp table. Need to set a counter
+  i <- 1
+  lapply(months_list, function(x) {
+    
+    sql_temp <- paste0("(SELECT id_mcaid, year_month, end_month_age 
+                      FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_enroll_denom
                       WHERE full_benefit_t_12_m >= 11 AND dual_t_12_m = 0 AND 
                       end_month_age >= 5 AND end_month_age < 65) a 
                      LEFT JOIN
                      (SELECT year_month, end_month, beg_measure_year_month 
-                       FROM [ref].[perf_year_month]) b 
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}perf_year_month) b 
                      ON a.year_month = b.year_month
                      WHERE b.end_month = '", x, "'")
-  
-  if (i == 1) {
-    # Note: DBI package only supports the temporary option for dbRemoveTable
-    # not for dbExistsTable. Use try() in the mean time so that the code
-    # continues even if an error is thrown trying to remove a table that
-    # doesn't exist
-    try(dbRemoveTable(db_claims, "##asthma_pop", temporary = T), silent = T)
-
-    DBI::dbExecute(db_claims, 
-                paste0("SELECT a.id_mcaid, a.year_month, b.end_month, a.end_month_age, 
+    
+    if (i == 1) {
+      # Note: DBI package only supports the temporary option for dbRemoveTable
+      # not for dbExistsTable. Use try() in the mean time so that the code
+      # continues even if an error is thrown trying to remove a table that
+      # doesn't exist
+      try(dbRemoveTable(db_claims, "##asthma_pop", temporary = T), silent = T)
+      
+      DBI::dbExecute(db_claims, 
+                     paste0("SELECT a.id_mcaid, a.year_month, b.end_month, a.end_month_age, 
                         b.beg_measure_year_month, 'enroll_flag' = 1 
                        INTO ##asthma_pop FROM ",
-                       sql_temp))
-    i <<- i + 1
-  } else {
-    DBI::dbExecute(db_claims, 
-                paste0("INSERT INTO ##asthma_pop 
+                            sql_temp))
+      i <<- i + 1
+    } else {
+      DBI::dbExecute(db_claims, 
+                     paste0("INSERT INTO ##asthma_pop 
                        SELECT a.id_mcaid, a.year_month, b.end_month, a.end_month_age, 
                         beg_measure_year_month, 'enroll_flag' = 1 
                        FROM ",
-                       sql_temp))
-  }
-})
-
-# Check results
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_pop GROUP BY end_month ORDER BY end_month")
-
-
-
-#### Find events that define someone with asthma ####
-### Make temp table of everyone with an asthma definition
-try(dbRemoveTable(db_claims, "##asthma_dx", temporary = T), silent = T)
-DBI::dbExecute(db_claims,
-           "SELECT a.id_mcaid, a.claim_header_id, a.first_service_date, b.icdcm_number, 'asthma' = 1
+                            sql_temp))
+    }
+  })
+  
+  # Check results
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_pop GROUP BY end_month ORDER BY end_month")
+  
+  
+  #### Find events that define someone with asthma ####
+  ### Make temp table of everyone with an asthma definition
+  try(dbRemoveTable(db_claims, "##asthma_dx", temporary = T), silent = T)
+  DBI::dbExecute(db_claims,
+                 "SELECT a.id_mcaid, a.claim_header_id, a.first_service_date, b.icdcm_number, 'asthma' = 1
            INTO ##asthma_dx
            FROM 
            (SELECT id_mcaid, claim_header_id, first_service_date
-             FROM [PHClaims].[final].[mcaid_claim_header]) a
+             FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_header) a
            INNER JOIN
            (SELECT id_mcaid, claim_header_id, icdcm_norm, icdcm_version, icdcm_number
-             FROM [PHClaims].[final].[mcaid_claim_icdcm_header]) b
+             FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header) b
            ON a.id_mcaid = b.id_mcaid AND a.claim_header_id = b.claim_header_id
            INNER JOIN
            (SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS dx_ver 
-             FROM [PHClaims].[ref].[hedis_code_system] 
+             FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system 
              WHERE value_set_name = 'Asthma') c 
            ON b.icdcm_norm = c.code AND b.icdcm_version = c.dx_ver")
-
-# Check results
-dbGetQuery(db_claims, "SELECT COUNT(*) AS count FROM ##asthma_dx")
-
-
-#### 1+ ED or inpatient visits with primary asthma dx in the past 12 months ####
-i <- 1
-lapply(months_list, function(x) {
   
-  sql_temp <- paste0("(SELECT id_mcaid, claim_header_id, first_service_date, last_service_date, ed, inpatient 
-                      FROM [PHClaims].[final].[mcaid_claim_header] 
+  # Check results
+  dbGetQuery(db_claims, "SELECT COUNT(*) AS count FROM ##asthma_dx")
+  
+  
+  #### 1+ ED or inpatient visits with primary asthma dx in the past 12 months ####
+  i <- 1
+  lapply(months_list, function(x) {
+    
+    sql_temp <- paste0("(SELECT id_mcaid, claim_header_id, first_service_date, last_service_date, ed, inpatient 
+                      FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_header 
                       WHERE (ed = 1 OR inpatient = 1) AND 
                       first_service_date <= '", x, "' AND 
                       first_service_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
@@ -131,289 +149,291 @@ lapply(months_list, function(x) {
                      (SELECT id_mcaid, claim_header_id FROM ##asthma_dx WHERE icdcm_number = '01') b 
                        ON a.id_mcaid = b.id_mcaid AND a.claim_header_id = b.claim_header_id 
                        GROUP BY a.id_mcaid")
-  
-  if (i == 1) {
-    try(dbRemoveTable(db_claims, "##asthma_ed_inpat", temporary = T), silent = T)
-    DBI::dbExecute(db_claims, 
-               paste0("SELECT a.id_mcaid, 'end_month' = '", x, "', 
+    
+    if (i == 1) {
+      try(dbRemoveTable(db_claims, "##asthma_ed_inpat", temporary = T), silent = T)
+      DBI::dbExecute(db_claims, 
+                     paste0("SELECT a.id_mcaid, 'end_month' = '", x, "', 
                       SUM(a.ed) AS ed_cnt, SUM(a.inpatient) AS inpat_cnt 
                       INTO ##asthma_ed_inpat FROM ",
-                      sql_temp))
-    i <<- i + 1
-  } else {
-    DBI::dbExecute(db_claims, 
-               paste0("INSERT INTO ##asthma_ed_inpat 
+                            sql_temp))
+      i <<- i + 1
+    } else {
+      DBI::dbExecute(db_claims, 
+                     paste0("INSERT INTO ##asthma_ed_inpat 
                       SELECT a.id_mcaid, 'end_month' = '", x, "', 
                       SUM(a.ed) AS ed_cnt, SUM(a.inpatient) AS inpat_cnt 
                       FROM ",
-                      sql_temp))
-  }
-})
-
-# Check results
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_ed_inpat GROUP BY end_month ORDER BY end_month")
-
-
-#### 4+ outpatient visits with any asthma dx AND 2+ asthma med dispensing events ####
-# Apply 2+ med events later when joined
-i <- 1
-lapply(months_list, function(x) {
+                            sql_temp))
+    }
+  })
   
-  sql_temp <- paste0("(SELECT id_mcaid, claim_header_id, first_service_date 
-                      FROM [PHClaims].[final].[mcaid_claim_header] 
+  # Check results
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_ed_inpat GROUP BY end_month ORDER BY end_month")
+  
+  
+  #### 4+ outpatient visits with any asthma dx AND 2+ asthma med dispensing events ####
+  # Apply 2+ med events later when joined
+  i <- 1
+  lapply(months_list, function(x) {
+    
+    sql_temp <- paste0("(SELECT id_mcaid, claim_header_id, first_service_date 
+                      FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_header 
                       WHERE first_service_date <= '", x, "' AND 
                       first_service_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
                      INNER JOIN 
                      (SELECT id_mcaid, claim_header_id FROM ##asthma_dx) b 
                        ON a.id_mcaid = b.id_mcaid AND a.claim_header_id = b.claim_header_id 
                        INNER JOIN 
-                       (SELECT id_mcaid, claim_header_id, procedure_code FROM [PHClaims].[final].[mcaid_claim_procedure]) c 
+                       (SELECT id_mcaid, claim_header_id, procedure_code 
+                       FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_procedure) c 
                        ON a.id_mcaid = c.id_mcaid AND a.claim_header_id = c.claim_header_id 
                        INNER JOIN 
-                       (SELECT code FROM [PHClaims].[ref].[hedis_code_system] 
+                       (SELECT code FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system 
                          WHERE value_set_name = 'Outpatient') d 
                        ON c.procedure_code = d.code 
                        GROUP BY a.id_mcaid")
-  
-  if (i == 1) {
-    try(dbRemoveTable(db_claims, "##asthma_outpat", temporary = T), silent = T)
-    DBI::dbExecute(db_claims, 
-               paste0("SELECT a.id_mcaid, 'end_month' = '", x, "', 
+    
+    if (i == 1) {
+      try(dbRemoveTable(db_claims, "##asthma_outpat", temporary = T), silent = T)
+      DBI::dbExecute(db_claims, 
+                     paste0("SELECT a.id_mcaid, 'end_month' = '", x, "', 
                       COUNT(DISTINCT a.first_service_date) AS outpat_cnt 
                       INTO ##asthma_outpat FROM ",
-                      sql_temp))
-    i <<- i + 1
-  } else {
-    DBI::dbExecute(db_claims, 
-               paste0("INSERT INTO ##asthma_outpat 
+                            sql_temp))
+      i <<- i + 1
+    } else {
+      DBI::dbExecute(db_claims, 
+                     paste0("INSERT INTO ##asthma_outpat 
                       SELECT a.id_mcaid, 'end_month' = '", x, "', 
                       COUNT(DISTINCT a.first_service_date) AS outpat_cnt 
                       FROM ",
-                      sql_temp))
-  }
-})
-
-# Check results
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_outpat GROUP BY end_month ORDER BY end_month")
-
-
-#### 4+ asthma dispensing events ####
-### Set up code just for oral meds
-# Need to sum up days prescribed for each drug type then calculate number of events (0-30 days = 1 event, each full 30 days beyond = another event)
-# Also need to separate out luekotriene-only counts (part of inclusion criteria)
-i <- 1
-lapply(months_list, function(x) {
+                            sql_temp))
+    }
+  })
   
-  sql_temp <- paste0("(SELECT a.id_mcaid, a.rx_fill_date, b.generic_product_name, 
+  # Check results
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_outpat GROUP BY end_month ORDER BY end_month")
+  
+  
+  #### 4+ asthma dispensing events ####
+  #### Set up code just for oral meds ####
+  # Need to sum up days prescribed for each drug type then calculate number of events (0-30 days = 1 event, each full 30 days beyond = another event)
+  # Also need to separate out luekotriene-only counts (part of inclusion criteria)
+  i <- 1
+  lapply(months_list, function(x) {
+    
+    sql_temp <- paste0("(SELECT a.id_mcaid, a.rx_fill_date, b.generic_product_name, 
                       CASE WHEN SUM(a.rx_days_supply) <= 30 THEN 1
                       WHEN SUM(a.rx_days_supply) > 30 THEN FLOOR(SUM(a.rx_days_supply) / 30)
                       END AS drug_events
                       FROM 
                       (SELECT id_mcaid, ndc, rx_fill_date, rx_days_supply
-                        FROM [PHClaims].[final].[mcaid_claim_pharm]
+                        FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_pharm
                         WHERE rx_fill_date <= '", x, "' AND 
                         rx_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
                       INNER JOIN
                       (SELECT medication_list_name, ndc_code, generic_product_name, [route], [description]
-                        FROM [PHClaims].[ref].[hedis_ndc_code] 
+                        FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code 
                         WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications') 
                         AND [route] = 'oral' AND [description] = 'Leukotriene modifiers') b
                       ON a.ndc = b.ndc_code
                       GROUP BY a.id_mcaid, a.rx_fill_date, b.generic_product_name) c 
                      GROUP BY c.id_mcaid, c.rx_fill_date
                      ORDER BY c.id_mcaid, c.rx_fill_date")
-  
-  if (i == 1) {
-    try(dbRemoveTable(db_claims, "##asthma_rx_event_oral_lk", temporary = T), silent = T)
-    DBI::dbExecute(db_claims, 
-               paste0("SELECT c.id_mcaid, 'end_month' = '", x, "', 
+    
+    if (i == 1) {
+      try(dbRemoveTable(db_claims, "##asthma_rx_event_oral_lk", temporary = T), silent = T)
+      DBI::dbExecute(db_claims, 
+                     paste0("SELECT c.id_mcaid, 'end_month' = '", x, "', 
                       c.rx_fill_date, SUM(c.drug_events) AS events_oral_lk
                       INTO ##asthma_rx_event_oral_lk FROM ",
-                      sql_temp))
-    i <<- i + 1
-  } else {
-    DBI::dbExecute(db_claims, 
-               paste0("INSERT INTO ##asthma_rx_event_oral_lk 
+                            sql_temp))
+      i <<- i + 1
+    } else {
+      DBI::dbExecute(db_claims, 
+                     paste0("INSERT INTO ##asthma_rx_event_oral_lk 
                       SELECT c.id_mcaid, 'end_month' = '", x, "', 
                       c.rx_fill_date, SUM(c.drug_events) AS events_oral_lk
                        FROM ",
-                      sql_temp))
-  }
+                            sql_temp))
+    }
   })
-
-# Check results
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event_oral_lk GROUP BY end_month ORDER BY end_month")
-
-# Non-luekotriene inhibitors
-i <- 1
-lapply(months_list, function(x) {
   
-  sql_temp <- paste0("(SELECT a.id_mcaid, a.rx_fill_date, b.generic_product_name, 
+  # Check results
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event_oral_lk GROUP BY end_month ORDER BY end_month")
+  
+  
+  #### Non-luekotriene inhibitors ####
+  i <- 1
+  lapply(months_list, function(x) {
+    
+    sql_temp <- paste0("(SELECT a.id_mcaid, a.rx_fill_date, b.generic_product_name, 
                       CASE WHEN SUM(a.rx_days_supply) <= 30 THEN 1
                       WHEN SUM(a.rx_days_supply) > 30 THEN FLOOR(SUM(a.rx_days_supply) / 30)
                       END AS drug_events
                       FROM 
                       (SELECT id_mcaid, ndc, rx_fill_date, rx_days_supply
-                        FROM [PHClaims].[final].[mcaid_claim_pharm]
+                        FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_pharm
                         WHERE rx_fill_date <= '", x, "' AND 
                         rx_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
                       INNER JOIN
                       (SELECT medication_list_name, ndc_code, generic_product_name, [route], [description]
-                        FROM [PHClaims].[ref].[hedis_ndc_code] 
+                        FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code 
                         WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications') 
                         AND [route] = 'oral' AND [description] <> 'Leukotriene modifiers') b
                       ON a.ndc = b.ndc_code
                       GROUP BY a.id_mcaid, a.rx_fill_date, b.generic_product_name) c 
                      GROUP BY c.id_mcaid, c.rx_fill_date
                      ORDER BY c.id_mcaid, c.rx_fill_date")
-  
-  if (i == 1) {
-    try(dbRemoveTable(db_claims, "##asthma_rx_event_oral_non_lk", temporary = T), silent = T)
-    DBI::dbExecute(db_claims, 
-               paste0("SELECT c.id_mcaid, 'end_month' = '", x, "', 
+    
+    if (i == 1) {
+      try(dbRemoveTable(db_claims, "##asthma_rx_event_oral_non_lk", temporary = T), silent = T)
+      DBI::dbExecute(db_claims, 
+                     paste0("SELECT c.id_mcaid, 'end_month' = '", x, "', 
                       c.rx_fill_date, SUM(c.drug_events) AS events_oral_non_lk
                       INTO ##asthma_rx_event_oral_non_lk FROM ",
-                      sql_temp))
-    i <<- i + 1
-  } else {
-    DBI::dbExecute(db_claims, 
-               paste0("INSERT INTO ##asthma_rx_event_oral_non_lk 
+                            sql_temp))
+      i <<- i + 1
+    } else {
+      DBI::dbExecute(db_claims, 
+                     paste0("INSERT INTO ##asthma_rx_event_oral_non_lk 
                       SELECT c.id_mcaid, 'end_month' = '", x, "', 
                       c.rx_fill_date, SUM(c.drug_events) AS events_oral_non_lk
                       FROM ",
-                      sql_temp))
-  }
+                            sql_temp))
+    }
   })
-
-# Check results
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event_oral_non_lk GROUP BY end_month ORDER BY end_month")
-
-
-### Set up code just for inhalers
-i <- 1
-lapply(months_list, function(x) {
   
-  sql_temp <- paste0("(SELECT id_mcaid, ndc, rx_fill_date
-                      FROM [PHClaims].[final].[mcaid_claim_pharm]
+  # Check results
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event_oral_non_lk GROUP BY end_month ORDER BY end_month")
+  
+  
+  #### Set up code just for inhalers ####
+  i <- 1
+  lapply(months_list, function(x) {
+    
+    sql_temp <- paste0("(SELECT id_mcaid, ndc, rx_fill_date
+                      FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_pharm
                       WHERE rx_fill_date <= '", x, "' AND 
                       rx_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
                      INNER JOIN
                      (SELECT medication_list_name, ndc_code, generic_product_name, [route]
-                       FROM [PHClaims].[ref].[hedis_ndc_code]
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code
                        WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications')
                        AND [route] = 'inhalation') b 
                      ON a.ndc = b.ndc_code
                      GROUP BY a.id_mcaid, a.rx_fill_date
                      ORDER BY a.id_mcaid, a.rx_fill_date")
     
-  if (i == 1) {
-    try(dbRemoveTable(db_claims, "##asthma_rx_event_inhaler", temporary = T), silent = T)
-    DBI::dbExecute(db_claims, 
-               paste0("SELECT a.id_mcaid, 'end_month' = '", x, "', 
+    if (i == 1) {
+      try(dbRemoveTable(db_claims, "##asthma_rx_event_inhaler", temporary = T), silent = T)
+      DBI::dbExecute(db_claims, 
+                     paste0("SELECT a.id_mcaid, 'end_month' = '", x, "', 
                       a.rx_fill_date, COUNT (DISTINCT b.generic_product_name) AS events_inhaler
                       INTO ##asthma_rx_event_inhaler FROM ",
-                      sql_temp))
-    i <<- i + 1
-  } else {
-    DBI::dbExecute(db_claims, 
-               paste0("INSERT INTO ##asthma_rx_event_inhaler
+                            sql_temp))
+      i <<- i + 1
+    } else {
+      DBI::dbExecute(db_claims, 
+                     paste0("INSERT INTO ##asthma_rx_event_inhaler
                       SELECT a.id_mcaid, 'end_month' = '", x, "', 
                       a.rx_fill_date, COUNT (DISTINCT b.generic_product_name) AS events_inhaler
                       FROM ",
-                      sql_temp))
-  }
+                            sql_temp))
+    }
   })
-
-# Check results
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event_inhaler GROUP BY end_month ORDER BY end_month")
-
-
-### Set up code just for injections
-# Need to separate out antibody inhibitor-only counts
-i <- 1
-lapply(months_list, function(x) {
   
-  sql_temp <- paste0("(SELECT id_mcaid, ndc, rx_fill_date
-                      FROM [PHClaims].[final].[mcaid_claim_pharm]
+  # Check results
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event_inhaler GROUP BY end_month ORDER BY end_month")
+  
+  
+  #### Set up code just for injections ####
+  # Need to separate out antibody inhibitor-only counts
+  i <- 1
+  lapply(months_list, function(x) {
+    
+    sql_temp <- paste0("(SELECT id_mcaid, ndc, rx_fill_date
+                      FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_pharm
                       WHERE rx_fill_date <= '", x, "' AND 
                       rx_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
                      INNER JOIN
                      (SELECT medication_list_name, ndc_code, [route], [description]
-                       FROM [PHClaims].[ref].[hedis_ndc_code]
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code
                        WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications')
                        AND [route] IN ('intravenous', 'subcutaneous') AND [description] = 'Antibody inhibitor') b
                      ON a.ndc = b.ndc_code
                      GROUP BY a.id_mcaid, a.rx_fill_date, a.ndc
                      ORDER BY a.id_mcaid, a.rx_fill_date")
-  
-  if (i == 1) {
-    try(dbRemoveTable(db_claims, "##asthma_rx_event_inject_antib", temporary = T), silent = T)
-    DBI::dbExecute(db_claims, 
-               paste0("SELECT a.id_mcaid, 'end_month' = '", x, "', 
+    
+    if (i == 1) {
+      try(dbRemoveTable(db_claims, "##asthma_rx_event_inject_antib", temporary = T), silent = T)
+      DBI::dbExecute(db_claims, 
+                     paste0("SELECT a.id_mcaid, 'end_month' = '", x, "', 
                       a.rx_fill_date, COUNT (*) AS events_inject_antib
                       INTO ##asthma_rx_event_inject_antib FROM ",
-                      sql_temp))
-    i <<- i + 1
-  } else {
-    DBI::dbExecute(db_claims, 
-               paste0("INSERT INTO ##asthma_rx_event_inject_antib
+                            sql_temp))
+      i <<- i + 1
+    } else {
+      DBI::dbExecute(db_claims, 
+                     paste0("INSERT INTO ##asthma_rx_event_inject_antib
                       SELECT a.id_mcaid, 'end_month' = '", x, "', 
                       a.rx_fill_date, COUNT (*) AS events_inject_antib
                       FROM ",
-                      sql_temp))
-  }
+                            sql_temp))
+    }
   })
-
-# Check results
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event_inject_antib GROUP BY end_month ORDER BY end_month")
-
-
-# Non-antibody inhibitor counts
-i <- 1
-lapply(months_list, function(x) {
   
-  sql_temp <- paste0("(SELECT id_mcaid, ndc, rx_fill_date 
-               FROM [PHClaims].[final].[mcaid_claim_pharm] 
+  # Check results
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event_inject_antib GROUP BY end_month ORDER BY end_month")
+  
+  
+  #### Non-antibody inhibitor counts ####
+  i <- 1
+  lapply(months_list, function(x) {
+    
+    sql_temp <- paste0("(SELECT id_mcaid, ndc, rx_fill_date 
+               FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_pharm 
                WHERE rx_fill_date <= '", x, "' AND 
                rx_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) a 
               INNER JOIN
               (SELECT medication_list_name, ndc_code, [route], [description] 
-              FROM [PHClaims].[ref].[hedis_ndc_code] 
+              FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code 
               WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications') 
                 AND [route] IN ('intravenous', 'subcutaneous') AND [description] <> 'Antibody inhibitor') b 
               ON a.ndc = b.ndc_code
               GROUP BY a.id_mcaid, a.rx_fill_date, a.ndc 
               ORDER BY a.id_mcaid, a.rx_fill_date")
-  
-  if (i == 1) {
-    try(dbRemoveTable(db_claims, "##asthma_rx_event_inject_non_antib", temporary = T), silent = T)
-    DBI::dbExecute(db_claims, 
-               paste0("SELECT a.id_mcaid, 'end_month' = '", x, "', 
+    
+    if (i == 1) {
+      try(dbRemoveTable(db_claims, "##asthma_rx_event_inject_non_antib", temporary = T), silent = T)
+      DBI::dbExecute(db_claims, 
+                     paste0("SELECT a.id_mcaid, 'end_month' = '", x, "', 
                       a.rx_fill_date, COUNT (*) AS events_inject_non_antib
                       INTO ##asthma_rx_event_inject_non_antib FROM ", 
-                      sql_temp))
-    i <<- i + 1
-  } else {
-    DBI::dbExecute(db_claims, 
-               paste0("INSERT INTO ##asthma_rx_event_inject_non_antib
+                            sql_temp))
+      i <<- i + 1
+    } else {
+      DBI::dbExecute(db_claims, 
+                     paste0("INSERT INTO ##asthma_rx_event_inject_non_antib
                       SELECT a.id_mcaid, 'end_month' = '", x, "', 
                       a.rx_fill_date, COUNT (*) AS events_inject_non_antib
                       FROM ",
-                      sql_temp))
-  }
+                            sql_temp))
+    }
   })
-
-# Check results
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event_inject_non_antib GROUP BY end_month ORDER BY end_month")
-
-
-### Combine rx temp tables and sum events
-# Join to dx table to check if people meet the dx requirement
-
-# Make collated table outside of loop to avoid recreating it
-try(dbRemoveTable(db_claims, "##asthma_rx_event_temp", temporary = T), silent = T)
-DBI::dbExecute(db_claims,
-           "SELECT g.id_mcaid, g.end_month, SUM(events_rx) AS events_rx,
+  
+  # Check results
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event_inject_non_antib GROUP BY end_month ORDER BY end_month")
+  
+  
+  #### Combine rx temp tables and sum events ####
+  # Join to dx table to check if people meet the dx requirement
+  
+  # Make collated table outside of loop to avoid recreating it
+  try(dbRemoveTable(db_claims, "##asthma_rx_event_temp", temporary = T), silent = T)
+  DBI::dbExecute(db_claims,
+                 "SELECT g.id_mcaid, g.end_month, SUM(events_rx) AS events_rx,
            CASE WHEN SUM(events_rx) = SUM(dx_needed_cnt) THEN 1 ELSE 0 END AS dx_needed
            INTO ##asthma_rx_event_temp
            FROM
@@ -460,12 +480,12 @@ DBI::dbExecute(db_claims,
               GROUP BY f.id_mcaid, f.end_month, f.rx_fill_date, f.events_oral_lk, f.events_oral_non_lk, 
                 f.events_inhaler, f.events_inject_antib, f.events_inject_non_antib) g 
               GROUP BY g.id_mcaid, g.end_month")
-
-
-i <- 1
-lapply(months_list, function(x) {
   
-  sql_temp <- paste0("(SELECT id_mcaid, end_month, events_rx, dx_needed
+  
+  i <- 1
+  lapply(months_list, function(x) {
+    
+    sql_temp <- paste0("(SELECT id_mcaid, end_month, events_rx, dx_needed
                       FROM ##asthma_rx_event_temp 
                       WHERE end_month = '", x, "') h 
                       LEFT JOIN 
@@ -473,101 +493,100 @@ lapply(months_list, function(x) {
                       FROM ##asthma_dx WHERE first_service_date <= '", x, "' AND 
                         first_service_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, '", x, "'))) i 
                       ON h.id_mcaid = i.id_mcaid")
-  
-  
-  if (i == 1) {
-    try(dbRemoveTable(db_claims, "##asthma_rx_event", temporary = T), silent = T)
-    DBI::dbExecute(db_claims, 
-               paste0("SELECT h.id_mcaid, h.end_month, h.events_rx, h.dx_needed, ISNULL(i.dx_made, 0) AS dx_made
+    
+    
+    if (i == 1) {
+      try(dbRemoveTable(db_claims, "##asthma_rx_event", temporary = T), silent = T)
+      DBI::dbExecute(db_claims, 
+                     paste0("SELECT h.id_mcaid, h.end_month, h.events_rx, h.dx_needed, ISNULL(i.dx_made, 0) AS dx_made
                       INTO ##asthma_rx_event FROM ",
-                      sql_temp))
-    i <<- i + 1
-  } else {
-    DBI::dbExecute(db_claims, 
-               paste0("INSERT INTO ##asthma_rx_event
+                            sql_temp))
+      i <<- i + 1
+    } else {
+      DBI::dbExecute(db_claims, 
+                     paste0("INSERT INTO ##asthma_rx_event
                       SELECT h.id_mcaid, h.end_month, h.events_rx, h.dx_needed, ISNULL(i.dx_made, 0) AS dx_made
                       FROM ",
-                      sql_temp))
-  }
+                            sql_temp))
+    }
   })
-
-# Check results
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event GROUP BY end_month ORDER BY end_month")
-
-
-#### 1B - FIND PEOPLE WHO HAVE EXCLUSION CRITERIA ####
-i <- 1
-lapply(months_list, function(x) {
   
-  sql_temp <- paste0("(SELECT id_mcaid, claim_header_id
-                      FROM [PHClaims].[final].[mcaid_claim_header]
+  # Check results
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count FROM ##asthma_rx_event GROUP BY end_month ORDER BY end_month")
+  
+  
+  #### 1B - FIND PEOPLE WHO HAVE EXCLUSION CRITERIA ####
+  i <- 1
+  lapply(months_list, function(x) {
+    
+    sql_temp <- paste0("(SELECT id_mcaid, claim_header_id
+                      FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_header
                       WHERE first_service_date <= '", x, "') a
                      LEFT JOIN
                      (SELECT id_mcaid, claim_header_id, icdcm_norm, icdcm_version
-                       FROM [PHClaims].[final].[mcaid_claim_icdcm_header]) b
+                       FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header) b
                      ON a.id_mcaid = b.id_mcaid AND a.claim_header_id = b.claim_header_id
                      INNER JOIN
                      (SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM [PHClaims].[ref].[hedis_code_system]
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
                        WHERE value_set_name = 'Emphysema'
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM [PHClaims].[ref].[hedis_code_system]
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
                        WHERE value_set_name = 'Other Emphysema'
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM [PHClaims].[ref].[hedis_code_system]
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
                        WHERE value_set_name = 'COPD'
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM [PHClaims].[ref].[hedis_code_system]
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
                        WHERE value_set_name = 'Obstructive Chronic Bronchitis' 
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM [PHClaims].[ref].[hedis_code_system]
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
                        WHERE value_set_name = 'Chronic Respiratory Conditions Due To Fumes/Vapors' 
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM [PHClaims].[ref].[hedis_code_system]
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
                        WHERE value_set_name = 'Cystic Fibrosis' 
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM [PHClaims].[ref].[hedis_code_system]
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
                        WHERE value_set_name = 'Acute Respiratory Failure' 
                      ) c
                      ON b.icdcm_norm = c.code AND b.icdcm_version = c.icdcm_version")
-  
-  
-  if (i == 1) {
-    try(dbRemoveTable(db_claims, "##asthma_excl", temporary = T), silent = T)
-    DBI::dbExecute(db_claims, 
-               paste0("SELECT DISTINCT a.id_mcaid, 'end_month' = '", x, "'
+    
+    
+    if (i == 1) {
+      try(dbRemoveTable(db_claims, "##asthma_excl", temporary = T), silent = T)
+      DBI::dbExecute(db_claims, 
+                     paste0("SELECT DISTINCT a.id_mcaid, 'end_month' = '", x, "'
                       INTO ##asthma_excl FROM ",
-                      sql_temp))
-    i <<- i + 1
-  } else {
-    DBI::dbExecute(db_claims, 
-               paste0("INSERT INTO ##asthma_excl
+                            sql_temp))
+      i <<- i + 1
+    } else {
+      DBI::dbExecute(db_claims, 
+                     paste0("INSERT INTO ##asthma_excl
                       SELECT DISTINCT a.id_mcaid, 'end_month' = '", x, "' 
                       FROM ",
-                      sql_temp))
-  }
-})
-
-
-# Check results
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
+                            sql_temp))
+    }
+  })
+  
+  # Check results
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
            FROM ##asthma_excl GROUP BY end_month ORDER BY end_month")
-
-
-#### 1C - BRING POPULATIONS TOGETHER ####
-### Quantify how many people at each stage by adding flags
-
-### See how many met any of the asthma inclusion criteria for a single year
-# Also include last year's date for later code
-try(dbRemoveTable(db_claims, "##asthma_any", temporary = T), silent = T)
-DBI::dbExecute(db_claims,
-           "SELECT f.id_mcaid, f.year_month, f.end_month, DATEADD(YEAR, -1, f.end_month) AS past_year, 
+  
+  
+  #### 1C - BRING POPULATIONS TOGETHER ####
+  ### Quantify how many people at each stage by adding flags
+  
+  ### See how many met any of the asthma inclusion criteria for a single year
+  # Also include last year's date for later code
+  try(dbRemoveTable(db_claims, "##asthma_any", temporary = T), silent = T)
+  DBI::dbExecute(db_claims,
+                 "SELECT f.id_mcaid, f.year_month, f.end_month, DATEADD(YEAR, -1, f.end_month) AS past_year, 
             f.end_month_age, f.beg_measure_year_month, f.enroll_flag, 
             f.ed_flag, f.inpat_flag, f.outpat_flag, f.rx_flag, f.rx_any
            INTO ##asthma_any
@@ -595,7 +614,7 @@ DBI::dbExecute(db_claims,
                 ISNULL(d.dx_made, 0) AS dx_made 
               FROM
               (SELECT id_mcaid, year_month, end_month, end_month_age, 
-                beg_measure_year_month,  enroll_flag 
+                beg_measure_year_month, enroll_flag 
               FROM ##asthma_pop) a
               FULL JOIN
               (SELECT id_mcaid, end_month, ed_cnt, inpat_cnt 
@@ -620,17 +639,16 @@ DBI::dbExecute(db_claims,
               f.beg_measure_year_month, f.enroll_flag, f.ed_flag, f.inpat_flag, 
               f.outpat_flag, f.rx_flag, f.rx_any 
             ORDER BY f.id_mcaid, f.end_month")
-
-# Check counts
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
+  
+  # Check counts
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
            FROM ##asthma_any GROUP BY end_month ORDER BY end_month")
-
-
-
-### Apply check of persistent asthma (i.e., see if they had asthma the previous year)
-try(dbRemoveTable(db_claims, "##asthma_persist", temporary = T), silent = T)
-DBI::dbExecute(db_claims,
-           "SELECT a.id_mcaid, a.year_month, a.end_month, a.past_year, a.end_month_age, 
+  
+  
+  ### Apply check of persistent asthma (i.e., see if they had asthma the previous year)
+  try(dbRemoveTable(db_claims, "##asthma_persist", temporary = T), silent = T)
+  DBI::dbExecute(db_claims,
+                 "SELECT a.id_mcaid, a.year_month, a.end_month, a.past_year, a.end_month_age, 
             a.beg_measure_year_month, a.enroll_flag, a.ed_flag, a.inpat_flag, 
             a.outpat_flag, a.rx_flag, a.rx_any, ISNULL(b.persistent, 0) AS persistent
            INTO ##asthma_persist FROM
@@ -641,16 +659,16 @@ DBI::dbExecute(db_claims,
             LEFT JOIN
             (SELECT id_mcaid, end_month, 'persistent' = 1 FROM ##asthma_any) b
             ON a.id_mcaid = b.id_mcaid AND a.past_year = b.end_month")
-
-# Check counts
-dbGetQuery(db_claims, "SELECT end_month, persistent,  COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
+  
+  # Check counts
+  dbGetQuery(db_claims, "SELECT end_month, persistent,  COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
            FROM ##asthma_persist GROUP BY end_month, persistent ORDER BY end_month, persistent")
-
-
-### Remove people with exclusion critiera
-try(dbRemoveTable(db_claims, "##asthma_denom", temporary = T), silent = T)
-DBI::dbExecute(db_claims,
-           "SELECT a.id_mcaid, a.year_month, a.end_month, a.past_year, a.end_month_age, 
+  
+  
+  ### Remove people with exclusion critiera
+  try(dbRemoveTable(db_claims, "##asthma_denom", temporary = T), silent = T)
+  DBI::dbExecute(db_claims,
+                 "SELECT a.id_mcaid, a.year_month, a.end_month, a.past_year, a.end_month_age, 
             a.beg_measure_year_month, a.enroll_flag, a.ed_flag, a.inpat_flag, 
             a.outpat_flag, a.rx_flag, a.rx_any, a.persistent, 
             ISNULL(b.dx_exclude, 0) AS dx_exclude
@@ -663,33 +681,29 @@ DBI::dbExecute(db_claims,
             (SELECT id_mcaid, end_month, 'dx_exclude' = 1
             FROM ##asthma_excl) b
             ON a.id_mcaid = b.id_mcaid AND a.end_month = b.end_month")
-
-# Check counts
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
+  
+  # Check counts
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
            FROM ##asthma_denom GROUP BY end_month ORDER BY end_month")
-dbGetQuery(db_claims, "SELECT end_month, persistent,  COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
+  dbGetQuery(db_claims, "SELECT end_month, persistent,  COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
            FROM ##asthma_denom GROUP BY end_month, persistent ORDER BY end_month, persistent")
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
            FROM ##asthma_denom WHERE enroll_flag = 1 AND rx_any = 1 AND persistent = 1 AND  dx_exclude = 0 
            GROUP BY end_month ORDER BY end_month")
-
-
-# Pull into R for additional analyses
-asthma_denom <- DBI::dbReadTable(db_claims, "##asthma_denom")
-
-
-##########################################
-#### PART 2 - GENERATE NUMERATOR DATA ####
-
-#### 2A - CALCULATE UNITS OF MEDICATION ####
-### Set up general linked claims and drug data to avoid rerunning it for each date
-# NB. Calc for oral meds differs from how events are calculated 
-#   (partial 30 days beyond the initial 30 count are included here).
-# Using ceiling for inhaler because some claims had a dispensed amount of 
-#   6.7 and a package size of 7.
-try(dbRemoveTable(db_claims, "##asthma_rx_meds_temp", temporary = T), silent = T)
-DBI::dbExecute(db_claims,
-           "SELECT c.id_mcaid, c.medication_list_name, c.rx_fill_date, c.[route], 
+  
+  
+  
+  #### PART 2 - GENERATE NUMERATOR DATA ####
+  
+  #### 2A - CALCULATE UNITS OF MEDICATION ####
+  ### Set up general linked claims and drug data to avoid rerunning it for each date
+  # NB. Calc for oral meds differs from how events are calculated 
+  #   (partial 30 days beyond the initial 30 count are included here).
+  # Using ceiling for inhaler because some claims had a dispensed amount of 
+  #   6.7 and a package size of 7.
+  try(dbRemoveTable(db_claims, "##asthma_rx_meds_temp", temporary = T), silent = T)
+  DBI::dbExecute(db_claims,
+                 "SELECT c.id_mcaid, c.medication_list_name, c.rx_fill_date, c.[route], 
             c.generic_product_name, c.med_units
            INTO ##asthma_rx_meds_temp
            FROM
@@ -702,24 +716,24 @@ DBI::dbExecute(db_claims,
               END AS med_units
             FROM 
             (SELECT id_mcaid, ndc, rx_fill_date, rx_days_supply, rx_quantity
-            FROM [PHClaims].[final].[mcaid_claim_pharm]) a 
+            FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_pharm) a 
             INNER JOIN
             (SELECT medication_list_name, ndc_code, generic_product_name, [route], package_size
-            FROM [PHClaims].[ref].[hedis_ndc_code] 
+            FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code 
             WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications')) b
             ON a.ndc = b.ndc_code
             GROUP BY a.id_mcaid, b.medication_list_name, a.rx_fill_date, b.[route], 
               b.generic_product_name, a.rx_quantity, b.package_size) c")
-
-# Check results
-dbGetQuery(db_claims, "SELECT COUNT(*) AS count FROM ##asthma_rx_meds_temp")
-
-
-#### 2A - CALCULATE AMR ####
-i <- 1
-lapply(months_list, function(x) {
   
-  sql_temp <- paste0("(SELECT COALESCE(a.id_mcaid, b.id_mcaid) AS id_mcaid, 'end_month' = '", x, "', 
+  # Check results
+  dbGetQuery(db_claims, "SELECT COUNT(*) AS count FROM ##asthma_rx_meds_temp")
+  
+  
+  #### 2A - CALCULATE AMR ####
+  i <- 1
+  lapply(months_list, function(x) {
+    
+    sql_temp <- paste0("(SELECT COALESCE(a.id_mcaid, b.id_mcaid) AS id_mcaid, 'end_month' = '", x, "', 
                      ISNULL(a.meds_control, 0) AS meds_control,
                      ISNULL(b.meds_relief, 0) AS meds_relief 
                      FROM
@@ -738,38 +752,38 @@ lapply(months_list, function(x) {
                         GROUP BY id_mcaid) b
                         ON a.id_mcaid = b.id_mcaid) c
                     ORDER BY id_mcaid")
-  
-  if (i == 1) {
-    try(dbRemoveTable(db_claims, "##asthma_amr", temporary = T), silent = T)
-    DBI::dbExecute(db_claims, 
-               paste0("SELECT c.id_mcaid, c.end_month, c.meds_control, c.meds_relief,
+    
+    if (i == 1) {
+      try(dbRemoveTable(db_claims, "##asthma_amr", temporary = T), silent = T)
+      DBI::dbExecute(db_claims, 
+                     paste0("SELECT c.id_mcaid, c.end_month, c.meds_control, c.meds_relief,
                           ISNULL(c.meds_control / (c.meds_control + c.meds_relief), 0) AS amr 
                       INTO ##asthma_amr FROM ",
-                      sql_temp))
-    i <<- i + 1
-  } else {
-    DBI::dbExecute(db_claims, 
-               paste0("INSERT INTO ##asthma_amr 
+                            sql_temp))
+      i <<- i + 1
+    } else {
+      DBI::dbExecute(db_claims, 
+                     paste0("INSERT INTO ##asthma_amr 
                       SELECT c.id_mcaid, c.end_month, c.meds_control, c.meds_relief,
                       ISNULL(c.meds_control / (c.meds_control + c.meds_relief), 0) AS amr 
                       FROM ",
-                      sql_temp))
-  }
-})
-
-# Check results
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT(DISTINCT id_mcaid) AS cnt_id 
+                            sql_temp))
+    }
+  })
+  
+  # Check results
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT(DISTINCT id_mcaid) AS cnt_id 
            FROM ##asthma_amr GROUP BY end_month ORDER BY end_month")
-
-dbGetQuery(db_claims, "SELECT TOP(20) * FROM ##asthma_amr ORDER BY id_mcaid, end_month")
-
-
-###########################################################
-#### PART 3 - BRING NUMERATOR AND DENOMINATOR TOGETHER ####
-### For full HEDIS measure, require persistent asthma
-try(dbRemoveTable(db_claims, "##asthma_final", temporary = T), silent = T)
-DBI::dbExecute(db_claims,
-           "SELECT a.id_mcaid, a.end_month, beg_measure_year_month AS beg_year_month, 
+  
+  dbGetQuery(db_claims, "SELECT TOP(20) * FROM ##asthma_amr ORDER BY id_mcaid, end_month")
+  
+  
+  
+  #### PART 3 - BRING NUMERATOR AND DENOMINATOR TOGETHER ####
+  ### For full HEDIS measure, require persistent asthma
+  try(dbRemoveTable(db_claims, "##asthma_final", temporary = T), silent = T)
+  DBI::dbExecute(db_claims,
+                 "SELECT a.id_mcaid, a.end_month, beg_measure_year_month AS beg_year_month, 
             a.year_month AS end_year_month, 
             a.end_month_age, b.amr
            INTO ##asthma_final FROM
@@ -780,53 +794,57 @@ DBI::dbExecute(db_claims,
             (SELECT id_mcaid, end_month, amr FROM ##asthma_amr) b
             ON a.id_mcaid = b.id_mcaid AND a.end_month = b.end_month
             ORDER BY a.id_mcaid, a.end_month")
-
-# Check counts
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
-           FROM ##asthma_final GROUP BY end_month ORDER BY end_month")
-
-
-### Add to performance measurement table
-### Remove any existing rows for this measure
-tbl_id_meta <- DBI::Id(catalog = "PHClaims", schema = "stage", table = "mcaid_perf_measure")
-if (dbExistsTable(db_claims, tbl_id_meta) == T) {
-  dbGetQuery(db_claims, "DELETE FROM stage.mcaid_perf_measure WITH (TABLOCK) 
-             WHERE measure_id = 19;")
   
-  DBI::dbExecute(db_claims,
-             paste0("INSERT INTO stage.mcaid_perf_measure WITH (TABLOCK)
+  # Check counts
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
+           FROM ##asthma_final GROUP BY end_month ORDER BY end_month")
+  
+  
+  #### PART 4 - ADD TO PERFORMANCE MEASUREMENT TABLE ####
+  ### Remove any existing rows for this measure
+  tbl_id_meta <- DBI::Id(schema = stage_schema, table = paste0(stage_table, "mcaid_perf_measure"))
+  if (dbExistsTable(db_claims, tbl_id_meta) == T) {
+    dbGetQuery(db_claims, 
+               glue::glue_sql("DELETE FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_measure WITH (TABLOCK) 
+                 WHERE measure_id = 19;",
+                              .con = conn))
+    
+    DBI::dbExecute(db_claims,
+                   glue::glue_sql("INSERT INTO {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_measure WITH (TABLOCK)
                     SELECT a.beg_year_month, a.end_year_month, 
                       a.id_mcaid, a.end_month_age, b.age_grp_10 AS age_grp, 
                       'measure_id' = 19, 'denominator' = 1, 
                       CASE WHEN a.amr >= 0.5 THEN 1 ELSE 0 END AS numerator,
-                      load_date = '", Sys.Date() , "'
+                      load_date = '{Sys.Date()}'
                     FROM
                       (SELECT beg_year_month, end_year_month, id_mcaid, end_month_age, amr
                       FROM ##asthma_final) a
                       LEFT JOIN
-                      (SELECT age, age_grp_10 FROM ref.age_grp) b
-                      ON a.end_month_age = b.age"))
-} else if(dbExistsTable(db_claims, "stage.mcaid_perf_measure") == F) {
-  DBI::dbExecute(db_claims,
-             paste0("SELECT a.beg_year_month, a.end_year_month, 
+                      (SELECT age, age_grp_10 FROM {`ref_schema`}.{DBI::SQL(ref_table)}age_grp) b
+                      ON a.end_month_age = b.age",
+                                  .con = conn))
+  } else {
+    DBI::dbExecute(db_claims,
+                   glue::glue_sql("SELECT a.beg_year_month, a.end_year_month, 
                     a.id_mcaid, a.end_month_age, b.age_grp_10 AS age_grp, 
                     'measure_id' = 19, 'denominator' = 1, 
                     CASE WHEN a.amr >= 0.5 THEN 1 ELSE 0 END AS numerator,
-                    load_date = '", Sys.Date() , "' 
-                    INTO stage.mcaid_perf_measures
+                    load_date = '{Sys.Date()}' 
+                    INTO {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_measure
                     FROM
                     (SELECT beg_year_month, end_year_month, id_mcaid, end_month_age, amr
                     FROM ##asthma_final) a
                     LEFT JOIN
-                    (SELECT age, age_grp_10 FROM ref.age_grp) b
-                    ON a.end_month_age = b.age"))
-}
-
-
-### For more relaxed version of AMR measure, ignore asthma dx in prev year
-try(dbRemoveTable(db_claims, "##asthma_final_1yr", temporary = T), silent = T)
-DBI::dbExecute(db_claims,
-           "SELECT a.id_mcaid, a.end_month, beg_measure_year_month AS beg_year_month, 
+                    (SELECT age, age_grp_10 FROM {`ref_schema`}.{DBI::SQL(ref_table)}age_grp) b
+                    ON a.end_month_age = b.age",
+                                  .con = conn))
+  }
+  
+  
+  ### For more relaxed version of AMR measure, ignore asthma dx in prev year
+  try(dbRemoveTable(db_claims, "##asthma_final_1yr", temporary = T), silent = T)
+  DBI::dbExecute(db_claims,
+                 "SELECT a.id_mcaid, a.end_month, beg_measure_year_month AS beg_year_month, 
             a.year_month AS end_year_month, 
             a.end_month_age, b.amr
            INTO ##asthma_final_1yr FROM
@@ -837,71 +855,80 @@ DBI::dbExecute(db_claims,
             (SELECT id_mcaid, end_month, amr FROM ##asthma_amr) b
             ON a.id_mcaid = b.id_mcaid AND a.end_month = b.end_month
             ORDER BY a.id_mcaid, a.end_month")
-
-# Check counts
-dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
-           FROM ##asthma_final_1yr GROUP BY end_month ORDER BY end_month")
-
-
-### Add to performance measurement table
-### Remove any existing rows for this measure
-tbl_id_meta <- DBI::Id(catalog = "PHClaims", schema = "stage", table = "mcaid_perf_measure")
-if (dbExistsTable(db_claims, tbl_id_meta) == T) {
-  DBI::dbExecute(db_claims, "DELETE FROM stage.mcaid_perf_measure WITH (TABLOCK) 
-             WHERE measure_id = 20;")
   
-  DBI::dbExecute(db_claims,
-             paste0("INSERT INTO stage.mcaid_perf_measure WITH (TABLOCK)
+  # Check counts
+  dbGetQuery(db_claims, "SELECT end_month, COUNT(*) AS count, COUNT (DISTINCT id_mcaid) AS count_id 
+           FROM ##asthma_final_1yr GROUP BY end_month ORDER BY end_month")
+  
+  
+  ### Add to performance measurement table
+  ### Remove any existing rows for this measure
+  if (dbExistsTable(db_claims, tbl_id_meta) == T) {
+    DBI::dbExecute(db_claims, "DELETE FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_measure WITH (TABLOCK) 
+             WHERE measure_id = 20;")
+    
+    DBI::dbExecute(db_claims,
+                   glue::glue_sql("INSERT INTO {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_measure WITH (TABLOCK)
                     SELECT a.beg_year_month, a.end_year_month, 
                     a.id_mcaid, a.end_month_age, b.age_grp_10 AS age_grp, 
                     'measure_id' = 20, 'denominator' = 1, 
                     CASE WHEN a.amr >= 0.5 THEN 1 ELSE 0 END AS numerator,
-                    load_date = '", Sys.Date() , "'
+                    load_date = '{Sys.Date()}''
                     FROM
                     (SELECT beg_year_month, end_year_month, id_mcaid, end_month_age, amr
                     FROM ##asthma_final_1yr) a
                     LEFT JOIN
-                    (SELECT age, age_grp_10 FROM ref.age_grp) b
-                    ON a.end_month_age = b.age"))
-} else if(dbExistsTable(db_claims, "stage.mcaid_perf_measure") == F) {
-  DBI::dbExecute(db_claims,
-             paste0("SELECT a.beg_year_month, a.end_year_month, 
+                    (SELECT age, age_grp_10 FROM {`ref_schema`}.{DBI::SQL(ref_table)}age_grp) b
+                    ON a.end_month_age = b.age",
+                                  .con = conn))
+  } else {
+    DBI::dbExecute(db_claims,
+                   glue::glue_sql("SELECT a.beg_year_month, a.end_year_month, 
                     a.id_mcaid, a.end_month_age, b.age_grp_10 AS age_grp, 
                     'measure_id' = 20, 'denominator' = 1, 
                     CASE WHEN a.amr >= 0.5 THEN 1 ELSE 0 END AS numerator,
-                    load_date = '", Sys.Date() , "' 
-                    INTO stage.mcaid_perf_measures
+                    load_date = '{Sys.Date()}'' 
+                    INTO {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_measure
                     FROM
                     (SELECT beg_year_month, end_year_month, id_mcaid, end_month_age, amr
                     FROM ##asthma_final_1yr) a
                     LEFT JOIN
-                    (SELECT age, age_grp_10 FROM ref.age_grp) b
-                    ON a.end_month_age = b.age"))
+                    (SELECT age, age_grp_10 FROM {`ref_schema`}.{DBI::SQL(ref_table)}age_grp) b
+                    ON a.end_month_age = b.age",
+                                  .con = conn))
+  }
+  
+  
+  #### RETURN DATA IF DESIRED ####
+  if (return_data == T) {
+    # Pull into R for additional analyses
+    asthma_denom <- DBI::dbReadTable(db_claims, "##asthma_denom")
+    
+    # See how many people are excluded at each step
+    elig_asthma <- asthma_denom %>% group_by(end_month) %>% summarise(any_asthma = n()) %>% ungroup() %>%
+      left_join(., asthma_denom %>% filter(rx_any == 1) %>%
+                  group_by(end_month) %>% summarise(had_rx = n_distinct(id_mcaid)) %>% ungroup(),
+                by = "end_month") %>%
+      left_join(., asthma_denom %>% filter(enroll_flag == 1) %>%
+                  group_by(end_month) %>% summarise(elig_enroll = n_distinct(id_mcaid)) %>% ungroup(),
+                by = "end_month") %>%
+      left_join(., asthma_denom %>% filter(persistent == 1) %>%
+                  group_by(end_month) %>% summarise(persistent = n_distinct(id_mcaid)) %>% ungroup(),
+                by = "end_month") %>%
+      left_join(., asthma_denom %>% filter(dx_exclude == 0) %>%
+                  group_by(end_month) %>% summarise(dx_exclude = n_distinct(id_mcaid)) %>% ungroup(),
+                by = "end_month") %>%
+      left_join(., asthma_denom %>% filter(enroll_flag == 1 & persistent == 1) %>%
+                  group_by(end_month) %>% summarise(elig_enroll_persistent = n_distinct(id_mcaid)) %>% ungroup(),
+                by = "end_month") %>%
+      left_join(., asthma_denom %>% filter(enroll_flag == 1 & rx_any == 1 & persistent == 1 & dx_exclude == 0) %>%
+                  group_by(end_month) %>% summarise(all_criteria = n_distinct(id_mcaid)) %>% ungroup(),
+                by = "end_month")
+    
+    output <- list(asthma_denom = asthma_denom,
+                   elig_asthma = elig_asthma)
+    
+    return(output)
+  }
+  
 }
-
-
-
-#### See how many people are excluded at each step ####
-### Eventually add this as a flag when this code is turned into a function
-elig_asthma <- asthma_denom %>% group_by(end_month) %>% summarise(any_asthma = n()) %>% ungroup() %>%
-  left_join(., asthma_denom %>% filter(rx_any == 1) %>%
-              group_by(end_month) %>% summarise(had_rx = n_distinct(id_mcaid)) %>% ungroup(),
-            by = "end_month") %>%
-  left_join(., asthma_denom %>% filter(enroll_flag == 1) %>%
-              group_by(end_month) %>% summarise(elig_enroll = n_distinct(id_mcaid)) %>% ungroup(),
-            by = "end_month") %>%
-  left_join(., asthma_denom %>% filter(persistent == 1) %>%
-              group_by(end_month) %>% summarise(persistent = n_distinct(id_mcaid)) %>% ungroup(),
-            by = "end_month") %>%
-  left_join(., asthma_denom %>% filter(dx_exclude == 0) %>%
-              group_by(end_month) %>% summarise(dx_exclude = n_distinct(id_mcaid)) %>% ungroup(),
-            by = "end_month") %>%
-  left_join(., asthma_denom %>% filter(enroll_flag == 1 & persistent == 1) %>%
-              group_by(end_month) %>% summarise(elig_enroll_persistent = n_distinct(id_mcaid)) %>% ungroup(),
-            by = "end_month") %>%
-  left_join(., asthma_denom %>% filter(enroll_flag == 1 & rx_any == 1 & persistent == 1 & dx_exclude == 0) %>%
-              group_by(end_month) %>% summarise(all_criteria = n_distinct(id_mcaid)) %>% ungroup(),
-            by = "end_month")
-
-write.csv(elig_asthma, file = "//dchs-shares01/dchsdata/DCHSPHClaimsData/Analyses/Alastair/asthma_amr_elig_numbers.csv",
-          row.names = F)
