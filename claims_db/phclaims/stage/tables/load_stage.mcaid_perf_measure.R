@@ -112,12 +112,13 @@ stage_mcaid_perf_measure_f <- function(conn = NULL,
   } else if (measure %in% c("Mental Health Treatment Penetration",
                             "SUD Treatment Penetration",
                             "SUD Treatment Penetration (Opioid)")) {
-    denom_join <- DBI::SQL("LEFT JOIN [stage].[perf_staging] AS stg_den
+    denom_join <- glue::glue_sql("LEFT JOIN {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_staging AS stg_den
                   ON mem.[id_mcaid] = stg_den.[id_mcaid]
                   AND ym.[year_month] = stg_den.[year_month]
                   --- This JOIN condition gets only utilization rows for the relevant measure
                   AND ref.[measure_id] = stg_den.[measure_id]
-                  AND stg_den.[num_denom] = 'D'")
+                  AND stg_den.[num_denom] = 'D'",
+                                 .con = conn)
     denom_where <- DBI::SQL("AND [denominator] = 1")
   }
   
@@ -164,7 +165,7 @@ stage_mcaid_perf_measure_f <- function(conn = NULL,
                             "SUD Treatment Penetration (Opioid)")) {
     num_join <- glue::glue_sql("AND stg_num.[year_month] >= (
                     SELECT [beg_measure_year_month] 
-                    FROM [ref].[perf_year_month] 
+                    FROM {`ref_schema`}.{DBI::SQL(ref_table)}perf_year_month 
                     WHERE [year_month] = {end_month})", .con = conn)
     # [beg_measure_year_month] - 100 denotes 24-month identification period for denominator
     num_where <- DBI::SQL(" - 100")
@@ -172,7 +173,7 @@ stage_mcaid_perf_measure_f <- function(conn = NULL,
   
   # Outlier
   if (measure %in% c("Acute Hospital Utilization")) {
-    outlier_field <- DBI::SQL(",CASE WHEN SUM(ISNULL(stg.[measure_value], 0)) 
+    outlier_field <- DBI::SQL(",CASE WHEN SUM(ISNULL(stg_num.[measure_value], 0)) 
                       OVER(PARTITION BY mem.[id_mcaid] ORDER BY ym.[year_month] 
                            ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) >= 3 THEN 1 ELSE 0 END AS [outlier]")
     outlier_where <- DBI::SQL("AND [outlier] = 0")
@@ -296,7 +297,7 @@ stage_mcaid_perf_measure_f <- function(conn = NULL,
                                   
                                   FROM {`ref_schema`}.{DBI::SQL(ref_table)}perf_year_month AS ym
                                   
-                                  CROSS JOIN {`stage_schema`}.{DBI::SQL(stage_table)}perf_distinct_member AS mem
+                                  CROSS JOIN {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_distinct_member AS mem
                                   
                                   LEFT JOIN {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_enroll_denom AS den
                                     ON mem.[id_mcaid] = den.[id_mcaid]
@@ -311,7 +312,7 @@ stage_mcaid_perf_measure_f <- function(conn = NULL,
                                   
                                 {denom_join}
                                   
-                                  LEFT JOIN {`stage_schema`}.{DBI::SQL(stage_table)}perf_staging AS stg_num
+                                  LEFT JOIN {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_staging AS stg_num
                                   ON mem.[id_mcaid] = stg_num.[id_mcaid]
                                   AND ym.[year_month] = stg_num.[year_month]
                                   
@@ -488,7 +489,7 @@ stage_mcaid_perf_measure_f <- function(conn = NULL,
                                  ,stg.[denominator]
                                  ,stg.[numerator]
                                  
-                                 FROM {`stage_schema`}.{DBI::SQL(stage_table)}perf_staging_event_date AS stg
+                                 FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_staging_event_date AS stg
                                  
                                  INNER JOIN {`ref_schema`}.{DBI::SQL(ref_table)}perf_measure AS ref
                                  ON stg.[measure_id] = ref.[measure_id]
