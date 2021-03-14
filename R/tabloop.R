@@ -147,11 +147,16 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
       return(dcount_name)
     })
     
+    #Initialize counter variable
+    dcount_counter <- 0
+    
     ##Loop over variables to be counted, counting by fixed and loop by variables
     result_dcount <- lapply(dcount, function(y) {
       dcount <- y
       dcount <- enquo(dcount)
       dcount_name <- paste0(quo_name(dcount), "_dcount")
+      
+      dcount_counter <<- dcount_counter + 1
       
       #Tabulate data frame by fixed vars, looping over loop vars
       result_dcount <- lapply(loop, function(x) {
@@ -176,10 +181,14 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
           rename(., group = !! group_name) %>%
           mutate(
             group = as.character(group)
-          ) %>%
-          
-          #Order columns
-          select(., !!! fixed, group_cat, group, !! dcount_name)
+          )
+        
+        #Select final columns based on number of variables to be tabulated
+        if (dcount_counter == 1) {
+          df <- select(df, !!! fixed, group_cat, group, !! dcount_name)
+        } else {
+          df <- select(df, !! dcount_name)
+        }
         
         #Return one data frame for each loop variable provided
         return(df)
@@ -215,11 +224,16 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
       return(count_name)
     })
     
+    #Initialize counter variable
+    count_counter <- 0
+    
     #Loop over variables to be counted, counting by fixed and loop by variables
     result_count <- lapply(count, function(y) {
       count <- y
       count <- enquo(count)
       count_name <- paste0(quo_name(count), "_count")
+      
+      count_counter <<- count_counter + 1
       
       #Tabulate data frame by fixed vars, looping over loop vars
       result_count <- lapply(loop, function(x) {
@@ -244,10 +258,14 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
           rename(., group = !! group_name) %>%
           mutate(
             group = as.character(group)
-          ) %>%
-          
-          #Order columns
-          select(., !!! fixed, group_cat, group, !! count_name)
+          )
+        
+        #Select final columns based on number of variables to be tabulated
+        if (count_counter == 1) {
+          df <- select(df, !!! fixed, group_cat, group, !! count_name)
+        } else {
+          df <- select(df, !! count_name)
+        }
         
         #Return one data frame for each loop variable provided
         return(df)
@@ -284,11 +302,16 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
       return(sum_name)
     })
     
+    #Initialize counter variable
+    sum_counter <- 0
+    
     #Loop over variables to be summed, summing by fixed and loop by variables
     result_sum <- lapply(sum, function(y) {
       sum <- y
       sum <- enquo(sum)
       sum_name <- paste0(quo_name(sum), "_sum")
+      
+      sum_counter <<- sum_counter + 1
       
       #Tabulate data frame by fixed vars, looping over loop vars
       result_sum <- lapply(loop, function(x) {
@@ -313,13 +336,18 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
           rename(., group = !! group_name) %>%
           mutate(
             group = as.character(group)
-          ) %>%
-          
-          #Order columns
-          select(., !!! fixed, group_cat, group, !! sum_name)
+          )
         
-        #Return one data frame for each loop variable provided
+        #Select final columns based on number of variables to be tabulated
+        if (sum_counter == 1) {
+          df <- select(df, !!! fixed, group_cat, group, !! sum_name)
+        } else {
+          df <- select(df, !! sum_name)
+        }
+        
+        #Return data frame for each loop variable provided
         return(df)
+        
       }) %>%
         #Bind results across by variables
         bind_rows()
@@ -353,11 +381,16 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
       return(mean_name)
     })
     
+    #Initialize counter variable
+    mean_counter <- 0
+    
     #Loop over variables to be averaged, calculating by fixed and loop by variables
     result_mean <- lapply(mean, function(y) {
       mean <- y
       mean <- enquo(mean)
       mean_name <- paste0(quo_name(mean), "_mean")
+      
+      mean_counter <<- mean_counter + 1
       
       #Tabulate data frame by fixed vars, looping over loop vars
       result_mean <- lapply(loop, function(x) {
@@ -382,10 +415,14 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
           rename(., group = !! group_name) %>%
           mutate(
             group = as.character(group)
-          ) %>%
-          
-          #Order columns
-          select(., !!! fixed, group_cat, group, !! mean_name)
+          )
+        
+        #Select final columns based on number of variables to be tabulated
+        if (mean_counter == 1) {
+          df <- select(df, !!! fixed, group_cat, group, !! mean_name)
+        } else {
+          df <- select(df, !! mean_name)
+        }
         
         #Return one data frame for each loop variable provided
         return(df)
@@ -422,11 +459,16 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
       return(median_name)
     })
     
+    #Initialize counter variable
+    median_counter <- 0
+    
     #Loop over variables to be averaged, calculating by fixed and loop by variables
     result_median <- lapply(median, function(y) {
       median <- y
       median <- enquo(median)
       median_name <- paste0(quo_name(median), "_median")
+      
+      median_counter <<- median_counter + 1
       
       #Tabulate data frame by fixed vars, looping over loop vars
       result_median <- lapply(loop, function(x) {
@@ -451,10 +493,14 @@ tabloop_f <- function(df, count, dcount, sum, mean, median, loop, fixed = NULL, 
           rename(., group = !! group_name) %>%
           mutate(
             group = as.character(group)
-          ) %>%
-          
-          #Order columns
-          select(., !!! fixed, group_cat, group, !! median_name)
+          )
+        
+        #Select final columns based on number of variables to be tabulated
+        if (median_counter == 1) {
+          df <- select(df, !!! fixed, group_cat, group, !! median_name)
+        } else {
+          df <- select(df, !! median_name)
+        }
         
         #Return one data frame for each loop variable provided
         return(df)
