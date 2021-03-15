@@ -21,7 +21,7 @@ SELECT [n] * 100 + [month] AS [year_month]
 INTO [ref].[perf_year_month]
 FROM 
 (
-SELECT [n] FROM [ref].[num] WHERE n BETWEEN 2010 AND 2020
+SELECT [n] FROM [ref].[num] WHERE n BETWEEN 2010 AND 2030
 ) AS a
 CROSS JOIN 
 (
