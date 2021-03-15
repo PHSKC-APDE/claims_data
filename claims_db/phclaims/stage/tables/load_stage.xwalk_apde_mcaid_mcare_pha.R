@@ -1507,7 +1507,7 @@
       
   ## (3) Combine linked ID pairs ----
       # identify tables of matched pairs
-      xwalk.list <- as.list(mget(grep("^match", ls(), value = TRUE)))
+      xwalk.list <- as.list(mget(grep("^match[0-9]$", ls(), value = TRUE)))
       
       # combine tables of matched pairs
       xwalk <- rbindlist(xwalk.list, use.names = TRUE)       

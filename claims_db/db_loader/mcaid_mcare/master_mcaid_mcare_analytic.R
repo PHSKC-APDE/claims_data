@@ -48,7 +48,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 #### IDENTITY LINKAGE ####
 # Make stage version of linkage
-stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.yaml")
+# stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.yaml")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.R")
 
 # QA stage version
