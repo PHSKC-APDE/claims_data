@@ -19,25 +19,6 @@ library(glue) # Safely combine SQL code
 library(keyring) # Access stored credentials
 
 
-
-server <- select.list(choices = c("phclaims", "hhsaw"))
-
-
-if (server == "phclaims") {
-  db_claims <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
-} else if (server == "hhsaw") {
-  db_claims <- DBI::dbConnect(odbc::odbc(),
-                              driver = "ODBC Driver 17 for SQL Server",
-                              server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
-                              database = "hhs_analytics_workspace",
-                              uid = keyring::key_list("hhsaw_dev")[["username"]],
-                              pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
-                              Encrypt = "yes",
-                              TrustServerCertificate = "yes",
-                              Authentication = "ActiveDirectoryPassword")
-}
-
-
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
@@ -46,6 +27,19 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/mcaid/create_db_connection.R")
+
+
+server <- select.list(choices = c("phclaims", "hhsaw"))
+interactive_auth <- select.list(choices = c("TRUE", "FALSE"))
+if (server == "hhsaw") {
+  prod <- select.list(choices = c("TRUE", "FALSE"))
+} else {
+  prod <- F
+}
+
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+
 
 
 
@@ -65,6 +59,8 @@ last_run_elig_demo <- as.POSIXct(odbc::dbGetQuery(
 
 ### QA stage version
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
+# Re-establish connection because it drops out faster in Azure VM
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 qa_stage_mcaid_elig_demo <- qa_mcaid_elig_demo_f(conn = db_claims, server = server, 
                                                  config = stage_mcaid_elig_demo_config, load_only = F)
 
@@ -129,6 +125,9 @@ stage_mcaid_elig_timevar_config <- yaml::read_yaml("https://raw.githubuserconten
 
 # Run function
 load_stage_mcaid_elig_timevar_f(conn = db_claims, server = server, config = stage_mcaid_elig_timevar_config)
+
+# Re-establish connection because it drops out faster in Azure VM
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
 # Pull out run date
 last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(
@@ -236,6 +235,9 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
     load_stage_mcaid_claim_procedure_f(conn = db_claims, server = server, config = stage_config)
   }
   
+  # Re-establish connection because it drops out faster in Azure VM
+  db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+  
   # Pull out run date
   last_run_claim <- as.POSIXct(odbc::dbGetQuery(
     db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_config[[server]][['to_schema']]`}.{`stage_config[[server]][['to_table']]`}",
@@ -286,14 +288,14 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
                                 .con = db_claims)))
     
     # Remove final table
-    try(DBI::dbSendQuery(db_claims, 
+    try(DBI::dbExecute(db_claims, 
                          glue::glue_sql("DROP TABLE {`to_schema`}.{`to_table`}", .con = db_claims)), 
         silent = T)
     
     # Rename to final table
     if (server == "hhsaw") {
-      DBI::dbSendQuery(db_claims, glue::glue_sql(
-        "EXEC sp_rename '{DBI::SQL(from_schema)}.{DBI::SQL(from_table)}',  {to_table}", .con = db_Claims))
+      DBI::dbExecute(db_claims, glue::glue_sql(
+        "EXEC sp_rename '{DBI::SQL(from_schema)}.{DBI::SQL(from_table)}',  {to_table}", .con = db_claims))
     } else if (server == "phclaims") {
       alter_schema_f(conn = db_claims, 
                      from_schema = from_schema, 
@@ -382,7 +384,7 @@ claim_ccw_fail <- claim_load_f(table = "ccw")
 
 #### PERFORMANCE MEASURES ------------------------------------------------------
 #### PERF_ELIG_MEMBER_MONTH ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage_mcaid_perf_elig_member_month.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_elig_member_month.R")
 load_stage_mcaid_perf_elig_member_month_f(conn = db_claims, server = server)
 
 
@@ -390,24 +392,41 @@ load_stage_mcaid_perf_elig_member_month_f(conn = db_claims, server = server)
 # Bring in config file
 stage_mcaid_perf_enroll_denom_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_enroll_denom.yaml")
 
+stage_schema <- stage_mcaid_perf_enroll_denom_config[[server]][["stage_schema"]]
+stage_table <- ifelse(is.null(stage_mcaid_perf_enroll_denom_config[[server]][["stage_table"]]), '',
+                      stage_mcaid_perf_enroll_denom_config[[server]][["stage_table"]])
+final_schema <- stage_mcaid_perf_enroll_denom_config[[server]][["final_schema"]]
+final_table <- ifelse(is.null(stage_mcaid_perf_enroll_denom_config[[server]][["final_table"]]), '',
+                      stage_mcaid_perf_enroll_denom_config[[server]][["final_table"]])
+ref_schema <- stage_mcaid_perf_enroll_denom_config[[server]][["ref_schema"]]
+ref_table <- ifelse(is.null(stage_mcaid_perf_enroll_denom_config[[server]][["ref_table"]]), '',
+                   stage_mcaid_perf_enroll_denom_config[[server]][["ref_table"]])
+
+
 # Need to find which months have been refreshed and run for those
 # Assumes a 12-month refresh. Change manually for other options
+# If the table doesn't yet exist, cover all time periods since 2012 
+#  (2-yr lookback means using 201401)
 max_elig_month <- odbc::dbGetQuery(
   db_claims, 
   glue::glue_sql("SELECT MAX (CLNDR_YEAR_MNTH) 
-                 FROM {`stage_mcaid_perf_enroll_denom_config$final_schema`}.{DBI::SQL(stage_mcaid_perf_enroll_denom_config$final_table)}mcaid_elig",
-                                                  .con = db_claims))[[1]]
-min_elig_month <- odbc::dbGetQuery(
-  db_claims, 
-  glue::glue_sql("SELECT YEAR([12_month_prior]) * 100 + MONTH([12_month_prior])
-                 FROM
-                 (SELECT MAX(b.[12_month_prior]) AS [12_month_prior]
-                   FROM {`stage_mcaid_perf_enroll_denom_config$stage_schema`}.{DBI::SQL(stage_mcaid_perf_enroll_denom_config$stage_table)}mcaid_perf_enroll_denom AS agg
-                  LEFT JOIN {`stage_mcaid_perf_enroll_denom_config$ref_schema`}.{DBI::SQL(stage_mcaid_perf_enroll_denom_config$ref_table)}perf_year_month AS b
-                  ON a.[year_month] = b.[year_month]) AS a",
+                 FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_elig",
                  .con = db_claims))[[1]]
 
-
+if (DBI::dbExistsTable(db_claims, name = DBI::Id(schema = stage_schema, 
+                                                 table = paste0(stage_table, "mcaid_perf_enroll_denom")))) {
+  min_elig_month <- odbc::dbGetQuery(
+    db_claims, 
+    glue::glue_sql("SELECT YEAR([12_month_prior]) * 100 + MONTH([12_month_prior])
+                 FROM
+                 (SELECT MAX(b.[12_month_prior]) AS [12_month_prior]
+                   FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_enroll_denom AS a
+                  LEFT JOIN {`ref_schema`}.{DBI::SQL(ref_table)}perf_year_month AS b
+                  ON a.[year_month] = b.[year_month]) AS a",
+                   .con = db_claims))[[1]]
+} else {
+  min_elig_month <- 201401L
+}
 
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_enroll_denom.R")
@@ -420,14 +439,43 @@ rm(max_elig_month, min_elig_month, stage_mcaid_perf_enroll_denom_config, load_st
 
 
 #### PERF_DISTINCT_MEMBER ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage_mcaid_perf_distinct_member.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_distinct_member.R")
 load_stage_mcaid_perf_distinct_member_f(conn = db_claims, server = server)
 
 
 
 
-#### ASTHMA MEDICATION RATIO ####
+#### PERF MEASURES ####
+# Bring in config file
+stage_mcaid_perf_measure_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_measure.yaml")
 
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_measure.R")
+
+measures <- c("Acute Hospital Utilization",
+              "All-Cause ED Visits",
+              "Child and Adolescent Access to Primary Care",
+              "Follow-up ED visit for Alcohol/Drug Abuse",
+              "Follow-up ED visit for Mental Illness",
+              "Follow-up Hospitalization for Mental Illness",
+              "Mental Health Treatment Penetration",
+              "SUD Treatment Penetration",
+              "SUD Treatment Penetration (Opioid)",
+              "Plan All-Cause Readmissions (30 days)")
+
+
+lapply(measures, function(x) {
+  message("Loading ", x)
+  stage_mcaid_perf_measure_f(conn = db_claims, server = server,
+                             measure = x, end_month = max_elig_month,
+                             config = stage_mcaid_perf_measure_config)
+})
+
+
+#### ASTHMA MEDICATION RATIO ####
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/prod_Azure/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_measure_amr.R")
+stage_mcaid_perf_measure_amr_f(conn = db_claims, server = server,
+                               max_month = max_elig_month,
+                               return_data = F)
 
 
 #### DROP TABLES NO LONGER NEEDED ####

@@ -1,0 +1,34 @@
+phclaims:
+    to_schema: stage
+    to_table: mcaid_perf_measure
+    stage_schema: stage
+    stage_table: 
+    final_schema: final
+    final_table: 
+    ref_schema: ref
+    ref_table: 
+    archive_schema: archive
+    archive_table: 
+hhsaw:
+    to_schema: claims
+    to_table: stage_mcaid_perf_measure
+    stage_schema: claims
+    stage_table: stage_
+    final_schema: claims
+    final_table: final_
+    ref_schema: claims
+    ref_table: ref_
+    archive_schema: stg_claims
+    archive_table: archive_
+index_type: ccs
+index_name: idx_cl_mcaid_perf_measure
+vars:
+    beg_year_month: INT
+    end_year_month: INT
+    id_mcaid: VARCHAR(255)
+    end_month_age: INT
+    age_grp: VARCHAR(255)
+    measure_id: INT
+    denominator: INT
+    numerator: INT
+    load_date: DATE

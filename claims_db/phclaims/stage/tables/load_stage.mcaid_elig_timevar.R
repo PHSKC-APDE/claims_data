@@ -356,8 +356,11 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   # Step 5a = ~<1 min
   message("Running step 5a: Drop stage table")
   time_start <- Sys.time()
-  odbc::dbGetQuery(conn = conn, 
-                   glue::glue_sql("DROP TABLE {`to_schema`}.{`to_table`}", .con = conn))
+  if (dbExistsTable(conn = conn,
+                   name = DBI::Id(schema = to_schema, table = to_table))) {
+    odbc::dbGetQuery(conn = conn, 
+                     glue::glue_sql("DROP TABLE {`to_schema`}.{`to_table`}", .con = conn))
+  }
   time_end <- Sys.time()
   message(paste0("Step 5a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
                  " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 

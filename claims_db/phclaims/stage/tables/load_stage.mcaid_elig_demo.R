@@ -622,11 +622,12 @@ load_stage_mcaid_elig_demo_f <- function(conn = NULL,
   message("Loading to SQL")
   
   # Write data
-  dbWriteTable(conn, 
+  odbc::dbWriteTable(conn, 
                name = DBI::Id(schema = to_schema, table = to_table), 
                value = as.data.frame(elig_demoever_final),
                overwrite = T, append = F,
-               field.types = unlist(config$vars))
+               field.types = unlist(config$vars),
+               batch_rows = 10000)
   
   
   #### CLEAN UP ####
