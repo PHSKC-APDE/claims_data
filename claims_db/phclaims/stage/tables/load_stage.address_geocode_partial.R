@@ -337,8 +337,7 @@ stage_address_geocode_f <- function(conn = NULL,
       update_sql <- glue::glue_data_sql(adds_geocode_skip, 
                                         "UPDATE {`stage_schema`}.{DBI::SQL(stage_table)}address_clean 
                                     SET geo_geocode_skip = 1 
-                                    WHERE (geo_add1_clean = {geo_add1_clean} AND geo_city_clean = {geo_city_clean} AND
-                                    geo_state_clean = {geo_state_clean} AND geo_zip_clean = {geo_zip_clean})",
+                                    WHERE (geo_hash_geocode = {geo_hash_geocode})",
                                         .con = conn)
       # Need to account for NULL values properly
       update_sql <- str_replace_all(update_sql, "= NULL", "Is NULL")
@@ -506,7 +505,9 @@ stage_address_geocode_f <- function(conn = NULL,
                        .con = conn)))
     } else if (full_refresh == T) {
       # Create new table if it doesn't exist
-      try(create_table_f(conn = conn, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
+      try(create_table_f(conn = conn, 
+                         server = server,
+                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
     }
     
     
