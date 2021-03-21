@@ -17,8 +17,6 @@ library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
 library(sf) # Read shape files
 library(keyring) # Access stored credentials
-library(dplyr)
-library(magrittr)
 
 # These are use for geocoding new addresses
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
@@ -228,12 +226,12 @@ if (stage_address_clean_timestamp != 0) {
   #     However, the same is not true when checking the Informatica output table.
   #     Therefore need to do some timezone conversion.
   #     If loading from the qa_mcaid_values table, use as.POSIXct(<value>, tz = "UTC")
-  add_output <- DBI::dbGetQuery(conn_hhsaw, 
+  add_output <- DBI::dbGetQuery(db_claims, 
                                 glue::glue_sql("SELECT TOP (1) * 
                                FROM {`stage_address_clean_config[['informatica_ref_schema']]`}.{`stage_address_clean_config[['informatica_output_table']]`} 
                                WHERE convert(varchar, timestamp, 20) = 
                                                {lubridate::with_tz(stage_address_clean_timestamp, 'utc')}",
-                                               .con = conn_hhsaw))
+                                               .con = db_claims))
   
   while(nrow(add_output) == 0) {
     # Wait an hour before checking again

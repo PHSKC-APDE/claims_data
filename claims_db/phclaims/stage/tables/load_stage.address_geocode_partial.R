@@ -337,7 +337,7 @@ stage_address_geocode_f <- function(conn = NULL,
       update_sql <- glue::glue_data_sql(adds_geocode_skip, 
                                         "UPDATE {`stage_schema`}.{DBI::SQL(stage_table)}address_clean 
                                     SET geo_geocode_skip = 1 
-                                    WHERE (geo_hash_geocode = {geo_hash_geocode})",
+                                    WHERE geo_hash_geocode = {geo_hash_geocode}",
                                         .con = conn)
       # Need to account for NULL values properly
       update_sql <- str_replace_all(update_sql, "= NULL", "Is NULL")
@@ -358,8 +358,7 @@ stage_address_geocode_f <- function(conn = NULL,
         update_sql <- glue::glue_data_sql(adds_geocode_skip, 
                                           "UPDATE {`ref_schema`}.address_clean 
                                     SET geo_geocode_skip = 1 
-                                    WHERE (geo_add1_clean = {geo_add1_clean} AND geo_city_clean = {geo_city_clean} AND
-                                    geo_state_clean = {geo_state_clean} AND geo_zip_clean = {geo_zip_clean})",
+                                    WHERE geo_hash_geocode = {geo_hash_geocode}",
                                           .con = conn)
         DBI::dbExecute(conn, glue::glue_collapse(update_sql, sep = "; "))
         
