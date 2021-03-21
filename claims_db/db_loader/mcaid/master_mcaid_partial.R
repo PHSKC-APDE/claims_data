@@ -495,7 +495,7 @@ if (nrow(update_phclaims) > 0) {
 message(nrow(update_phclaims), " address rows loaded from HHSAW to PHClaims")
 
 
-#### address_geocode table ####
+#### stage_address_geocode table ####
 # Call in config file to get vars
 stage_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
 

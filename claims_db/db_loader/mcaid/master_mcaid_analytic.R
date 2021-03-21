@@ -446,29 +446,30 @@ load_stage_mcaid_perf_distinct_member_f(conn = db_claims, server = server)
 
 
 #### PERF MEASURES ####
-# Bring in config file
-stage_mcaid_perf_measure_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_measure.yaml")
-
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_measure.R")
-
-measures <- c("Acute Hospital Utilization",
-              "All-Cause ED Visits",
-              "Child and Adolescent Access to Primary Care",
-              "Follow-up ED visit for Alcohol/Drug Abuse",
-              "Follow-up ED visit for Mental Illness",
-              "Follow-up Hospitalization for Mental Illness",
-              "Mental Health Treatment Penetration",
-              "SUD Treatment Penetration",
-              "SUD Treatment Penetration (Opioid)",
-              "Plan All-Cause Readmissions (30 days)")
-
-
-lapply(measures, function(x) {
-  message("Loading ", x)
-  stage_mcaid_perf_measure_f(conn = db_claims, server = server,
-                             measure = x, end_month = max_elig_month,
-                             config = stage_mcaid_perf_measure_config)
-})
+# NB. Note currently running these
+# # Bring in config file
+# stage_mcaid_perf_measure_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_measure.yaml")
+# 
+# devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_measure.R")
+# 
+# measures <- c("Acute Hospital Utilization",
+#               "All-Cause ED Visits",
+#               "Child and Adolescent Access to Primary Care",
+#               "Follow-up ED visit for Alcohol/Drug Abuse",
+#               "Follow-up ED visit for Mental Illness",
+#               "Follow-up Hospitalization for Mental Illness",
+#               "Mental Health Treatment Penetration",
+#               "SUD Treatment Penetration",
+#               "SUD Treatment Penetration (Opioid)",
+#               "Plan All-Cause Readmissions (30 days)")
+# 
+# 
+# lapply(measures, function(x) {
+#   message("Loading ", x)
+#   stage_mcaid_perf_measure_f(conn = db_claims, server = server,
+#                              measure = x, end_month = max_elig_month,
+#                              config = stage_mcaid_perf_measure_config)
+# })
 
 
 #### ASTHMA MEDICATION RATIO ####
