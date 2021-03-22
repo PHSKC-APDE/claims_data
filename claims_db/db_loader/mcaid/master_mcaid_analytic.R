@@ -248,7 +248,7 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
   devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_", table, ".R"))
   
   if (table == "ccw") {
-    qa_stage <- qa_stage_mcaid_claim_ccw_f(conn = db_claims, server = server, config = stage_config)
+    qa_stage <- qa_stage_mcaid_claim_ccw_f(conn = db_claims, server = server, config = stage_config, skip_review = T)
   } else if (table == "icdcm_header") {
     qa_stage <- qa_stage_mcaid_claim_icdcm_header_f(conn = db_claims, server = server, config = stage_config)
   } else if (table == "header") {
@@ -473,7 +473,7 @@ load_stage_mcaid_perf_distinct_member_f(conn = db_claims, server = server)
 
 
 #### ASTHMA MEDICATION RATIO ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/prod_Azure/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_measure_amr.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_measure_amr.R")
 stage_mcaid_perf_measure_amr_f(conn = db_claims, server = server,
                                max_month = max_elig_month,
                                return_data = F)

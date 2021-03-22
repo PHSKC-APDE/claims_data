@@ -13,12 +13,15 @@
 # config = the YAML config file. Can be either an object already loaded into 
 #   R or a URL that should be used
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
+# skip_review = if you do not want to manually review comparison to APCD estimates
+#  (set to T because it holds up automated monthly runs)
 
 
 qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
-                                          server = c("hhsaw", "phclaims"),
-                                          config = NULL,
-                                          get_config = F) {
+                                       server = c("hhsaw", "phclaims"),
+                                       config = NULL,
+                                       get_config = F,
+                                       skip_review = T) {
   
   # Set up variables specific to the server
   server <- match.arg(server)
@@ -132,32 +135,35 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   # Show results for review
   print(distinct_id_chk %>% filter(!is.na(abs_diff)))
   
-  prop_chk <- askYesNo(msg = glue("Are the deviations from the APCD estimates ", 
-                                  "within acceptable parameters? Ideally a small ",
-                                  "percentage difference (<10%) but for small estimates, ",
-                                  "a small absolute difference is ok (<0.5)."))
-  
-  if (is.na(prop_chk)) {
-    stop("QA process aborted at proportion checking step")
-  } else if (prop_chk == T) {
-    ccw_qa <- rbind(ccw_qa,
-                    data.frame(etl_batch_id = NA_integer_,
-                               last_run = last_run,
-                               table_name = paste0(to_schema, ".", to_table),
-                               qa_item = "Overall proportion with each condition (compared to APCD)",
-                               qa_result = "PASS",
-                               qa_date = Sys.time(),
-                               note = glue("Most conditions are close to APCD-derived estimates")))
-  } else if (prop_chk == F) {
-    ccw_qa <- rbind(ccw_qa,
-                    data.frame(etl_batch_id = NA_integer_,
-                               last_run = last_run,
-                               table_name = paste0(to_schema, ".", to_table),
-                               qa_item = "Overall proportion with each condition (compared to APCD)",
-                               qa_result = "FAIL",
-                               qa_date = Sys.time(),
-                               note = glue("One or more conditions deviate from expected proportions")))
+  if (skip_review == F) {
+    prop_chk <- askYesNo(msg = glue("Are the deviations from the APCD estimates ", 
+                                    "within acceptable parameters? Ideally a small ",
+                                    "percentage difference (<10%) but for small estimates, ",
+                                    "a small absolute difference is ok (<0.5)."))
+    
+    if (is.na(prop_chk)) {
+      stop("QA process aborted at proportion checking step")
+    } else if (prop_chk == T) {
+      ccw_qa <- rbind(ccw_qa,
+                      data.frame(etl_batch_id = NA_integer_,
+                                 last_run = last_run,
+                                 table_name = paste0(to_schema, ".", to_table),
+                                 qa_item = "Overall proportion with each condition (compared to APCD)",
+                                 qa_result = "PASS",
+                                 qa_date = Sys.time(),
+                                 note = glue("Most conditions are close to APCD-derived estimates")))
+    } else if (prop_chk == F) {
+      ccw_qa <- rbind(ccw_qa,
+                      data.frame(etl_batch_id = NA_integer_,
+                                 last_run = last_run,
+                                 table_name = paste0(to_schema, ".", to_table),
+                                 qa_item = "Overall proportion with each condition (compared to APCD)",
+                                 qa_result = "FAIL",
+                                 qa_date = Sys.time(),
+                                 note = glue("One or more conditions deviate from expected proportions")))
+    }
   }
+  
   
   
   #### CHECK AGE DISTRIBUTION BY CONDITION FOR A GIVEN YEAR ####
@@ -254,12 +260,13 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   }
   
   
-  age_dist_cond_chk <- age_dist_cond_f(year = 2017)
-  age_dist_pop_chk <- age_dist_pop_f(year = 2017)
+  age_dist_cond_chk <- age_dist_cond_f(year = 2018)
+  age_dist_pop_chk <- age_dist_pop_f(year = 2018)
   
   age_dist_cond_chk <- left_join(age_dist_cond_chk, age_dist_pop_chk,
                                  by = "age_grp7") %>%
     mutate(prev = id_dcount / pop * 100)
+  
   
   # Plot results for visual inspection
   win.graph(width = 16, height = 10)
@@ -269,35 +276,39 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
     geom_point() + 
     facet_wrap( ~ ccw_desc, ncol = 4, scales = "free")
   
-  # Seek user input on whether or not patterns match what is expected
-  # NB. It would be nice to quantify this but human inspection will do for now
   
-  age_dist_chk <- askYesNo(
-    msg = glue("Do the age distributions look to be what is expected ",
-               "(generally increasing with age but drop offs after 65 not unusual)?")
-  )
-  
-  if (is.na(age_dist_chk)) {
-    stop("QA process aborted at age distribution step")
-  } else if (age_dist_chk == T) {
-    ccw_qa <- rbind(ccw_qa,
-                    data.frame(etl_batch_id = NA_integer_,
-                               last_run = last_run,
-                               table_name = paste0(to_schema, ".", to_table),
-                               qa_item = "Patterns by age group",
-                               qa_result = "PASS",
-                               qa_date = Sys.time(),
-                               note = glue("Most conditions increased with age as expected")))
-  } else if (age_dist_chk == F) {
-    ccw_qa <- rbind(ccw_qa,
-                    data.frame(etl_batch_id = NA_integer_,
-                               last_run = last_run,
-                               table_name = paste0(to_schema, ".", to_table),
-                               qa_item = "Patterns by age group",
-                               qa_result = "FAIL",
-                               qa_date = Sys.time(),
-                               note = glue("One or more conditions had unusual age patterns")))
+  if (skip_review == F) {
+    # Seek user input on whether or not patterns match what is expected
+    # NB. It would be nice to quantify this but human inspection will do for now
+    
+    age_dist_chk <- askYesNo(
+      msg = glue("Do the age distributions look to be what is expected ",
+                 "(generally increasing with age but drop offs after 65 not unusual)?")
+    )
+    
+    if (is.na(age_dist_chk)) {
+      stop("QA process aborted at age distribution step")
+    } else if (age_dist_chk == T) {
+      ccw_qa <- rbind(ccw_qa,
+                      data.frame(etl_batch_id = NA_integer_,
+                                 last_run = last_run,
+                                 table_name = paste0(to_schema, ".", to_table),
+                                 qa_item = "Patterns by age group",
+                                 qa_result = "PASS",
+                                 qa_date = Sys.time(),
+                                 note = glue("Most conditions increased with age as expected")))
+    } else if (age_dist_chk == F) {
+      ccw_qa <- rbind(ccw_qa,
+                      data.frame(etl_batch_id = NA_integer_,
+                                 last_run = last_run,
+                                 table_name = paste0(to_schema, ".", to_table),
+                                 qa_item = "Patterns by age group",
+                                 qa_result = "FAIL",
+                                 qa_date = Sys.time(),
+                                 note = glue("One or more conditions had unusual age patterns")))
+    }
   }
+  
   
   
   #### STEP 2: VALIDATE STATUS OF ONE PERSON PER CONDITION WITH 2+ TIME PERIODS ####
