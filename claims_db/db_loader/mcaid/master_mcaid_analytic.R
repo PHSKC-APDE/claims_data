@@ -179,10 +179,10 @@ if (qa_stage_mcaid_elig_timevar == 0) {
   
   rm(final_mcaid_elig_timevar_config, qa_rows_final_elig_timevar, to_schema, to_table, qa_schema, qa_table)
 } else {
-  stop(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {`stage_mcaid_elig_timevar_config[[server]][['qa_schema']]`}.
-    {DBI::SQL(stage_mcaid_elig_timevar_config[[server]][['qa_table']])}qa_mcaid"))
+  stop(paste0(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {stage_mcaid_elig_timevar_config[[server]][['qa_schema']]}."),
+    glue::glue("{DBI::SQL(ifelse(is.null(stage_mcaid_elig_timevar_config[[server]][['qa_table']]), 
+               '', stage_mcaid_elig_timevar_config[[server]][['qa_table']]))}qa_mcaid")))
 }
-
 
 ### Clean up
 rm(qa_stage_mcaid_elig_timevar, stage_mcaid_elig_timevar_config, load_stage_mcaid_elig_timevar_f, 
