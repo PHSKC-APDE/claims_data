@@ -6,8 +6,8 @@ phclaims:
     to_table: mcaid_claim
     archive_schema: archive
     archive_table: mcaid_claim
-    bho_archive_schema: claims
-    bho_archive_table: archive_mcaid_missing_bh_claims 
+    bho_archive_schema: archive
+    bho_archive_table: mcaid_missing_bh_claims 
     qa_schema: metadata
     qa_table: 
 hhsaw:
