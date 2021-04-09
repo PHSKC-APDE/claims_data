@@ -160,6 +160,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                          GROUP BY YEAR(rx_fill_date) ORDER by YEAR(rx_fill_date)", .con = conn))
     
     num_rx_overall <- left_join(num_rx_new, num_rx_current, by = "claim_year") %>%
+      mutate_at(vars(new_num_rx, current_num_rx), list(~ replace_na(., 0))) %>%
       mutate(pct_change = round((new_num_rx - current_num_rx) / current_num_rx * 100, 4))
     
     # Write findings to metadata

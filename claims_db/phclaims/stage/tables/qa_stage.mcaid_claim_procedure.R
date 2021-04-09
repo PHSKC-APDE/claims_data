@@ -266,6 +266,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                          GROUP BY YEAR(first_service_date) ORDER by YEAR(first_service_date)", .con = conn))
     
     num_procedure_overall <- left_join(num_procedure_new, num_procedure_current, by = "claim_year") %>%
+      mutate_at(vars(new_num_procedure, current_num_procedure), list(~ replace_na(., 0))) %>%
       mutate(pct_change = round((new_num_procedure - current_num_procedure) / current_num_procedure * 100, 4))
     
     # Write findings to metadata
