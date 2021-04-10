@@ -28,7 +28,7 @@ load_stage.apcd_claim_header_f <- function() {
     a.first_paid_dt as first_paid_date,
     a.last_paid_dt as last_paid_date,
     a.charge_amt,
-    case when a.header_status in (-1,-2) then null else a.header_status end as claim_status_id,
+    a.header_status as claim_status_id,
     case when a.type_of_bill_code in (-1,-2) then null else a.type_of_bill_code end as type_of_bill_code,
     
     --concatenate claim type variables
@@ -46,7 +46,7 @@ load_stage.apcd_claim_header_f <- function() {
     
     --inpatient visit
     case when a.claim_type_id = '1' and a.type_of_setting_id = '1' and a.place_of_setting_id = '1'
-    	and a.header_status in (-1, -2, 1, 5, 2, 6) -- only include primary and secondary claims
+    	and a.header_status in ('-1', '-2', '01', '19', '02', '20') -- only include primary and secondary claims
     	and b.discharge_date is not null
     then 1 else 0 end as ipt_flag,
     b.discharge_date
@@ -210,7 +210,7 @@ load_stage.apcd_claim_header_f <- function() {
     --Primary care visit (Oregon)
     case when (f.pc_procedure_temp = 1 or f.pc_zcode_temp = 1) and f.pc_taxonomy_temp = 1
 	    and a.claim_type_apcd_id not in ('1.1.1', '1.1.14', '1.1.2', '2.3.8', '2.3.2', '1.2.8') --exclude inpatient, swing bed, free-standing ambulatory
-    	and a.claim_status_id in (-1, -2, 1, 5, 2, 6) -- only include primary and secondary claim headers
+    	and a.claim_status_id in ('-1', '-2', '01', '19', '02', '20') -- only include primary and secondary claim headers
     	then 1 else 0
     end as pc_visit
     
