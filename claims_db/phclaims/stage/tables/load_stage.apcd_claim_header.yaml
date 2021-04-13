@@ -11,7 +11,7 @@ vars:
     charge_amt: numeric(38,2)
     primary_diagnosis: varchar(255)
     icdcm_version: tinyint
-    claim_status_id: tinyint
+    claim_status_id: int
     claim_type_apcd_id: varchar(255)
     claim_type_id: tinyint
     type_of_bill_code: varchar(255)
