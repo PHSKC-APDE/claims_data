@@ -28,7 +28,7 @@ load_stage.apcd_claim_header_f <- function() {
     a.first_paid_dt as first_paid_date,
     a.last_paid_dt as last_paid_date,
     a.charge_amt,
-    case when a.header_status in (-1,-2) then null else a.header_status end as claim_status_id,
+    c.claim_status_id,
     case when a.type_of_bill_code in (-1,-2) then null else a.type_of_bill_code end as type_of_bill_code,
     
     --concatenate claim type variables
@@ -46,7 +46,7 @@ load_stage.apcd_claim_header_f <- function() {
     
     --inpatient visit
     case when a.claim_type_id = '1' and a.type_of_setting_id = '1' and a.place_of_setting_id = '1'
-    	and a.header_status in (-1, -2, 1, 5, 2, 6) -- only include primary and secondary claims
+    	and c.claim_status_id in (-1, -2, 1, 5, 2, 6) -- only include primary and secondary claims
     	and b.discharge_date is not null
     then 1 else 0 end as ipt_flag,
     b.discharge_date
@@ -63,6 +63,10 @@ load_stage.apcd_claim_header_f <- function() {
         group by claim_header_id
         ) as b
     on a.medical_claim_header_id = b.claim_header_id
+    
+    --left join to claim status reference table to use numeric codes rather than varchar header_status variable
+    left join PHClaims.ref.apcd_claim_status as c
+    on a.header_status = c.claim_status_code
     
     --exclude denined/orphaned claims
     where a.denied_header_flag = 'N' and a.orphaned_header_flag = 'N';
