@@ -16,25 +16,21 @@ library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
 
 
-db_claims <- DBI::dbConnect(odbc::odbc(),
-                            driver = "ODBC Driver 17 for SQL Server",
-                            server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
-                            database = "hhs_analytics_workspace",
-                            uid = keyring::key_list("hhsaw_dev")[["username"]],
-                            pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
-                            Encrypt = "yes",
-                            TrustServerCertificate = "yes",
-                            Authentication = "ActiveDirectoryPassword")
+#### CHOOSE SERVER AND CREATE CONNECTION ####
+server <- select.list(choices = c("phclaims", "hhsaw"))
+interactive_auth <- select.list(choices = c("TRUE", "FALSE"))
+if (server == "hhsaw") {
+  prod <- select.list(choices = c("TRUE", "FALSE"))
+} else {
+  prod <- F
+}
 
-dw_inthealth <- DBI::dbConnect(odbc::odbc(),
-                            driver = "ODBC Driver 17 for SQL Server",
-                            server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
-                            database = "inthealth_edw",
-                            uid = keyring::key_list("hhsaw_dev")[["username"]],
-                            pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
-                            Encrypt = "yes",
-                            TrustServerCertificate = "yes",
-                            Authentication = "ActiveDirectoryPassword")
+
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+
+if (server == "hhsaw") {
+  dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+}
 
 
 #### SET UP FUNCTIONS ####
@@ -84,7 +80,19 @@ table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercont
 if (table_config_stage_elig[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
-load_stage.mcaid_elig_f(conn_dw = dw_inthealth, conn_db = db_claims, full_refresh = T, config = table_config_stage_elig)
+if (server == "hhsaw") {
+  system.time(load_stage.mcaid_elig_f(conn_dw = dw_inthealth, 
+                                      conn_db = db_claims, 
+                                      server = server,
+                                      full_refresh = T, 
+                                      config = table_config_stage_elig))
+} else if (server == "phclaims") {
+  system.time(load_stage.mcaid_elig_f(conn_dw = db_claims, 
+                                      conn_db = db_claims, 
+                                      server = server,
+                                      full_refresh = T, 
+                                      config = table_config_stage_elig))
+}
 
 
 #### STAGE CLAIM ####
@@ -93,7 +101,19 @@ table_config_stage_claims <- yaml::yaml.load(httr::GET("https://raw.githubuserco
 if (table_config_stage_claims[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
-load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, conn_db = db_claims, full_refresh = T, config = table_config_stage_claims)
+if (server == "hhsaw") {
+  system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, 
+                                              conn_db = db_claims, 
+                                              server = server,
+                                              full_refresh = T, 
+                                              config = table_config_stage_claims))
+} else if (server == "phclaims") {
+  system.time(load_claims.stage_mcaid_claim_f(conn_dw = db_claims, 
+                                              conn_db = db_claims, 
+                                              server = server,
+                                              full_refresh = T, 
+                                              config = table_config_stage_claims))
+}
 
 
 
