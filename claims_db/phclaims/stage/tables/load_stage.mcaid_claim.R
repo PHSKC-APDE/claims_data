@@ -159,7 +159,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   ### Add index if needed
   devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
   if (server == "phclaims") {
-    #add_index_f(conn = conn_db, server = server, table_config = config)
+    add_index_f(conn = conn_db, server = server, table_config = config)
   }
   
   
