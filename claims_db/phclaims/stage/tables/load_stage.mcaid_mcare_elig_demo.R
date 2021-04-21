@@ -97,11 +97,30 @@
     setcolorder(elig, names(table_config$vars))
   
   # Write table to SQL
-    dbWriteTable(db_claims, 
-                 DBI::Id(schema = table_config$schema, table = table_config$table), 
-                 value = as.data.frame(elig),
-                 overwrite = T, append = F, 
-                 field.types = unlist(table_config$vars))
+    ### Sometimes get a network error if trying to do the whole thing so split into batches
+    start <- 1L
+    max_rows <- 100000L
+    cycles <- ceiling(nrow(elig)/max_rows)
+    
+    lapply(seq(start, cycles), function(i) {
+      start_row <- ifelse(i == 1, 1L, max_rows * (i-1) + 1)
+      end_row <- min(nrow(elig), max_rows * i)
+      
+      message("Loading cycle ", i, " of ", cycles)
+      if (i == 1) {
+        dbWriteTable(db_claims, 
+                     DBI::Id(schema = table_config$schema, table = table_config$table), 
+                     value = as.data.frame(elig[start_row:end_row]),
+                     overwrite = T, append = F, 
+                     field.types = unlist(table_config$vars))
+      } else {
+        dbWriteTable(db_claims, 
+                     DBI::Id(schema = table_config$schema, table = table_config$table), 
+                     value = as.data.frame(elig[start_row:end_row]),
+                     overwrite = F, append = T)
+      }
+    })
+
 
 ## (9) Simple QA ----
     # Confirm that all rows were loaded to SQL ----

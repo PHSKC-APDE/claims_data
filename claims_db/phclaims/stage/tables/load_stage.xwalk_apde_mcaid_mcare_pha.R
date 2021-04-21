@@ -178,7 +178,8 @@
     
 ## Identify objects/function to keep throughout entire process ----    
       keep.me <- c(ls(), "keep.me") # everything created above should be permanent
-      
+  
+
 #### ----------------- ####
 #### Prep MCAID DATA   ####   
 #### ----------------- ####    
@@ -187,7 +188,7 @@
       # appear in the elig_demo file
       
   ## (1) Load Mcaid data from SQL ----  
-      db_claims51 <- dbConnect(odbc(), "PHClaims51")   
+      db_claims51 <- dbConnect(odbc(), "PHClaims51")
       
       mcaid.elig <- setDT(odbc::dbGetQuery(db_claims51, "SELECT id_mcaid, dob, gender_me, gender_female, gender_male FROM final.mcaid_elig_demo"))
   
@@ -198,13 +199,13 @@
       setnames(mcaid.ssn, names(mcaid.ssn), c("id_mcaid", "ssn", "date"))
       
   ## (2) Tidy individual Mcaid data files before merging ----
-      # elig ----
+      # elig
         mcaid.elig <- unique(mcaid.elig)
           if(nrow(mcaid.elig) - length(unique(mcaid.elig$id_mcaid)) != 0){
             stop('non-unique id_mcaid in elig')
           }
       
-      # ssn ----
+      # ssn
         # sort data
           setkey(mcaid.ssn, id_mcaid, date)
           
@@ -226,7 +227,7 @@
             stop('non-unique id_mcaid in ssn')
           }
           
-      # name ----  
+      # name
         # clean names using function
           mcaid.names <- prep.names(mcaid.names)
           mcaid.names <- prep.names(mcaid.names) # run second time because some people have suffixes like "blah JR IV", so first removes IV and second removes JR
@@ -546,11 +547,12 @@
 #### ----------------- ####    
 
   ## (1) Load data from SQL ----
-      db_claims51 <- dbConnect(odbc(), "PHClaims51")   
+      db_claims51 <- dbConnect(odbc(), "PHClaims51")
         
       mcaid <- setDT(odbc::dbGetQuery(db_claims51, "SELECT id_mcaid, ssn, [dob.year], [dob.month], [dob.day], name_srnm, name_gvn, name_mdl, gender_me FROM tmp.xwalk_mcaid_prepped"))
       mcare <- setDT(odbc::dbGetQuery(db_claims51, "SELECT id_mcare, ssn, [dob.year], [dob.month], [dob.day], name_srnm, name_gvn, name_mdl, gender_me FROM tmp.xwalk_mcare_prepped"))
   
+      
   ## (2) Deterministic matches: identification and extraction ----
       # 100% perfect match
           perfect.match <- merge(mcare, mcaid, by = c("ssn", "dob.year", "dob.month", "dob.day", "gender_me", "name_srnm", "name_gvn", "name_mdl"), all=FALSE) 
@@ -964,6 +966,7 @@
         mcare <- mcare[!(id_mcare %in% match1$id_mcare)]
         pha <- pha[!(pid %in% match1$pid)]
       
+        
       # Match  2 - Perfect Determinisitic, allowing for last name change for females ----
         match2 <- merge(mcare, pha, by = c("ssn", "dob.year", "dob.month", "dob.day", "gender_me", "name_gvn", "name_mdl"), all=FALSE) 
         match2 <- match2[!(is.na(ssn) & is.na(dob.year) & is.na(dob.month) & is.na(dob.day) & is.na(name_gvn)), ]  
@@ -985,7 +988,8 @@
         mcare <- mcare[!(id_mcare %in% match2$id_mcare)]
         pha <- pha[!(pid %in% match2$pid)]
       
-      # Match  3 - Deterministic: Switch first and last names (happens sometimes, especiall with East Asian patients) ----
+        
+      # Match  3 - Deterministic: Switch first and last names (happens sometimes, especially with East Asian patients) ----
         mcare.alt <- copy(mcare)
         setnames(mcare.alt, c("name_gvn", "name_srnm"), c("name_gvn.orig", "name_srnm.orig"))
         mcare.alt[, name_gvn := name_srnm.orig][, name_srnm := name_gvn.orig]
@@ -999,70 +1003,78 @@
         mcare <- mcare[!(id_mcare %in% match3$id_mcare)] # remove the matched rows from the parent mcare dataset
         rm(mcare.alt)
       
+        
       # Match  4 - Probabilistic: Block on SSN, DOB, gender_me & middle initial, soundex for first & last name ----
-        match4 <- compare.linkage(mcare, pha, 
+        try(match4 <- compare.linkage(mcare, pha, 
                                 blockfld = c("ssn", "dob.year", "dob.month", "dob.day", "gender_me", "name_mdl"), # blocking
-                                phonetic = c("name_srnm", "name_gvn"), phonfun = soundex)  # use phonetics for names, rather than spelling
+                                phonetic = c("name_srnm", "name_gvn"), phonfun = soundex))  # use phonetics for names, rather than spelling
         
-        # get summary of potential pairs
-        summary(match4) 
-        
-        # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
-        match4.weights <- epiWeights(match4) 
-        summary(match4.weights)
-        
-        # get paired data, with weights, as a dataset
-        match4.pairs <- setDT(getPairs(match4.weights, single.rows = TRUE))
-        match4.pairs.long <- setDT(getPairs(match4.weights, single.rows = FALSE)) # easier to compare when long, but need wide to extract the id pairs
-        
-        # classify pairs using a threshhold
-        summary(epiClassify(match4.weights, threshold.upper = 0.46)) # Visually confirmed that matches above threshhold are strongly plausible
-        
-        # get linked pairs
-        match4.match <- get.linked.pairs.mcare.pha(match4.pairs.long, 0.46)       
-        
-        # remove the linked data from the two parent datasets so we don't try to link them again
-        mcare <- mcare[!(id_mcare %in% match4.match$id_mcare)]
-        pha <- pha[!(pid %in% match4.match$pid)]
-        
-        # clean objects in memory
-        rm(match4, match4.weights, match4.pairs, match4.pairs.long) # drop tables only needed to form the linkage      
+        if (exists("match4")) {
+          # get summary of potential pairs
+          summary(match4) 
+          
+          # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
+          match4.weights <- epiWeights(match4) 
+          summary(match4.weights)
+          
+          # get paired data, with weights, as a dataset
+          match4.pairs <- setDT(getPairs(match4.weights, single.rows = TRUE))
+          match4.pairs.long <- setDT(getPairs(match4.weights, single.rows = FALSE)) # easier to compare when long, but need wide to extract the id pairs
+          
+          # classify pairs using a threshhold
+          summary(epiClassify(match4.weights, threshold.upper = 0.46)) # Visually confirmed that matches above threshhold are strongly plausible
+          
+          # get linked pairs
+          match4.match <- get.linked.pairs.mcare.pha(match4.pairs.long, 0.46)       
+          
+          # remove the linked data from the two parent datasets so we don't try to link them again
+          mcare <- mcare[!(id_mcare %in% match4.match$id_mcare)]
+          pha <- pha[!(pid %in% match4.match$pid)]
+          
+          # clean objects in memory
+          rm(match4, match4.weights, match4.pairs, match4.pairs.long) # drop tables only needed to form the linkage 
+        }
+             
       
       # Match  5 - Probabilistic: Block on SSN, string compare middle initial, gender_me, dob, soundex on first & last name ----
-        match5 <- compare.linkage(mcare, pha, blockfld = c("ssn"),
+        try(match5 <- compare.linkage(mcare, pha, blockfld = c("ssn"),
                                 strcmp = c("name_mdl", "gender_me", "dob.year", "dob.month", "dob.day"),
-                                phonetic = c("name_srnm", "name_gvn"), phonfun = soundex)
+                                phonetic = c("name_srnm", "name_gvn"), phonfun = soundex))
         
-        # get summary of potential pairs
-        summary(match5) 
         
-        # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
-        match5.weights <- epiWeights(match5) 
-        summary(match5.weights)
-        
-        # get paired data, with weights, as a dataset
-        match5.pairs <- setDT(getPairs(match5.weights, single.rows = TRUE))
-        match5.pairs.long <- setDT(getPairs(match5.weights, single.rows = FALSE)) # easier to compare when long, but need wide to extract the id pairs
-        
-        # classify pairs using a threshhold
-        summary(epiClassify(match5.weights, threshold.upper = 0.39)) # Visually confirmed that matches above threshhold are strongly plausible
-        
-        # Have dupliacate IDs ... so, keep the one with higher probability weight
-        match5.pairs[, dup.mcaid := 1:.N, by = id_mcare.1] # already sorted by Weight
-        match5.pairs[, dup.pid := 1:.N, by = pid.2] # already sorted by Weight
-        match5.pairs <- match5.pairs[dup.mcaid==1 & dup.pid == 1] # many if not all of these are a single person with different ids 
-        
-        # get linked pairs
-        match5.match <- match5.pairs[Weight >= 0.39]
-        setnames(match5.match, c("pid.2", "id_mcare.1"), c("pid", "id_mcare"))
-        match5.match <- match5.match[, c("pid", "id_mcare")]
-        
-        # remove the linked data from the two parent datasets so we don't try to link them again
-        pha <- pha[!(pid %in% match5.match$pid)]
-        mcare <- mcare[!(id_mcare %in% match5.match$id_mcare)]
-        
-        # clean objects in memory
-        rm(match5, match5.weights, match5.pairs, match5.pairs.long) # drop tables only needed to form the linkage   
+        if (exists("match5")) {
+          # get summary of potential pairs
+          summary(match5) 
+          
+          # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
+          match5.weights <- epiWeights(match5) 
+          summary(match5.weights)
+          
+          # get paired data, with weights, as a dataset
+          match5.pairs <- setDT(getPairs(match5.weights, single.rows = TRUE))
+          match5.pairs.long <- setDT(getPairs(match5.weights, single.rows = FALSE)) # easier to compare when long, but need wide to extract the id pairs
+          
+          # classify pairs using a threshhold
+          summary(epiClassify(match5.weights, threshold.upper = 0.39)) # Visually confirmed that matches above threshhold are strongly plausible
+          
+          # Have dupliacate IDs ... so, keep the one with higher probability weight
+          match5.pairs[, dup.mcaid := 1:.N, by = id_mcare.1] # already sorted by Weight
+          match5.pairs[, dup.pid := 1:.N, by = pid.2] # already sorted by Weight
+          match5.pairs <- match5.pairs[dup.mcaid==1 & dup.pid == 1] # many if not all of these are a single person with different ids 
+          
+          # get linked pairs
+          match5.match <- match5.pairs[Weight >= 0.39]
+          setnames(match5.match, c("pid.2", "id_mcare.1"), c("pid", "id_mcare"))
+          match5.match <- match5.match[, c("pid", "id_mcare")]
+          
+          # remove the linked data from the two parent datasets so we don't try to link them again
+          pha <- pha[!(pid %in% match5.match$pid)]
+          mcare <- mcare[!(id_mcare %in% match5.match$id_mcare)]
+          
+          # clean objects in memory
+          rm(match5, match5.weights, match5.pairs, match5.pairs.long) # drop tables only needed to form the linkage  
+        }
+         
       
       # Match  6 - Probabilistic: Block on DOB, string compare for SSN, gender_me, & middle initial, soundex for first and last name ####
         match6 <- compare.linkage(mcare, pha, 
@@ -1097,10 +1109,10 @@
       # Match  7 - Probabilistic: Block on DOB + last name + gender_me, string compare for first name, exclude SSN ... when PHA missing SSN ----
         pha.mi.ssn <- pha[is.na(ssn)] # try linkage with pha data missing SSN
         
-        match7 <- compare.linkage(mcare, pha.mi.ssn, 
+        try(match7 <- compare.linkage(mcare, pha.mi.ssn, 
                                 blockfld = c("dob.year", "dob.month", "dob.day", "name_srnm", "gender_me"), # blocking
                                 strcmp = c("name_mdl", "name_gvn"), # compare similarity between two
-                                exclude = c("ssn") )
+                                exclude = c("ssn") ))
         
         if(exists("match7")){
           # get summary of potential pairs
@@ -1132,10 +1144,10 @@
       # Match  8 - Probabilistic: Block on DOB + last name + gender_me, string compare for first name, exclude SSN ... when Mcare missing SSN ----
         mcare.mi.ssn <- mcare[is.na(ssn)] # try linkage with pha data missing SSN
         
-        match8 <- compare.linkage(mcare.mi.ssn, pha, 
+        try(match8 <- compare.linkage(mcare.mi.ssn, pha, 
                                 blockfld = c("dob.year", "dob.month", "dob.day", "name_srnm", "gender_me"), # blocking
                                 strcmp = c("name_mdl", "name_gvn"), # compare similarity between two
-                                exclude = c("ssn") )
+                                exclude = c("ssn") ))
         
         if(exists("match8")){
           # get summary of potential pairs
@@ -1170,34 +1182,38 @@
           rm(match8, match8.weights, match8.pairs, match8.pairs.long, mcare.mi.ssn) # drop tables only needed to form the linkage       
         } # close condition for exists("match8")
         
+        
       # Match  9 - Probabilistic: Block year + mo + all names + gender_me, string compare SSN + day ----      
-        match9 <- compare.linkage(mcare, pha, 
+        try(match9 <- compare.linkage(mcare, pha, 
                                 blockfld = c("dob.year", "dob.month", "name_mdl", "name_gvn", "name_srnm", "gender_me"), # blocking
-                                strcmp = c("ssn", "dob.day")) # computer similarity between two
+                                strcmp = c("ssn", "dob.day"))) # computer similarity between two
         
-        # get summary of potential pairs
-        summary(match9) 
-        
-        # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
-        match9.weights <- epiWeights(match9) 
-        summary(match9.weights)
-        
-        # get paired data, with weights, as a dataset
-        match9.pairs <- setDT(getPairs(match9.weights, single.rows = TRUE))
-        match9.pairs.long <- setDT(getPairs(match9.weights, single.rows = FALSE))
-        
-        # classify pairs using a threshhold
-        summary(epiClassify(match9.weights, threshold.upper = 0.67)) # based on visual inspection of curve and dataset with weights     
-        
-        # get linked pairs
-        match9.match <- get.linked.pairs.mcare.pha(match9.pairs.long, 0.67)            
-        
-        # drop the linked data from the two parent datasets so we don't try to link them again
-        pha <- pha[!(pid %in% match9.match$pid)]
-        mcare <- mcare[!(id_mcare %in% match9.match$id_mcare)]            
-        
-        # clean objects in memory
-        rm(match9, match9.pairs, match9.pairs.long, match9.weights)      
+        if (exists("match9")) {
+          # get summary of potential pairs
+          summary(match9) 
+          
+          # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
+          match9.weights <- epiWeights(match9) 
+          summary(match9.weights)
+          
+          # get paired data, with weights, as a dataset
+          match9.pairs <- setDT(getPairs(match9.weights, single.rows = TRUE))
+          match9.pairs.long <- setDT(getPairs(match9.weights, single.rows = FALSE))
+          
+          # classify pairs using a threshhold
+          summary(epiClassify(match9.weights, threshold.upper = 0.67)) # based on visual inspection of curve and dataset with weights     
+          
+          # get linked pairs
+          match9.match <- get.linked.pairs.mcare.pha(match9.pairs.long, 0.67)            
+          
+          # drop the linked data from the two parent datasets so we don't try to link them again
+          pha <- pha[!(pid %in% match9.match$pid)]
+          mcare <- mcare[!(id_mcare %in% match9.match$id_mcare)]            
+          
+          # clean objects in memory
+          rm(match9, match9.pairs, match9.pairs.long, match9.weights) 
+        }
+             
       
       # Match  10 - Probabilistic: Block year + mo + all names + gender_me, string compare SSN + day, names use exact spelling ... NOT USEFUL----    
         
@@ -1233,41 +1249,44 @@
         # rm(match10, match10.weights, match10.pairs, match10.pairs.long) # drop tables only needed to form the linkage        
       
       # Match  11 - Probabilistic: Block DOB + gender_me, string compare SSN + names ----    
-        match11 <- compare.linkage(mcare, pha, 
+        try(match11 <- compare.linkage(mcare, pha, 
                                  blockfld = c("dob.year", "dob.month", "dob.day", "gender_me"), # blocking
-                                 strcmp = c("ssn", "name_mdl", "name_gvn", "name_srnm"), strcmpfun = levenshteinSim) # computer similarity between strings
+                                 strcmp = c("ssn", "name_mdl", "name_gvn", "name_srnm"), strcmpfun = levenshteinSim)) # computer similarity between strings
         #phonetic = c("name_srnm", "name_gvn"), phonfun = soundex) # use phonetics for names, rather than spelling
         
-        # get summary of potential pairs
-        summary(match11) 
-        
-        # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
-        match11.weights <- epiWeights(match11) 
-        summary(match11.weights)
-        
-        # get paired data, with weights, as a dataset
-        match11.pairs <- setDT(getPairs(match11.weights, single.rows = TRUE))
-        match11.pairs.long <- setDT(getPairs(match11.weights, single.rows = FALSE))
-
-        # classify pairs using a threshhold
-        summary(epiClassify(match11.weights, threshold.upper = 0.537)) # based on visual inspection of curve and dataset with weights
-        
-        # Have dupliacate IDs ... so, keep the one with higher probability weight
-        match11.pairs[, dup.mcaid := 1:.N, by = id_mcare.1] # already sorted by Weight
-        match11.pairs[, dup.pid := 1:.N, by = pid.2] # already sorted by Weight
-        match11.pairs <- match11.pairs[dup.mcaid==1 & dup.pid == 1] # many if not all of these are a single person with different ids 
-        
-        # get linked pairs
-        match11.match <- match11.pairs[Weight >= 0.537]
-        setnames(match11.match, c("pid.2", "id_mcare.1"), c("pid", "id_mcare"))
-        match11.match <- match11.match[, c("pid", "id_mcare")]            
-        
-        # remove the linked data from the two parent datasets so we don't try to link them again
-        pha <- pha[!(pid %in% match11.match$pid)]
-        mcare <- mcare[!(id_mcare %in% match11.match$id_mcare)]
-        
-        # clean objects in memory
-        rm(match11, match11.weights, match11.pairs.long, match11.pairs) # drop tables only needed to form the linkage                   
+        if (exists("match11")) {
+          # get summary of potential pairs
+          summary(match11) 
+          
+          # calculate EpiLink weights (https://www.thieme-connect.com/products/ejournals/abstract/10.1055/s-0038-1633924)
+          match11.weights <- epiWeights(match11) 
+          summary(match11.weights)
+          
+          # get paired data, with weights, as a dataset
+          match11.pairs <- setDT(getPairs(match11.weights, single.rows = TRUE))
+          match11.pairs.long <- setDT(getPairs(match11.weights, single.rows = FALSE))
+          
+          # classify pairs using a threshhold
+          summary(epiClassify(match11.weights, threshold.upper = 0.537)) # based on visual inspection of curve and dataset with weights
+          
+          # Have dupliacate IDs ... so, keep the one with higher probability weight
+          match11.pairs[, dup.mcaid := 1:.N, by = id_mcare.1] # already sorted by Weight
+          match11.pairs[, dup.pid := 1:.N, by = pid.2] # already sorted by Weight
+          match11.pairs <- match11.pairs[dup.mcaid==1 & dup.pid == 1] # many if not all of these are a single person with different ids 
+          
+          # get linked pairs
+          match11.match <- match11.pairs[Weight >= 0.537]
+          setnames(match11.match, c("pid.2", "id_mcare.1"), c("pid", "id_mcare"))
+          match11.match <- match11.match[, c("pid", "id_mcare")]            
+          
+          # remove the linked data from the two parent datasets so we don't try to link them again
+          pha <- pha[!(pid %in% match11.match$pid)]
+          mcare <- mcare[!(id_mcare %in% match11.match$id_mcare)]
+          
+          # clean objects in memory
+          rm(match11, match11.weights, match11.pairs.long, match11.pairs) # drop tables only needed to form the linkage   
+        }
+                        
         
         # there were other fairly certain matches that remained using this method, but a probability cut-off woudln't work. Woudl need some kind of machine learning.
       
@@ -1360,6 +1379,7 @@
       rm(list=(setdiff(ls(), keep.me)))
       gc()
       
+      
 #### ----------------- ####
 #### LINK MCAID-PHA    ####   
 #### ----------------- #### 
@@ -1376,8 +1396,9 @@
                                       [pid], [ssn], [dob.year], [dob.month], [dob.day], [name_srnm], [name_gvn], [name_mdl], [gender_me] 
                                       FROM [PH_APDEStore].[tmp].[xwalk_pha_prepped]"))
       
+      
   ## (2) ---------- LINK DATA ---------- ----
-      # MATCH 1: Determinist: Perfect ####
+      # MATCH 1: Deterministic: Perfect ####
         match1 <- merge(mcaid, pha, by = c("ssn", "dob.year", "dob.month", "dob.day", "gender_me", "name_srnm", "name_gvn", "name_mdl"), all=FALSE) 
         match1 <- match1[, .(pid, id_mcaid)] # keep the paired ids only
         
@@ -1396,6 +1417,7 @@
         mcaid <- mcaid[!(id_mcaid %in% match1$id_mcaid)]
         pha <- pha[!(pid %in% match1$pid)]
       
+        
       # MATCH 2: Deterministic: Almost perfect (ignore middle initial) ####
         match2 <- merge(mcaid, pha, by = c("ssn", "dob.year", "dob.month", "dob.day", "gender_me", "name_srnm", "name_gvn"), all=FALSE) 
   
@@ -1405,6 +1427,7 @@
         mcaid <- mcaid[!(id_mcaid %in% match2$id_mcaid)]
         pha <- pha[!(pid %in% match2$pid)]
       
+        
       # MATCH 3: Deterministic: Perfect if swap first and last names (happens often with Asian names) ####
         mcaid.alt <- copy(mcaid)
         setnames(mcaid.alt, c("name_gvn", "name_srnm"), c("name_gvn.orig", "name_srnm.orig"))
@@ -1419,11 +1442,13 @@
         mcaid <- mcaid[!(id_mcaid %in% match3$id_mcaid)] # remove the matched rows from the parent mcaid dataset
         rm(mcaid.alt)
       
+        
       # MATCH 4: Probabilistic: Block on SSN, match on other vars ####
-           match4 <- compare.linkage(mcaid, pha, blockfld = c("ssn"),
+           try(match4 <- compare.linkage(mcaid, pha, blockfld = c("ssn"),
                                     strcmp = c("name_mdl", "gender_me", "dob.year", "dob.month", "dob.day"),
-                                    phonetic = c("name_srnm", "name_gvn"), phonfun = soundex)
+                                    phonetic = c("name_srnm", "name_gvn"), phonfun = soundex))
 
+        if (exists("match4"))   {
           # Using EpiLink approach
           match4.weights <- epiWeights(match4)
           summary(match4.weights)
@@ -1466,44 +1491,53 @@
           
           # drop temporary objects
           rm(match4.pairs, match4.weights, classify2)
+        }
         
-      # MATCH 5: Probabilistic: Block on soundex last name, match other vars #####
-        match5 <- compare.linkage(pha, mcaid, blockfld = c("name_srnm"),
-                                  strcmp = c("name_mdl", "gender_me", "dob.year", "dob.month", "dob.day"),
+        
+      # MATCH 5: Probabilistic: Block on soundex last name and YOB, match other vars #####
+        # Had to switch to blocking on YOB too because of RAM capacity issues
+        try(match5 <- compare.linkage(pha, mcaid, blockfld = c("name_srnm", "dob.year"),
+                                  strcmp = c("name_mdl", "gender_me", "dob.month", "dob.day"),
                                   phonetic = c("name_gvn"), phonfun = soundex,
-                                  exclude = c("ssn"))
+                                  exclude = c("ssn")))
         
-        # Using EpiLink approach
-        match5.weights <- epiWeights(match5)
-        summary(match5.weights)
         
-        # browse potential matches to identify a cutpoint
-        match5.pairs <- setDT(getPairs(match5.weights, single.rows = TRUE))
-        # View(match5.pairs[as.numeric(as.character(Weight)) > 0.719, 
-                          # .(Weight, name_gvn.1, name_gvn.2, name_mdl.1, name_mdl.2, gender_me.1, gender_me.2, ssn.1, ssn.2, 
-                          #   dob.year.1, dob.year.2, dob.month.1, dob.month.2, dob.day.1, dob.day.2)])
-
-        classify2 <- epiClassify(match5.weights, threshold.upper = 0.719)
-        summary(classify2)
-
-        # Looks like 0.719 is a good cutoff here
-        match5 <- match5.pairs[Weight >=0.719]
+        if (exists("match5")) {
+          # Using EpiLink approach
+          match5.weights <- epiWeights(match5)
+          summary(match5.weights)
+          
+          # browse potential matches to identify a cutpoint
+          match5.pairs <- setDT(getPairs(match5.weights, single.rows = TRUE))
+          # View(match5.pairs[as.numeric(as.character(Weight)) > 0.719, 
+          # .(Weight, name_gvn.1, name_gvn.2, name_mdl.1, name_mdl.2, gender_me.1, gender_me.2, ssn.1, ssn.2, 
+          #   dob.year.1, dob.year.2, dob.month.1, dob.month.2, dob.day.1, dob.day.2)])
+          
+          
+          classify2 <- epiClassify(match5.weights, threshold.upper = 0.7)
+          summary(classify2)
+          
+          # Looks like 0.719 is a good cutoff here
+          # Changed to 0.7 with the modified parameters of this match
+          match5 <- match5.pairs[Weight >=0.70]
+          
+          # When an id matched > 1x, keep the row with the higher weight / probability 
+          match5[, dup.mcaid := 1:.N, by = id_mcaid.2] # already sorted by Weight
+          match5[, dup.pid := 1:.N, by = pid.1] # already sorted by Weight
+          match5 <- match5[dup.mcaid==1 & dup.pid == 1] # many if not all of these are a single person with different ids
+          
+          # keep and standardize id pairs
+          setnames(match5, c("pid.1", "id_mcaid.2"), c("pid", "id_mcaid"))
+          match5 <- match5[, c("pid", "id_mcaid")]
+          
+          # remove pairs just matched from the universe of possible matching data
+          mcaid <- mcaid[!(id_mcaid %in% match5$id_mcaid)]
+          pha <- pha[!(pid %in% match5$pid)]
+          
+          # drop temporary objects
+          rm(match5.pairs, match5.weights, classify2)
+        }
         
-        # When an id matched > 1x, keep the row with the higher weight / probability 
-        match5[, dup.mcaid := 1:.N, by = id_mcaid.2] # already sorted by Weight
-        match5[, dup.pid := 1:.N, by = pid.1] # already sorted by Weight
-        match5 <- match5[dup.mcaid==1 & dup.pid == 1] # many if not all of these are a single person with different ids
-        
-        # keep and standardize id pairs
-        setnames(match5, c("pid.1", "id_mcaid.2"), c("pid", "id_mcaid"))
-        match5 <- match5[, c("pid", "id_mcaid")]
-        
-        # remove pairs just matched from the universe of possible matching data
-        mcaid <- mcaid[!(id_mcaid %in% match5$id_mcaid)]
-        pha <- pha[!(pid %in% match5$pid)]
-        
-        # drop temporary objects
-        rm(match5.pairs, match5.weights, classify2)
       
   ## (3) Combine linked ID pairs ----
       # identify tables of matched pairs
@@ -1513,7 +1547,7 @@
       xwalk <- rbindlist(xwalk.list, use.names = TRUE)       
       
       # deduplicate entire rows (just in case, should not be needed)
-      xwalk <- unique(xwalk)     
+      xwalk <- unique(xwalk)  
       
       # if duplicate id_mcaid, keep for the larger PID
       xwalk <- xwalk[xwalk[, .I[which.max(as.integer(pid)) ], by = 'id_mcaid'][,V1], ] # keep the row for the max PID
@@ -1521,15 +1555,15 @@
   ## (4) Load xwalk table to SQL ----
       # create last_run timestamp
       xwalk[, last_run := Sys.time()]
-      
-      # create table ID for SQL
-      tbl_id <- DBI::Id(schema = "tmp", table = "xwalk_mcaid_pha")  
-      
-      # Identify the column types to be created in SQL
-      sql.columns <- c("pid" = "integer", "id_mcaid" = "char(11)", "last_run" = "datetime")  
-      
-      # ensure column order in R is the same as that in SQL
-      setcolorder(xwalk, names(sql.columns))
+        
+        # create table ID for SQL
+        tbl_id <- DBI::Id(schema = "tmp", table = "xwalk_mcaid_pha")
+        
+        # Identify the column types to be created in SQL
+        sql.columns <- c("pid" = "integer", "id_mcaid" = "char(11)", "last_run" = "datetime")  
+        
+        # ensure column order in R is the same as that in SQL
+        setcolorder(xwalk, names(sql.columns))
       
       # Write table to SQL
       dbWriteTable(db_apde51, 
@@ -1613,12 +1647,15 @@
           stop("pid in mcaid.pha is not unique")
         }
       
-      # Currently there are two sets of duplicates in the the mcaid.pha table
-        # Cause is duplicate id_pha rows pointing to a single id_mcaid
-        # Both appear to actually be a single person
+      # Currently there are duplicates in the the mcaid.pha and mcare.pha tables
+        # Cause is duplicate id_pha rows pointing to a single id_mcaid/id_mcare
+        # Both situations have people with very similar names but different SSN or middle initial
         # Arbitrarily taking one id_pha for now until the linking process is revamped
+        mcare.pha <- mcare.pha[order(id_mcare, -pid)]
+        mcare.pha <- mcare.pha[mcare.pha[, .I[1], by = "pid"]$V1]
+        
         mcaid.pha <- mcaid.pha[order(id_mcaid, -pid)]
-        mcaid.pha <- mcaid.pha[mcaid.pha[, .I[1], by = "id_mcaid"]$V1]
+        mcaid.pha <- mcaid.pha[mcaid.pha[, .I[1], by = "pid"]$V1]
         
         
   ## (3) Combined the three linked data files using mcare.mcaid as backbone ----
@@ -1760,16 +1797,16 @@
 #### ---------------------- #### 
   ## Drop tables from PhClaims51 ----
       db_claims51 <- dbConnect(odbc(), "PHClaims51")
-      dbGetQuery(db_claims51, "DROP TABLE [PHClaims].[tmp].[xwalk_mcaid_mcare]")
-      dbGetQuery(db_claims51, "DROP TABLE [PHClaims].[tmp].[xwalk_mcaid_prepped]")
-      dbGetQuery(db_claims51, "DROP TABLE [PHClaims].[tmp].[xwalk_mcare_prepped]")
+      dbExecute(db_claims51, "DROP TABLE [PHClaims].[tmp].[xwalk_mcaid_mcare]")
+      dbExecute(db_claims51, "DROP TABLE [PHClaims].[tmp].[xwalk_mcaid_prepped]")
+      dbExecute(db_claims51, "DROP TABLE [PHClaims].[tmp].[xwalk_mcare_prepped]")
       dbDisconnect(db_claims51)  
     
   ## Drop tables from PH_APDEStore51 ----   
       db_apde51 <- dbConnect(odbc(), "PH_APDEStore51")
-      dbGetQuery(db_apde51, "DROP TABLE [PH_APDEStore].[tmp].[xwalk_mcaid_pha]")
-      dbGetQuery(db_apde51, "DROP TABLE [PH_APDEStore].[tmp].[xwalk_mcare_pha]")
-      dbGetQuery(db_apde51, "DROP TABLE [PH_APDEStore].[tmp].[xwalk_pha_prepped]")
+      dbExecute(db_apde51, "DROP TABLE [PH_APDEStore].[tmp].[xwalk_mcaid_pha]")
+      dbExecute(db_apde51, "DROP TABLE [PH_APDEStore].[tmp].[xwalk_mcare_pha]")
+      dbExecute(db_apde51, "DROP TABLE [PH_APDEStore].[tmp].[xwalk_pha_prepped]")
       dbDisconnect(db_apde51) 
 
 ## The end! ----      
