@@ -10,6 +10,7 @@ options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
         scipen = 999)
 
 library(tidyverse) # Manipulate data
+library(dplyr) # Manipulate data
 library(lubridate) # Manipulate dates
 library(odbc) # Read to and write from SQL
 library(RCurl) # Read files from Github
@@ -17,6 +18,7 @@ library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
 library(sf) # Read shape files
 library(keyring) # Access stored credentials
+library(stringr) # Various string functions
 
 # These are use for geocoding new addresses
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
