@@ -26,7 +26,7 @@ if (server == "phclaims") {
 } else if (server == "hhsaw") {
   db_claims <- DBI::dbConnect(odbc::odbc(),
                               driver = "ODBC Driver 17 for SQL Server",
-                              server = "tcp:kcitazrhpasqldev20.database.windows.net,1433",
+                              server = "tcp:kcitazrhpasqlprp16.azds.kingcounty.gov,1433",
                               database = "hhs_analytics_workspace",
                               uid = keyring::key_list("hhsaw_dev")[["username"]],
                               pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
@@ -235,12 +235,13 @@ alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", tab
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_ccw.yaml"
 
 ### B) Create table
-create_table_f(conn = db_claims, 
+create_table_f(conn = db_claims, server = "phclaims",
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
 
 ### C) Load tables
-system.time(load_ccw(conn = db_claims, source = "mcaid_mcare"))
+system.time(load_ccw(conn = db_claims, server = "phclaims", 
+                     source = "mcaid_mcare", config_url = config_url))
 
 ### D) Line-level QA
 #Run script: qa_stage.mcaid_mcare_claim_ccw.sql
