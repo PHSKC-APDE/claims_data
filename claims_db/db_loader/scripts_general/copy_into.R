@@ -169,18 +169,18 @@ copy_into_f <- function(
   
   # Set up SQL
   load_sql <- glue::glue_sql(
-    "COPY INTO {`to_schema`}.{`to_table`}
-    ({`names(table_config$vars)`*})
-    FROM {dl_path}
-    WITH (
-      FILE_TYPE = {file_type},
-      {auth_sql}
-      MAXERRORS = {max_errors},
-      COMPRESSION = {compression},
-      FIELDQUOTE = {field_quote}  ,
-      FIELDTERMINATOR = {field_terminator},
-      ROWTERMINATOR = {row_terminator},
-      FIRSTROW = {first_row}
+    "COPY INTO {`to_schema`}.{`to_table`} 
+    ({`names(table_config$vars)`*}) 
+    FROM {dl_path} 
+    WITH ( 
+      FILE_TYPE = {file_type}, 
+      {auth_sql} 
+      MAXERRORS = {max_errors}, 
+      COMPRESSION = {compression}, 
+      FIELDQUOTE = {field_quote}, 
+      FIELDTERMINATOR = {field_terminator}, 
+      ROWTERMINATOR = {row_terminator}, 
+      FIRSTROW = {first_row} 
     );",
     .con = conn)
   
