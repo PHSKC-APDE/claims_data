@@ -424,11 +424,30 @@
         setcolorder(mcare.dt, names(sql.columns))
         
         # Write table to SQL
-        dbWriteTable(db_claims51, 
-                     tbl_id, 
-                     value = as.data.frame(mcare.dt),
-                     overwrite = T, append = F, 
-                     field.types = sql.columns)
+        # Split into smaller tables to avoid SQL connection issues
+        start <- 1L
+        max_rows <- 100000L
+        cycles <- ceiling(nrow(mcare.dt)/max_rows)
+        
+        lapply(seq(start, cycles), function(i) {
+          start_row <- ifelse(i == 1, 1L, max_rows * (i-1) + 1)
+          end_row <- min(nrow(mcare.dt), max_rows * i)
+          
+          message("Loading cycle ", i, " of ", cycles)
+          if (i == 1) {
+            dbWriteTable(db_claims51,
+                         tbl_id,
+                         value = as.data.frame(mcare.dt[start_row:end_row]),
+                         overwrite = T, append = F,
+                         field.types = sql.columns)
+          } else {
+            dbWriteTable(db_claims51,
+                         tbl_id,
+                         value = as.data.frame(mcare.dt[start_row:end_row]),
+                         overwrite = F, append = T)
+          }
+        })
+        
         
         # Confirm that all rows were loaded to sql
         stage.count <- as.numeric(odbc::dbGetQuery(db_claims51, 
@@ -942,7 +961,7 @@
       # Housing ----
       db_apde51 <- dbConnect(odbc(), "PH_APDEStore51")
       pha <- setDT(odbc::dbGetQuery(db_apde51, "SELECT 
-                                      [pid], [ssn], [dob.year], [dob.month], [dob.day], [name_srnm], [name_gvn], [name_mdl], [gender_me] 
+                                      [pid], [ssn], [dob.year], [dob.month], [dob.day], [name_srnm], [name_gvn], [name_mdl], [gender_me]
                                       FROM [PH_APDEStore].[tmp].[xwalk_pha_prepped]"))
       
   ## (2) ---------- LINK DATA ---------- ####
@@ -1333,16 +1352,24 @@
       
       # check for duplicate ids
       xwalk[, dup.pid := .N, by = pid]
+      xwalk[dup.pid > 1]
       # View(mcare[id_mcare %in% xwalk[dup.pid!=1]$id_mcare]) # need to reload mcare data to see these duplicates
       
+      # If a PHA member links to >1 mcare IDs, just keep the larger mcare ID
+      setorder(xwalk, -pid, id_mcare)
+      xwalk[, dup.mcare := 1:.N, by = pid]
+      xwalk <- xwalk[!(dup.pid >1 & dup.mcare >1)]
+      
+      # when mcare id duplicated, it is because it matched with two PHA with same data. Keep one with larger PID
       xwalk[, dup.mcare := .N, by = id_mcare]
+      xwalk[dup.mcare > 1]
       # View(pha[pid %in% xwalk[dup.mcare!=1]$pid]) # need to reload pid data to see these duplicates
       
-      # If a PHA member has two different IDs, just keep the larger
       xwalk[, pid := as.numeric(pid)]
-      setorder(xwalk, -pid)
-      xwalk[, dup.mcare := 1:.N, by = id_mcare]
-      xwalk <- xwalk[dup.mcare != 2] # when mcare id duplicated, it is because it matched with two PHA with same data. Keep one with larger PID
+      xwalk[, dup.pid := 1:.N, by = id_mcare]
+      xwalk <- xwalk[!(dup.pid >1 & dup.mcare >1)]
+      
+      # Drop other columns
       xwalk <- xwalk[, .(pid, id_mcare)]
       
   ## (4) Load xwalk table to SQL ----
@@ -1549,8 +1576,29 @@
       # deduplicate entire rows (just in case, should not be needed)
       xwalk <- unique(xwalk)  
       
-      # if duplicate id_mcaid, keep for the larger PID
-      xwalk <- xwalk[xwalk[, .I[which.max(as.integer(pid)) ], by = 'id_mcaid'][,V1], ] # keep the row for the max PID
+      
+      # check for duplicate ids
+      xwalk[, dup.pid := .N, by = pid]
+      xwalk[dup.pid > 1]
+      # View(mcaid[id_mcaid %in% xwalk[dup.pid!=1]$id_mcaid]) # need to reload mcaid data to see these duplicates
+      
+      # If a PHA member links to >1 mcaid IDs, just keep the larger mcaid ID
+      setorder(xwalk, -pid, id_mcaid)
+      xwalk[, dup.mcaid := 1:.N, by = pid]
+      xwalk <- xwalk[!(dup.pid >1 & dup.mcaid >1)]
+      
+      # when mcaid id duplicated, it is because it matched with two PHA with same data. Keep one with larger PID
+      xwalk[, dup.mcaid := .N, by = id_mcaid]
+      xwalk[dup.mcaid > 1]
+      # View(pha[pid %in% xwalk[dup.mcaid!=1]$pid]) # need to reload pid data to see these duplicates
+      
+      xwalk[, pid := as.numeric(pid)]
+      xwalk[, dup.pid := 1:.N, by = id_mcaid]
+      xwalk <- xwalk[!(dup.pid >1 & dup.mcaid >1)]
+      
+      # Drop other columns
+      xwalk <- xwalk[, .(pid, id_mcaid)]
+      
       
   ## (4) Load xwalk table to SQL ----
       # create last_run timestamp
@@ -1776,11 +1824,29 @@
       setcolorder(mcaid.mcare.pha, names(sql.columns))
       
       # Write table to SQL
-      dbWriteTable(db_claims51, 
-                   tbl_id, 
-                   value = as.data.frame(mcaid.mcare.pha),
-                   overwrite = T, append = F, 
-                   field.types = sql.columns)
+      # Split into smaller tables to avoid SQL connection issues
+      start <- 1L
+      max_rows <- 100000L
+      cycles <- ceiling(nrow(mcaid.mcare.pha)/max_rows)
+      
+      lapply(seq(start, cycles), function(i) {
+        start_row <- ifelse(i == 1, 1L, max_rows * (i-1) + 1)
+        end_row <- min(nrow(mcaid.mcare.pha), max_rows * i)
+        
+        message("Loading cycle ", i, " of ", cycles)
+        if (i == 1) {
+          dbWriteTable(db_claims51,
+                       tbl_id,
+                       value = as.data.frame(mcaid.mcare.pha[start_row:end_row]),
+                       overwrite = T, append = F,
+                       field.types = sql.columns)
+        } else {
+          dbWriteTable(db_claims51,
+                       tbl_id,
+                       value = as.data.frame(mcaid.mcare.pha[start_row:end_row]),
+                       overwrite = F, append = T)
+        }
+      })
       
       # Confirm that all rows were loaded to sql
       stage.count <- as.numeric(odbc::dbGetQuery(db_claims51, 
