@@ -136,17 +136,12 @@ copy_into_f <- function(
     compression <- DBI::SQL("")
   }
   
-  message(paste0("rodbc: ", rodbc))
-  message(paste0("identity: ", identity))
-  message(paste0("secret: ", secret))
-  message(paste0("auth_sql if: ", rodbc == T & (!is.null(identity) | !is.null(secret))))
   if (rodbc == T & (!is.null(identity) | !is.null(secret))) {
     auth_sql <- glue::glue_sql("CREDENTIAL = (IDENTITY = {identity},
                                SECRET = {secret}),", .con = conn)
   } else {
     auth_sql <- DBI::SQL("")
   }
-  message(paste0("auth_sql: ", auth_sql))
   
   #### RUN CODE ####
   if (overwrite == T) {
@@ -188,6 +183,8 @@ copy_into_f <- function(
       FIRSTROW = {first_row}
     );",
     .con = conn)
+  
+  message(load_sql)
   
   if (rodbc == T) {
     RODBC::sqlQuery(channel = conn_rodbc, query = load_sql)
