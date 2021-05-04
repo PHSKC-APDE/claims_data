@@ -187,10 +187,12 @@ copy_into_f <- function(
   message(load_sql)
   
   if (rodbc == T) {
-    RODBC::sqlQuery(channel = conn_rodbc, query = load_sql)
+    result <- RODBC::sqlQuery(channel = conn_rodbc, query = load_sql)
   } else {
     DBI::dbExecute(conn, load_sql)
   }
   
+  message(result)
+  print(result)
   
 }
