@@ -51,7 +51,7 @@ copy_into_f <- function(
   # a Base-64 error. The RODBC doesn't seem to have that issue so for now we are
   # forcing the COPY INTO statement to use an RODBC connection
   if (rodbc == T) {
-    conn_rodbc <- RODBC::odbcConnect(dsn = "int_edw_20", 
+    conn_rodbc <- RODBC::odbcConnect(dsn = "int_edw_16", 
                                      uid = keyring::key_list("hhsaw_dev")[["username"]])
   }
   
@@ -136,13 +136,18 @@ copy_into_f <- function(
     compression <- DBI::SQL("")
   }
   
+  message(paste0("rodbc: ", rodbc))
+  message(paste0("identity: ", identity))
+  message(paste0("secret: ", secret))
+  message(paste0("auth_sql if: ", rodbc == T & (!is.null(identity) | !is.null(secret))))
   if (rodbc == T & (!is.null(identity) | !is.null(secret))) {
     auth_sql <- glue::glue_sql("CREDENTIAL = (IDENTITY = {identity},
                                SECRET = {secret}),", .con = conn)
   } else {
     auth_sql <- DBI::SQL("")
   }
-
+  message(paste0("auth_sql: ", auth_sql))
+  
   #### RUN CODE ####
   if (overwrite == T) {
     message("Removing existing table and creating new one")
