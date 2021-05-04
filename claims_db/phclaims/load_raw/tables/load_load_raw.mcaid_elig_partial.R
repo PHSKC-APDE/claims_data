@@ -68,11 +68,14 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   qa_table <- table_config[[server]][["qa_table"]]
   
   # If using interactive auth, don't use RODBC in COPY INTO
+  
+  message(paste0("interactive_auth: ", interactive_auth))
   if (interactive_auth == F) {
     rodbc <- F
   } else {
     rodbc <- T
   }
+  message(paste0("pre copy_into rodbc: ", rodbc))
   
   # Set up both connections so they work in either server
   if (server == "phclaims") {conn_dw <- conn}
@@ -150,9 +153,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   
   #### LOAD TABLES ####
   message("Loading tables to SQL")
-  
-  message(paste0("pre copy_into rodbc: ", rodbc))
-  
+
   if (server == "hhsaw") {
     copy_into_f(conn = conn_dw, 
                 server = server,
