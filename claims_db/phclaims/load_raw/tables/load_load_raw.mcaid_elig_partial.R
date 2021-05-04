@@ -151,6 +151,8 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   #### LOAD TABLES ####
   message("Loading tables to SQL")
   
+  message(paste0("pre copy_into rodbc: ", rodbc))
+  
   if (server == "hhsaw") {
     copy_into_f(conn = conn_dw, 
                 server = server,
