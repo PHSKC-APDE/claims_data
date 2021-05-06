@@ -14,7 +14,7 @@ hhsaw:
     ext_data_source: datascr_WS_EDW
     ext_schema: stg_claims
     ext_table: mcaid_claims_incr
-    dl_path: https://inthealthhipaaproddlgen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/incr/KC_Claim_20210423.gz
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/incr/KC_Claim_20210423.gz
 row_count: 16337147
 date_min: 2020-04-01
 date_max: 2021-03-31
