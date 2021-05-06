@@ -163,36 +163,29 @@ copy_into_f <- function(
         )", .con = conn))
   }
 
-  
   message(glue::glue("Creating [{to_schema}].[{to_table}] table"))
-  
   
   # Set up SQL
   load_sql <- glue::glue_sql(
     "COPY INTO {`to_schema`}.{`to_table`} 
-    ({`names(table_config$vars)`*}) 
-    FROM {dl_path} 
-    WITH ( 
-      FILE_TYPE = {file_type}, 
-      {auth_sql} 
-      MAXERRORS = {max_errors}, 
-      COMPRESSION = {compression}, 
-      FIELDQUOTE = {field_quote}, 
-      FIELDTERMINATOR = {field_terminator}, 
-      ROWTERMINATOR = {row_terminator}, 
-      FIRSTROW = {first_row} 
+    ({`names(table_config$vars)`*})
+    FROM {dl_path}
+    WITH (
+      FILE_TYPE = {file_type},
+      {auth_sql}
+      MAXERRORS = {max_errors},
+      COMPRESSION = {compression},
+      FIELDQUOTE = {field_quote},
+      FIELDTERMINATOR = {field_terminator},
+      ROWTERMINATOR = {row_terminator},
+      FIRSTROW = {first_row}
     );",
     .con = conn)
   
-  message(load_sql)
-  
   if (rodbc == T) {
-    result <- RODBC::sqlQuery(channel = conn_rodbc, query = load_sql)
+    RODBC::sqlQuery(channel = conn_rodbc, query = load_sql)
   } else {
     DBI::dbExecute(conn, load_sql)
   }
-  
-  message(result)
-  print(result)
   
 }
