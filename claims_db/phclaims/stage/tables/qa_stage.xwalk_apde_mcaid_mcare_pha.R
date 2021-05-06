@@ -334,7 +334,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_claims,
       glue::glue_sql("INSERT INTO metadata.qa_xwalk
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES ({last_run}, 
-                     'stage.xwalk_apde_mcapid_pha',
+                     'stage.xwalk_apde_mcaid_mcaid_pha',
                      'Duplicate pid', 
                      'FAIL', 
                      {Sys.time()}, 
@@ -350,7 +350,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_claims,
       glue::glue_sql("INSERT INTO metadata.qa_xwalk
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES ({last_run}, 
-                     'stage.xwalk_apde_mcapid_pha',
+                     'stage.xwalk_apde_mcaid_mcaid_pha',
                      'Duplicate pid', 
                      'PASS', 
                      {Sys.time()}, 
