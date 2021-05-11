@@ -69,7 +69,6 @@ claims_elig(
   lang_ukrainian = NULL,
   lang_vietnamese = NULL,
   lang_me = NULL,
-  lang_recent = NULL,
   geo_zip = NULL,
   geo_hra_code = NULL,
   geo_school_code = NULL,
@@ -231,9 +230,6 @@ case insensitive, can take multiple values (e.g., c("latino", "black")) (MD/ME)}
 \item{lang_vietnamese}{Alone or in combination Vietnamese written or spoken language over entire member history (MD)}
 
 \item{lang_me}{Most frequently recorded spoken/written language over entire member history, 
-case insensitive, can take multiple values (e.g., c("chinese", "english")) (MD)}
-
-\item{lang_recent}{Most recently recorded spoken/written language, 
 case insensitive, can take multiple values (e.g., c("chinese", "english")) (MD)}
 
 \item{geo_zip}{Most frequently reported ZIP code during requested date range,

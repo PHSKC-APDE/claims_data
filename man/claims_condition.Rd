@@ -7,8 +7,8 @@
 claims_condition(
   conn,
   source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
-  condition = c("ccw_alzheimer", "ccw_alzheimer_related", "ccw_anemia", "ccw_arthritis",
-    "ccw_asthma", "ccw_atrial_fib", "ccw_bph", "ccw_cancer_breast",
+  condition = c("ccw_alzheimer", "ccw_alzheimer_related", "ccw_anemia",
+    "ccw_arthritis", "ccw_asthma", "ccw_atrial_fib", "ccw_bph", "ccw_cancer_breast",
     "ccw_cancer_colorectal", "ccw_cancer_endometrial", "ccw_cancer_lung",
     "ccw_cancer_prostate", "ccw_cataract", "ccw_chr_kidney_dis", "ccw_copd",
     "ccw_depression", "ccw_diabetes", "ccw_glaucoma", "ccw_heart_failure",
