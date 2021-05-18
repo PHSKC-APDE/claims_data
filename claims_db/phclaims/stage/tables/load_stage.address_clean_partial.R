@@ -207,14 +207,15 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   
   ### Tidy up some PO box and other messiness
   new_add_in <- new_add_in %>%
-    mutate(add1 = case_when(
-      is.na(add1) & !is.na(po_box) ~ po_box,
-      TRUE ~ add1),
-      add2 = case_when(
-        is.na(add2) & !is.na(po_box) & !is.na(add1) ~ po_box,
-        !is.na(add2) & !is.na(po_box) & !is.na(add1) ~ paste(add2, po_box, sep = " "),
-        TRUE ~ add2),
-      po_box = as.numeric(ifelse(!is.na(po_box), 1, 0))
+    mutate(add1 = case_when((is.na(add1) | add1 == "") & !is.na(po_box) ~ po_box,
+                            TRUE ~ add1),
+           add2 = case_when(add1 == po_box ~ add2,
+                            (is.na(add2) | add2 == "") & !is.na(po_box) & 
+                              !is.na(add1) ~ po_box,
+                            !is.na(add2) & !is.na(po_box) & 
+                              !is.na(add1) ~ paste(add2, po_box, sep = " "),
+                            TRUE ~ add2),
+           po_box = as.numeric(ifelse(!is.na(po_box), 1, 0))
     )
   
   
