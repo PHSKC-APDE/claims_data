@@ -93,18 +93,19 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     stop(glue::glue_sql("Missing etl_batch_id in {`from_schema`}.{`from_table`}"))
   }
 
-  
+
   #### ARCHIVE EXISTING TABLE ####
   # Different approaches between Azure data warehouse (rename) and on-prem SQL DB (alter schema)
   # Check that the stage table actually exists so we don't accidentally wipe the archive table
   if (full_refresh == F & DBI::dbExistsTable(conn_dw, DBI::Id(schema = to_schema, table = to_table))) {
     if (server == "hhsaw") {
       try(DBI::dbSendQuery(conn_dw, 
-                           glue::glue_sql("DROP TABLE {`archive_schema`}.{`archive_table`}",
-                                          .con = conn_dw)))
+                           glue::glue("RENAME OBJECT {to_schema}.{archive_table} TO {paste0(archive_table, '_bak')}")))
       DBI::dbSendQuery(conn_dw, 
                        glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
     } else if (server == "phclaims") {
+      try(DBI::dbSendQuery(conn_db, 
+                           glue::glue("EXEC sp_rename '{archive_schema}.{archive_table}',  '{paste0(archive_table, '_bak')}'")))
       alter_schema_f(conn = conn_db, 
                      from_schema = to_schema, 
                      to_schema = archive_schema,

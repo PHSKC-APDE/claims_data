@@ -7,6 +7,12 @@
 ### Run from master_mcaid_full script
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
 
+conn_dw = dw_inthealth
+conn_db = db_claims
+server = server
+full_refresh = F
+config = table_config_stage_claims
+
 
 load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, 
                                             conn_db = NULL, 
@@ -91,11 +97,12 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   if (full_refresh == F & DBI::dbExistsTable(conn_dw, DBI::Id(schema = to_schema, table = to_table))) {
     if (server == "hhsaw") {
       try(DBI::dbSendQuery(conn_dw, 
-                           glue::glue_sql("DROP TABLE {`archive_schema`}.{`archive_table`}",
-                                          .con = conn_dw)))
+                           glue::glue("RENAME OBJECT {to_schema}.{archive_table} TO {paste0(archive_table, '_bak')}")))
       DBI::dbSendQuery(conn_dw, 
                        glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
     } else if (server == "phclaims") {
+      try(DBI::dbSendQuery(conn_db, 
+                           glue::glue("EXEC sp_rename '{archive_schema}.{archive_table}',  '{paste0(archive_table, '_bak')}'")))
       alter_schema_f(conn = conn_db, 
                      from_schema = to_schema, 
                      to_schema = archive_schema,

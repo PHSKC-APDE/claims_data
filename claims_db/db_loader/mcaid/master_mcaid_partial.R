@@ -588,3 +588,30 @@ message(nrow(update_phclaims), " geocode rows loaded from HHSAW to PHClaims")
 
 
 ### Should think about updating QA tables here too
+
+
+#### CHOOSE TO DROP BACK UP ARCHIVE TABLES  ####
+message("DELETE BACK UP ARCHIVE TABLES?")
+bak_del <- select.list(choices = c("Yes", "No"))
+if (bak_del == "Yes") {
+  table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml")) 
+  table_config_stage_claim <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
+  bak_schema <- table_config_stage_elig[[server]][["archive_schema"]]
+  bak_elig <- paste0(ifelse(is.null(table_config_stage_elig[[server]][["archive_table"]]), '',
+                            table_config_stage_elig[[server]][["archive_table"]]), '_bak')
+  bak_claim <- paste0(ifelse(is.null(table_config_stage_claim[[server]][["archive_table"]]), '',
+                             table_config_stage_claim[[server]][["archive_table"]]), '_bak')
+  if (server == "hhsaw") {
+    conn <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+  } else {
+    conn <- db_claims
+  }
+  try(DBI::dbSendQuery(conn,
+                       glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_elig`}",
+                                      .con = conn)))
+  try(DBI::dbSendQuery(conn,
+                       glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_claim`}",
+                                      .con = conn)))
+}
+rm(bak_del, table_config_stage_elig, table_config_stage_claim, bak_schema, 
+   bak_elig, bak_claim, conn)
