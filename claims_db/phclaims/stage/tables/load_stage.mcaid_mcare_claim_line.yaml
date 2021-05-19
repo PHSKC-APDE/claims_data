@@ -1,5 +1,8 @@
-schema: stage
-table: mcaid_mcare_claim_line
+to_schema: stage
+to_table: mcaid_mcare_claim_line
+xwalk_schema_old: archive
+xwalk_schema_new: final
+xwalk_table: xwalk_apde_mcaid_mcaid_pha
 vars:
     id_apde: bigint
     source_desc: varchar(255)

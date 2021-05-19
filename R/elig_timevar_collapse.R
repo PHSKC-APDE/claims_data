@@ -1,77 +1,101 @@
-#### HELPER FUNCTION TO COLLAPSE THE ELIG_TIMEVAR TABLE BASED ON DESIRED DATA ELEMENTS
-# Alastair Matheson, PHSKC
-#
-# 2019-07-31
-
-# Assumes odbc and glue packages are loaded and ODBC connections made
-
-### Areas for improvement
-# 1) Add the contiguous column back in
-# 2) Have a Shiny interface to just check the boxes of desired columns
-# 3) Format this function to fit into a package
-# 4) Update column names for mcaid_mcare and add mcare-only columns
-
-# Most of the options in the function just specify if that column should be 
-# included in the collapsed data frame
-# Exceptions:
-# - ids = restrict to specified IDs. Use format c("<id1>", "<id2>")
-# - geocode_vars = will bring in all geocded data elements 
-#    (geo_zip_centroid, geo_street_centroid, geo_county_code, geo_tractce10,
-#     geo_hra_code, geo_school_code)
-# - cov_time_day = recalculate coverage time in the new period
-# - last_run = bring in the last run date
-
-### August 2019 update - Eli
-# 1) Adapted for APCD data
-
-### December 2019 updates - Alastair
-# 1) Updated mcaid columns
-# 2) Made geocode columns all or nothing
-# 3) Added option to restrict to specific IDs
-
+#' @title Collapse elig_timevar tables
+#' 
+#' @description \code{elig_timevar_collapse} collapses elig_timevar tables
+#' 
+#' @details Standard time-varying eligibility (elig_timevar) tables have new lines 
+#' (i.e., new from_date and to_date values) for a change in any time-varying element. 
+#' This function allows users to generate a new time-varying eligibility
+#' table (elig_timevar) that creates a new line only for desired data elements. 
+#' All fields that define what the new table is collapsed over are set to FALSE 
+#' by default. NB. Function does not yet support Medicare or combined Medicaid/Medicare
+#' tables.
+#' 
+#' @param conn SQL server connection created using \code{odbc} package.
+#' @param server Which server do you want to run the query against? NB. Currently only
+#' Medicaid data is available on HHSAW.
+#' @param source Which claims data source do you want to pull from?
+#' @param dual Collapse over the dual eligiblity flag.
+#' @param cov_time_day Recalculate coverage time in the new period. Default is TRUE.
+#' @param last_run Bring in the last run date.
+#' @param ids Restrict to specified IDs. Use format c("<id1>", "<id2>") or pass a vector.
+#' @param tpl Collapse over the third party liability flag (Medicaid only).
+#' @param bsp_group_name Collapse over the bsp_group_name field (Medicaid only)
+#' @param full_benefit Collapse over the full_benefit field (Medicaid only).
+#' @param cov_type Collapse over the cov_type field (Medicaid only).
+#' @param mco_id Collapse over the mco_id field (Medicaid only)
+#' @param med_covgrp Collapse over the med_covgrp field (APCD only).
+#' @param pharm_covgrp Collapse over the pharm_covgrp field (APCD only).
+#' @param med_medicaid Collapse over the med_medicaid field (APCD only).
+#' @param med_medicare Collapse over the med_medicare field (APCD only).
+#' @param med_commercial Collapse over the med_commercial field (APCD only).
+#' @param pharm_medicaid Collapse over the pharm_medicaid field (APCD only).
+#' @param pharm_medicare Collapse over the pharm_medicare field (APCD only).
+#' @param pharm_commercial Collapse over the pharm_commercial field (APCD only).
+#' @param geo_add1 Collapse over the geo_add1 field (Medicaid only).
+#' @param geo_add2 Collapse over the geo_add2 field (Medicaid only).
+#' @param geo_city Collapse over the geo_city field (Medicaid only).
+#' @param geo_state Collapse over the geo_state field (Medicaid only).
+#' @param geo_zip Collapse over the geo_zip field (Medicaid only).
+#' @param geocode_vars Bring in all geocded data elements (geo_zip_centroid, 
+#' geo_street_centroid, geo_county_code, geo_tractce10, geo_hra_code, 
+#' geo_school_code). Default is FALSE.
+#' @param geo_zip_code Collapse over the geo_zip_code field (APCD only).
+#' @param geo_county Collapse over the geo_countyfield (APCD only).
+#' @param geo_ach Collapse over the geo_ach field (APCD only).
+#'
+#' @examples
+#' \dontrun{
+#' new_timevar <- elig_timevar_collapse(conn = db_claims51, source = "mcaid",
+#' full_benefit = T, geo_add1 = T, geo_city = T, geo_zip = T, geocode_vars = T)
+#' new_timevar2 <- elig_timevar_collapse(conn = db_claims51, source = "apcd",
+#' ids = c("123", "456", "789"), med_covgrp = T, geo_county = T)
+#' }
+#' 
+#' @export
 
 elig_timevar_collapse <- function(conn,
-                              source = c("mcaid", "mcare", "apcd"),
-                              #all-source columns
-                              dual = F,
-                              cov_time_day = T,
-                              last_run = F,
-                              ids = NULL, 
-                              
-                              #mcaid columns
-                              tpl = F,
-                              bsp_group_name = F,
-                              full_benefit = F,
-                              cov_type = F,
-                              mco_id = F,
-                              
-                              #apcd columns
-                              med_covgrp = F,
-                              pharm_covgrp = F,
-                              med_medicaid = F,
-                              med_medicare = F,
-                              med_commercial = F,
-                              pharm_medicaid = F,
-                              pharm_medicare = F,
-                              pharm_commercial = F,
-                              
-                              #mcaid geo columns
-                              geo_add1_clean = F,
-                              geo_add2_clean = F,
-                              geo_city_clean = F,
-                              geo_state_clean = F,
-                              geo_zip_clean = F,
-                              geocode_vars = F,
-                              
-                              #apcd geo columns
-                              geo_zip_code = F,
-                              geo_county = F,
-                              geo_ach = F) {
+                                  server = c("phclaims", "hhsaw"),
+                                  source = c("mcaid", "apcd"),
+                                  #all-source columns
+                                  dual = F,
+                                  cov_time_day = T,
+                                  last_run = F,
+                                  ids = NULL, 
+                                  
+                                  #mcaid columns
+                                  tpl = F,
+                                  bsp_group_name = F,
+                                  full_benefit = F,
+                                  cov_type = F,
+                                  mco_id = F,
+                                  
+                                  #apcd columns
+                                  med_covgrp = F,
+                                  pharm_covgrp = F,
+                                  med_medicaid = F,
+                                  med_medicare = F,
+                                  med_commercial = F,
+                                  pharm_medicaid = F,
+                                  pharm_medicare = F,
+                                  pharm_commercial = F,
+                                  
+                                  #mcaid geo columns
+                                  geo_add1 = F,
+                                  geo_add2 = F,
+                                  geo_city = F,
+                                  geo_state = F,
+                                  geo_zip = F,
+                                  geocode_vars = F,
+                                  
+                                  #apcd geo columns
+                                  geo_zip_code = F,
+                                  geo_county = F,
+                                  geo_ach = F) {
   
   #### ERROR CHECKS ####
   cols <- sum(dual, tpl, bsp_group_name, full_benefit, cov_type, 
-              mco_id, geo_add1_clean, geo_add2_clean, geo_city_clean,
-              geo_state_clean, geo_zip_clean, geocode_vars, 
+              mco_id, geo_add1, geo_add2, geo_city,
+              geo_state, geo_zip, geocode_vars, 
               med_covgrp, pharm_covgrp, med_medicaid, med_medicare, 
               med_commercial, pharm_medicaid, pharm_medicare, pharm_commercial,
               geo_zip_code, geo_county, geo_ach)
@@ -89,32 +113,56 @@ elig_timevar_collapse <- function(conn,
     stop("You have selected every APCD time-varying column. Just use the apcd.elig_timevar table")
   }
   
-
+  
   #### SET UP VARIABLES ####
+  server <- match.arg(server)
   source <- match.arg(source)
-  tbl <- glue::glue("{source}_elig_timevar")
+  
+  if (server == "hhsaw" & source != "mcaid") {
+    stop("Currently only Medicaid data is available on HHSAW")
+  }
+  
+  if (server == "phclaims") {
+    schema <- "final"
+    tbl <- glue::glue("{source}_elig_timevar")
+  } else {
+    schema <- "claims"
+    tbl <- "final_mcaid_elig_timevar"
+  }
+  
   
   id_name <- glue::glue("id_{source}")
   
   
   if (source == "mcaid") {
-    vars_to_check <- list("dual" = dual, "tpl" = tpl, "bsp_group_name" = bsp_group_name, 
-                          "full_benefit" = full_benefit, "cov_type" = cov_type, 
-                          "mco_id" = mco_id, "geo_add1_clean" = geo_add1_clean, 
-                          "geo_add2_clean" = geo_add2_clean, 
-                          "geo_city_clean" = geo_city_clean,
-                          "geo_state_clean" = geo_state_clean,
-                          "geo_zip_clean" = geo_zip_clean)
+    vars_to_check <- list("dual" = dual, 
+                          "tpl" = tpl, 
+                          "bsp_group_name" = bsp_group_name, 
+                          "full_benefit" = full_benefit, 
+                          "cov_type" = cov_type, 
+                          "mco_id" = mco_id, 
+                          "geo_add1" = geo_add1, 
+                          "geo_add2" = geo_add2, 
+                          "geo_city" = geo_city,
+                          "geo_state" = geo_state,
+                          "geo_zip" = geo_zip)
   } else if (source == "mcare") {
-      
+    
   } else if (source == "apcd") {
-    vars_to_check <- list("dual" = dual, "med_covgrp" = med_covgrp, "pharm_covgrp" = pharm_covgrp, 
-                          "med_medicaid" = med_medicaid, "med_medicare" = med_medicare, 
-                          "med_commercial" = med_commercial, "pharm_medicaid" = pharm_medicaid, 
-                          "pharm_medicare" = pharm_medicare, "pharm_commercial" = pharm_commercial, 
-                          "geo_zip_code" = geo_zip_code, "geo_county" = geo_county, "geo_ach" = geo_ach)
+    vars_to_check <- list("dual" = dual, 
+                          "med_covgrp" = med_covgrp, 
+                          "pharm_covgrp" = pharm_covgrp, 
+                          "med_medicaid" = med_medicaid, 
+                          "med_medicare" = med_medicare, 
+                          "med_commercial" = med_commercial, 
+                          "pharm_medicaid" = pharm_medicaid, 
+                          "pharm_medicare" = pharm_medicare, 
+                          "pharm_commercial" = pharm_commercial, 
+                          "geo_zip_code" = geo_zip_code, 
+                          "geo_county" = geo_county, 
+                          "geo_ach" = geo_ach)
   }
-
+  
   vars <- vector()
   
   lapply(seq_along(vars_to_check), n = names(vars_to_check), function(x, n) {
@@ -123,7 +171,7 @@ elig_timevar_collapse <- function(conn,
     }
   })
   
-  message(glue::glue('Collapsing over the following vars: {glue_collapse(vars, sep = ", ")}'))
+  message(glue::glue('Collapsing over the following vars: {glue::glue_collapse(vars, sep = ", ")}'))
   
   # Add in other variables as desired
   if (source == "mcaid" & geocode_vars == T) {
@@ -138,7 +186,7 @@ elig_timevar_collapse <- function(conn,
   } else {
     vars_geo <- vector()
   }
-
+  
   if (last_run == T) {
     vars_date <- "last_run"
   } else {
@@ -150,19 +198,78 @@ elig_timevar_collapse <- function(conn,
   # Set up cov_time code if needed
   if (cov_time_day == T) {
     cov_time_sql <- glue::glue_sql(", DATEDIFF(dd, e.min_from, e.max_to) + 1 AS cov_time_day ",
-                             .con = conn)
+                                   .con = conn)
   } else {
     cov_time_sql <- DBI::SQL('')
   }
   
-  # Restrict to specific IDs if desired
+  
+  #### RESTRICT TO SPECIFIC IDS IF DESIRED ####
   if (!missing(ids)) {
-    id_sql <- glue::glue_sql(" WHERE {`id_name`} IN ({ids*})", .con = conn)
+    ids <- unique(ids)
+    num_ids <- length(ids)
+    
+    # If there are lots of IDs, set them up in a temp table and join
+    if (num_ids > 1000) {
+      message("Large number of IDs detected, setting up IDs in temp table")
+      temp_ids <- T
+      
+      # Can only write 1000 values at a time so may need to do multiple rounds
+      n_rounds <- ceiling(num_ids/1000)
+      list_start <- 1
+      list_end <- min(1000, num_ids)
+      
+      # Make progress bar
+      print(glue::glue("Loading {n_rounds} ID sets"))
+      pb <- txtProgressBar(min = 0, max = n_rounds, style = 3)
+      
+      for (i in 1:n_rounds) {
+        if (i == 1) {
+          # Clear temp table with standalone command
+          # (otherwise switching between just ID and individual dates causes an error)
+          DBI::dbExecute(conn, "IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;")
+          id_load <- glue::glue_sql("CREATE TABLE ##temp_ids (id VARCHAR(20));
+                                    INSERT INTO ##temp_ids (id) VALUES 
+                                    ('
+                                    {DBI::SQL(glue::glue_collapse(ids[list_start:list_end], sep = \"'), ('\"))}
+                                    ');",
+                                    .con = conn)
+          DBI::dbExecute(conn, id_load)
+        } else {
+          id_load <- glue::glue_sql("INSERT INTO ##temp_ids (id) VALUES 
+                                    ('
+                                    {DBI::SQL(glue::glue_collapse(ids[list_start:list_end], sep = \"'), ('\"))}
+                                    ');",
+                                    .con = conn)
+          DBI::dbExecute(conn, id_load)
+        }
+        
+        list_start <- list_start + 1000
+        list_end <- min(list_end + 1000, num_ids)
+        
+        # Update progress bar
+        setTxtProgressBar(pb, i)
+      }
+      
+      # Add index to id and from_date for faster join
+      # Think about only using this if n_rounds is >2-3
+      DBI::dbExecute(conn, "CREATE NONCLUSTERED INDEX temp_ids_id ON ##temp_ids (id)")
+      
+      
+      id_sql <- glue::glue_sql(") a 
+                                INNER JOIN ##temp_ids x
+                                ON a.{`id_name`} = x.id ",
+                               .con = conn)
+    } else {
+      temp_ids <- F
+      id_sql <- glue::glue_sql(" WHERE {`id_name`} IN ({ids*}) ) a", .con = conn)
+    }
   } else {
-    id_sql <- DBI::SQL('')
+    temp_ids <- F
+    id_sql <- DBI::SQL(' ) a')
   }
   
-
+  
   #### SET UP AND RUN SQL CODE ####
   # Set up components of SQL that need a prefix
   if (length(vars_combined) > 1) {
@@ -202,34 +309,20 @@ elig_timevar_collapse <- function(conn,
                 ORDER by from_date), a.from_date) as group_num 
               FROM 
               (SELECT {`id_name`}, from_date, to_date, {`vars_combined`*} 
-              FROM final.{`tbl`} {id_sql}) a) b) c) d) e
+              FROM {`schema`}.{`tbl`} 
+              {id_sql}
+              ) b) c) d) e
       ORDER BY {`id_name`}, from_date",
     .con = conn)
-
   
+  print(sql_call)
   result <- DBI::dbGetQuery(conn, sql_call)
-  
+
+
+  #### CLEAN UP ####
+  if (temp_ids == T) {
+    DBI::dbExecute(conn, "IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;")
+  }
+
   return(result)
 }
-
-
-#### TESTS #####
-
-# elig_timevar_collapse(conn = db_claims, source = "mcaid",
-#                       dual = T, full_benefit = T,
-#                       geocode_vars = list("geo_hra_code"),
-#                       last_run = F, cov_time_day = T)
-# 
-# 
-# test_sql2 <- elig_timevar_collapse(conn = db_claims, source = "mcaid",
-#                                   dual = T, rac_code_4 = T,
-#                                   geocode_vars = list("geo_hra_code"),
-#                                   last_run = F)
-
-#### Eli's test ####
-# library(odbc)
-# library(glue)
-# db.claims51 <- dbConnect(odbc(), "PHClaims51")
-# test1 <- elig_timevar_collapse(conn = db.claims51, source = "apcd",
-#                                dual = T, geo_county = T)
-

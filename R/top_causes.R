@@ -43,6 +43,7 @@
 #' }
 #' 
 #' @export
+
 top_causes <- function(conn,
                        source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
                        cohort,

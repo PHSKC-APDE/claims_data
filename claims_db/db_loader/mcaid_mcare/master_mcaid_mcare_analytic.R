@@ -55,6 +55,13 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.xwalk_apde_mcaid_mcare_pha.R")
 qa_xwalk_apde_mcaid_mcare_pha_f(conn = db_claims, load_only = F)
 
+
+# Archive previous xwalk table so that we can more easily update IDs in claims tables below
+alter_schema_f(conn = db_claims, 
+               from_schema = "final", 
+               to_schema = "archive",
+               table_name = "xwalk_apde_mcaid_mcare_pha")
+
 # Alter schema to final table (currently hard coded, use YAML eventually)
 alter_schema_f(conn = db_claims, 
                from_schema = "stage", 
@@ -125,10 +132,10 @@ create_table_f(conn = db_claims,
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
 
-### C) Load tables
+### C) Load tables (~50 min)
 system.time(load_stage.mcaid_mcare_claim_line_f())
 
-### D) Table-level QA (xx min)
+### D) Table-level QA (~1 min)
 system.time(mcaid_mcare_claim_line_qa <- qa_stage.mcaid_mcare_claim_line_qa_f())
 rm(config_url)
 
@@ -138,6 +145,7 @@ alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", t
 ### G) Alter schema on new table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcaid_mcare_claim_line")
 
+rm(load_stage.mcaid_mcare_claim_line_f, qa_stage.mcaid_mcare_claim_line_qa_f, config_url)
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 2: mcaid_mcare_claim_icdcm_header ####
@@ -152,18 +160,20 @@ create_table_f(conn = db_claims,
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
 
-### C) Load tables
+### C) Load tables (~50 min)
 system.time(load_stage.mcaid_mcare_claim_icdcm_header_f())
 
-### D) Table-level QA (xx min)
+### D) Table-level QA (~1 min)
 system.time(mcaid_mcare_claim_icdcm_header_qa <- qa_stage.mcaid_mcare_claim_icdcm_header_qa_f())
-rm(config_url)
+
 
 ### F) Archive current table
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcaid_mcare_claim_icdcm_header")
 
 ### G) Alter schema on new table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcaid_mcare_claim_icdcm_header")
+
+rm(load_stage.mcaid_mcare_claim_icdcm_header_f, qa_stage.mcaid_mcare_claim_icdcm_header_qa_f, config_url)
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -179,10 +189,10 @@ create_table_f(conn = db_claims,
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
 
-### C) Load tables
+### C) Load tables (~35 min)
 system.time(load_stage.mcaid_mcare_claim_procedure_f())
 
-### D) Table-level QA (xx min)
+### D) Table-level QA (~1 min)
 system.time(mcaid_mcare_claim_procedure_qa <- qa_stage.mcaid_mcare_claim_procedure_qa_f())
 rm(config_url)
 
@@ -191,6 +201,8 @@ alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", t
 
 ### G) Alter schema on new table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcaid_mcare_claim_procedure")
+
+rm(load_stage.mcaid_mcare_claim_procedure_f, qa_stage.mcaid_mcare_claim_procedure_qa_f, config_url)
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -213,18 +225,19 @@ create_table_f(conn = db_claims,
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
 
-### C) Load tables
+### C) Load tables (~5.3 hours)
 system.time(load_stage.mcaid_mcare_claim_header_f())
 
 ### D) Table-level QA (14 min)
 system.time(mcaid_mcare_claim_header_qa <- qa_stage.mcaid_mcare_claim_header_qa_f())
-rm(config_url)
 
 ### F) Archive current table
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcaid_mcare_claim_header")
 
 ### G) Alter schema on new table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcaid_mcare_claim_header")
+
+rm(load_stage.mcaid_mcare_claim_header_f, qa_stage.mcaid_mcare_claim_header_qa_f, config_url)
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -256,9 +269,15 @@ alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", tab
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### INDEX ALL TABLES ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+# (~ 18 min)
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_line on final.mcaid_mcare_claim_line")))
+# (~ 35 min)
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_icdcm_header on final.mcaid_mcare_claim_icdcm_header")))
+# (~23 min)
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_procedure on final.mcaid_mcare_claim_procedure")))
+
 #system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_provider on final.mcaid_mcare_claim_provider")))
+# (~30 min)
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_header on final.mcaid_mcare_claim_header")))
+# (~1 min)
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_mcaid_mcare_claim_ccw on final.mcaid_mcare_claim_ccw")))
