@@ -3,7 +3,7 @@ phclaims:
     to_table: mcaid_claim
     qa_schema: metadata
     qa_table: qa_mcaid
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_20210423.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Claim/KC_Claim_20210519.txt
     field_term: \t
     row_term: \n
 hhsaw:
@@ -14,11 +14,11 @@ hhsaw:
     ext_data_source: datascr_WS_EDW
     ext_schema: stg_claims
     ext_table: mcaid_claims_incr
-    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/incr/KC_Claim_20210423.gz
-row_count: 16337147
-date_min: 2020-04-01
-date_max: 2021-03-31
-date_delivery: 2021-04-23
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/claims/incr/KC_Claim_20210519.gz
+row_count: 16733327
+date_min: 2020-05-01
+date_max: 2021-04-30
+date_delivery: 2021-05-19
 index_type: ccs
 index_name: idx_ccs_load_raw_mcaid_claims
 vars:
