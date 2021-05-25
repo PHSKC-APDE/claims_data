@@ -7,13 +7,6 @@
 ### Run from master_mcaid_full script
 # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
 
-conn_dw = dw_inthealth
-conn_db = db_claims
-server = server
-full_refresh = F
-config = table_config_stage_claims
-
-
 load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, 
                                             conn_db = NULL, 
                                             server = NULL,
