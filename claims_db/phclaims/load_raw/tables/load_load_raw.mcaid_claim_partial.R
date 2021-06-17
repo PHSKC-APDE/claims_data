@@ -290,7 +290,7 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
   }
   
   DBI::dbExecute(conn,
-                 glue:glue_sql("UPDATE {`meta_schema`}.{`meta_table`} 
+                 glue::glue_sql("UPDATE {`meta_schema`}.{`meta_table`} 
                                SET date_load_raw = GETDATE() 
                                WHERE etl_batch_id = {current_batch_id}",
                                .con = conn))
