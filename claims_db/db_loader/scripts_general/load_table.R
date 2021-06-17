@@ -26,6 +26,7 @@ load_table_from_file_f <- function(
   config = NULL,
   config_url = NULL,
   config_file = NULL,
+  batch = NULL,
   truncate = T,
   overall = T,
   ind_yr = F,

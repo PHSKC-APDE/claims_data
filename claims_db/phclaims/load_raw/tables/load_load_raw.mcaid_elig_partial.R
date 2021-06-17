@@ -13,16 +13,13 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                                config = NULL,
                                                config_url = NULL,
                                                config_file = NULL,
-                                               etl_date_min = NULL,
-                                               etl_date_max = NULL,
-                                               etl_delivery_date = NULL,
-                                               etl_note = NULL,
+                                               batch = NULL,
                                                interactive_auth = F) {
   
   #### ERROR CHECKS ####
   ### Check entries are in place for ETL function
-  if (is.null(etl_delivery_date) | is.null(etl_note)) {
-    stop("Enter a delivery date and note for the ETL batch ID function")
+  if (is.null(batch)) {
+    stop("Please select a file to be loaded.")
   }
   
   # Check if the config provided is a local object, file, or on a web page
@@ -81,72 +78,65 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   
   #### SET UP BATCH ID ####
   # Eventually switch this function over to using glue_sql to stop unwanted SQL behavior
-  current_batch_id <- load_metadata_etl_log_f(conn = conn, 
-                                              server = server,
-                                              batch_type = "incremental", 
-                                              data_source = "Medicaid", 
-                                              date_min = etl_date_min,
-                                              date_max = etl_date_max,
-                                              delivery_date = etl_delivery_date, 
-                                              note = etl_note)
+  current_batch_id <- batch$etl_batch_id
   
   if (is.na(current_batch_id)) {
     stop("No etl_batch_id. Check metadata etl_log table")
   }
   
-  
+#### SKIP THIS QA, DONE BEFORE FILE IS LOADED ####
   #### INITAL QA (PHCLAIMS ONLY) ####
-  if (server == "phclaims") {
+#  if (server == "phclaims") {
     #### QA CHECK: ACTUAL VS EXPECTED ROW COUNTS ####
-    message("Checking expected vs. actual row counts")
+#    message("Checking expected vs. actual row counts")
     # Use the load config file for the list of tables to check and their expected row counts
-    qa_rows_file <- qa_file_row_count_f(config = table_config, 
-                                        server = server,
-                                        overall = T, 
-                                        ind_yr = F)
+#    qa_rows_file <- qa_file_row_count_f(config = table_config, 
+#                                        server = server,
+#                                        overall = T, 
+#                                        ind_yr = F)
     
     # Report results out to SQL table
-    DBI::dbExecute(conn = conn,
-                   glue::glue_sql("INSERT INTO {`qa_schema`}.{`qa_table`}
-                                (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
-                                VALUES ({current_batch_id}, 
-                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                                        'Number of rows in source file(s) match(es) expected value', 
-                                        {qa_rows_file$outcome},
-                                        {Sys.time()},
-                                        {qa_rows_file$note})",
-                                  .con = conn))
+#    DBI::dbExecute(conn = conn,
+#                   glue::glue_sql("INSERT INTO {`qa_schema`}.{`qa_table`}
+#                                (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
+#                                VALUES ({current_batch_id}, 
+#                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
+#                                        'Number of rows in source file(s) match(es) expected value', 
+#                                        {qa_rows_file$outcome},
+#                                        {Sys.time()},
+#                                        {qa_rows_file$note})",
+#                                  .con = conn))
     
-    if (qa_rows_file$outcome == "FAIL") {
-      stop(glue::glue("Mismatching row count between source file and expected number. 
-                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
-    }
+#    if (qa_rows_file$outcome == "FAIL") {
+#      stop(glue::glue("Mismatching row count between source file and expected number. 
+#                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
+#    }
     
     #### QA CHECK: ORDER OF COLUMNS IN SOURCE FILE MATCH TABLE SHELLS IN SQL ####
-    message("Checking column order")
-    qa_column <- qa_column_order_f(conn = conn_dw,
-                                   config = table_config, 
-                                   server = server,
-                                   overall = T, 
-                                   ind_yr = F)
+#    message("Checking column order")
+#    qa_column <- qa_column_order_f(conn = conn_dw,
+#                                   config = table_config, 
+#                                   server = server,
+#                                   overall = T, 
+#                                   ind_yr = F)
     
     # Report results out to SQL table
-    DBI::dbExecute(conn = conn,
-                   glue::glue_sql("INSERT INTO {`qa_schema`}.{`qa_table`}
-                                (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
-                                VALUES ({current_batch_id}, 
-                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                                        'Order of columns in source file matches SQL table', 
-                                        {qa_column$outcome},
-                                        {Sys.time()},
-                                        {qa_column$note})",
-                                  .con = conn))
+#    DBI::dbExecute(conn = conn,
+#                   glue::glue_sql("INSERT INTO {`qa_schema`}.{`qa_table`}
+#                                (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
+#                                VALUES ({current_batch_id}, 
+#                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
+#                                        'Order of columns in source file matches SQL table', 
+#                                        {qa_column$outcome},
+#                                        {Sys.time()},
+#                                        {qa_column$note})",
+#                                  .con = conn))
     
-    if (qa_column$outcome == "FAIL") {
-      stop(glue::glue("Mismatching column order between source file and SQL table. 
-                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
-    }
-  }
+#    if (qa_column$outcome == "FAIL") {
+#      stop(glue::glue("Mismatching column order between source file and SQL table. 
+#                  Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
+#    }
+#  }
   
   
   #### LOAD TABLES ####
@@ -156,6 +146,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     copy_into_f(conn = conn_dw, 
                 server = server,
                 config = table_config,
+                batch = batch,
                 file_type = "csv", compression = "gzip",
                 identity = "Storage Account Key", secret = key_get("inthealth_edw"),
                 overwrite = T,
@@ -164,6 +155,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     load_table_from_file_f(conn = conn_dw,
                            server = server,
                            config = table_config,
+                           batch = batch,
                            overall = T, ind_yr = F, combine_yr = F)
   }
   
@@ -176,6 +168,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   qa_rows_sql <- qa_load_row_count_f(conn = conn_dw,
                                      server = server,
                                      config = table_config,
+                                     row_count = batch$row_count,
                                      overall = T, ind_yr = F)
   
   # Report individual results out to SQL table
@@ -247,6 +240,8 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                    server = server,
                                    config = table_config,
                                    overall = T, ind_yr = F,
+                                   date_min_exp = format(batch$date_min, "%Y%m"),
+                                   date_max_exp = format(batch$date_max, "%Y%m"),
                                    date_var = "CLNDR_YEAR_MNTH")
   
   # Report individual results out to SQL table
@@ -407,6 +402,19 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                   SET etl_batch_id = {current_batch_id}",
                                 .con = conn_dw))
   
+  if (server == "phclaims") {
+    meta_schema <- "metadata"
+    meta_table <- "etl_log"
+  } else if (server == "hhsaw") {
+    meta_schema <- "claims"
+    meta_table <- "metadata_etl_log"
+  }
+  
+  DBI::dbExecute(conn,
+                 glue:glue_sql("UPDATE {`meta_schema`}.{`meta_table`} 
+                               SET date_load_raw = GETDATE() 
+                               WHERE etl_batch_id = {current_batch_id}",
+                               .con = conn))
   
   message("All eligibility data loaded to SQL and QA checked")
   

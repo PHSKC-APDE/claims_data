@@ -23,6 +23,7 @@ copy_into_f <- function(
   config = NULL,
   config_url = NULL,
   config_file = NULL,
+  batch = NULL,
   file_type = c("csv", "parquet", "orc"),
   identity = NULL,
   secret = NULL,
@@ -124,13 +125,14 @@ copy_into_f <- function(
   if (!is.null(server)) {
     to_schema <- table_config[[server]][["to_schema"]]
     to_table <- table_config[[server]][["to_table"]]
-    dl_path <- table_config[[server]][["dl_path"]]
   } else {
     to_schema <- table_config$to_schema
     to_table <- table_config$to_table
-    dl_path <- tabel_config$dl_path
   }
   
+  dl_path <- paste0("https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/", 
+                    batch["file_location"],
+                    batch["file_name"])
   
   if (compression == "none") {
     compression <- DBI::SQL("")

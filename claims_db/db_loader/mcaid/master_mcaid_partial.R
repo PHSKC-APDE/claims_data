@@ -19,6 +19,7 @@ library(glue) # Safely combine SQL code
 library(sf) # Read shape files
 library(keyring) # Access stored credentials
 library(stringr) # Various string functions
+library(svDialogs)
 
 # These are use for geocoding new addresses
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
@@ -38,14 +39,14 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 
 #### CHOOSE SERVER AND CREATE CONNECTION ####
-server <- select.list(choices = c("phclaims", "hhsaw"))
-interactive_auth <- select.list(choices = c("TRUE", "FALSE"))
-if (server == "hhsaw") {
-  prod <- select.list(choices = c("TRUE", "FALSE"))
+server <- dlg_list(c("phclaims", "hhsaw"), title = "Select Server.")$res
+if(server == "hhsaw") {
+  interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
+  prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
 } else {
+  interactive_auth <- F  
   prod <- F
 }
-
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
@@ -59,24 +60,20 @@ if (server == "hhsaw") {
 load_mcaid_elig_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R")
 
-### Extract dates
-load_elig_date_min <- as.Date(paste0(str_sub(load_mcaid_elig_config[["date_min"]], 1, 4), "-",
-                                     str_sub(load_mcaid_elig_config[["date_min"]], 5, 6), "-",
-                                     "01"), format = "%Y-%m-%d")
-load_elig_date_max <- as.Date(paste0(str_sub(load_mcaid_elig_config[["date_max"]], 1, 4), "-",
-                                     str_sub(load_mcaid_elig_config[["date_max"]], 5, 6), "-",
-                                     "01"), format = "%Y-%m-%d") %m+% months(1) - days(1)
 
+### Select File
+raw_list <- get_unloaded_etl_batches_f(db_claims,
+                                       server,
+                                       "elig")
+batch_select <- dlg_list(raw_list[,"file_name"], title = "Select Raw File")$res
+batch <- raw_list[raw_list$file_name == batch_select, ]
 
 if (server == "hhsaw") {
   load_load_raw.mcaid_elig_partial_f(conn = db_claims,
                                      conn_dw = dw_inthealth,
                                      server = server,
                                      config = load_mcaid_elig_config,
-                                     etl_date_min = load_elig_date_min, 
-                                     etl_date_max = load_elig_date_max,
-                                     etl_delivery_date = load_mcaid_elig_config[["date_delivery"]], 
-                                     etl_note = "Partial refresh of Medicaid elig data")
+                                     batch = batch)
 } else if (server == "phclaims") {
   ### Create tables
   # Need to do this each time because of the etl_batch_id variable
@@ -90,13 +87,10 @@ if (server == "hhsaw") {
   load_load_raw.mcaid_elig_partial_f(conn = db_claims,
                                      server = server,
                                      config = load_mcaid_elig_config,
-                                     etl_date_min = load_elig_date_min, 
-                                     etl_date_max = load_elig_date_max,
-                                     etl_delivery_date = load_mcaid_elig_config[["date_delivery"]], 
-                                     etl_note = "Partial refresh of Medicaid elig data")
+                                     batch = batch)
 }
 ### Clean up
-rm(load_mcaid_elig_config, load_elig_date_min, load_elig_date_max, load_load_raw.mcaid_elig_partial_f)
+rm(load_mcaid_elig_config)
 
 
 #### RAW CLAIMS ####
@@ -104,18 +98,21 @@ rm(load_mcaid_elig_config, load_elig_date_min, load_elig_date_max, load_load_raw
 load_mcaid_claim_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml"))
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R")
 
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
+### Select File
+raw_list <- get_unloaded_etl_batches_f(db_claims,
+                                       server,
+                                       "claims")
+batch_select <- dlg_list(raw_list[,"file_name"], title = "Select Raw File")$res
+batch <- raw_list[raw_list$file_name == batch_select, ]
 
 if (server == "hhsaw") {
   load_load_raw.mcaid_claim_partial_f(conn = db_claims,
                                       conn_dw = dw_inthealth,
                                       server = server,
                                       config = load_mcaid_claim_config,
-                                      etl_date_min = load_mcaid_claim_config[["date_min"]],
-                                      etl_date_max = load_mcaid_claim_config[["date_max"]],
-                                      etl_delivery_date = load_mcaid_claim_config[["date_delivery"]], 
-                                      etl_note = "Partial refresh of Medicaid claims data",
-                                      qa_file_row = F)
+                                      batch = batch)
 } else if (server == "phclaims") {
   ### Create tables
   create_table_f(conn = db_claims, 
@@ -127,11 +124,7 @@ if (server == "hhsaw") {
   load_load_raw.mcaid_claim_partial_f(conn = db_claims,
                                       server = server,
                                       config = load_mcaid_claim_config,
-                                      etl_date_min = load_mcaid_claim_config[["date_min"]],
-                                      etl_date_max = load_mcaid_claim_config[["date_max"]],
-                                      etl_delivery_date = load_mcaid_claim_config[["date_delivery"]], 
-                                      etl_note = "Partial refresh of Medicaid claims data",
-                                      qa_file_row = F)
+                                      batch = batch)
 }
 
 ### Clean up
@@ -146,6 +139,7 @@ if (table_config_stage_elig[[1]] == "Not Found") {stop("Error in config file. Ch
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
 
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 if (server == "hhsaw") {
   system.time(load_stage.mcaid_elig_f(conn_dw = dw_inthealth, 
                                       conn_db = db_claims, 
@@ -167,6 +161,8 @@ table_config_stage_claims <- yaml::yaml.load(httr::GET("https://raw.githubuserco
 if (table_config_stage_claims[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
+
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 if (server == "hhsaw") {
  system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, 
                                             conn_db = db_claims, 
@@ -186,7 +182,7 @@ if (server == "hhsaw") {
 # Call in config file to get vars
 stage_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial.R")
-
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 # Run step 1, which identifies new addresses and sets them up to be run through Informatica
 stage_address_clean_timestamp <- load_stage.address_clean_partial_step1(server = server,
                                                                         config = stage_address_clean_config,
@@ -338,7 +334,7 @@ if (stage_address_clean_timestamp != 0) {
 stage_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
 
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_geocode_partial.R")
-
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 qa_stage_address_geocode <- stage_address_geocode_f(conn = db_claims, 
                                                     server = server, 
                                                     config = stage_address_geocode_config, 
@@ -347,6 +343,7 @@ qa_stage_address_geocode <- stage_address_geocode_f(conn = db_claims,
 
 #### REF.ADDRESS_GEOCODE ####
 if (qa_stage_address_geocode == 0) {
+  db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   # Pull out run date
   last_run_stage_address_geocode <- as.POSIXct(odbc::dbGetQuery(
     db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_address_geocode_config[[server]][['to_schema']]`}.{`stage_address_geocode_config[[server]][['to_table']]`}",
@@ -416,7 +413,7 @@ hhsaw_table <- stage_address_clean_config[['hhsaw']][['to_table']]
 phclaims_schema <- stage_address_clean_config[['phclaims']][['to_schema']]
 phclaims_table <- stage_address_clean_config[['phclaims']][['to_table']]
 
-
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 # Bring in all addresses
 address_clean_hhsaw <- DBI::dbGetQuery(
   conn_hhsaw,
@@ -433,7 +430,7 @@ update_hhsaw <- anti_join(address_clean_phclaims, address_clean_hhsaw,
 update_phclaims <- anti_join(address_clean_hhsaw, address_clean_phclaims,
                              by = "geo_hash_raw")
 
-
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 # Update tables so they are in sync
 if (nrow(update_hhsaw) > 0) {
   DBI::dbWriteTable(conn_hhsaw, 
@@ -461,7 +458,7 @@ hhsaw_table <- ref_address_clean_config[['hhsaw']][['to_table']]
 phclaims_schema <- ref_address_clean_config[['phclaims']][['to_schema']]
 phclaims_table <- ref_address_clean_config[['phclaims']][['to_table']]
 
-
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 # Bring in all addresses
 address_clean_hhsaw <- DBI::dbGetQuery(
   conn_hhsaw,
@@ -506,6 +503,7 @@ hhsaw_table <- stage_address_geocode_config[['hhsaw']][['to_table']]
 phclaims_schema <- stage_address_geocode_config[['phclaims']][['to_schema']]
 phclaims_table <- stage_address_geocode_config[['phclaims']][['to_table']]
 
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 # Bring in all addresses
 address_geocode_hhsaw <- DBI::dbGetQuery(
   conn_hhsaw,
@@ -523,7 +521,7 @@ update_hhsaw <- anti_join(address_geocode_phclaims, address_geocode_hhsaw,
 update_phclaims <- anti_join(address_geocode_hhsaw, address_geocode_phclaims,
                              by = c("geo_add1_clean", "geo_city_clean", "geo_state_clean", "geo_zip_clean"))
 
-
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 # Update tables so they are in sync
 if (nrow(update_hhsaw) > 0) {
   DBI::dbWriteTable(conn_hhsaw, 
@@ -551,6 +549,7 @@ hhsaw_table <- ref_address_geocode_config[['hhsaw']][['to_table']]
 phclaims_schema <- ref_address_geocode_config[['phclaims']][['to_schema']]
 phclaims_table <- ref_address_geocode_config[['phclaims']][['to_table']]
 
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 # Bring in all addresses
 address_geocode_hhsaw <- DBI::dbGetQuery(
   conn_hhsaw,
@@ -590,28 +589,94 @@ message(nrow(update_phclaims), " geocode rows loaded from HHSAW to PHClaims")
 ### Should think about updating QA tables here too
 
 
-#### CHOOSE TO DROP BACK UP ARCHIVE TABLES  ####
+#### QA STAGE TABLE COUNTS AND CHOOSE WHETHER TO DROP BACK UP ARCHIVE TABLES OR NOT ####
+table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml")) 
+table_config_stage_claim <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
+stage_schema <- table_config_stage_elig[[server]][["to_schema"]]
+stage_elig <- ifelse(is.null(table_config_stage_elig[[server]][["to_table"]]), '',
+                     table_config_stage_elig[[server]][["to_table"]])
+stage_claim <- ifelse(is.null(table_config_stage_claim[[server]][["to_table"]]), '',
+                     table_config_stage_claim[[server]][["to_table"]])
+archive_schema <- table_config_stage_elig[[server]][["archive_schema"]]
+archive_elig <- ifelse(is.null(table_config_stage_elig[[server]][["archive_table"]]), '',
+                     table_config_stage_elig[[server]][["archive_table"]])
+archive_claim <- ifelse(is.null(table_config_stage_claim[[server]][["archive_table"]]), '',
+                      table_config_stage_claim[[server]][["archive_table"]])
+bak_schema <- table_config_stage_elig[[server]][["archive_schema"]]
+bak_elig <- paste0(ifelse(is.null(table_config_stage_elig[[server]][["archive_table"]]), '',
+                          table_config_stage_elig[[server]][["archive_table"]]), '_bak')
+bak_claim <- paste0(ifelse(is.null(table_config_stage_claim[[server]][["archive_table"]]), '',
+                           table_config_stage_claim[[server]][["archive_table"]]), '_bak')
+if (server == "hhsaw") {
+  conn <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+} else {
+  conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+}
+## Get row counts of each table ##
+cnt_stage_elig <- DBI::dbGetQuery(conn,
+                             glue::glue_sql("SELECT COUNT(*) FROM {`stage_schema`}.{`stage_elig`}",
+                                            .con = conn))[1,1]
+cnt_archive_elig <- DBI::dbGetQuery(conn,
+                             glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_elig`}", 
+                                            .con = conn))[1,1]
+bak_elig_exist <- nrow(DBI::dbGetQuery(conn,
+                                       glue::glue_sql("SELECT object_id FROM sys.tables WHERE name = {bak_elig}", 
+                                                      .con = conn)))
+if(bak_elig_exist > 0) {
+  cnt_bak_elig <- DBI::dbGetQuery(conn,
+                                  glue::glue_sql("SELECT COUNT(*) FROM {`bak_schema`}.{`bak_elig`}",
+                                                 .con = conn))[1,1]
+} else { cnt_bak_elig <- 0 }
+cnt_stage_claim <- DBI::dbGetQuery(conn,
+                                  glue::glue_sql("SELECT COUNT(*) FROM {`stage_schema`}.{`stage_claim`}",
+                                                 .con = conn))[1,1]
+cnt_archive_claim <- DBI::dbGetQuery(conn,
+                                    glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_claim`}", 
+                                                   .con = conn))[1,1]
+bak_claim_exist <- nrow(DBI::dbGetQuery(conn,
+                                       glue::glue_sql("SELECT object_id FROM sys.tables WHERE name = {bak_claim}", 
+                                                      .con = conn)))
+if(bak_claim_exist > 0) {
+  cnt_bak_claim <- DBI::dbGetQuery(conn,
+                                  glue::glue_sql("SELECT COUNT(*) FROM {`bak_schema`}.{`bak_claim`}",
+                                                 .con = conn))[1,1]
+} else { cnt_bak_claim <- 0 }
+
+## Compare row counts between tables ##
+if (cnt_stage_elig >= cnt_archive_elig & cnt_archive_elig >= cnt_bak_elig) {
+  message("No issues with Elig stage, archive and bak table counts.")
+} else {
+  message("Potential issue with Elig stage, archive and bak table counts:")
+  message(paste0("Stage: ", cnt_stage_elig))
+  message(paste0("Archive: ", cnt_archive_elig))
+  message(paste0("Bak: ", cnt_bak_elig))
+}
+if (cnt_stage_claim >= cnt_archive_claim & cnt_archive_claim >= cnt_bak_claim) {
+  message("No issues with Claims stage, archive and bak table counts.")
+} else {
+  message("Potential issue with Claims stage, archive and bak table counts:")
+  message(paste0("Stage: ", cnt_stage_claim))
+  message(paste0("Archive: ", cnt_archive_claim))
+  message(paste0("Bak: ", cnt_bak_claim))
+}  
+
+## Ask to delete backup archive tables ##
 message("DELETE BACK UP ARCHIVE TABLES?")
 bak_del <- select.list(choices = c("Yes", "No"))
 if (bak_del == "Yes") {
-  table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml")) 
-  table_config_stage_claim <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
-  bak_schema <- table_config_stage_elig[[server]][["archive_schema"]]
-  bak_elig <- paste0(ifelse(is.null(table_config_stage_elig[[server]][["archive_table"]]), '',
-                            table_config_stage_elig[[server]][["archive_table"]]), '_bak')
-  bak_claim <- paste0(ifelse(is.null(table_config_stage_claim[[server]][["archive_table"]]), '',
-                             table_config_stage_claim[[server]][["archive_table"]]), '_bak')
-  if (server == "hhsaw") {
-    conn <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
-  } else {
-    conn <- db_claims
-  }
-  try(DBI::dbSendQuery(conn,
+  if (bak_elig_exist > 0) {
+    try(DBI::dbSendQuery(conn,
                        glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_elig`}",
                                       .con = conn)))
-  try(DBI::dbSendQuery(conn,
+  }
+  if (bak_claim_exist > 0) {
+    try(DBI::dbSendQuery(conn,
                        glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_claim`}",
                                       .con = conn)))
+  }
 }
-rm(bak_del, table_config_stage_elig, table_config_stage_claim, bak_schema, 
-   bak_elig, bak_claim, conn)
+rm(conn, table_config_stage_elig, table_config_stage_claim, 
+   bak_schema, bak_elig, bak_claim, bak_elig_exist, bak_claim_exist, bak_del,
+   stage_schema, stage_claim, stage_elig, cnt_stage_claim, cnt_stage_elig,
+   archive_schema, archive_claim, archive_elig, cnt_archive_claim, cnt_archive_elig,
+   cnt_bak_claim, cnt_bak_elig)
