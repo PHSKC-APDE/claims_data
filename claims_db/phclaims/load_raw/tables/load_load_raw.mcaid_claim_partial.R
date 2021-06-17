@@ -242,8 +242,8 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
                                    server = server,
                                    config = table_config,
                                    overall = T, ind_yr = F,
-                                   date_min_exp = format(batch$date_min, "%Y-%m-%d"),
-                                   date_max_exp = format(batch$date_max, "%Y-%m-%d"),
+                                   date_min_exp = format(as.Date(batch$date_min), "%Y-%m-%d"),
+                                   date_max_exp = format(as.Date(batch$date_max), "%Y-%m-%d"),
                                    date_var = "FROM_SRVC_DATE")
   
   # Report individual results out to SQL table
