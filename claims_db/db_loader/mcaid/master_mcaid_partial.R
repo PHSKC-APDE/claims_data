@@ -20,6 +20,7 @@ library(sf) # Read shape files
 library(keyring) # Access stored credentials
 library(stringr) # Various string functions
 library(svDialogs)
+library(R.utils)
 
 # These are use for geocoding new addresses
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"

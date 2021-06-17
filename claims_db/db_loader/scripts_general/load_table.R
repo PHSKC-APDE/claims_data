@@ -189,9 +189,17 @@ load_table_from_file_f <- function(
       ind_yr_msg <- "overall"
     }
     
+    # Extract file from gz and set filepath
+    message("Decompressing ", paste0(batch$file_location, batch$file_name), "...")
+    R.utils::gunzip(paste0(batch$file_location, batch$file_name), 
+                    overwrite = T,
+                    remove = F)
+    filepath <- paste0(batch$file_location, 
+                       substring(batch$file_name, 1, nchar(batch$file_name) - 3))
+    
     # Add message to user
     message(glue('Loading {ind_yr_msg} [{schema_inner}].[{table_name_inner}] table(s) ',
-                 ' from {table_config_inner[[config_section]][["file_path"]]} {test_msg_inner}'))
+                 ' from {filepath} {test_msg_inner}'))
     
     # Truncate existing table if desired
     if (truncate_inner == T) {
@@ -242,12 +250,13 @@ load_table_from_file_f <- function(
     
     # Set up BCP arguments and run BCP
     bcp_args <- c(glue(' PHclaims.{schema_inner}.{table_name_inner} IN ', 
-                       ' "{table_config_inner[[config_section]][["file_path"]]}" ',
+                       ' "{filepath}" ',
                        ' {field_term} {row_term} -C 65001 -F 2 ',
                        ' -S KCITSQLUTPDBH51 -T -b 100000 {load_rows_inner} -c '))
     
     print(bcp_args)
     system2(command = "bcp", args = c(bcp_args))
+    file.remove(filepath)
   }
   
   

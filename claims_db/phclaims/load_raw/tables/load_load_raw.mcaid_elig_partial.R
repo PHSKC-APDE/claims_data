@@ -240,8 +240,8 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                    server = server,
                                    config = table_config,
                                    overall = T, ind_yr = F,
-                                   date_min_exp = format(batch$date_min, "%Y%m"),
-                                   date_max_exp = format(batch$date_max, "%Y%m"),
+                                   date_min_exp = format(as.Date(batch$date_min), "%Y%m"),
+                                   date_max_exp = format(as.Date(batch$date_max), "%Y%m"),
                                    date_var = "CLNDR_YEAR_MNTH")
   
   # Report individual results out to SQL table
