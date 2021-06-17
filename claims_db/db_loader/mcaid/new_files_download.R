@@ -305,6 +305,7 @@ if (proceed == T && nrow(tfiles) > 0) {
       message(paste0("Download Completed - ", Sys.time()))
     }
     message(paste0("All Files Downloaded - ", Sys.time()))
+    db_claims <- create_db_connection(server = "phclaims", interactive = interactive_auth, prod = prod)
     for (x in 1:nrow(tfiles)) {
       tfiles[x, "batch_id"] <- load_metadata_etl_log_file_f(conn = db_claims, 
                                                             server = "phclaims",
