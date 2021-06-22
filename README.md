@@ -74,6 +74,14 @@ R Keyrings:
 - here - Sign up for HERE freemium API (https://developer.here.com/) -  App ID and API Key
 - hhsaw_dev - Access to Azure SQL Servers, will require to update as you update your KC and PH domain passwords
 - inthealth_edw - Storage Account Key used with COPY INTO function for Azure SQL tables (acquire from KCIT)
-- adl_tenant - Azure Datalake Tenant ID for uploading new files to the datalake (username is either "dev" or "prod")
-- adl_app - Azure Datalake App ID for uploading new files to the datalake (username is either "dev" or "prod")
+- adl_tenant - Azure Data Lake Tenant ID for uploading new files to the datalake (username is either "dev" or "prod")
+- adl_app - Azure Data Lake App ID for uploading new files to the datalake (username is either "dev" or "prod")
  
+Azure Data Lake Folder Access:
+- https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid
+  - /claims
+    - /incr
+    - /init
+  - /elig
+    - /incr
+    - /init
