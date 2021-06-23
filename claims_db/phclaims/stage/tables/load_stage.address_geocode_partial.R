@@ -45,7 +45,7 @@ stage_address_geocode_f <- function(conn = NULL,
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- config[[server]][["ref_table"]]
   
-  
+  conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   
   #### PULL IN DATA ####
   if (full_refresh == F) {
@@ -71,7 +71,7 @@ stage_address_geocode_f <- function(conn = NULL,
                                               .con = conn))
   }
   
-  
+  conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   if (nrow(adds_to_code) > 0) {
     # Combine addresses into single field to reduce erroneous matches
     adds_to_code <- adds_to_code %>%
@@ -92,7 +92,7 @@ stage_address_geocode_f <- function(conn = NULL,
                                         street = NULL, city = NULL, zip = NULL, max_return = 10,
                                         best_result = T))
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     ### Convert CRS and set up fields of interest
     adds_coded <- left_join(adds_to_code, adds_coded_esri, by = c("geo_add_single" = "input_addr")) %>%
@@ -124,7 +124,7 @@ stage_address_geocode_f <- function(conn = NULL,
       st_drop_geometry()
     
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### RUN THROUGH HERE GEOCODER ####
     ### Find addresses that need additional geocoding
     adds_coded_unmatch <- adds_coded %>%
@@ -150,7 +150,7 @@ stage_address_geocode_f <- function(conn = NULL,
       
       here_url <- "http://geocoder.api.here.com/6.2/geocode.json"
       
-      
+      conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
       geocode_here_f <- function(address, here_app_code = app_code, here_app_id = app_id) {
         
         if (!is.character(address)) {
@@ -210,7 +210,7 @@ stage_address_geocode_f <- function(conn = NULL,
       
       # Look at match results
       adds_here %>% group_by(address_type) %>% summarise(count = n())
-      
+      conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
       # Combine HERE results back to unmatched data
       adds_coded_here <- left_join(adds_coded_unmatch, adds_here,
                                    by = c("geo_add_single" = "input_add")) %>%
@@ -230,7 +230,7 @@ stage_address_geocode_f <- function(conn = NULL,
         distinct()
       
     }
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     #### BRING ESRI AND HERE DATA TOGETHER ####
     if (nrow(adds_coded_unmatch) > 0) {
@@ -267,7 +267,7 @@ stage_address_geocode_f <- function(conn = NULL,
       # Print out any loc_names not accounted for
       adds_coded %>% filter(is.na(geo_geocode_source)) %>% distinct(locName, address_type)
       
-      
+      conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
       adds_coded <- adds_coded %>%
         mutate(geo_zip_centroid = ifelse((geo_geocode_source == "esri" & locName == "zip_5_digit_gc") |
                                            (geo_geocode_source == "here" & address_type %in% c("postalCode")),
@@ -325,7 +325,7 @@ stage_address_geocode_f <- function(conn = NULL,
     }
     
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     ### Identify addresses that could not be geocoded to an acceptable level
     # Will flag them in ref.address_clean as addresses to skip future geocoding attempts
     adds_geocode_skip <- adds_coded %>% 
@@ -343,7 +343,7 @@ stage_address_geocode_f <- function(conn = NULL,
       update_sql <- str_replace_all(update_sql, "= NULL", "Is NULL")
       # Run code
       DBI::dbExecute(conn, glue::glue_collapse(update_sql, sep = "; "))
-      
+      conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
       # Check that more addresses were flagged for skipping
       stage_geocode_skip <- as.integer(DBI::dbGetQuery(
         conn, 
@@ -352,7 +352,7 @@ stage_address_geocode_f <- function(conn = NULL,
       ref_geocode_skip <- as.integer(DBI::dbGetQuery(
         conn, glue::glue_sql("SELECT SUM(geo_geocode_skip) AS skip_cnt FROM {`ref_schema`}.address_clean",
                              .con = conn)))
-      
+      conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
       if (stage_geocode_skip >= ref_geocode_skip) {
         # Update in ref table
         update_sql <- glue::glue_data_sql(adds_geocode_skip, 
@@ -361,7 +361,7 @@ stage_address_geocode_f <- function(conn = NULL,
                                     WHERE geo_hash_geocode = {geo_hash_geocode}",
                                           .con = conn)
         DBI::dbExecute(conn, glue::glue_collapse(update_sql, sep = "; "))
-        
+        conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
         # Check counts
         ref_geocode_skip_new <- as.integer(DBI::dbGetQuery(
           conn, glue::glue_sql("SELECT SUM(geo_geocode_skip) AS skip_cnt FROM {`ref_schema`}.address_clean",
@@ -382,13 +382,13 @@ stage_address_geocode_f <- function(conn = NULL,
     adds_coded <- adds_coded %>% 
       filter(!(is.na(geo_geocode_source) | (drop == 1 & geo_geocode_source == "esri"))) %>%
       select(-drop)
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     #### JOIN TO SPATIAL FILES OF INTEREST ####
     ### Set up as spatial file
     adds_coded <- st_as_sf(adds_coded, coords = c("geo_lon", "geo_lat"), 
                            crs = 4326, remove = F)
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     ### Bring in shape files for relevant geographies
     block <- st_read(file.path(s_shapes, "Blocks/2010/WA state wide/block10.shp"))
@@ -412,7 +412,7 @@ stage_address_geocode_f <- function(conn = NULL,
     wa_dist <- st_transform(wa_dist, 4326)
     scc_dist <- st_transform(scc_dist, 4326)
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     # Block (also contains state and county FIPS)
     adds_coded_joined <- st_join(adds_coded, block) %>%
       select(geo_add1_clean:geo_y, STATEFP10, COUNTYFP10, TRACTCE10, BLOCKCE10, GEOID10, 
@@ -458,7 +458,7 @@ stage_address_geocode_f <- function(conn = NULL,
       select(geo_add1_clean:geo_wa_legdist, SCCDST,
              geometry) %>%
       rename(geo_scc_dist = SCCDST)
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     ### Convert factors to character etc.
     adds_coded_load <- adds_coded_joined %>%
       mutate_at(vars(geo_zip_clean, 
@@ -481,7 +481,7 @@ stage_address_geocode_f <- function(conn = NULL,
     #          geo_tractce10 = geo_tract_code, geo_blockce10 = geo_block_code,
     #          geo_block_geoid10 = geo_block_fullcode)
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### LOAD TO SQL ####
     if (full_refresh == F) {
       # Check how many rows are already in the stage table
@@ -510,14 +510,14 @@ stage_address_geocode_f <- function(conn = NULL,
     }
     
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     # Write data
     dbWriteTable(conn,
                  name = DBI::Id(schema = to_schema, table = to_table), 
                  value = as.data.frame(adds_coded_load), 
                  append = T, overwrite = F)
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### BASIC QA ####
     if (full_refresh == F) {
       ### Compare row counts now
