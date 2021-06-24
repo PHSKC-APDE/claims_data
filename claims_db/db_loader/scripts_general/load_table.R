@@ -26,12 +26,12 @@ load_table_from_file_f <- function(
   config = NULL,
   config_url = NULL,
   config_file = NULL,
-  batch = NULL,
   truncate = T,
   overall = T,
   ind_yr = F,
   combine_yr = T,
-  test_mode = F
+  test_mode = F,
+  filepath = NULL
 ) {
   
   
@@ -168,7 +168,6 @@ load_table_from_file_f <- function(
     add_index <- FALSE
   }
   
-  
   #### SET UP A FUNCTION FOR COMMON ACTIONS ####
   # Both the overall load and year-specific loads use a similar set of code
   loading_process_f <- function(conn_inner = conn,
@@ -189,13 +188,14 @@ load_table_from_file_f <- function(
       ind_yr_msg <- "overall"
     }
     
-    # Extract file from gz and set filepath
-    message("Decompressing ", paste0(batch$file_location, batch$file_name), "...")
-    R.utils::gunzip(paste0(batch$file_location, batch$file_name), 
+    if (substring(filepath, nchar(filepath) - 2) == ".gz") {
+      # Extract file from gz and set filepath
+      message("Decompressing ", paste0(filepath, "..."))
+      R.utils::gunzip(filepath, 
                     overwrite = T,
                     remove = F)
-    filepath <- paste0(batch$file_location, 
-                       substring(batch$file_name, 1, nchar(batch$file_name) - 3))
+      filepath <- substring(filepath, 1, nchar(filepath) - 3)
+    }
     
     # Add message to user
     message(glue('Loading {ind_yr_msg} [{schema_inner}].[{table_name_inner}] table(s) ',
@@ -265,6 +265,9 @@ load_table_from_file_f <- function(
   if (overall == T) {
     # Run loading function
     if (!is.null(server)) {
+      if(is.null(filepath) == T) {
+        filepath <- table_config[[server]][["file_path"]]
+      }
       loading_process_f(config_section = server)
     } else {
       loading_process_f(config_section = "overall")
