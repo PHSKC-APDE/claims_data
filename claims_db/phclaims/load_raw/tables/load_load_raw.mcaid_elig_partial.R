@@ -146,7 +146,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     copy_into_f(conn = conn_dw, 
                 server = server,
                 config = table_config,
-                batch = batch,
+                dl_path = paste0(table_config[[server]][[base_url]], batch["file_location"], batch["file_name"]),
                 file_type = "csv", compression = "gzip",
                 identity = "Storage Account Key", secret = key_get("inthealth_edw"),
                 overwrite = T,
@@ -155,7 +155,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     load_table_from_file_f(conn = conn_dw,
                            server = server,
                            config = table_config,
-                           batch = batch,
+                           filepath = paste0(batch$file_location, batch$file_name),
                            overall = T, ind_yr = F, combine_yr = F)
   }
   
