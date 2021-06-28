@@ -1,4 +1,4 @@
-# Header ####
+# Header ----
   # Author: Danny Colombara
   # Date: September 16, 2019
   # Purpose: Create stage.mcaid_mcare_elig_timevar for SQL
@@ -12,7 +12,7 @@
   #       - [PHClaims].[final].[xwalk_apde_mcaid_mcare_pha]
   #
 
-## Set up R Environment ----
+# Set up R Environment ----
   # rm(list=ls())  # clear memory
   # start.time <- Sys.time()
   # pacman::p_load(data.table, dplyr, odbc, DBI, lubridate) # load packages
@@ -21,7 +21,7 @@
   # 
   start.time <- Sys.time()
   
-  kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv"
+  kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_city_region_scc.csv"
   
   yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.yaml"
   
@@ -32,24 +32,45 @@
   apde <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_apde, id_mcare, id_mcaid
                                  FROM PHClaims.final.xwalk_apde_mcaid_mcare_pha"))
   
-  mcare <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcare, from_date, to_date, part_a, part_b, part_c, partial, buy_in, geo_zip 
-                                  FROM PHClaims.final.mcare_elig_timevar"))
-           mcare[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
-           mcare[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
-           
-  mcaid <- setDT(odbc::dbGetQuery(db_claims, "SELECT id_mcaid, from_date, to_date, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id, 
-                                  geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_zip_centroid, 
-                                  geo_street_centroid, geo_county_code, geo_tract_code, geo_hra_code, geo_school_code
-                                  FROM PHClaims.final.mcaid_elig_timevar"))
-          mcaid[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
-          mcaid[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
+  mcaid <- setDT(odbc::dbGetQuery(db_claims, 
+  "SELECT id_mcaid, from_date, to_date, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id, 
+  geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_zip_centroid, 
+  geo_street_centroid, geo_county_code, geo_tract_code, geo_hra_code, geo_school_code
+  FROM PHClaims.final.mcaid_elig_timevar"))
+  mcaid[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
+  mcaid[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
+          
+  mcare <- setDT(odbc::dbGetQuery(db_claims, 
+  "SELECT id_mcare, from_date, to_date, part_a, part_b, part_c, partial, buy_in, geo_zip 
+  FROM PHClaims.final.mcare_elig_timevar"))
+  mcare[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
+  mcare[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
   
+
 ## (3) Merge on dual status ----
   mcare <- merge(apde[, .(id_apde, id_mcare)], mcare, by = "id_mcare", all.x = FALSE, all.y = TRUE)
   mcare[, id_mcare := NULL] # no longer needed now that have id_apde
   
   mcaid <- merge(apde[, .(id_apde, id_mcaid)], mcaid, by = "id_mcaid", all.x = FALSE, all.y = TRUE)
   mcaid[, id_mcaid := NULL] # no longer needed now that have id_apde
+  
+  
+  ## Temp fix ----
+  # The new approach to ID matching means there is >1 row per id_apde for an identical time period
+  # Need to consolidate data
+  # For now randomly select a row
+  set.seed(98104)
+  mcaid[, sorter := sample(1000, .N), by = c("id_apde", "from_date", "to_date")]
+  mcaid <- mcaid[order(id_apde, from_date, to_date, sorter)]
+  mcaid <- mcaid[mcaid[, .I[1:1], by = c("id_apde", "from_date", "to_date")]$V1]
+  mcaid[, sorter := NULL]
+  
+  set.seed(98104)
+  mcare[, sorter := sample(1000, .N), by = c("id_apde", "from_date", "to_date")]
+  mcare <- mcare[order(id_apde, from_date, to_date, sorter)]
+  mcare <- mcare[mcare[, .I[1:1], by = c("id_apde", "from_date", "to_date")]$V1]
+  mcare[, sorter := NULL]
+  
   
 ## (4) Identify the duals and split from non-duals for additional processing ----
   dual.id <- intersect(mcaid$id_apde, mcare$id_apde)
@@ -67,6 +88,7 @@
     rm(mcaid, mcare)
     gc()
 
+    
 ## (5) Duals Part 1: Create master list of time intervals by ID ----
   #-- READ ME !!! ----
     # Originally from ... 
@@ -234,7 +256,16 @@
 		          (overlap_type == 0 & is.na(from_date_mcare)) ~ "mcaid",
 		        overlap_type == 1 | (overlap_type %in% c(2:5) & rownum_temp == 2) ~ "both",
 		        TRUE ~ "x"
-		      ),
+		      ))
+		    
+		# Check to make sure there are no bad enroll types
+    if (nrow(filter(temp_ext, enroll_type == "x")) > 0) {
+      warning("Unrecognized overlap type. Check results.")
+    }
+		    
+		      
+		  temp_ext <- temp_ext %>%
+		    mutate(
 		    # Drop rows from enroll_type == mcaid/mcare when they are fully covered by an enroll_type == both
 		    drop = 
 		      case_when(
@@ -391,10 +422,10 @@
       timevar[, geo_zip_mcare := NULL]
       
     # Add KC flag based on zip code or FIPS code as appropriate----  
-      kc.zips <- fread(kc.zips.url)
+      kc.zips <- read.csv(kc.zips.url)
       timevar[, geo_kc := 0]
-      timevar[geo_county_code=="033", geo_kc := 1]
-      timevar[is.na(geo_county_code) & geo_zip %in% unique(as.character(kc.zips$zip)), geo_kc := 1]
+      timevar[geo_county_code == "033", geo_kc := 1]
+      timevar[is.na(geo_county_code) & geo_zip %in% unique(as.character(kc.zips$geo_zip)), geo_kc := 1]
       rm(kc.zips)
       
     # create time stamp ----
@@ -402,10 +433,14 @@
       
 ## (10) Write to SQL ----              
   # Pull YAML from GitHub
+      # Failing with a curl error at the moment so pull from the local file
     table_config <- yaml::yaml.load(httr::GET(yaml.url))
+    table_config <- yaml::read_yaml(file.path(here::here(), 
+                                              "claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.yaml"))
 
   # Ensure columns are in same order in R & SQL
     setcolorder(timevar, names(table_config$vars))
+    timevar <- timevar[, names(table_config$vars), with = FALSE]
   
   # Write table to SQL
     ### Sometimes get a network error if trying to do the whole thing so split into batches

@@ -35,19 +35,7 @@
                                   lang_russian, lang_somali, lang_spanish, lang_ukrainian, lang_vietnamese 
                                   FROM PHClaims.final.mcaid_elig_demo"))
 
-  
-  
-  
-  ## Temp fix ----
-  # The new approach to ID matching means there is >1 row per id_apde for some people
-  # Need to consolidate data
-  # For now randomly select a row
-  set.seed(98104)
-  test <- mcaid[, sorter := sample(1000, 1), by = "id_mcaid"]
-  test <- test[order(id_mcaid, sorter)]
-  
-  
-  
+
 ## (3) Merge on apde id ----
   mcare <- merge(apde[, .(id_apde, id_mcare)], mcare, by = "id_mcare", all.x = FALSE, all.y = TRUE)
   mcare[, id_mcare := NULL] # no longer needed now that have id_apde
