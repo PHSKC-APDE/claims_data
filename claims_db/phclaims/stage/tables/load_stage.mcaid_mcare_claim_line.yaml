@@ -1,8 +1,14 @@
+from_schema: final
+from_table_mcaid: mcaid_claim_line
+from_table_mcare: mcare_claim_line
 to_schema: stage
 to_table: mcaid_mcare_claim_line
+final_schema: final
+final_table: mcaid_mcare_claim_line
 xwalk_schema_old: archive
+xwalk_table_old: xwalk_apde_mcaid_mcaid_pha
 xwalk_schema_new: final
-xwalk_table: xwalk_apde_mcaid_mcaid_pha
+xwalk_table_new: xwalk_apde_mcaid_mcaid_pha
 vars:
     id_apde: CHAR(10)
     source_desc: varchar(255)
