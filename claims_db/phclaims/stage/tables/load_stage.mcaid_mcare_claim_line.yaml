@@ -4,7 +4,7 @@ xwalk_schema_old: archive
 xwalk_schema_new: final
 xwalk_table: xwalk_apde_mcaid_mcaid_pha
 vars:
-    id_apde: bigint
+    id_apde: CHAR(10)
     source_desc: varchar(255)
     claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
     claim_line_id: bigint
