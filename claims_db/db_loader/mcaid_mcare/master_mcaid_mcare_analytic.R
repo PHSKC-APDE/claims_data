@@ -133,7 +133,8 @@ create_table_f(conn = db_claims,
                overall = T, ind_yr = F, overwrite = T, test_mode = F)
 
 ### C) Load tables (~50 min)
-system.time(load_stage.mcaid_mcare_claim_line_f())
+system.time(load_stage.mcaid_mcare_claim_line_f(conn = db_claims,
+                                                config_url = config_url))
 
 ### D) Table-level QA (~1 min)
 system.time(mcaid_mcare_claim_line_qa <- qa_stage.mcaid_mcare_claim_line_qa_f())

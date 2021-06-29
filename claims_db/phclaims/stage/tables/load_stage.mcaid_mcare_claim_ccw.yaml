@@ -12,7 +12,7 @@ phclaims:
     qa_schema: metadata
     qa_table: 
 vars:
-    id_apde: integer
+    id_apde: char(10)
     from_date: date
     to_date: date
     ccw_code: tinyint
