@@ -414,7 +414,7 @@ hhsaw_table <- stage_address_clean_config[['hhsaw']][['to_table']]
 phclaims_schema <- stage_address_clean_config[['phclaims']][['to_schema']]
 phclaims_table <- stage_address_clean_config[['phclaims']][['to_table']]
 
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+
 # Bring in all addresses
 address_clean_hhsaw <- DBI::dbGetQuery(
   conn_hhsaw,
@@ -431,7 +431,7 @@ update_hhsaw <- anti_join(address_clean_phclaims, address_clean_hhsaw,
 update_phclaims <- anti_join(address_clean_hhsaw, address_clean_phclaims,
                              by = "geo_hash_raw")
 
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+
 # Update tables so they are in sync
 if (nrow(update_hhsaw) > 0) {
   DBI::dbWriteTable(conn_hhsaw, 
@@ -459,7 +459,7 @@ hhsaw_table <- ref_address_clean_config[['hhsaw']][['to_table']]
 phclaims_schema <- ref_address_clean_config[['phclaims']][['to_schema']]
 phclaims_table <- ref_address_clean_config[['phclaims']][['to_table']]
 
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+
 # Bring in all addresses
 address_clean_hhsaw <- DBI::dbGetQuery(
   conn_hhsaw,
@@ -504,7 +504,7 @@ hhsaw_table <- stage_address_geocode_config[['hhsaw']][['to_table']]
 phclaims_schema <- stage_address_geocode_config[['phclaims']][['to_schema']]
 phclaims_table <- stage_address_geocode_config[['phclaims']][['to_table']]
 
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+
 # Bring in all addresses
 address_geocode_hhsaw <- DBI::dbGetQuery(
   conn_hhsaw,
@@ -522,7 +522,7 @@ update_hhsaw <- anti_join(address_geocode_phclaims, address_geocode_hhsaw,
 update_phclaims <- anti_join(address_geocode_hhsaw, address_geocode_phclaims,
                              by = c("geo_add1_clean", "geo_city_clean", "geo_state_clean", "geo_zip_clean"))
 
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+
 # Update tables so they are in sync
 if (nrow(update_hhsaw) > 0) {
   DBI::dbWriteTable(conn_hhsaw, 
@@ -550,7 +550,7 @@ hhsaw_table <- ref_address_geocode_config[['hhsaw']][['to_table']]
 phclaims_schema <- ref_address_geocode_config[['phclaims']][['to_schema']]
 phclaims_table <- ref_address_geocode_config[['phclaims']][['to_table']]
 
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+
 # Bring in all addresses
 address_geocode_hhsaw <- DBI::dbGetQuery(
   conn_hhsaw,
