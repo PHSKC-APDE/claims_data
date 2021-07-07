@@ -35,6 +35,7 @@
                                   lang_russian, lang_somali, lang_spanish, lang_ukrainian, lang_vietnamese 
                                   FROM PHClaims.final.mcaid_elig_demo"))
 
+
 ## (3) Merge on apde id ----
   mcare <- merge(apde[, .(id_apde, id_mcare)], mcare, by = "id_mcare", all.x = FALSE, all.y = TRUE)
   mcare[, id_mcare := NULL] # no longer needed now that have id_apde
@@ -42,14 +43,33 @@
   mcaid <- merge(apde[, .(id_apde, id_mcaid)], mcaid, by = "id_mcaid", all.x = FALSE, all.y = TRUE)
   mcaid[, id_mcaid := NULL] # no longer needed now that have id_apde
   
+  
+  ## Temp fix ----
+  # The new approach to ID matching means there is >1 row per id_apde for some people
+  # Need to consolidate data
+  # For now randomly select a row
+  set.seed(98104)
+  mcaid[, sorter := sample(1000, .N), by = "id_apde"]
+  mcaid <- mcaid[order(id_apde, sorter)]
+  mcaid <- mcaid[mcaid[, .I[1:1], by = id_apde]$V1]
+  mcaid[, sorter := NULL]
+  
+  set.seed(98104)
+  mcare[, sorter := sample(1000, .N), by = "id_apde"]
+  mcare <- mcare[order(id_apde, sorter)]
+  mcare <- mcare[mcare[, .I[1:1], by = id_apde]$V1]
+  mcare[, sorter := NULL]
+  
+  
 ## (4) Identify the duals and split from non-duals ----
   dual.id <- intersect(mcaid$id_apde, mcare$id_apde)
   
   mcare.solo <- mcare[!id_apde %in% dual.id]
   mcaid.solo <- mcaid[!id_apde %in% dual.id]  
   
-  mcare.dual <- mcare[id_apde %in% dual.id]
-  mcaid.dual <- mcaid[id_apde %in% dual.id]
+  mcare.dual <- unique(mcare[id_apde %in% dual.id])
+  mcaid.dual <- unique(mcaid[id_apde %in% dual.id])
+
 
 ## (5) Combine the data for duals ----
   # some data is assumed to be more reliable in one dataset compared to the other
@@ -95,6 +115,7 @@
   
   # Ensure columns are in same order in R & SQL
     setcolorder(elig, names(table_config$vars))
+    elig <- elig[, names(table_config$vars), with = FALSE]
   
   # Write table to SQL
     ### Sometimes get a network error if trying to do the whole thing so split into batches
