@@ -189,7 +189,8 @@ stage_address_clean_timestamp <- load_stage.address_clean_partial_step1(server =
                                                                         config = stage_address_clean_config,
                                                                         source = 'mcaid',
                                                                         interactive_auth = interactive_auth)
-
+prod <- T
+interactive_auth <- T
 if (stage_address_clean_timestamp != 0) {
   # Load time stamp value to metadata table in case R breaks and needs a restart
   db_claims <- create_db_connection(server, interactive = interactive_auth)
@@ -209,8 +210,6 @@ if (stage_address_clean_timestamp != 0) {
                                    table = paste0(stage_address_clean_config[[server]][['qa_table']], "qa_mcaid_values")),
                     value = timestamp_record,
                     append = T)
-  
-  
   
   #### PAUSE ####
   # Wait for Informatica process overnight
@@ -267,6 +266,14 @@ if (stage_address_clean_timestamp != 0) {
                                                      server = server,
                                                      config = stage_address_clean_config)
   
+  # Pull in the config file
+  ref_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
+  
+  to_schema <- ref_address_clean_config[[server]][["to_schema"]]
+  to_table <- ref_address_clean_config[[server]][["to_table"]]
+  qa_schema <- ref_address_clean_config[[server]][["qa_schema"]]
+  qa_table <- ifelse(is.null(ref_address_clean_config[[server]][["qa_table"]]), '',
+                     ref_address_clean_config[[server]][["qa_table"]])
   
   #### FINAL.ADDRESS_CLEAN ####
   # Check that things passed QA before loading final table
@@ -277,14 +284,6 @@ if (stage_address_clean_timestamp != 0) {
                               FROM {`stage_address_clean_config[[server]][['to_schema']]`}.{`stage_address_clean_config[[server]][['to_table']]`}",
                                 .con = db_claims))[[1]])
     
-    # Pull in the config file
-    ref_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
-    
-    to_schema <- ref_address_clean_config[[server]][["to_schema"]]
-    to_table <- ref_address_clean_config[[server]][["to_table"]]
-    qa_schema <- ref_address_clean_config[[server]][["qa_schema"]]
-    qa_table <- ifelse(is.null(ref_address_clean_config[[server]][["qa_table"]]), '',
-                       ref_address_clean_config[[server]][["qa_table"]])
     
     # Check if the table exists and, if not, create it
     if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {

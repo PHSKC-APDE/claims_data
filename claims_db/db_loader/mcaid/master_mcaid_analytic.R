@@ -35,7 +35,7 @@ interactive_auth <- select.list(choices = c("TRUE", "FALSE"))
 if (server == "hhsaw") {
   prod <- select.list(choices = c("TRUE", "FALSE"))
 } else {
-  prod <- F
+  prod <- T
 }
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
