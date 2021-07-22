@@ -191,7 +191,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     
     
     # Note: solution assumes only one duplicate type present in any given id/month/RAC combo
-    if (exists(duplicate_type)) {
+    if (exists('duplicate_type')) {
       message(glue::glue("{duplicate_type}. Using temp table code to fix."))
       
       ### Pull in vars for making temp tables
