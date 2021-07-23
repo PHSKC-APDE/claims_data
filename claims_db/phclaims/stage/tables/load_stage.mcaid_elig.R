@@ -188,7 +188,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
         duplicate_check_rac == rows_load_raw ~ "Only HOH_ID duplicates present",
       duplicate_check_reason == rows_load_raw & duplicate_check_hoh == rows_load_raw & 
         duplicate_check_rac != rows_load_raw ~ "Only RAC_NAME duplicates present")
-    
+    if(!exists('duplicate_type')) { duplicate_type <- NA }
     
     # Note: solution assumes only one duplicate type present in any given id/month/RAC combo
     if (!is.na(duplicate_type)) {
