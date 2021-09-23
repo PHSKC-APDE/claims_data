@@ -25,7 +25,7 @@ library(R.utils)
 # These are use for geocoding new addresses
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
 s_shapes <- "//phshare01/epe_share/WORK/REQUESTS/Maps/Shapefiles/"
-g_shapes <- "//gisdw/kclib/Plibrary2/"
+g_shapes <- "//Kcitfsrprpgdw01/kclib/Plibrary2/"
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
@@ -45,8 +45,8 @@ if(server == "hhsaw") {
   interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
   prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
 } else {
-  interactive_auth <- F  
-  prod <- F
+  interactive_auth <- T  
+  prod <- T
 }
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
@@ -165,11 +165,11 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 if (server == "hhsaw") {
- system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, 
-                                            conn_db = db_claims, 
-                                            server = server,
-                                            full_refresh = F, 
-                                            config = table_config_stage_claims))
+  system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, 
+                                              conn_db = db_claims, 
+                                              server = server,
+                                              full_refresh = F, 
+                                              config = table_config_stage_claims))
 } else if (server == "phclaims") {
   system.time(load_claims.stage_mcaid_claim_f(conn_dw = db_claims, 
                                               conn_db = db_claims, 
@@ -189,8 +189,7 @@ stage_address_clean_timestamp <- load_stage.address_clean_partial_step1(server =
                                                                         config = stage_address_clean_config,
                                                                         source = 'mcaid',
                                                                         interactive_auth = interactive_auth)
-prod <- T
-interactive_auth <- T
+
 if (stage_address_clean_timestamp != 0) {
   # Load time stamp value to metadata table in case R breaks and needs a restart
   db_claims <- create_db_connection(server, interactive = interactive_auth)
@@ -348,7 +347,7 @@ if (qa_stage_address_geocode == 0) {
   last_run_stage_address_geocode <- as.POSIXct(odbc::dbGetQuery(
     db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_address_geocode_config[[server]][['to_schema']]`}.{`stage_address_geocode_config[[server]][['to_table']]`}",
                               .con = db_claims))[[1]])
-
+  
   
   # Pull in the config file
   ref_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml"))
@@ -473,7 +472,7 @@ update_hhsaw <- anti_join(address_clean_phclaims, address_clean_hhsaw,
                           by = "geo_hash_raw")
 
 update_phclaims <- anti_join(address_clean_hhsaw, address_clean_phclaims,
-                          by = "geo_hash_raw")
+                             by = "geo_hash_raw")
 
 
 # Update tables so they are in sync
@@ -596,12 +595,12 @@ stage_schema <- table_config_stage_elig[[server]][["to_schema"]]
 stage_elig <- ifelse(is.null(table_config_stage_elig[[server]][["to_table"]]), '',
                      table_config_stage_elig[[server]][["to_table"]])
 stage_claim <- ifelse(is.null(table_config_stage_claim[[server]][["to_table"]]), '',
-                     table_config_stage_claim[[server]][["to_table"]])
+                      table_config_stage_claim[[server]][["to_table"]])
 archive_schema <- table_config_stage_elig[[server]][["archive_schema"]]
 archive_elig <- ifelse(is.null(table_config_stage_elig[[server]][["archive_table"]]), '',
-                     table_config_stage_elig[[server]][["archive_table"]])
+                       table_config_stage_elig[[server]][["archive_table"]])
 archive_claim <- ifelse(is.null(table_config_stage_claim[[server]][["archive_table"]]), '',
-                      table_config_stage_claim[[server]][["archive_table"]])
+                        table_config_stage_claim[[server]][["archive_table"]])
 bak_schema <- table_config_stage_elig[[server]][["archive_schema"]]
 bak_elig <- paste0(ifelse(is.null(table_config_stage_elig[[server]][["archive_table"]]), '',
                           table_config_stage_elig[[server]][["archive_table"]]), '_bak')
@@ -614,11 +613,11 @@ if (server == "hhsaw") {
 }
 ## Get row counts of each table ##
 cnt_stage_elig <- DBI::dbGetQuery(conn,
-                             glue::glue_sql("SELECT COUNT(*) FROM {`stage_schema`}.{`stage_elig`}",
-                                            .con = conn))[1,1]
+                                  glue::glue_sql("SELECT COUNT(*) FROM {`stage_schema`}.{`stage_elig`}",
+                                                 .con = conn))[1,1]
 cnt_archive_elig <- DBI::dbGetQuery(conn,
-                             glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_elig`}", 
-                                            .con = conn))[1,1]
+                                    glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_elig`}", 
+                                                   .con = conn))[1,1]
 bak_elig_exist <- nrow(DBI::dbGetQuery(conn,
                                        glue::glue_sql("SELECT object_id FROM sys.tables WHERE name = {bak_elig}", 
                                                       .con = conn)))
@@ -628,18 +627,18 @@ if(bak_elig_exist > 0) {
                                                  .con = conn))[1,1]
 } else { cnt_bak_elig <- 0 }
 cnt_stage_claim <- DBI::dbGetQuery(conn,
-                                  glue::glue_sql("SELECT COUNT(*) FROM {`stage_schema`}.{`stage_claim`}",
-                                                 .con = conn))[1,1]
+                                   glue::glue_sql("SELECT COUNT(*) FROM {`stage_schema`}.{`stage_claim`}",
+                                                  .con = conn))[1,1]
 cnt_archive_claim <- DBI::dbGetQuery(conn,
-                                    glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_claim`}", 
-                                                   .con = conn))[1,1]
+                                     glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_claim`}", 
+                                                    .con = conn))[1,1]
 bak_claim_exist <- nrow(DBI::dbGetQuery(conn,
-                                       glue::glue_sql("SELECT object_id FROM sys.tables WHERE name = {bak_claim}", 
-                                                      .con = conn)))
+                                        glue::glue_sql("SELECT object_id FROM sys.tables WHERE name = {bak_claim}", 
+                                                       .con = conn)))
 if(bak_claim_exist > 0) {
   cnt_bak_claim <- DBI::dbGetQuery(conn,
-                                  glue::glue_sql("SELECT COUNT(*) FROM {`bak_schema`}.{`bak_claim`}",
-                                                 .con = conn))[1,1]
+                                   glue::glue_sql("SELECT COUNT(*) FROM {`bak_schema`}.{`bak_claim`}",
+                                                  .con = conn))[1,1]
 } else { cnt_bak_claim <- 0 }
 
 ## Compare row counts between tables ##
@@ -666,13 +665,13 @@ bak_del <- select.list(choices = c("Yes", "No"))
 if (bak_del == "Yes") {
   if (bak_elig_exist > 0) {
     try(DBI::dbSendQuery(conn,
-                       glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_elig`}",
-                                      .con = conn)))
+                         glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_elig`}",
+                                        .con = conn)))
   }
   if (bak_claim_exist > 0) {
     try(DBI::dbSendQuery(conn,
-                       glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_claim`}",
-                                      .con = conn)))
+                         glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_claim`}",
+                                        .con = conn)))
   }
 }
 rm(conn, table_config_stage_elig, table_config_stage_claim, 

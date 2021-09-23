@@ -50,7 +50,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   qa_table <- ifelse(is.null(config[[server]][["qa_table"]]), '',
                       config[[server]][["qa_table"]])
   
-  
+  duplicate_type <- NA
 
   if (!is.null(config$etl$date_var)) {
     date_var <- config$etl$date_var
