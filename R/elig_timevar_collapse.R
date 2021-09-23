@@ -178,7 +178,7 @@ elig_timevar_collapse <- function(conn,
     vars_geo <- c("geo_zip_centroid", 
                   "geo_street_centroid", 
                   "geo_county_code", 
-                  "geo_tractce10",
+                  "geo_tract_code",
                   "geo_hra_code", 
                   "geo_school_code")
     
