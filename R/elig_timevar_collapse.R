@@ -218,6 +218,7 @@ elig_timevar_collapse <- function(conn,
       n_rounds <- ceiling(num_ids/1000)
       list_start <- 1
       list_end <- min(1000, num_ids)
+      i <- 1
       
       # Make progress bar
       print(glue::glue("Loading {n_rounds} ID sets"))
