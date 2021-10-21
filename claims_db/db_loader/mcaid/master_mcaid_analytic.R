@@ -482,95 +482,102 @@ stage_mcaid_perf_measure_amr_f(conn = db_claims, server = server,
 
 
 #### DROP TABLES NO LONGER NEEDED ####
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-#### QA STAGE TABLE COUNTS AND CHOOSE WHETHER TO DROP BACK UP ARCHIVE TABLES OR NOT ####
-table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml")) 
-table_config_stage_claim <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
-stage_schema <- table_config_stage_elig[[server]][["to_schema"]]
-stage_elig <- ifelse(is.null(table_config_stage_elig[[server]][["to_table"]]), '',
-                     table_config_stage_elig[[server]][["to_table"]])
-stage_claim <- ifelse(is.null(table_config_stage_claim[[server]][["to_table"]]), '',
-                      table_config_stage_claim[[server]][["to_table"]])
-archive_schema <- table_config_stage_elig[[server]][["archive_schema"]]
-archive_elig <- ifelse(is.null(table_config_stage_elig[[server]][["archive_table"]]), '',
-                       table_config_stage_elig[[server]][["archive_table"]])
-archive_claim <- ifelse(is.null(table_config_stage_claim[[server]][["archive_table"]]), '',
-                        table_config_stage_claim[[server]][["archive_table"]])
-bak_schema <- table_config_stage_elig[[server]][["archive_schema"]]
-bak_elig <- paste0(ifelse(is.null(table_config_stage_elig[[server]][["archive_table"]]), '',
-                          table_config_stage_elig[[server]][["archive_table"]]), '_bak')
-bak_claim <- paste0(ifelse(is.null(table_config_stage_claim[[server]][["archive_table"]]), '',
-                           table_config_stage_claim[[server]][["archive_table"]]), '_bak')
-if (server == "hhsaw") {
-  conn <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
-} else {
-  conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-}
-## Get row counts of each table ##
-cnt_stage_elig <- DBI::dbGetQuery(conn,
-                                  glue::glue_sql("SELECT COUNT(*) FROM {`stage_schema`}.{`stage_elig`}",
-                                                 .con = conn))[1,1]
-cnt_archive_elig <- DBI::dbGetQuery(conn,
-                                    glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_elig`}", 
-                                                   .con = conn))[1,1]
-bak_elig_exist <- nrow(DBI::dbGetQuery(conn,
-                                       glue::glue_sql("SELECT object_id FROM sys.tables WHERE name = {bak_elig}", 
-                                                      .con = conn)))
-if(bak_elig_exist > 0) {
-  cnt_bak_elig <- DBI::dbGetQuery(conn,
-                                  glue::glue_sql("SELECT COUNT(*) FROM {`bak_schema`}.{`bak_elig`}",
-                                                 .con = conn))[1,1]
-} else { cnt_bak_elig <- 0 }
-cnt_stage_claim <- DBI::dbGetQuery(conn,
-                                   glue::glue_sql("SELECT COUNT(*) FROM {`stage_schema`}.{`stage_claim`}",
-                                                  .con = conn))[1,1]
-cnt_archive_claim <- DBI::dbGetQuery(conn,
-                                     glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_claim`}", 
-                                                    .con = conn))[1,1]
-bak_claim_exist <- nrow(DBI::dbGetQuery(conn,
-                                        glue::glue_sql("SELECT object_id FROM sys.tables WHERE name = {bak_claim}", 
-                                                       .con = conn)))
-if(bak_claim_exist > 0) {
-  cnt_bak_claim <- DBI::dbGetQuery(conn,
-                                   glue::glue_sql("SELECT COUNT(*) FROM {`bak_schema`}.{`bak_claim`}",
-                                                  .con = conn))[1,1]
-} else { cnt_bak_claim <- 0 }
-
-## Compare row counts between tables ##
-if (cnt_stage_elig >= cnt_archive_elig & cnt_archive_elig >= cnt_bak_elig) {
-  message("No issues with Elig stage, archive and bak table counts.")
-} else {
-  message("Potential issue with Elig stage, archive and bak table counts:")
-  message(paste0("Stage: ", cnt_stage_elig))
-  message(paste0("Archive: ", cnt_archive_elig))
-  message(paste0("Bak: ", cnt_bak_elig))
-}
-if (cnt_stage_claim >= cnt_archive_claim & cnt_archive_claim >= cnt_bak_claim) {
-  message("No issues with Claims stage, archive and bak table counts.")
-} else {
-  message("Potential issue with Claims stage, archive and bak table counts:")
-  message(paste0("Stage: ", cnt_stage_claim))
-  message(paste0("Archive: ", cnt_archive_claim))
-  message(paste0("Bak: ", cnt_bak_claim))
-}  
-
-## Ask to delete backup archive tables ##
-message("DELETE BACK UP ARCHIVE TABLES?")
-bak_del <- select.list(choices = c("Yes", "No"))
+bak_check <- dlg_list(c("Yes", "No"), title = "CHECK BACKUP TABLES?")$res
 if (bak_del == "Yes") {
-  if (bak_elig_exist > 0) {
-    try(DBI::dbSendQuery(conn,
-                         glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_elig`}",
-                                        .con = conn)))
+  db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+  #### QA STAGE TABLE COUNTS AND CHOOSE WHETHER TO DROP BACK UP ARCHIVE TABLES OR NOT ####
+  table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml")) 
+  table_config_stage_claim <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
+  stage_schema <- table_config_stage_elig[[server]][["to_schema"]]
+  stage_elig <- ifelse(is.null(table_config_stage_elig[[server]][["to_table"]]), '',
+                      table_config_stage_elig[[server]][["to_table"]])
+  stage_claim <- ifelse(is.null(table_config_stage_claim[[server]][["to_table"]]), '',
+                        table_config_stage_claim[[server]][["to_table"]])
+  archive_schema <- table_config_stage_elig[[server]][["archive_schema"]]
+  archive_elig <- ifelse(is.null(table_config_stage_elig[[server]][["archive_table"]]), '',
+                        table_config_stage_elig[[server]][["archive_table"]])
+  archive_claim <- ifelse(is.null(table_config_stage_claim[[server]][["archive_table"]]), '',
+                          table_config_stage_claim[[server]][["archive_table"]])
+  bak_schema <- table_config_stage_elig[[server]][["archive_schema"]]
+  bak_elig <- paste0(ifelse(is.null(table_config_stage_elig[[server]][["archive_table"]]), '',
+                            table_config_stage_elig[[server]][["archive_table"]]), '_bak')
+  bak_claim <- paste0(ifelse(is.null(table_config_stage_claim[[server]][["archive_table"]]), '',
+                            table_config_stage_claim[[server]][["archive_table"]]), '_bak')
+  if (server == "hhsaw") {
+    conn <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+  } else {
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   }
-  if (bak_claim_exist > 0) {
-    try(DBI::dbSendQuery(conn,
-                         glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_claim`}",
-                                        .con = conn)))
+  ## Get row counts of each table ##
+  cnt_stage_elig <- DBI::dbGetQuery(conn,
+                                    glue::glue_sql("SELECT COUNT(*) FROM {`stage_schema`}.{`stage_elig`}",
+                                                   .con = conn))[1,1]
+  cnt_archive_elig <- DBI::dbGetQuery(conn,
+                                      glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_elig`}", 
+                                                     .con = conn))[1,1]
+  bak_elig_exist <- nrow(DBI::dbGetQuery(conn,
+                                         glue::glue_sql("SELECT object_id FROM sys.tables WHERE name = {bak_elig}", 
+                                                        .con = conn)))
+  if(bak_elig_exist > 0) {
+    cnt_bak_elig <- DBI::dbGetQuery(conn,
+                                    glue::glue_sql("SELECT COUNT(*) FROM {`bak_schema`}.{`bak_elig`}",
+                                                   .con = conn))[1,1]
+  } else { cnt_bak_elig <- 0 }
+  cnt_stage_claim <- DBI::dbGetQuery(conn,
+                                     glue::glue_sql("SELECT COUNT(*) FROM {`stage_schema`}.{`stage_claim`}",
+                                                    .con = conn))[1,1]
+  cnt_archive_claim <- DBI::dbGetQuery(conn,
+                                       glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_claim`}", 
+                                                      .con = conn))[1,1]
+  bak_claim_exist <- nrow(DBI::dbGetQuery(conn,
+                                          glue::glue_sql("SELECT object_id FROM sys.tables WHERE name = {bak_claim}", 
+                                                         .con = conn)))
+  if(bak_claim_exist > 0) {
+    cnt_bak_claim <- DBI::dbGetQuery(conn,
+                                     glue::glue_sql("SELECT COUNT(*) FROM {`bak_schema`}.{`bak_claim`}",
+                                                    .con = conn))[1,1]
+  } else { cnt_bak_claim <- 0 }
+  
+  ## Compare row counts between tables ##
+  if (cnt_stage_elig >= cnt_archive_elig & cnt_archive_elig >= cnt_bak_elig) {
+    message("No issues with Elig stage, archive and bak table counts.")
+  } else {
+    message("Potential issue with Elig stage, archive and bak table counts:")
+    message(paste0("Stage: ", cnt_stage_elig))
+    message(paste0("Archive: ", cnt_archive_elig))
+    message(paste0("Bak: ", cnt_bak_elig))
   }
+  if (cnt_stage_claim >= cnt_archive_claim & cnt_archive_claim >= cnt_bak_claim) {
+    message("No issues with Claims stage, archive and bak table counts.")
+  } else {
+    message("Potential issue with Claims stage, archive and bak table counts:")
+    message(paste0("Stage: ", cnt_stage_claim))
+    message(paste0("Archive: ", cnt_archive_claim))
+    message(paste0("Bak: ", cnt_bak_claim))
+  }  
+  
+  ## Ask to delete backup archive tables ##
+  bak_del <- dlg_list(c("Yes", "No"), title = "DELETE BACK UP ARCHIVE TABLES?")$res
+  if (bak_del == "Yes") {
+    if (bak_elig_exist > 0) {
+      try(DBI::dbSendQuery(conn,
+                           glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_elig`}",
+                                          .con = conn)))
+    }
+    if (bak_claim_exist > 0) {
+      try(DBI::dbSendQuery(conn,
+                           glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_claim`}",
+                                          .con = conn)))
+    }
+  }
+  rm(conn, table_config_stage_elig, table_config_stage_claim, 
+     bak_schema, bak_elig, bak_claim, bak_elig_exist, bak_claim_exist, bak_del,
+     stage_schema, stage_claim, stage_elig, cnt_stage_claim, cnt_stage_elig,
+     archive_schema, archive_claim, archive_elig, cnt_archive_claim, cnt_archive_elig,
+     cnt_bak_claim, cnt_bak_elig)
 }
-rm(conn, table_config_stage_elig, table_config_stage_claim, 
-   bak_schema, bak_elig, bak_claim, bak_elig_exist, bak_claim_exist, bak_del,
-   stage_schema, stage_claim, stage_elig, cnt_stage_claim, cnt_stage_elig,
-   archive_schema, archive_claim, archive_elig, cnt_archive_claim, cnt_archive_elig,
-   cnt_bak_claim, cnt_bak_elig)
+
+send_email <- dlg_list(c("Yes", "No"), title = "SEND COMPLETION EMAIL?")$res
+if(send_email == "Yes") {
+  
+}
