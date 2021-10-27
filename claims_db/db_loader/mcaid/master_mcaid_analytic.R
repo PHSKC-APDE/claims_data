@@ -25,11 +25,14 @@ library(R.utils)
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/claim_ccw.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/claim_bh.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/mcaid/create_db_connection.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/notify.R")
+memory.limit(size = 56000)
 
 server <- dlg_list(c("phclaims", "hhsaw"), title = "Select Server.")$res
 if(server == "hhsaw") {
@@ -138,6 +141,8 @@ last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
 qa_stage_mcaid_elig_timevar <- qa_mcaid_elig_timevar_f(conn = db_claims, server = server, 
                                                        config = stage_mcaid_elig_timevar_config, load_only = F)
+# Re-establish connection because it drops out faster in Azure VM
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
 # Check that things passed QA before loading final table
 if (qa_stage_mcaid_elig_timevar == 0) {
@@ -208,13 +213,13 @@ rm(qa_stage_mcaid_elig_timevar, stage_mcaid_elig_timevar_config, load_stage_mcai
 # now but might want to tighten that up at some point.
 
 claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line", 
-                                   "pharm", "procedure")) {
+                                   "pharm", "procedure", "bh")) {
   
   table <- match.arg(table)
   
   ### Bring in function and config file
   # ccw script already called in above
-  if (table != "ccw") {
+  if (table != "ccw" & table != "bh") {
     devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".R"))
   }
   stage_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".yaml"))
@@ -233,6 +238,8 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
     load_stage_mcaid_claim_pharm_f(conn = db_claims, server = server, config = stage_config)
   } else if (table == "procedure") {
     load_stage_mcaid_claim_procedure_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "bh") {
+    load_bh(conn = db_claims, server = server, source = "mcaid", config = stage_config)
   }
   
   # Re-establish connection because it drops out faster in Azure VM
@@ -245,7 +252,11 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
   
   
   ### QA table and load to final
-  devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_", table, ".R"))
+  if (table != "bh") {
+    devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_", table, ".R"))
+  }
+  
+  qa_stage <- 0
   
   if (table == "ccw") {
     qa_stage <- qa_stage_mcaid_claim_ccw_f(conn = db_claims, server = server, config = stage_config, skip_review = T)
@@ -379,9 +390,12 @@ db_claims <- create_db_connection(server, interactive = interactive_auth, prod =
 claim_ccw_fail <- claim_load_f(table = "ccw")
 
 
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+#### MCAID_CLAIM_BH ####
+claim_bh_fail <- claim_load_f(table = "bh")
+
 
 #### MCAID_CLAIM_VALUE_SET ####
-
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 #### PERFORMANCE MEASURES ------------------------------------------------------
@@ -483,7 +497,7 @@ stage_mcaid_perf_measure_amr_f(conn = db_claims, server = server,
 
 #### DROP TABLES NO LONGER NEEDED ####
 bak_check <- dlg_list(c("Yes", "No"), title = "CHECK BACKUP TABLES?")$res
-if (bak_del == "Yes") {
+if (bak_check == "Yes") {
   db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   #### QA STAGE TABLE COUNTS AND CHOOSE WHETHER TO DROP BACK UP ARCHIVE TABLES OR NOT ####
   table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml")) 
@@ -543,18 +557,18 @@ if (bak_del == "Yes") {
     message("No issues with Elig stage, archive and bak table counts.")
   } else {
     message("Potential issue with Elig stage, archive and bak table counts:")
-    message(paste0("Stage: ", cnt_stage_elig))
-    message(paste0("Archive: ", cnt_archive_elig))
-    message(paste0("Bak: ", cnt_bak_elig))
   }
+  message(paste0("Stage: ", cnt_stage_elig))
+  message(paste0("Archive: ", cnt_archive_elig))
+  message(paste0("Bak: ", cnt_bak_elig))
   if (cnt_stage_claim >= cnt_archive_claim & cnt_archive_claim >= cnt_bak_claim) {
     message("No issues with Claims stage, archive and bak table counts.")
   } else {
     message("Potential issue with Claims stage, archive and bak table counts:")
-    message(paste0("Stage: ", cnt_stage_claim))
-    message(paste0("Archive: ", cnt_archive_claim))
-    message(paste0("Bak: ", cnt_bak_claim))
   }  
+  message(paste0("Stage: ", cnt_stage_claim))
+  message(paste0("Archive: ", cnt_archive_claim))
+  message(paste0("Bak: ", cnt_bak_claim))
   
   ## Ask to delete backup archive tables ##
   bak_del <- dlg_list(c("Yes", "No"), title = "DELETE BACK UP ARCHIVE TABLES?")$res
@@ -579,5 +593,21 @@ if (bak_del == "Yes") {
 
 send_email <- dlg_list(c("Yes", "No"), title = "SEND COMPLETION EMAIL?")$res
 if(send_email == "Yes") {
-  
+  if (server == "phclaims") {
+    schema <- "metadata"
+    table <- "etl_log"
+  } else if (server == "hhsaw") {
+    schema <- "claims"
+    table <- "metadata_etl_log"
+  }
+  etl <- DBI::dbGetQuery(db_claims, 
+                         glue::glue_sql("SELECT TOP (1) *
+                                        FROM {`schema`}.{`table`}
+                                        WHERE [date_load_raw] IS NOT NULL
+                                        ORDER BY [date_load_raw] DESC",
+                                        .con = db_claims))
+  etl$server <- server
+  vars <- etl
+  apde_notify_f("claims_mcaid_update",
+                vars)
 }

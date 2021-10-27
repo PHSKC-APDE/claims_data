@@ -37,7 +37,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/copy_into.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/mcaid/create_db_connection.R")
-
+memory.limit(size = 56000)
 
 #### CHOOSE SERVER AND CREATE CONNECTION ####
 server <- dlg_list(c("phclaims", "hhsaw"), title = "Select Server.")$res
@@ -324,8 +324,6 @@ if (stage_address_clean_timestamp != 0) {
   rm(add_output, elig_etl, timestamp_record)
   rm(stage_address_clean_config, qa.address_clean_partial, qa_stage_address_clean)
 }
-
-
 
 
 #### STAGE.ADDRESS_GEOCODE ####
