@@ -13,7 +13,7 @@ library(tidyverse) # Manipulate data
 library(dplyr) # Manipulate data
 library(lubridate) # Manipulate dates
 library(odbc) # Read to and write from SQL
-library(RCurl) # Read files from Github
+library(RCurl) # Read files from Githuba
 library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
 library(sf) # Read shape files
@@ -142,6 +142,9 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 if (server == "hhsaw") {
+  dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+}
+if (server == "hhsaw") {
   system.time(load_stage.mcaid_elig_f(conn_dw = dw_inthealth, 
                                       conn_db = db_claims, 
                                       server = server,
@@ -164,6 +167,9 @@ if (table_config_stage_claims[[1]] == "Not Found") {stop("Error in config file. 
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+if (server == "hhsaw") {
+  dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+}
 if (server == "hhsaw") {
   system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, 
                                               conn_db = db_claims, 
@@ -223,12 +229,12 @@ if (stage_address_clean_timestamp != 0) {
   #     However, the same is not true when checking the Informatica output table.
   #     Therefore need to do some timezone conversion.
   #     If loading from the qa_mcaid_values table, use as.POSIXct(<value>, tz = "UTC")
-  add_output <- DBI::dbGetQuery(db_claims, 
+  add_output <- DBI::dbGetQuery(conn_hhsaw, 
                                 glue::glue_sql("SELECT TOP (1) * 
                                FROM {`stage_address_clean_config[['informatica_ref_schema']]`}.{`stage_address_clean_config[['informatica_output_table']]`} 
                                WHERE convert(varchar, timestamp, 20) = 
                                                {lubridate::with_tz(stage_address_clean_timestamp, 'utc')}",
-                                               .con = db_claims))
+                                               .con = conn_hhsaw))
   
   while(nrow(add_output) == 0) {
     # Wait an hour before checking again
