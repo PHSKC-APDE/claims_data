@@ -159,11 +159,12 @@ stage_address_geocode_f <- function(conn = NULL,
           add_text <- address
         }
         
+        here_url <- "https://geocode.search.hereapi.com/v1/geocode"
+        
         # Query HERE servers (make sure API key is stored)
         geo_query <- httr::GET(here_url, 
-                               query = list(app_id = here_app_id,
-                                            app_code = here_app_code,
-                                            searchtext = add_text))
+                               query = list(apiKey = here_app_code,
+                                            q = add_text))
         
         # Convert results to a list
         geo_reply <- httr::content(geo_query)
@@ -175,17 +176,25 @@ stage_address_geocode_f <- function(conn = NULL,
                              address_type = NA)
         
         # Check for a result
-        if (length(geo_reply$Response$View) > 0) {
+        if (length(geo_reply$items) > 0) {
           
           # Convert to a data frame
-          geo_reply <- as.data.frame(geo_reply$Response$View)
+          geo_reply <- as.data.frame(geo_reply$items)
+          
+          if (geo_reply$resultType == "locality") {
+            add_type <- geo_reply$localityType
+          } else if (geo_reply$resultType == "administrativeArea") {
+            add_type <- geo_reply$administrativeType
+          } else {
+            add_type <- geo_reply$resultType
+          }
           
           answer <- answer %>%
             mutate(
-              lat = geo_reply$Result.Location.NavigationPosition.Latitude,
-              lon = geo_reply$Result.Location.DisplayPosition.Longitude,
-              formatted_address = geo_reply$Result.Location.Address.Label,
-              address_type = geo_reply$Result.MatchLevel
+              lat = geo_reply$position.lat,
+              lon = geo_reply$position.lng,
+              formatted_address = geo_reply$address.label,
+              address_type = add_type
             )
         }
         return(answer)
