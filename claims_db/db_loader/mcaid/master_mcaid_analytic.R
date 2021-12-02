@@ -600,6 +600,7 @@ if(send_email == "Yes") {
     schema <- "claims"
     table <- "metadata_etl_log"
   }
+  db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   etl <- DBI::dbGetQuery(db_claims, 
                          glue::glue_sql("SELECT TOP (1) *
                                         FROM {`schema`}.{`table`}
