@@ -270,7 +270,11 @@ stage_address_geocode_f <- function(conn = NULL,
                              "sno_streets_centerline") ~ "esri",
             !is.na(geo_lat.y) & address_type %in% c("houseNumber", "street") ~ "here",
             !is.na(geo_lat.x) & locName == "zip_5_digit_gc" ~ "esri",
-            !is.na(geo_lat.y) & address_type %in% c("postalCode") ~ "here",
+            !is.na(geo_lat.y) & address_type %in% c("postalCode", "subdistrict",
+                                                    "district", "city",
+                                                    "county", "state",
+                                                    "country", "addressBlock",
+                                                    "place") ~ "here",
             TRUE ~ NA_character_))
       
       # Print out any loc_names not accounted for

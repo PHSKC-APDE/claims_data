@@ -274,8 +274,10 @@ if (stage_address_clean_timestamp != 0) {
   # Pull in the config file
   ref_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
   
-  to_schema <- ref_address_clean_config[[server]][["to_schema"]]
-  to_table <- ref_address_clean_config[[server]][["to_table"]]
+  from_schema <- ref_address_clean_config[["hhsaw"]][["from_schema"]]
+  from_table <- ref_address_clean_config[["hhsaw"]][["table_schema"]]
+  to_schema <- ref_address_clean_config[["hhsaw"]][["to_schema"]]
+  to_table <- ref_address_clean_config[["hhsaw"]][["to_table"]]
   qa_schema <- ref_address_clean_config[[server]][["qa_schema"]]
   qa_table <- ifelse(is.null(ref_address_clean_config[[server]][["qa_table"]]), '',
                      ref_address_clean_config[[server]][["qa_table"]])
@@ -284,29 +286,31 @@ if (stage_address_clean_timestamp != 0) {
   # Check that things passed QA before loading final table
   if (qa_stage_address_clean == 0) {
     # Pull out run date
+    conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
     last_run_stage_address_clean <- as.POSIXct(odbc::dbGetQuery(
-      db_claims, glue::glue_sql("SELECT MAX (last_run) 
-                              FROM {`stage_address_clean_config[[server]][['to_schema']]`}.{`stage_address_clean_config[[server]][['to_table']]`}",
-                                .con = db_claims))[[1]])
+      conn_hhsaw, glue::glue_sql("SELECT MAX (last_run) 
+                              FROM {`from_schema`}.{`from_table`}",
+                                .con = conn_hhsaw))[[1]])
     
     
     # Check if the table exists and, if not, create it
-    if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {
-      create_table_f(db_claims, server = server, config = ref_address_clean_config)
+    if (DBI::dbExistsTable(conn_hhsaw, DBI::Id(schema = to_schema, table = to_table)) == F) {
+      create_table_f(conn_hhsaw, server = server, config = ref_address_clean_config)
     }
     
     # Load final table (assumes no changes to table structure)
-    load_table_from_sql_f(conn = db_claims, 
-                          server = server,
+    load_table_from_sql_f(conn = conn_hhsaw, 
+                          server = "hhsaw",
                           config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
                           truncate = T, truncate_date = F)
     
     # QA final table
     message("QA final address clean table")
-    qa_rows_ref_address_clean <- qa_sql_row_count_f(conn = db_claims, 
-                                                    server = server,
+    qa_rows_ref_address_clean <- qa_sql_row_count_f(conn = conn_hhsaw, 
+                                                    server = "hhsaw",
                                                     config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml")
     
+    db_claims <- create_db_connection(server, interactive = interactive_auth)
     DBI::dbExecute(
       conn = db_claims,
       glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
@@ -337,50 +341,52 @@ if (stage_address_clean_timestamp != 0) {
 stage_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
 
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_geocode_partial.R")
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-qa_stage_address_geocode <- stage_address_geocode_f(conn = db_claims, 
-                                                    server = server, 
+conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
+qa_stage_address_geocode <- stage_address_geocode_f(conn = conn_hhsaw, 
+                                                    server = "hhsaw", 
                                                     config = stage_address_geocode_config, 
                                                     full_refresh = F)
 
 
 #### REF.ADDRESS_GEOCODE ####
 if (qa_stage_address_geocode == 0) {
-  db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+  conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
   # Pull out run date
   last_run_stage_address_geocode <- as.POSIXct(odbc::dbGetQuery(
-    db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_address_geocode_config[[server]][['to_schema']]`}.{`stage_address_geocode_config[[server]][['to_table']]`}",
-                              .con = db_claims))[[1]])
+    conn_hhsaw, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_address_geocode_config[[server]][['to_schema']]`}.{`stage_address_geocode_config[[server]][['to_table']]`}",
+                              .con = conn_hhsaw))[[1]])
   
   
   # Pull in the config file
   ref_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml"))
   
-  to_schema <- ref_address_geocode_config[[server]][["to_schema"]]
-  to_table <- ref_address_geocode_config[[server]][["to_table"]]
+  to_schema <- ref_address_geocode_config[["hhsaw"]][["to_schema"]]
+  to_table <- ref_address_geocode_config[["hhsaw"]][["to_table"]]
   qa_schema <- ref_address_geocode_config[[server]][["qa_schema"]]
   qa_table <- ifelse(is.null(ref_address_geocode_config[[server]][["qa_table"]]), '',
                      ref_address_geocode_config[[server]][["qa_table"]])
   
+  conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
   # Check if the table exists and, if not, create it
-  if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {
-    create_table_f(db_claims, server = server, config = ref_address_geocode_config)
+  if (DBI::dbExistsTable(conn_hhsaw, DBI::Id(schema = to_schema, table = to_table)) == F) {
+    create_table_f(conn_hhsaw, server = "hhsaw", config = ref_address_geocode_config)
   }
   
   
   # Load final table (assumes no changes to table structure)
-  load_table_from_sql_f(conn = db_claims,
-                        server = server,
+  load_table_from_sql_f(conn = conn_hhsaw,
+                        server = "hhsaw",
                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
                         truncate = T, truncate_date = F)
   
   
   # QA final table
   message("QA final address geocode table")
-  qa_rows_final <- qa_sql_row_count_f(conn = db_claims,
-                                      server = server,
+  qa_rows_final <- qa_sql_row_count_f(conn = conn_hhsaw,
+                                      server = "hhsaw",
                                       config = ref_address_geocode_config)
   
+  db_claims <- create_db_connection(server, interactive = interactive_auth)
   DBI::dbExecute(
     conn = db_claims,
     glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
@@ -397,7 +403,9 @@ if (qa_stage_address_geocode == 0) {
 }
 rm(stage_address_geocode_config, qa_stage_address_geocode, stage_address_geocode_f)
 
-
+##### IGNORE - ALL ON HHSAW #####
+sync_servers <- F
+if(sync_servers == T) {
 #### PHCLAIM AND HHSAW ADDRESS SYNC ####
 # While Medicaid claims are being loaded to both servers, need to keep ref tables synced.
 # Not always clear which server will be loaded first with new addresses, so check both 
@@ -587,3 +595,4 @@ if (nrow(update_phclaims) > 0) {
                     append = T)
 }
 message(nrow(update_phclaims), " geocode rows loaded from HHSAW to PHClaims")
+}

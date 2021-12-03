@@ -33,27 +33,28 @@ qa.address_clean_partial <- function(conn = NULL,
   
   from_schema <- config[[server]][["from_schema"]]
   from_table <- config[[server]][["from_table"]]
-  to_schema <- config[[server]][["to_schema"]]
-  to_table <- config[[server]][["to_table"]]
-  ref_schema <- config[[server]][["ref_schema"]]
-  ref_table <- config[[server]][["ref_table"]]
+  to_schema <- config[["hhsaw"]][["to_schema"]]
+  to_table <- config[["hhsaw"]][["to_table"]]
+  ref_schema <- config[["hhsaw"]][["ref_schema"]]
+  ref_table <- config[["hhsaw"]][["ref_table"]]
   qa_schema <- config[[server]][["qa_schema"]]
   qa_table <- ifelse(is.null(config[[server]][["qa_table"]]), '',
                      config[[server]][["qa_table"]])
   
   ### Pull out run date of stage.mcaid_elig_timevar
+  conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
   last_run <- as.POSIXct(odbc::dbGetQuery(
-    conn, glue::glue_sql("SELECT MAX (last_run) FROM {`ref_schema`}.{`ref_table`}",
-                         .con = conn))[[1]])
+    conn_hhsaw, glue::glue_sql("SELECT MAX (last_run) FROM {`ref_schema`}.{`ref_table`}",
+                         .con = conn_hhsaw))[[1]])
   
   
   ### Check rows in stage vs ref
-  rows_stage <- as.integer(dbGetQuery(conn, 
+  rows_stage <- as.integer(dbGetQuery(conn_hhsaw, 
                                       glue::glue_sql("SELECT COUNT (*) AS row_cnt FROM {`to_schema`}.{`to_table`}",
-                                                     .con = conn)))
-  rows_ref <- as.integer(dbGetQuery(conn, 
+                                                     .con = conn_hhsaw)))
+  rows_ref <- as.integer(dbGetQuery(conn_hhsaw, 
                                     glue::glue_sql("SELECT COUNT (*) AS row_cnt FROM {`ref_schema`}.{`ref_table`}",
-                                                   .con = conn)))
+                                                   .con = conn_hhsaw)))
   
   if (rows_stage < rows_ref) {
     row_qa_fail <- 1
@@ -85,12 +86,12 @@ qa.address_clean_partial <- function(conn = NULL,
   
   
   ### Check names of fields
-  names_stage <- names(odbc::dbGetQuery(conn = conn, 
+  names_stage <- names(odbc::dbGetQuery(conn = conn_hhsaw, 
                                         glue::glue_sql("SELECT TOP (0) * FROM {`to_schema`}.{`to_table`}",
-                                                       .con = conn)))
-  names_ref <- names(odbc::dbGetQuery(conn = conn, 
+                                                       .con = conn_hhsaw)))
+  names_ref <- names(odbc::dbGetQuery(conn = conn_hhsaw, 
                                       glue::glue_sql("SELECT TOP (0) * FROM {`ref_schema`}.{`ref_table`}",
-                                                     .con = conn)))
+                                                     .con = conn_hhsaw)))
   
   if (min(names_stage == names_ref) == 0) {
     col_qa_fail <- 1

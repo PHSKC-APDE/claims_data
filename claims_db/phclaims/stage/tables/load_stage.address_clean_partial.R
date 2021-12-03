@@ -55,8 +55,8 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
   from_table <- config[[server]][["from_table"]]
   to_schema <- config[[server]][["to_schema"]]
   to_table <- config[[server]][["to_table"]]
-  ref_schema <- config[[server]][["ref_schema"]]
-  ref_table <- config[[server]][["ref_table"]]
+  ref_schema <- config[["hhsaw"]][["ref_schema"]]
+  ref_table <- config[["hhsaw"]][["ref_table"]]
   informatica_ref_schema <- config[["informatica_ref_schema"]]
   informatica_input_table <- config[["informatica_input_table"]]
   informatica_output_table <- config[["informatica_output_table"]]
@@ -64,25 +64,27 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
   #### STEP 1A: Take address data from Medicaid that don't match to the ref table ####
   ### Bring in all Medicaid addresses not in the ref table
   # Include ETL batch ID to know where the addresses are coming from
-  new_add <- dbGetQuery(
+  conn <- create_db_connection(server, interactive = interactive_auth)
+  stage_adds <- DBI::dbGetQuery(
     conn,
-    glue::glue_sql("SELECT DISTINCT a.geo_add1_raw, a.geo_add2_raw, a.geo_city_raw,
-                   a.geo_state_raw, a.geo_zip_raw, a.geo_hash_raw, a.etl_batch_id,
-                   b.[exists]
-                   FROM
-                   (SELECT
+    glue::glue_sql("SELECT DISTINCT 
                      RSDNTL_ADRS_LINE_1 AS 'geo_add1_raw', 
                      RSDNTL_ADRS_LINE_2 AS 'geo_add2_raw', 
                      RSDNTL_CITY_NAME AS 'geo_city_raw', 
                      RSDNTL_STATE_CODE AS 'geo_state_raw', 
                      RSDNTL_POSTAL_CODE AS 'geo_zip_raw', 
                      geo_hash_raw, etl_batch_id
-                     FROM {`from_schema`}.{`from_table`}) a
-                   LEFT JOIN
-                   (SELECT geo_hash_raw, 1 AS [exists] FROM {`ref_schema`}.{`ref_table`}) b
-                   ON a.geo_hash_raw = b.geo_hash_raw
-                   WHERE b.[exists] IS NULL",
+                   FROM {`from_schema`}.{`from_table`}",
                    .con = conn))
+  
+  conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
+  ref_hashes <- DBI::dbGetQuery(
+    conn_hhsaw,
+    glue::glue_sql("SELECT geo_hash_raw
+                   FROM {`ref_schema`}.{`ref_table`}",
+                   .con = conn_hhsaw))
+  
+  new_add <- anti_join(stage_adds, ref_hashes)
   
   #### STEP 1B: Output data to run through Informatica ####
   # Record current time
@@ -145,10 +147,10 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   conn <- create_db_connection("hhsaw", interactive = interactive_auth)
   from_schema <- config[[server]][["from_schema"]]
   from_table <- config[[server]][["from_table"]]
-  to_schema <- config[[server]][["to_schema"]]
-  to_table <- config[[server]][["to_table"]]
-  ref_schema <- config[[server]][["ref_schema"]]
-  ref_table <- config[[server]][["ref_table"]]
+  to_schema <- config[["hhsaw"]][["to_schema"]]
+  to_table <- config[["hhsaw"]][["to_table"]]
+  ref_schema <- config[["hhsaw"]][["ref_schema"]]
+  ref_table <- config[["hhsaw"]][["ref_table"]]
   informatica_ref_schema <- config[["informatica_ref_schema"]]
   informatica_input_table <- config[["informatica_input_table"]]
   informatica_output_table <- config[["informatica_output_table"]]
@@ -322,8 +324,8 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   
   
   #### STEP 2C: APPEND to SQL ####
-  conn <- create_db_connection(server, interactive = interactive_auth)
-  dbWriteTable(conn, 
+  conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
+  dbWriteTable(conn_hhsaw, 
                name = DBI::Id(schema = to_schema,  table = to_table),
                new_add_final,
                overwrite = F, append = T)
