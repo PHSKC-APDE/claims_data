@@ -5,6 +5,9 @@ phclaims:
     to_table: mcaid_elig_timevar
     ref_schema: ref
     ref_table: 
+    address_schema: ref
+    address_table: address_clean
+    geocode_table: address_geocode
     qa_schema: metadata
     qa_table: 
 hhsaw:
@@ -14,6 +17,9 @@ hhsaw:
     to_table: stage_mcaid_elig_timevar
     ref_schema: claims
     ref_table: ref_
+    address_schema: ref
+    address_table: address_clean
+    geocode_table: address_geocode
     qa_schema: claims
     qa_table: metadata_
 vars:
