@@ -64,7 +64,7 @@ stage_address_geocode_f <- function(conn = NULL,
   conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   
   #### PULL IN DATA ####
-  paste0("Pulling in data ... ", Sys.time())
+  message(paste0("Pulling in data ... ", Sys.time()))
   
   if (full_refresh == F) {
     # Join ref.address_clean to ref.address_geocode to find addresses not geocoded
@@ -146,7 +146,7 @@ stage_address_geocode_f <- function(conn = NULL,
     
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### RUN THROUGH HERE GEOCODER ####
-    paste0("Running through HERE geocoder ... ", Sys.time())
+    message(paste0("Running through HERE geocoder ... ", Sys.time()))
     
     ### Find addresses that need additional geocoding
     adds_coded_unmatch <- adds_coded %>%
@@ -264,7 +264,7 @@ stage_address_geocode_f <- function(conn = NULL,
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     #### BRING ESRI AND HERE DATA TOGETHER ####
-    paste0("Joining ESRI and HERE geocoded data together ... ", Sys.time())
+    message(paste0("Joining ESRI and HERE geocoded data together ... ", Sys.time()))
     
     if (nrow(adds_coded_unmatch) > 0) {
       # Collapse to useful columns and select matching from each source as appropriate
@@ -422,7 +422,7 @@ stage_address_geocode_f <- function(conn = NULL,
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     #### JOIN TO SPATIAL FILES OF INTEREST ####
-    paste0("Join geocoded data to spatial files of interest ... ", Sys.time())
+    message(paste0("Join geocoded data to spatial files of interest ... ", Sys.time()))
     
     ### Set up as spatial file
     adds_coded <- st_as_sf(adds_coded, coords = c("geo_lon", "geo_lat"), 
@@ -522,7 +522,7 @@ stage_address_geocode_f <- function(conn = NULL,
     
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### LOAD TO SQL ####
-    paste0("Load to SQL ... ", Sys.time())
+    message(paste0("Load to SQL ... ", Sys.time()))
     
     if (full_refresh == F) {
       # Check how many rows are already in the stage table
@@ -560,7 +560,7 @@ stage_address_geocode_f <- function(conn = NULL,
     
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### BASIC QA ####
-    paste0("Running basic QA ... ", Sys.time())
+    message(paste0("Running basic QA ... ", Sys.time()))
     if (full_refresh == F) {
       ### Compare row counts now
       row_load_ref_geo <- nrow(adds_coded_load)
