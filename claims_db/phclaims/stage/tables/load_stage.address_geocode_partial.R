@@ -24,6 +24,22 @@ stage_address_geocode_f <- function(conn = NULL,
                                     get_config = F,
                                     full_refresh = F) {
 
+  # load necessary packages -- will cause an error upfront to avoid headaches later
+  library(dplyr)
+  library(tidyr)
+  library(stringr)
+  library(sf)
+  library(rjson)
+  library(DBI)
+  library(keyring)
+  
+  # check for necessary arguments that are not called for directly in the function arguments
+  if(!exists("s_shapes")){stop("You must define the s_shapes directory (e.g., s_shapes <- '//phshare01/epe_share/WORK/REQUESTS/Maps/Shapefiles/'")}
+  if(!exists("g_shapes")){stop("You must define the g_shapes directory (e.g., g_shapes <- g_shapes <- '//Kcitfsrprpgdw01/kclib/Plibrary2/'")}
+  if(!exists("interactive_auth")){stop("You must define interactive_auth in your environment for create_db_connection() (e.g., interactive_auth = TRUE")}
+  if(!exists("prod")){stop("You must define prod in your environment for create_db_connection() (e.g., prod = TRUE")}
+  
+  
   # Set up variables specific to the server
   server <- match.arg(server)
   
@@ -48,6 +64,8 @@ stage_address_geocode_f <- function(conn = NULL,
   conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   
   #### PULL IN DATA ####
+  message(paste0("Pulling in data ... ", Sys.time()))
+  
   if (full_refresh == F) {
     # Join ref.address_clean to ref.address_geocode to find addresses not geocoded
     adds_to_code <- dbGetQuery(
@@ -79,6 +97,8 @@ stage_address_geocode_f <- function(conn = NULL,
     
     
     #### RUN THROUGH ESRI GEOCODER ####
+    message(paste0("Running through ESRI geocoder ... ", Sys.time()))
+    
     ### Source geocoding function
     # Temporrily the repo is private so need auth
     #eval(parse(text = httr::content(httr::GET(
@@ -126,6 +146,8 @@ stage_address_geocode_f <- function(conn = NULL,
     
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### RUN THROUGH HERE GEOCODER ####
+    message(paste0("Running through HERE geocoder ... ", Sys.time()))
+    
     ### Find addresses that need additional geocoding
     adds_coded_unmatch <- adds_coded %>%
       filter(locName == "zip_5_digit_gc" | is.na(locName)) %>%
@@ -242,6 +264,8 @@ stage_address_geocode_f <- function(conn = NULL,
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     #### BRING ESRI AND HERE DATA TOGETHER ####
+    message(paste0("Joining ESRI and HERE geocoded data together ... ", Sys.time()))
+    
     if (nrow(adds_coded_unmatch) > 0) {
       # Collapse to useful columns and select matching from each source as appropriate
       adds_coded <- left_join(adds_coded, adds_coded_here, 
@@ -398,6 +422,8 @@ stage_address_geocode_f <- function(conn = NULL,
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     #### JOIN TO SPATIAL FILES OF INTEREST ####
+    message(paste0("Join geocoded data to spatial files of interest ... ", Sys.time()))
+    
     ### Set up as spatial file
     adds_coded <- st_as_sf(adds_coded, coords = c("geo_lon", "geo_lat"), 
                            crs = 4326, remove = F)
@@ -496,6 +522,8 @@ stage_address_geocode_f <- function(conn = NULL,
     
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### LOAD TO SQL ####
+    message(paste0("Load to SQL ... ", Sys.time()))
+    
     if (full_refresh == F) {
       # Check how many rows are already in the stage table
       stage_rows_before <- as.numeric(dbGetQuery(
@@ -532,6 +560,7 @@ stage_address_geocode_f <- function(conn = NULL,
     
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### BASIC QA ####
+    message(paste0("Running basic QA ... ", Sys.time()))
     if (full_refresh == F) {
       ### Compare row counts now
       row_load_ref_geo <- nrow(adds_coded_load)
