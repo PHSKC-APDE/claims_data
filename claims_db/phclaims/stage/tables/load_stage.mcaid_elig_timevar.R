@@ -40,6 +40,9 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                       config[[server]][["ref_table"]])
+  address_schema <- config[["hhsaw"]][["address_schema"]]
+  address_table <- config[["hhsaw"]][["address_table"]]
+  geocode_table <- config[["hhsaw"]][["geocode_table"]]
   
   message("Creating ", to_schema, ".", to_table, ". This will take ~80 minutes to run.")
   
@@ -50,8 +53,34 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   # First pull in relevant columns and set an index to speed later sorting
   # Step 1a = ~10 mins (latest was 35 mins)
   try(odbc::dbRemoveTable(conn, "##timevar_01a", temporary = T), silent = T)
+  if (server == "hhsaw") {
+    address_clean_table <- glue::glue_sql("{`address_schema`}.{`address_table`}", 
+                                          .con = conn)
+  } else {
+    conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+    df <- odbc::dbGetQuery(conn_hhsaw, 
+                           glue::glue_sql("SELECT geo_hash_raw, 
+                                          geo_add1_clean, 
+                                          geo_add2_clean,         
+                                          geo_city_clean, 
+                                          geo_state_clean,         
+                                          geo_zip_clean                                          
+                                        FROM {`address_schema`}.{`address_table`}",                                         
+                                          .con = conn_hhsaw))
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    df2 <- odbc::dbGetQuery(conn, 
+                            glue::glue_sql("SELECT DISTINCT geo_hash_raw                                         
+                                         FROM {`from_schema`}.{`from_table`}",                                         
+                                           .con = conn))
+    df_address_clean <- inner_join(df, df2)
+    try(odbc::dbRemoveTable(conn, "##address_clean_01a", temporary = T), silent = T)
+    DBI::dbWriteTable(conn, 
+                      name = "##address_clean_01a", 
+                      value = df_address_clean)
+    address_clean_table <- "##address_clean_01a"
+  }
   
-  step1a_sql <- glue::glue_sql(
+  step1a_sql <- glue::glue_sql(paste0(
     "SELECT DISTINCT a.id_mcaid, 
     CONVERT(DATE, CAST(a.CLNDR_YEAR_MNTH as varchar(200)) + '01', 112) AS calmonth, 
     a.fromdate, a.todate, a.dual, a.tpl, a.bsp_group_cid, 
@@ -90,9 +119,9 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
         geo_add1_clean AS geo_add1, geo_add2_clean AS geo_add2, 
         geo_city_clean AS geo_city, geo_state_clean AS geo_state, 
         geo_zip_clean AS geo_zip
-        FROM ref.address_clean) d
+        FROM ", address_clean_table, ") d
       ON 
-      a.geo_hash_raw = d.geo_hash_raw",
+      a.geo_hash_raw = d.geo_hash_raw"),
     .con = conn)
   
   message("Running step 1a: pull columns from raw, join to clean addresses, and add index")
@@ -368,7 +397,32 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   # Now do the final transformation plus loading
   # Step 5b = ~1.5 mins
-  step5b_sql <- glue::glue_sql(
+  if (server == "hhsaw") {
+    address_geocode_table <- glue::glue_sql("{`address_schema`}.{`geocode_table`}", 
+                                            .con = conn)
+  } else {
+    conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+    df_address_geocode <- odbc::dbGetQuery(conn_hhsaw, 
+                           glue::glue_sql("SELECT geo_add1_clean, 
+                                        geo_city_clean, 
+                                          geo_state_clean, 
+                                          geo_zip_clean,        
+                                          geo_zip_centroid, 
+                                          geo_street_centroid, 
+                                          geo_countyfp10,         
+                                          geo_tractce10, 
+                                          geo_hra_id,         
+                                          geo_school_geoid10        
+                                          FROM {`address_schema`}.{`geocode_table`}",                                         
+                                          .con = conn_hhsaw))
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    try(odbc::dbRemoveTable(conn, "##address_geocode_05b", temporary = T), silent = T)
+    DBI::dbWriteTable(conn, 
+                      name = "##address_geocode_05b", 
+                      value = df_address_geocode)
+    address_geocode_table <- "##address_geocode_05b"
+  }
+  step5b_sql <- glue::glue_sql(paste0(
     "SELECT
     a.id_mcaid, a.from_date, a.to_date, 
     CASE WHEN DATEDIFF(day, lag(a.to_date, 1) OVER 
@@ -396,12 +450,12 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
         geo_zip_centroid, geo_street_centroid, geo_countyfp10 AS geo_county_code, 
         geo_tractce10 AS geo_tract_code, geo_hra_id AS geo_hra_code, 
         geo_school_geoid10 AS geo_school_code
-        FROM ref.address_geocode) b
+        FROM ", address_geocode_table, ") b
       ON 
       (a.geo_add1 = b.geo_add1_clean OR (a.geo_add1 IS NULL AND b.geo_add1_clean IS NULL)) AND 
       (a.geo_city = b.geo_city_clean OR (a.geo_city IS NULL AND b.geo_city_clean IS NULL)) AND 
       (a.geo_state = b.geo_state_clean OR (a.geo_state IS NULL AND b.geo_state_clean IS NULL)) AND 
-      (a.geo_zip = b.geo_zip_clean OR (a.geo_zip IS NULL AND b.geo_zip_clean IS NULL))",
+      (a.geo_zip = b.geo_zip_clean OR (a.geo_zip IS NULL AND b.geo_zip_clean IS NULL))"),
     .con = conn)
   
   message("Running step 5b: Join to geocodes and load to stage table")
@@ -425,6 +479,8 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "##timevar_03c", temporary = T), silent = T)
   try(odbc::dbRemoveTable(conn, "##timevar_04a", temporary = T), silent = T)
   try(odbc::dbRemoveTable(conn, "##timevar_04b", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "##address_clean_01a", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "##address_geocode_05b", temporary = T), silent = T)
   rm(list = ls(pattern = "step(.){1,2}_sql"))
   time_end <- Sys.time()
   message(paste0("Step 6 took ", round(difftime(time_end, time_start, units = "secs"), 2), 
