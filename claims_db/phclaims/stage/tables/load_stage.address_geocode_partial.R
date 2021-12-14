@@ -17,13 +17,16 @@
 # config = the YAML config file. Can be either an object already loaded into 
 #   R or a URL that should be used
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
+# troubleshoot_esri = if you want to submit individual addresses to ESRI one 
+#   at at time for troubleshooting
 
 stage_address_geocode_f <- function(conn = NULL,
                                     server = c("hhsaw", "phclaims"),
                                     config = NULL,
                                     get_config = F,
-                                    full_refresh = F) {
-
+                                    full_refresh = F, 
+                                    troubleshoot_esri = F) {
+  #### SET-UP----
   # load necessary packages -- will cause an error upfront to avoid headaches later
   library(dplyr)
   library(tidyr)
@@ -57,7 +60,7 @@ stage_address_geocode_f <- function(conn = NULL,
   to_table <- config[[server]][["to_table"]]
   stage_schema <- config[[server]][["stage_schema"]]
   stage_table <- ifelse(is.null(config[[server]][["stage_table"]]), '',
-                      config[[server]][["stage_table"]])
+                        config[[server]][["stage_table"]])
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- config[[server]][["ref_table"]]
   
@@ -93,8 +96,8 @@ stage_address_geocode_f <- function(conn = NULL,
   if (nrow(adds_to_code) > 0) {
     # Combine addresses into single field to reduce erroneous matches
     adds_to_code <- adds_to_code %>%
-      mutate(geo_add_single = paste(geo_add1_clean, geo_city_clean, geo_zip_clean, sep = ", "))
-    
+      mutate(geo_add_single = paste(geo_add1_clean, geo_city_clean, geo_zip_clean, sep = ", ")) %>%
+      mutate(geo_add_single = gsub("\\[|\\]|\\}|\\{", "", geo_add_single))
     
     #### RUN THROUGH ESRI GEOCODER ####
     message(paste0("Running through ESRI geocoder ... ", Sys.time()))
@@ -108,9 +111,20 @@ stage_address_geocode_f <- function(conn = NULL,
     
     
     ### Run the addresses through the geocoder, taking the best result only
-    adds_coded_esri <- bind_rows(lapply(adds_to_code$geo_add_single, kc_geocode, 
+    if(troubleshoot_esri == F){
+          adds_coded_esri <- bind_rows(lapply(adds_to_code$geo_add_single, kc_geocode, 
                                         street = NULL, city = NULL, zip = NULL, max_return = 10,
                                         best_result = T))
+    } 
+    if(troubleshoot_esri == T){
+      adds_coded_esri <- data.table(input_addr = NA_character_, lon = NA_real_, lat = NA_real_, score = NA_real_, locName = NA_character_, matchAddr = NA_character_, addressType = NA_character_)
+      for(i in 63867:nrow(adds_to_code)){
+        message("Processing adds_to_code$geo_add_single[", i, "] of ", nrow(adds_to_code))
+        esri_temp <- kc_geocode(singleline = adds_to_code$geo_add_single[i], street = NULL, city = NULL, zip = NULL, max_return = 10, best_result = T)
+        adds_coded_esri <- rbind(adds_coded_esri, esri_temp)
+      }
+    }
+
     
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
@@ -598,5 +612,5 @@ stage_address_geocode_f <- function(conn = NULL,
   
   
   
-   
+  
 }
