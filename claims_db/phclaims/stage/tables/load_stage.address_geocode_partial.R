@@ -112,9 +112,9 @@ stage_address_geocode_f <- function(conn = NULL,
     
     ### Run the addresses through the geocoder, taking the best result only
     if(troubleshoot_esri == F){
-          adds_coded_esri <- bind_rows(lapply(adds_to_code$geo_add_single, kc_geocode, 
-                                        street = NULL, city = NULL, zip = NULL, max_return = 10,
-                                        best_result = T))
+      adds_coded_esri <- bind_rows(lapply(adds_to_code$geo_add_single, kc_geocode, 
+                                          street = NULL, city = NULL, zip = NULL, max_return = 10,
+                                          best_result = T))
     } 
     if(troubleshoot_esri == T){
       adds_coded_esri <- data.table(input_addr = NA_character_, lon = NA_real_, lat = NA_real_, score = NA_real_, locName = NA_character_, matchAddr = NA_character_, addressType = NA_character_)
@@ -124,7 +124,7 @@ stage_address_geocode_f <- function(conn = NULL,
         adds_coded_esri <- rbind(adds_coded_esri, esri_temp)
       }
     }
-
+    
     
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
@@ -250,7 +250,7 @@ stage_address_geocode_f <- function(conn = NULL,
         result$input_add <- adds_coded_unmatch$geo_add_single[i]
         result$geo_check_here <- 1
         # append the answer to the results file
-        adds_here <- rbind(adds_here, result)
+        adds_here <- dplyr::bind_rows(adds_here, result)
       }
       
       # Look at match results
