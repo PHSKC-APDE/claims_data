@@ -100,14 +100,14 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   if (full_refresh == F & DBI::dbExistsTable(conn_dw, DBI::Id(schema = to_schema, table = to_table))) {
     if (server == "hhsaw") {
       try(DBI::dbSendQuery(conn_dw, 
-                           glue::glue("DROP TABLE {to_schema}.{paste0(archive_table, '_bak')}")))
+                           glue::glue("DROP TABLE {`to_schema`}.{`paste0(archive_table, '_bak')`}")))
       try(DBI::dbSendQuery(conn_dw, 
-                           glue::glue("RENAME OBJECT {to_schema}.{archive_table} TO {paste0(archive_table, '_bak')}")))
+                           glue::glue("RENAME OBJECT {`to_schema`}.{`archive_table`} TO {`paste0(archive_table, '_bak')`}")))
       DBI::dbSendQuery(conn_dw, 
                        glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
     } else if (server == "phclaims") {
       try(DBI::dbSendQuery(conn_db, 
-                           glue::glue("DROP TABLE {archive_schema}.{paste0(archive_table, '_bak')}")))
+                           glue::glue("DROP TABLE {`archive_schema`}.{`paste0(archive_table, '_bak')`}")))
       try(DBI::dbSendQuery(conn_db, 
                            glue::glue("EXEC sp_rename '{archive_schema}.{archive_table}',  '{paste0(archive_table, '_bak')}'")))
       alter_schema_f(conn = conn_db, 
