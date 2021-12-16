@@ -118,7 +118,7 @@ stage_address_geocode_f <- function(conn = NULL,
     } 
     if(troubleshoot_esri == T){
       adds_coded_esri <- data.table(input_addr = NA_character_, lon = NA_real_, lat = NA_real_, score = NA_real_, locName = NA_character_, matchAddr = NA_character_, addressType = NA_character_)
-      for(i in 63867:nrow(adds_to_code)){
+      for(i in 1:nrow(adds_to_code)){
         message("Processing adds_to_code$geo_add_single[", i, "] of ", nrow(adds_to_code))
         esri_temp <- kc_geocode(singleline = adds_to_code$geo_add_single[i], street = NULL, city = NULL, zip = NULL, max_return = 10, best_result = T)
         adds_coded_esri <- rbind(adds_coded_esri, esri_temp)
@@ -299,7 +299,9 @@ stage_address_geocode_f <- function(conn = NULL,
           geo_check_here = ifelse(is.na(geo_check_here), 0, geo_check_here),
           geo_geocode_source = case_when(
             !is.na(geo_lat.x) & 
-              locName %in% c("address_point_", "pin_address_on", "st_address_us", 
+              locName %in% c("king_address", "king_road", "ktsp_address", "ktsp_road", 
+                             "prc_address", "prc_road", "sno_address", "sno_road",
+                             "address_point_", "pin_address_on", "st_address_us", 
                              "trans_network_", 
                              "king_address_point",
                              "Kitsap_gcs", "ktsp_roadcl", "ktsp_siteaddr_pin",
@@ -307,7 +309,7 @@ stage_address_geocode_f <- function(conn = NULL,
                              "Snohomish_gcs", "sno_site_address", 
                              "sno_streets_centerline") ~ "esri",
             !is.na(geo_lat.y) & address_type %in% c("houseNumber", "street") ~ "here",
-            !is.na(geo_lat.x) & locName == "zip_5_digit_gc" ~ "esri",
+            !is.na(geo_lat.x) & locName %in% c("zip_5_digit_gc", "zipcode") ~ "esri",
             !is.na(geo_lat.y) & address_type %in% c("postalCode", "subdistrict",
                                                     "district", "city",
                                                     "county", "state",
