@@ -275,7 +275,7 @@ if (stage_address_clean_timestamp != 0) {
   ref_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
   
   from_schema <- ref_address_clean_config[["hhsaw"]][["from_schema"]]
-  from_table <- ref_address_clean_config[["hhsaw"]][["table_schema"]]
+  from_table <- ref_address_clean_config[["hhsaw"]][["from_table"]]
   to_schema <- ref_address_clean_config[["hhsaw"]][["to_schema"]]
   to_table <- ref_address_clean_config[["hhsaw"]][["to_table"]]
   qa_schema <- ref_address_clean_config[[server]][["qa_schema"]]
@@ -402,6 +402,11 @@ if (qa_stage_address_geocode == 0) {
   rm(last_run_stage_address_geocode, qa_rows_final, to_schema, to_table, qa_schema, qa_table)
 }
 rm(stage_address_geocode_config, qa_stage_address_geocode, stage_address_geocode_f)
+
+
+
+
+
 
 ##### IGNORE - ALL ON HHSAW #####
 sync_servers <- F

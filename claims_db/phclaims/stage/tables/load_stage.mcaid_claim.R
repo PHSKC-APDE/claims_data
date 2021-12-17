@@ -95,17 +95,20 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
                                             .con = conn_dw)))
       }
       try(DBI::dbSendQuery(conn_dw, 
-                           glue::glue("RENAME OBJECT {`to_schema`}.{`archive_table`} TO {`paste0(archive_table, '_bak')`}")))
-      DBI::dbSendQuery(conn_dw, 
-                       glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
+                           glue::glue_sql("RENAME OBJECT {`to_schema`}.{`archive_table`} TO {`paste0(archive_table, '_bak')`}",
+                                          .con = conn_dw)))
+      try(DBI::dbSendQuery(conn_dw, 
+                           glue::glue_sql("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}",
+                                          .con = conn_dw)))
     } else if (server == "phclaims") {
       if(DBI::dbExistsTable(conn_dw, DBI::Id(schema = archive_schema, table = paste0(archive_table, '_bak')))) {
         try(DBI::dbSendQuery(conn_db, 
                              glue::glue_sql("DROP TABLE {`archive_schema`}.{`paste0(archive_table, '_bak')`}", 
-                                            .con = conn_dw)))
+                                            .con = conn_db)))
       }
       try(DBI::dbSendQuery(conn_db, 
-                           glue::glue("EXEC sp_rename '{archive_schema}.{archive_table}',  '{paste0(archive_table, '_bak')}'")))
+                           glue::glue_sql("EXEC sp_rename '{archive_schema}.{archive_table}',  '{paste0(archive_table, '_bak')}'",
+                                          .con = conn_db)))
       alter_schema_f(conn = conn_db, 
                      from_schema = to_schema, 
                      to_schema = archive_schema,
