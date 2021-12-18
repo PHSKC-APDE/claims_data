@@ -117,8 +117,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
                                             .con = conn_db)))
       }
       try(DBI::dbSendQuery(conn_db, 
-                           glue::glue_sql("EXEC sp_rename '{archive_schema}.{archive_table}',  '{paste0(archive_table, '_bak')}'",
-                                          .con = conn_db)))
+                           glue::glue("EXEC sp_rename '{archive_schema}.{archive_table}',  '{paste0(archive_table, '_bak')}'")))
       alter_schema_f(conn = conn_db, 
                      from_schema = to_schema, 
                      to_schema = archive_schema,
