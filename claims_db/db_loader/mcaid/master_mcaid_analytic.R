@@ -529,10 +529,7 @@ if (bak_check == "Yes") {
   cnt_archive_elig <- DBI::dbGetQuery(conn,
                                       glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_elig`}", 
                                                      .con = conn))[1,1]
-  bak_elig_exist <- nrow(DBI::dbGetQuery(conn,
-                                         glue::glue_sql("SELECT object_id FROM sys.tables WHERE name = {bak_elig}", 
-                                                        .con = conn)))
-  if(bak_elig_exist > 0) {
+  if(DBI::dbExistsTable(conn, DBI::Id( schema = bak_schema, table = bak_elig))) {
     cnt_bak_elig <- DBI::dbGetQuery(conn,
                                     glue::glue_sql("SELECT COUNT(*) FROM {`bak_schema`}.{`bak_elig`}",
                                                    .con = conn))[1,1]
@@ -543,13 +540,10 @@ if (bak_check == "Yes") {
   cnt_archive_claim <- DBI::dbGetQuery(conn,
                                        glue::glue_sql("SELECT COUNT(*) FROM {`archive_schema`}.{`archive_claim`}", 
                                                       .con = conn))[1,1]
-  bak_claim_exist <- nrow(DBI::dbGetQuery(conn,
-                                          glue::glue_sql("SELECT object_id FROM sys.tables WHERE name = {bak_claim}", 
-                                                         .con = conn)))
-  if(bak_claim_exist > 0) {
-    cnt_bak_claim <- DBI::dbGetQuery(conn,
+  if(DBI::dbExistsTable(conn, DBI::Id( schema = bak_schema, table = bak_claim))) {
+    try(cnt_bak_claim <- DBI::dbGetQuery(conn,
                                      glue::glue_sql("SELECT COUNT(*) FROM {`bak_schema`}.{`bak_claim`}",
-                                                    .con = conn))[1,1]
+                                                    .con = conn))[1,1])
   } else { cnt_bak_claim <- 0 }
   
   ## Compare row counts between tables ##
@@ -573,19 +567,15 @@ if (bak_check == "Yes") {
   ## Ask to delete backup archive tables ##
   bak_del <- dlg_list(c("Yes", "No"), title = "DELETE BACK UP ARCHIVE TABLES?")$res
   if (bak_del == "Yes") {
-    if (bak_elig_exist > 0) {
-      try(DBI::dbSendQuery(conn,
-                           glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_elig`}",
-                                          .con = conn)))
-    }
-    if (bak_claim_exist > 0) {
-      try(DBI::dbSendQuery(conn,
-                           glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_claim`}",
-                                          .con = conn)))
-    }
+    try(DBI::dbSendQuery(conn,
+                         glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_elig`}",
+                                        .con = conn)))
+    try(DBI::dbSendQuery(conn,      
+                         glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_claim`}",  
+                                        .con = conn)))
   }
   rm(conn, table_config_stage_elig, table_config_stage_claim, 
-     bak_schema, bak_elig, bak_claim, bak_elig_exist, bak_claim_exist, bak_del,
+     bak_schema, bak_elig, bak_claim, bak_del,
      stage_schema, stage_claim, stage_elig, cnt_stage_claim, cnt_stage_elig,
      archive_schema, archive_claim, archive_elig, cnt_archive_claim, cnt_archive_elig,
      cnt_bak_claim, cnt_bak_elig)
