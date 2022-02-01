@@ -2,7 +2,7 @@
 # APDE, PHSKC
 # 2019-6-29
 
-#2/1/22 update: Added virtual desktop path, removed provider roster table
+#2/1/22 update: Added virtual desktop path, removed provider roster table, updated YAML parameters per Alastair's new load_table_from_file function
 
 #### Create YAML files from XML format files for all non-reference files ####
 
@@ -18,6 +18,8 @@ read_path <- "\\\\kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" #Folder con
 #write_path <- "C:/Users/kerneli/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KC laptop
 write_path <- "C:/Users/kerneli.PH/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
 
+server_path <- "KCITSQLUTPDBH51"
+db_name <- "PHClaims"
 sql_schema_name <- "load_raw" ##Name of schema where table will be created
 table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
@@ -71,7 +73,7 @@ lapply(table_list, function(table_list) {
   colNames <- (names$'column-name'[!is.na(names$'column-name')])
   colnames(format_df) <- colNames
   vars_list <- as.list(deframe(select(arrange(format_df, as.numeric(as.character(POSITION))), COLUMN_NAME, DATA_TYPE)))
-  format_list <- list("schema" = sql_schema_name, "table" = sql_table, "vars" = vars_list)
+  format_list <- list("server_path" = server_path, "db_name" = db_name, "to_schema" = sql_schema_name, "to_table" = sql_table,"vars" = vars_list)
   yaml::write_yaml(append(format_list, file_list), glue(write_path, "load_", sql_schema_name, ".", sql_table, "_full", ".yaml"), indent = 4,
                    indent.mapping.sequence = T)
   
