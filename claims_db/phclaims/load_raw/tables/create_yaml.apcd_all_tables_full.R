@@ -13,11 +13,12 @@ pacman::p_load(tidyverse, glue)
 
 #### STEP 1: Set universal parameters ####
 read_path <- "\\\\kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" #Folder containing exported format files
-write_path <- "C:/Users/kerneli/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Local GitHub folder
+#write_path <- "C:/Users/kerneli/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KC laptop
+write_path <- "C:/Users/kerneli.PH/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
 
 sql_schema_name <- "load_raw" ##Name of schema where table will be created
 table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
-                   "member_month_detail", "pharmacy_claim", "provider", "provider_master", "provider_practice_roster")
+                   "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
 
 #### STEP 2: Loop over APCD tables, saving create YAML file for each table ####
@@ -74,6 +75,3 @@ lapply(table_list, function(table_list) {
   
   glue(sql_table, " format file successfully converted to YAML file")
 })
-
-
-
