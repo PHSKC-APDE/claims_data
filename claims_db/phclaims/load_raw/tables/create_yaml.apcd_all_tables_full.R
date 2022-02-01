@@ -2,6 +2,8 @@
 # APDE, PHSKC
 # 2019-6-29
 
+#2/1/22 update: Added virtual desktop path, removed provider roster table
+
 #### Create YAML files from XML format files for all non-reference files ####
 
 ##### Set up global parameters and call in libraries #####
