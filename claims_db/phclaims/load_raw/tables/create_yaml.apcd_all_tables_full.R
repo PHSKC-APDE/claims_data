@@ -76,7 +76,7 @@ lapply(table_list, function(table_list) {
   colNames <- (names$'column-name'[!is.na(names$'column-name')])
   colnames(format_df) <- colNames
   vars_list <- as.list(deframe(select(arrange(format_df, as.numeric(as.character(POSITION))), COLUMN_NAME, DATA_TYPE)))
-  format_list <- list("server_path" = server_path, "db_name" = db_name, "to_schema" = sql_schema_name, "to_table" = sql_table,"vars" = vars_list)
+  format_list <- list("server" = server_path, "db_name" = db_name, "to_schema" = sql_schema_name, "to_table" = sql_table,"vars" = vars_list)
   yaml::write_yaml(append(format_list, file_list), glue(write_path, "load_", sql_schema_name, ".", sql_table, "_full", ".yaml"), indent = 4,
                    indent.mapping.sequence = T)
   

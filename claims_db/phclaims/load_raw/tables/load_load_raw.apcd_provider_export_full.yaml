@@ -1,4 +1,4 @@
-server_path: KCITSQLUTPDBH51
+server: KCITSQLUTPDBH51
 db_name: PHClaims
 to_schema: load_raw
 to_table: apcd_provider_export
