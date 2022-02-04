@@ -29,4 +29,3 @@ system2(command = "aws", args = c("s3", "ls", s3_folder))
 
 #Sync local folder to S3 bucket folder (this will download S3 files that have different size or modified date)
 system2(command = "aws", args = c("s3", "sync", s3_folder, write_path))
-
