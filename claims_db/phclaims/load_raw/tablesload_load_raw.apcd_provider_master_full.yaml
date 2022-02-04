@@ -1,0 +1,32 @@
+server_path: KCITSQLUTPDBH51
+db_name: PHClaims
+to_schema: load_raw
+to_table: apcd_provider_master
+vars:
+    internal_provider_id: bigint
+    extract_id: bigint
+    entity_type: varchar(10)
+    organization_name_legal: varchar(100)
+    last_name_legal: varchar(100)
+    first_name_legal: varchar(60)
+    middle_name_legal: varchar(1)
+    organization_name_other: varchar(100)
+    organization_name_other_type: varchar(50)
+    last_name_other: varchar(100)
+    first_name_other: varchar(100)
+    middle_name_other: varchar(100)
+    generation_suffix: varchar(10)
+    professional_credential_code: varchar(20)
+    npi: bigint
+    primary_taxonomy: varchar(10)
+    secondary_taxonomy: varchar(20)
+    city_physical: varchar(30)
+    state_physical: varchar(2)
+    zip_physical: varchar(15)
+    county_physical: varchar(100)
+    country_physical: varchar(100)
+    ach_region_physical: varchar(100)
+overall:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_master_export/provider_master.csv
+    field_term: ','
+    row_term: \n
