@@ -53,8 +53,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
                overall = T,
                ind_yr = T,
-               overwrite = T,
-               test_mode = F)
+               overwrite = T)
 
 ### Load tables
 # Call in function
@@ -69,8 +68,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_line_raw_full.yaml",
                overall = T,
                ind_yr = T,
-               overwrite = T,
-               test_mode = F)
+               overwrite = T)
 
 ### Load tables
 # Call in function
@@ -85,8 +83,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.yaml",
                overall = T,
                ind_yr = T,
-               overwrite = T,
-               test_mode = F)
+               overwrite = T)
 
 ### Load tables
 # Call in function
@@ -101,8 +98,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.yaml",
                overall = T,
                ind_yr = T,
-               overwrite = T,
-               test_mode = F)
+               overwrite = T)
 
 ### Load tables
 # Call in function
@@ -117,8 +113,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
                overall = T,
                ind_yr = T,
-               overwrite = T,
-               test_mode = F)
+               overwrite = T)
 
 ### Load tables
 # Call in function
@@ -133,8 +128,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml",
                overall = T,
                ind_yr = T,
-               overwrite = T,
-               test_mode = F)
+               overwrite = T)
 
 ### Load tables
 # Call in function
@@ -149,8 +143,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_header_full.yaml",
                overall = T,
                ind_yr = T,
-               overwrite = T,
-               test_mode = F)
+               overwrite = T)
 
 ### Load tables
 # Call in function
@@ -165,8 +158,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_member_month_detail_full.yaml",
                overall = T,
                ind_yr = T,
-               overwrite = T,
-               test_mode = F)
+               overwrite = T)
 
 ### Load tables
 # Call in function
@@ -181,8 +173,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_pharmacy_claim_full.yaml",
                overall = T,
                ind_yr = T,
-               overwrite = T,
-               test_mode = F)
+               overwrite = T)
 
 ### Load tables
 # Call in function
@@ -197,8 +188,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.yaml",
                overall = T,
                ind_yr = T,
-               overwrite = T,
-               test_mode = F)
+               overwrite = T)
 
 ### Load tables
 # Call in function
@@ -213,8 +203,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_master_full.yaml",
                overall = T,
                ind_yr = F,
-               overwrite = T,
-               test_mode = F)
+               overwrite = T)
 
 ### Load tables
 # Call in function
