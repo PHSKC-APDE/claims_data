@@ -50,6 +50,9 @@ etl_note <- "Full refresh of APCD data using extract 10001" #UPDATE EACH QUARTER
 #### LOAD_RAW ICDCM ####
 ### Create tables
 
+#### ELI TO DEBUG CODE FOR CLAIM ICDCM TABLE AND THEN LET SUSAN KNOW READY TO CONTINUE ####
+
+
 # Create table shells for table chunks
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
