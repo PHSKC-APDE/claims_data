@@ -1,16 +1,18 @@
-schema: load_raw
-table: apcd_claim_procedure_raw
+server_path: KCITSQLUTPDBH51
+db_name: PHClaims
+to_schema: load_raw
+to_table: apcd_claim_procedure_raw
 vars:
-    internal_member_id: numeric(38)
-    medical_claim_header_id: numeric(38)
+    internal_member_id: bigint
+    medical_claim_header_id: bigint
     first_service_dt: date
     last_service_dt: date
-    procedure_code: varchar(20)
+    procedure_code: varchar(10)
     procedure_code_number: varchar(4)
-    procedure_modifier_code_1: varchar(20)
-    procedure_modifier_code_2: varchar(20)
-    procedure_modifier_code_3: varchar(20)
-    procedure_modifier_code_4: varchar(20)
+    procedure_modifier_code_1: varchar(10)
+    procedure_modifier_code_2: varchar(10)
+    procedure_modifier_code_3: varchar(10)
+    procedure_modifier_code_4: varchar(10)
     row_number: bigint
 table_part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_1.csv
@@ -312,8 +314,52 @@ table_part77:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_77.csv
     field_term: ','
     row_term: \n
+table_part78:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_78.csv
+    field_term: ','
+    row_term: \n
+table_part79:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_79.csv
+    field_term: ','
+    row_term: \n
 table_part8:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_8.csv
+    field_term: ','
+    row_term: \n
+table_part80:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_80.csv
+    field_term: ','
+    row_term: \n
+table_part81:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_81.csv
+    field_term: ','
+    row_term: \n
+table_part82:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_82.csv
+    field_term: ','
+    row_term: \n
+table_part83:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_83.csv
+    field_term: ','
+    row_term: \n
+table_part84:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_84.csv
+    field_term: ','
+    row_term: \n
+table_part85:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_85.csv
+    field_term: ','
+    row_term: \n
+table_part86:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_86.csv
+    field_term: ','
+    row_term: \n
+table_part87:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_87.csv
+    field_term: ','
+    row_term: \n
+table_part88:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_88.csv
     field_term: ','
     row_term: \n
 table_part9:
@@ -396,5 +442,16 @@ years:
     - part75
     - part76
     - part77
+    - part78
+    - part79
     - part8
+    - part80
+    - part81
+    - part82
+    - part83
+    - part84
+    - part85
+    - part86
+    - part87
+    - part88
     - part9

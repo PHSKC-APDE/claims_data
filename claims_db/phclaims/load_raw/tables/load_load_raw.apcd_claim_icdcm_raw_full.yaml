@@ -1,11 +1,13 @@
-schema: load_raw
-table: apcd_claim_icdcm_raw
+server_path: KCITSQLUTPDBH51
+db_name: PHClaims
+to_schema: load_raw
+to_table: apcd_claim_icdcm_raw
 vars:
-    internal_member_id: numeric(38)
-    medical_claim_header_id: numeric(38)
+    internal_member_id: bigint
+    medical_claim_header_id: bigint
     first_service_dt: date
     last_service_dt: date
-    icdcm_raw: varchar(7)
+    icdcm_raw: varchar(10)
     icdcm_norm: varchar(200)
     icdcm_version: smallint
     icdcm_number: varchar(5)
@@ -16,6 +18,26 @@ table_part1:
     row_term: \n
 table_part10:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_10.csv
+    field_term: ','
+    row_term: \n
+table_part100:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_100.csv
+    field_term: ','
+    row_term: \n
+table_part101:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_101.csv
+    field_term: ','
+    row_term: \n
+table_part102:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_102.csv
+    field_term: ','
+    row_term: \n
+table_part103:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_103.csv
+    field_term: ','
+    row_term: \n
+table_part104:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_104.csv
     field_term: ','
     row_term: \n
 table_part11:
@@ -370,9 +392,50 @@ table_part90:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_90.csv
     field_term: ','
     row_term: \n
+table_part91:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_91.csv
+    field_term: ','
+    row_term: \n
+table_part92:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_92.csv
+    field_term: ','
+    row_term: \n
+table_part93:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_93.csv
+    field_term: ','
+    row_term: \n
+table_part94:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_94.csv
+    field_term: ','
+    row_term: \n
+table_part95:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_95.csv
+    field_term: ','
+    row_term: \n
+table_part96:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_96.csv
+    field_term: ','
+    row_term: \n
+table_part97:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_97.csv
+    field_term: ','
+    row_term: \n
+table_part98:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_98.csv
+    field_term: ','
+    row_term: \n
+table_part99:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_99.csv
+    field_term: ','
+    row_term: \n
 years:
     - part1
     - part10
+    - part100
+    - part101
+    - part102
+    - part103
+    - part104
     - part11
     - part12
     - part13
@@ -461,3 +524,12 @@ years:
     - part89
     - part9
     - part90
+    - part91
+    - part92
+    - part93
+    - part94
+    - part95
+    - part96
+    - part97
+    - part98
+    - part99

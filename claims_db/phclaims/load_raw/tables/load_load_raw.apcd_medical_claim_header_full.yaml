@@ -1,28 +1,55 @@
-schema: load_raw
-table: apcd_medical_claim_header
+server_path: KCITSQLUTPDBH51
+db_name: PHClaims
+to_schema: load_raw
+to_table: apcd_medical_claim_header
 vars:
-    medical_claim_header_id: numeric(38)
-    submitter_id: numeric(38)
-    internal_member_id: numeric(38)
-    billing_internal_provider_id: numeric(38)
-    product_code_id: numeric(38)
+    medical_claim_header_id: bigint
+    submitter_id: bigint
+    internal_member_id: bigint
+    billing_internal_provider_id: bigint
+    product_code_id: bigint
     first_service_dt: date
     last_service_dt: date
     first_paid_dt: date
     last_paid_dt: date
     charge_amt: numeric(38,2)
-    diagnosis_code: varchar(20)
-    icd_version_ind: varchar(2)
-    header_status: varchar(2)
+    diagnosis_code: varchar(10)
+    icd_version_ind: varchar(10)
+    header_status: varchar(20)
     denied_header_flag: varchar(1)
     orphaned_header_flag: varchar(1)
-    claim_type_id: numeric(38)
-    type_of_setting_id: numeric(38)
-    place_of_setting_id: numeric(38)
+    claim_type_id: bigint
+    type_of_setting_id: bigint
+    place_of_setting_id: bigint
     type_of_bill_code: varchar(4)
     emergency_room_flag: varchar(1)
     operating_room_flag: varchar(1)
     row_number: bigint
+    claim_header_id: bigint
+    cardiac_imaging_and_tests_flag: integer
+    chiropractic_flag: integer
+    consultations_flag: integer
+    covid19_flag: integer
+    dialysis_flag: integer
+    durable_medical_equip_flag: integer
+    echography_flag: integer
+    endoscopic_procedure_flag: integer
+    evaluation_and_management_flag: integer
+    health_home_utilization_flag: integer
+    hospice_utilization_flag: integer
+    imaging_advanced_flag: integer
+    imaging_standard_flag: integer
+    inpatient_acute_flag: integer
+    inpatient_nonacute_flag: integer
+    lab_and_pathology_flag: integer
+    oncology_and_chemotherapy_flag: integer
+    physical_therapy_rehab_flag: integer
+    preventive_screenings_flag: integer
+    preventive_vaccinations_flag: integer
+    preventive_visits_flag: integer
+    psychiatric_visits_flag: integer
+    surgery_and_anesthesia_flag: integer
+    telehealth_flag: integer
 table_part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_1.csv
     field_term: ','
@@ -39,104 +66,12 @@ table_part12:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_12.csv
     field_term: ','
     row_term: \n
-table_part13:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_13.csv
-    field_term: ','
-    row_term: \n
-table_part14:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_14.csv
-    field_term: ','
-    row_term: \n
-table_part15:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_15.csv
-    field_term: ','
-    row_term: \n
-table_part16:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_16.csv
-    field_term: ','
-    row_term: \n
-table_part17:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_17.csv
-    field_term: ','
-    row_term: \n
-table_part18:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_18.csv
-    field_term: ','
-    row_term: \n
-table_part19:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_19.csv
-    field_term: ','
-    row_term: \n
 table_part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_2.csv
     field_term: ','
     row_term: \n
-table_part20:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_20.csv
-    field_term: ','
-    row_term: \n
-table_part21:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_21.csv
-    field_term: ','
-    row_term: \n
-table_part22:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_22.csv
-    field_term: ','
-    row_term: \n
-table_part23:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_23.csv
-    field_term: ','
-    row_term: \n
-table_part24:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_24.csv
-    field_term: ','
-    row_term: \n
-table_part25:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_25.csv
-    field_term: ','
-    row_term: \n
-table_part26:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_26.csv
-    field_term: ','
-    row_term: \n
-table_part27:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_27.csv
-    field_term: ','
-    row_term: \n
-table_part28:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_28.csv
-    field_term: ','
-    row_term: \n
-table_part29:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_29.csv
-    field_term: ','
-    row_term: \n
 table_part3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_3.csv
-    field_term: ','
-    row_term: \n
-table_part30:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_30.csv
-    field_term: ','
-    row_term: \n
-table_part31:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_31.csv
-    field_term: ','
-    row_term: \n
-table_part32:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_32.csv
-    field_term: ','
-    row_term: \n
-table_part33:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_33.csv
-    field_term: ','
-    row_term: \n
-table_part34:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_34.csv
-    field_term: ','
-    row_term: \n
-table_part35:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_35.csv
     field_term: ','
     row_term: \n
 table_part4:
@@ -168,31 +103,8 @@ years:
     - part10
     - part11
     - part12
-    - part13
-    - part14
-    - part15
-    - part16
-    - part17
-    - part18
-    - part19
     - part2
-    - part20
-    - part21
-    - part22
-    - part23
-    - part24
-    - part25
-    - part26
-    - part27
-    - part28
-    - part29
     - part3
-    - part30
-    - part31
-    - part32
-    - part33
-    - part34
-    - part35
     - part4
     - part5
     - part6
