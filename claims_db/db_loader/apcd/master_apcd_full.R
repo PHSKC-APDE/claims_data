@@ -49,7 +49,7 @@ etl_note <- "Full refresh of APCD data using extract 10001" #UPDATE EACH QUARTER
 
 #### LOAD_RAW ICDCM ####
 ### Create tables
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
                overall = T,
                ind_yr = T,
@@ -65,7 +65,7 @@ system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_dat
 
 #### LOAD_RAW CLAIM_LINE ####
 ### Create tables
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_line_raw_full.yaml",
                overall = T,
                ind_yr = T,
@@ -81,7 +81,7 @@ system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_dat
 
 #### LOAD_RAW PROCEDURE ####
 ### Create tables
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.yaml",
                overall = T,
                ind_yr = T,
@@ -97,7 +97,7 @@ system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_dat
 
 #### LOAD_RAW CLAIM_PROVIDER ####
 ### Create tables
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.yaml",
                overall = T,
                ind_yr = T,
@@ -113,7 +113,7 @@ system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_dat
 
 #### LOAD_RAW DENTAL CLAIMS ####
 ### Create tables
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
                overall = T,
                ind_yr = T,
@@ -129,7 +129,7 @@ system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_dat
 
 #### LOAD_RAW ELIGIBILITY ####
 ### Create tables
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml",
                overall = T,
                ind_yr = T,
@@ -145,7 +145,7 @@ system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_dat
 
 #### LOAD_RAW MEDICAL_CLAIM_HEADER ####
 ### Create tables
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_header_full.yaml",
                overall = T,
                ind_yr = T,
@@ -161,7 +161,7 @@ system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_dat
 
 #### LOAD_RAW MEMBER_MONTH_DETAIL ####
 ### Create tables
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_member_month_detail_full.yaml",
                overall = T,
                ind_yr = T,
@@ -177,7 +177,7 @@ system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_dat
 
 #### LOAD_RAW PHARMACY_CLAIM ####
 ### Create tables
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_pharmacy_claim_full.yaml",
                overall = T,
                ind_yr = T,
@@ -193,7 +193,7 @@ system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_dat
 
 #### LOAD_RAW PROVIDER ####
 ### Create tables
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.yaml",
                overall = T,
                ind_yr = T,
@@ -209,7 +209,7 @@ system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_dat
 
 #### LOAD_RAW PROVIDER_MASTER ####
 ### Create tables
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_master_full.yaml",
                overall = T,
                ind_yr = F,
