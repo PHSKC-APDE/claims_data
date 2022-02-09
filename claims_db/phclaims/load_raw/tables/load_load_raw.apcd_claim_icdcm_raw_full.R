@@ -10,7 +10,8 @@
 load_load_raw.apcd_icdcm_full_f <- function(etl_date_min = NULL,
                                             etl_date_max = NULL,
                                             etl_delivery_date = NULL,
-                                            etl_note = NULL) {
+                                            etl_note = NULL,
+                                            server = NULL) {
   
   ### Set table name part
   table_name_part <- "apcd_claim_icdcm_raw"
@@ -18,6 +19,11 @@ load_load_raw.apcd_icdcm_full_f <- function(etl_date_min = NULL,
   ### Check entries are in place for ETL function
   if (is.null(etl_delivery_date) | is.null(etl_note)) {
     stop("Enter a delivery date and note for the ETL batch ID function")
+  }
+  
+  ### Check entries are in place for ETL function
+  if (is.null(server)) {
+    stop("Enter a server name")
   }
   
   
@@ -53,7 +59,7 @@ load_load_raw.apcd_icdcm_full_f <- function(etl_date_min = NULL,
   load_table_from_file_f(conn = db_claims,
                          config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.",
                                            table_name_part, "_full.yaml"),
-                         overall = F, ind_yr = T, combine_yr = T, test_mode = F, server = NULL)
+                         overall = F, ind_yr = T, combine_yr = T, test_mode = F, server = server)
   
   
   #### ADD BATCH ID COLUMN ####
