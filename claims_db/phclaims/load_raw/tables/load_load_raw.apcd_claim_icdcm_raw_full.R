@@ -93,7 +93,7 @@ load_load_raw.apcd_icdcm_full_f <- function(etl_date_min = NULL,
   if (length(table_config$years) > 1) {
     lapply(table_config$years, function(x) {
       table_name <- glue::glue(table_name_part, "_", x)
-      odbc::dbGetQuery(db_claims, glue::glue_sql("DROP TABLE {`table_config$schema`}.{`table_name`}", .con = db_claims))
+      odbc::dbGetQuery(db_claims, glue::glue_sql("DROP TABLE {`table_config$to_schema`}.{`table_name`}", .con = db_claims))
       })
     }
 }
