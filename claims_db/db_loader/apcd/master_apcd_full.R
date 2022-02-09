@@ -50,19 +50,18 @@ etl_note <- "Full refresh of APCD data using extract 10001" #UPDATE EACH QUARTER
 #### LOAD_RAW ICDCM ####
 ### Create tables
 
-#### ELI TO DEBUG CODE FOR CLAIM ICDCM TABLE AND THEN LET SUSAN KNOW READY TO CONTINUE ####
-
-
 # Create table shells for table chunks
 create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
-               overall = F,
-               ind_yr = T,
-               overwrite = T)
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
+             server = "KCITSQLUTPDBH51",
+             overall = F,
+             ind_yr = T,
+             overwrite = T)
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
              config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
+             server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
              overwrite = T)
@@ -71,7 +70,15 @@ create_table(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.R")
 
-system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note))
+system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
+                                            server = "KCITSQLUTPDBH51"))
+
+
+
+
+###############
+#### BELOW THIS LINE MUST BE UPDATED TO MATCH SYNTAX USED FOR CLAIM_ICDCM_RAW TABLE ABOVE
+###############
 
 
 #### LOAD_RAW CLAIM_LINE ####
