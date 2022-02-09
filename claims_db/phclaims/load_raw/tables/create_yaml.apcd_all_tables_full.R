@@ -16,7 +16,7 @@ pacman::p_load(tidyverse, glue)
 #### STEP 1: Set universal parameters ####
 read_path <- "\\\\kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" #Folder containing exported format files
 #write_path <- "C:/Users/kerneli/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KC laptop
-write_path <- "C:/Users/kerneli.PH/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
+#write_path <- "C:/Users/kerneli.PH/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
 write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Susan's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
 
 
@@ -76,7 +76,7 @@ lapply(table_list, function(table_list) {
   colNames <- (names$'column-name'[!is.na(names$'column-name')])
   colnames(format_df) <- colNames
   vars_list <- as.list(deframe(select(arrange(format_df, as.numeric(as.character(POSITION))), COLUMN_NAME, DATA_TYPE)))
-  format_list <- list("server" = server_path, "db_name" = db_name, "to_schema" = sql_schema_name, "to_table" = sql_table,"vars" = vars_list)
+  format_list <- list("server_path" = server_path, "db_name" = db_name, "to_schema" = sql_schema_name, "to_table" = sql_table,"vars" = vars_list)
   yaml::write_yaml(append(format_list, file_list), glue(write_path, "load_", sql_schema_name, ".", sql_table, "_full", ".yaml"), indent = 4,
                    indent.mapping.sequence = T)
   
