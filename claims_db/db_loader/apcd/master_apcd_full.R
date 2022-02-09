@@ -13,7 +13,7 @@
 
 #2020-08: modification for extract 249: Added new tables that were created from medical_claim table to facilitate Enclave export
 #2021-01: no modifications needed for extract 277 (same format as extract 249)
-#2021-02: switched to using APDE repo functions where Alastair has moved them over, condensed etl logging code, removed provider roster table 
+#2021-02: switched to using APDE repo functions where Alastair has moved them over, condensed etl logging code, removed provider roster table
 
 
 #### Set up global parameter and call in libraries ####
