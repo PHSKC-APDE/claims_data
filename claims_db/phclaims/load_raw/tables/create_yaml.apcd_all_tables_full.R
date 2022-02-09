@@ -45,7 +45,8 @@ lapply(table_list, function(table_list) {
   file_df <- cbind(plyr::ldply(short_file_list), plyr::ldply(long_file_list)) #Bind file path and table names
   colnames(file_df) <- c("table_name", "file_path") #Name variables
   file_df <- file_df %>% #Normalize contents
-    mutate(table_name = paste0("table_", "part", gsub(glue(table_name_part, "_"), "", table_name)),
+    mutate(table_name = paste0("part", gsub(glue(table_name_part, "_"), "", table_name)),
+    #mutate(table_name = paste0("table_", "part", gsub(glue(table_name_part, "_"), "", table_name)), #old code that used table_ as prefix
            file_path = gsub("\\\\", "/", file_path))
   file_list <- as.list(deframe(file_df)) #Convert to list
   

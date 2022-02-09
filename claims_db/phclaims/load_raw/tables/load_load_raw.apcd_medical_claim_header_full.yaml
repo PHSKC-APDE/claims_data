@@ -50,51 +50,51 @@ vars:
     psychiatric_visits_flag: integer
     surgery_and_anesthesia_flag: integer
     telehealth_flag: integer
-table_part1:
+part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_1.csv
     field_term: ','
     row_term: \n
-table_part10:
+part10:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_10.csv
     field_term: ','
     row_term: \n
-table_part11:
+part11:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_11.csv
     field_term: ','
     row_term: \n
-table_part12:
+part12:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_12.csv
     field_term: ','
     row_term: \n
-table_part2:
+part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_2.csv
     field_term: ','
     row_term: \n
-table_part3:
+part3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_3.csv
     field_term: ','
     row_term: \n
-table_part4:
+part4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_4.csv
     field_term: ','
     row_term: \n
-table_part5:
+part5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_5.csv
     field_term: ','
     row_term: \n
-table_part6:
+part6:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_6.csv
     field_term: ','
     row_term: \n
-table_part7:
+part7:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_7.csv
     field_term: ','
     row_term: \n
-table_part8:
+part8:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_8.csv
     field_term: ','
     row_term: \n
-table_part9:
+part9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_9.csv
     field_term: ','
     row_term: \n
