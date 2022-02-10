@@ -8,9 +8,10 @@
 
 
 load_load_raw.apcd_provider_full_f <- function(etl_date_min = NULL,
-                                                               etl_date_max = NULL,
-                                                               etl_delivery_date = NULL,
-                                                               etl_note = NULL) {
+                                               etl_date_max = NULL,
+                                               etl_delivery_date = NULL,
+                                               etl_note = NULL,
+                                               server = NULL) {
   
   ### Set table name part
   table_name_part <- "apcd_provider"
@@ -20,6 +21,10 @@ load_load_raw.apcd_provider_full_f <- function(etl_date_min = NULL,
     stop("Enter a delivery date and note for the ETL batch ID function")
   }
   
+  ### Check entries are in place for ETL function
+  if (is.null(server)) {
+    stop("Enter a server name")
+  }
   
   # Load ETL and QA functions if not already present
   if (exists("load_metadata_etl_log_f") == F) {
@@ -50,10 +55,10 @@ load_load_raw.apcd_provider_full_f <- function(etl_date_min = NULL,
   
   #### LOAD TABLES ####
   print("Loading tables to SQL")
-  load_table_from_file_f(conn = db_claims,
+  load_table_from_file(conn = db_claims,
                          config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.",
                                            table_name_part, "_full.yaml"),
-                         overall = F, ind_yr = T, combine_yr = T, test_mode = F, server = NULL)
+                       overall = F, ind_yr = T, combine_yr = T, server = server, drop_index = F)
   
   
   #### ADD BATCH ID COLUMN ####
@@ -88,7 +93,7 @@ load_load_raw.apcd_provider_full_f <- function(etl_date_min = NULL,
   if (length(table_config$years) > 1) {
     lapply(table_config$years, function(x) {
       table_name <- glue::glue(table_name_part, "_", x)
-      odbc::dbGetQuery(db_claims, glue::glue_sql("DROP TABLE {`table_config$schema`}.{`table_name`}", .con = db_claims))
+      odbc::dbGetQuery(db_claims, glue::glue_sql("DROP TABLE {`table_config$to_schema`}.{`table_name`}", .con = db_claims))
       })
     }
 }
