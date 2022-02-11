@@ -1,37 +1,49 @@
-schema: load_raw
-table: apcd_provider
+server_path: KCITSQLUTPDBH51
+db_name: PHClaims
+to_schema: load_raw
+to_table: apcd_provider
 vars:
-    provider_id: numeric(38)
-    extract_id: numeric(38)
-    submitter_id: numeric(38)
-    internal_provider_id: numeric(38)
+    provider_id: bigint
+    extract_id: bigint
+    submitter_id: bigint
+    internal_provider_id: bigint
     organization_name: varchar(100)
     last_name: varchar(100)
-    first_name: varchar(35)
-    middle_name: varchar(25)
-    generation_suffix: varchar(5)
-    entity_type: varchar(20)
+    first_name: varchar(60)
+    middle_name: varchar(1)
+    generation_suffix: varchar(10)
+    entity_type: varchar(10)
     professional_credential_code: varchar(20)
-    orig_npi: varchar(20)
-    primary_specialty_id: numeric(38)
-    primary_specialty_code: varchar(20)
-    city: varchar(100)
+    orig_npi: bigint
+    primary_specialty_id: bigint
+    primary_specialty_code: varchar(50)
+    city: varchar(30)
     state: varchar(2)
-    zip: varchar(5)
+    zip: varchar(15)
     row_number: bigint
-table_part1:
+part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_1.csv
     field_term: ','
     row_term: \n
-table_part2:
+part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_2.csv
     field_term: ','
     row_term: \n
-table_part3:
+part3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_3.csv
+    field_term: ','
+    row_term: \n
+part4:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_4.csv
+    field_term: ','
+    row_term: \n
+part5:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_5.csv
     field_term: ','
     row_term: \n
 years:
     - part1
     - part2
     - part3
+    - part4
+    - part5

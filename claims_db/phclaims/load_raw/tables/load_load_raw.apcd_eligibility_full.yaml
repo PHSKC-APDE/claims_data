@@ -1,102 +1,175 @@
-schema: load_raw
-table: apcd_eligibility
+server_path: KCITSQLUTPDBH51
+db_name: PHClaims
+to_schema: load_raw
+to_table: apcd_eligibility
 vars:
-    eligibility_id: numeric(38)
-    submitter_id: numeric(38)
-    internal_member_id: numeric(38)
+    eligibility_id: bigint
+    submitter_id: bigint
+    internal_member_id: bigint
     coverage_class: varchar(10)
     eligibility_start_dt: date
     eligibility_end_dt: date
-    product_code_id: numeric(38)
-    primary_insurance_indicator_id: numeric(38)
-    subscriber_relationship_id: numeric(38)
-    gender_code: varchar(2)
+    product_code_id: bigint
+    primary_insurance_indicator_id: bigint
+    subscriber_relationship_id: bigint
+    gender_code: varchar(10)
     age: integer
-    coverage_level_id: numeric(38)
-    coverage_type_id: numeric(38)
-    market_category_id: numeric(38)
-    entitlement_code_id: numeric(38)
-    entitlement_code_id_orig: numeric(38)
-    medicare_advantage_id: numeric(38)
-    medicare_status_id: numeric(38)
-    dual_eligibility_code_id: numeric(38)
-    aid_category_id: numeric(38)
-    managed_care_flag: varchar(1)
-    purchased_through_exchange: varchar(100)
-    exchange_market_type: varchar(2)
-    exchange_metallic_tier_id: numeric(38)
+    coverage_level_id: bigint
+    coverage_type_id: bigint
+    market_category_id: bigint
+    entitlement_code_id: bigint
+    entitlement_code_id_orig: bigint
+    medicare_status_id: bigint
+    dual_eligibility_code_id: bigint
+    aid_category_id: bigint
+    managed_care_flag: varchar(2)
+    purchased_through_exchange: varchar(10)
+    exchange_market_type: varchar(10)
+    exchange_metallic_tier_id: bigint
     city: varchar(100)
     state: varchar(2)
-    zip: varchar(5)
+    zip: varchar(15)
     medicaid_ffs_flag: varchar(2)
-    race_id1: numeric(38)
-    race_id2: numeric(38)
-    ethnicity_id1: numeric(38)
-    ethnicity_id2: numeric(38)
-    hispanic_id: numeric(38)
+    race_id1: bigint
+    race_id2: bigint
+    ethnicity_id1: bigint
+    ethnicity_id2: bigint
+    hispanic_id: bigint
     behavioral_health_ind_code: varchar(10)
     out_of_state_flag: varchar(1)
     dup_flag_pbm_tpa: varchar(1)
     dup_flag_managed_care: varchar(1)
     dup_flag_part_d: varchar(1)
     row_number: bigint
-table_part1:
+part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_1.csv
     field_term: ','
     row_term: \n
-table_part10:
+part10:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_10.csv
     field_term: ','
     row_term: \n
-table_part11:
+part11:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_11.csv
     field_term: ','
     row_term: \n
-table_part12:
+part12:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_12.csv
     field_term: ','
     row_term: \n
-table_part13:
+part13:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_13.csv
     field_term: ','
     row_term: \n
-table_part14:
+part14:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_14.csv
     field_term: ','
     row_term: \n
-table_part15:
+part15:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_15.csv
     field_term: ','
     row_term: \n
-table_part2:
+part16:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_16.csv
+    field_term: ','
+    row_term: \n
+part17:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_17.csv
+    field_term: ','
+    row_term: \n
+part18:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_18.csv
+    field_term: ','
+    row_term: \n
+part19:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_19.csv
+    field_term: ','
+    row_term: \n
+part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_2.csv
     field_term: ','
     row_term: \n
-table_part3:
+part20:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_20.csv
+    field_term: ','
+    row_term: \n
+part21:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_21.csv
+    field_term: ','
+    row_term: \n
+part22:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_22.csv
+    field_term: ','
+    row_term: \n
+part23:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_23.csv
+    field_term: ','
+    row_term: \n
+part24:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_24.csv
+    field_term: ','
+    row_term: \n
+part25:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_25.csv
+    field_term: ','
+    row_term: \n
+part26:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_26.csv
+    field_term: ','
+    row_term: \n
+part27:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_27.csv
+    field_term: ','
+    row_term: \n
+part28:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_28.csv
+    field_term: ','
+    row_term: \n
+part29:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_29.csv
+    field_term: ','
+    row_term: \n
+part3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_3.csv
     field_term: ','
     row_term: \n
-table_part4:
+part30:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_30.csv
+    field_term: ','
+    row_term: \n
+part31:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_31.csv
+    field_term: ','
+    row_term: \n
+part32:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_32.csv
+    field_term: ','
+    row_term: \n
+part33:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_33.csv
+    field_term: ','
+    row_term: \n
+part4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_4.csv
     field_term: ','
     row_term: \n
-table_part5:
+part5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_5.csv
     field_term: ','
     row_term: \n
-table_part6:
+part6:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_6.csv
     field_term: ','
     row_term: \n
-table_part7:
+part7:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_7.csv
     field_term: ','
     row_term: \n
-table_part8:
+part8:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_8.csv
     field_term: ','
     row_term: \n
-table_part9:
+part9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_9.csv
     field_term: ','
     row_term: \n
@@ -108,8 +181,26 @@ years:
     - part13
     - part14
     - part15
+    - part16
+    - part17
+    - part18
+    - part19
     - part2
+    - part20
+    - part21
+    - part22
+    - part23
+    - part24
+    - part25
+    - part26
+    - part27
+    - part28
+    - part29
     - part3
+    - part30
+    - part31
+    - part32
+    - part33
     - part4
     - part5
     - part6
