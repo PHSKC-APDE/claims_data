@@ -124,7 +124,7 @@ create_table(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.R")
 
-system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
+system.time(load_load_raw.apcd_procedure_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
 
 
@@ -151,7 +151,7 @@ create_table(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.R")
 
-system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
+system.time(load_load_raw.apcd_claim_provider_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
 
 
@@ -178,7 +178,7 @@ create_table(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.R")
 
-system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
+system.time(load_load_raw.apcd_dental_claim_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
 
 
@@ -205,7 +205,7 @@ create_table(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.R")
 
-system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
+system.time(load_load_raw.apcd_eligibility_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
 
 
@@ -232,7 +232,7 @@ create_table(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_header_full.R")
 
-system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
+system.time(load_load_raw.apcd_medical_claim_header_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
 
 
@@ -259,7 +259,7 @@ create_table(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_member_month_detail_full.R")
 
-system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
+system.time(load_load_raw.apcd_member_month_detail_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
 
 
@@ -286,7 +286,7 @@ create_table(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_pharmacy_claim_full.R")
 
-system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
+system.time(load_load_raw.apcd_pharmacy_claim_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
 
 
@@ -313,7 +313,7 @@ create_table(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.R")
 
-system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
+system.time(load_load_raw.apcd_provider_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
 
 
@@ -332,7 +332,7 @@ create_table(conn = db_claims,
 # Call in function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_master_full.R")
 
-system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
+system.time(load_load_raw.apcd_provider_master_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
 
 
