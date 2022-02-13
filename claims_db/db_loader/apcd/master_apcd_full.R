@@ -195,7 +195,7 @@ create_table(conn = db_claims,
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
