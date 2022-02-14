@@ -43,10 +43,6 @@ part10:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_10.csv
     field_term: ','
     row_term: \n
-part11:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_11.csv
-    field_term: ','
-    row_term: \n
 part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_2.csv
     field_term: ','
@@ -82,7 +78,6 @@ part9:
 years:
     - part1
     - part10
-    - part11
     - part2
     - part3
     - part4
