@@ -16,8 +16,8 @@ pacman::p_load(tidyverse, glue)
 #### STEP 1: Set universal parameters ####
 read_path <- "\\\\kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" #Folder containing exported format files
 #write_path <- "C:/Users/kerneli/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KC laptop
-#write_path <- "C:/Users/kerneli.PH/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
-write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Susan's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
+write_path <- "C:/Users/kerneli.PH/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
+#write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Susan's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
 
 
 
@@ -51,15 +51,16 @@ lapply(table_list, function(table_list) {
   file_list <- as.list(deframe(file_df)) #Convert to list
   
   #Add additional levels (lists) to specify other parameters for YAML file
+  if (length(long_file_list) > 1) {
   file_list <- lapply(file_list, function(x) { 
     list(file_path = x,
          field_term = ',',
          row_term = "\\n")
-  }) 
+  })}
   
   #For tables with only 1 table chunk, change list name to "overall"
   if (length(long_file_list) == 1) {
-    names(file_list) <- "overall"
+    file_list <- list(file_path = file_list[[1]], field_term = ',', row_term = "\\n")
   }
   
   #For tables with multiple chunks, create list of table chunk suffixes
