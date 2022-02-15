@@ -53,51 +53,51 @@ vars:
 part1:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_1.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 part10:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_10.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 part11:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_11.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 part12:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_12.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 part2:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_2.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 part3:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_3.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 part4:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_4.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 part5:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_5.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 part6:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_6.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 part7:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_7.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 part8:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_8.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 part9:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_9.csv
     field_term: ','
-    row_term: 0x0A
+    row_term: '0x0A'
 years:
     - part1
     - part10
