@@ -21,11 +21,6 @@ load_load_raw.apcd_provider_master_full_f <- function(etl_date_min = NULL,
     stop("Enter a delivery date and note for the ETL batch ID function")
   }
   
-  ### Check entries are in place for ETL function
-  if (is.null(server)) {
-    stop("Enter a server name")
-  }
-  
   # Load ETL and QA functions if not already present
   if (exists("load_metadata_etl_log_f") == F) {
     devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
