@@ -65,6 +65,10 @@ system.time(lapply(seq_along(format_file_list), y=format_file_list, function(y, 
   #Create table shell using format file from APCD
   DBI::dbCreateTable(db_claims, name = DBI::SQL(paste0(sql_database_name, ".", sql_schema_name, ".", sql_table)),
                 fields = format_vector, row.names = NULL)
+  
+  #Print helpful message
+  print(paste0("Table shell for reference table ", table_name_part, " successfully created."))
+  
 }))
 
 #### STEP 4: Load data to SQL table using BCP ####
@@ -81,7 +85,8 @@ system.time(lapply(seq_along(long_file_list), y=long_file_list, function(y, i) {
   #Load data using BCP
   file_name <- y[[i]]
   bcp_load_f(server = sql_server, table = paste0(sql_database_name, ".", sql_schema_name, ".", sql_table), read_file = file_name)
+  
+  #Print helpful message
+  print(paste0("Data for reference table ", table_name_part, " successfully loaded."))
 }))
-
 }
-
