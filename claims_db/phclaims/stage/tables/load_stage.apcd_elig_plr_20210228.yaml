@@ -1,5 +1,5 @@
 schema: stage
-table: apcd_elig_plr_20200229
+table: apcd_elig_plr_20210228
 vars:
     id_apcd: bigint
     geo_wa: tinyint
