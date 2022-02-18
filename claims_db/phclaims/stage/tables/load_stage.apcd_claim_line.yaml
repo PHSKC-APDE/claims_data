@@ -1,5 +1,5 @@
-schema: stage
-table: apcd_claim_line
+to_schema: stage
+to_table: apcd_claim_line
 vars:
     id_apcd: bigint
     claim_header_id: bigint
