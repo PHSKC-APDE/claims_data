@@ -1,5 +1,5 @@
-schema: stage
-table: apcd_elig_timevar
+to_schema: stage
+to_table: apcd_elig_timevar
 vars:
     id_apcd: varchar(255)
     from_date: date
