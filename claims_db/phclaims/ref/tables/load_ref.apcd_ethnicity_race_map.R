@@ -17,7 +17,6 @@ library(pacman)
 pacman::p_load(tidyverse, lubridate, odbc, RCurl, configr, glue)
 
 db_claims <- dbConnect(odbc(), "PHClaims51")
-git_path <- "H:/my documents/GitHub"
 
 #SQL loading functions developed by APDE
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
