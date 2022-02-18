@@ -27,15 +27,15 @@ load_stage.apcd_elig_demo_f <- function() {
     	max(gender_recent) as gender_recent
     into #mm_temp1
     from (
-    select internal_member_id, year_month, age, 
+    select internal_member_id, cast(year_month as int) as year_month, age, 
     	--when age changes between two contiguous months (year_month diff = 1 or 89 [for 12 to 01], use this change to estimate DOB
-    	case when lag(age,1) over (partition by internal_member_id order by internal_member_id, year_month) < age and 
-    		(year_month - lag(year_month,1) over (partition by internal_member_id order by internal_member_id, year_month)) in (1, 89)
-    		then convert(date, cast(year_month - lag((age + 1) * 100,1) over (partition by internal_member_id order by internal_member_id, year_month) as varchar(200)) + '01')
+    	case when lag(age,1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int)) < age and 
+    		(cast(year_month as int) - lag(cast(year_month as int),1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int))) in (1, 89)
+    		then convert(date, cast(cast(year_month as int) - lag((age + 1) * 100,1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int)) as varchar(200)) + '01')
     	end as dob_1,
     	--when only a single age is available for all history, use the last recorded age and month to estimate age (will overestimate age, thus choose an earlier DOB)
-    	case when lead(age,1) over (partition by internal_member_id order by internal_member_id, year_month) is null 
-    		then dateadd(month, 1, convert(date, cast((year_month - ((age + 1) * 100)) as varchar(200)) + '01'))
+    	case when lead(age,1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int)) is null 
+    		then dateadd(month, 1, convert(date, cast((cast(year_month as int) - ((age + 1) * 100)) as varchar(200)) + '01'))
     	end as dob_2,
       --create alone or in combination gender variables
       case when gender_code = 'F' then 1 when gender_code = 'U' then null else 0 end as female,
@@ -43,7 +43,7 @@ load_stage.apcd_elig_demo_f <- function() {
       case when gender_code = 'U' then 1 else 0 end as gender_unk,
       --create variable to hold most recent gender, ignore null and 'Unknown' values
       last_value(gender_code) over (partition by internal_member_id
-    	order by internal_member_id, case when gender_code = 'U' or gender_code is null then null else year_month end
+    	order by internal_member_id, case when gender_code = 'U' or gender_code is null then null else cast(year_month as int) end
     		rows between unbounded preceding and unbounded following) as gender_recent
     from PHClaims.stage.apcd_member_month_detail
     ) as a

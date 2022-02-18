@@ -599,6 +599,6 @@ if(send_email == "Yes") {
                                         .con = db_claims))
   etl$server <- server
   vars <- etl
-  apde_notify_f("claims_mcaid_update",
-                vars)
+  apde_notify_f(msg_name = "claims_mcaid_update",
+                vars = vars)
 }
