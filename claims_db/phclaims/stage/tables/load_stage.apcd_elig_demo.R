@@ -27,7 +27,7 @@ load_stage.apcd_elig_demo_f <- function() {
     	max(gender_recent) as gender_recent
     into #mm_temp1
     from (
-    select top 10 internal_member_id, cast(year_month as int) as year_month, age, 
+    select internal_member_id, cast(year_month as int) as year_month, age, 
     	--when age changes between two contiguous months (year_month diff = 1 or 89 [for 12 to 01], use this change to estimate DOB
     	case when lag(age,1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int)) < age and 
     		(cast(year_month as int) - lag(cast(year_month as int),1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int))) in (1, 89)
