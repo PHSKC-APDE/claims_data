@@ -5,6 +5,10 @@
 ##Eli Kern (PHSKC-APDE)
 ##2019-10
 
+##2022-02-18 updates:
+#updated to use new create_table and load_table_from_file functions on apde repo
+#updated yaml file to match current parameter synatx
+#updates ethnicity_race map Excel file to add one new ethnicity code
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
@@ -16,18 +20,19 @@ db_claims <- dbConnect(odbc(), "PHClaims51")
 git_path <- "H:/my documents/GitHub"
 
 #SQL loading functions developed by APDE
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_file.R")
 
-create_table_f(conn = db_claims, 
+create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_ethnicity_race_map.yaml",
                overall = T,
                ind_yr = F,
                overwrite = T,
-               test_mode = F)
+               server = "KCITSQLUTPDBH51")
 
-load_table_from_file_f(conn = db_claims, 
+load_table_from_file(conn = db_claims, 
                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_ethnicity_race_map.yaml",
                        overall = T,
                        ind_yr = F,
-                       test_mode = F)
+                       server = "KCITSQLUTPDBH51",
+                       drop_index = F)
