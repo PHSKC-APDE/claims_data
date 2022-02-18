@@ -1,7 +1,7 @@
 schema: stage
 table: apcd_elig_timevar
 vars:
-    id_apcd: varchar(255)
+    id_apcd: bigint
     from_date: date
     to_date: date
     contiguous: tinyint

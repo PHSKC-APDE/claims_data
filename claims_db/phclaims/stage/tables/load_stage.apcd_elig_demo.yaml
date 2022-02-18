@@ -1,7 +1,7 @@
 to_schema: stage
 to_table: apcd_elig_demo
 vars:
-    id_apcd: varchar(255)
+    id_apcd: bigint
     dob: date
     ninety_only: tinyint
     gender_me: varchar(255)
