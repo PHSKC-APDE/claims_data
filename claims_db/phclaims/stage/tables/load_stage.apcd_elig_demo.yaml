@@ -1,5 +1,5 @@
-schema: stage
-table: apcd_elig_demo
+to_schema: stage
+to_table: apcd_elig_demo
 vars:
     id_apcd: varchar(255)
     dob: date
