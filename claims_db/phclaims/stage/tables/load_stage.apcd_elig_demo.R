@@ -91,7 +91,7 @@ load_stage.apcd_elig_demo_f <- function() {
     if object_id('tempdb..#elig_temp1') is not null drop table #elig_temp1;
     select eligibility_id, internal_member_id as id_apcd, eligibility_end_dt,
     case when race_id1 in (1,2,3,4,5) then race_id1 else 0 end as race_id1,
-    case when race_id2 in (1,2,3,4,5) then race_id1 else 0 end as race_id2,
+    case when race_id2 in (1,2,3,4,5) then race_id2 else 0 end as race_id2,
     case when hispanic_id in (1,2) then hispanic_id else 0 end as latino_id
     into #elig_temp1
     from PHClaims.stage.apcd_eligibility;
