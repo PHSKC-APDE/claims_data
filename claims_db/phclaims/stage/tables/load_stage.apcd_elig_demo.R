@@ -28,8 +28,8 @@ load_stage.apcd_elig_demo_f <- function() {
     into #mm_temp1
     from (
     select internal_member_id, cast(year_month as int) as year_month, age, 
-    	--when age changes between two contiguous months (year_month diff = 1 or 89 [for 12 to 01], use this change to estimate DOB
-    	case when lag(age,1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int)) < age and 
+    	--when age changes between two contiguous months (year_month diff = 1 or 89 [for 12 to 01] AND difference in age = 1 year, use this change to estimate DOB
+    	case when age - lag(age,1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int)) = 1 and 
     		(cast(year_month as int) - lag(cast(year_month as int),1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int))) in (1, 89)
     		then convert(date, cast(cast(year_month as int) - lag((age + 1) * 100,1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int)) as varchar(200)) + '01')
     	end as dob_1,
@@ -253,13 +253,13 @@ load_stage.apcd_elig_demo_f <- function() {
 qa_stage.apcd_elig_demo_f <- function() {
   
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_demo' as 'table', 'distinct count' as qa_type, count(distinct id_apcd) as qa from stage.apcd_elig_demo",
+    "select 'stage.apcd_elig_demo' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct id_apcd) as qa from stage.apcd_elig_demo",
     .con = db_claims))
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_member_month_detail' as 'table', 'distinct count' as qa_type, count(distinct internal_member_id) as qa from stage.apcd_member_month_detail",
+    "select 'stage.apcd_member_month_detail' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct internal_member_id) as qa from stage.apcd_member_month_detail",
     .con = db_claims))
   res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_demo' as 'table', 'count' as qa_type, count(id_apcd) as qa from stage.apcd_elig_demo",
+    "select 'stage.apcd_elig_demo' as 'table', 'count, expect to equal other qa values' as qa_type, count(id_apcd) as qa from stage.apcd_elig_demo",
     .con = db_claims))
   res_final <- bind_rows(res1, res2, res3)
 }
