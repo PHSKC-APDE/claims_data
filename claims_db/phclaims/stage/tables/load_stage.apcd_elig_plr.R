@@ -599,7 +599,8 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     			when d.age >= 45 and d.age < 65 then '45-64'
     			when d.age >= 65 or d.ninety_only = 1 then '65 and over'
     	end as age_grp7,
-    	d.gender_me, d.gender_recent, d.gender_female, d.gender_male,
+    	d.gender_me, d.gender_recent, d.gender_female, d.gender_male, d.race_eth_me, d.race_me, d.race_eth_recent, d.race_recent, d.race_aian,
+    	d.race_asian, d.race_black, d.race_latino, d.race_nhpi, d.race_white, d.race_unknown,
     	
       --COVERAGE STATS
       a.med_total_covd, a.med_total_covper, a.full_benefit_covd,
@@ -653,7 +654,8 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     	then 1 else 0 end as performance_11_ach,
     case when full_benefit_covper >= 58.3 and dual_covper < 41.7 and med_commercial_covper < 41.7 and geo_ach_covper >= 58.3
     	then 1 else 0 end as performance_7_ach,
-    geo_zip, geo_county, geo_ach, geo_ach_covd, geo_ach_covper, age, age_grp7, gender_me, gender_recent, gender_female, gender_male, med_total_covd, med_total_covper, 
+    geo_zip, geo_county, geo_ach, geo_ach_covd, geo_ach_covper, age, age_grp7, gender_me, gender_recent, gender_female, gender_male, race_eth_me, race_me,
+    race_eth_recent, race_recent, race_aian, race_asian, race_black, race_latino, race_nhpi, race_white, race_unknown, med_total_covd, med_total_covper, 
     full_benefit_covd, full_benefit_covper, dual_covd, dual_covper, dual_flag, med_medicaid_covd, med_medicare_covd, med_commercial_covd,
     med_medicaid_covper, med_medicare_covper, med_commercial_covper, med_total_ccovd_max, med_medicaid_ccovd_max, med_medicare_ccovd_max,
     med_commercial_ccovd_max, med_total_covgap_max, med_medicaid_covgap_max, med_medicare_covgap_max, med_commercial_covgap_max,
