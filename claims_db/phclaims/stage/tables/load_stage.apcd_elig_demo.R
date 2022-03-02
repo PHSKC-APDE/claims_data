@@ -81,6 +81,8 @@ load_stage.apcd_elig_demo_f <- function() {
     into #mm_final
     from #mm_temp1;
     
+    if object_id('tempdb..#mm_temp1') is not null drop table #mm_temp1;
+
     
     ------------------
     --STEP 3: Recode APCD race and latino variables
@@ -130,6 +132,10 @@ load_stage.apcd_elig_demo_f <- function() {
     left join #elig_temp3 as c
     on a.eligibility_id = c.eligibility_id;
     
+    if object_id('tempdb..#elig_temp1') is not null drop table #elig_temp1;
+    if object_id('tempdb..#elig_temp2') is not null drop table #elig_temp2;
+    if object_id('tempdb..#elig_temp3') is not null drop table #elig_temp3;
+
     
     ------------------
     --STEP 6: Create normalized race variables
@@ -148,6 +154,8 @@ load_stage.apcd_elig_demo_f <- function() {
     into #elig_temp5
     from #elig_temp4;
     
+    if object_id('tempdb..#elig_temp4') is not null drop table #elig_temp4;
+
     
     ------------------
     --STEP 7: Create mutually exclusive race variables (two flavors)
@@ -177,6 +185,8 @@ load_stage.apcd_elig_demo_f <- function() {
     end as race_me
     into #elig_temp6
     from #elig_temp5;
+
+    if object_id('tempdb..#elig_temp5') is not null drop table #elig_temp5;
     
     
     ------------------
@@ -192,6 +202,8 @@ load_stage.apcd_elig_demo_f <- function() {
     	rows between unbounded preceding and unbounded following) as race_recent
     into #elig_temp7
     from #elig_temp6;
+
+    if object_id('tempdb..#elig_temp6') is not null drop table #elig_temp6;
     
     
     ------------------
@@ -216,6 +228,8 @@ load_stage.apcd_elig_demo_f <- function() {
     from #elig_temp7
     group by id_apcd;
     
+    if object_id('tempdb..#elig_temp7') is not null drop table #elig_temp7;
+
     
     ------------------
     --STEP 10: Join age, gender and race variables on member ID, and insert data
@@ -245,7 +259,10 @@ load_stage.apcd_elig_demo_f <- function() {
     	getdate() as last_run
     from #mm_final as a
     left join #elig_final as b
-    on a.id_apcd = b.id_apcd;",
+    on a.id_apcd = b.id_apcd;
+    
+    if object_id('tempdb..#mm_final') is not null drop table #mm_final;
+    if object_id('tempdb..#elig_final') is not null drop table #elig_final;",
     .con = db_claims))
 }
 

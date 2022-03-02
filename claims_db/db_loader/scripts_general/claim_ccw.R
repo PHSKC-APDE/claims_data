@@ -429,7 +429,12 @@ load_ccw <- function(conn = NULL,
       SELECT
       {`id_source`}, from_date, to_date, ccw_code, ccw_desc, 
       getdate() as last_run
-      FROM {`ccw_abbrev_table`}",
+      FROM {`ccw_abbrev_table`};
+      
+      --drop temp tables to free up space on tempdb
+      if object_id('tempdb..##header') IS NOT NULL drop table ##header;
+      if object_id('tempdb..##rolling_tmp') IS NOT NULL drop table ##rolling_tmp;
+      if object_id('tempdb..{`ccw_abbrev_table`}') IS NOT NULL drop table {`ccw_abbrev_table`};",
       .con = conn,
       ccw_abbrev_table = glue("##{ccw_abbrev}"))
     

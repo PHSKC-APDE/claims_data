@@ -74,7 +74,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     ) as x
     group by x.internal_member_id, x.first_day_month, x.last_day_month;
     
-    drop table #temp1;
+    if object_id('tempdb..#temp1') is not null drop table #temp1;
     
     
     -------------------
@@ -126,7 +126,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     left join #temp2 as b
     on a.internal_member_id = b.internal_member_id and a.first_day_month = b.first_day_month;
     
-    drop table #temp2;
+    if object_id('tempdb..#temp2') is not null drop table #temp2;
     
     
     ------------
@@ -139,7 +139,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     into #temp4
     from #temp3;
     
-    drop table #temp3;
+    if object_id('tempdb..#temp3') is not null drop table #temp3;
     
     
     ------------
@@ -152,7 +152,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     from #temp4
     group by internal_member_id, zip_code, med_covgrp, pharm_covgrp, dental_coverage, dual_flag, bsp_group_cid, full_benefit, group_num;
     
-    drop table #temp4;
+    if object_id('tempdb..#temp4') is not null drop table #temp4;
     
     
     ------------
@@ -193,7 +193,9 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     left join (select distinct zip_code, zip_group_code, zip_group_desc from phclaims.ref.apcd_zip_group where left(zip_group_type_desc, 3) = 'Acc') as c
     on a.zip_code = c.zip_code
     left join PHClaims.ref.geo_county_code_wa as d
-    on b.zip_group_code = d.countyn;",
+    on b.zip_group_code = d.countyn;
+    
+    if object_id('tempdb..#temp5') is not null drop table #temp5;",
     .con = db_claims))
 }
 

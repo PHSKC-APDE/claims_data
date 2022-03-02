@@ -430,7 +430,9 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     
     into #cov2
     from #cov1;
-    
+
+    if object_id('tempdb..#cov1') is not null drop table #cov1;
+
     
     --------------------------
     --STEP 4: Summarize coverage and RAC-based information to person level
@@ -504,7 +506,9 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
       into #cov3
       from #cov2
       group by id_apcd;
-    
+
+    if object_id('tempdb..#cov2') is not null drop table #cov2;
+
     
     --------------------------
     --STEP 5: Summarize geographic information for member residence
@@ -628,6 +632,10 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     ) as d
     on a.id = d.id_apcd;
     
+    if object_id('tempdb..#cov3') is not null drop table #cov3;
+    if object_id('tempdb..#geo') is not null drop table #geo;
+    if object_id('tempdb..#ach') is not null drop table #ach;
+
     
     --------------------------
     --STEP 8: Create final coverage cohort variables and select into table shell
@@ -663,7 +671,9 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     pharm_medicare_covper, pharm_commercial_covper, pharm_total_ccovd_max, pharm_medicaid_ccovd_max, pharm_medicare_ccovd_max,
     pharm_commercial_ccovd_max, pharm_total_covgap_max, pharm_medicaid_covgap_max, pharm_medicare_covgap_max, pharm_commercial_covgap_max,
     getdate() as last_run
-    from #merge1;",
+    from #merge1;
+
+    if object_id('tempdb..#merge1') is not null drop table #merge1;",
     .con = db_claims))
 }
 

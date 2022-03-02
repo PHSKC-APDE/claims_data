@@ -407,7 +407,10 @@ load_stage.apcd_claim_header_f <- function() {
     getdate() as last_run
     from #temp3 as a
     left join #ed_yale_final as b
-    on a.claim_header_id = b.claim_header_id;",
+    on a.claim_header_id = b.claim_header_id;
+    
+    if object_id('tempdb..#temp3') is not null drop table #temp3;
+    if object_id('tempdb..#ed_yale_final') is not null drop table #ed_yale_final;",
     .con = db_claims))
 }
 
