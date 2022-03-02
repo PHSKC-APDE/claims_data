@@ -158,7 +158,7 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
   
   if (!exists("create_table_f")) {
-    source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+    source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
   }
   
   #### STEP 2A: Pull in Informatica results ####

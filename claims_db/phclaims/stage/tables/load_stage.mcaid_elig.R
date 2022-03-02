@@ -14,7 +14,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
                                     full_refresh = F, 
                                     config = NULL) {
   
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
   
   ### Error checks
   if (is.null(conn_dw)) {stop("No DW connection specificed")}
@@ -334,7 +334,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   # First drop existing table
   try(odbc::dbRemoveTable(conn_dw, DBI::Id(schema = to_schema, table = to_table)), silent = T)
   
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
   
   
   # Then set up first block of SQL, which varies by server

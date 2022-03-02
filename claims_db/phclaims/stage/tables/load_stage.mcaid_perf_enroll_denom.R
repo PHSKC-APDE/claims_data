@@ -83,7 +83,7 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
   
   # Load into temp table using function
   if (exists("mcaid_perf_enroll_member_month_f") == FALSE) {
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/mcaid/mcaid_perf_enroll_member_month_f.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/mcaid_perf_enroll_member_month_f.R")
   }
   mcaid_perf_enroll_member_month_f(conn = conn, server = server,
                                    start_date_int = look_back_date_int, 

@@ -28,11 +28,11 @@ load_load_raw.apcd_provider_master_full_f <- function(etl_date_min = NULL,
   
   # Load ETL and QA functions if not already present
   if (exists("load_metadata_etl_log_f") == F) {
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
   }
   
   if (exists("qa_file_row_count_f") == F) {
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
   }
   
   
@@ -56,7 +56,7 @@ load_load_raw.apcd_provider_master_full_f <- function(etl_date_min = NULL,
   #### LOAD TABLES ####
   print("Loading tables to SQL")
   load_table_from_file(conn = db_claims,
-                         config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.",
+                         config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.",
                                              table_name_part, "_full.yaml"),
                        overall = T, ind_yr = F, combine_yr = F, server = server, drop_index = F)
   

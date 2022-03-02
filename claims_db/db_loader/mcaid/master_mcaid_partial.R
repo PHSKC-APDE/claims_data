@@ -28,15 +28,15 @@ s_shapes <- "//phshare01/epe_share/WORK/REQUESTS/Maps/Shapefiles/"
 g_shapes <- "//Kcitfsrprpgdw01/kclib/Plibrary2/"
 
 #### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/copy_into.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/mcaid/create_db_connection.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/copy_into.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
 memory.limit(size = 56000)
 
 #### CHOOSE SERVER AND CREATE CONNECTION ####
@@ -58,8 +58,8 @@ if (server == "hhsaw") {
 
 #### RAW ELIG ####
 ### Bring in yaml file and function
-load_mcaid_elig_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R")
+load_mcaid_elig_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R")
 
 
 ### Select File
@@ -96,8 +96,8 @@ rm(load_mcaid_elig_config)
 
 #### RAW CLAIMS ####
 ### Bring in yaml file and function
-load_mcaid_claim_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml"))
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R")
+load_mcaid_claim_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml"))
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.R")
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
@@ -135,10 +135,10 @@ rm(load_mcaid_claim_config)
 
 #### STAGE ELIG ####
 # Call in config file to get vars (and check for errors)
-table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml"))
+table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml"))
 if (table_config_stage_elig[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 if (server == "hhsaw") {
@@ -161,10 +161,10 @@ if (server == "hhsaw") {
 
 #### STAGE CLAIM ####
 # Call in config file to get vars (and check for errors)
-table_config_stage_claims <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
+table_config_stage_claims <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
 if (table_config_stage_claims[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.R")
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 if (server == "hhsaw") {
@@ -187,8 +187,8 @@ if (server == "hhsaw") {
 
 #### STAGE.ADDRESS_CLEAN ####
 # Call in config file to get vars
-stage_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean_partial.R")
+stage_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.address_clean_partial.R")
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 # Run step 1, which identifies new addresses and sets them up to be run through Informatica
 stage_address_clean_timestamp <- load_stage.address_clean_partial_step1(server = server,
@@ -266,13 +266,13 @@ if (stage_address_clean_timestamp != 0) {
                                          interactive_auth = interactive_auth)
   
   # QA stage.address_clean
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.address_clean_partial.R")
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.address_clean_partial.R")
   qa_stage_address_clean <- qa.address_clean_partial(conn = db_claims,
                                                      server = server,
                                                      config = stage_address_clean_config)
   
   # Pull in the config file
-  ref_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
+  ref_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
   
   from_schema <- ref_address_clean_config[["hhsaw"]][["from_schema"]]
   from_table <- ref_address_clean_config[["hhsaw"]][["from_table"]]
@@ -301,14 +301,14 @@ if (stage_address_clean_timestamp != 0) {
     # Load final table (assumes no changes to table structure)
     load_table_from_sql_f(conn = conn_hhsaw, 
                           server = "hhsaw",
-                          config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
+                          config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
                           truncate = T, truncate_date = F)
     
     # QA final table
     message("QA final address clean table")
     qa_rows_ref_address_clean <- qa_sql_row_count_f(conn = conn_hhsaw, 
                                                     server = "hhsaw",
-                                                    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml")
+                                                    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml")
     
     db_claims <- create_db_connection(server, interactive = interactive_auth)
     DBI::dbExecute(
@@ -338,9 +338,9 @@ if (stage_address_clean_timestamp != 0) {
 
 #### STAGE.ADDRESS_GEOCODE ####
 # Call in config file to get vars
-stage_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
+stage_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
 
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_geocode_partial.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.address_geocode_partial.R")
 conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
 qa_stage_address_geocode <- stage_address_geocode_f(conn = conn_hhsaw, 
                                                     server = "hhsaw", 
@@ -358,7 +358,7 @@ if (qa_stage_address_geocode == 0) {
   
   
   # Pull in the config file
-  ref_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml"))
+  ref_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml"))
   
   to_schema <- ref_address_geocode_config[["hhsaw"]][["to_schema"]]
   to_table <- ref_address_geocode_config[["hhsaw"]][["to_table"]]
@@ -376,7 +376,7 @@ if (qa_stage_address_geocode == 0) {
   # Load final table (assumes no changes to table structure)
   load_table_from_sql_f(conn = conn_hhsaw,
                         server = "hhsaw",
-                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml",
                         truncate = T, truncate_date = F)
   
   
@@ -422,7 +422,7 @@ conn_phclaims <- create_db_connection("phclaims", interactive = interactive_auth
 
 #### stage_address_clean table ####
 # Call in config file to get vars
-stage_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
+stage_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
 
 hhsaw_schema <- stage_address_clean_config[['hhsaw']][['to_schema']]
 hhsaw_table <- stage_address_clean_config[['hhsaw']][['to_table']]
@@ -467,7 +467,7 @@ message(nrow(update_phclaims), " stage address rows loaded from HHSAW to PHClaim
 
 #### address_clean table ####
 # Call in config file to get vars
-ref_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
+ref_address_clean_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml"))
 
 hhsaw_schema <- ref_address_clean_config[['hhsaw']][['to_schema']]
 hhsaw_table <- ref_address_clean_config[['hhsaw']][['to_table']]
@@ -512,7 +512,7 @@ message(nrow(update_phclaims), " address rows loaded from HHSAW to PHClaims")
 
 #### stage_address_geocode table ####
 # Call in config file to get vars
-stage_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
+stage_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
 
 hhsaw_schema <- stage_address_geocode_config[['hhsaw']][['to_schema']]
 hhsaw_table <- stage_address_geocode_config[['hhsaw']][['to_table']]
@@ -558,7 +558,7 @@ message(nrow(update_phclaims), " stage geocode rows loaded from HHSAW to PHClaim
 
 #### address_geocode table ####
 # Call in config file to get vars
-ref_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml"))
+ref_address_geocode_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.address_geocode.yaml"))
 
 hhsaw_schema <- ref_address_geocode_config[['hhsaw']][['to_schema']]
 hhsaw_table <- ref_address_geocode_config[['hhsaw']][['to_table']]

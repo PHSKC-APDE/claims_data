@@ -12,7 +12,7 @@ pacman::p_load(tidyverse, lubridate, odbc, RCurl, configr, glue)
 conn <- dbConnect(odbc(), "PHClaims51")
 
 #### Get YAML config file #####
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.fda_ndc_product.yaml"
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/create_ref.fda_ndc_product.yaml"
 table_config <- yaml::yaml.load_file(config_url)
 file_path <- table_config[["file_path"]][[1]]
 schema <- table_config[["schema"]][[1]]

@@ -26,8 +26,8 @@ devtools::install_github("PHSKC-APDE/claims_data")
 ##git_path <- "" --if using git specify here and add to the file path
 
 #SQL loading functions developed by APDE
-source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
+source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
 
 
 ##Disconnect and reconnect to database--

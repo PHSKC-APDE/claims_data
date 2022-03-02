@@ -14,18 +14,18 @@ db_claims <- dbConnect(odbc(), "PHClaims51")
 git_path <- "H:/my documents/GitHub"
 
 #SQL loading functions developed by APDE
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
 
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.geo_county_code_wa.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.geo_county_code_wa.yaml",
                overall = T,
                ind_yr = F,
                overwrite = T,
                test_mode = F)
 
 load_table_from_file_f(conn = db_claims, 
-                       config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.geo_county_code_wa.yaml",
+                       config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.geo_county_code_wa.yaml",
                        overall = T,
                        ind_yr = F,
                        test_mode = F)

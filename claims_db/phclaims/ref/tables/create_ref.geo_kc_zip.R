@@ -14,7 +14,7 @@ library(openxlsx) # Read and write data using Microsoft Excel
 conn <- dbConnect(odbc(), "PHClaims51")
 
 #### Get YAML config file #####
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.geo_kc_zip.yaml"
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/create_ref.geo_kc_zip.yaml"
 table_config <- yaml::yaml.load_file(config_url)
 file_path <- table_config[["file_path"]][[1]]
 schema <- table_config[["schema"]][[1]]

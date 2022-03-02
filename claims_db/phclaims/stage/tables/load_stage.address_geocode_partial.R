@@ -563,7 +563,7 @@ stage_address_geocode_f <- function(conn = NULL,
       # Create new table if it doesn't exist
       try(create_table_f(conn = conn, 
                          server = server,
-                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
+                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
     }
     
     

@@ -73,7 +73,7 @@ load_bh <- function(conn = NULL,
   } else if (!is.null(config_file)) {
     table_config <- yaml::read_yaml(config_file)
   } else {
-    table_config <- yaml::yaml.load(httr::GET(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.", source, "_claim_bh.yaml")))
+    table_config <- yaml::yaml.load(httr::GET(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.", source, "_claim_bh.yaml")))
   }
   
   #conditions <- names(table_config[str_detect(names(table_config), "cond_")])

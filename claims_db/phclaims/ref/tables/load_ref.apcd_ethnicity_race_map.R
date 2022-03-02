@@ -23,14 +23,14 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/c
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_file.R")
 
 create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_ethnicity_race_map.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_ethnicity_race_map.yaml",
                overall = T,
                ind_yr = F,
                overwrite = T,
                server = "KCITSQLUTPDBH51")
 
 load_table_from_file(conn = db_claims, 
-                       config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_ethnicity_race_map.yaml",
+                       config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_ethnicity_race_map.yaml",
                        overall = T,
                        ind_yr = F,
                        server = "KCITSQLUTPDBH51",

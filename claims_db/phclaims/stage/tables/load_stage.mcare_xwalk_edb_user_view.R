@@ -12,7 +12,7 @@
     options("scipen"=999) # turn off scientific notation  
     options(warning.length = 8170) # get lengthy warnings, needed for SQL
     setwd("C:/temp/")
-    yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_xwalk_edb_user_view.yaml"
+    yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_xwalk_edb_user_view.yaml"
     
 ## (1) Connect to SQL Server & get YAML data ----    
     db.claims51 <- dbConnect(odbc(), "PHClaims51") 

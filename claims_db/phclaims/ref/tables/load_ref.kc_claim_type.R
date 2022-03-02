@@ -14,8 +14,8 @@ library(glue)
 git_path <- "H:/my documents/GitHub"
 
 #SQL loading functions developed by APDE
-source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
+source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
 
 #Connect to PHClaims 51 Server
 db.claims51 <- dbConnect(odbc(), "PHClaims51")

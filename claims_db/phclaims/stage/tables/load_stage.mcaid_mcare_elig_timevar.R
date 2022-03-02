@@ -23,7 +23,7 @@
   
   kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_city_region_scc.csv"
   
-  yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.yaml"
+  yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.yaml"
   
 ## (1) Connect to SQL Server ----    
   # db_claims <- dbConnect(odbc(), "PHClaims51")   

@@ -30,11 +30,11 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/l
 #devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_sql.R") #wait until Alastair fixes this function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/add_index.R")
 
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_sql.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/claim_ccw.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_ccw.R")
 
 
 #### SET UP VALUES FOR ETL LOG ####
@@ -52,7 +52,7 @@ etl_note <- "Full refresh of APCD data using extract 10001" #UPDATE EACH QUARTER
 
 # Create table shells for table chunks
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = F,
              ind_yr = T,
@@ -60,7 +60,7 @@ create_table(conn = db_claims,
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
@@ -68,7 +68,7 @@ create_table(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_icdcm_raw_full.R")
 
 system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
@@ -79,7 +79,7 @@ system.time(load_load_raw.apcd_icdcm_full_f(etl_date_min = etl_date_min, etl_dat
 
 # Create table shells for table chunks
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_line_raw_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_line_raw_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = F,
              ind_yr = T,
@@ -87,7 +87,7 @@ create_table(conn = db_claims,
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_line_raw_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_line_raw_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
@@ -95,7 +95,7 @@ create_table(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_line_raw_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_line_raw_full.R")
 
 system.time(load_load_raw.apcd_claim_line_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
@@ -106,7 +106,7 @@ system.time(load_load_raw.apcd_claim_line_full_f(etl_date_min = etl_date_min, et
 
 # Create table shells for table chunks
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = F,
              ind_yr = T,
@@ -114,7 +114,7 @@ create_table(conn = db_claims,
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
@@ -122,7 +122,7 @@ create_table(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_procedure_raw_full.R")
 
 system.time(load_load_raw.apcd_procedure_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
@@ -133,7 +133,7 @@ system.time(load_load_raw.apcd_procedure_full_f(etl_date_min = etl_date_min, etl
 
 # Create table shells for table chunks
 create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.yaml",
                server = "KCITSQLUTPDBH51",
                overall = F,
                ind_yr = T,
@@ -141,7 +141,7 @@ create_table(conn = db_claims,
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
@@ -149,7 +149,7 @@ create_table(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_claim_provider_raw_full.R")
 
 system.time(load_load_raw.apcd_claim_provider_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
@@ -160,7 +160,7 @@ system.time(load_load_raw.apcd_claim_provider_full_f(etl_date_min = etl_date_min
 
 # Create table shells for table chunks
 create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
                server = "KCITSQLUTPDBH51",
                overall = F,
                ind_yr = T,
@@ -168,7 +168,7 @@ create_table(conn = db_claims,
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
@@ -176,7 +176,7 @@ create_table(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full.R")
 
 system.time(load_load_raw.apcd_dental_claim_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
@@ -187,7 +187,7 @@ system.time(load_load_raw.apcd_dental_claim_full_f(etl_date_min = etl_date_min, 
 
 # Create table shells for table chunks
 create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml",
                server = "KCITSQLUTPDBH51",
                overall = F,
                ind_yr = T,
@@ -195,7 +195,7 @@ create_table(conn = db_claims,
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
@@ -203,7 +203,7 @@ create_table(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_eligibility_full.R")
 
 system.time(load_load_raw.apcd_eligibility_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
@@ -214,7 +214,7 @@ system.time(load_load_raw.apcd_eligibility_full_f(etl_date_min = etl_date_min, e
 
 # Create table shells for table chunks
 create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_header_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_header_full.yaml",
                server = "KCITSQLUTPDBH51",
                overall = F,
                ind_yr = T,
@@ -222,7 +222,7 @@ create_table(conn = db_claims,
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_header_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_header_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
@@ -230,7 +230,7 @@ create_table(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_header_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_medical_claim_header_full.R")
 
 system.time(load_load_raw.apcd_medical_claim_header_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
@@ -241,7 +241,7 @@ system.time(load_load_raw.apcd_medical_claim_header_full_f(etl_date_min = etl_da
 
 # Create table shells for table chunks
 create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_member_month_detail_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_member_month_detail_full.yaml",
                server = "KCITSQLUTPDBH51",
                overall = F,
                ind_yr = T,
@@ -249,7 +249,7 @@ create_table(conn = db_claims,
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_member_month_detail_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_member_month_detail_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
@@ -257,7 +257,7 @@ create_table(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_member_month_detail_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_member_month_detail_full.R")
 
 system.time(load_load_raw.apcd_member_month_detail_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
@@ -268,7 +268,7 @@ system.time(load_load_raw.apcd_member_month_detail_full_f(etl_date_min = etl_dat
 
 # Create table shells for table chunks
 create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_pharmacy_claim_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_pharmacy_claim_full.yaml",
                server = "KCITSQLUTPDBH51",
                overall = F,
                ind_yr = T,
@@ -276,7 +276,7 @@ create_table(conn = db_claims,
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_pharmacy_claim_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_pharmacy_claim_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
@@ -284,7 +284,7 @@ create_table(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_pharmacy_claim_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_pharmacy_claim_full.R")
 
 system.time(load_load_raw.apcd_pharmacy_claim_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
@@ -295,7 +295,7 @@ system.time(load_load_raw.apcd_pharmacy_claim_full_f(etl_date_min = etl_date_min
 
 # Create table shells for table chunks
 create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.yaml",
                server = "KCITSQLUTPDBH51",
                overall = F,
                ind_yr = T,
@@ -303,7 +303,7 @@ create_table(conn = db_claims,
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.yaml",
              server = "KCITSQLUTPDBH51",
              overall = T,
              ind_yr = F,
@@ -311,7 +311,7 @@ create_table(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.R")
 
 system.time(load_load_raw.apcd_provider_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
@@ -322,7 +322,7 @@ system.time(load_load_raw.apcd_provider_full_f(etl_date_min = etl_date_min, etl_
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_master_full.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_master_full.yaml",
                server = "KCITSQLUTPDBH51",
                overall = T,
                ind_yr = F,
@@ -330,14 +330,14 @@ create_table(conn = db_claims,
 
 ### Load tables
 # Call in function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_master_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_master_full.R")
 
 system.time(load_load_raw.apcd_provider_master_full_f(etl_date_min = etl_date_min, etl_date_max = etl_date_max, etl_delivery_date = etl_delivery_date, etl_note = etl_note,
                                             server = "KCITSQLUTPDBH51"))
 
 
 #### REF APCD REFERENCE TABLES ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.apcd_reference_tables_full.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_reference_tables_full.R")
 
 system.time(load_ref.apcd_reference_tables_full_f())
 

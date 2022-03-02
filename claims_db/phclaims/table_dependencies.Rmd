@@ -25,7 +25,7 @@ color_font_light <- "Snow"
 color_font_dark <- "DarkOliveGreen"
 
 #### Pull in and set up data
-# input <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/table_dependencies.csv")
+# input <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/table_dependencies.csv")
 input <- data.table::fread("C:/code/claims_data/claims_db/phclaims/table_dependencies.csv")
 
 # Modify overall data
