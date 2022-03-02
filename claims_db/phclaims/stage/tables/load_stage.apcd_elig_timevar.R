@@ -74,6 +74,8 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     ) as x
     group by x.internal_member_id, x.first_day_month, x.last_day_month;
     
+    drop table #temp1;
+    
     
     -------------------
     --STEP 3: Join eligibility-based dual and RAC info to member_month_detail table and create coverage group variables
@@ -124,6 +126,8 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     left join #temp2 as b
     on a.internal_member_id = b.internal_member_id and a.first_day_month = b.first_day_month;
     
+    drop table #temp2;
+    
     
     ------------
     --STEP 4: Assign a group number to each set of contiguous months by person, covgrp, dual_flag, BSP code, and full benefit flag, and ZIP code
@@ -135,6 +139,8 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     into #temp4
     from #temp3;
     
+    drop table #temp3;
+    
     
     ------------
     --STEP 5: Taking the max and min of each contiguous period, collapse to one row
@@ -145,6 +151,8 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     into #temp5
     from #temp4
     group by internal_member_id, zip_code, med_covgrp, pharm_covgrp, dental_coverage, dual_flag, bsp_group_cid, full_benefit, group_num;
+    
+    drop table #temp4;
     
     
     ------------
