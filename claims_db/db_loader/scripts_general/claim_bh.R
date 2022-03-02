@@ -258,7 +258,12 @@ load_bh <- function(conn = NULL,
       SELECT
       {`id_source`}, from_date, to_date, bh_cond, 
       getdate() as last_run
-      FROM ##rolling_tmp_bh",
+      FROM ##rolling_tmp_bh;
+      
+    if object_id('tempdb..##header_bh') IS NOT NULL drop table ##header_bh;
+    if object_id('tempdb..##matrix') IS NOT NULL drop table ##matrix;
+    IF object_id('tempdb..##rolling_matrix') IS NOT NULL drop table ##rolling_matrix;
+    IF object_id('tempdb..##rolling_tmp_bh') IS NOT NULL drop table ##rolling_tmp_bh;",
       .con = conn)
     
     #Run SQL query
