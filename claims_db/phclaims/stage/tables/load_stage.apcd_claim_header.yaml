@@ -15,6 +15,30 @@ vars:
     claim_type_apcd_id: varchar(255)
     claim_type_id: tinyint
     type_of_bill_code: varchar(255)
+    cardiac_imaging_and_tests_flag: tinyint
+    chiropractic_flag: tinyint
+    consultations_flag: tinyint
+    covid19_flag: tinyint
+    dialysis_flag: tinyint
+    durable_medical_equip_flag: tinyint
+    echography_flag: tinyint
+    endoscopic_procedure_flag: tinyint
+    evaluation_and_management_flag: tinyint
+    health_home_utilization_flag: tinyint
+    hospice_utilization_flag: tinyint
+    imaging_advanced_flag: tinyint
+    imaging_standard_flag: tinyint
+    inpatient_acute_flag: tinyint
+    inpatient_nonacute_flag: tinyint
+    lab_and_pathology_flag: tinyint
+    oncology_and_chemotherapy_flag: tinyint
+    physical_therapy_rehab_flag: tinyint
+    preventive_screenings_flag: tinyint
+    preventive_vaccinations_flag: tinyint
+    preventive_visits_flag: tinyint
+    psychiatric_visits_flag: tinyint
+    surgery_and_anesthesia_flag: tinyint
+    telehealth_flag: tinyint
     ed_perform_id: bigint
     ed_pophealth_id: bigint
     inpatient_id: bigint
