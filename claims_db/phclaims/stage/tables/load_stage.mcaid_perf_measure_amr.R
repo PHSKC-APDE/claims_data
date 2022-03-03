@@ -960,4 +960,32 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
     return(output)
   }
   
+  #### CLEAN UP ####
+  try(dbRemoveTable(conn, "##asthma_pop", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_dx", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_ed_inpat", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_outpat", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_final_1yr", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_rx_event_oral_lk", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_rx_event_oral_non_lk", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_rx_event_inhaler", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_rx_event_inject_antib", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_rx_event_inject_non_antib", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_rx_event_temp", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_rx_event", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_excl", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_any", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_persist", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_denom", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_rx_meds_temp", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_amr", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_final", temporary = T), silent = T)
+  try(dbRemoveTable(conn, "##asthma_final_1yr", temporary = T), silent = T)
+  
+  
+  #### Return data after removing temp tables #####
+  # Need to use this order because ##asthma_denom is used to create the output
+  if (return_data == T) {
+    return(output)
+  }
 }
