@@ -166,9 +166,9 @@ system.time(apcd_plr_2016_qa1 <- qa_stage.apcd_elig_plr_f(year = "2016"))
 system.time(apcd_plr_2017_qa1 <- qa_stage.apcd_elig_plr_f(year = "2017"))
 system.time(apcd_plr_2018_qa1 <- qa_stage.apcd_elig_plr_f(year = "2018"))
 system.time(apcd_plr_2019_qa1 <- qa_stage.apcd_elig_plr_f(year = "2019"))
-system.time(apcd_plr_2019_qa1 <- qa_stage.apcd_elig_plr_f(year = "2020"))
-system.time(apcd_plr_2019_qa2 <- qa_stage.apcd_elig_plr_f(year = "20210228"))
-system.time(apcd_plr_2019_qa2 <- qa_stage.apcd_elig_plr_f(year = "20190630"))
+system.time(apcd_plr_2020_qa1 <- qa_stage.apcd_elig_plr_f(year = "2020"))
+system.time(apcd_plr_custom1_qa <- qa_stage.apcd_elig_plr_f(year = "20210228"))
+system.time(apcd_plr_custom2_qa <- qa_stage.apcd_elig_plr_f(year = "20190630"))
 
 ### E) Run line-level QA script on a single year only at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.apcd_elig_plr.sql
 
