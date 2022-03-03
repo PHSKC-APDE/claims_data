@@ -6,5 +6,6 @@ vars:
     first_service_date: date
     last_service_date: date
     provider_id_apcd: bigint
+    provider_id_raw_apcd: bigint
     provider_type: varchar(255)
     last_run: datetime
