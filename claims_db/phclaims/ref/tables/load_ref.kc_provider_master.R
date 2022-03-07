@@ -18,8 +18,8 @@ load_ref.kc_provider_master_f <- function() {
     if object_id('tempdb..#provider_master') is not null drop table #provider_master;
     select distinct cast(npi as bigint) as npi, entity_type,
     case when len(zip_physical) = 5 then zip_physical else null end as geo_zip_practice,
-    case when primary_taxonomy in ('-1','-2') then null else primary_taxonomy end as primary_taxonomy, 
-    case when secondary_taxonomy in ('-1','-2') then null else secondary_taxonomy end as secondary_taxonomy, 
+    case when primary_taxonomy in ('-1','-2') or len(primary_taxonomy) != 10 then null else primary_taxonomy end as primary_taxonomy, 
+    case when secondary_taxonomy in ('-1','-2') or len(secondary_taxonomy) != 10 then null else secondary_taxonomy end as secondary_taxonomy, 
     1 as apcd_provider_master_flag
     into #provider_master
     from PHClaims.stage.apcd_provider_master;
@@ -159,16 +159,8 @@ qa_ref.kc_provider_master_f <- function() {
       where len(npi) != 10;",
       .con = db_claims))
     
-    #all NPIs should have an entity type
-    res3 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'ref.kc_provider_master' as 'table', '# of NPIs with no entity type, expect 0' as qa_type,
-      count(*) as qa
-      from ref.kc_provider_master
-      where entity_type is null;",
-      .con = db_claims))
-    
     #taxonomy should be 10 digits long
-    res4 <- dbGetQuery(conn = db_claims, glue_sql(
+    res3 <- dbGetQuery(conn = db_claims, glue_sql(
       "select 'ref.kc_provider_master' as 'table', '# of taxonomies with length != 10, expect 0' as qa_type,
       count(*) as qa
       from ref.kc_provider_master
@@ -176,7 +168,7 @@ qa_ref.kc_provider_master_f <- function() {
       .con = db_claims))
     
     #ZIP codes should be 5 digits long
-    res5 <- dbGetQuery(conn = db_claims, glue_sql(
+    res4 <- dbGetQuery(conn = db_claims, glue_sql(
       "select 'ref.kc_provider_master' as 'table', '# of ZIP codes with length != 5, expect 0' as qa_type,
       count(*) as qa
       from ref.kc_provider_master
