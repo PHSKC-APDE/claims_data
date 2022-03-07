@@ -86,16 +86,8 @@ load_ref.apcd_provider_npi_f <- function() {
 #### Table-level QA script ####
 qa_ref.apcd_provider_npi_f <- function() {
   
-    #there should be no records with a provider ID less than or equal to the max of the provider master table that has a 0 value for provider_master_flag
-    res1 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'ref.apcd_provider_npi' as 'table', '# of providers incorrectly flagged as not from master table, expect 0' as qa_type,
-      count(*) as qa
-      from ref.apcd_provider_npi
-      where provider_id_apcd <= (select max(internal_provider_id) from stage.apcd_provider_master) and provider_master_flag = 0;",
-      .con = db_claims))
-    
     #no provider ID should have more than one row
-    res2 <- dbGetQuery(conn = db_claims, glue_sql(
+    res1 <- dbGetQuery(conn = db_claims, glue_sql(
       "select 'ref.apcd_provider_npi' as 'table', '# of provider IDs with >1 row, expect 0' as qa_type,
       count(*) as qa
         from (
@@ -107,7 +99,7 @@ qa_ref.apcd_provider_npi_f <- function() {
       .con = db_claims))
     
     #no NPI should be any length other than 10 digits
-    res3 <- dbGetQuery(conn = db_claims, glue_sql(
+    res2 <- dbGetQuery(conn = db_claims, glue_sql(
       "select 'ref.apcd_provider_npi' as 'table', '# of NPIs with length != 10, expect 0' as qa_type,
       count(*) as qa
       from ref.apcd_provider_npi
