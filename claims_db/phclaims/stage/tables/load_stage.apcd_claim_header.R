@@ -196,24 +196,35 @@ group by claim_header_id;
     
 
 ------------------
---STEP 6: Full join of intermediate tables to prep for next step
+--STEP 6:  Join intermediate tables to prep for next step
 ------------------
+
+--create table shell
 if object_id(N'PHClaims.tmp.apcd_claim_header_temp1b',N'U') is not null drop table PHClaims.tmp.apcd_claim_header_temp1b;
+create table PHClaims.tmp.apcd_claim_header_temp1b (
+	claim_header_id bigint,
+	primary_diagnosis varchar(255),
+	icdcm_version tinyint,
+	ed_procedure_code_temp tinyint,
+	pc_procedure_temp tinyint,
+	pc_taxonomy_temp tinyint,
+	pc_zcode_temp tinyint
+);
+
+--insert into table shell
+insert into PHClaims.tmp.apcd_claim_header_temp1b with (tablock)
 select
-	case
-		when a.claim_header_id is not null then a.claim_header_id
-		when a.claim_header_id is null and b.medical_claim_header_id is not null then b.medical_claim_header_id
-		when a.claim_header_id is null and c.medical_claim_header_id is not null then c.medical_claim_header_id
-	end as claim_header_id,
-	a.primary_diagnosis, a.icdcm_version,
-	b.ed_procedure_code_temp,
-	c.pc_procedure_temp, c.pc_taxonomy_temp, c.pc_zcode_temp
-into PHClaims.tmp.apcd_claim_header_temp1b
-from PHClaims.tmp.apcd_claim_header_icd1 as a
-full join PHClaims.tmp.apcd_claim_header_ed_procedure_code as b
-on a.claim_header_id = b.medical_claim_header_id
-full join PHClaims.tmp.apcd_claim_header_pc_visit as c
-on a.claim_header_id = c.medical_claim_header_id;
+	a.claim_header_id,
+	b.primary_diagnosis, b.icdcm_version,
+	c.ed_procedure_code_temp,
+	d.pc_procedure_temp, d.pc_taxonomy_temp, d.pc_zcode_temp
+from (select distinct claim_header_id from PHClaims.tmp.apcd_claim_header_temp1) as a
+left join PHClaims.tmp.apcd_claim_header_icd1 as b
+on a.claim_header_id = b.claim_header_id
+left join PHClaims.tmp.apcd_claim_header_ed_procedure_code as c
+on a.claim_header_id = c.medical_claim_header_id
+left join PHClaims.tmp.apcd_claim_header_pc_visit as d
+on a.claim_header_id = d.medical_claim_header_id;
 
 if object_id(N'PHClaims.tmp.apcd_claim_header_icd1',N'U') is not null drop table PHClaims.tmp.apcd_claim_header_icd1;
 if object_id(N'PHClaims.tmp.apcd_claim_header_ed_procedure_code',N'U') is not null drop table PHClaims.tmp.apcd_claim_header_ed_procedure_code;
@@ -341,7 +352,6 @@ case when (c.pc_procedure_temp = 1 or c.pc_zcode_temp = 1) and c.pc_taxonomy_tem
     then 1 else 0
 end as pc_visit
     
---into PHClaims.tmp.apcd_claim_header_temp2
 from PHClaims.tmp.apcd_claim_header_temp1 as a
 left join (select * from PHClaims.ref.kc_claim_type_crosswalk where source_desc = 'apcd') as b
 on a.claim_type_apcd_id = b.source_clm_type_id
@@ -350,7 +360,7 @@ on a.claim_header_id = c.claim_header_id;
     
 --drop other temp tables to make space
 if object_id(N'PHClaims.tmp.apcd_claim_header_temp1',N'U') is not null drop table PHClaims.tmp.apcd_claim_header_temp1;
-
+if object_id(N'PHClaims.tmp.apcd_claim_header_temp1b',N'U') is not null drop table PHClaims.tmp.apcd_claim_header_temp1b;
     
 ------------------
 --STEP 8: Assign unique ID to healthcare utilization concepts that are grouped by person, service date
