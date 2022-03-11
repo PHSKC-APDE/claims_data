@@ -390,7 +390,7 @@ create_table(conn = db_claims,
 ### C) Load tables
 system.time(load_stage.apcd_claim_header_f())
 
-### D) Table-level QA
+### D) Table-level QA (90 minutes to run!)
 system.time(apcd_claim_header_qa1 <- qa_stage.apcd_claim_header_f())
 #rm(apcd_claim_header_qa1)
 
