@@ -30,7 +30,7 @@ Current functionality of the *claims* package (v 0.1.3):
 
 Training resources:
 - R users can view a [training video](https://kc1-my.sharepoint.com/:v:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/Medicaid%20R%20Package%20Training_2018.mp4?csf=1&e=3OydL9) for how to use the *claims* package.
-- Users can also view the [R script used in the training video](https://github.com/PHSKC-APDE/Medicaid/blob/master/Medicaid%20package%20orientation.R).
+- Users can also view the [R script used in the training video](https://github.com/PHSKC-APDE/Medicaid/blob/main/Medicaid%20package%20orientation.R).
 
 ## ETL Folder Access and Credentials Requirements for Claims and Housing Projects
 Folder Access:

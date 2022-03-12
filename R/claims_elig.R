@@ -1433,7 +1433,7 @@ claims_elig <- function(conn,
                                  "SELECT DISTINCT bsp_group_cid, bsp_group_name
                                    FROM [PHClaims].[ref].[mcaid_rac_code]")
     
-    hra.names <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/hra_vid_region.csv",
+    hra.names <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/hra_vid_region.csv",
                                    select = c("hra", "vid"))
     data.table::setnames(hra.names, c("hra", "vid"), c("geo_hra_name", "geo_hra_code"))
     

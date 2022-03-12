@@ -4,7 +4,7 @@
 # 2019-12
 
 ### Run from master_mcare_full_union script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcare/master_mcare_full_union.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/master_mcare_full_union.R
 
 #### Load script ####
 load_stage.mcare_claim_procedure_f <- function() {

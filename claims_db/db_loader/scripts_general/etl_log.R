@@ -2,7 +2,7 @@
 # Alastair Matheson
 
 # Note: these functions are for claims data
-# Use https://github.com/PHSKC-APDE/DOHdata/blob/master/ETL/general/scripts_general/etl_log.R
+# Use https://github.com/PHSKC-APDE/DOHdata/blob/main/ETL/general/scripts_general/etl_log.R
 #  for non-claims data
 
 # auto_proceed = T allows skipping of checks against existing ETL entries.

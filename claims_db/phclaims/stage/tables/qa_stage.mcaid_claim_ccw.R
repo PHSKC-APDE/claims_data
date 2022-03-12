@@ -1,7 +1,7 @@
 # This code QAs the stage mcaid CCW table
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 #
 # 2019-08-12
 # Alastair Matheson, adapted from Eli Kern's SQL script

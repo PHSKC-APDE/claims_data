@@ -213,7 +213,7 @@ will impact downstream tables. Because of the volume of tables, the diagrams are
 
 Future plans for this documentation include turning it into an interactive document that would allow users to select a specific table and see all the related tables.
 
-Code to create this document is found here: <https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/table_dependencies.Rmd>
+Code to create this document is found here: <https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/phclaims/table_dependencies.Rmd>
 
 
 ## APCD 

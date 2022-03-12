@@ -3,7 +3,7 @@
 # Alastair Mathesonm PHSKC (APDE), 2020-01
 #
 # This code is designed to be run as part of the master Medicaid/Medicare script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
 #
 
 #### Load script ####

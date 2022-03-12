@@ -4,7 +4,7 @@
   # Purpose: Create stage.mcaid_mcare_elig_timevar for SQL
   #
   # This code is designed to be run as part of the master Medicaid/Medicare script:
-  # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
+  # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
   #
   # Notes: BEFORE RUNNING THIS CODE, PLEASE BE SURE THE FOLLOWING ARE UP TO DATE ... 
   #       - [PHClaims].[final].[mcaid_elig_timevar]
@@ -21,7 +21,7 @@
   # 
   start.time <- Sys.time()
   
-  kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_city_region_scc.csv"
+  kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/zip_city_region_scc.csv"
   
   yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.yaml"
   
@@ -92,7 +92,7 @@
 ## (5) Duals Part 1: Create master list of time intervals by ID ----
   #-- READ ME !!! ----
     # Originally from ... 
-    # https://github.com/PHSKC-APDE/Housing/blob/master/processing/09_pha_mcaid_join.R
+    # https://github.com/PHSKC-APDE/Housing/blob/main/processing/09_pha_mcaid_join.R
     # confirmed on 11/4/2019 that the results are 100% the same as an alternate method where
     # a giant table is made with every possible day for each ID, followed by checking for the intersection
     # of the data with each individual day, followed by collapsing the data for contiguous time periods
