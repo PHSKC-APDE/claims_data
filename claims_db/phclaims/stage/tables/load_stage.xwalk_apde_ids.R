@@ -12,7 +12,7 @@
 #         be selected for DOB is an elig_demo table.
 #
 # This code is designed to be run as part of the master Medicaid/Medicare script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
 #
 
 # OVERVIEW ----
@@ -85,7 +85,7 @@ prep.sex <- function(dt){
 
 ## Consolidate cluster IDs across identities ----
 # Adaptation of Carolina's code
-# From here: https://github.com/DCHS-PME/PMEtools/blob/master/R/idm_dedup.R
+# From here: https://github.com/DCHS-PME/PMEtools/blob/main/R/idm_dedup.R
 # pairs_input = Output from a RecordLinkage getPairs function
 # df = The data frame that was fed into the matching process. 
 #      Must have rowid and id_hash fields

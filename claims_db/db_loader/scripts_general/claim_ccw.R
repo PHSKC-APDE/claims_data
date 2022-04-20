@@ -89,7 +89,7 @@ load_ccw <- function(conn = NULL,
     ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                         config[[server]][["ref_table"]])
   } else {
-    schema <- table_config[["schema"]][[1]]
+    schema <- table_config[["to_schema"]][[1]]
     to_table <- table_config[["to_table"]][[1]]
     claim_header_from_schema <- table_config[["claim_header_from_schema"]][[1]]
     claim_header_from_table <- table_config[["claim_header_from_table"]][[1]]

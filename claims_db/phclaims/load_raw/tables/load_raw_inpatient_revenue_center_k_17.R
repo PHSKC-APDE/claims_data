@@ -39,7 +39,7 @@ db.claims51 <- dbConnect(odbc(), "PHClaims51")
 #### STEP 2: Create table shell ####
 create_table_f(conn = db.claims51, 
                config_file = file.path("C:/Users/sdawadi/Desktop/Mcare_yaml","create_load_raw_mcare_inpatient_revenue_center_k_17.yaml"),
-               #config_url = "https://raw.githubusercontent.com/PHSKC-APDE/pers_shuva/master/create_load_raw_mcare_inpatient_base_claims_k_17.yaml?token=ALY7265RMO3CACOE5X3GGGC6HXY5I",
+               #config_url = "https://raw.githubusercontent.com/PHSKC-APDE/pers_shuva/main/create_load_raw_mcare_inpatient_base_claims_k_17.yaml?token=ALY7265RMO3CACOE5X3GGGC6HXY5I",
                overall = T, ind_yr = F, test_mode = F)
 
 

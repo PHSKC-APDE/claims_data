@@ -4,7 +4,7 @@
 # 2019-12, major update 2021-05
 
 ### Run from master_mcaid_mcare_full_union script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcare/master_mcaid_mcare_full_union.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/master_mcaid_mcare_full_union.R
 
 # Function has the following options
 # conn = ODBC connection object

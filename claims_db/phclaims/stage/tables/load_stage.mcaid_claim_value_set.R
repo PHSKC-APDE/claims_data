@@ -2,7 +2,7 @@
 # claim headers that meet RDA and/or HEDIS value set definitions.
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 # 
 # Created by: Philip Sylling, 2019-11-14
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-12

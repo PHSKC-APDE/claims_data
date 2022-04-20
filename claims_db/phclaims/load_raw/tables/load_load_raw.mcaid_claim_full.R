@@ -4,7 +4,7 @@
 # 2020-07
 
 ### Run from master_mcaid_full script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_full.R
 
 
 load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",

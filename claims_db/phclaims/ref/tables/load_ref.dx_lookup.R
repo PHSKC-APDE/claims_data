@@ -41,7 +41,7 @@ db.claims51 <- dbConnect(odbc(), "PHClaims51")
 #---
 ####---
 
-url <- "https://github.com/PHSKC-APDE/reference-data/blob/master/Claims%20data/ICD_9_10_CM_Complete.xlsx?raw=true"
+url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/Claims%20data/ICD_9_10_CM_Complete.xlsx?raw=true"
 icd910cm <- read.xlsx(url, sheet = "icd910cm", colNames = T)
 
 icd9cm <- filter(icd910cm, ver == 9)
@@ -61,7 +61,7 @@ rm(icd910cm)
 #Step 2A: Add in CDC ICD-CM 9 and 10 (proposed) external cause of injury information
 ####---
 
-url <- "https://github.com/PHSKC-APDE/reference-data/blob/master/Claims%20data/icd9_10_cm_external_merge_10.11.18.xlsx?raw=true"
+url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/Claims%20data/icd9_10_cm_external_merge_10.11.18.xlsx?raw=true"
 ext_cause_910cm <- read.xlsx(url, sheet = "external_matrix", colNames = T)
   
 ####---
@@ -192,7 +192,7 @@ rm(list = ls(pattern = "^ext_cause_"))
 ####---
 
 #Bring in CCW lookup
-url <- "https://github.com/PHSKC-APDE/reference-data/blob/master/Claims%20data/ccw_lookup.xlsx?raw=true"
+url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/Claims%20data/ccw_lookup.xlsx?raw=true"
 ccw <- read.xlsx(url, sheet = "ccw", colNames = T) %>%
   mutate(link = 1)
 
@@ -250,7 +250,7 @@ rm(ccw)
 #---
 ####---
 
-url <- "https://github.com/PHSKC-APDE/reference-data/blob/master/Claims%20data/CA%20avoidable%20ED%20visits%20ICD%209%20and%2010%20codes%20-%20appendix%20II.xlsx?raw=true"
+url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/Claims%20data/CA%20avoidable%20ED%20visits%20ICD%209%20and%2010%20codes%20-%20appendix%20II.xlsx?raw=true"
 ed_avoid <- read.xlsx(url, sheet = "Normalized", colNames = T) %>%
   mutate(ed_avoid_ca = 1)
 
@@ -271,7 +271,7 @@ rm(ed_avoid)
 #---
 ####---
 
-url <- "https://github.com/PHSKC-APDE/reference-data/blob/master/Claims%20data/nyu_ed_icd-cm-9_10_merge.xlsx?raw=true"
+url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/Claims%20data/nyu_ed_icd-cm-9_10_merge.xlsx?raw=true"
 ed_avoid_nyu <- read.xlsx(url, sheet = "Normalized", colNames = T)
 
 ##Join to ICD-9-CM codes
@@ -501,7 +501,7 @@ rm(ed_avoid_nyu)
 #---
 ####---
 
-url <- "https://github.com/PHSKC-APDE/reference-data/blob/master/Claims%20data/ccs_icd9_10cm.xlsx?raw=true"
+url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/Claims%20data/ccs_icd9_10cm.xlsx?raw=true"
 ccs <- read.xlsx(url, sheet = "ccs_icdcm",
                       colNames = T)
 
@@ -706,7 +706,7 @@ rm(ccs)
 #---
 ####---
 
-url <- "https://github.com/PHSKC-APDE/reference-data/blob/master/Claims%20data/mh_sud_dx_lookup_rda.xlsx?raw=true"
+url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/Claims%20data/mh_sud_dx_lookup_rda.xlsx?raw=true"
 
 mh_rda <- read.xlsx(url, sheet = "mh",
                       colNames = T) %>%

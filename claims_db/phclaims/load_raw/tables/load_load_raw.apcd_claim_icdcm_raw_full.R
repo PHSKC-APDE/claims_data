@@ -4,7 +4,7 @@
 # 2020-08
 
 ### Run from master_apcd_full script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/apcd/master_apcd_full.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_full.R
 
 
 load_load_raw.apcd_icdcm_full_f <- function(etl_date_min = NULL,

@@ -5,7 +5,7 @@
 # 2019-05, updated 2020-02, 2020-07
 
 ### Run from master_mcaid_full script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_full.R
 
 load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, 
                                             conn_db = NULL, 

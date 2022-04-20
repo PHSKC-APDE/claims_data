@@ -788,6 +788,13 @@ claims_elig <- function(conn,
     # works ok but could also define in this function
     
     if (pct == T) {
+      # Need hacky fix for APCD geo_kc since it doesn't exist in the timevar table
+      if (source_inner == "apcd" & var == "geo_kc") {
+        initial_var <- DBI::SQL(" CASE WHEN geo_county_code = '033' THEN 1 ELSE 0 END AS 'geo_kc' ")
+      } else {
+        initial_var <- glue::glue_sql("{`var`}", .con = conn_inner)
+      }
+  
       # Table names
       pt1_a <- glue::glue("{var}_pt1_a")
       pt1_b <- glue::glue("{var}_pt1_b")
@@ -808,7 +815,7 @@ claims_elig <- function(conn,
             ROW_NUMBER() OVER(PARTITION BY {`pt1_a`}.{id_name} 
                               ORDER BY SUM(cov_time_part.cov_days) DESC, {`pt1_a`}.{`var`}) AS rk
             FROM 
-            (SELECT {id_name}, {`var`}, from_date, to_date 
+            (SELECT {id_name}, {initial_var}, from_date, to_date 
               FROM {`sql_db_name`}.final.{`paste0(source_inner, '_elig_timevar')`}) {`pt1_a`}
             INNER JOIN
             (SELECT {id_name}, from_date, to_date, cov_days FROM ##cov_time_part) cov_time_part
@@ -825,7 +832,7 @@ claims_elig <- function(conn,
                 FROM
                 (SELECT {`pt2_a`}.{id_name}, SUM(cov_time_part.cov_days * {`pt2_a`}.{`var`}) AS {`var_pct_num`}
                 FROM 
-                  (SELECT {id_name}, {`var`}, from_date, to_date FROM 
+                  (SELECT {id_name}, {initial_var}, from_date, to_date FROM 
                     {`sql_db_name`}.final.{`paste0(source_inner, '_elig_timevar')`}) {`pt2_a`}
                 INNER JOIN
                   (SELECT {id_name}, from_date, to_date, cov_days FROM ##cov_time_part) cov_time_part
@@ -949,14 +956,7 @@ claims_elig <- function(conn,
   }
   
   #### SET UP DUAL CODE (ALL) ####
-  if (source %in% c("mcaid", "mcare", "mcaid_mcare", "mcaid_mcare_pha")) {
-    
-    # mcaid and mcare currently only have a dual field, not apde_dual
-    if (!source %in% c("mcaid", "mcare")) {
-      apde_dual_sql <- timevar_gen_sql(var = "apde_dual", pct = T)
-    } else {
-      apde_dual_sql <- DBI::SQL('')
-    }
+  if (source %in% c("apcd", "mcaid", "mcare", "mcaid_mcare", "mcaid_mcare_pha")) {
     
     dual_sql <- timevar_gen_sql(var = "dual", pct = T)
     
@@ -976,7 +976,6 @@ claims_elig <- function(conn,
     }
   } else {
     dual_sql <- DBI::SQL('')
-    apde_dual_sql <- DBI::SQL('')
     dual_where_sql <- DBI::SQL('')
   }
   
@@ -1284,7 +1283,7 @@ claims_elig <- function(conn,
   }
   
   # King County (APCD/MCARE)
-  if (source %in% c("mcaid_mcare", "mcare", "mcaid_mcare_pha")) {
+  if (source %in% c("apcd", "mcaid_mcare", "mcare", "mcaid_mcare_pha")) {
     geo_kc_sql <- timevar_gen_sql(var = "geo_kc", pct = T)
     
     if (!is.null(geo_kc_min)) {
@@ -1305,7 +1304,11 @@ claims_elig <- function(conn,
   # Be sure to end these with a comma
   if (source == "apcd") {
     timevar_vars <- glue::glue_sql(
-      "",
+      " dual_final.dual, dual_final.dual_pct, 
+      geo_zip_final.geo_zip, geo_zip_final.geo_zip_days, 
+      geo_ach_code_final.geo_ach_code, geo_ach_code_final.geo_ach_code_days, 
+      geo_county_code_final.geo_county_code, geo_county_code_final.geo_county_code_days, 
+      geo_kc_final.geo_kc, geo_kc_final.geo_kc_pct, ",
       .con = conn)
   } else if (source == "mcaid") {
     timevar_vars <- glue::glue_sql(
@@ -1399,7 +1402,7 @@ claims_elig <- function(conn,
       (SELECT {id_name}, cov_days, duration, cov_pct, covgap_max 
         FROM ##cov_time_tot) timevar
         ON demo.{id_name} = timevar.{id_name}
-      {mcaid_cov_sql} {mcare_cov_sql} {apde_dual_sql} {dual_sql} {tpl_sql} 
+      {mcaid_cov_sql} {mcare_cov_sql} {dual_sql} {tpl_sql} 
       {bsp_group_cid_sql} {full_benefit_sql} {cov_type_sql} {mco_id_sql} 
       {part_a_sql} {part_b_sql} {part_c_sql} {buy_in_sql} 
       {pha_cov_sql} {pha_agency_sql} {pha_subsidy_sql} {pha_voucher_sql} 
@@ -1433,7 +1436,7 @@ claims_elig <- function(conn,
                                  "SELECT DISTINCT bsp_group_cid, bsp_group_name
                                    FROM [PHClaims].[ref].[mcaid_rac_code]")
     
-    hra.names <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/hra_vid_region.csv",
+    hra.names <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/hra_vid_region.csv",
                                    select = c("hra", "vid"))
     data.table::setnames(hra.names, c("hra", "vid"), c("geo_hra_name", "geo_hra_code"))
     
