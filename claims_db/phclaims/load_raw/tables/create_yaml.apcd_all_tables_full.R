@@ -35,12 +35,12 @@ lapply(table_list, function(table_list) {
   table_path <- glue(read_path, table_list, "_export")
   
   #Extract table name
-  table_name_part <- gsub("_format.xml", "", list.files(path = file.path(table_path), pattern = "*format.xml", full.names = F))
+  table_name_part <- gsub("_format.csv", "", list.files(path = file.path(table_path), pattern = "*format.csv", full.names = F))
   sql_table <- glue("apcd_", table_name_part)
   
   #Extract table chunk names
-  long_file_list <- as.list(list.files(path = file.path(table_path), pattern = "*.csv", full.names = T))
-  short_file_list <- as.list(gsub(".csv", "", list.files(path = file.path(table_path), pattern = "*.csv", full.names = F)))
+  long_file_list <- as.list(list.files(path = file.path(table_path), pattern = "*[0-9]+.csv$", full.names = T))
+  short_file_list <- as.list(gsub(".csv", "", list.files(path = file.path(table_path), pattern = "*[0-9]+.csv$", full.names = F)))
   file_df <- cbind(plyr::ldply(short_file_list), plyr::ldply(long_file_list)) #Bind file path and table names
   colnames(file_df) <- c("table_name", "file_path") #Name variables
   file_df <- file_df %>% #Normalize contents
@@ -54,12 +54,12 @@ lapply(table_list, function(table_list) {
   file_list <- lapply(file_list, function(x) { 
     list(file_path = x,
          field_term = ',',
-         row_term = "\\n")
+         row_term = '0x0A')
   })}
   
   #For tables with only 1 table chunk, change list name to "overall"
   if (length(long_file_list) == 1) {
-    file_list <- list(file_path = file_list[[1]], field_term = ',', row_term = "\\n")
+    file_list <- list(file_path = file_list[[1]], field_term = ',', row_term = '0x0A')
   }
   
   #For tables with multiple chunks, create list of table chunk suffixes
@@ -70,13 +70,9 @@ lapply(table_list, function(table_list) {
   }
   
   #Extract column names, positions and data types from XML format file, convert to YAML and write to file
-  apcd_format_file <- list.files(path = file.path(table_path), pattern = "*format.xml", full.names = T)
-  format_xml <- XML::xmlParse(apcd_format_file)
-  format_df <- XML::xmlToDataFrame(nodes = XML::xmlChildren(XML::xmlRoot(format_xml)[["data"]]), stringsAsFactors = F)
-  names <- XML::xmlToDataFrame(nodes = XML::xmlChildren(XML::xmlRoot(format_xml)[["table-def"]]))
-  colNames <- (names$'column-name'[!is.na(names$'column-name')])
-  colnames(format_df) <- colNames
-  vars_list <- as.list(deframe(select(arrange(format_df, as.numeric(as.character(POSITION))), COLUMN_NAME, DATA_TYPE)))
+  apcd_format_file <- list.files(path = file.path(table_path), pattern = "*format.csv", full.names = T)
+  format_df <- read_csv(apcd_format_file, show_col_types = F)
+  vars_list <- as.list(deframe(select(arrange(format_df, as.numeric(as.character(column_position))), column_name, column_type)))
   format_list <- list("server_path" = server_path, "db_name" = db_name, "to_schema" = sql_schema_name, "to_table" = sql_table,"vars" = vars_list)
   yaml::write_yaml(append(format_list, file_list), glue(write_path, "load_", sql_schema_name, ".", sql_table, "_full", ".yaml"), indent = 4,
                    indent.mapping.sequence = T)

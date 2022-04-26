@@ -24,7 +24,6 @@ vars:
     type_of_bill_code: varchar(4)
     emergency_room_flag: varchar(1)
     operating_room_flag: varchar(1)
-    row_number: bigint
     claim_header_id: bigint
     cardiac_imaging_and_tests_flag: integer
     chiropractic_flag: integer
@@ -50,64 +49,64 @@ vars:
     psychiatric_visits_flag: integer
     surgery_and_anesthesia_flag: integer
     telehealth_flag: integer
-part1:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_1.csv
+part000:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_000.csv
     field_term: ','
     row_term: '0x0A'
-part10:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_10.csv
+part001:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_001.csv
     field_term: ','
     row_term: '0x0A'
-part11:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_11.csv
+part002:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_002.csv
     field_term: ','
     row_term: '0x0A'
-part12:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_12.csv
+part003:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_003.csv
     field_term: ','
     row_term: '0x0A'
-part2:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_2.csv
+part004:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_004.csv
     field_term: ','
     row_term: '0x0A'
-part3:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_3.csv
+part005:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_005.csv
     field_term: ','
     row_term: '0x0A'
-part4:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_4.csv
+part006:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_006.csv
     field_term: ','
     row_term: '0x0A'
-part5:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_5.csv
+part007:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_007.csv
     field_term: ','
     row_term: '0x0A'
-part6:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_6.csv
+part008:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_008.csv
     field_term: ','
     row_term: '0x0A'
-part7:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_7.csv
+part009:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_009.csv
     field_term: ','
     row_term: '0x0A'
-part8:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_8.csv
+part010:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_010.csv
     field_term: ','
     row_term: '0x0A'
-part9:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_9.csv
+part011:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_011.csv
     field_term: ','
     row_term: '0x0A'
 years:
-    - part1
-    - part10
-    - part11
-    - part12
-    - part2
-    - part3
-    - part4
-    - part5
-    - part6
-    - part7
-    - part8
-    - part9
+    - part000
+    - part001
+    - part002
+    - part003
+    - part004
+    - part005
+    - part006
+    - part007
+    - part008
+    - part009
+    - part010
+    - part011

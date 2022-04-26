@@ -40,170 +40,24 @@ vars:
     dup_flag_pbm_tpa: varchar(1)
     dup_flag_managed_care: varchar(1)
     dup_flag_part_d: varchar(1)
-    row_number: bigint
-part1:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_1.csv
+part000:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_000.csv
     field_term: ','
-    row_term: \n
-part10:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_10.csv
+    row_term: '0x0A'
+part001:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_001.csv
     field_term: ','
-    row_term: \n
-part11:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_11.csv
+    row_term: '0x0A'
+part002:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_002.csv
     field_term: ','
-    row_term: \n
-part12:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_12.csv
+    row_term: '0x0A'
+part003:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_003.csv
     field_term: ','
-    row_term: \n
-part13:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_13.csv
-    field_term: ','
-    row_term: \n
-part14:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_14.csv
-    field_term: ','
-    row_term: \n
-part15:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_15.csv
-    field_term: ','
-    row_term: \n
-part16:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_16.csv
-    field_term: ','
-    row_term: \n
-part17:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_17.csv
-    field_term: ','
-    row_term: \n
-part18:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_18.csv
-    field_term: ','
-    row_term: \n
-part19:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_19.csv
-    field_term: ','
-    row_term: \n
-part2:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_2.csv
-    field_term: ','
-    row_term: \n
-part20:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_20.csv
-    field_term: ','
-    row_term: \n
-part21:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_21.csv
-    field_term: ','
-    row_term: \n
-part22:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_22.csv
-    field_term: ','
-    row_term: \n
-part23:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_23.csv
-    field_term: ','
-    row_term: \n
-part24:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_24.csv
-    field_term: ','
-    row_term: \n
-part25:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_25.csv
-    field_term: ','
-    row_term: \n
-part26:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_26.csv
-    field_term: ','
-    row_term: \n
-part27:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_27.csv
-    field_term: ','
-    row_term: \n
-part28:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_28.csv
-    field_term: ','
-    row_term: \n
-part29:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_29.csv
-    field_term: ','
-    row_term: \n
-part3:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_3.csv
-    field_term: ','
-    row_term: \n
-part30:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_30.csv
-    field_term: ','
-    row_term: \n
-part31:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_31.csv
-    field_term: ','
-    row_term: \n
-part32:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_32.csv
-    field_term: ','
-    row_term: \n
-part33:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_33.csv
-    field_term: ','
-    row_term: \n
-part4:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_4.csv
-    field_term: ','
-    row_term: \n
-part5:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_5.csv
-    field_term: ','
-    row_term: \n
-part6:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_6.csv
-    field_term: ','
-    row_term: \n
-part7:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_7.csv
-    field_term: ','
-    row_term: \n
-part8:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_8.csv
-    field_term: ','
-    row_term: \n
-part9:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_9.csv
-    field_term: ','
-    row_term: \n
+    row_term: '0x0A'
 years:
-    - part1
-    - part10
-    - part11
-    - part12
-    - part13
-    - part14
-    - part15
-    - part16
-    - part17
-    - part18
-    - part19
-    - part2
-    - part20
-    - part21
-    - part22
-    - part23
-    - part24
-    - part25
-    - part26
-    - part27
-    - part28
-    - part29
-    - part3
-    - part30
-    - part31
-    - part32
-    - part33
-    - part4
-    - part5
-    - part6
-    - part7
-    - part8
-    - part9
+    - part000
+    - part001
+    - part002
+    - part003

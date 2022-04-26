@@ -20,30 +20,6 @@ vars:
     city: varchar(30)
     state: varchar(2)
     zip: varchar(15)
-    row_number: bigint
-part1:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_1.csv
-    field_term: ','
-    row_term: \n
-part2:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_2.csv
-    field_term: ','
-    row_term: \n
-part3:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_3.csv
-    field_term: ','
-    row_term: \n
-part4:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_4.csv
-    field_term: ','
-    row_term: \n
-part5:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_5.csv
-    field_term: ','
-    row_term: \n
-years:
-    - part1
-    - part2
-    - part3
-    - part4
-    - part5
+file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_000.csv
+field_term: ','
+row_term: '0x0A'

@@ -34,65 +34,34 @@ vars:
     out_of_state_flag: varchar(1)
     orphaned_adjustment_flag: varchar(1)
     denied_claim_flag: varchar(1)
-    row_number: bigint
-part1:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_1.csv
+part000:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_000.csv
     field_term: ','
-    row_term: \n
-part10:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_10.csv
+    row_term: '0x0A'
+part001:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_001.csv
     field_term: ','
-    row_term: \n
-part11:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_11.csv
+    row_term: '0x0A'
+part002:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_002.csv
     field_term: ','
-    row_term: \n
-part12:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_12.csv
+    row_term: '0x0A'
+part003:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_003.csv
     field_term: ','
-    row_term: \n
-part2:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_2.csv
+    row_term: '0x0A'
+part004:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_004.csv
     field_term: ','
-    row_term: \n
-part3:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_3.csv
+    row_term: '0x0A'
+part005:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_005.csv
     field_term: ','
-    row_term: \n
-part4:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_4.csv
-    field_term: ','
-    row_term: \n
-part5:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_5.csv
-    field_term: ','
-    row_term: \n
-part6:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_6.csv
-    field_term: ','
-    row_term: \n
-part7:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_7.csv
-    field_term: ','
-    row_term: \n
-part8:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_8.csv
-    field_term: ','
-    row_term: \n
-part9:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_9.csv
-    field_term: ','
-    row_term: \n
+    row_term: '0x0A'
 years:
-    - part1
-    - part10
-    - part11
-    - part12
-    - part2
-    - part3
-    - part4
-    - part5
-    - part6
-    - part7
-    - part8
-    - part9
+    - part000
+    - part001
+    - part002
+    - part003
+    - part004
+    - part005

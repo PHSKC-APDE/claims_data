@@ -26,6 +26,6 @@ vars:
     county_physical: varchar(100)
     country_physical: varchar(100)
     ach_region_physical: varchar(100)
-file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_master_export/provider_master.csv
+file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_master_export/provider_master_000.csv
 field_term: ','
-row_term: \n
+row_term: '0x0A'

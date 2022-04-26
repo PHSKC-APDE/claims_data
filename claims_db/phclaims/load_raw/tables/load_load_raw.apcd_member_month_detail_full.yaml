@@ -17,264 +17,74 @@ vars:
     rx_commercial_eligibility_id: bigint
     rx_medicare_eligibility_id: bigint
     rx_medicaid_eligibility_id: bigint
+    dental_product_code_id: bigint
+    dental_submitter_id: bigint
+    dental_eligibility_id: bigint
+    dental_commercial_eligibility_id: bigint
+    dental_medicare_eligibility_id: bigint
+    dental_medicaid_eligibility_id: bigint
     age: integer
     age_in_months: integer
     gender_code: varchar(10)
     zip_code: varchar(15)
-    row_number: bigint
-part1:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_1.csv
+part000:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_000.csv
     field_term: ','
-    row_term: \n
-part10:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_10.csv
+    row_term: '0x0A'
+part001:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_001.csv
     field_term: ','
-    row_term: \n
-part11:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_11.csv
+    row_term: '0x0A'
+part002:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_002.csv
     field_term: ','
-    row_term: \n
-part12:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_12.csv
+    row_term: '0x0A'
+part003:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_003.csv
     field_term: ','
-    row_term: \n
-part13:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_13.csv
+    row_term: '0x0A'
+part004:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_004.csv
     field_term: ','
-    row_term: \n
-part14:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_14.csv
+    row_term: '0x0A'
+part005:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_005.csv
     field_term: ','
-    row_term: \n
-part15:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_15.csv
+    row_term: '0x0A'
+part006:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_006.csv
     field_term: ','
-    row_term: \n
-part16:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_16.csv
+    row_term: '0x0A'
+part007:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_007.csv
     field_term: ','
-    row_term: \n
-part17:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_17.csv
+    row_term: '0x0A'
+part008:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_008.csv
     field_term: ','
-    row_term: \n
-part18:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_18.csv
+    row_term: '0x0A'
+part009:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_009.csv
     field_term: ','
-    row_term: \n
-part19:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_19.csv
+    row_term: '0x0A'
+part010:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_010.csv
     field_term: ','
-    row_term: \n
-part2:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_2.csv
+    row_term: '0x0A'
+part011:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_011.csv
     field_term: ','
-    row_term: \n
-part20:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_20.csv
-    field_term: ','
-    row_term: \n
-part21:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_21.csv
-    field_term: ','
-    row_term: \n
-part22:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_22.csv
-    field_term: ','
-    row_term: \n
-part23:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_23.csv
-    field_term: ','
-    row_term: \n
-part24:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_24.csv
-    field_term: ','
-    row_term: \n
-part25:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_25.csv
-    field_term: ','
-    row_term: \n
-part26:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_26.csv
-    field_term: ','
-    row_term: \n
-part27:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_27.csv
-    field_term: ','
-    row_term: \n
-part28:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_28.csv
-    field_term: ','
-    row_term: \n
-part29:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_29.csv
-    field_term: ','
-    row_term: \n
-part3:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_3.csv
-    field_term: ','
-    row_term: \n
-part30:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_30.csv
-    field_term: ','
-    row_term: \n
-part31:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_31.csv
-    field_term: ','
-    row_term: \n
-part32:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_32.csv
-    field_term: ','
-    row_term: \n
-part33:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_33.csv
-    field_term: ','
-    row_term: \n
-part34:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_34.csv
-    field_term: ','
-    row_term: \n
-part35:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_35.csv
-    field_term: ','
-    row_term: \n
-part36:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_36.csv
-    field_term: ','
-    row_term: \n
-part37:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_37.csv
-    field_term: ','
-    row_term: \n
-part38:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_38.csv
-    field_term: ','
-    row_term: \n
-part39:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_39.csv
-    field_term: ','
-    row_term: \n
-part4:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_4.csv
-    field_term: ','
-    row_term: \n
-part40:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_40.csv
-    field_term: ','
-    row_term: \n
-part41:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_41.csv
-    field_term: ','
-    row_term: \n
-part42:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_42.csv
-    field_term: ','
-    row_term: \n
-part43:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_43.csv
-    field_term: ','
-    row_term: \n
-part44:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_44.csv
-    field_term: ','
-    row_term: \n
-part45:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_45.csv
-    field_term: ','
-    row_term: \n
-part46:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_46.csv
-    field_term: ','
-    row_term: \n
-part47:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_47.csv
-    field_term: ','
-    row_term: \n
-part48:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_48.csv
-    field_term: ','
-    row_term: \n
-part49:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_49.csv
-    field_term: ','
-    row_term: \n
-part5:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_5.csv
-    field_term: ','
-    row_term: \n
-part50:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_50.csv
-    field_term: ','
-    row_term: \n
-part51:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_51.csv
-    field_term: ','
-    row_term: \n
-part6:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_6.csv
-    field_term: ','
-    row_term: \n
-part7:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_7.csv
-    field_term: ','
-    row_term: \n
-part8:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_8.csv
-    field_term: ','
-    row_term: \n
-part9:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_9.csv
-    field_term: ','
-    row_term: \n
+    row_term: '0x0A'
 years:
-    - part1
-    - part10
-    - part11
-    - part12
-    - part13
-    - part14
-    - part15
-    - part16
-    - part17
-    - part18
-    - part19
-    - part2
-    - part20
-    - part21
-    - part22
-    - part23
-    - part24
-    - part25
-    - part26
-    - part27
-    - part28
-    - part29
-    - part3
-    - part30
-    - part31
-    - part32
-    - part33
-    - part34
-    - part35
-    - part36
-    - part37
-    - part38
-    - part39
-    - part4
-    - part40
-    - part41
-    - part42
-    - part43
-    - part44
-    - part45
-    - part46
-    - part47
-    - part48
-    - part49
-    - part5
-    - part50
-    - part51
-    - part6
-    - part7
-    - part8
-    - part9
+    - part000
+    - part001
+    - part002
+    - part003
+    - part004
+    - part005
+    - part006
+    - part007
+    - part008
+    - part009
+    - part010
+    - part011
