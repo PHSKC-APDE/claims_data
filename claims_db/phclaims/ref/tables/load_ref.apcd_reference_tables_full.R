@@ -3,11 +3,14 @@
 #
 # 2019-10
 
+#2022-04-26 update: Update to account for new format file structure
+
 ### Run from master_apcd_full script
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_full.R
 
 
 load_ref.apcd_reference_tables_full_f <- function(x) {
+
 
 #### STEP 1: Define inner bcp load function ####
 
@@ -26,6 +29,7 @@ bcp_load_f <- function(server = NULL, table = NULL, read_file = NULL, format_fil
   system2(command = "bcp", args = c(bcp_args))
 }
 
+
 #### STEP 2: Set universal parameters ####
 write_path <- "//kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" ##Folder to save Amazon S3 files to
 
@@ -33,30 +37,34 @@ sql_server = "KCITSQLUTPDBH51"
 sql_server_odbc_name = "PHClaims51"
 sql_database_name <- "phclaims" ##Name of SQL database where table will be created
 
+
 #### STEP 3: Create SQL table shell ####
 
 ##Set parameters specific to tables
 sql_schema_name <- "ref" ##Name of schema where table will be created
 read_path <- paste0(write_path, "small_table_reference_export/")
-format_file_list <- as.list(list.files(path = file.path(read_path), pattern = "*format.xml", full.names = T))
-long_file_list <- as.list(list.files(path = file.path(read_path), pattern = "*.csv", full.names = T))
-short_file_list <- as.list(gsub(".csv", "", list.files(path = file.path(read_path), pattern = "*.csv", full.names = F)))
 
-##Create tables, looping over file list
-system.time(lapply(seq_along(format_file_list), y=format_file_list, function(y, i) {
+long_file_list <- as.list(list.files(path = file.path(read_path), pattern = "*.csv", full.names = T))
+long_file_list <- long_file_list[!str_detect(long_file_list, pattern = "01_small_table_reference_format.csv")] # filter out format file
+
+short_file_list <- as.list(gsub(".csv", "", list.files(path = file.path(read_path), pattern = "*.csv", full.names = F)))
+short_file_list <- short_file_list[!str_detect(short_file_list, pattern = "01_small_table_reference_format")] # filter out format file
+
+##Load format file
+format_file <- read_csv(paste0(read_path, "01_small_table_reference_format.csv"), show_col_types = F)
+table_list <- as.list(distinct(format_file, table_name)$table_name)
+
+##Create tables, looping over table list
+system.time(lapply(seq_along(table_list), y=table_list, function(y, i) {
 
   #Extract table name
-  table_name_part <- short_file_list[[i]]
+  #table_name_part <- short_file_list[[i]]
+  table_name_part <- table_list[[1]]
   sql_table <- paste0("apcd_", table_name_part) ##Name of SQL table to be created and loaded to
 
-  #Extract column names and types from XML format file
-  apcd_format_file <- y[[i]]
-  format_xml <- XML::xmlParse(apcd_format_file)
-  format_df <- XML::xmlToDataFrame(nodes = XML::xmlChildren(XML::xmlRoot(format_xml)[["data"]]))
-  names <- XML::xmlToDataFrame(nodes = XML::xmlChildren(XML::xmlRoot(format_xml)[["table-def"]]))
-  colNames <- (names$'column-name'[!is.na(names$'column-name')])
-  colnames(format_df) <- colNames
-  format_vector <- deframe(select(arrange(format_df, as.numeric(as.character(POSITION))), COLUMN_NAME, DATA_TYPE))
+  #Extract column names and types from format file
+  format_file_subset <- filter(format_file, table_name == table_name_part)
+  format_vector <- deframe(select(arrange(format_file_subset, as.numeric(as.character(column_position))), column_name, column_type))
 
   #Drop table if it exists
   if(dbExistsTable(db_claims, name = DBI::Id(schema = sql_schema_name, table = sql_table)) == T) {
@@ -70,6 +78,7 @@ system.time(lapply(seq_along(format_file_list), y=format_file_list, function(y, 
   print(paste0("Table shell for reference table ", table_name_part, " successfully created."))
   
 }))
+
 
 #### STEP 4: Load data to SQL table using BCP ####
 #Run time for 11 tables: 4 sec
