@@ -336,7 +336,7 @@ system.time(load_load_raw.apcd_provider_master_full_f(etl_date_min = etl_date_mi
                                             server = "KCITSQLUTPDBH51"))
 
 
-#### REF APCD REFERENCE TABLES ####
+#### LOAD ALL APCD REFERENCE TABLES ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_reference_tables_full.R")
 
 system.time(load_ref.apcd_reference_tables_full_f())
