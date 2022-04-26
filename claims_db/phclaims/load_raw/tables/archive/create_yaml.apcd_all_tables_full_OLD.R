@@ -3,9 +3,8 @@
 # 2019-6-29
 
 #2/1/22 update: Added virtual desktop path, removed provider roster table, updated YAML parameters per Alastair's new load_table_from_file function
-#4/26/22 update:  Modify code to use CSV instead of XML format files from Enclave, change row terminator to '0x0A' (used by UNLOAD function, includes quotes)
 
-#### Create YAML files from CSV format files for all non-reference files ####
+#### Create YAML files from XML format files for all non-reference files ####
 
 ##### Set up global parameters and call in libraries #####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
@@ -19,6 +18,8 @@ read_path <- "\\\\kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" #Folder con
 #write_path <- "C:/Users/kerneli/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KC laptop
 write_path <- "C:/Users/kerneli.PH/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
 #write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Susan's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
+
+
 
 server_path <- "KCITSQLUTPDBH51"
 db_name <- "PHClaims"
