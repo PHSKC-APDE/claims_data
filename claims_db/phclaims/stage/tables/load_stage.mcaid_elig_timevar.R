@@ -64,7 +64,9 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
                                           geo_add2_clean,         
                                           geo_city_clean, 
                                           geo_state_clean,         
-                                          geo_zip_clean                                          
+                                          geo_zip_clean,
+                                          geo_hash_clean,
+                                          geo_hash_geocode
                                         FROM {`address_schema`}.{`address_table`}",                                         
                                           .con = conn_hhsaw))
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
@@ -85,7 +87,8 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     CONVERT(DATE, CAST(a.CLNDR_YEAR_MNTH as varchar(200)) + '01', 112) AS calmonth, 
     a.fromdate, a.todate, a.dual, a.tpl, a.bsp_group_cid, 
     b.full_benefit_1, c.full_benefit_2, a.cov_type, a.mco_id,
-    d.geo_add1, d.geo_add2, d.geo_city, d.geo_state, d.geo_zip
+    d.geo_add1, d.geo_add2, d.geo_city, d.geo_state, d.geo_zip,
+    d.geo_hash_clean, d.geo_hash_geocode
     INTO ##timevar_01a 
     FROM
     (SELECT MEDICAID_RECIPIENT_ID AS 'id_mcaid', 
@@ -118,7 +121,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       (SELECT geo_hash_raw,
         geo_add1_clean AS geo_add1, geo_add2_clean AS geo_add2, 
         geo_city_clean AS geo_city, geo_state_clean AS geo_state, 
-        geo_zip_clean AS geo_zip
+        geo_zip_clean AS geo_zip, geo_hash_clean, geo_hash_geocode
         FROM ", address_clean_table, ") d
       ON 
       a.geo_hash_raw = d.geo_hash_raw"),
@@ -147,7 +150,8 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   step1b_sql <- glue::glue_sql(
     "SELECT a.id_mcaid, a.calmonth, a.fromdate, a.todate, a.dual, 
   a.tpl, a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id, 
-  a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip
+  a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip,
+  a.geo_hash_clean, a.geo_hash_geocode
   INTO ##timevar_01b
   FROM
   (SELECT id_mcaid, calmonth, fromdate, todate, dual, 
@@ -156,13 +160,13 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     WHEN COALESCE(MAX(full_benefit_1), 0) + COALESCE(MAX(full_benefit_2), 0) >= 1 THEN 1
     WHEN COALESCE(MAX(full_benefit_1), 0) + COALESCE(MAX(full_benefit_2), 0) = 0 THEN 0
     END AS full_benefit,
-  geo_add1, geo_add2, geo_city, geo_state, geo_zip,
+  geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
   ROW_NUMBER() OVER(PARTITION BY id_mcaid, calmonth, fromdate  
                     ORDER BY id_mcaid, calmonth, fromdate) AS group_row 
   FROM ##timevar_01a
   GROUP BY id_mcaid, calmonth, fromdate, todate, dual, 
   tpl, bsp_group_cid, cov_type, mco_id,
-  geo_add1, geo_add2, geo_city, geo_state, geo_zip) a
+  geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode) a
   WHERE a.group_row = 1",
     .con = conn)
   
@@ -184,13 +188,13 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   step2a_sql <- glue::glue_sql(
     "SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-    geo_add1, geo_add2, geo_city, geo_state, geo_zip, 
+    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
     calmonth AS startdate, dateadd(day, - 1, dateadd(month, 1, calmonth)) AS enddate,
     fromdate, todate
     INTO ##timevar_02a
     FROM ##timevar_01b
     GROUP BY id_mcaid, calmonth, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-    geo_add1, geo_add2, geo_city, geo_state, geo_zip, fromdate, todate",
+    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, fromdate, todate",
     .con = conn)
   
   message("Running step 2a: Make a start and end date for each month")
@@ -211,11 +215,12 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   step2b_sql <- glue::glue_sql(
     "SELECT DISTINCT a.id_mcaid, a.from_date, a.to_date, a.dual, a.tpl, 
   a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id, 
-  a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip
+  a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip, 
+  a.geo_hash_clean, a.geo_hash_geocode
   INTO ##timevar_02b
   FROM
   (SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-    geo_add1, geo_add2, geo_city, geo_state, geo_zip, 
+    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
     CASE 
       WHEN fromdate IS NULL THEN startdate 
       WHEN startdate >= fromdate THEN startdate
@@ -254,11 +259,11 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   step3a_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date, 
   dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-  geo_add1, geo_add2, geo_city, geo_state, geo_zip, 
+  geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
   DATEDIFF(day, lag(to_date) OVER (
     PARTITION BY id_mcaid, 
       dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-      geo_add1, geo_add2, geo_city, geo_state, geo_zip
+      geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
       ORDER BY id_mcaid, from_date), from_date) AS group_num
   INTO ##timevar_03a
   FROM ##timevar_02b"
@@ -281,7 +286,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   step3b_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date,
     dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-    geo_add1, geo_add2, geo_city, geo_state, geo_zip,
+    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
     CASE 
       WHEN group_num > 1  OR group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY id_mcaid ORDER BY from_date) + 1
       WHEN group_num <= 1 THEN NULL
@@ -314,9 +319,10 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     "SELECT DISTINCT id_mcaid, from_date, to_date,
     dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip,
+    geo_hash_clean, geo_hash_geocode
     group_num = max(group_num) OVER 
       (PARTITION BY id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-        geo_add1, geo_add2, geo_city, geo_state, geo_zip 
+        geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode 
         ORDER BY from_date)
     INTO ##timevar_03c
     FROM ##timevar_03b",
@@ -339,13 +345,13 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   step4a_sql <- glue::glue_sql(
     "SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-    geo_add1, geo_add2, geo_city, geo_state, geo_zip, 
+    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode,
     MIN(from_date) AS from_date,
     MAX(to_date) AS to_date
     INTO ##timevar_04a
     FROM ##timevar_03c
     GROUP BY id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-    geo_add1, geo_add2, geo_city, geo_state, geo_zip,
+    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode,
     group_num",
     .con = conn)
   
@@ -366,6 +372,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     "SELECT id_mcaid, from_date, to_date, dual, tpl, 
     bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, 
+    geo_hash_clean, geo_hash_geocode,
     DATEDIFF(dd, from_date, to_date) + 1 as cov_time_day
     INTO ##timevar_04b
     FROM ##timevar_04a",
@@ -403,10 +410,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   } else {
     conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
     df_address_geocode <- odbc::dbGetQuery(conn_hhsaw, 
-                           glue::glue_sql("SELECT geo_add1_clean, 
-                                        geo_city_clean, 
-                                          geo_state_clean, 
-                                          geo_zip_clean,        
+                           glue::glue_sql("SELECT geo_hash_geocode,        
                                           geo_zip_centroid, 
                                           geo_street_centroid, 
                                           geo_countyfp10,         
@@ -434,7 +438,8 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     CASE WHEN a.dual <> 'Y' AND a.tpl <> 'Y' AND a.full_benefit = 1 THEN 1 ELSE 0
       END AS full_criteria, 
     a.cov_type, a.mco_id,
-    a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip,
+    a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip, 
+    a.geo_hash_clean, a.geo_hash_geocode,
     b.geo_zip_centroid, b.geo_street_centroid, b.geo_county_code, b.geo_tract_code, 
     b.geo_hra_code, b.geo_school_code, a.cov_time_day,
     {Sys.time()} AS last_run
@@ -442,20 +447,16 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     FROM
     (SELECT id_mcaid, from_date, to_date, 
       dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-      geo_add1, geo_add2, geo_city, geo_state, geo_zip,
+      geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode,
       cov_time_day
       FROM ##timevar_04b) a
       LEFT JOIN
-      (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
+      (SELECT DISTINCT geo_hash_geocode,
         geo_zip_centroid, geo_street_centroid, geo_countyfp10 AS geo_county_code, 
         geo_tractce10 AS geo_tract_code, geo_hra_id AS geo_hra_code, 
         geo_school_geoid10 AS geo_school_code
         FROM ", address_geocode_table, ") b
-      ON 
-      (a.geo_add1 = b.geo_add1_clean OR (a.geo_add1 IS NULL AND b.geo_add1_clean IS NULL)) AND 
-      (a.geo_city = b.geo_city_clean OR (a.geo_city IS NULL AND b.geo_city_clean IS NULL)) AND 
-      (a.geo_state = b.geo_state_clean OR (a.geo_state IS NULL AND b.geo_state_clean IS NULL)) AND 
-      (a.geo_zip = b.geo_zip_clean OR (a.geo_zip IS NULL AND b.geo_zip_clean IS NULL))"),
+      ON a.geo_hash_geocode = b.geo_hash_geocode"),
     .con = conn)
   
   message("Running step 5b: Join to geocodes and load to stage table")
