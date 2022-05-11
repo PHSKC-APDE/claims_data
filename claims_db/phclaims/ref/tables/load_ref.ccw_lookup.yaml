@@ -1,17 +1,18 @@
-schema: ref
-table: ccw_lookup
+phclaims:
+    to_schema: ref
+    to_table: ccw_lookup
+hhsaw:
+    to_schema: claims
+    to_table: ref_ccw_lookup
 vars:
-    ccw_code: varchar(255)
+    ccw_icd_version: integer
+    ccw_code: numeric(3,1)
     ccw_desc: varchar(255)
     ccw_abbrev: varchar(255)
     ccw_version: varchar(255)
-    years: tinyint
+    lookback_months: integer
     dx_fields: varchar(255)
     qualification: varchar(255)
     claim_type_1: varchar(255)
     claim_type_2: varchar(255)
     condition_type: tinyint
-overall:
-    file_path: C:/Users/kerneli/King County/King County Cross-Sector Data - Documents/References/Chronic Conditions Warehouse/ccw_lookup_csv.csv
-    field_term: ','
-    row_term: \n
