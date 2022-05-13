@@ -182,7 +182,7 @@ load_ccw <- function(conn = NULL,
   
   # Issue warning if a person is at risk of overwriting a final table with a stage
   # table that only has a subset of CCW conditions
-  if (to_tbl_exist == F & !is.null(ccw_list_name) & !"all" %in% ccw_list_name) {
+  if ((drop_table == T | to_tbl_exist == F) & !is.null(ccw_list_name) & !"all" %in% ccw_list_name) {
     warning(paste0("Destination table did not exist so was created but only a susbet of ",
                    "CCW conditions was selected. There may be a discrepancy between the ",
                    "destination table and a final table"))
