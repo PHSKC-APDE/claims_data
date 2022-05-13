@@ -9,11 +9,15 @@
 # server = whether we are working in HHSAW or PHClaims
 # source = which CCW table is being built
 # ccw_list_name = vector of CCW conditions to load, by ccw_abbrev, e.g., c("hypothyroid", "copd", "depression"). 
-#   See ref_ccw_lookup table for names. Default is all. Will be ignored if a config file has any conditions.
+#   See ref_ccw_lookup table for names. Default is 'all'. Will be ignored if a config file has any conditions.
+# drop_table = create blank destination table. Set to FALSE if you are only running a subset of 
+#   CCW conditions and do not want overwrite other existing ones. If FALSE, any existing data for conditions
+#   being run will be removed from the destination table. Default is TRUE.
 # config = config file already in memory (should be blank if supplying config_url or config_file)
 # config_url = URL location of YAML config file (should be blank if supplying config or config_file)
 # config_file = path + file name of YAML config file (should be blank if supplying config or config_url)
 # test_rows = number of rows to load if testing function (integer)
+# print_query = print the config files and SQL queries used to make tables. Default is FALSE.
 
 ### Expected YAML config components:
 ## Common to all CCW conditions (required)
@@ -56,10 +60,12 @@ load_ccw <- function(conn = NULL,
                      server = c("phclaims", "hhsaw"),
                      source = c("apcd", "mcaid", "mcare", "mcaid_mcare"),
                      ccw_list_name = "all",
+                     drop_table = T,
                      config = NULL,
                      config_url = NULL,
                      config_file = NULL,
-                     test_rows = NULL) {
+                     test_rows = NULL,
+                     print_query = F) {
   
   
   # ERROR CHECKS ----
@@ -131,10 +137,6 @@ load_ccw <- function(conn = NULL,
   
   
   # STEP 2: SET UP CONDITIONS ----
-  ## TEST ----
-  table_config <- yaml::read_yaml(file.path(here::here(), "claims_db/phclaims/stage/tables/load_stage.mcaid_claim_ccw.yaml"))
-  table_config2 <- yaml::read_yaml(file.path(here::here(), "claims_db/phclaims/stage/tables/load_stage.mcaid_claim_ccw.yaml"))
-  
   # See if the config file has any conditions in it
   conditions <- names(table_config[str_detect(names(table_config), "cond_")])
   
@@ -148,7 +150,10 @@ load_ccw <- function(conn = NULL,
     
     # Get list of conditions to run
     if ("all" %in% ccw_list_name) {
-      conditions <- unique(conditions_ref$ccw_abbrev)
+      conditions <- conditions_ref %>% 
+        distinct(ccw_abbrev)%>%
+        filter(str_detect(ccw_abbrev, "exclude", negate = T)) %>%
+        unlist()
     } else if (!is.null(ccw_list_name) & !"all" %in% ccw_list_name) {
       conditions <- conditions_ref %>%
         filter(ccw_abbrev %in% ccw_list_name) %>%
@@ -161,92 +166,107 @@ load_ccw <- function(conn = NULL,
     ccw_source <- "yaml"
   }
 
+  # If still no conditions, stop code
+  if (length(conditions) == 0) {
+    stop(paste0("No conditions chosen to run. Possible errors include misconfigured YAML file ",
+                "or ccw_list_name values don't align with the ref.ccw_lookup table"))
+  }
+  
   
   # STEP 3: CREATE TABLE ----
   # Set up table name
   tbl_name <- DBI::Id(schema = to_schema, table = to_table)
   
-  # Remove table if it exists
-  try(dbRemoveTable(conn, tbl_name), silent = T)
+  # See if destination table exists
+  to_tbl_exist <- DBI::dbExistsTable(conn, tbl_name)
   
-  # Create table
-  DBI::dbCreateTable(conn, tbl_name, fields = table_config$vars)
+  # Issue warning if a person is at risk of overwriting a final table with a stage
+  # table that only has a subset of CCW conditions
+  if (to_tbl_exist == F & !is.null(ccw_list_name) & !"all" %in% ccw_list_name) {
+    warning(paste0("Destination table did not exist so was created but only a susbet of ",
+                   "CCW conditions was selected. There may be a discrepancy between the ",
+                   "destination table and a final table"))
+  }
   
   
-  
-  # STEP 4: CREATE BRANCHING CODE SEGMENTS FOR TYPE 1 VS TYPE 2 CONDITIONS ----
-  ptm01 <- proc.time() # Times how long this query takes
-  
-  ## Begin loop over conditions - loop continues across all SQL queries
-  lapply(conditions, function(x) {
+  if (drop_table == T | to_tbl_exist == F) {
+    # Remove table if it exists
+    try(dbRemoveTable(conn, tbl_name), silent = T)
     
-    message("Working on ", x)
-    
-    # TEMP ----
-    table_config <- table_config2
-    
-    if ("_9" %in% names(table_config2[["cond_stroke2"]])) {
-      # Reconfigure so there are separate rows for each ICD version
-      tmp <- bind_rows(tibble(ccw_icd_version = 9,
-                                 map_df(table_config2[["cond_stroke2"]], ~ ifelse(is.null(.x), NA_character_, glue_collapse(.x, sep = ";"))) %>%
-                                   select(ccw_code, ccw_desc, ccw_abbrev, contains("_9")) %>%
-                                   rename_with(~ str_remove(.x, "_9"))),
-                          tibble(ccw_icd_version = 10,
-                                 map_df(table_config2[["cond_stroke2"]], ~ ifelse(is.null(.x), NA_character_, glue_collapse(.x, sep = ";"))) %>%
-                                   select(ccw_code, ccw_desc, ccw_abbrev, contains("_10")) %>%
-                                   rename_with(~ str_remove(.x, "_10")))
-      ) %>%
-        rename_with(~ str_replace(.x, "_type1", "_type_1")) %>%
-        rename_with(~ str_replace(.x, "_type2", "_type_2"))
-    } else {
-      # If no distinction between ICD-9 and ICD-10, repeat
-      tmp <- bind_rows(tibble(ccw_icd_version = 9,
-                                 map_df(table_config2[["cond_stroke"]], 
-                                        ~ ifelse(is.null(.x), NA_character_, glue_collapse(.x, sep = ";")))),
-                          tibble(ccw_icd_version = 10, 
-                                 map_df(table_config2[["cond_stroke"]], 
-                                        ~ ifelse(is.null(.x), NA_character_, glue_collapse(.x, sep = ";"))))
-      ) %>%
-          rename_with(~ str_replace(.x, "_type1", "_type_1")) %>%
-          rename_with(~ str_replace(.x, "_type2", "_type_2"))
+    # Create table
+    DBI::dbCreateTable(conn, tbl_name, fields = table_config$vars)
+  }
+  
+  # If only some conditions are being run and a new blank destination table was not made,
+  #  remove rows for this condition in the destination table
+  # Probably best to load to a new table, truncate, then load back
+  if (drop_table == F & to_tbl_exist == T) {
+    # Get ccw_abbrev values.
+    if (ccw_source == "yaml") {
+      ccw_drop <- map_chr(conditions2, ~ table_config2[[.x]][["ccw_abbrev"]])
+    } else if (ccw_source == "ref") {
+      ccw_drop <- paste0("ccw_", conditions)
     }
     
+    # Load to temp table
+    tmp_tbl <- paste0(to_table, "_tmp")
     
-    tmp2 <- conditions_ref %>% filter(str_detect(ccw_abbrev, "stroke")) %>%
-      mutate(dx_exclude1 = ifelse(str_detect(ccw_abbrev, "exclude1|exclude_1"), ccw_abbrev, NA_character_),
-             dx_exclude1_fields = ifelse(str_detect(ccw_abbrev, "exclude1|exclude_1"), dx_fields, NA_character_),
-             dx_exclude2 = ifelse(str_detect(ccw_abbrev, "exclude2|exclude_2"), ccw_abbrev, NA_character_),
-             dx_exclude2_fields = ifelse(str_detect(ccw_abbrev, "exclude2|exclude_2"), dx_fields, NA_character_)) %>%
-      group_by(ccw_icd_version) %>%
-      fill(contains("exclude"), .direction = "downup") %>%
-      slice(1) %>%
-      ungroup() %>% 
-      select(ccw_icd_version, ccw_code, ccw_desc, ccw_abbrev, lookback_months, dx_fields, dx_exclude1, dx_exclude2,
-             dx_exclude1_fields, dx_exclude2_fields, claim_type_1, claim_type_2, condition_type) %>% 
-      as.data.frame()
-    # END TEMP ----
+    DBI::dbExecute(conn = conn,
+                   glue_sql("SELECT * INTO {`to_schema`}.{`tmp_tbl`}
+                            FROM {`to_schema`}.{`to_table`}
+                            WHERE ccw_desc NOT IN ({ccw_drop*})",
+                            .con = conn))
     
+    # Drop existing table
+    DBI::dbExecute(conn = conn, 
+                   glue_sql("DROP TABLE {`to_schema`}.{`to_table`}", .con = conn))
     
+    # Insert rows back
+    DBI::dbExecute(conn = conn,
+                   glue_sql("SELECT * INTO {`to_schema`}.{`to_table`}
+                            FROM {`to_schema`}.{`tmp_tbl`}",
+                            .con = conn))
+    
+    # Drop temp table
+    DBI::dbExecute(conn = conn,
+                   glue_sql("DROP TABLE {`to_schema`}.{`tmp_tbl`}", .con = conn))
+  }
+  
+  
+  
+  # STEP 4: SET UP FUNCTIONS ----
+  # Create functions to handle either ICD-9 or ICD-10
+  # Note: these functions need to be run sequentially for a given condition and ICD version
+  #     Otherwise temp tables will be overwritten.
+  
+  ## Standardized config ----
+  # Arrange config to produce standard values for a condition, regardless of config source and ICD version
+  config_cond_gen <- function(cond, icd = c(9, 10), 
+                              ccw_source = c("ref", "yaml"),
+                              table_config = table_config) {
+    ccw_source <- match.arg(ccw_source)
+    
+    ### Set up config structure ----
     if (ccw_source == "yaml") {
       # Convert YAML code into data frame to match ref
-      if ("_9" %in% names(table_config2[[x]])) {
+      if (max(str_detect(names(table_config[[cond]]), "_9")) == 1) {
         # Reconfigure so there are separate rows for each ICD version
         config <- bind_rows(tibble(ccw_icd_version = 9,
-                                   map_df(table_config2[[x]], ~ ifelse(is.null(.x), NA_character_, glue_collapse(.x, sep = ";"))) %>%
+                                   map_df(table_config[[cond]], ~ ifelse(is.null(.x), NA_character_, glue_collapse(.x, sep = ";"))) %>%
                                      select(ccw_code, ccw_desc, ccw_abbrev, contains("_9")) %>%
                                      rename_with(~ str_remove(.x, "_9"))),
                             tibble(ccw_icd_version = 10,
-                                   map_df(table_config2[[x]], ~ ifelse(is.null(.x), NA_character_, glue_collapse(.x, sep = ";"))) %>%
+                                   map_df(table_config[[cond]], ~ ifelse(is.null(.x), NA_character_, glue_collapse(.x, sep = ";"))) %>%
                                      select(ccw_code, ccw_desc, ccw_abbrev, contains("_10")) %>%
                                      rename_with(~ str_remove(.x, "_10")))
         )
       } else {
         # If no distinction between ICD-9 and ICD-10, repeat rows
         config <- bind_rows(tibble(ccw_icd_version = 9,
-                                   map_df(table_config2[["cond_stroke"]], 
+                                   map_df(table_config[[cond]], 
                                           ~ ifelse(is.null(.x), NA_character_, glue_collapse(.x, sep = ";")))),
                             tibble(ccw_icd_version = 10, 
-                                   map_df(table_config2[["cond_stroke"]], 
+                                   map_df(table_config[[cond]], 
                                           ~ ifelse(is.null(.x), NA_character_, glue_collapse(.x, sep = ";"))))
         )
       }
@@ -255,86 +275,53 @@ load_ccw <- function(conn = NULL,
         rename_with(~ str_replace(.x, "_type1", "_type_1")) %>%
         rename_with(~ str_replace(.x, "_type2", "_type_2"))
     } else if (ccw_source == "ref") {
-      # Use string_detect to capture all rows, including exclusions
-      # Reformat so exclusions are on the same line as main condition
-      config <- conditions_ref %>% filter(str_detect(ccw_abbrev, x)) %>%
+      # Use str_detect to capture all rows, including exclusions
+      config <- conditions_ref %>% filter(str_detect(ccw_abbrev, cond)) %>%
+        # Reformat so exclusions are on the same line as main condition
         mutate(dx_exclude1 = ifelse(str_detect(ccw_abbrev, "exclude1|exclude_1"), ccw_abbrev, NA_character_),
                dx_exclude1_fields = ifelse(str_detect(ccw_abbrev, "exclude1|exclude_1"), dx_fields, NA_character_),
                dx_exclude2 = ifelse(str_detect(ccw_abbrev, "exclude2|exclude_2"), ccw_abbrev, NA_character_),
                dx_exclude2_fields = ifelse(str_detect(ccw_abbrev, "exclude2|exclude_2"), dx_fields, NA_character_)) %>%
+        # Get everything onto the top line and just keep that
         group_by(ccw_icd_version) %>%
         fill(contains("exclude"), .direction = "downup") %>%
         slice(1) %>%
         ungroup()
     }
     
-    ccw_code <- unique(config$ccw_code)
-    ccw_desc <- unique(config$ccw_desc)
-    ccw_abbrev <- paste0("ccw_", unique(config$ccw_abbrev))
     
-    # ICD-9-CM
-    lookback_months_9 <- config %>% filter(ccw_icd_version == 9) %>% select(lookback_months) %>% pull()
-    dx_9_fields <- config %>% filter(ccw_icd_version == 9) %>% select(dx_fields) %>% pull()
-    dx_9_exclude1 <- config %>% filter(ccw_icd_version == 9) %>% select(dx_exclude1) %>% pull()
-    dx_9_exclude2 <- config %>% filter(ccw_icd_version == 9) %>% select(dx_exclude2) %>% pull()
-    dx_9_exclude1_fields <- config %>% filter(ccw_icd_version == 9) %>% select(dx_exclude1_fields) %>% pull()
-    dx_9_exclude2_fields <- config %>% filter(ccw_icd_version == 9) %>% select(dx_exclude2_fields) %>% pull()
-    condition_type_9 <- config %>% filter(ccw_icd_version == 9) %>% select(condition_type) %>% pull()
+    ### Set up claim types ----
+    claim1_chk <- filter(config, ccw_icd_version == icd) %>% select(claim_type_1) %>% pull()
     
-    if (is.na(filter(config, ccw_icd_version == 9) %>% select(claim_type_1) %>% pull())) {
-      dx_9_claim1 <- ""
-    } else {
-      dx_9_claim1 <- glue_sql('{as.character(str_split(filter(config, ccw_icd_version == 10) %>% select(claim_type_1), ";",
-                              simplify = T))*}', .con = conn)
+    if (purrr::is_empty(claim1_chk)) {
+      dx_claim1 <- ""
     }
-    
-    if (is.na(filter(config, ccw_icd_version == 9) %>% select(claim_type_2) %>% pull())) {
-      dx_9_claim2 <- ""
+    else if (is.na(claim1_chk)) {
+      dx_claim1 <- ""
     } else {
-      dx_9_claim2 <- glue_sql('{as.character(str_split(filter(config, ccw_icd_version == 10) %>% select(claim_type_2), ";",
-                              simplify = T))*}', .con = conn)
-    }
-    
-    # ICD-10-CM
-    lookback_months_10 <- config %>% filter(ccw_icd_version == 10) %>% select(lookback_months) %>% pull()
-    dx_10_fields <- config %>% filter(ccw_icd_version == 10) %>% select(dx_fields) %>% pull()
-    dx_10_exclude1 <- config %>% filter(ccw_icd_version == 10) %>% select(dx_exclude1) %>% pull()
-    dx_10_exclude2 <- config %>% filter(ccw_icd_version == 10) %>% select(dx_exclude2) %>% pull()
-    dx_10_exclude1_fields <- config %>% filter(ccw_icd_version == 10) %>% select(dx_exclude1_fields) %>% pull()
-    dx_10_exclude2_fields <- config %>% filter(ccw_icd_version == 10) %>% select(dx_exclude2_fields) %>% pull()
-    condition_type_10 <- config %>% filter(ccw_icd_version == 10) %>% select(condition_type) %>% pull()
-    
-    if (is.na(filter(config, ccw_icd_version == 10) %>% select(claim_type_1) %>% pull())) {
-      dx_10_claim1 <- ""
-    } else {
-      dx_10_claim1 <- glue_sql('{as.character(str_split(filter(config, ccw_icd_version == 10) %>% select(claim_type_1), ";",
-                              simplify = T))*}', .con = conn)
-    }
-    
-    if (is.na(filter(config, ccw_icd_version == 10) %>% select(claim_type_2) %>% pull())) {
-      dx_10_claim2 <- ""
-    } else {
-      dx_10_claim2 <- glue_sql('{as.character(str_split(filter(config, ccw_icd_version == 10) %>% select(claim_type_2), ";",
-                              simplify = T))*}', .con = conn)
+      dx_claim1 <- glue_sql('{str_split(filter(config, ccw_icd_version == icd) %>% select(claim_type_1), ";",
+                              simplify = T)*}', .con = conn)
     }
     
     
-    if (is.null(table_config[[x]][["claim_type1"]])) {
-      claim1 <- ""
+    claim2_chk <- filter(config, ccw_icd_version == icd) %>% select(claim_type_2) %>% pull()
+    if (purrr::is_empty(claim2_chk)) {
+      dx_claim2 <- ""
+    }
+    else if (is.na(claim2_chk)) {
+      dx_claim2 <- ""
     } else {
-      claim1 <- glue_sql('{as.character(table_config2[["cond_stroke"]][["claim_type2"]])*}',
-                         .con = conn)
+      dx_claim2 <- glue_sql('{str_split(filter(config, ccw_icd_version == icd) %>% select(claim_type_2), ";",
+                              simplify = T)*}', .con = conn)
     }
     
-    if (is.null(table_config[[x]][["claim_type2"]])) {
-      claim2 <- ""
-    } else {
-      claim2 <- glue_sql('{as.character(table_config[[x]][["claim_type2"]])*}',
-                         .con = conn)
-    }
     
-    ## Construct where statement for claim count requirements
-    if (condition_type == 1) {
+    ### Set up claim count requirements code ----
+    condition_type <- config %>% filter(ccw_icd_version == icd) %>% select(condition_type) %>% pull()
+    
+    if (purrr::is_empty(condition_type)) {
+      claim_count_condition <- DBI::SQL('')
+    } else if (condition_type == 1) {
       claim_count_condition <- glue_sql("where (b.condition_1_cnt >= 1)", 
                                         .con = conn)
     } else if (condition_type == 2) {
@@ -344,19 +331,31 @@ load_ccw <- function(conn = NULL,
                  .con = conn)
     }
     
-    ## Construct where statement for diagnosis field numbers
-    if (dx_fields %in% c("1-2", "1;2")) {
+    
+    ### Set up dx field number code ----
+    dx_fields = config %>% filter(ccw_icd_version == icd) %>% select(dx_fields) %>% pull()
+    
+    if (purrr::is_empty(dx_fields)) {
+      dx_fields_condition <- DBI::SQL('')
+    } else if (dx_fields %in% c("1-2", "1;2")) {
       dx_fields_condition <- glue_sql(" where icdcm_number in ('01','02')",
                                       .con = conn)
     } else if (dx_fields == "1") {
       dx_fields_condition <- glue_sql(" where icdcm_number = '01'" ,
                                       .con = conn)
     } else if (dx_fields == "any") {
-      dx_fields_condition <- DBI::SQL('')
+      # Always need the where so the ICD filter later works
+      dx_fields_condition <- DBI::SQL(' where 1 = 1 ')
     }
     
-    ## Construct diagnosis field number code for exclusion code
-    if (!is.null(dx_exclude1_fields)) {
+    
+    ### Set up dx field number code for exclusion code ----
+    dx_exclude1_fields <- config %>% filter(ccw_icd_version == icd) %>% select(dx_exclude1_fields) %>% pull()
+    dx_exclude2_fields <- config %>% filter(ccw_icd_version == icd) %>% select(dx_exclude2_fields) %>% pull()
+    
+    if (purrr::is_empty(dx_exclude1_fields)) {
+      dx_exclude1_fields_condition <- DBI::SQL('')
+    } else if (!is.na(dx_exclude1_fields)) {
       if (dx_exclude1_fields %in% c("1-2", "1;2")) {
         dx_exclude1_fields_condition <- glue_sql(" and diag.icdcm_number in ('01','02')",
                                                  .con = conn)
@@ -370,7 +369,9 @@ load_ccw <- function(conn = NULL,
       dx_exclude1_fields_condition <- DBI::SQL('')
     }
     
-    if (!is.null(dx_exclude2_fields)) {
+    if (purrr::is_empty(dx_exclude2_fields)) {
+      dx_exclude2_fields_condition <- DBI::SQL('')
+    } else if (!is.na(dx_exclude2_fields)) {
       if (dx_exclude2_fields %in% c("1-2", "1;2")) {
         dx_exclude2_fields_condition <- glue_sql(" and diag.icdcm_number in ('01','02')",
                                                  .con = conn)
@@ -384,11 +385,18 @@ load_ccw <- function(conn = NULL,
       dx_exclude2_fields_condition <- DBI::SQL('')
     }
     
-    ## Construct diagnosis-based exclusion code
-    if(is.null(dx_exclude1) & is.null(dx_exclude2)){
+    
+    ### Set up dx-based exclusion code ----
+    dx_exclude1 <- config %>% filter(ccw_icd_version == icd) %>% select(dx_exclude1) %>% pull()
+    dx_exclude2 <- config %>% filter(ccw_icd_version == icd) %>% select(dx_exclude2) %>% pull()
+    
+    if (purrr::is_empty(dx_exclude1)) {
       dx_exclude_condition <- DBI::SQL('')
-    } else if (!is.null(dx_exclude1) & is.null(dx_exclude2)){
-      dx_exclude1 <- paste0("ccw_", table_config[[x]][["dx_exclude1"]])
+    } else if (is.na(dx_exclude1) & is.na(dx_exclude2)){
+      # Always need the where so the claim type where later works
+      dx_exclude_condition <- DBI::SQL('WHERE 1 = 1 ')
+    } else if (!is.na(dx_exclude1) & is.na(dx_exclude2)){
+      dx_exclude1 <- paste0("ccw_", dx_exclude1)
       
       dx_exclude_condition <- glue_sql(
         "--left join diagnoses to claim-level exclude flag if specified
@@ -402,7 +410,7 @@ load_ccw <- function(conn = NULL,
       
           --join to diagnosis reference table, subset to those with CCW exclusion flag
             inner join (
-            SELECT {top_rows} dx, dx_ver, {`dx_exclude1`} 
+            SELECT dx, dx_ver, {`dx_exclude1`} 
             FROM {`ref_schema`}.{DBI::SQL(ref_table)}dx_lookup
             where {`dx_exclude1`} = 1
             ) ref
@@ -415,9 +423,9 @@ load_ccw <- function(conn = NULL,
             on diag_lookup.claim_header_id = exclude.claim_header_id
             where exclude.exclude1 is null",
         .con = conn)
-    } else if (!is.null(dx_exclude1) & !is.null(dx_exclude2)){
-      dx_exclude1 <- paste0("ccw_", table_config[[x]][["dx_exclude1"]])
-      dx_exclude2 <- paste0("ccw_", table_config[[x]][["dx_exclude2"]])
+    } else if (!is.na(dx_exclude1) & !is.na(dx_exclude2)){
+      dx_exclude1 <- paste0("ccw_", dx_exclude1)
+      dx_exclude2 <- paste0("ccw_", dx_exclude2)
       
       dx_exclude_condition <- glue_sql(
         "--left join diagnoses to claim-level exclude flag if specified
@@ -432,7 +440,7 @@ load_ccw <- function(conn = NULL,
 
           --join to diagnosis reference table, subset to those with CCW exclusion flag
             inner join (
-            SELECT {top_rows} dx, dx_ver, {`dx_exclude1`}, {`dx_exclude2`} 
+            SELECT dx, dx_ver, {`dx_exclude1`}, {`dx_exclude2`} 
             FROM {`ref_schema`}.{DBI::SQL(ref_table)}dx_lookup
             where {`dx_exclude1`} = 1 or {`dx_exclude2`} = 1
             ) ref
@@ -448,26 +456,53 @@ load_ccw <- function(conn = NULL,
     }
     
     
+    ## Set up if this ICD version should be run ----
+    # Some conditions don't have ICD-9 codes so need to flag that
+    if (nrow(config %>% filter(ccw_icd_version == icd)) == 0) {
+      icd_run <- F
+    } else {
+      icd_run <- T
+    }
     
-    #### STEP 5: CREATE TEMP TABLE TO HOLD CONDITION-SPECIFIC CLAIMS AND DATES ####
+    ### Set up output ----
+    output <- list(ccw_code = unique(config$ccw_code),
+                   ccw_desc = unique(config$ccw_desc),
+                   ccw_abbrev = paste0("ccw_", unique(config$ccw_abbrev)),
+                   lookback_months = config %>% filter(ccw_icd_version == icd) %>% select(lookback_months) %>% pull(),
+                   dx_fields_condition = dx_fields_condition,
+                   dx_exclude_condition = dx_exclude_condition,
+                   claim_count_condition = claim_count_condition,
+                   dx_claim1 = dx_claim1,
+                   dx_claim2 = dx_claim2,
+                   icd_run = icd_run)
+    
+    output
+  }
+  
+  
+  ## Temp table to hold condition-specific claims and dates ----
+  header_load <- function(conn = db_claims, config_cond, icd = c(9, 10), print_query = F) {
+    if (config_cond$icd_run == F) {
+      return()
+    }
+    
+    header_tbl <- DBI::SQL(paste0("##header_dx", icd))
     
     # Build SQL query
     sql1 <- glue_sql(
       "--#drop temp table if it exists
-    if object_id('tempdb..##header') IS NOT NULL drop table ##header;
+    if object_id('tempdb..{header_tbl}') IS NOT NULL drop table {header_tbl};
     
     --apply CCW claim type criteria to define conditions 1 and 2
     SELECT header.{`id_source`}, header.claim_header_id, header.claim_type_id, 
-      header.first_service_date, diag_lookup.{`ccw_abbrev`},
+      header.first_service_date, diag_lookup.{`config_cond$ccw_abbrev`},
       diag_lookup.{`id_source`} as id_source_tmp,  -- zero rows returned without this, unclear why
-      CASE WHEN header.claim_type_id in ({claim1}) then 1 else 0 end as 'condition1',
-      case when header.claim_type_id in ({claim2}) then 1 else 0 end as 'condition2',
-      case when header.claim_type_id in ({claim1}) 
-        then header.first_service_date else null end as 'condition_1_from_date',
-      case when header.claim_type_id in ({claim2})
-        then header.first_service_date else null end as 'condition_2_from_date'
+      CASE WHEN header.claim_type_id in ({config_cond$dx_claim1}) THEN 1 ELSE 0 END AS 'condition1',
+      CASE WHEN header.claim_type_id in ({config_cond$dx_claim2}) THEN 1 ELSE 0 END AS 'condition2',
+      CASE WHEN header.claim_type_id in ({config_cond$dx_claim1}) THEN header.first_service_date ELSE null END AS 'condition_1_from_date',
+      CASE WHEN header.claim_type_id in ({config_cond$dx_claim2}) THEN header.first_service_date ELSE null END AS 'condition_2_from_date'
 
-    INTO ##header
+    INTO {header_tbl}
     
     --pull out claim type and service dates
     FROM (
@@ -476,73 +511,144 @@ load_ccw <- function(conn = NULL,
   
     --right join to claims containing a diagnosis in the CCW condition definition
     right join (
-      SELECT diag.{`id_source`}, diag.claim_header_id, ref.{`ccw_abbrev`} 
+      SELECT diag.{`id_source`}, diag.claim_header_id, ref.{`config_cond$ccw_abbrev`} 
     
     --pull out claim and diagnosis fields
     FROM (
       SELECT {top_rows} {`id_source`}, claim_header_id, icdcm_norm, icdcm_version
-      FROM {`icdcm_from_schema`}.{`icdcm_from_table`} {dx_fields_condition}) diag
+      FROM {`icdcm_from_schema`}.{`icdcm_from_table`} 
+      {config_cond$dx_fields_condition} AND icdcm_version = {icd}) diag
 
     --join to diagnosis reference table, subset to those with CCW condition
     inner join (
-      SELECT {top_rows} dx, dx_ver, {`ccw_abbrev`}
+      SELECT dx, dx_ver, {`config_cond$ccw_abbrev`}
       FROM {`ref_schema`}.{DBI::SQL(ref_table)}dx_lookup
-      where {`ccw_abbrev`} = 1) ref
+      where {`config_cond$ccw_abbrev`} = 1 AND dx_ver = {icd}) ref
       
       on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
       ) as diag_lookup
   
       on header.claim_header_id = diag_lookup.claim_header_id 
-    {dx_exclude_condition}",
+    {config_cond$dx_exclude_condition}
+      
+      -- Ensure only records with relevant claim types are kept
+      -- the dx_exclude_condition code should have the start of the WHERE statement
+      AND (header.claim_type_id in ({config_cond$dx_claim1}) OR header.claim_type_id in ({config_cond$dx_claim2}))",
       .con = conn)
     
+    if (print_query == T) {
+      print(sql1)
+    }
+    
     #Run SQL query
-    #dbGetQuery(conn = conn, sql1)
-    print(sql1)
+    dbGetQuery(conn = conn, sql1)
+  }
+  
+  
+  ## Temp table to hold ID and rolling time matrix ----
+  rolling_load <- function(conn = db_claims, config_cond, icd = c(9, 10), print_query = F) {
+    if (config_cond$icd_run == F) {
+      return()
+    }
+    
+    header_tbl <- DBI::SQL(paste0("##header_dx", icd))
+    rolling_tbl <- DBI::SQL(paste0("##rolling_tmp_", icd))
+    
+    if (icd == 9) {
+      rolling_break <- DBI::SQL(" WHERE start_window <= '2015-09-01' ")
+    } else if (icd == 10) {
+      rolling_break <- DBI::SQL(" WHERE start_window >= '2015-10-01' ")
+    }
     
     
-    #### STEP 6: CREATE TEMP TABLE TO HOLD ID AND ROLLING TIME MATRIX ####
-    # Build SQL query
     sql2 <- glue_sql(
-      
-      "if object_id('tempdb..##rolling_tmp') IS NOT NULL drop table ##rolling_tmp;
+      "if object_id('tempdb..{rolling_tbl}') IS NOT NULL drop table {rolling_tbl};
       
       --join rolling time table to person ids
       SELECT id.{`id_source`}, rolling.start_window, rolling.end_window
-      INTO ##rolling_tmp
+      INTO {rolling_tbl}
       
-      FROM (
-        SELECT distinct {`id_source`}, 'link' = 1 from ##header
-        ) as id
+      FROM 
+        (SELECT distinct {`id_source`}, 'link' = 1 from {header_tbl}) as id
         
-      right join (
-        SELECT cast(start_window as date) as 'start_window', 
-          cast(end_window as date) as 'end_window',
-          'link' = 1
-        FROM {`ref_schema`}.{DBI::SQL(ref_table)}rolling_time_{table_config[[x]][['lookback_months']]}mo_2012_2020
+      RIGHT JOIN 
+        (SELECT cast(start_window as date) as 'start_window', 
+                cast(end_window as date) as 'end_window',
+                'link' = 1
+            FROM {`ref_schema`}.{DBI::SQL(ref_table)}rolling_time_{DBI::SQL(config_cond$lookback_months)}mo_2012_2020
+            {rolling_break}
         ) as rolling
         
       on id.link = rolling.link
       order by id.{`id_source`}, rolling.start_window",
       .con = conn)
     
+    if (print_query == T) {
+      print(sql2)
+    }
+    
     #Run SQL query
-    #dbGetQuery(conn = conn, sql2)
-    print(sql2)
+    dbGetQuery(conn = conn, sql2)
+  }
+  
+  
+  ## Collapse dates across both ICD versions ----
+  ccw_load <- function(conn = db_claims, config_cond_9, config_cond_10, print_query = F) {
+    ccw_tbl <- DBI::SQL(paste0("##", config_cond_10$ccw_abbrev))
+    
+    ### Determine code based on if both ICD version headers were made ----
+    if (config_cond_9$icd_run == T) {
+      icd9_code <- glue_sql(
+        "SELECT * FROM
+            (SELECT matrix.{`id_source`}, matrix.start_window, matrix.end_window, cond.first_service_date, 
+              cond.condition1, cond.condition2, condition_2_from_date  
+              FROM (SELECT {`id_source`}, start_window, end_window FROM ##rolling_tmp_9) as matrix
+            --join to condition temp table
+            LEFT JOIN
+            (SELECT {`id_source`}, first_service_date, condition1, condition2, condition_2_from_date
+              FROM ##header_dx9) as cond
+            ON matrix.{`id_source`} = cond.{`id_source`}
+            WHERE cond.first_service_date between matrix.start_window and matrix.end_window) as a9",
+            .con = conn)
+    } else {
+      icd9_code <- DBI::SQL('')
+    }
+    
+    if (config_cond_10$icd_run == T) {
+      icd10_code <- glue_sql(
+        "SELECT * FROM
+            (SELECT matrix.{`id_source`}, matrix.start_window, matrix.end_window, cond.first_service_date, 
+              cond.condition1, cond.condition2, condition_2_from_date  
+              FROM (SELECT {`id_source`}, start_window, end_window FROM ##rolling_tmp_10) as matrix
+            --join to condition temp table
+            LEFT JOIN
+            (SELECT {`id_source`}, first_service_date, condition1, condition2, condition_2_from_date
+              FROM ##header_dx10) as cond
+            ON matrix.{`id_source`} = cond.{`id_source`}
+            WHERE cond.first_service_date between matrix.start_window and matrix.end_window) as a10",
+        .con = conn)
+    } else {
+      icd10_code <- DBI::SQL('')
+    }
+    
+    if (config_cond_9$icd_run == T & config_cond_10$icd_run == T) {
+      union_code <- DBI::SQL(' UNION ')
+    } else {
+      union_code <- DBI::SQL('')
+    }
     
     
-    #### STEP 7: ID CONDITION STATUS OVER TIME AND COLLAPSE TO CONTIGUOUS PERIODS ####
-    # Build SQL query
+    ### Set up code ----
     sql3 <- glue_sql(
       "--#drop temp table if it exists
-        if object_id('tempdb..{`ccw_abbrev_table`}') IS NOT NULL drop table {`ccw_abbrev_table`};
+        if object_id('tempdb..{ccw_tbl}') IS NOT NULL drop table {ccw_tbl};
       
       --collapse to single row per ID and contiguous time period
         SELECT distinct d.{`id_source`}, min(d.start_window) as 'from_date', 
-          max(d.end_window) as 'to_date', {ccw_code} as 'ccw_code',
-          {ccw_abbrev} as 'ccw_desc'
+          max(d.end_window) as 'to_date', {config_cond_10$ccw_code} as 'ccw_code',
+          {config_cond_10$ccw_abbrev} as 'ccw_desc'
       
-      INTO {`ccw_abbrev_table`}
+      INTO {ccw_tbl}
       
       FROM (
       --set up groups where there is contiguous time
@@ -576,58 +682,130 @@ load_ccw <- function(conn = NULL,
       sum(a.condition2) as 'condition_2_cnt', min(a.condition_2_from_date) as 'condition_2_min_date', 
       max(a.condition_2_from_date) as 'condition_2_max_date'
     
-      FROM (
-      --pull ID, time period and claim information, subset to ID x time period rows containing a relevant claim
-        SELECT matrix.{`id_source`}, matrix.start_window, matrix.end_window, cond.first_service_date, cond.condition1,
-          cond.condition2, condition_2_from_date
-      
-      --pull in ID x time period matrix
-        FROM (
-          SELECT {`id_source`}, start_window, end_window
-          FROM ##rolling_tmp
-        ) as matrix
-      
-      --join to condition temp table
-        left join (
-          SELECT {`id_source`}, first_service_date, condition1, condition2, condition_2_from_date
-          FROM ##header
-        ) as cond
-      
-        on matrix.{`id_source`} = cond.{`id_source`}
-        where cond.first_service_date between matrix.start_window and matrix.end_window
-        ) as a
+        FROM 
+        --pull ID, time period and claim information, subset to ID x time period rows containing a relevant claim
+          (
+          -- ICD-9
+          {icd9_code}
+          
+          {union_code}
+          
+          -- ICD-10
+          {icd10_code}
+        ) a
         group by a.{`id_source`}, a.start_window, a.end_window
+    
       ) as b 
-      {claim_count_condition}) as c
+      {config_cond_9$claim_count_condition}) as c
     ) as d
     group by d.{`id_source`}, d.grp
     order by d.{`id_source`}, from_date",
-      .con = conn,
-      ccw_abbrev_table = glue("##{ccw_abbrev}"))
+      .con = conn)
+    
+    if (print_query == T) {
+      print(sql3)
+    }
+    
     #Run SQL query
-    # dbGetQuery(conn = conn, sql3)
-    print(sql3)
+    dbGetQuery(conn = conn, sql3)
+  }
+  
+  
+  ## Insert condition table into stage combined CCW table ----
+  stage_load <- function(conn = db_claims, config_cond, print_query = F) {
+    ccw_tbl <- DBI::SQL(paste0("##", config_cond$ccw_abbrev))
     
-    # 
-    # #### STEP 8: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE #### 
-    # # Build SQL query
-    # sql4 <- glue_sql(
-    #   "INSERT INTO {`to_schema`}.{`to_table`} with (tablock)
-    #   SELECT
-    #   {`id_source`}, from_date, to_date, ccw_code, ccw_desc, 
-    #   getdate() as last_run
-    #   FROM {`ccw_abbrev_table`};
-    #   
-    #   --drop temp tables to free up space on tempdb
-    #   if object_id('tempdb..##header') IS NOT NULL drop table ##header;
-    #   if object_id('tempdb..##rolling_tmp') IS NOT NULL drop table ##rolling_tmp;
-    #   if object_id('tempdb..{`ccw_abbrev_table`}') IS NOT NULL drop table {`ccw_abbrev_table`};",
-    #   .con = conn,
-    #   ccw_abbrev_table = glue("##{ccw_abbrev}"))
-    # 
-    # #Run SQL query
-    # dbGetQuery(conn = conn, sql4)
+    sql4 <- glue_sql(
+      "INSERT INTO {`to_schema`}.{`to_table`} with (tablock)
+      SELECT
+      {`id_source`}, from_date, to_date, ccw_code, ccw_desc, getdate() as last_run
+      FROM {`ccw_tbl`};
+
+      -- drop temp tables to free up space on tempdb
+      if object_id('tempdb..##header_10') IS NOT NULL drop table ##header_10;
+      if object_id('tempdb..##rolling_tmp_9') IS NOT NULL drop table ##rolling_tmp_9;
+      if object_id('tempdb..##rolling_tmp_10') IS NOT NULL drop table ##rolling_tmp_10;
+      if object_id('tempdb..{`ccw_tbl`}') IS NOT NULL drop table {`ccw_tbl`};",
+      .con = conn)
     
+    if (print_query == T) {
+      print(sql4)
+    }
+    
+    #Run SQL query
+    dbGetQuery(conn = conn, sql4)
+  }
+  
+  
+  
+  
+  # ## TEST ----
+  # test <- config_cond_gen(cond = "cond_stroke2", icd = 9, ccw_source = "yaml", table_config = table_config2)
+  # header_load(conn = db_claims, config = test, icd = 9, print_query = T)
+  # rolling_load(conn = db_claims, config = test, icd = 9, print_query = T)
+  # 
+  # 
+  # test2 <- config_cond_gen(cond = "cond_stroke2", icd = 10, ccw_source = "yaml", table_config = table_config2)
+  # header_load(conn = db_claims, config = test2, icd = 10, print_query = T)
+  # rolling_load(conn = db_claims, config = test2, icd = 10, print_query = T)
+  # 
+  # 
+  # ccw_load(conn = db_claims, config_cond_9 = test, config_cond_10 = test2, print_query = T)
+  # stage_load(conn = db_claims, config_cond = test2, print_query = T)
+  # 
+  # 
+  # test3 <- config_cond_gen(cond = "asthma", icd = 9, ccw_source = "ref", table_config = conditions_ref)
+  # header_load(conn = db_claims, config = test3, icd = 9, print_query = T)
+  # rolling_load(conn = db_claims, config = test3, icd = 9, print_query = T)
+  #   
+  # test4 <- config_cond_gen(cond = "asthma", icd = 10, ccw_source = "ref", table_config = conditions_ref)
+  # header_load(conn = db_claims, config = test4, icd = 10, print_query = T)
+  # rolling_load(conn = db_claims, config = test4, icd = 10, print_query = T)
+  # 
+  # ccw_load(conn = db_claims, config_cond_9 = test3, config_cond_10 = test4, print_query = T)
+  # stage_load(conn = db_claims, config_cond = test4, print_query = T)
+  # 
+  # ## END TEST ----
+  
+  
+  
+  # STEP 5: RUN CODE FOR EACH FUNCTION ----
+  ptm01 <- proc.time() # Times how long this query takes
+  
+  ## Begin loop over conditions - loop continues across all SQL queries
+  lapply(conditions, function(x) {
+    
+    message("Working on ", x)
+    
+    ## ICD-9 ----
+    # Set up config
+    config_9 <- config_cond_gen(cond = x, icd = 9, ccw_source = ccw_source, table_config = table_config)
+    
+    if (print_query == T) {
+      print(config_9)
+    }
+    
+    # Make header and rolling time tables
+    header_load(conn = db_claims, config = config_9, icd = 9, print_query = print_query)
+    rolling_load(conn = db_claims, config = config_9, icd = 9, print_query = print_query)
+    
+    
+    ## ICD-10 ----
+    # Set up config
+    config_10 <- config_cond_gen(cond = x, icd = 10, ccw_source = ccw_source, table_config = table_config)
+    
+    if (print_query == T) {
+      print(config_10)
+    }
+    
+    # Make header and rolling time tables
+    header_load(conn = db_claims, config = config_10, icd = 10, print_query = print_query)
+    rolling_load(conn = db_claims, config = config_10, icd = 10, print_query = print_query)
+    
+    
+    ## Combine ----
+    ccw_load(conn = db_claims, config_cond_9 = config_9, config_cond_10 = config_10, print_query = F)
+    stage_load(conn = db_claims, config_cond = config_10, print_query = F)
   })
   
   #Run time of all steps
