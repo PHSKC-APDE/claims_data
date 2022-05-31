@@ -812,13 +812,6 @@ claims_elig <- function(conn,
     # works ok but could also define in this function
     
     if (pct == T) {
-      # Need hacky fix for APCD geo_kc since it doesn't exist in the timevar table
-      if (source_inner == "apcd" & var == "geo_kc") {
-        initial_var <- DBI::SQL(" CASE WHEN geo_county_code = '033' THEN 1 ELSE 0 END AS 'geo_kc' ")
-      } else {
-        initial_var <- glue::glue_sql("{`var`}", .con = conn_inner)
-      }
-  
       # Table names
       pt1_a <- glue::glue("{var}_pt1_a")
       pt1_b <- glue::glue("{var}_pt1_b")
@@ -839,7 +832,7 @@ claims_elig <- function(conn,
             ROW_NUMBER() OVER(PARTITION BY {`pt1_a`}.{id_name} 
                               ORDER BY SUM(cov_time_part.cov_days) DESC, {`pt1_a`}.{`var`}) AS rk
             FROM 
-            (SELECT {id_name}, {initial_var}, from_date, to_date 
+            (SELECT {id_name}, {`var`}, from_date, to_date 
               FROM {`schema`}.{`tbl_timevar`}) {`pt1_a`}
             INNER JOIN
             (SELECT {id_name}, from_date, to_date, cov_days FROM ##cov_time_part) cov_time_part
@@ -856,7 +849,7 @@ claims_elig <- function(conn,
                 FROM
                 (SELECT {`pt2_a`}.{id_name}, SUM(cov_time_part.cov_days * {`pt2_a`}.{`var`}) AS {`var_pct_num`}
                 FROM 
-                  (SELECT {id_name}, {initial_var}, from_date, to_date FROM 
+                  (SELECT {id_name}, {`var`}, from_date, to_date FROM 
                     {`schema`}.{`tbl_timevar`}) {`pt2_a`}
                 INNER JOIN
                   (SELECT {id_name}, from_date, to_date, cov_days FROM ##cov_time_part) cov_time_part
