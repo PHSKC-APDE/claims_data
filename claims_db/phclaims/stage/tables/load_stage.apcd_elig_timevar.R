@@ -191,7 +191,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     a.bsp_group_cid,
     a.full_benefit,
     a.zip_code as geo_zip,
-    d.countyfp as geo_county_code,
+    d.geo_county_code_fips as geo_county_code,
     b.zip_group_desc as geo_county,
     c.zip_group_code as geo_ach_code,
     c.zip_group_desc as geo_ach,
@@ -205,7 +205,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     left join (select distinct zip_code, zip_group_code, zip_group_desc from phclaims.ref.apcd_zip_group where left(zip_group_type_desc, 3) = 'Acc') as c
     on a.zip_code = c.zip_code
     left join PHClaims.ref.geo_county_code_wa as d
-    on b.zip_group_code = d.countyn;
+    on b.zip_group_code = d.geo_county_code_order;
     
     if object_id('tempdb..#temp5') is not null drop table #temp5;",
     .con = db_claims))
