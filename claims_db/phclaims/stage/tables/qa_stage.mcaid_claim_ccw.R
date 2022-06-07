@@ -38,10 +38,12 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   to_table <- config[[server]][["to_table"]]
   final_schema <- config[[server]][["final_schema"]]
   final_table <- ifelse(is.null(config[[server]][["final_table"]]), '',
-                        config[[server]][["final_table"]])
+                            config[[server]][["final_table"]])
+  final_table_pre <- ifelse(is.null(config[[server]][["final_table_pre"]]), '',
+                        config[[server]][["final_table_pre"]])
   qa_schema <- config[[server]][["qa_schema"]]
-  qa_table <- ifelse(is.null(config[[server]][["qa_table"]]), '',
-                     config[[server]][["qa_table"]])
+  qa_table_pre <- ifelse(is.null(config[[server]][["qa_table_pre"]]), '',
+                     config[[server]][["qa_table_pre"]])
   
   
   message("Running QA on ", to_schema, ".", to_table)
@@ -71,10 +73,13 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
     glue::glue_sql("SELECT count(distinct ccw_code) as cond_count FROM {`to_schema`}.{`to_table`}",
                    .con = conn)))
   
-  # See how many were in the YAML file
-  conditions <- names(config[str_detect(names(config), "cond_")])
+  # See how many are in the final table
+  distinct_cond_final <- as.integer(dbGetQuery(
+    conn,
+    glue::glue_sql("SELECT count(distinct ccw_code) as cond_count FROM {`final_schema`}.{`final_table`}",
+                   .con = conn)))
   
-  if (distinct_cond == length(conditions)) {
+  if (distinct_cond >= distinct_cond_final) {
     ccw_qa <- rbind(ccw_qa,
                     data.frame(etl_batch_id = NA_integer_,
                                last_run = last_run,
@@ -82,7 +87,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
                                qa_item = "# distinct conditions",
                                qa_result = "PASS",
                                qa_date = Sys.time(),
-                               note = glue("There were {length(conditions)} conditions analyzed as expected")))
+                               note = glue("There were {distinct_cond} conditions analyzed")))
   } else {
     ccw_qa <- rbind(ccw_qa,
                     data.frame(etl_batch_id = NA_integer_,
@@ -91,8 +96,8 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
                                qa_item = "# distinct conditions",
                                qa_result = "FAIL",
                                qa_date = Sys.time(),
-                               note = glue("There were {length(conditions)} conditions analyzed instead of ",
-                                           "the {distinct_cond} expected")))
+                               note = glue("There were {distinct_cond} conditions analyzed, but there are ",
+                                           "{distinct_cond_final} conditions in the final table")))
   }
   
   
@@ -109,7 +114,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   distinct_id_pop <- as.integer(dbGetQuery(
     conn,
     glue::glue_sql("SELECT count(distinct id_mcaid) as id_dcount
-                 FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_timevar
+                 FROM {`final_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_timevar
                  WHERE year(from_date) <= 2017 and year(to_date) >= 2017",
                    .con = conn)))
   
@@ -199,7 +204,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
           when datediff(day, dob, '{year}-12-31') >= 0 then floor((datediff(day, dob, '{year}-12-31') + 1) / {pt})
           when datediff(day, dob, '{year}-12-31') < 0 then NULL
         end as age
-        FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_demo
+        FROM {`final_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_demo
       ) as b
       on a.id_mcaid = b.id_mcaid
     ) as c
@@ -236,7 +241,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
       end as age_grp7
       FROM (
 	      SELECT id_mcaid
-	      FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_timevar
+	      FROM {`final_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_timevar
 	      where year(from_date) <= {year} and year(to_date) >= {year}
 	      ) as a
 	    left join (
@@ -245,7 +250,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
             when datediff(day, dob, '{year}-12-31') >= 0 then floor((datediff(day, dob, '{year}-12-31') + 1) / {pt})
             when datediff(day, dob, '{year}-12-31') < 0 then NULL
           end as age
-        FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_demo
+        FROM {`final_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_demo
       ) as b
       on a.id_mcaid = b.id_mcaid
     ) as c
@@ -311,6 +316,38 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   
   
   
+  #### CHECK DISTRIBUTION BY CONDITION BY YEAR ####
+  year_dist_cond <- map_df(seq(2014, 2021), function(x) {
+    yr_start <- paste0(x, "-01-01")
+    yr_end <- paste0(x, "-12-31")
+    
+    sql_call <- glue_sql(
+      "SELECT a.ccw_code, a.ccw_desc, count(distinct a.id_mcaid) as id_dcount
+      FROM (
+        SELECT distinct id_mcaid, ccw_code, ccw_desc
+        FROM {`to_schema`}.{`to_table`}
+        WHERE from_date <= {yr_end} and to_date >= {yr_start}
+      ) as a
+    group by a.ccw_code, a.ccw_desc
+    order by a.ccw_code",
+      .con = conn
+    )
+    
+    output <- dbGetQuery(conn, sql_call) %>%
+      mutate(year = x)
+    output
+  })
+  
+  
+  ggplot(data = year_dist_cond, 
+         aes(x = year, y = id_dcount, group = ccw_desc)) +
+    geom_line() +
+    geom_point() + 
+    facet_wrap( ~ ccw_desc, ncol = 4, scales = "free")
+  
+  
+  
+  
   #### STEP 2: VALIDATE STATUS OF ONE PERSON PER CONDITION WITH 2+ TIME PERIODS ####
   ### Only run this when checking manually because end dates in the csv file get 
   # out of date.
@@ -364,7 +401,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   #### STEP 3: LOAD QA RESULTS TO SQL AND RETURN RESULT ####
   DBI::dbExecute(
     conn, 
-    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid 
+    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table_pre)}qa_mcaid 
                    (etl_batch_id, last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES 
                    {DBI::SQL(glue_collapse(

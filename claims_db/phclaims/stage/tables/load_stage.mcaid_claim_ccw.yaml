@@ -6,11 +6,12 @@ phclaims:
     to_schema: stage
     to_table: mcaid_claim_ccw
     final_schema: final
-    final_table: 
+    final_table: mcaid_claim_ccw
+    final_table_pre: 
     ref_schema: ref
-    ref_table: 
+    ref_table_pre: 
     qa_schema: metadata
-    qa_table: 
+    qa_table_pre: 
 hhsaw:
     claim_header_from_schema: claims
     claim_header_from_table: final_mcaid_claim_header
@@ -19,11 +20,12 @@ hhsaw:
     to_schema: claims
     to_table: stage_mcaid_claim_ccw
     final_schema: claims
-    final_table: final_
+    final_table: final_mcaid_claim_ccw
+    final_table_pre: final_
     ref_schema: claims
-    ref_table: ref_
+    ref_table_pre: ref_
     qa_schema: claims
-    qa_table: metadata_
+    qa_table_pre: metadata_
 vars:
     id_mcaid: varchar(255)
     from_date: date

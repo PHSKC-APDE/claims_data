@@ -37,11 +37,7 @@ db_claims <- create_db_connection(server, interactive = interactive_auth, prod =
 ccw_yaml <- yaml::read_yaml(file.path(here::here(), "claims_db/phclaims/ref/tables/load_ref.ccw_lookup.yaml"))
 
 ## Bring in from reference github ----
-ccw_desc_99_16 <- openxlsx::read.xlsx("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ccw_lookup.xlsx?raw=true", sheet = "ccw_definitions_kc_99_16")
-ccw_desc_17_xx <- openxlsx::read.xlsx("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ccw_lookup.xlsx?raw=true", sheet = "ccw_definitions_kc_17_xx")
-
-## Bind rows and prep for loading ----
-ccw_desc <- bind_rows(ccw_desc_99_16, ccw_desc_17_xx)
+ccw_desc <- openxlsx::read.xlsx("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ccw_lookup.xlsx?raw=true", sheet = "ccw_definitions_kc_99_xx")
 
 
 # MAKE BLANK TABLE ----
