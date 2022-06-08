@@ -30,6 +30,8 @@ vars:
     geo_city: VARCHAR(255)
     geo_state: VARCHAR(255)
     geo_zip: VARCHAR(255)
+    geo_hash_clean: CHAR(64)
+    geo_hash_geocode: CHAR(64)
     geo_zip_centroid: TINYINT
     geo_street_centroid: TINYINT
     geo_county_code: varchar(255)

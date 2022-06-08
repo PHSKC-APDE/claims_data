@@ -156,6 +156,7 @@
 #### Create function ####
 claims_elig <- function(conn,
                         source = c("apcd", "mcaid", "mcaid_mcare", "mcare", "mcaid_mcare_pha"),
+                        server = c("phclaims", "hhsaw"),
                         # Coverage time and type
                         from_date = Sys.Date() - months(18),
                         to_date = Sys.Date() - months(6),
@@ -238,8 +239,13 @@ claims_elig <- function(conn,
     stop("please provide a SQL connection")
   }
   
-  # Source check
+  # Source and server check
   source <- match.arg(source)
+  server <- match.arg(server)
+  
+  if (server == "hhsaw" & source != "mcaid") {
+    stop("Currently only Medicaid data is available on HHSAW")
+  }
   
   # Date checks
   if(from_date > to_date & !missing(from_date) & !missing(to_date)) {
@@ -409,11 +415,29 @@ claims_elig <- function(conn,
   
   
   #### SQL DATABASE SETUP ####
+  # Currently not using this first part
+  # Need to rework it depending on where future PHA/Mcaid/Mcare data go
   if(source == "mcaid_mcare_pha"){
     sql_db_name <- "PH_APDEStore"
+    claim_db_name <- "PHClaims"
   } else {
-    sql_db_name <- "PHClaims"
+    sql_db_name <- DBI::SQL("")
+    claim_db_name <- DBI::SQL("")
   }
+  
+  if (server == "phclaims") {
+    schema <- "final"
+    schema_rac <- "ref"
+    tbl_timevar <- glue::glue("{source}_elig_timevar")
+    tbl_demo <- glue::glue("{source}_elig_demo")
+  } else {
+    schema <- "claims"
+    schema_rac <- "claims"
+    tbl_timevar <- glue::glue("final_{source}_elig_timevar")
+    tbl_demo <- glue::glue("final_{source}_elig_demo")
+    tbl_rac <- "ref_mcaid_rac_code"
+  }
+  
   
   #### ID SETUP ####
   # ID var name
@@ -729,7 +753,7 @@ claims_elig <- function(conn,
             END AS post_gap 
           INTO ##cov_time_part
           FROM 
-          (SELECT {id_name}, from_date, to_date, contiguous FROM {`sql_db_name`}.final.{`paste0(source, '_elig_timevar')`}
+          (SELECT {id_name}, from_date, to_date, contiguous FROM {`schema`}.{`tbl_timevar`}
           WHERE from_date <= {to_date} AND to_date >= {from_date}) a",
     .con = conn)
   
@@ -788,13 +812,6 @@ claims_elig <- function(conn,
     # works ok but could also define in this function
     
     if (pct == T) {
-      # Need hacky fix for APCD geo_kc since it doesn't exist in the timevar table
-      if (source_inner == "apcd" & var == "geo_kc") {
-        initial_var <- DBI::SQL(" CASE WHEN geo_county_code = '033' THEN 1 ELSE 0 END AS 'geo_kc' ")
-      } else {
-        initial_var <- glue::glue_sql("{`var`}", .con = conn_inner)
-      }
-  
       # Table names
       pt1_a <- glue::glue("{var}_pt1_a")
       pt1_b <- glue::glue("{var}_pt1_b")
@@ -815,8 +832,8 @@ claims_elig <- function(conn,
             ROW_NUMBER() OVER(PARTITION BY {`pt1_a`}.{id_name} 
                               ORDER BY SUM(cov_time_part.cov_days) DESC, {`pt1_a`}.{`var`}) AS rk
             FROM 
-            (SELECT {id_name}, {initial_var}, from_date, to_date 
-              FROM {`sql_db_name`}.final.{`paste0(source_inner, '_elig_timevar')`}) {`pt1_a`}
+            (SELECT {id_name}, {`var`}, from_date, to_date 
+              FROM {`schema`}.{`tbl_timevar`}) {`pt1_a`}
             INNER JOIN
             (SELECT {id_name}, from_date, to_date, cov_days FROM ##cov_time_part) cov_time_part
             ON {`pt1_a`}.{id_name} = cov_time_part.{id_name} AND 
@@ -832,8 +849,8 @@ claims_elig <- function(conn,
                 FROM
                 (SELECT {`pt2_a`}.{id_name}, SUM(cov_time_part.cov_days * {`pt2_a`}.{`var`}) AS {`var_pct_num`}
                 FROM 
-                  (SELECT {id_name}, {initial_var}, from_date, to_date FROM 
-                    {`sql_db_name`}.final.{`paste0(source_inner, '_elig_timevar')`}) {`pt2_a`}
+                  (SELECT {id_name}, {`var`}, from_date, to_date FROM 
+                    {`schema`}.{`tbl_timevar`}) {`pt2_a`}
                 INNER JOIN
                   (SELECT {id_name}, from_date, to_date, cov_days FROM ##cov_time_part) cov_time_part
                     ON {`pt2_a`}.{id_name} = cov_time_part.{id_name} AND 
@@ -868,7 +885,7 @@ claims_elig <- function(conn,
                               ORDER BY SUM(cov_time_part.cov_days) DESC, {`tbl_a`}.{`var`}) AS rk
           FROM 
             (SELECT {id_name}, {`var`}, from_date, to_date 
-              FROM {`sql_db_name`}.final.{`paste0(source_inner, '_elig_timevar')`}) {`tbl_a`}
+              FROM {`schema`}.{`tbl_timevar`}) {`tbl_a`}
             INNER JOIN
             (SELECT {id_name}, from_date, to_date, cov_days
               FROM ##cov_time_part) cov_time_part
@@ -1387,7 +1404,7 @@ claims_elig <- function(conn,
       timevar.cov_days, timevar.duration, timevar.cov_pct, timevar.covgap_max 
       FROM
       (SELECT DISTINCT {demo_vars_sql}
-        from {`sql_db_name`}.final.{`paste0(source, '_elig_demo')`}
+        from {`schema`}.{`tbl_demo`}
         WHERE 1 = 1 {id_sql} 
         {female_sql} {male_sql} {gender_me_sql} {gender_recent_sql} 
         {race_aian_sql} {race_asian_sql} {race_black_sql} {race_latino_sql} 
@@ -1426,28 +1443,28 @@ claims_elig <- function(conn,
   }
   
   
-  output <- dbGetQuery(conn, core_sql)
+  output <- odbc::dbGetQuery(conn, core_sql)
   
   #### Add on geography and BSP names ####
   if (source %in% c("mcaid", "mcaid_mcare", "mcaid_mcare_pha")) {
-    # Need to pull from PHClaims even if using PH_APDEStore
-    # Can use either DSN supplied for 'conn' because they are on the same server
+    # Might need to add a DB name in front if schema depending on where PHA/Mcaid/Mcare data end up
     bsp_names <- DBI::dbGetQuery(conn = conn,
-                                 "SELECT DISTINCT bsp_group_cid, bsp_group_name
-                                   FROM [PHClaims].[ref].[mcaid_rac_code]")
+                                 glue::glue_sql("SELECT DISTINCT bsp_group_cid, bsp_group_name
+                                                FROM {`schema_rac`}.{`tbl_rac`}",
+                                                .con = conn))
     
-    hra.names <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/hra_vid_region.csv",
+    hra_names <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/hra_vid_region.csv",
                                    select = c("hra", "vid"))
-    data.table::setnames(hra.names, c("hra", "vid"), c("geo_hra_name", "geo_hra_code"))
+    data.table::setnames(hra_names, c("hra", "vid"), c("geo_hra_name", "geo_hra_code"))
     
-    county.names <- odbc::dbGetQuery(conn = conn, 
-    "SELECT DISTINCT county_name as geo_county_name, countyfp as geo_county_code 
-    FROM [PHClaims].[ref].[geo_county_code_wa]")
+    county_names <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/county_codes.csv",
+                                   select = c("geo_county_name", "geo_county_code_fips"))
+    county_names <- dplyr::mutate(county_names, geo_county_code_fips = stringr::str_pad(geo_county_code_fips, width = 3, pad = "0"))
     
 
     output <- dplyr::left_join(output, bsp_names, by = "bsp_group_cid") %>%
-      dplyr::left_join(., hra.names, by = "geo_hra_code") %>% 
-      dplyr::left_join(., county.names, by = "geo_county_code")
+      dplyr::left_join(., hra_names, by = "geo_hra_code") %>% 
+      dplyr::left_join(., county_names, by = c("geo_county_code" = "geo_county_code_fips"))
       
     
     
