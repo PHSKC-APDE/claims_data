@@ -39,8 +39,8 @@ db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_au
 
 blob_token <- AzureAuth::get_azure_token(
   resource = "https://storage.azure.com", 
-  tenant = "bae5059a-76f0-49d7-9996-72dfe95d69c7",
-  app = "dd6d23ef-0676-46b4-9e27-d867c1401839",
+  tenant = keyring::key_get("adl_tenant", "dev"),
+  app = keyring::key_get("adl_app", "dev"),
   auth_type = "authorization_code",
   use_cache = F
 )
