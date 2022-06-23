@@ -214,8 +214,8 @@ elig_timevar_collapse <- function(conn,
       message("Large number of IDs detected, setting up IDs in temp table")
       temp_ids <- T
       
-      try(dbExecute(db_hhsaw, "drop table ##temp_ids"), silent = T)
-      DBI::dbWriteTable(db_hhsaw,
+      try(dbExecute(conn, "drop table ##temp_ids"), silent = T)
+      DBI::dbWriteTable(conn,
                         name = "##temp_ids",
                         value = data.frame("id" = ids),
                         overwrite = T, append = F)
@@ -223,6 +223,14 @@ elig_timevar_collapse <- function(conn,
       # Add index to id and from_date for faster join
       # Think about only using this if n_rounds is >2-3
       DBI::dbExecute(conn, "CREATE NONCLUSTERED INDEX temp_ids_id ON ##temp_ids (id)")
+      
+      
+      # Check all rows loaded
+      temp_rows <- DBI::dbGetQuery(conn, "SELECT COUNT (*) AS cnt FROM ##temp_ids")
+      if (temp_rows$cnt != length(ids)) {
+        stop("Number of IDs loaded to ##temp_ids (", temp_rows$cnt, 
+             ") did not match expected value (", length(ids), ")")
+      }
       
       id_sql <- glue::glue_sql(") a 
                                 INNER JOIN ##temp_ids x
@@ -290,7 +298,7 @@ elig_timevar_collapse <- function(conn,
 
   #### CLEAN UP ####
   if (temp_ids == T) {
-    DBI::dbExecute(conn, "IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;")
+    try(DBI::dbExecute(conn, "drop table ##temp_ids"), silent = T)
   }
 
   return(result)
