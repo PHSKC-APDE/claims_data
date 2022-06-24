@@ -214,53 +214,29 @@ elig_timevar_collapse <- function(conn,
       message("Large number of IDs detected, setting up IDs in temp table")
       temp_ids <- T
       
-      # Can only write 1000 values at a time so may need to do multiple rounds
-      n_rounds <- ceiling(num_ids/1000)
-      list_start <- 1
-      list_end <- min(1000, num_ids)
-      i <- 1
-      
-      # Make progress bar
-      print(glue::glue("Loading {n_rounds} ID sets"))
-      pb <- txtProgressBar(min = 0, max = n_rounds, style = 3)
-      
-      for (i in 1:n_rounds) {
-        if (i == 1) {
-          # Clear temp table with standalone command
-          # (otherwise switching between just ID and individual dates causes an error)
-          DBI::dbExecute(conn, "IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;")
-          id_load <- glue::glue_sql("CREATE TABLE ##temp_ids (id VARCHAR(20));
-                                    INSERT INTO ##temp_ids (id) VALUES 
-                                    ('
-                                    {DBI::SQL(glue::glue_collapse(ids[list_start:list_end], sep = \"'), ('\"))}
-                                    ');",
-                                    .con = conn)
-          DBI::dbExecute(conn, id_load)
-        } else {
-          id_load <- glue::glue_sql("INSERT INTO ##temp_ids (id) VALUES 
-                                    ('
-                                    {DBI::SQL(glue::glue_collapse(ids[list_start:list_end], sep = \"'), ('\"))}
-                                    ');",
-                                    .con = conn)
-          DBI::dbExecute(conn, id_load)
-        }
-        
-        list_start <- list_start + 1000
-        list_end <- min(list_end + 1000, num_ids)
-        
-        # Update progress bar
-        setTxtProgressBar(pb, i)
-      }
+      try(dbExecute(conn, "drop table ##temp_ids"), silent = T)
+      DBI::dbWriteTable(conn,
+                        name = "##temp_ids",
+                        value = data.frame("id" = ids),
+                        overwrite = T, append = F)
       
       # Add index to id and from_date for faster join
       # Think about only using this if n_rounds is >2-3
       DBI::dbExecute(conn, "CREATE NONCLUSTERED INDEX temp_ids_id ON ##temp_ids (id)")
       
       
+      # Check all rows loaded
+      temp_rows <- DBI::dbGetQuery(conn, "SELECT COUNT (*) AS cnt FROM ##temp_ids")
+      if (temp_rows$cnt != length(ids)) {
+        stop("Number of IDs loaded to ##temp_ids (", temp_rows$cnt, 
+             ") did not match expected value (", length(ids), ")")
+      }
+      
       id_sql <- glue::glue_sql(") a 
                                 INNER JOIN ##temp_ids x
                                 ON a.{`id_name`} = x.id ",
                                .con = conn)
+      message("Temp IDs table created")
     } else {
       temp_ids <- F
       id_sql <- glue::glue_sql(" WHERE {`id_name`} IN ({ids*}) ) a", .con = conn)
@@ -322,7 +298,7 @@ elig_timevar_collapse <- function(conn,
 
   #### CLEAN UP ####
   if (temp_ids == T) {
-    DBI::dbExecute(conn, "IF object_id('tempdb..##temp_ids') IS NOT NULL DROP TABLE ##temp_ids;")
+    try(DBI::dbExecute(conn, "drop table ##temp_ids"), silent = T)
   }
 
   return(result)
