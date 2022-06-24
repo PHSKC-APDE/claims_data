@@ -86,8 +86,8 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     "SELECT DISTINCT a.id_mcaid, 
     CONVERT(DATE, CAST(a.CLNDR_YEAR_MNTH as varchar(200)) + '01', 112) AS calmonth, 
     a.fromdate, a.todate, a.dual, a.tpl, a.bsp_group_cid, 
-    b.full_benefit_1, c.full_benefit_2, a.cov_type, a.mco_id,
-    d.geo_add1, d.geo_add2, d.geo_city, d.geo_state, d.geo_zip,
+    b.full_benefit_1, c.full_benefit_2, a.cov_type, a.mco_id, 
+    d.geo_add1, d.geo_add2, d.geo_city, d.geo_state, d.geo_zip, 
     d.geo_hash_clean, d.geo_hash_geocode
     INTO ##timevar_01a 
     FROM
@@ -160,7 +160,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     WHEN COALESCE(MAX(full_benefit_1), 0) + COALESCE(MAX(full_benefit_2), 0) >= 1 THEN 1
     WHEN COALESCE(MAX(full_benefit_1), 0) + COALESCE(MAX(full_benefit_2), 0) = 0 THEN 0
     END AS full_benefit,
-  geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
+  geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
   ROW_NUMBER() OVER(PARTITION BY id_mcaid, calmonth, fromdate  
                     ORDER BY id_mcaid, calmonth, fromdate) AS group_row 
   FROM ##timevar_01a
@@ -188,7 +188,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   step2a_sql <- glue::glue_sql(
     "SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
+    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
     calmonth AS startdate, dateadd(day, - 1, dateadd(month, 1, calmonth)) AS enddate,
     fromdate, todate
     INTO ##timevar_02a
@@ -220,7 +220,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   INTO ##timevar_02b
   FROM
   (SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
+    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
     CASE 
       WHEN fromdate IS NULL THEN startdate 
       WHEN startdate >= fromdate THEN startdate
@@ -259,7 +259,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   step3a_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date, 
   dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-  geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
+  geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
   DATEDIFF(day, lag(to_date) OVER (
     PARTITION BY id_mcaid, 
       dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
@@ -286,7 +286,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   step3b_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date,
     dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
+    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
     CASE 
       WHEN group_num > 1  OR group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY id_mcaid ORDER BY from_date) + 1
       WHEN group_num <= 1 THEN NULL
@@ -319,7 +319,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     "SELECT DISTINCT id_mcaid, from_date, to_date,
     dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip,
-    geo_hash_clean, geo_hash_geocode
+    geo_hash_clean, geo_hash_geocode, 
     group_num = max(group_num) OVER 
       (PARTITION BY id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
         geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode 
@@ -439,7 +439,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       END AS full_criteria, 
     a.cov_type, a.mco_id,
     a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip, 
-    a.geo_hash_clean, a.geo_hash_geocode,
+    a.geo_hash_clean, a.geo_hash_geocode, 
     b.geo_zip_centroid, b.geo_street_centroid, b.geo_county_code, b.geo_tract_code, 
     b.geo_hra_code, b.geo_school_code, a.cov_time_day,
     {Sys.time()} AS last_run
@@ -447,7 +447,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     FROM
     (SELECT id_mcaid, from_date, to_date, 
       dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
-      geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode,
+      geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
       cov_time_day
       FROM ##timevar_04b) a
       LEFT JOIN
