@@ -20,7 +20,7 @@ Instructions for installing the *claims* package:
 Instructions for updating the *claims* package:
 - Simply reinstall the package by typing `devtools::install_github("PHSKC-APDE/claims_data")`
 
-Current functionality of the *claims* package (v 0.1.10):
+Current functionality of the *claims* package (v 0.1.11):
 - Request an eligibility and demographics-based Medicaid member cohort
 - Request a claims summary (e.g. ED visits, avoidable ED, behavioral health hospital stays) for a member cohort
 - Request coverage group information (e.g. persons with disabilities) and automatically join to a specified data frame
