@@ -430,6 +430,7 @@ claims_elig <- function(conn,
     schema_rac <- "ref"
     tbl_timevar <- glue::glue("{source}_elig_timevar")
     tbl_demo <- glue::glue("{source}_elig_demo")
+    tbl_rac <- "mcaid_rac_code"
   } else {
     schema <- "claims"
     schema_rac <- "claims"
