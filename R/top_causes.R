@@ -139,7 +139,7 @@ top_causes <- function(conn,
   } else if (is.null(to_date)) {
     to_date <- as.Date(as.numeric(min(
       paste0(year(Sys.Date()) - 1, "-12-31"),
-      Sys.Date() - months(6))),
+      Sys.Date() %m-% months(6))),
       origin = "1970-01-01")
   }
   
