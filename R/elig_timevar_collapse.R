@@ -182,7 +182,7 @@ elig_timevar_collapse <- function(conn,
                   "geo_hra_code", 
                   "geo_school_code")
     
-    message(glue::glue('Adding in geocode variables: {glue_collapse(vars_geo, sep = ", ")}'))
+    message(glue::glue('Adding in geocode variables: {glue::glue_collapse(vars_geo, sep = ", ")}'))
   } else {
     vars_geo <- vector()
   }

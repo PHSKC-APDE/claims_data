@@ -20,7 +20,7 @@ Instructions for installing the *claims* package:
 Instructions for updating the *claims* package:
 - Simply reinstall the package by typing `devtools::install_github("PHSKC-APDE/claims_data")`
 
-Current functionality of the *claims* package (v 0.1.3):
+Current functionality of the *claims* package (v 0.1.11):
 - Request an eligibility and demographics-based Medicaid member cohort
 - Request a claims summary (e.g. ED visits, avoidable ED, behavioral health hospital stays) for a member cohort
 - Request coverage group information (e.g. persons with disabilities) and automatically join to a specified data frame
@@ -38,7 +38,6 @@ Folder Access:
   - KC_Claim
   - KC_Elig
 - \\\\dchs-shares01\DCHSDATA\DCHSPHClaimsData - Geocoding/clean address data
-- \\\\kcitetldepim001\informatica\address - Clean address data
 - \\\\phdata01\DROF_DATA\DOH DATA\Housing - Public housing data
   - Organized_data
   - KCHA
@@ -50,18 +49,10 @@ SQL Database Access:
   - KCIT SQL Server (local)
   - Windows Authentication
   - ODBC - User DSN - SQL Server - /w Windows NT authentication - PHClaims51
-- KCITSQLPRPDBM50
-  - KCIT SQL Server (local)
-  - Windows Authentication
-  - ODBC - User DSN - SQL Server - /w Windows NT authentication - PHClaims50
  - KCITSQLUTPDBH51
    - KCIT SQL Server (local)
    - Windows Authentication
    - ODBC - User DSN - SQL Server - /w Windows NT authentication - PH_APDEStore51
- - KCITSQLPRPDBM50
-   - KCIT SQL Server (local)
-   - Windows Authentication
-   - ODBC - User DSN - SQL Server - /w Windows NT authentication - PH_APDE_Store50
  - kcitazrhpasqldev20.database.windows.net
    - Azure SQL Server (cloud)
    - Azure Active Directory - Universal with MFA
@@ -72,7 +63,7 @@ SQL Database Access:
 R Keyrings:
 - hca_sftp - Access to HCA SFTP file portal
 - here - Sign up for HERE freemium API (https://developer.here.com/) -  App ID and API Key
-- hhsaw_dev - Access to Azure SQL Servers, will require to update as you update your KC and PH domain passwords
+- hhsaw - Access to Azure SQL Servers, will require to update as you update your KC and PH domain passwords
 - inthealth_edw - Storage Account Key used with COPY INTO function for Azure SQL tables (acquire from KCIT)
 - adl_tenant - Azure Data Lake Tenant ID for uploading new files to the datalake (username is either "dev" or "prod")
 - adl_app - Azure Data Lake App ID for uploading new files to the datalake (username is either "dev" or "prod")

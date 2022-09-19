@@ -10,6 +10,8 @@
 #' 2) To restrict to certain visit types (e.g., ED visits, hospitalizations)
 #' 
 #' @param conn SQL server connection created using \code{odbc} package.
+#' @param server Which server do you want to run the query against? NB. Currently only
+#' Medicaid data is available on HHSAW.
 #' @param source Which claims data source do you want to pull from?
 #' @param cohort The group of individuals of interest. Note: it is possible to generate a cohort on the fly
 #' using \code{\link{claims_elig}}.
@@ -37,14 +39,22 @@
 #'
 #' @examples
 #' \dontrun{
-#' top_15 <- top_causes_f(cohort = focus_pop, cohort_id = id, conn = db.claims51)
-#' top_15_dynamic <- top_causes_f(cohort = mcaid_elig_f(conn = db.claims51, 
-#' from_date = "2017-01-01", to_date = "2017-12-31", korean = 1, zip = "98103"), top = 3)
+#' db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
+#' system.time(mcaid_only <- claims_elig(conn = db_hhsaw, source = "mcaid", 
+#'     from_date = "2014-01-01", to_date = "2015-02-25",
+#'     geo_zip = c("98104", "98133", "98155"),
+#'     cov_type = "FFS", race_asian = 1, 
+#'     show_query = T))
+#' top_15_dynamic <- top_causes(
+#'     cohort = mcaid_only, top = 3, conn = db_hhsaw, source = "mcaid",
+#'     server="hhsaw"
+#' )
 #' }
 #' 
 #' @export
 
 top_causes <- function(conn,
+                       server = c("phclaims", "hhsaw"),
                        source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
                        cohort,
                        cohort_id = NULL,
@@ -69,6 +79,22 @@ top_causes <- function(conn,
   
   # Source check
   source <- match.arg(source)
+  
+  if (server == "hhsaw" & source != "mcaid") {
+    stop("Currently only Medicaid data is available on HHSAW")
+  }
+  
+  if (server == "phclaims") {
+    header_schema <- "final"
+    header_tbl_prefix <- ""
+    ref_schema <- "ref"
+    ref_tbl_prefix <- ""
+  } else { # HHSAW organizes under claims schema
+    header_schema <- "claims"
+    header_tbl_prefix <- "final_"
+    ref_schema <- "claims"
+    ref_tbl_prefix <- "ref_"
+  }
   
   # Source
   if (source == "apcd") {
@@ -139,7 +165,7 @@ top_causes <- function(conn,
   } else if (is.null(to_date)) {
     to_date <- as.Date(as.numeric(min(
       paste0(year(Sys.Date()) - 1, "-12-31"),
-      Sys.Date() - months(6))),
+      Sys.Date() %m-% months(6))),
       origin = "1970-01-01")
   }
   
@@ -277,14 +303,14 @@ top_causes <- function(conn,
       FROM ##temp_ids AS a
       LEFT JOIN 
       (SELECT {id_name}, first_service_date AS from_date, claim_header_id, ed_pophealth_id, inpatient_id, ccs_description
-      FROM PHClaims.final.{`paste0(source, '_claim_header')`}
+      FROM {`header_schema`}.{`paste0(header_tbl_prefix, source, '_claim_header')`}
       WHERE first_service_date >= {from_date} AND first_service_date <= {to_date} AND 
         {flags} ccs_description IS NOT NULL) AS b
         ON a.id = b.{id_name}
       WHERE b.from_date >= a.from_date_ind AND b.from_date <= a.to_date_ind) AS c
-      LEFT JOIN PHClaims.final.{`paste0(source, '_claim_icdcm_header')`} AS d
+      LEFT JOIN {`header_schema`}.{`paste0(header_tbl_prefix, source, '_claim_icdcm_header')`} AS d
       ON c.claim_header_id = d.claim_header_id
-      LEFT JOIN PHClaims.ref.dx_lookup AS e
+      LEFT JOIN {`ref_schema`}.{`paste0(ref_tbl_prefix, 'dx_lookup')`} AS e
       ON d.icdcm_version = e.dx_ver AND d.icdcm_norm = e.dx {dx_num};",
       .con = conn)
   } else {
@@ -296,13 +322,13 @@ top_causes <- function(conn,
       FROM ##temp_ids AS a 
       LEFT JOIN 
       (SELECT {id_name}, first_service_date AS from_date, claim_header_id, ed_pophealth_id, inpatient_id, ccs_description
-      FROM PHClaims.final.{`paste0(source, '_claim_header')`}
+      FROM {`header_schema`}.{`paste0(header_tbl_prefix, source, '_claim_header')`}
       WHERE first_service_date >= {from_date} AND first_service_date <= {to_date} AND 
         {flags} ccs_description IS NOT NULL) AS b
       ON a.id = b.{id_name}) AS c
-      LEFT JOIN PHClaims.final.{`paste0(source, '_claim_icdcm_header')`} AS d
+      LEFT JOIN {`header_schema`}.{`paste0(header_tbl_prefix, source, '_claim_icdcm_header')`} AS d
       ON c.claim_header_id = d.claim_header_id
-      LEFT JOIN PHClaims.ref.dx_lookup AS e
+      LEFT JOIN {`ref_schema`}.{`paste0(ref_tbl_prefix, 'dx_lookup')`} AS e
       ON d.icdcm_version = e.dx_ver AND d.icdcm_norm = e.dx {dx_num};",
                                   .con = conn)
   }
