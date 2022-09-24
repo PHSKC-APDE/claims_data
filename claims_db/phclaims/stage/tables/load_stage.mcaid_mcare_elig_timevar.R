@@ -34,8 +34,8 @@
   
   mcaid <- setDT(odbc::dbGetQuery(db_claims, 
   "SELECT id_mcaid, from_date, to_date, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id, 
-  geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_zip_centroid, 
-  geo_street_centroid, geo_county_code, geo_tract_code, geo_hra_code, geo_school_code
+  geo_add1, geo_add2, geo_city, geo_state, geo_zip, 
+  geo_county_code, geo_tract_code, geo_hra_code, geo_school_code
   FROM PHClaims.final.mcaid_elig_timevar"))
   mcaid[, from_date := as.integer(as.Date(from_date))] # convert date string to a real date
   mcaid[, to_date := as.integer(as.Date(to_date))] # convert date to an integer (temporarily for finding intersections)
