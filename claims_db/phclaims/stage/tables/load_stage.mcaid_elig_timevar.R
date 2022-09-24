@@ -411,12 +411,10 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
     df_address_geocode <- odbc::dbGetQuery(conn_hhsaw, 
                            glue::glue_sql("SELECT geo_hash_geocode,        
-                                          geo_zip_centroid, 
-                                          geo_street_centroid, 
-                                          geo_countyfp10,         
-                                          geo_tractce10, 
-                                          geo_hra_id,         
-                                          geo_school_geoid10        
+                                          geo_id10_county,         
+                                          geo_id10_tract, 
+                                          geo_id10_hra,         
+                                          geo_id10_schooldistrict        
                                           FROM {`address_schema`}.{`geocode_table`}",                                         
                                           .con = conn_hhsaw))
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
@@ -440,7 +438,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     a.cov_type, a.mco_id,
     a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip, 
     a.geo_hash_clean, a.geo_hash_geocode, 
-    b.geo_zip_centroid, b.geo_street_centroid, b.geo_county_code, b.geo_tract_code, 
+    b.geo_county_code, b.geo_tract_code, 
     b.geo_hra_code, b.geo_school_code, a.cov_time_day,
     {Sys.time()} AS last_run
     INTO {`to_schema`}.{`to_table`}
@@ -452,9 +450,9 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       FROM ##timevar_04b) a
       LEFT JOIN
       (SELECT DISTINCT geo_hash_geocode,
-        geo_zip_centroid, geo_street_centroid, geo_countyfp10 AS geo_county_code, 
-        geo_tractce10 AS geo_tract_code, geo_hra_id AS geo_hra_code, 
-        geo_school_geoid10 AS geo_school_code
+        geo_id10_county AS geo_county_code, 
+        geo_id10_tract AS geo_tract_code, geo_id10_hra AS geo_hra_code, 
+        geo_id10_schooldistrict AS geo_school_code
         FROM ", address_geocode_table, ") b
       ON a.geo_hash_geocode = b.geo_hash_geocode"),
     .con = conn)
