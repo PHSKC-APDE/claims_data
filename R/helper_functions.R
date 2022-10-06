@@ -9,6 +9,8 @@
 #' \code{sqlbatch_f} prepares and sends batched SQL statements to SQL Server with the final statement
 #' returning a result set.
 #' 
+#' \code{suppress_f} prepare data frame to use for total result set suppression
+#' 
 #' @param ... Variables that will be passed as a list to another function
 #' @param server SQL server connection created using \code{odbc} package
 #' @param sqlbatch Any number of SQL queries in list format
