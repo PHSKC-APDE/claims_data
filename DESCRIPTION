@@ -19,5 +19,8 @@ Imports:
     stringr,
     rlang
 Suggests:
-    tidyr
+    tidyr,
+    knitr,
+    rmarkdown
 RoxygenNote: 7.1.1
+VignetteBuilder: knitr
