@@ -16,8 +16,9 @@ Imports:
     odbc,
     DBI,
     dplyr,
-    stringr,
-    rlang
+    rads.data,
+    rlang,
+    stringr
 Suggests:
     tidyr,
     knitr,
