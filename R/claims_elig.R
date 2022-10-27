@@ -22,6 +22,8 @@
 #' 
 #' @param conn SQL server connection created using \code{odbc} package
 #' @param source Which claims data source do you want to pull from?
+#' @param server Which server do you want to run the query against? NB. Currently only
+#' Medicaid data is available on HHSAW.
 #' @param from_date Begin date for coverage period, "YYYY-MM-DD", 
 #' defaults to 18 months prior to today's date (A)
 #' @param to_date End date for coverage period, "YYYY-MM-DD", 

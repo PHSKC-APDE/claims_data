@@ -12,6 +12,8 @@
 #' 
 #' @param conn SQL server connection created using \code{odbc} package
 #' @param source Which claims data source do you want to pull from?
+#' @param server Which server do you want to run the query against? NB. Currently only
+#' Medicaid data is available on HHSAW.
 #' @param condition The chronic health condition requested from SQL Server. 
 #' Can select multiple using format c("<condition1>", "<condition2>").
 #' @param from_date Begin date for coverage period, "YYYY-MM-DD", 
@@ -23,15 +25,22 @@
 #'
 #' @examples
 #' \dontrun{
-#' condition <- claims_condition(con = db_claims, source = "mcaid", condition = "ccw_anemia")
-#' condition <- claims_condition(con = db_claims, source = "apcd",
+#' condition <- claims_condition(con = db_claims, source = "mcaid", server = "phclaims",
+#'                               condition = "ccw_anemia")
+#' condition <- claims_condition(con = db_claims, source = "apcd", server = "phclaims",
 #'                               from_date = "2020-01-01", to_date = "2020-12-31", 
-#'                               condition = c("ccw_diabetes", "ccw_arthritis", "ccw_cataract", "ccw_hypertension")
-#' condition <- claims_condition(con = db_claims, source = "mcaid_mcare", condition = "ccw_depression", id = c(1, 6, 2:8))
+#'                               condition = c("ccw_diabetes", "ccw_arthritis",
+#'                               "ccw_cataract", "ccw_hypertension")
+#' condition <- claims_condition(con = db_claims, source = "mcaid_mcare", server = "phclaims",
+#'                               condition = "ccw_depression", id = c(1, 6, 2:8))
+#' hhsaw_condition <- claims_condition(con = db_hhsaw, source = "mcaid", server = "hhsaw",
+#'                                     condition = "ccw_pneumonia", from_date = "2020-01-01",
+#'                                     to_date = "2022-08-24")
 #' 
 #' @export
 claims_condition <- function(conn, 
                                source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
+                               server = c("phclaims", "hhsaw"),
                                condition = c("ccw_alzheimer", "ccw_alzheimer_related",
                                              "ccw_anemia", "ccw_arthritis",
                                              "ccw_asthma", "ccw_atrial_fib",
@@ -58,22 +67,34 @@ claims_condition <- function(conn,
   if(missing(conn)) {
     stop("please provide a SQL connection")
   }
-  
   # Date checks
   if(from_date > to_date & !missing(from_date) & !missing(to_date)) {
     stop("from_date date must be <= to_date date")
   }
-  
   if(missing(from_date) & missing(to_date)) {
     message("Default from/to dates used: - 18 and 6 months prior to today's date, respectively")
+  }
+  # Server check
+  if (server == "hhsaw" & source != "mcaid") {
+    stop("Currently only Medicaid data is available on HHSAW")
   }
   
   
   #### SET UP VARIABLES ####
   source <- match.arg(source)
+  if (server == "phclaims") {
+    schema <- "final"
+    tbl_prefix <- ""
+  } else { # HHSAW organizes under claims schema
+    schema <- "claims"
+    tbl_prefix <- "final_"
+  }
   tbl <- glue::glue("{source}_claim_ccw")
   
   condition <- match.arg(condition, several.ok = T)
+  
+  from_date <- as.Date(from_date)
+  to_date <- as.Date(to_date)
   
   # ID var name
   if (source == "apcd") {
@@ -103,7 +124,7 @@ claims_condition <- function(conn,
   #### BUILD AND RUN SQL QUERY ####
   sql_call <- glue::glue_sql(
     "SELECT {id_name}, ccw_desc, from_date, to_date
-    FROM final.{`tbl`} 
+    FROM {`schema`}.{`paste0(tbl_prefix, tbl)`}
     WHERE from_date <= {to_date} AND to_date >= {from_date} 
     {cond_sql} {id_sql} 
     ORDER BY {id_name}, ccw_desc, from_date",
