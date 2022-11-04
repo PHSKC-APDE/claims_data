@@ -38,7 +38,6 @@
 #' @param geo_zip Collapse over the geo_zip field (Medicaid only).
 #' @param geocode_vars Bring in all geocded data elements (geo_county_code,
 #' geo_tractce10, geo_hra_code, geo_school_code). Default is FALSE.
-#' @param geo_zip_code Collapse over the geo_zip_code field (APCD only).
 #' @param geo_county Collapse over the geo_countyfield (APCD only).
 #' @param geo_ach Collapse over the geo_ach field (APCD only).
 #'
@@ -81,16 +80,17 @@ elig_timevar_collapse <- function(conn,
                                   pharm_medicare = F,
                                   pharm_commercial = F,
                                   
+                                  # both geo columns
+                                  geo_zip = F,
+                                  
                                   #mcaid geo columns
                                   geo_add1 = F,
                                   geo_add2 = F,
                                   geo_city = F,
                                   geo_state = F,
-                                  geo_zip = F,
                                   geocode_vars = F,
                                   
                                   #apcd geo columns
-                                  geo_zip_code = F,
                                   geo_county = F,
                                   geo_ach = F) {
   
@@ -100,7 +100,7 @@ elig_timevar_collapse <- function(conn,
               geo_state, geo_zip, geocode_vars, 
               med_covgrp, pharm_covgrp, med_medicaid, med_medicare, 
               med_commercial, pharm_medicaid, pharm_medicare, pharm_commercial,
-              geo_zip_code, geo_county, geo_ach)
+              geo_county, geo_ach)
   
   # Make sure something is being selected
   if (cols == 0) {
@@ -160,7 +160,7 @@ elig_timevar_collapse <- function(conn,
                           "pharm_medicaid" = pharm_medicaid, 
                           "pharm_medicare" = pharm_medicare, 
                           "pharm_commercial" = pharm_commercial, 
-                          "geo_zip_code" = geo_zip_code, 
+                          "geo_zip" = geo_zip, 
                           "geo_county" = geo_county, 
                           "geo_ach" = geo_ach)
   }
