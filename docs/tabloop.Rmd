@@ -1,0 +1,93 @@
+---
+title: "tabloop"
+author: "Kai Fukutaki"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette: default
+  github_document: default
+  pdf_document: default
+  urlcolor: blue
+  keep_md: true
+vignette: >
+  %\VignetteIndexEntry{tabloop}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo = F, message=FALSE}
+library(claims)
+library(odbc)
+```
+
+## Introduction
+
+`tabloop` is the oddball of the claims function family, but in a good way! It will tabulate a single data frame over fixed and looped_by variables, and bind all output as a single data frame. "Fixed by" variables are variables by which the data frame will be disaggregated for all loop variables, whereas "loop by" variables will only be disaggregated separately. For example, a combination of region for "fixed" and age group and sex for "loop" would produce counts by age group and sex for each region, but not counts for each sex by age group.
+
+
+## Arguments
+
+Arguments can be broken up into the following groups:
+
+The dataframe:
+
+1\) `df` \<- A dataframe in tidy format
+
+The calculation type arguments (generally just pointing you to the column of interest and specifying what type of tabulation/calculation to do):
+
+1\) `count` \<- A variable to use for tabulation of non-distinct counts
+2\) `dcount` \<- A variable to use for tabulation of distinct counts
+3\) `sum` \<- A variable to use for tabulation of calculated sums
+4\) `mean` \<- A variable to use for tabulation of calculated means
+5\) `median` \<- A variable to use for tabulation of calculated medians
+
+The loop and fixed variables:
+
+1\) `loop` \<- List of loop-by variables, required (use `list_var` function for multiple)
+2\) `fixed` \<- List of fixed-by variables, defaults to null (use `list_var` function for multiple)
+
+The additional specifications:
+
+1\) `filter` \<- Specify whether results should be filtered to positive values only for binary variables (defaults to False)
+2\) `rename` \<- Specify whether results group categories should be renamed according to APDE defaults (defaults to False)
+3\) `suppress` \<- Specify whether suppression should be applied (defaults to False)
+4\) `rounding` \<- Specify how many decimal places to round mean and median to (defaults to 1)
+
+
+## Example uses
+
+tabloop_f(df = mcaid_cohort, unit = id, loop = list_var(gender, race), fixed = list_var(region))
+tabloop_f(df = mcaid_cohort, unit = id, loop = list_var(gender, race, zip_code, cov_grp, language))
+tabloop_f_test(df = depression, dcount = list_var(id), count = list_var(hra_id),
+                sum = list_var(ed_cnt, inpatient_cnt, depression_ccw), mean = list_var(age),
+                median =list_var(age), loop = list_var(gender_mx), filter = T, rename = T, suppress = T, 
+                suppress_var = list_var(id_dcount), round = 3)
+}
+
+First, let's load an example dataset to work with using an adaptation of the claims_elig examples to get a cohort of Asian adults (after setting up a DB connection):
+```{r}
+mcaid_cohort <- claims_elig(conn = db_claims, source = "mcaid", server="phclaims", 
+                          from_date = "2020-03-23", to_date = "2020-12-31",
+                          age_min = 18, race_asian = 1,
+                          show_query = T)
+```
+
+Now we can try using tabloop on this dataset in various ways. First, let's look at counts of full_benefit by gender and multiple race status:
+
+```{r}
+tabloop_f(df=mcaid_cohort, count=list_var(full_benefit), loop = list_var(gender_me), fixed = list_var(geo_county_name, race_eth_me))
+```
+
+We can see columns for county, multiple race status, and gender, with full_benefit counts for each in the cohort. We could also choose to instead break down average full benefit percentage by BSP group name:
+
+```{r}
+tabloop_f(df=mcaid_cohort, mean=list_var(full_benefit_pct), loop = list_var(bsp_group_name))
+```
+
+Hopefully these few examples give you inspiration for how powerful the function can be to quickly summarize these sorts of datasets.

@@ -71,7 +71,7 @@ The above call returns a cohort from 18 to 6 months ago, but this is very big an
 ```{r}
 mcaid_data <- claims_elig(conn = db_claims, source = "mcaid", server="phclaims", 
                           from_date = "2014-01-01", to_date = "2014-03-01",
-                          age_min = 18, age_max = 24, female = TRUE,
+                          age_min = 18, age_max = 24, female = 1,
                           show_query = T)
 ```
 
@@ -80,7 +80,7 @@ This will give us back a female cohort over a 2-month period from ages 18-24 yea
 ```{r}
 mcaid_data <- claims_elig(conn = db_claims, source = "mcaid", server="phclaims", 
                           from_date = "2020-03-23", to_date = "2020-12-31",
-                          age_min = 18, female = TRUE, race_nhpi = TRUE,
+                          age_min = 18, female = 1, race_nhpi = 1,
                           show_query = T)
 ```
 
