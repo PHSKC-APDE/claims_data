@@ -28,8 +28,8 @@
 #'
 #' @examples
 #' \dontrun{
-#' tabloop_f(df = mcaid_cohort, unit = id, loop = list_var(gender, race), fixed = list_var(region))
-#' tabloop_f(df = mcaid_cohort, unit = id, loop = list_var(gender, race, zip_code, cov_grp, language))
+#' tabloop_f(df = mcaid_cohort, count = id, loop = list_var(gender, race), fixed = list_var(region))
+#' tabloop_f(df = mcaid_cohort, count = id, loop = list_var(gender, race, zip_code, cov_grp, language))
 #' tabloop_f_test(df = depression, dcount = list_var(id), count = list_var(hra_id),
 #'                sum = list_var(ed_cnt, inpatient_cnt, depression_ccw), mean = list_var(age), median = list_var(age),
 #'                loop = list_var(gender_mx), filter = T, rename = T, suppress = T, 
