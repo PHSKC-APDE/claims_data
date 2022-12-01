@@ -143,6 +143,22 @@ part025:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_025.csv
     field_term: ','
     row_term: '0x0A'
+part026:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_026.csv
+    field_term: ','
+    row_term: '0x0A'
+part027:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_027.csv
+    field_term: ','
+    row_term: '0x0A'
+part028:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_028.csv
+    field_term: ','
+    row_term: '0x0A'
+part029:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_029.csv
+    field_term: ','
+    row_term: '0x0A'
 years:
     - part000
     - part001
@@ -170,3 +186,7 @@ years:
     - part023
     - part024
     - part025
+    - part026
+    - part027
+    - part028
+    - part029

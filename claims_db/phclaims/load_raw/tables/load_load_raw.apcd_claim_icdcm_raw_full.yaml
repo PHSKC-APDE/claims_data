@@ -9,7 +9,7 @@ vars:
     last_service_dt: date
     icdcm_raw: varchar(10)
     icdcm_norm: varchar(200)
-    icdcm_version: smallint
+    icdcm_version: integer
     icdcm_number: varchar(5)
 part000:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_000.csv
@@ -71,6 +71,18 @@ part014:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_014.csv
     field_term: ','
     row_term: '0x0A'
+part015:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_015.csv
+    field_term: ','
+    row_term: '0x0A'
+part016:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_016.csv
+    field_term: ','
+    row_term: '0x0A'
+part017:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_icdcm_raw_export/claim_icdcm_raw_017.csv
+    field_term: ','
+    row_term: '0x0A'
 years:
     - part000
     - part001
@@ -87,3 +99,6 @@ years:
     - part012
     - part013
     - part014
+    - part015
+    - part016
+    - part017

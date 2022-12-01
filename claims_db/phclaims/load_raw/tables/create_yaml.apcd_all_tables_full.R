@@ -17,8 +17,8 @@ pacman::p_load(tidyverse, glue)
 #### STEP 1: Set universal parameters ####
 read_path <- "\\\\kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" #Folder containing exported format files
 #write_path <- "C:/Users/kerneli/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KC laptop
-write_path <- "C:/Users/kerneli.PH/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
-#write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Susan's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
+#write_path <- "C:/Users/kerneli.PH/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
+write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/" #Susan's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
 
 server_path <- "KCITSQLUTPDBH51"
 db_name <- "PHClaims"

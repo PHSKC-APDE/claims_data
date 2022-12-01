@@ -56,8 +56,13 @@ part003:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_003.csv
     field_term: ','
     row_term: '0x0A'
+part004:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_004.csv
+    field_term: ','
+    row_term: '0x0A'
 years:
     - part000
     - part001
     - part002
     - part003
+    - part004

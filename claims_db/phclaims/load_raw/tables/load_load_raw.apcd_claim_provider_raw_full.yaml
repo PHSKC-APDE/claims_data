@@ -70,6 +70,14 @@ part014:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_provider_raw_export/claim_provider_raw_014.csv
     field_term: ','
     row_term: '0x0A'
+part015:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_provider_raw_export/claim_provider_raw_015.csv
+    field_term: ','
+    row_term: '0x0A'
+part016:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_provider_raw_export/claim_provider_raw_016.csv
+    field_term: ','
+    row_term: '0x0A'
 years:
     - part000
     - part001
@@ -86,3 +94,5 @@ years:
     - part012
     - part013
     - part014
+    - part015
+    - part016
