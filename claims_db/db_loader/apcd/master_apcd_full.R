@@ -38,9 +38,9 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 #### SET UP VALUES FOR ETL LOG ####
 etl_date_min <- "2014-01-01"
-etl_date_max <- "2021-06-30" #UPDATE EACH QUARTER
-etl_delivery_date <- "2022-01-28" #UPDATE EACH QUARTER
-etl_note <- "Full refresh of APCD data using extract 10001" #UPDATE EACH QUARTER
+etl_date_max <- "2022-06-30" #UPDATE EACH QUARTER
+etl_delivery_date <- "2022-11-09" #UPDATE EACH QUARTER , date downloaded it to our KCIT server.
+etl_note <- "Full refresh of APCD data using extract 10009" #UPDATE EACH QUARTER
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### STEP 1: Load and QA new raw data to load_raw schema, and reference tables to ref schema ####
