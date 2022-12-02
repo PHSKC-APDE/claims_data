@@ -82,13 +82,6 @@ load_load_raw.apcd_icdcm_full_f <- function(etl_date_min = NULL,
   }
   
   
-  #### DROP ROW_NUMBER COLUMN FROM FINAL TABLE ####
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
-    "ALTER TABLE load_raw.{`table_name_part`}
-    DROP COLUMN row_number",
-    .con = db_claims))
-  
-  
   #### DROP TABLE CHUNKS ####
   if (length(table_config$years) > 1) {
     lapply(table_config$years, function(x) {
