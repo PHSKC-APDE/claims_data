@@ -292,13 +292,7 @@ system.time(load_load_raw.apcd_pharmacy_claim_full_f(etl_date_min = etl_date_min
 #### LOAD_RAW PROVIDER ####
 ### Create tables
 
-# Create table shells for table chunks
-create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.yaml",
-               server = "KCITSQLUTPDBH51",
-               overall = F,
-               ind_yr = T,
-               overwrite = T)
+
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 
