@@ -26,6 +26,6 @@ vars:
     geo_ach_code: varchar(255)
     geo_ach: varchar(255)
     geo_wa: tinyint
-    geo_kc: tinytint
+    geo_kc: tinyint
     cov_time_day: bigint
     last_run: datetime
