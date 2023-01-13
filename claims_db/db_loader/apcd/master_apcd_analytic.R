@@ -23,8 +23,8 @@ db_claims <- dbConnect(odbc(), "PHClaims51")
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_file.R")
-#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_sql.R") #wait until Alastair fixes this function
+#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_file.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_sql.R") #wait until Alastair fixes this function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/add_index.R")
 
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
@@ -82,7 +82,7 @@ create_table(conn = db_claims,
                overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
 
 ### C) Load tables [CHANGE EXTRACT END DATE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!]
-system.time(load_stage.apcd_elig_timevar_f(extract_end_date = "2021-06-30"))
+system.time(load_stage.apcd_elig_timevar_f(extract_end_date = "2022-06-30"))
 
 ### D) Table-level QA
 system.time(apcd_timevar_qa1 <- qa_stage.apcd_elig_timevar_f())
