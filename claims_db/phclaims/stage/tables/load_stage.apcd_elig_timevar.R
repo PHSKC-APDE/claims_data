@@ -85,7 +85,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
       a.zip_code, 
     	--create empirical dual flag based on presence of medicaid and medicare ID
     	case when (a.med_medicaid_eligibility_id is not null or a.rx_medicaid_eligibility_id is not null or a.dental_medicaid_eligibility_id is not null or b.bsp_group_cid is not null)
-    		and (a.med_medicare_eligibility_id is not null or a.rx_medicare_eligibility_id is not null or a.dental_medicare_eligibility_id is not null))
+    		and (a.med_medicare_eligibility_id is not null or a.rx_medicare_eligibility_id is not null or a.dental_medicare_eligibility_id is not null)
     		then 1 else 0
     	end as dual_flag,
       b.bsp_group_cid, b.full_benefit,
