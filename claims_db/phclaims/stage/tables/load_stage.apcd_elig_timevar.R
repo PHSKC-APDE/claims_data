@@ -95,39 +95,39 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
         when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is null and (a.med_medicare_eligibility_id is null) then 1 --Medicaid only
         when (a.med_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.med_commercial_eligibility_id is null and (a.med_medicare_eligibility_id is not null) then 2 --Medicare only
         when (a.med_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.med_commercial_eligibility_id is not null and a.med_medicare_eligibility_id is null then 3 --Commercial only
-	      when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is null and (a.med_medicare_eligibility_id is not null) then 4 -- Medicaid-Medicare dual
+        when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is null and (a.med_medicare_eligibility_id is not null) then 4 -- Medicaid-Medicare dual
         when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is not null and (a.med_medicare_eligibility_id is null) then 5 --Medicaid-commercial dual
         when (a.med_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.med_commercial_eligibility_id is not null and (a.med_medicare_eligibility_id is not null) then 6 --Medicare-commercial dual
         when (a.med_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.med_commercial_eligibility_id is not null and (a.med_medicare_eligibility_id is not null) then 7 -- All three
         when a.medical_eligibility_id is not null then 8 -- Unknown market
         else 0 --no medical coverage
-       end as med_covgrp,
-       
+      end as med_covgrp,
+      
       --create coverage categorical variable for pharmacy coverage
       case
         when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is null and (a.rx_medicare_eligibility_id is null) then 1 --Medicaid only
         when (a.rx_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.rx_commercial_eligibility_id is null and (a.rx_medicare_eligibility_id is not null) then 2 --Medicare only
         when (a.rx_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.rx_commercial_eligibility_id is not null and a.rx_medicare_eligibility_id is null then 3 --Commercial only
-	      when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is null and (a.rx_medicare_eligibility_id is not null) then 4 -- Medicaid-Medicare dual
+        when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is null and (a.rx_medicare_eligibility_id is not null) then 4 -- Medicaid-Medicare dual
         when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is not null and (a.rx_medicare_eligibility_id is null) then 5 --Medicaid-commercial dual
         when (a.rx_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.rx_commercial_eligibility_id is not null and (a.rx_medicare_eligibility_id is not null) then 6 --Medicare-commercial dual
         when (a.rx_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.rx_commercial_eligibility_id is not null and (a.rx_medicare_eligibility_id is not null) then 7 -- All three
         when a.pharmacy_eligibility_id is not null then 8 -- Unknown market
         else 0 --no pharm coverage
-       end as pharm_covgrp,
-       
+      end as pharm_covgrp,
+      
       --create coverage categorical variable for dental coverage
       case
         when (a.dental_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.dental_commercial_eligibility_id is null and (a.dental_medicare_eligibility_id is null) then 1 --Medicaid only
         when (a.dental_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.dental_commercial_eligibility_id is null and (a.dental_medicare_eligibility_id is not null) then 2 --Medicare only
         when (a.dental_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.dental_commercial_eligibility_id is not null and a.dental_medicare_eligibility_id is null then 3 --Commercial only
-	      when (a.dental_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.dental_commercial_eligibility_id is null and (a.dental_medicare_eligibility_id is not null) then 4 -- Medicaid-Medicare dual
+        when (a.dental_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.dental_commercial_eligibility_id is null and (a.dental_medicare_eligibility_id is not null) then 4 -- Medicaid-Medicare dual
         when (a.dental_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.dental_commercial_eligibility_id is not null and (a.dental_medicare_eligibility_id is null) then 5 --Medicaid-commercial dual
         when (a.dental_medicaid_eligibility_id is null and b.bsp_group_cid is null) and a.dental_commercial_eligibility_id is not null and (a.dental_medicare_eligibility_id is not null) then 6 --Medicare-commercial dual
         when (a.dental_medicaid_eligibility_id is not null or b.bsp_group_cid is not null) and a.dental_commercial_eligibility_id is not null and (a.dental_medicare_eligibility_id is not null) then 7 -- All three
         when a.dental_eligibility_id is not null then 8 -- Unknown market
         else 0 --no dental coverage
-       end as dental_covgrp
+      end as dental_covgrp
       
     into #temp3
     from (
@@ -184,15 +184,15 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     case when a.med_covgrp in (1,4,5,7) then 1 else 0 end as med_medicaid,
     case when a.med_covgrp in (2,4,6,7) then 1 else 0 end as med_medicare,
     case when a.med_covgrp in (3,5,6,7) then 1 else 0 end as med_commercial,
-	  case when a.med_covgrp = 8 then 1 else 0 end as med_unknown,
+    case when a.med_covgrp = 8 then 1 else 0 end as med_unknown,
     case when a.pharm_covgrp in (1,4,5,7) then 1 else 0 end as pharm_medicaid,
     case when a.pharm_covgrp in (2,4,6,7) then 1 else 0 end as pharm_medicare,
     case when a.pharm_covgrp in (3,5,6,7) then 1 else 0 end as pharm_commercial,
-	  case when a.pharm_covgrp = 8 then 1 else 0 end as pharm_unknown,
+    case when a.pharm_covgrp = 8 then 1 else 0 end as pharm_unknown,
     case when a.dental_covgrp in (1,4,5,7) then 1 else 0 end as dental_medicaid,
     case when a.dental_covgrp in (2,4,6,7) then 1 else 0 end as dental_medicare,
     case when a.dental_covgrp in (3,5,6,7) then 1 else 0 end as dental_commercial,
-	  case when a.dental_covgrp = 8 then 1 else 0 end as dental_unknown,
+    case when a.dental_covgrp = 8 then 1 else 0 end as dental_unknown,
     a.dual_flag as dual,
     a.bsp_group_cid,
     a.full_benefit,
@@ -211,7 +211,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     left join (select distinct zip_code, zip_group_code, zip_group_desc from phclaims.ref.apcd_zip_group where left(zip_group_type_desc, 3) = 'Acc') as c
     on a.zip_code = c.zip_code
     left join PHClaims.ref.geo_county_code_wa as d
-    on on b.zip_group_desc = d.geo_county_name;
+    on b.zip_group_desc = d.geo_county_name;
     
     if object_id('tempdb..#temp5') is not null drop table #temp5;",
     .con = db_claims))
