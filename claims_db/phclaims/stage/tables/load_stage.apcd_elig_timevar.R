@@ -264,12 +264,12 @@ qa_stage.apcd_elig_timevar_f <- function() {
     "select 'stage.apcd_elig_timevar' as 'table', 'mcaid-mcare duals with dual flag = 0, expect 0' as qa_type, count(*) as qa
     from stage.apcd_elig_timevar
     where (med_covgrp = 4 or pharm_covgrp = 4) and dual = 0;",
-    .con = db_claims)),
+    .con = db_claims))
   res10 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_elig_timevar' as 'table', 'non-WA resident segments with non-null county name, expect 0' as qa_type, count(*) as qa
     from stage.apcd_elig_timevar
     where geo_wa = 0 and geo_county is not null;",
-    .con = db_claims)),
+    .con = db_claims))
   res11 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_elig_timevar' as 'table', 'WA resident segments with null county name, expect 0' as qa_type, count(*) as qa
     from stage.apcd_elig_timevar
