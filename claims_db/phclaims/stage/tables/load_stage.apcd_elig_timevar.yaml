@@ -11,12 +11,15 @@ vars:
     med_medicaid: tinyint
     med_medicare: tinyint
     med_commercial: tinyint
+    med_unknown: tinyint
     pharm_medicaid: tinyint
     pharm_medicare: tinyint
     pharm_commercial: tinyint
+    pharm_unknown: tinyint
     dental_medicaid: tinyint
     dental_medicare: tinyint
     dental_commercial: tinyint
+    dental_unknown: tinyint
     dual: tinyint
     bsp_group_cid: varchar(255)
     full_benefit: tinyint
