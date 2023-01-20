@@ -10,5 +10,5 @@ filelist <- list.files("//phcifs.ph.lcl/SFTP_DATA/APDEDataExchange/UW_Dugan_Team
                        recursive = T,
                        full.names = T)
 for(file in filelist) {
-  gzip(file, remove = F, overwrite = T)
+  gzip(file, remove = T, overwrite = T)
 }
