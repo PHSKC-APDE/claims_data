@@ -11,8 +11,8 @@
   DTS:LocaleID="1033"
   DTS:ObjectName="Package"
   DTS:PackageType="5"
-  DTS:VersionBuild="29"
-  DTS:VersionGUID="{2AD36F32-6417-4BC6-AEC2-9EA8834B36DB}">
+  DTS:VersionBuild="30"
+  DTS:VersionGUID="{E447CC9B-5795-4AB9-903A-C364EA570504}">
   <DTS:Property
     DTS:Name="PackageFormatVersion">8</DTS:Property>
   <DTS:ConnectionManagers>
@@ -2473,32 +2473,6 @@
   </DTS:ConnectionManagers>
   <DTS:Variables />
   <DTS:Executables>
-    <DTS:Executable
-      DTS:refId="Package\compress_csv_files"
-      DTS:CreationName="Microsoft.ExecuteProcess"
-      DTS:Description="Execute Process Task"
-      DTS:DTSID="{012CB14D-39D3-4869-B482-2B7F01BF474B}"
-      DTS:ExecutableType="Microsoft.ExecuteProcess"
-      DTS:LocaleID="-1"
-      DTS:ObjectName="compress_csv_files"
-      DTS:TaskContact="Execute Process Task;Microsoft Corporation; SQL Server 2022; © 2022 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
-      DTS:ThreadHint="0">
-      <DTS:Variables />
-      <DTS:ObjectData />
-    </DTS:Executable>
-    <DTS:Executable
-      DTS:refId="Package\copy_compressed_files_to_cifs"
-      DTS:CreationName="Microsoft.ExecuteProcess"
-      DTS:Description="Execute Process Task"
-      DTS:DTSID="{fc5ac92e-f279-452c-9428-157f52e3e181}"
-      DTS:ExecutableType="Microsoft.ExecuteProcess"
-      DTS:LocaleID="-1"
-      DTS:ObjectName="copy_compressed_files_to_cifs"
-      DTS:TaskContact="Execute Process Task;Microsoft Corporation; SQL Server 2022; © 2022 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
-      DTS:ThreadHint="0">
-      <DTS:Variables />
-      <DTS:ObjectData />
-    </DTS:Executable>
     <DTS:Executable
       DTS:refId="Package\export_tables_sequentially"
       DTS:CreationName="STOCK:SEQUENCE"
@@ -12502,24 +12476,6 @@
       </DTS:PrecedenceConstraints>
     </DTS:Executable>
   </DTS:Executables>
-  <DTS:PrecedenceConstraints>
-    <DTS:PrecedenceConstraint
-      DTS:refId="Package.PrecedenceConstraints[Constraint]"
-      DTS:CreationName=""
-      DTS:DTSID="{9BC7D1DF-931D-434F-845C-7EBDF93E5CEC}"
-      DTS:From="Package\export_tables_sequentially"
-      DTS:LogicalAnd="True"
-      DTS:ObjectName="Constraint"
-      DTS:To="Package\compress_csv_files" />
-    <DTS:PrecedenceConstraint
-      DTS:refId="Package.PrecedenceConstraints[Constraint 1]"
-      DTS:CreationName=""
-      DTS:DTSID="{26337B06-3DA4-44B0-B933-0174E22541A0}"
-      DTS:From="Package\compress_csv_files"
-      DTS:LogicalAnd="True"
-      DTS:ObjectName="Constraint 1"
-      DTS:To="Package\copy_compressed_files_to_cifs" />
-  </DTS:PrecedenceConstraints>
   <DTS:DesignTimeProperties><![CDATA[<?xml version="1.0"?>
 <!--This CDATA section contains the layout information of the package. The section includes information such as (x,y) coordinates, width, and height.-->
 <!--If you manually edit this section and make a mistake, you can delete it. -->
@@ -12531,23 +12487,67 @@
     design-time-name="Package">
     <LayoutInfo>
       <GraphLayout
-        Capacity="64" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
-        <NodeLayout
-          Size="175,42"
-          Id="Package\compress_csv_files"
-          TopLeft="42,455" />
-        <NodeLayout
-          Size="232,42"
-          Id="Package\copy_compressed_files_to_cifs"
-          TopLeft="280,456" />
+        Capacity="32" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
         <NodeLayout
           Size="244,42"
           Id="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh"
           TopLeft="8,5.5" />
         <NodeLayout
+          Size="197,42"
+          Id="Package\export_tables_sequentially\10_export_csv_ref_date"
+          TopLeft="10,220" />
+        <NodeLayout
+          Size="226,42"
+          Id="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup"
+          TopLeft="243,221" />
+        <NodeLayout
+          Size="231,42"
+          Id="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip"
+          TopLeft="498,219" />
+        <NodeLayout
+          Size="245,42"
+          Id="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type"
+          TopLeft="9,290" />
+        <NodeLayout
+          Size="256,42"
+          Id="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code"
+          TopLeft="278,292" />
+        <NodeLayout
+          Size="196,42"
+          Id="Package\export_tables_sequentially\15_export_csv_ref_mco"
+          TopLeft="562,290" />
+        <NodeLayout
           Size="237,42"
           Id="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw"
           TopLeft="281,4.5" />
+        <NodeLayout
+          Size="252,42"
+          Id="Package\export_tables_sequentially\3_export_csv_mcaid_claim_header"
+          TopLeft="543,3" />
+        <NodeLayout
+          Size="294,42"
+          Id="Package\export_tables_sequentially\4_export_csv_mcaid_claim_icdcm_header"
+          TopLeft="9,76" />
+        <NodeLayout
+          Size="235,42"
+          Id="Package\export_tables_sequentially\5_export_csv_mcaid_claim_line"
+          TopLeft="334,78" />
+        <NodeLayout
+          Size="248,42"
+          Id="Package\export_tables_sequentially\6_export_csv_mcaid_claim_pharm"
+          TopLeft="600,79" />
+        <NodeLayout
+          Size="267,42"
+          Id="Package\export_tables_sequentially\7_export_csv_mcaid_claim_procedure"
+          TopLeft="9,148" />
+        <NodeLayout
+          Size="237,42"
+          Id="Package\export_tables_sequentially\8_export_csv_mcaid_elig_demo"
+          TopLeft="308,150" />
+        <NodeLayout
+          Size="245,42"
+          Id="Package\export_tables_sequentially\9_export_csv_mcaid_elig_timevar"
+          TopLeft="572,150" />
         <EdgeLayout
           Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint]"
           TopLeft="252,26">
@@ -12570,10 +12570,6 @@
             <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
-        <NodeLayout
-          Size="252,42"
-          Id="Package\export_tables_sequentially\3_export_csv_mcaid_claim_header"
-          TopLeft="543,3" />
         <EdgeLayout
           Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 1]"
           TopLeft="518,24.75">
@@ -12596,254 +12592,6 @@
             <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
-        <NodeLayout
-          Size="294,42"
-          Id="Package\export_tables_sequentially\4_export_csv_mcaid_claim_icdcm_header"
-          TopLeft="9,76" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 2]"
-          TopLeft="669,45">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="-513,31"
-              Start="0,0"
-              End="-513,23.5">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="0,11.5" />
-                  <mssgle:CubicBezierSegment
-                    Point1="0,11.5"
-                    Point2="0,15.5"
-                    Point3="-4,15.5" />
-                  <mssgle:LineSegment
-                    End="-509,15.5" />
-                  <mssgle:CubicBezierSegment
-                    Point1="-509,15.5"
-                    Point2="-513,15.5"
-                    Point3="-513,19.5" />
-                  <mssgle:LineSegment
-                    End="-513,23.5" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-        <NodeLayout
-          Size="235,42"
-          Id="Package\export_tables_sequentially\5_export_csv_mcaid_claim_line"
-          TopLeft="334,78" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 3]"
-          TopLeft="303,98">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="31,0"
-              Start="0,0"
-              End="23.5,0">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="23.5,0" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-        <NodeLayout
-          Size="248,42"
-          Id="Package\export_tables_sequentially\6_export_csv_mcaid_claim_pharm"
-          TopLeft="600,79" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 4]"
-          TopLeft="569,99.5">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="31,0"
-              Start="0,0"
-              End="23.5,0">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="23.5,0" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-        <NodeLayout
-          Size="267,42"
-          Id="Package\export_tables_sequentially\7_export_csv_mcaid_claim_procedure"
-          TopLeft="9,148" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 5]"
-          TopLeft="724,121">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="-581.5,27"
-              Start="0,0"
-              End="-581.5,19.5">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="0,9.5" />
-                  <mssgle:CubicBezierSegment
-                    Point1="0,9.5"
-                    Point2="0,13.5"
-                    Point3="-4,13.5" />
-                  <mssgle:LineSegment
-                    End="-577.5,13.5" />
-                  <mssgle:CubicBezierSegment
-                    Point1="-577.5,13.5"
-                    Point2="-581.5,13.5"
-                    Point3="-581.5,17.5" />
-                  <mssgle:LineSegment
-                    End="-581.5,19.5" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-        <NodeLayout
-          Size="237,42"
-          Id="Package\export_tables_sequentially\8_export_csv_mcaid_elig_demo"
-          TopLeft="308,150" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 6]"
-          TopLeft="276,170">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="32,0"
-              Start="0,0"
-              End="24.5,0">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="24.5,0" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-        <NodeLayout
-          Size="245,42"
-          Id="Package\export_tables_sequentially\9_export_csv_mcaid_elig_timevar"
-          TopLeft="572,150" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 7]"
-          TopLeft="545,171">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="27,0"
-              Start="0,0"
-              End="19.5,0">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="19.5,0" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-        <NodeLayout
-          Size="197,42"
-          Id="Package\export_tables_sequentially\10_export_csv_ref_date"
-          TopLeft="10,220" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 8]"
-          TopLeft="694.5,192">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="-586,28"
-              Start="0,0"
-              End="-586,20.5">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="0,10" />
-                  <mssgle:CubicBezierSegment
-                    Point1="0,10"
-                    Point2="0,14"
-                    Point3="-4,14" />
-                  <mssgle:LineSegment
-                    End="-582,14" />
-                  <mssgle:CubicBezierSegment
-                    Point1="-582,14"
-                    Point2="-586,14"
-                    Point3="-586,18" />
-                  <mssgle:LineSegment
-                    End="-586,20.5" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-        <NodeLayout
-          Size="226,42"
-          Id="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup"
-          TopLeft="243,221" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 9]"
-          TopLeft="207,241.5">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="36,0"
-              Start="0,0"
-              End="28.5,0">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="28.5,0" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-        <NodeLayout
-          Size="231,42"
-          Id="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip"
-          TopLeft="498,219" />
         <EdgeLayout
           Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 10]"
           TopLeft="469,241">
@@ -12866,10 +12614,6 @@
             <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
-        <NodeLayout
-          Size="245,42"
-          Id="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type"
-          TopLeft="9,290" />
         <EdgeLayout
           Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 11]"
           TopLeft="613.5,261">
@@ -12904,10 +12648,6 @@
             <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
-        <NodeLayout
-          Size="256,42"
-          Id="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code"
-          TopLeft="278,292" />
         <EdgeLayout
           Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 12]"
           TopLeft="254,312">
@@ -12930,10 +12670,6 @@
             <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
-        <NodeLayout
-          Size="196,42"
-          Id="Package\export_tables_sequentially\15_export_csv_ref_mco"
-          TopLeft="562,290" />
         <EdgeLayout
           Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 13]"
           TopLeft="534,312">
@@ -12956,6 +12692,218 @@
             <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
+        <EdgeLayout
+          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 2]"
+          TopLeft="669,45">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-513,31"
+              Start="0,0"
+              End="-513,23.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,11.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,11.5"
+                    Point2="0,15.5"
+                    Point3="-4,15.5" />
+                  <mssgle:LineSegment
+                    End="-509,15.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-509,15.5"
+                    Point2="-513,15.5"
+                    Point3="-513,19.5" />
+                  <mssgle:LineSegment
+                    End="-513,23.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 3]"
+          TopLeft="303,98">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="31,0"
+              Start="0,0"
+              End="23.5,0">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="23.5,0" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 4]"
+          TopLeft="569,99.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="31,0"
+              Start="0,0"
+              End="23.5,0">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="23.5,0" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 5]"
+          TopLeft="724,121">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-581.5,27"
+              Start="0,0"
+              End="-581.5,19.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,9.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,9.5"
+                    Point2="0,13.5"
+                    Point3="-4,13.5" />
+                  <mssgle:LineSegment
+                    End="-577.5,13.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-577.5,13.5"
+                    Point2="-581.5,13.5"
+                    Point3="-581.5,17.5" />
+                  <mssgle:LineSegment
+                    End="-581.5,19.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 6]"
+          TopLeft="276,170">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="32,0"
+              Start="0,0"
+              End="24.5,0">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="24.5,0" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 7]"
+          TopLeft="545,171">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="27,0"
+              Start="0,0"
+              End="19.5,0">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="19.5,0" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 8]"
+          TopLeft="694.5,192">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-586,28"
+              Start="0,0"
+              End="-586,20.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,10" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,10"
+                    Point2="0,14"
+                    Point3="-4,14" />
+                  <mssgle:LineSegment
+                    End="-582,14" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-582,14"
+                    Point2="-586,14"
+                    Point3="-586,18" />
+                  <mssgle:LineSegment
+                    End="-586,20.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <EdgeLayout
+          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint 9]"
+          TopLeft="207,241.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="36,0"
+              Start="0,0"
+              End="28.5,0">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="28.5,0" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
         <ContainerLayout
           HeaderHeight="43"
           IsExpanded="True"
@@ -12963,62 +12911,6 @@
           Size="898,404"
           Id="Package\export_tables_sequentially"
           TopLeft="29,25" />
-        <EdgeLayout
-          Id="Package.PrecedenceConstraints[Constraint]"
-          TopLeft="478,429">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="-348.5,26"
-              Start="0,0"
-              End="-348.5,18.5">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="0,9" />
-                  <mssgle:CubicBezierSegment
-                    Point1="0,9"
-                    Point2="0,13"
-                    Point3="-4,13" />
-                  <mssgle:LineSegment
-                    End="-344.5,13" />
-                  <mssgle:CubicBezierSegment
-                    Point1="-344.5,13"
-                    Point2="-348.5,13"
-                    Point3="-348.5,17" />
-                  <mssgle:LineSegment
-                    End="-348.5,18.5" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-        <EdgeLayout
-          Id="Package.PrecedenceConstraints[Constraint 1]"
-          TopLeft="217,476.5">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="63,0"
-              Start="0,0"
-              End="55.5,0">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="55.5,0" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
       </GraphLayout>
     </LayoutInfo>
   </Package>
@@ -13074,6 +12966,330 @@
   </TaskHost>
   <PipelineComponentMetadata
     design-time-name="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\export_tables_sequentially\10_export_csv_ref_date">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="161,42"
+          Id="Package\export_tables_sequentially\10_export_csv_ref_date\tmp_ek_ref_date"
+          TopLeft="21,29" />
+        <NodeLayout
+          Size="119,42"
+          Id="Package\export_tables_sequentially\10_export_csv_ref_date\ref_date"
+          TopLeft="28,107" />
+        <EdgeLayout
+          Id="Package\export_tables_sequentially\10_export_csv_ref_date.Paths[ADO NET Source Output]"
+          TopLeft="101.5,71">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-14,36"
+              Start="0,0"
+              End="-14,28.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,14" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,14"
+                    Point2="0,18"
+                    Point3="-4,18" />
+                  <mssgle:LineSegment
+                    End="-10,18" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-10,18"
+                    Point2="-14,18"
+                    Point3="-14,22" />
+                  <mssgle:LineSegment
+                    End="-14,28.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\export_tables_sequentially\10_export_csv_ref_date\tmp_ek_ref_date">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="190,42"
+          Id="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup\tmp_ek_ref_dx_lookup"
+          TopLeft="21,29" />
+        <NodeLayout
+          Size="148,42"
+          Id="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup\ref_dx_lookup"
+          TopLeft="33,110" />
+        <EdgeLayout
+          Id="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup.Paths[ADO NET Source Output]"
+          TopLeft="116,71">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-9,39"
+              Start="0,0"
+              End="-9,31.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,15.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,15.5"
+                    Point2="0,19.5"
+                    Point3="-4,19.5" />
+                  <mssgle:LineSegment
+                    End="-5,19.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-5,19.5"
+                    Point2="-9,19.5"
+                    Point3="-9,23.5" />
+                  <mssgle:LineSegment
+                    End="-9,31.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup\tmp_ek_ref_dx_lookup">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="196,42"
+          Id="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip\tmp_ek_ref_geo_kc_zip"
+          TopLeft="21,29" />
+        <NodeLayout
+          Size="154,42"
+          Id="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip\ref_geo_kc_zip"
+          TopLeft="36,103" />
+        <EdgeLayout
+          Id="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip.Paths[ADO NET Source Output]"
+          TopLeft="116,71">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,32"
+              Start="0,0"
+              End="0,24.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,24.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip\tmp_ek_ref_geo_kc_zip">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="210,42"
+          Id="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type\tmp_ek_ref_kc_claim_type"
+          TopLeft="21,29" />
+        <NodeLayout
+          Size="168,42"
+          Id="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type\ref_kc_claim_type"
+          TopLeft="31,115" />
+        <EdgeLayout
+          Id="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type.Paths[ADO NET Source Output]"
+          TopLeft="126,71">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-11,44"
+              Start="0,0"
+              End="-11,36.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,18" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,18"
+                    Point2="0,22"
+                    Point3="-4,22" />
+                  <mssgle:LineSegment
+                    End="-7,22" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-7,22"
+                    Point2="-11,22"
+                    Point3="-11,26" />
+                  <mssgle:LineSegment
+                    End="-11,36.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type\tmp_ek_ref_kc_claim_type">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="221,42"
+          Id="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code\tmp_ek_ref_mcaid_rac_code"
+          TopLeft="21,29" />
+        <NodeLayout
+          Size="179,42"
+          Id="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code\ref_mcaid_rac_code"
+          TopLeft="43,104" />
+        <EdgeLayout
+          Id="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code.Paths[ADO NET Source Output]"
+          TopLeft="132,71">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="0,33"
+              Start="0,0"
+              End="0,25.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,25.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code\tmp_ek_ref_mcaid_rac_code">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\export_tables_sequentially\15_export_csv_ref_mco">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="161,42"
+          Id="Package\export_tables_sequentially\15_export_csv_ref_mco\tmp_ek_ref_mco"
+          TopLeft="21,29" />
+        <NodeLayout
+          Size="119,42"
+          Id="Package\export_tables_sequentially\15_export_csv_ref_mco\ref_mco"
+          TopLeft="23,110" />
+        <EdgeLayout
+          Id="Package\export_tables_sequentially\15_export_csv_ref_mco.Paths[ADO NET Source Output]"
+          TopLeft="101.5,71">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-19,39"
+              Start="0,0"
+              End="-19,31.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,15.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,15.5"
+                    Point2="0,19.5"
+                    Point3="-4,19.5" />
+                  <mssgle:LineSegment
+                    End="-15,19.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-15,19.5"
+                    Point2="-19,19.5"
+                    Point3="-19,23.5" />
+                  <mssgle:LineSegment
+                    End="-19,31.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\export_tables_sequentially\15_export_csv_ref_mco\tmp_ek_ref_mco">
     <Properties>
       <Property>
         <Name>DataSourceViewID</Name>
@@ -13466,330 +13682,6 @@
   </TaskHost>
   <PipelineComponentMetadata
     design-time-name="Package\export_tables_sequentially\9_export_csv_mcaid_elig_timevar\tmp_ek_mcaid_elig_timevar">
-    <Properties>
-      <Property>
-        <Name>DataSourceViewID</Name>
-      </Property>
-    </Properties>
-  </PipelineComponentMetadata>
-  <TaskHost
-    design-time-name="Package\export_tables_sequentially\10_export_csv_ref_date">
-    <LayoutInfo>
-      <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
-        <NodeLayout
-          Size="161,42"
-          Id="Package\export_tables_sequentially\10_export_csv_ref_date\tmp_ek_ref_date"
-          TopLeft="21,29" />
-        <NodeLayout
-          Size="119,42"
-          Id="Package\export_tables_sequentially\10_export_csv_ref_date\ref_date"
-          TopLeft="28,107" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially\10_export_csv_ref_date.Paths[ADO NET Source Output]"
-          TopLeft="101.5,71">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="-14,36"
-              Start="0,0"
-              End="-14,28.5">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="0,14" />
-                  <mssgle:CubicBezierSegment
-                    Point1="0,14"
-                    Point2="0,18"
-                    Point3="-4,18" />
-                  <mssgle:LineSegment
-                    End="-10,18" />
-                  <mssgle:CubicBezierSegment
-                    Point1="-10,18"
-                    Point2="-14,18"
-                    Point3="-14,22" />
-                  <mssgle:LineSegment
-                    End="-14,28.5" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-      </GraphLayout>
-    </LayoutInfo>
-  </TaskHost>
-  <PipelineComponentMetadata
-    design-time-name="Package\export_tables_sequentially\10_export_csv_ref_date\tmp_ek_ref_date">
-    <Properties>
-      <Property>
-        <Name>DataSourceViewID</Name>
-      </Property>
-    </Properties>
-  </PipelineComponentMetadata>
-  <TaskHost
-    design-time-name="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup">
-    <LayoutInfo>
-      <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
-        <NodeLayout
-          Size="190,42"
-          Id="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup\tmp_ek_ref_dx_lookup"
-          TopLeft="21,29" />
-        <NodeLayout
-          Size="148,42"
-          Id="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup\ref_dx_lookup"
-          TopLeft="33,110" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup.Paths[ADO NET Source Output]"
-          TopLeft="116,71">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="-9,39"
-              Start="0,0"
-              End="-9,31.5">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="0,15.5" />
-                  <mssgle:CubicBezierSegment
-                    Point1="0,15.5"
-                    Point2="0,19.5"
-                    Point3="-4,19.5" />
-                  <mssgle:LineSegment
-                    End="-5,19.5" />
-                  <mssgle:CubicBezierSegment
-                    Point1="-5,19.5"
-                    Point2="-9,19.5"
-                    Point3="-9,23.5" />
-                  <mssgle:LineSegment
-                    End="-9,31.5" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-      </GraphLayout>
-    </LayoutInfo>
-  </TaskHost>
-  <PipelineComponentMetadata
-    design-time-name="Package\export_tables_sequentially\11_export_csv_ref_dx_lookup\tmp_ek_ref_dx_lookup">
-    <Properties>
-      <Property>
-        <Name>DataSourceViewID</Name>
-      </Property>
-    </Properties>
-  </PipelineComponentMetadata>
-  <TaskHost
-    design-time-name="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip">
-    <LayoutInfo>
-      <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
-        <NodeLayout
-          Size="196,42"
-          Id="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip\tmp_ek_ref_geo_kc_zip"
-          TopLeft="21,29" />
-        <NodeLayout
-          Size="154,42"
-          Id="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip\ref_geo_kc_zip"
-          TopLeft="36,103" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip.Paths[ADO NET Source Output]"
-          TopLeft="116,71">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="0,32"
-              Start="0,0"
-              End="0,24.5">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="0,24.5" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-      </GraphLayout>
-    </LayoutInfo>
-  </TaskHost>
-  <PipelineComponentMetadata
-    design-time-name="Package\export_tables_sequentially\12_export_csv_ref_geo_kc_zip\tmp_ek_ref_geo_kc_zip">
-    <Properties>
-      <Property>
-        <Name>DataSourceViewID</Name>
-      </Property>
-    </Properties>
-  </PipelineComponentMetadata>
-  <TaskHost
-    design-time-name="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type">
-    <LayoutInfo>
-      <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
-        <NodeLayout
-          Size="210,42"
-          Id="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type\tmp_ek_ref_kc_claim_type"
-          TopLeft="21,29" />
-        <NodeLayout
-          Size="168,42"
-          Id="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type\ref_kc_claim_type"
-          TopLeft="31,115" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type.Paths[ADO NET Source Output]"
-          TopLeft="126,71">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="-11,44"
-              Start="0,0"
-              End="-11,36.5">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="0,18" />
-                  <mssgle:CubicBezierSegment
-                    Point1="0,18"
-                    Point2="0,22"
-                    Point3="-4,22" />
-                  <mssgle:LineSegment
-                    End="-7,22" />
-                  <mssgle:CubicBezierSegment
-                    Point1="-7,22"
-                    Point2="-11,22"
-                    Point3="-11,26" />
-                  <mssgle:LineSegment
-                    End="-11,36.5" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-      </GraphLayout>
-    </LayoutInfo>
-  </TaskHost>
-  <PipelineComponentMetadata
-    design-time-name="Package\export_tables_sequentially\13_export_csv_ref_kc_claim_type\tmp_ek_ref_kc_claim_type">
-    <Properties>
-      <Property>
-        <Name>DataSourceViewID</Name>
-      </Property>
-    </Properties>
-  </PipelineComponentMetadata>
-  <TaskHost
-    design-time-name="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code">
-    <LayoutInfo>
-      <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
-        <NodeLayout
-          Size="221,42"
-          Id="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code\tmp_ek_ref_mcaid_rac_code"
-          TopLeft="21,29" />
-        <NodeLayout
-          Size="179,42"
-          Id="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code\ref_mcaid_rac_code"
-          TopLeft="43,104" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code.Paths[ADO NET Source Output]"
-          TopLeft="132,71">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="0,33"
-              Start="0,0"
-              End="0,25.5">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="0,25.5" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-      </GraphLayout>
-    </LayoutInfo>
-  </TaskHost>
-  <PipelineComponentMetadata
-    design-time-name="Package\export_tables_sequentially\14_export_csv_ref_mcaid_rac_code\tmp_ek_ref_mcaid_rac_code">
-    <Properties>
-      <Property>
-        <Name>DataSourceViewID</Name>
-      </Property>
-    </Properties>
-  </PipelineComponentMetadata>
-  <TaskHost
-    design-time-name="Package\export_tables_sequentially\15_export_csv_ref_mco">
-    <LayoutInfo>
-      <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
-        <NodeLayout
-          Size="161,42"
-          Id="Package\export_tables_sequentially\15_export_csv_ref_mco\tmp_ek_ref_mco"
-          TopLeft="21,29" />
-        <NodeLayout
-          Size="119,42"
-          Id="Package\export_tables_sequentially\15_export_csv_ref_mco\ref_mco"
-          TopLeft="23,110" />
-        <EdgeLayout
-          Id="Package\export_tables_sequentially\15_export_csv_ref_mco.Paths[ADO NET Source Output]"
-          TopLeft="101.5,71">
-          <EdgeLayout.Curve>
-            <mssgle:Curve
-              StartConnector="{assembly:Null}"
-              EndConnector="-19,39"
-              Start="0,0"
-              End="-19,31.5">
-              <mssgle:Curve.Segments>
-                <mssgle:SegmentCollection
-                  Capacity="5">
-                  <mssgle:LineSegment
-                    End="0,15.5" />
-                  <mssgle:CubicBezierSegment
-                    Point1="0,15.5"
-                    Point2="0,19.5"
-                    Point3="-4,19.5" />
-                  <mssgle:LineSegment
-                    End="-15,19.5" />
-                  <mssgle:CubicBezierSegment
-                    Point1="-15,19.5"
-                    Point2="-19,19.5"
-                    Point3="-19,23.5" />
-                  <mssgle:LineSegment
-                    End="-19,31.5" />
-                </mssgle:SegmentCollection>
-              </mssgle:Curve.Segments>
-            </mssgle:Curve>
-          </EdgeLayout.Curve>
-          <EdgeLayout.Labels>
-            <EdgeLabelCollection />
-          </EdgeLayout.Labels>
-        </EdgeLayout>
-      </GraphLayout>
-    </LayoutInfo>
-  </TaskHost>
-  <PipelineComponentMetadata
-    design-time-name="Package\export_tables_sequentially\15_export_csv_ref_mco\tmp_ek_ref_mco">
     <Properties>
       <Property>
         <Name>DataSourceViewID</Name>
