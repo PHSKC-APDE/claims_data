@@ -1,0 +1,983 @@
+<?xml version="1.0"?>
+<DTS:Executable xmlns:DTS="www.microsoft.com/SqlServer/Dts"
+  DTS:refId="Package"
+  DTS:CreationDate="1/19/2023 12:27:44 PM"
+  DTS:CreationName="Microsoft.Package"
+  DTS:CreatorComputerName="DPHXPHA5XLKQV2"
+  DTS:CreatorName="PH\KERNELI"
+  DTS:DTSID="{A3B44964-C158-4809-B7F4-59933C440752}"
+  DTS:ExecutableType="Microsoft.Package"
+  DTS:LastModifiedProductVersion="16.0.5035.3"
+  DTS:LocaleID="1033"
+  DTS:ObjectName="Package"
+  DTS:PackageType="5"
+  DTS:VersionBuild="7"
+  DTS:VersionGUID="{57200225-A7BA-4366-BB10-867DA82CA090}">
+  <DTS:Property
+    DTS:Name="PackageFormatVersion">8</DTS:Property>
+  <DTS:ConnectionManagers>
+    <DTS:ConnectionManager
+      DTS:refId="Package.ConnectionManagers[mcaid_claim_bh]"
+      DTS:CreationName="FLATFILE"
+      DTS:DTSID="{E4932774-AA7C-47C0-BE7E-0773A717FB62}"
+      DTS:ObjectName="mcaid_claim_bh">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:Format="Delimited"
+          DTS:LocaleID="1033"
+          DTS:HeaderRowDelimiter="_x000D__x000A_"
+          DTS:ColumnNamesInFirstDataRow="True"
+          DTS:RowDelimiter=""
+          DTS:TextQualifier="_x003C_none_x003E_"
+          DTS:CodePage="1252"
+          DTS:ConnectionString="M:\DCHSPHClaimsData\mcaid_claim_bh.csv">
+          <DTS:FlatFileColumns>
+            <DTS:FlatFileColumn
+              DTS:ColumnType="Delimited"
+              DTS:ColumnDelimiter="_x002C_"
+              DTS:DataType="20"
+              DTS:TextQualified="True"
+              DTS:ObjectName="id_uw"
+              DTS:DTSID="{902660E8-DA49-4854-B104-861FFC1A7B1D}"
+              DTS:CreationName="" />
+            <DTS:FlatFileColumn
+              DTS:ColumnType="Delimited"
+              DTS:ColumnDelimiter="_x002C_"
+              DTS:DataType="133"
+              DTS:TextQualified="True"
+              DTS:ObjectName="from_date"
+              DTS:DTSID="{B94284FE-B23B-4C0B-9105-E2452A577340}"
+              DTS:CreationName="" />
+            <DTS:FlatFileColumn
+              DTS:ColumnType="Delimited"
+              DTS:ColumnDelimiter="_x002C_"
+              DTS:DataType="133"
+              DTS:TextQualified="True"
+              DTS:ObjectName="to_date"
+              DTS:DTSID="{E1521D8D-036D-4F53-BA85-7DE37F0F886C}"
+              DTS:CreationName="" />
+            <DTS:FlatFileColumn
+              DTS:ColumnType="Delimited"
+              DTS:ColumnDelimiter="_x002C_"
+              DTS:MaximumWidth="200"
+              DTS:DataType="130"
+              DTS:TextQualified="True"
+              DTS:ObjectName="bh_cond"
+              DTS:DTSID="{04ADCB24-1A4C-43E8-923D-9FBB3E41BF44}"
+              DTS:CreationName="" />
+            <DTS:FlatFileColumn
+              DTS:ColumnType="Delimited"
+              DTS:ColumnDelimiter="_x000D__x000A_"
+              DTS:DataType="133"
+              DTS:TextQualified="True"
+              DTS:ObjectName="last_run"
+              DTS:DTSID="{215CACD2-B0A0-4E2B-8170-D3D0342E1A37}"
+              DTS:CreationName="" />
+          </DTS:FlatFileColumns>
+        </DTS:ConnectionManager>
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+    <DTS:ConnectionManager
+      DTS:refId="Package.ConnectionManagers[mcaid_claim_ccw]"
+      DTS:CreationName="FLATFILE"
+      DTS:DTSID="{372E90E5-73A6-48C3-BB7D-80AA06E8BF51}"
+      DTS:ObjectName="mcaid_claim_ccw">
+      <DTS:ObjectData>
+        <DTS:ConnectionManager
+          DTS:Format="Delimited"
+          DTS:LocaleID="1033"
+          DTS:HeaderRowDelimiter="_x000D__x000A_"
+          DTS:ColumnNamesInFirstDataRow="True"
+          DTS:RowDelimiter=""
+          DTS:TextQualifier="_x003C_none_x003E_"
+          DTS:CodePage="1252"
+          DTS:ConnectionString="M:\DCHSPHClaimsData\mcaid_claim_ccw.csv">
+          <DTS:FlatFileColumns>
+            <DTS:FlatFileColumn
+              DTS:ColumnType="Delimited"
+              DTS:ColumnDelimiter="_x002C_"
+              DTS:DataType="20"
+              DTS:TextQualified="True"
+              DTS:ObjectName="id_uw"
+              DTS:DTSID="{7D27F161-9EBB-45EE-8EBB-A27A4C5D8268}"
+              DTS:CreationName="" />
+            <DTS:FlatFileColumn
+              DTS:ColumnType="Delimited"
+              DTS:ColumnDelimiter="_x002C_"
+              DTS:DataType="133"
+              DTS:TextQualified="True"
+              DTS:ObjectName="from_date"
+              DTS:DTSID="{D039A719-08B9-450A-8CDC-C1F55B0FFBFE}"
+              DTS:CreationName="" />
+            <DTS:FlatFileColumn
+              DTS:ColumnType="Delimited"
+              DTS:ColumnDelimiter="_x002C_"
+              DTS:DataType="133"
+              DTS:TextQualified="True"
+              DTS:ObjectName="to_date"
+              DTS:DTSID="{CF535DBF-DA4E-4B6E-AB83-D1F0060253DC}"
+              DTS:CreationName="" />
+            <DTS:FlatFileColumn
+              DTS:ColumnType="Delimited"
+              DTS:ColumnDelimiter="_x002C_"
+              DTS:DataType="17"
+              DTS:TextQualified="True"
+              DTS:ObjectName="ccw_code"
+              DTS:DTSID="{F6B34292-C8B3-44DB-8FEF-8288FD3AE121}"
+              DTS:CreationName="" />
+            <DTS:FlatFileColumn
+              DTS:ColumnType="Delimited"
+              DTS:ColumnDelimiter="_x002C_"
+              DTS:MaximumWidth="200"
+              DTS:DataType="130"
+              DTS:TextQualified="True"
+              DTS:ObjectName="ccw_desc"
+              DTS:DTSID="{20719CC1-275E-49B5-A8B2-161FBE268340}"
+              DTS:CreationName="" />
+            <DTS:FlatFileColumn
+              DTS:ColumnType="Delimited"
+              DTS:ColumnDelimiter="_x000D__x000A_"
+              DTS:DataType="133"
+              DTS:TextQualified="True"
+              DTS:ObjectName="last_run"
+              DTS:DTSID="{BA273D8C-60CE-46F5-83E7-669D622B7ACC}"
+              DTS:CreationName="" />
+          </DTS:FlatFileColumns>
+        </DTS:ConnectionManager>
+      </DTS:ObjectData>
+    </DTS:ConnectionManager>
+  </DTS:ConnectionManagers>
+  <DTS:Variables />
+  <DTS:Executables>
+    <DTS:Executable
+      DTS:refId="Package\compress_csv_files_run_batch_file"
+      DTS:CreationName="Microsoft.ExecuteProcess"
+      DTS:Description="Execute Process Task"
+      DTS:DTSID="{012CB14D-39D3-4869-B482-2B7F01BF474B}"
+      DTS:ExecutableType="Microsoft.ExecuteProcess"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="compress_csv_files_run_batch_file"
+      DTS:TaskContact="Execute Process Task;Microsoft Corporation; SQL Server 2022; © 2022 Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1"
+      DTS:ThreadHint="0">
+      <DTS:Variables />
+      <DTS:ObjectData />
+    </DTS:Executable>
+    <DTS:Executable
+      DTS:refId="Package\export_tables_sequentially"
+      DTS:CreationName="STOCK:SEQUENCE"
+      DTS:Description="Sequence Container"
+      DTS:DTSID="{4DED0A6F-A391-42BE-8426-05D6146F40A5}"
+      DTS:ExecutableType="STOCK:SEQUENCE"
+      DTS:LocaleID="-1"
+      DTS:ObjectName="export_tables_sequentially">
+      <DTS:Variables />
+      <DTS:Executables>
+        <DTS:Executable
+          DTS:refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh"
+          DTS:CreationName="Microsoft.Pipeline"
+          DTS:Description="Data Flow Task"
+          DTS:DTSID="{21304E2E-21E7-4EEE-8E95-5D1F1AAD6282}"
+          DTS:ExecutableType="Microsoft.Pipeline"
+          DTS:LocaleID="-1"
+          DTS:ObjectName="1_export_csv_mcaid_claim_bh"
+          DTS:TaskContact="Performs high-performance data extraction, transformation and loading;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+          <DTS:Variables />
+          <DTS:ObjectData>
+            <pipeline
+              version="1">
+              <components>
+                <component
+                  refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh"
+                  componentClassID="Microsoft.FlatFileDestination"
+                  contactInfo="Flat File Destination;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;1"
+                  description="Flat File Destination"
+                  localeId="1033"
+                  name="mcaid_claim_bh"
+                  version="1">
+                  <properties>
+                    <property
+                      dataType="System.Boolean"
+                      description="Specifies whether the data will overwrite or append to the destination file."
+                      name="Overwrite">true</property>
+                    <property
+                      dataType="System.Null"
+                      description="Specifies the text to write to the destination file before any data is written."
+                      expressionType="Notify"
+                      name="Header" />
+                    <property
+                      dataType="System.Boolean"
+                      description="When text qualifier is enabled, specifies whether the text qualifier in the data written to the destination file will be escaped or not."
+                      name="EscapeQualifier">false</property>
+                  </properties>
+                  <connections>
+                    <connection
+                      refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Connections[FlatFileConnection]"
+                      connectionManagerID="Package.ConnectionManagers[mcaid_claim_bh]"
+                      connectionManagerRefId="Package.ConnectionManagers[mcaid_claim_bh]"
+                      name="FlatFileConnection" />
+                  </connections>
+                  <inputs>
+                    <input
+                      refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input]"
+                      hasSideEffects="true"
+                      name="Flat File Destination Input">
+                      <inputColumns>
+                        <inputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].Columns[id_uw]"
+                          cachedDataType="i8"
+                          cachedName="id_uw"
+                          externalMetadataColumnId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].ExternalColumns[id_uw]"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[id_uw]" />
+                        <inputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].Columns[from_date]"
+                          cachedDataType="dbDate"
+                          cachedName="from_date"
+                          externalMetadataColumnId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].ExternalColumns[from_date]"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[from_date]" />
+                        <inputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].Columns[to_date]"
+                          cachedDataType="dbDate"
+                          cachedName="to_date"
+                          externalMetadataColumnId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].ExternalColumns[to_date]"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[to_date]" />
+                        <inputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].Columns[bh_cond]"
+                          cachedDataType="wstr"
+                          cachedLength="200"
+                          cachedName="bh_cond"
+                          externalMetadataColumnId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].ExternalColumns[bh_cond]"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[bh_cond]" />
+                        <inputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].Columns[last_run]"
+                          cachedDataType="dbDate"
+                          cachedName="last_run"
+                          externalMetadataColumnId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].ExternalColumns[last_run]"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[last_run]" />
+                      </inputColumns>
+                      <externalMetadataColumns
+                        isUsed="True">
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].ExternalColumns[id_uw]"
+                          dataType="i8"
+                          name="id_uw" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].ExternalColumns[from_date]"
+                          dataType="dbDate"
+                          name="from_date" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].ExternalColumns[to_date]"
+                          dataType="dbDate"
+                          name="to_date" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].ExternalColumns[bh_cond]"
+                          dataType="wstr"
+                          length="200"
+                          name="bh_cond" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input].ExternalColumns[last_run]"
+                          dataType="dbDate"
+                          name="last_run" />
+                      </externalMetadataColumns>
+                    </input>
+                  </inputs>
+                </component>
+                <component
+                  refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh"
+                  componentClassID="Microsoft.ManagedComponentHost"
+                  contactInfo="Consumes data from SQL Server, OLE DB, ODBC, or Oracle, using the corresponding .NET Framework data provider. Use a Transact-SQL statement to define the result set. For example, extract data from SQL Server with the .NET Framework data provider for SQL Server.;Microsoft Corporation; Microsoft SQL Server; © Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;4"
+                  description="Consumes data from SQL Server, OLE DB, ODBC, or Oracle, using the corresponding .NET Framework data provider. Use a Transact-SQL statement to define the result set. For example, extract data from SQL Server with the .NET Framework data provider for SQL Server."
+                  name="tmp_ek_mcaid_claim_bh"
+                  usesDispositions="true"
+                  version="4">
+                  <properties>
+                    <property
+                      dataType="System.String"
+                      description="Specifies the SQL statement used by the component to extract data."
+                      expressionType="Notify"
+                      name="SqlCommand"
+                      UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                    <property
+                      dataType="System.Int32"
+                      description="The number of seconds before a command times out.  A value of 0 indicates an infinite time-out."
+                      name="CommandTimeout">30</property>
+                    <property
+                      dataType="System.Boolean"
+                      description="Indicates whether to allow non-string external columns to be implicitly converted to strings at the output columns."
+                      name="AllowImplicitStringConversion">true</property>
+                    <property
+                      dataType="System.String"
+                      description="The Source database table name."
+                      expressionType="Notify"
+                      name="TableOrViewName"
+                      UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">"claims"."tmp_ek_mcaid_claim_bh"</property>
+                    <property
+                      dataType="System.Int32"
+                      description="Specify the mode to retrieve external column information"
+                      name="AccessMode"
+                      typeConverter="Microsoft.SqlServer.Dts.Pipeline.DataReaderSourceAdapter+EnumToStringConverter">0</property>
+                    <property
+                      dataType="System.String"
+                      name="UserComponentTypeName">Microsoft.DataReaderSourceAdapter</property>
+                  </properties>
+                  <connections>
+                    <connection
+                      refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Connections[IDbConnection]"
+                      connectionManagerID="{8778794F-7480-4FE4-9C7C-58460D5E8367}:external"
+                      connectionManagerRefId="Project.ConnectionManagers[kcitazrhpasqlprp16.azds.kingcounty.gov.hhs_analytics_workspace.eli.kern@kingcounty.gov]"
+                      description="Managed connection manager"
+                      name="IDbConnection" />
+                  </connections>
+                  <outputs>
+                    <output
+                      refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output]"
+                      name="ADO NET Source Output">
+                      <outputColumns>
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[id_uw]"
+                          dataType="i8"
+                          errorOrTruncationOperation="Conversion"
+                          errorRowDisposition="FailComponent"
+                          externalMetadataColumnId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].ExternalColumns[id_uw]"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[id_uw]"
+                          name="id_uw"
+                          truncationRowDisposition="FailComponent" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[from_date]"
+                          dataType="dbDate"
+                          errorOrTruncationOperation="Conversion"
+                          errorRowDisposition="FailComponent"
+                          externalMetadataColumnId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].ExternalColumns[from_date]"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[from_date]"
+                          name="from_date"
+                          truncationRowDisposition="FailComponent" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[to_date]"
+                          dataType="dbDate"
+                          errorOrTruncationOperation="Conversion"
+                          errorRowDisposition="FailComponent"
+                          externalMetadataColumnId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].ExternalColumns[to_date]"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[to_date]"
+                          name="to_date"
+                          truncationRowDisposition="FailComponent" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[bh_cond]"
+                          dataType="wstr"
+                          errorOrTruncationOperation="Conversion"
+                          errorRowDisposition="FailComponent"
+                          externalMetadataColumnId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].ExternalColumns[bh_cond]"
+                          length="200"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[bh_cond]"
+                          name="bh_cond"
+                          truncationRowDisposition="FailComponent" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[last_run]"
+                          dataType="dbDate"
+                          errorOrTruncationOperation="Conversion"
+                          errorRowDisposition="FailComponent"
+                          externalMetadataColumnId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].ExternalColumns[last_run]"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].Columns[last_run]"
+                          name="last_run"
+                          truncationRowDisposition="FailComponent" />
+                      </outputColumns>
+                      <externalMetadataColumns
+                        isUsed="True">
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].ExternalColumns[id_uw]"
+                          dataType="i8"
+                          name="id_uw" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].ExternalColumns[from_date]"
+                          dataType="dbDate"
+                          name="from_date" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].ExternalColumns[to_date]"
+                          dataType="dbDate"
+                          name="to_date" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].ExternalColumns[bh_cond]"
+                          dataType="wstr"
+                          length="200"
+                          name="bh_cond" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output].ExternalColumns[last_run]"
+                          dataType="dbDate"
+                          name="last_run" />
+                      </externalMetadataColumns>
+                    </output>
+                    <output
+                      refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output]"
+                      isErrorOut="true"
+                      name="ADO NET Source Error Output">
+                      <outputColumns>
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[id_uw]"
+                          dataType="i8"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[id_uw]"
+                          name="id_uw" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[from_date]"
+                          dataType="dbDate"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[from_date]"
+                          name="from_date" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[to_date]"
+                          dataType="dbDate"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[to_date]"
+                          name="to_date" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[bh_cond]"
+                          dataType="wstr"
+                          length="200"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[bh_cond]"
+                          name="bh_cond" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[last_run]"
+                          dataType="dbDate"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[last_run]"
+                          name="last_run" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[ErrorCode]"
+                          dataType="i4"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[ErrorCode]"
+                          name="ErrorCode"
+                          specialFlags="1" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[ErrorColumn]"
+                          dataType="i4"
+                          lineageId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Error Output].Columns[ErrorColumn]"
+                          name="ErrorColumn"
+                          specialFlags="2" />
+                      </outputColumns>
+                      <externalMetadataColumns />
+                    </output>
+                  </outputs>
+                </component>
+              </components>
+              <paths>
+                <path
+                  refId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh.Paths[ADO NET Source Output]"
+                  endId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh.Inputs[Flat File Destination Input]"
+                  name="ADO NET Source Output"
+                  startId="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh.Outputs[ADO NET Source Output]" />
+              </paths>
+            </pipeline>
+          </DTS:ObjectData>
+        </DTS:Executable>
+        <DTS:Executable
+          DTS:refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw"
+          DTS:CreationName="Microsoft.Pipeline"
+          DTS:Description="Data Flow Task"
+          DTS:DTSID="{26a7f666-6bf2-4d63-b196-558c5f815576}"
+          DTS:ExecutableType="Microsoft.Pipeline"
+          DTS:LocaleID="-1"
+          DTS:ObjectName="2_export_csv_mcaid_claim_ccw"
+          DTS:TaskContact="Performs high-performance data extraction, transformation and loading;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved;http://www.microsoft.com/sql/support/default.asp;1">
+          <DTS:Variables />
+          <DTS:ObjectData>
+            <pipeline
+              version="1">
+              <components>
+                <component
+                  refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw"
+                  componentClassID="Microsoft.FlatFileDestination"
+                  contactInfo="Flat File Destination;Microsoft Corporation; Microsoft SQL Server; (C) Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;1"
+                  description="Flat File Destination"
+                  localeId="1033"
+                  name="mcaid_claim_ccw"
+                  version="1">
+                  <properties>
+                    <property
+                      dataType="System.Boolean"
+                      description="Specifies whether the data will overwrite or append to the destination file."
+                      name="Overwrite">true</property>
+                    <property
+                      dataType="System.Null"
+                      description="Specifies the text to write to the destination file before any data is written."
+                      expressionType="Notify"
+                      name="Header" />
+                    <property
+                      dataType="System.Boolean"
+                      description="When text qualifier is enabled, specifies whether the text qualifier in the data written to the destination file will be escaped or not."
+                      name="EscapeQualifier">false</property>
+                  </properties>
+                  <connections>
+                    <connection
+                      refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Connections[FlatFileConnection]"
+                      connectionManagerID="Package.ConnectionManagers[mcaid_claim_ccw]"
+                      connectionManagerRefId="Package.ConnectionManagers[mcaid_claim_ccw]"
+                      name="FlatFileConnection" />
+                  </connections>
+                  <inputs>
+                    <input
+                      refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input]"
+                      hasSideEffects="true"
+                      name="Flat File Destination Input">
+                      <inputColumns>
+                        <inputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].Columns[id_uw]"
+                          cachedDataType="i8"
+                          cachedName="id_uw"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[id_uw]"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[id_uw]" />
+                        <inputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].Columns[from_date]"
+                          cachedDataType="dbDate"
+                          cachedName="from_date"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[from_date]"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[from_date]" />
+                        <inputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].Columns[to_date]"
+                          cachedDataType="dbDate"
+                          cachedName="to_date"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[to_date]"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[to_date]" />
+                        <inputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].Columns[ccw_code]"
+                          cachedDataType="ui1"
+                          cachedName="ccw_code"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[ccw_code]"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[ccw_code]" />
+                        <inputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].Columns[ccw_desc]"
+                          cachedDataType="wstr"
+                          cachedLength="200"
+                          cachedName="ccw_desc"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[ccw_desc]"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[ccw_desc]" />
+                        <inputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].Columns[last_run]"
+                          cachedDataType="dbDate"
+                          cachedName="last_run"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[last_run]"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[last_run]" />
+                      </inputColumns>
+                      <externalMetadataColumns
+                        isUsed="True">
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[id_uw]"
+                          dataType="i8"
+                          name="id_uw" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[from_date]"
+                          dataType="dbDate"
+                          name="from_date" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[to_date]"
+                          dataType="dbDate"
+                          name="to_date" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[ccw_code]"
+                          dataType="ui1"
+                          name="ccw_code" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[ccw_desc]"
+                          dataType="wstr"
+                          length="200"
+                          name="ccw_desc" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input].ExternalColumns[last_run]"
+                          dataType="dbDate"
+                          name="last_run" />
+                      </externalMetadataColumns>
+                    </input>
+                  </inputs>
+                </component>
+                <component
+                  refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw"
+                  componentClassID="Microsoft.ManagedComponentHost"
+                  contactInfo="Consumes data from SQL Server, OLE DB, ODBC, or Oracle, using the corresponding .NET Framework data provider. Use a Transact-SQL statement to define the result set. For example, extract data from SQL Server with the .NET Framework data provider for SQL Server.;Microsoft Corporation; Microsoft SQL Server; © Microsoft Corporation; All Rights Reserved; http://www.microsoft.com/sql/support;4"
+                  description="Consumes data from SQL Server, OLE DB, ODBC, or Oracle, using the corresponding .NET Framework data provider. Use a Transact-SQL statement to define the result set. For example, extract data from SQL Server with the .NET Framework data provider for SQL Server."
+                  name="tmp_ek_mcaid_claim_ccw"
+                  usesDispositions="true"
+                  version="4">
+                  <properties>
+                    <property
+                      dataType="System.String"
+                      description="Specifies the SQL statement used by the component to extract data."
+                      expressionType="Notify"
+                      name="SqlCommand"
+                      UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor"></property>
+                    <property
+                      dataType="System.Int32"
+                      description="The number of seconds before a command times out.  A value of 0 indicates an infinite time-out."
+                      name="CommandTimeout">30</property>
+                    <property
+                      dataType="System.Boolean"
+                      description="Indicates whether to allow non-string external columns to be implicitly converted to strings at the output columns."
+                      name="AllowImplicitStringConversion">true</property>
+                    <property
+                      dataType="System.String"
+                      description="The Source database table name."
+                      expressionType="Notify"
+                      name="TableOrViewName"
+                      UITypeEditor="Microsoft.DataTransformationServices.Controls.ModalMultilineStringEditor">"claims"."tmp_ek_mcaid_claim_ccw"</property>
+                    <property
+                      dataType="System.Int32"
+                      description="Specify the mode to retrieve external column information"
+                      name="AccessMode"
+                      typeConverter="Microsoft.SqlServer.Dts.Pipeline.DataReaderSourceAdapter+EnumToStringConverter">0</property>
+                    <property
+                      dataType="System.String"
+                      name="UserComponentTypeName">Microsoft.DataReaderSourceAdapter</property>
+                  </properties>
+                  <connections>
+                    <connection
+                      refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Connections[IDbConnection]"
+                      connectionManagerID="{8778794F-7480-4FE4-9C7C-58460D5E8367}:external"
+                      connectionManagerRefId="Project.ConnectionManagers[kcitazrhpasqlprp16.azds.kingcounty.gov.hhs_analytics_workspace.eli.kern@kingcounty.gov]"
+                      description="Managed connection manager"
+                      name="IDbConnection" />
+                  </connections>
+                  <outputs>
+                    <output
+                      refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output]"
+                      name="ADO NET Source Output">
+                      <outputColumns>
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[id_uw]"
+                          dataType="i8"
+                          errorOrTruncationOperation="Conversion"
+                          errorRowDisposition="FailComponent"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[id_uw]"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[id_uw]"
+                          name="id_uw"
+                          truncationRowDisposition="FailComponent" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[from_date]"
+                          dataType="dbDate"
+                          errorOrTruncationOperation="Conversion"
+                          errorRowDisposition="FailComponent"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[from_date]"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[from_date]"
+                          name="from_date"
+                          truncationRowDisposition="FailComponent" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[to_date]"
+                          dataType="dbDate"
+                          errorOrTruncationOperation="Conversion"
+                          errorRowDisposition="FailComponent"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[to_date]"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[to_date]"
+                          name="to_date"
+                          truncationRowDisposition="FailComponent" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[ccw_code]"
+                          dataType="ui1"
+                          errorOrTruncationOperation="Conversion"
+                          errorRowDisposition="FailComponent"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[ccw_code]"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[ccw_code]"
+                          name="ccw_code"
+                          truncationRowDisposition="FailComponent" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[ccw_desc]"
+                          dataType="wstr"
+                          errorOrTruncationOperation="Conversion"
+                          errorRowDisposition="FailComponent"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[ccw_desc]"
+                          length="200"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[ccw_desc]"
+                          name="ccw_desc"
+                          truncationRowDisposition="FailComponent" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[last_run]"
+                          dataType="dbDate"
+                          errorOrTruncationOperation="Conversion"
+                          errorRowDisposition="FailComponent"
+                          externalMetadataColumnId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[last_run]"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].Columns[last_run]"
+                          name="last_run"
+                          truncationRowDisposition="FailComponent" />
+                      </outputColumns>
+                      <externalMetadataColumns
+                        isUsed="True">
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[id_uw]"
+                          dataType="i8"
+                          name="id_uw" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[from_date]"
+                          dataType="dbDate"
+                          name="from_date" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[to_date]"
+                          dataType="dbDate"
+                          name="to_date" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[ccw_code]"
+                          dataType="ui1"
+                          name="ccw_code" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[ccw_desc]"
+                          dataType="wstr"
+                          length="200"
+                          name="ccw_desc" />
+                        <externalMetadataColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output].ExternalColumns[last_run]"
+                          dataType="dbDate"
+                          name="last_run" />
+                      </externalMetadataColumns>
+                    </output>
+                    <output
+                      refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output]"
+                      isErrorOut="true"
+                      name="ADO NET Source Error Output">
+                      <outputColumns>
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[id_uw]"
+                          dataType="i8"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[id_uw]"
+                          name="id_uw" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[from_date]"
+                          dataType="dbDate"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[from_date]"
+                          name="from_date" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[to_date]"
+                          dataType="dbDate"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[to_date]"
+                          name="to_date" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[ccw_code]"
+                          dataType="ui1"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[ccw_code]"
+                          name="ccw_code" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[ccw_desc]"
+                          dataType="wstr"
+                          length="200"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[ccw_desc]"
+                          name="ccw_desc" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[last_run]"
+                          dataType="dbDate"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[last_run]"
+                          name="last_run" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[ErrorCode]"
+                          dataType="i4"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[ErrorCode]"
+                          name="ErrorCode"
+                          specialFlags="1" />
+                        <outputColumn
+                          refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[ErrorColumn]"
+                          dataType="i4"
+                          lineageId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Error Output].Columns[ErrorColumn]"
+                          name="ErrorColumn"
+                          specialFlags="2" />
+                      </outputColumns>
+                      <externalMetadataColumns />
+                    </output>
+                  </outputs>
+                </component>
+              </components>
+              <paths>
+                <path
+                  refId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw.Paths[ADO NET Source Output]"
+                  endId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw.Inputs[Flat File Destination Input]"
+                  name="ADO NET Source Output"
+                  startId="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw.Outputs[ADO NET Source Output]" />
+              </paths>
+            </pipeline>
+          </DTS:ObjectData>
+        </DTS:Executable>
+      </DTS:Executables>
+      <DTS:PrecedenceConstraints>
+        <DTS:PrecedenceConstraint
+          DTS:refId="Package\export_tables_sequentially.PrecedenceConstraints[Constraint]"
+          DTS:CreationName=""
+          DTS:DTSID="{A603F913-6683-4FA0-897C-4F5DBBA720B6}"
+          DTS:From="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh"
+          DTS:LogicalAnd="True"
+          DTS:ObjectName="Constraint"
+          DTS:To="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw" />
+      </DTS:PrecedenceConstraints>
+    </DTS:Executable>
+  </DTS:Executables>
+  <DTS:DesignTimeProperties><![CDATA[<?xml version="1.0"?>
+<!--This CDATA section contains the layout information of the package. The section includes information such as (x,y) coordinates, width, and height.-->
+<!--If you manually edit this section and make a mistake, you can delete it. -->
+<!--The package will still be able to load normally but the previous layout information will be lost and the designer will automatically re-arrange the elements on the design surface.-->
+<Objects
+  Version="8">
+  <!--Each node below will contain properties that do not affect runtime behavior.-->
+  <Package
+    design-time-name="Package">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="8" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="244,42"
+          Id="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh"
+          TopLeft="28,3.5" />
+        <NodeLayout
+          Size="237,42"
+          Id="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw"
+          TopLeft="33,59.5" />
+        <EdgeLayout
+          Id="Package\export_tables_sequentially.PrecedenceConstraints[Constraint]"
+          TopLeft="28,24.5">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="5,56"
+              Start="0,0"
+              End="-2.5,56">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="-18.5,0" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-18.5,0"
+                    Point2="-22.5,0"
+                    Point3="-22.5,4" />
+                  <mssgle:LineSegment
+                    End="-22.5,52" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-22.5,52"
+                    Point2="-22.5,56"
+                    Point3="-18.5,56" />
+                  <mssgle:LineSegment
+                    End="-2.5,56" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+        <ContainerLayout
+          HeaderHeight="43"
+          IsExpanded="True"
+          PanelSize="586,266"
+          Size="586,309"
+          Id="Package\export_tables_sequentially"
+          TopLeft="13,25" />
+        <NodeLayout
+          Size="250,42"
+          Id="Package\compress_csv_files_run_batch_file"
+          TopLeft="17,372" />
+      </GraphLayout>
+    </LayoutInfo>
+  </Package>
+  <TaskHost
+    design-time-name="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="201,42"
+          Id="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh"
+          TopLeft="21,29" />
+        <NodeLayout
+          Size="159,42"
+          Id="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\mcaid_claim_bh"
+          TopLeft="29,107" />
+        <EdgeLayout
+          Id="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh.Paths[ADO NET Source Output]"
+          TopLeft="121.5,71">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-13,36"
+              Start="0,0"
+              End="-13,28.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,14" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,14"
+                    Point2="0,18"
+                    Point3="-4,18" />
+                  <mssgle:LineSegment
+                    End="-9,18" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-9,18"
+                    Point2="-13,18"
+                    Point3="-13,22" />
+                  <mssgle:LineSegment
+                    End="-13,28.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\export_tables_sequentially\1_export_csv_mcaid_claim_bh\tmp_ek_mcaid_claim_bh">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+  <TaskHost
+    design-time-name="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw">
+    <LayoutInfo>
+      <GraphLayout
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        <NodeLayout
+          Size="207,42"
+          Id="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw"
+          TopLeft="21,29" />
+        <NodeLayout
+          Size="165,42"
+          Id="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\mcaid_claim_ccw"
+          TopLeft="27,113" />
+        <EdgeLayout
+          Id="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw.Paths[ADO NET Source Output]"
+          TopLeft="124.5,71">
+          <EdgeLayout.Curve>
+            <mssgle:Curve
+              StartConnector="{assembly:Null}"
+              EndConnector="-15,42"
+              Start="0,0"
+              End="-15,34.5">
+              <mssgle:Curve.Segments>
+                <mssgle:SegmentCollection
+                  Capacity="5">
+                  <mssgle:LineSegment
+                    End="0,17" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,17"
+                    Point2="0,21"
+                    Point3="-4,21" />
+                  <mssgle:LineSegment
+                    End="-11,21" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-11,21"
+                    Point2="-15,21"
+                    Point3="-15,25" />
+                  <mssgle:LineSegment
+                    End="-15,34.5" />
+                </mssgle:SegmentCollection>
+              </mssgle:Curve.Segments>
+            </mssgle:Curve>
+          </EdgeLayout.Curve>
+          <EdgeLayout.Labels>
+            <EdgeLabelCollection />
+          </EdgeLayout.Labels>
+        </EdgeLayout>
+      </GraphLayout>
+    </LayoutInfo>
+  </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\export_tables_sequentially\2_export_csv_mcaid_claim_ccw\tmp_ek_mcaid_claim_ccw">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
+</Objects>]]></DTS:DesignTimeProperties>
+</DTS:Executable>
