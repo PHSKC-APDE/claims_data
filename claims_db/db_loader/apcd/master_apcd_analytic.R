@@ -156,8 +156,11 @@ system.time(load_stage.apcd_elig_plr_f(from_date = "2017-01-01", to_date = "2017
 system.time(load_stage.apcd_elig_plr_f(from_date = "2018-01-01", to_date = "2018-12-31")) #2018
 system.time(load_stage.apcd_elig_plr_f(from_date = "2019-01-01", to_date = "2019-12-31")) #2019
 system.time(load_stage.apcd_elig_plr_f(from_date = "2020-01-01", to_date = "2020-12-31")) #2020
-system.time(load_stage.apcd_elig_plr_f(from_date = "2020-03-01", to_date = "2021-02-28", calendar_year = F, table_name = "20210228")) #2020-03-01 -> 2021-02-28, most recent 12 months
 system.time(load_stage.apcd_elig_plr_f(from_date = "2018-07-01", to_date = "2019-06-30", calendar_year = F, table_name = "20190630")) #2018-07-01 -> 2019-06-30, custom TPCHD window
+
+##update to the most recent 12 months and update yaml file name (...\claims_db\phclaims\stage\tables)
+system.time(load_stage.apcd_elig_plr_f(from_date = "2021-07-01", to_date = "2022-06-30", calendar_year = F, table_name = "20220630")) #2021-07-01 -> 2022-06-3028, most recent 12 months
+
 
 ### D) Table-level QA
 system.time(apcd_plr_2014_qa1 <- qa_stage.apcd_elig_plr_f(year = "2014"))
@@ -167,8 +170,8 @@ system.time(apcd_plr_2017_qa1 <- qa_stage.apcd_elig_plr_f(year = "2017"))
 system.time(apcd_plr_2018_qa1 <- qa_stage.apcd_elig_plr_f(year = "2018"))
 system.time(apcd_plr_2019_qa1 <- qa_stage.apcd_elig_plr_f(year = "2019"))
 system.time(apcd_plr_2020_qa1 <- qa_stage.apcd_elig_plr_f(year = "2020"))
-system.time(apcd_plr_custom1_qa <- qa_stage.apcd_elig_plr_f(year = "20210228"))
 system.time(apcd_plr_custom2_qa <- qa_stage.apcd_elig_plr_f(year = "20190630"))
+system.time(apcd_plr_custom1_qa <- qa_stage.apcd_elig_plr_f(year = "20220630"))
 
 ### E) Run line-level QA script on a single year only at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.apcd_elig_plr.sql
 
