@@ -137,6 +137,11 @@ create_table(conn = db_claims,
 create_table(conn = db_claims, 
              config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2020.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+# 2021
+create_table(conn = db_claims, 
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2021.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+
 
 #2018-07-01 through 2019-06-30
 create_table(conn = db_claims, 
