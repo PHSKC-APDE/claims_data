@@ -138,14 +138,14 @@ create_table(conn = db_claims,
              config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2020.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
 
-#2020-03-01 through 2021-02-28
-create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_20210228.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
-
 #2018-07-01 through 2019-06-30
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_20190630.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+
+#2021-07-01 through 2022-06-30, update to most recent 12 months
+create_table(conn = db_claims, 
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_20220630.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
 
 ### C) Load tables
@@ -156,6 +156,10 @@ system.time(load_stage.apcd_elig_plr_f(from_date = "2017-01-01", to_date = "2017
 system.time(load_stage.apcd_elig_plr_f(from_date = "2018-01-01", to_date = "2018-12-31")) #2018
 system.time(load_stage.apcd_elig_plr_f(from_date = "2019-01-01", to_date = "2019-12-31")) #2019
 system.time(load_stage.apcd_elig_plr_f(from_date = "2020-01-01", to_date = "2020-12-31")) #2020
+system.time(load_stage.apcd_elig_plr_f(from_date = "2021-01-01", to_date = "2021-12-31")) #2021
+##add the most recent complete year
+
+##custom PLR tables
 system.time(load_stage.apcd_elig_plr_f(from_date = "2018-07-01", to_date = "2019-06-30", calendar_year = F, table_name = "20190630")) #2018-07-01 -> 2019-06-30, custom TPCHD window
 
 ##update to the most recent 12 months and update yaml file name (...\claims_db\phclaims\stage\tables)
@@ -170,8 +174,10 @@ system.time(apcd_plr_2017_qa1 <- qa_stage.apcd_elig_plr_f(year = "2017"))
 system.time(apcd_plr_2018_qa1 <- qa_stage.apcd_elig_plr_f(year = "2018"))
 system.time(apcd_plr_2019_qa1 <- qa_stage.apcd_elig_plr_f(year = "2019"))
 system.time(apcd_plr_2020_qa1 <- qa_stage.apcd_elig_plr_f(year = "2020"))
+system.time(apcd_plr_2021_qa1 <- qa_stage.apcd_elig_plr_f(year = "2021"))
+##add the most recent complete year
 system.time(apcd_plr_custom2_qa <- qa_stage.apcd_elig_plr_f(year = "20190630"))
-system.time(apcd_plr_custom1_qa <- qa_stage.apcd_elig_plr_f(year = "20220630"))
+system.time(apcd_plr_custom1_qa <- qa_stage.apcd_elig_plr_f(year = "20220630")) ##update QA script
 
 ### E) Run line-level QA script on a single year only at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.apcd_elig_plr.sql
 
