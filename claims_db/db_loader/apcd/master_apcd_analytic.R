@@ -323,7 +323,7 @@ create_table(conn = db_claims,
 system.time(load_stage.apcd_claim_provider_f())
 
 ### D) Table-level QA
-system.time(apcd_provider_qa1 <- qa_stage.apcd_claim_provider_f())
+#system.time(apcd_provider_qa1 <- qa_stage.apcd_claim_provider_f()) - no QA needed as no transformation is done at this stage
 #rm(apcd_provider_qa1)
 
 ### F) Archive current table
