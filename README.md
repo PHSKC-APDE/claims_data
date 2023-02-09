@@ -15,6 +15,7 @@ King County analysts developed the *claims* R package to facilitate querying and
 
 Instructions for installing the *claims* package:
 - Make sure devtools is installed (`install.packages("devtools")`).
+- Make sure rads.data is installed (`devtools::install_github("PHSKC-APDE/rads.data", auth_token = NULL)`)
 - Type `devtools::install_github("PHSKC-APDE/claims_data")`
 
 Instructions for updating the *claims* package:
