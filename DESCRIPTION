@@ -19,6 +19,8 @@ Imports:
     rads.data,
     rlang,
     stringr
+Remotes:
+    github::PHSKC-APDE/rads.data, github::PHSKC-APDE/dtsurvey
 Suggests:
     tidyr,
     knitr,
