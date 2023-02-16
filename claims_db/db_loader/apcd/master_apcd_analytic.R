@@ -448,7 +448,7 @@ apcd_claim_ccw_qa1 <- dbGetQuery(conn = db_claims, glue_sql(
 
 #count conditions run
 apcd_claim_ccw_qa2 <- dbGetQuery(conn = db_claims, glue_sql(
-  "select 'stage.apcd_claim_ccw' as 'table', '# conditions, expect 27' as qa_type,
+  "select 'stage.apcd_claim_ccw' as 'table', '# conditions, expect 31' as qa_type,
   count(distinct ccw_code) as qa
   from PHClaims.stage.apcd_claim_ccw;",
   .con = db_claims))
