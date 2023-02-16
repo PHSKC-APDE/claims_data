@@ -562,13 +562,13 @@ load_ccw <- function(conn = NULL,
     if (icd == 9) {
       rolling_break <- glue::glue_sql(" WHERE start_window < 
                                       {as.Date('2015-09-01') + 
-                                      lubridate::dmonths(config_cond$lookback_months) + 
+                                      lubridate::dmonths(as.numeric(config_cond$lookback_months)) + 
                                       lubridate::ddays(1)} ",
                                       .con = conn)
     } else if (icd == 10) {
       rolling_break <- glue::glue_sql(" WHERE start_window >= 
                                       {as.Date('2015-10-01') - 
-                                      lubridate::dmonths(config_cond$lookback_months) + 
+                                      lubridate::dmonths(as.numeric(config_cond$lookback_months)) + 
                                       lubridate::ddays(1)} ",
                                       .con = conn)
     }
