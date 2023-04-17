@@ -6,7 +6,7 @@ Currently King County receives quarterly Medicaid eligibility and claims data fi
 
 King County analysts transform raw eligibility and claims data to create an array of analytic-ready tables that can be used to flexibly compute people and event-based statistics over time, such as the count of Emergency Department visits by Medicaid member race/ethnicity.
 
-For more information on data tables available on King County's SQL Servers, users can review the purpose and structure of each table and a data dictionary [here] (https://kc1.sharepoint.com/:x:/r/teams/DPH-KCCross-SectorData/Shared%20Documents/General/References/Medicaid/King%20County%20ProviderOne%20Data%20Dictionary_v2.xlsx?d=wc81601188060476e8ad529ba3ac75f6a&csf=1&web=1&e=VMrmpT).
+For more information on data tables available on King County's SQL Servers, users can review the purpose and structure of each table and a data dictionary [here](https://kc1.sharepoint.com/:x:/r/teams/DPH-KCCross-SectorData/Shared%20Documents/General/References/Medicaid/King%20County%20ProviderOne%20Data%20Dictionary_v2.xlsx?d=wc81601188060476e8ad529ba3ac75f6a&csf=1&web=1&e=VMrmpT).
 
 An ever-growing group of King County analysts meet every three weeks to discuss their shared experiences using Medicaid claims data. Users can view [ongoing agenda items and point people for specific topics](https://kc1-my.sharepoint.com/:x:/r/personal/eli_kern_kingcounty_gov/Documents/Shared%20with%20Everyone/PH-DCHS%20Healthcare%20Data%20Meetings.xlsx?d=w632b8ab629f34250ab2dbe4bdf52405e&csf=1&e=GWeyLm).
 
