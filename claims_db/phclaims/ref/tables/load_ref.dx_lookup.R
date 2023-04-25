@@ -29,7 +29,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 # Step 1: Bring in ICD-9-CM and ICD-10-CM codes ----
 url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ICD_9_10_CM_Complete.xlsx?raw=true"
-icd910cm <- read.xlsx(url, sheet = "icd910cm", colNames = T)
+icd910cm <- read.xlsx(url, sheet = "Sheet1", colNames = T)
 
 icd9cm <- filter(icd910cm, ver == 9)
 icd10cm <- filter(icd910cm, ver == 10)
@@ -40,60 +40,60 @@ rm(icd910cm)
 
 # Step 2: Add in CDC ICD-CM 9 and 10 (proposed) external cause of injury information ----
 ## Step 2A: Add in CDC ICD-CM 9 and 10 (proposed) external cause of injury information ----
-url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/icd9_10_cm_external_merge_10.11.18.xlsx?raw=true"
-ext_cause_910cm <- read.xlsx(url, sheet = "external_matrix", colNames = T)
+url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/cdc_external_injury_matrix_icd_9_19_cm.xlsx?raw=true"
+ext_cause_910cm <- read.xlsx(url, sheet = "crosswalk_injurymatrix", colNames = T)
+ext_cause_910cm <- ext_cause_910cm %>% mutate(version = as.integer(version))
   
 
 ## Step 2B: Merge external cause info for ICD-9-CM ----
-ext_cause_9cm <- filter(ext_cause_910cm, ver == 9)
-icd9cm <- left_join(icd9cm, ext_cause_9cm, by = c("icdcode" = "dx", "ver" = "ver")) %>% select(., -len)
+ext_cause_9cm <- filter(ext_cause_910cm, version == 9)
+icd9cm <- left_join(icd9cm, ext_cause_9cm, by = c("icdcode" = "code", "ver" = "version"))
 
 
 ## Step 2C: Merge external cause info for ICD-10-CM ----
-ext_cause_10cm <- filter(ext_cause_910cm, ver == 10)
+ext_cause_10cm <- filter(ext_cause_910cm, version == 10)
 
 ## Create truncated versions of ICD-10-CM code ----
 # Improves merge between full list of ICD codes and external cause list
 # Full length is 7, based on exploring specificity of data I feel safe creating 6- and 5-digit versions, but no less
 ext_cause_10cm <- ext_cause_10cm %>%
-  mutate(dx_6 = str_sub(dx, 1, 6),
-         dx_5 = str_sub(dx, 1, 5)) %>%
-  select(., -len)
+  mutate(code_6 = str_sub(code, 1, 6),
+         code_5 = str_sub(code, 1, 5))
 
 ## Group intent and mechanism by these truncated versions ----
 # Keeping only those that are distinct
 # First 6 digits
 ext10cm_6 <- ext_cause_10cm %>%
-  group_by(dx_6) %>%
+  group_by(code_6) %>%
   mutate(cnt = n()) %>%
   ungroup() %>%
   filter(., cnt == 1) %>%
-  select(., dx_6, injury_icd10cm, intent, mechanism)
+  select(., code_6, intent, mechanism, mechanism_full)
 
 # First 5 digits
 ext10cm_5 <- ext_cause_10cm %>%
-  group_by(dx_5) %>%
+  group_by(code_5) %>%
   mutate(cnt = n()) %>%
   ungroup() %>%
   filter(., cnt == 1) %>%
-  select(., dx_5, injury_icd10cm, intent, mechanism)
+  select(., code_5, intent, mechanism, mechanism_full)
 
 # Join distinct truncated dx version back to original table
-ext_cause_10cm <- left_join(ext_cause_10cm, ext10cm_6, by = "dx_6", suffix = c(".x", ".y")) %>%
+ext_cause_10cm <- left_join(ext_cause_10cm, ext10cm_6, by = "code_6", suffix = c(".x", ".y")) %>%
   mutate(intent = intent.x, 
          mechanism = mechanism.x,
-         injury_icd10cm = injury_icd10cm.x,
-         dx_6 = case_when(!is.na(intent.y) ~ dx_6,
-                          is.na(intent.y) ~ "")) %>%
-  select(., dx, dx_6, dx_5, ver, injury_icd10cm, intent, mechanism)
+         mechanism_full = mechanism_full.x,
+         code_6 = case_when(!is.na(intent.y) ~ code_6,
+                            is.na(intent.y) ~ "")) %>%
+  select(., code, code_6, code_5, version, intent, mechanism, mechanism_full)
 
-ext_cause_10cm <- left_join(ext_cause_10cm, ext10cm_5, by = "dx_5", suffix = c(".x", ".y")) %>%
+ext_cause_10cm <- left_join(ext_cause_10cm, ext10cm_5, by = "code_5", suffix = c(".x", ".y")) %>%
   mutate(intent = intent.x, 
          mechanism = mechanism.x,
-         injury_icd10cm = injury_icd10cm.x,
-         dx_5 = case_when(!is.na(intent.y) ~ dx_5,
-                          is.na(intent.y) ~ "")) %>%
-  select(., dx, dx_6, dx_5, ver, injury_icd10cm, intent, mechanism)
+         mechanism_full = mechanism_full.x,
+         code_5 = case_when(!is.na(intent.y) ~ code_5,
+                            is.na(intent.y) ~ "")) %>%
+  select(., code, code_6, code_5, version, intent, mechanism, mechanism_full)
 
 rm(list = ls(pattern = "^ext10cm_"))
 
@@ -103,39 +103,60 @@ icd10cm <- icd10cm %>%
          icd_5 = str_sub(icdcode, 1, 5))
 
 # Merge on full ICD digits
-icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icdcode" = "dx", "ver" = "ver")) %>%
-  mutate(intent_final = intent, mechanism_final = mechanism, injury_icd10cm_final = injury_icd10cm) %>% 
-  select(., -dx_6, -dx_5, -injury_icd10cm, -intent, -mechanism)
+icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icdcode" = "code", "ver" = "version")) %>%
+  mutate(intent_final = intent, mechanism_final = mechanism, mechanism_full_final = mechanism_full) %>% 
+  select(., -code_6, -code_5, -intent, -mechanism, -mechanism_full)
 
 # Merge on 6 digits and fill in missing info
-icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_6" = "dx_6", "ver" = "ver"), suffix = c(".x", ".y")) %>%
+icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_6" = "code_6", "ver" = "version"), suffix = c(".x", ".y")) %>%
   mutate(intent_final = case_when(!is.na(intent_final) ~ intent_final,
                                   !is.na(intent) ~ intent),
          mechanism_final = case_when(!is.na(mechanism_final) ~ mechanism_final,
                                      !is.na(mechanism) ~ mechanism),
-         injury_icd10cm_final = case_when(!is.na(injury_icd10cm_final) ~ injury_icd10cm_final,
-                                          !is.na(injury_icd10cm) ~ injury_icd10cm)) %>%
-  select(., -dx, -dx_5, -injury_icd10cm, -intent, -mechanism)
+         mechanism_full_final = case_when(!is.na(mechanism_full_final) ~ mechanism_full_final,
+                                          !is.na(mechanism_full) ~ mechanism_full)) %>%
+  select(., -code, -code_5, -intent, -mechanism, -mechanism_full)
 
 # Merge on 5 digits and fill in missing info
-icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_5" = "dx_5", "ver" = "ver"), suffix = c(".x", ".y")) %>%
+icd10cm <- left_join(icd10cm, ext_cause_10cm, by = c("icd_5" = "code_5", "ver" = "version"), suffix = c(".x", ".y")) %>%
   mutate(intent_final = case_when(!is.na(intent_final) ~ intent_final,
                                   !is.na(intent) ~ intent),
          mechanism_final = case_when(!is.na(mechanism_final) ~ mechanism_final,
                                      !is.na(mechanism) ~ mechanism),
-         injury_icd10cm_final = case_when(!is.na(injury_icd10cm_final) ~ injury_icd10cm_final,
-                                          !is.na(injury_icd10cm) ~ injury_icd10cm)) %>%
-  select(., -dx, -dx_6, -injury_icd10cm, -intent, -mechanism)
+         mechanism_full_final = case_when(!is.na(mechanism_full_final) ~ mechanism_full_final,
+                                          !is.na(mechanism_full) ~ mechanism_full)) %>%
+  select(., -code, -code_6, -intent, -mechanism, -mechanism_full)
 
-## Set all sequelae-related injury diagnosis codes to missing per CDC proposed framework ----
+## Remove final temp columns and rename as needed
 icd10cm <- icd10cm %>%
-  mutate(intent = case_when (!is.na(intent_final) & str_sub(icdcode,-1,-1) != "S" ~ intent_final),
-         mechanism = case_when (!is.na(mechanism_final) & str_sub(icdcode,-1,-1) != "S" ~ mechanism_final),
-         injury_icd10cm = case_when(!is.na(injury_icd10cm_final) & str_sub(icdcode,-1,-1) != "S" ~ injury_icd10cm_final)) %>%
-  select(., -icd_6, -icd_5, -injury_icd10cm_final, -intent_final, -mechanism_final)
+  rename(intent = intent_final, mechanism = mechanism_final, mechanism_full = mechanism_full_final) %>%
+  select(-icd_6, -icd_5)
 
 rm(list = ls(pattern = "^ext_cause_"))
+rm(ext10cm_5, ext10cm_6)
 
+## QA for completeness of join for ICD-10-CM external cause of injury intent and mechanism
+#Refer to National Health Statistics Reports  Number 136  December 30, 2019, Table B for relevant ICD-10-CM ranges
+
+#V codes (transport accidents); result: PASS
+#Missing intent/mechanism for e-bike collision with person or animal
+#Missing intent/mechanism for other motorcycle driver collision with person or animal
+#Missing intent/mechanism for other motorcycle passenger collision with person or animal
+#Missing occasional 5-digit ICD-10-CM code when this is insufficient to specify only 1 intent and/or mechanism
+#View(filter(icd10cm, str_detect(icdcode, "^V") & ver == 10 & str_length(icdcode) >= 5) %>% arrange(icdcode))
+
+#W codes (Other external causes of accidental injury); result: PASS
+#Missing intent/mechanism for injury between moving and stationary object
+#View(filter(icd10cm, str_detect(icdcode, "^W") & ver == 10 & str_length(icdcode) >= 5) %>% arrange(icdcode))
+
+#X codes (Other external causes of accidental injury, self-harm, assault); result: PASS
+#View(filter(icd10cm, str_detect(icdcode, "^X") & ver == 10 & str_length(icdcode) >= 5) %>% arrange(icdcode))
+
+#Y codes (legal, war, undetermined intent; result: PASS
+#View(filter(icd10cm, str_detect(icdcode, "^Y") & ver == 10 & str_length(icdcode) >= 5) %>% arrange(icdcode))
+
+#Y codes (legal, war, undetermined intent; result: PASS
+#View(filter(icd10cm, str_detect(icdcode, "^T") & ver == 10 & str_length(icdcode) >= 5) %>% arrange(icdcode))
 
 
 # Step 3: Chronic Condition Warehouse flags ----
@@ -151,7 +172,8 @@ ccw <- bind_rows(ccw_99_16, ccw_17_xx) %>% mutate(link = 1)
 ccw_condition_vars <- distinct(ccw, ccw_code, ccw_abbrev) %>%
     pivot_wider(names_from = ccw_abbrev, values_from = ccw_code, names_prefix = "ccw_") %>%
     mutate(link = 1) %>% as.data.frame()
-  
+
+# Takes about 2-3 hours on normal computer
 ccw <- left_join(ccw, ccw_condition_vars, by = "link") %>%
   select(-link) %>%
   mutate(across(c(starts_with("ccw_"), -"ccw_code", -"ccw_abbrev"), 
@@ -186,190 +208,7 @@ icd10cm <- left_join(icd10cm, ccw, by = c("icdcode" = "dx", "ver" = "ver"))
 rm(ccw)
 
 
-
-# Step 4: Avoidable ED visit diagnoses, CA algorithm ----
-url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/CA%20avoidable%20ED%20visits%20ICD%209%20and%2010%20codes%20-%20appendix%20II.xlsx?raw=true"
-ed_avoid <- read.xlsx(url, sheet = "Normalized", colNames = T) %>%
-  mutate(ed_avoid_ca = 1)
-
-#Join to ICD-9-CM codes
-icd9cm <- left_join(icd9cm, ed_avoid, by = c("icdcode" = "icdcode_aed", "ver" = "ver"))
-#Note: I checked to make sure that all 141 ICD-9-CM codes merged
-
-#Join to ICD-10-CM codes
-icd10cm <- left_join(icd10cm, ed_avoid, by = c("icdcode" = "icdcode_aed", "ver" = "ver"))
-#Note: I checked to make sure that all 108 ICD-10-CM codes merged
-
-rm(ed_avoid)
-
-
-
-# Step 5: Avoidable ED visit diagnoses, NYU algorithm ----
-url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/nyu_ed_icd-cm-9_10_merge.xlsx?raw=true"
-ed_avoid_nyu <- read.xlsx(url, sheet = "Normalized", colNames = T)
-
-## Join to ICD-9-CM codes ----
-icd9cm <- left_join(icd9cm, ed_avoid_nyu, by = c("icdcode" = "dx_norm", "ver" = "dx_ver"))
-# Note there are a small number of ICD-9-CM (mostly header level) that do not match
-# Used record linkage approach to find closest matched ICD-9-CM code and copy over NYU values
-
-# Unmatched ICD codes
-nomatch <- filter(icd9cm, is.na(ed_mh_nyu)) %>%
-  mutate(block = str_sub(icdcode, 1, 4)) %>%
-  select(icdcode, block)
-
-# Matched ICD codes
-match <- filter(icd9cm, !is.na(ed_mh_nyu)) %>%
-  mutate(block = str_sub(icdcode, 1, 4)) %>%
-  select(icdcode, block)
-
-# Link based on string comparison, blocking on 1st four digits of ICD-9-CM code (4 chosen through trial and error)
-match1 <- compare.linkage(match, nomatch, blockfld = "block", strcmp = "icdcode")
-
-# Code to process RecordLinkage output and create pairs data frame
-match1_tmp <- epiWeights(match1)
-classify1 <- epiClassify(match1_tmp, threshold.upper = 0.45)
-summary(classify1)
-pairs1 <- getPairs(classify1, single.rows = TRUE)
-
-# Sort by unmatched ICD-9-CM code, descending by match weight, and matched ICD code and take 1st row grouped by unmatched ICD-9-CM code
-# 1st sort variable groups by unmatched ICD code
-# 2nd sort variable places highest matched code 1st
-# 3rd sort helps when multiple matched codes have same match score - it will send more generic codes (e.g. A200 vs A202) to the top
-pairs2 <- pairs1 %>%
-  arrange(., icdcode.2, desc(Weight), icdcode.1) %>%
-  group_by(icdcode.2) %>%
-  slice(., 1) %>%
-  ungroup()
-
-# Merge with NYU to get NYU ED algorithm flags
-pairs2 <- pairs2 %>%
-  mutate(icdcode_match = icdcode.1, icdcode_nomatch = icdcode.2, ver = 9) %>%
-  select(., icdcode_match, icdcode_nomatch, ver)
-
-pairs3 <- left_join(pairs2, ed_avoid_nyu, by = c("icdcode_match" = "dx_norm", "ver" = "dx_ver")) 
-
-# Merge with full ICD-9-CM data and fill in missing info
-icd9cm <- left_join(icd9cm, pairs3, by = c("icdcode" = "icdcode_nomatch", "ver" = "ver"))
-
-icd9cm <- icd9cm %>%
-  mutate(
-    ed_needed_unavoid_nyu = case_when(!is.na(ed_needed_unavoid_nyu.x) ~ ed_needed_unavoid_nyu.x,
-                                      is.na(ed_needed_unavoid_nyu.x) ~ ed_needed_unavoid_nyu.y),
-    ed_needed_avoid_nyu = case_when(!is.na(ed_needed_avoid_nyu.x) ~ ed_needed_avoid_nyu.x,
-                                    is.na(ed_needed_avoid_nyu.x) ~ ed_needed_avoid_nyu.y),
-    ed_pc_treatable_nyu = case_when(!is.na(ed_pc_treatable_nyu.x) ~ ed_pc_treatable_nyu.x,
-                                    is.na(ed_pc_treatable_nyu.x) ~ ed_pc_treatable_nyu.y),
-    ed_nonemergent_nyu = case_when(!is.na(ed_nonemergent_nyu.x) ~ ed_nonemergent_nyu.x,
-                                   is.na(ed_nonemergent_nyu.x) ~ ed_nonemergent_nyu.y),
-    ed_mh_nyu = case_when(!is.na(ed_mh_nyu.x) ~ ed_mh_nyu.x,
-                          is.na(ed_mh_nyu.x) ~ ed_mh_nyu.y),
-    ed_sud_nyu = case_when(!is.na(ed_sud_nyu.x) ~ ed_sud_nyu.x,
-                           is.na(ed_sud_nyu.x) ~ ed_sud_nyu.y),
-    ed_alc_nyu = case_when(!is.na(ed_alc_nyu.x) ~ ed_alc_nyu.x,
-                           is.na(ed_alc_nyu.x) ~ ed_alc_nyu.y),
-    ed_injury_nyu = case_when(!is.na(ed_injury_nyu.x) ~ ed_injury_nyu.x,
-                              is.na(ed_injury_nyu.x) ~ ed_injury_nyu.y),
-    ed_unclass_nyu = case_when(!is.na(ed_unclass_nyu.x) ~ ed_unclass_nyu.x,
-                               is.na(ed_unclass_nyu.x) ~ ed_unclass_nyu.y)) %>% 
-  select(-ends_with(".x"), -ends_with(".y"),  -icdcode_match) %>%
-  # Round NYU percentages to 2 decimal places
-  mutate(across(c("ed_needed_unavoid_nyu", "ed_needed_avoid_nyu", "ed_pc_treatable_nyu", 
-                  "ed_nonemergent_nyu", "ed_mh_nyu", "ed_sud_nyu", "ed_alc_nyu", 
-                  "ed_injury_nyu", "ed_unclass_nyu"), ~round(., digits = 2)))
-
-# clean up
-rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
-
-
-## Join to ICD-10-CM codes ----
-icd10cm <- left_join(icd10cm, ed_avoid_nyu, by = c("icdcode" = "dx_norm", "ver" = "dx_ver"))
-# Note there are a large number of ICD-10-CM (mostly header level) that do not match, too much for manual fixing
-# Thus use record linkage approach to find closest matched ICD-10-CM code and copy over NYU values
-
-# Unmatched ICD codes
-nomatch <- filter(icd10cm, is.na(ed_mh_nyu)) %>%
-  mutate(block = str_sub(icdcode, 1, 3)) %>%
-  select(icdcode, block)
-
-# Matched ICD codes
-match <- filter(icd10cm, !is.na(ed_mh_nyu)) %>%
-  mutate(block = str_sub(icdcode, 1, 3)) %>%
-  select(icdcode, block)
-
-# Link based on string comparison, blocking on 1st 3 digits of ICD-10-CM code (3 chosen through trial and error)
-match1 <- compare.linkage(match, nomatch, blockfld = "block", strcmp = "icdcode")
-
-# Code to process RecordLinkage output and create pairs data frame
-match1_tmp <- epiWeights(match1)
-classify1 <- epiClassify(match1_tmp, threshold.upper = 0.45)
-summary(classify1)
-pairs1 <- getPairs(classify1, single.rows = TRUE)
-
-# Sort by unmatched ICD-10-CM code, descending by match weight, and matched ICD code and take 1st row grouped by unmatched ICD-10-CM code
-# 1st sort variable groups by unmatched ICD code
-# 2nd sort variable places highest matched code 1st
-# 3rd sort helps when multiple matched codes have same match score - it will send more generic codes (e.g. A200 vs A202) to the top
-pairs2 <- pairs1 %>%
-  arrange(., icdcode.2, desc(Weight), icdcode.1) %>%
-  group_by(icdcode.2) %>%
-  slice(., 1) %>%
-  ungroup()
-
-# Merge with NYU to get NYU ED algorithm flags
-pairs2 <- pairs2 %>%
-  mutate(icdcode_match = icdcode.1, icdcode_nomatch = icdcode.2, ver = 10) %>%
-  select(., icdcode_match, icdcode_nomatch, ver)
-
-pairs3 <- left_join(pairs2, ed_avoid_nyu, by = c("icdcode_match" = "dx_norm", "ver" = "dx_ver")) 
-
-# Merge with full ICD-9-CM data and fill in missing info
-# Special case - when there is no match (which means block did not exist, then set all NYU vars to 0 except unclassified - set to 1)
-icd10cm <- left_join(icd10cm, pairs3, by = c("icdcode" = "icdcode_nomatch", "ver" = "ver"))
-
-icd10cm <- icd10cm %>%
-  mutate(
-    ed_needed_unavoid_nyu = case_when(!is.na(ed_needed_unavoid_nyu.x) ~ ed_needed_unavoid_nyu.x,
-                                      is.na(ed_needed_unavoid_nyu.x) & !is.na(ed_needed_unavoid_nyu.y) ~ ed_needed_unavoid_nyu.y,
-                                      is.na(ed_needed_unavoid_nyu.x) & is.na(ed_needed_unavoid_nyu.y) ~ 0),
-    ed_needed_avoid_nyu = case_when(!is.na(ed_needed_avoid_nyu.x) ~ ed_needed_avoid_nyu.x,
-                                    is.na(ed_needed_avoid_nyu.x) & !is.na(ed_needed_avoid_nyu.y) ~ ed_needed_avoid_nyu.y,
-                                    is.na(ed_needed_avoid_nyu.x) & is.na(ed_needed_avoid_nyu.y) ~ 0),
-    ed_pc_treatable_nyu = case_when(!is.na(ed_pc_treatable_nyu.x) ~ ed_pc_treatable_nyu.x,
-                                    is.na(ed_pc_treatable_nyu.x) & !is.na(ed_pc_treatable_nyu.y) ~ ed_pc_treatable_nyu.y,
-                                    is.na(ed_pc_treatable_nyu.x) & is.na(ed_pc_treatable_nyu.y) ~ 0),
-    ed_nonemergent_nyu = case_when(!is.na(ed_nonemergent_nyu.x) ~ ed_nonemergent_nyu.x,
-                                   is.na(ed_nonemergent_nyu.x) & !is.na(ed_nonemergent_nyu.y) ~ ed_nonemergent_nyu.y,
-                                   is.na(ed_nonemergent_nyu.x) & is.na(ed_nonemergent_nyu.y) ~ 0),
-    ed_mh_nyu = case_when(!is.na(ed_mh_nyu.x) ~ ed_mh_nyu.x,
-                          is.na(ed_mh_nyu.x) & !is.na(ed_mh_nyu.y) ~ ed_mh_nyu.y,
-                          is.na(ed_mh_nyu.x) & is.na(ed_mh_nyu.y) ~ 0),
-    ed_sud_nyu = case_when(!is.na(ed_sud_nyu.x) ~ ed_sud_nyu.x,
-                           is.na(ed_sud_nyu.x) & !is.na(ed_sud_nyu.y) ~ ed_sud_nyu.y,
-                           is.na(ed_sud_nyu.x) & is.na(ed_sud_nyu.y) ~ 0),
-    ed_alc_nyu = case_when(!is.na(ed_alc_nyu.x) ~ ed_alc_nyu.x,
-                           is.na(ed_alc_nyu.x) & !is.na(ed_alc_nyu.y) ~ ed_alc_nyu.y,
-                           is.na(ed_alc_nyu.x) & is.na(ed_alc_nyu.y) ~ 0),
-    ed_injury_nyu = case_when(!is.na(ed_injury_nyu.x) ~ ed_injury_nyu.x,
-                              is.na(ed_injury_nyu.x) & !is.na(ed_injury_nyu.y) ~ ed_injury_nyu.y,
-                              is.na(ed_injury_nyu.x) & is.na(ed_injury_nyu.y) ~ 0),
-    ed_unclass_nyu = case_when(!is.na(ed_unclass_nyu.x) ~ ed_unclass_nyu.x,
-                               is.na(ed_unclass_nyu.x) & !is.na(ed_unclass_nyu.y) ~ ed_unclass_nyu.y,
-                               is.na(ed_unclass_nyu.x) & is.na(ed_unclass_nyu.y) ~ 1)) %>%
-  select(-ends_with(".x"), -ends_with(".y"), -icdcode_match) %>%
-  
-  # Round NYU percentages to 2 decimal places
-  mutate(across(c("ed_needed_unavoid_nyu", "ed_needed_avoid_nyu", "ed_pc_treatable_nyu", 
-                  "ed_nonemergent_nyu", "ed_mh_nyu", "ed_sud_nyu", "ed_alc_nyu", 
-                  "ed_injury_nyu", "ed_unclass_nyu"), ~round(., digits = 2)))
-
-# clean up
-rm(match1, pairs1, pairs2, pairs3, classify1, match, nomatch, match1_tmp)
-rm(ed_avoid_nyu)
-
-
-
-# Step 6: Clinical classifications software (CCS) from AHRQ HCUP project ----
+# Step 4: Clinical classifications software (CCS) from AHRQ HCUP project ----
 url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ccs_icd9_10cm.xlsx?raw=true"
 ccs <- read.xlsx(url, sheet = "ccs_icdcm", colNames = T)
 
@@ -530,7 +369,7 @@ rm(ccs)
 
 
 
-# Step 7: RDA-defined Mental Health and Substance User Disorder-related diagnoses ----
+# Step 5: RDA-defined Mental Health and Substance User Disorder-related diagnoses ----
 url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/mh_sud_dx_lookup_rda.xlsx?raw=true"
 
 mh_rda <- read.xlsx(url, sheet = "mh", colNames = T) %>%
@@ -555,7 +394,7 @@ rm(mh_rda, sud_rda)
 
 
 
-# Step 8: Bind ICD-9-CM and ICD-10-CM information ----
+# Step 6: Bind ICD-9-CM and ICD-10-CM information ----
 icd910cm <- bind_rows(icd9cm, icd10cm)
 rm(icd9cm, icd10cm)
 
@@ -582,7 +421,7 @@ icd910cm <- icd910cm %>%
   distinct()
 
 
-# Step 9: Upload reference table to SQL Server ----
+# Step 7: Upload reference table to SQL Server ----
 ## Set up server connection ----
 server <- dlg_list(c("phclaims", "hhsaw", "both"), title = "Select Server.")$res
 if(server == "hhsaw" | server == "both") {
