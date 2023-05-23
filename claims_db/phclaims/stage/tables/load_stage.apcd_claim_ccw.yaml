@@ -5,7 +5,7 @@ icdcm_from_table: apcd_claim_icdcm_header
 to_schema: stage
 to_table: apcd_claim_ccw
 vars:
-    id_apcd: varchar(255)
+    id_apcd: bigint
     from_date: date
     to_date: date
     ccw_code: tinyint
