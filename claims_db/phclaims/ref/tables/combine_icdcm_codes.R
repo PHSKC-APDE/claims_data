@@ -2,6 +2,10 @@
 # Load new IC-10-CM tables from cms.gov/medicare/icd-10 and combine all new rows
 # with existing ICD_9_10_CM_Complete.xlsx file
 
+# NOTE: This code will need to be updated each year to load the new file -
+# in general, it should only require reading in the new year file and the old
+# all years file to combine
+
 pacman::p_load(data.table, DBI, dplyr, glue, lubridate, readxl, reshape2, stringr, tidyverse, xlsx)
 
 root_dir <- "C:/Users/kfukutaki/OneDrive - King County/Shared Documents/General/References/ICD-CM/ICD-10-CM_CMS"

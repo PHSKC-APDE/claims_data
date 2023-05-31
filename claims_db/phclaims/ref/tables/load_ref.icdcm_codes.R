@@ -1,7 +1,9 @@
-#' @title ref.dx_lookup table update code
+#' @title ref.icdcm_codes table update code
 #' 
-#' @description Code to run when updating the ref.dx_lookup table because of new
-#' file availability.
+#' 
+#' @description Code to run when updating the ref.icdcm_codes table because of new
+#' file availability in icd-cm, ccs, ccw, or other relevant codes. Formerly
+#' updated ref.dx_lookup
 #' 
 #' @details How to update:
 #' Step 1 ICD cm codes:
@@ -16,28 +18,30 @@
 #'   - Update and use combine_codes.R file to add new unique values to existing
 #'   ICD_9_10_CM_Complete file
 #'   - Replace ICD_9_10_CM_Complete in the reference-data folder on a new branch, push, and PR
-#' - Step 2 external cause of injury info:
-#'   - Copy injury table (from where?) and save to reference-data
-#'   - Check for updates annually
-#' - Step 3 CCW:
+#' Step 2 external cause of injury info:
+#' - Check for updates annually - not updated regularly
+#' - https://www.cdc.gov/nchs/injury/injury_matrices.htm#:~:text=The%20external%20cause-of-injury,What%20are%20the%20matrices%3F
+#' - ICD 10 CM articles (for more information on external cause of injury section)
+#' Step 3 CCW:
 #'   - Download updated version of 30 CCW here (updated each February):
 #'   https://www2.ccwdata.org/web/guest/condition-categories-chronic 
 #'   - Archive old version of ccw17_xx in X-sector/CCW
 #'   - Use "Algorithms Change History" at the end to revise ccw17_xx sheet from
 #'   reference-data
 #'   - PR/merge changes to main
-#' - Step 4 CCS:
+#' Step 4 CCS:
 #'   - ICD 9 section should not need updating
 #'   - ICD 10:
-#'     - When there is an equivalent new file to
-#'     reference-data/blob/main/claims_data/DXCCSR_v2023-1
+#'     - Each February, check if there is an equivalent new file to
+#'     reference-data/blob/main/claims_data/DXCCSR_v2023-1 here:
+#'     https://hcup-us.ahrq.gov/toolssoftware/ccsr/dxccsr.jsp under the
+#'     "Downloading Information for the Tool and Documentation" header
 #'     - Check there are no new broad description categories
 #'     - Check there are no new detail codes to add to the catch-all
 #' 	   - Check that all rows have CCS information filled in after 4 passes
 #' 	   (add more passes or adjust as necessary)
-#' - Step 5 RDA-defined mental health and substance use disorder:
-#'   - Ref_rda_value set updates -> check code to see if new wrangling needs to
-#'   happen for new conditions
+#' Step 5 RDA-defined mental health and substance use disorder:
+#'   - Check to see if there's an updated table on HHSAW (claims.ref_rda_value_set_20xx)
 #'   - Check for new drug categories or mental health categories
 #'   
 #'   
@@ -725,10 +729,10 @@ icd10cm <- icd10cm %>%
       TRUE ~ NA_integer_)
   )
 
-#Check to make sure all rows now have CCS information filled in - 4 passes were necessary in April 2023
+# QA : Check to make sure all rows now have CCS information filled in - 4 passes were necessary in April 2023
 count(filter(icd10cm, is.na(ccs_broad_desc)))
 
-#Clean up
+# Clean up
 rm(ccs_10_raw, ccs_10_simple, ccs_9_raw, ccs_9_simple)
 
 
@@ -898,11 +902,6 @@ icd910cm <- icd910cm %>%
 
 # QA: Compare distinct ICD-9-CM and ICD-10-CM codes from CHARS, Medicaid, APCD
 # to see if there are any that do not join
-# Medicaid: Server 16, [claims].[final_mcaid_claim_icdcm_header] icdcm_norm, icdcm_version
-# APCD: Server 51, [PHClaims].[final].[apcd_claim_icdcm_header] icdcm_norm, icdcm_version
-# CHARS: Sever 51, [PH_APDEStore].[chars].[stage_diag] – variables [DIAG] for ICD-CM code and [code_ver] for ICD-CM version
-# CHARS (cont): [PH_APDEStore].[chars].[stage_ecode] – variables [ECODE] for ICD-CM code and [code_ver] for ICD-CM version
-
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
 db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
 db_phclaims <- create_db_connection("phclaims", interactive = F, prod = T)
@@ -936,19 +935,18 @@ chars2 <- DBI::dbGetQuery(db_apde, glue::glue_sql(
 # standardize variable names
 chars1 <- rename(chars1, icdcm_norm = DIAG, icdcm_version = code_ver)
 chars2 <- rename(chars2, icdcm_norm = ECODE, icdcm_version = code_ver)
-# rbind and subset to unique
-all_data <- unique(do.call("rbind", list(mcaid, apcd, chars1, chars2))[,c("icdcm_norm", "icdcm_version")])
-rm(mcaid, apcd, chars1, chars2)
-# split into 9 and 10
-all_data_9 <- unique(all_data[all_data$icdcm_version == 9,]$icdcm_norm)
-all_data_10 <- unique(all_data[all_data$icdcm_version == 10,]$icdcm_norm)
+chars <- unique(do.call("rbind", list(chars1, chars2))[,c("icdcm_norm", "icdcm_version")])
+
 icd9_codes <- unique(icd910cm[icd910cm$icdcm_version == 9,]$icdcm)
 icd10_codes <- unique(icd910cm[icd910cm$icdcm_version == 10,]$icdcm)
-# compare with other dataframe
-all(all_data_9 %in% icd9_codes)
-all(all_data_10 %in% icd10_codes)
-length(setdiff(all_data_9, icd9_codes))
-length(setdiff(all_data_10, icd10_codes))
+
+# differences for each data source
+length(setdiff(mcaid[mcaid$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 2
+length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 15
+length(setdiff(apcd[apcd$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 0
+length(setdiff(apcd[apcd$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 390
+length(setdiff(chars[chars$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 236
+length(setdiff(chars[chars$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 351
 
 
 # Step 7: Upload reference table to SQL Server ----
@@ -961,35 +959,13 @@ if(server == "hhsaw" | server == "both") {
   interactive_auth <- T  
   prod <- T
 }
+to_schema <- "ref"
+to_table <- "icdcm_codes"
 
 # If wanting to load table to both servers, do HHSAW first
-
 # Make connection
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-
-if (server == "hhsaw" | server == "both") {
-  to_schema <- "claims"
-  to_table <- "ref_dx_lookup"
-} else if (server == "phclaims") {
-  to_schema <- "ref"
-  to_table <- "dx_lookup"
-}
-
-# Load data
-dbWriteTable(db_claims, name = DBI::Id(schema = to_schema, table = to_table), 
-             value = as.data.frame(icd910cm), 
-             overwrite = T)
-
-# Add index
-DBI::dbExecute(db_claims, 
-               glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON {`to_schema`}.{`to_table`} (dx_ver, dx)",
-                              .con = db_claims))
-
-# Repeat to PHClaims if loading to both servers
-if (server == "both") {
-  db_claims <- create_db_connection("phclaims", interactive = T, prod = T)
-  to_schema <- "ref"
-  to_table <- "dx_lookup"
+if (server == "hhsaw" | server == "both"){
+  db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
   
   # Load data
   dbWriteTable(db_claims, name = DBI::Id(schema = to_schema, table = to_table), 
@@ -998,6 +974,22 @@ if (server == "both") {
   
   # Add index
   DBI::dbExecute(db_claims, 
-                 glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON {`to_schema`}.{`to_table`} (dx_ver, dx)",
+                 glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON {`to_schema`}.{`to_table`} (icdcm, icdcm_version)",
+                                .con = db_claims))
+}
+
+
+# Repeat to PHClaims if loading to both servers
+if (server == "phclaims" | server == "both") {
+  db_claims <- create_db_connection("phclaims", interactive = T, prod = T)
+  
+  # Load data
+  dbWriteTable(db_claims, name = DBI::Id(schema = to_schema, table = to_table), 
+               value = as.data.frame(icd910cm), 
+               overwrite = T)
+  
+  # Add index
+  DBI::dbExecute(db_claims, 
+                 glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON {`to_schema`}.{`to_table`} (icdcm, icdcm_version)",
                                 .con = db_claims))
 }
