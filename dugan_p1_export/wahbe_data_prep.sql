@@ -47,6 +47,32 @@ from claims.tmp_ek_dugan_person_id as a
 left join (select distinct MEDICAID_RECIPIENT_ID from #temp2) as b
 on a.id_mcaid = b.MEDICAID_RECIPIENT_ID;
 
+-----------------------
+--Step 3-Export: Select data for sharing with UW team
+-----------------------
+
+--These row counts should match: PASS
+--select count(*) from #temp3;
+--select count(*) from claims.tmp_ek_dugan_person_id;
+
+IF OBJECT_ID(N'claims.tmp_ek_dugan_wahbe_data', N'U') IS NOT NULL DROP TABLE claims.tmp_ek_dugan_wahbe_data;
+select distinct a.id_uw,
+	b.smoking_status as hbe_smoking_status,
+	b.eligibility_start_date as hbe_eligigibility_start_date,
+	b.eligibility_end_date as hbe_eligibility_end_date
+into claims.tmp_ek_dugan_wahbe_data
+from #temp3 as a
+left join #temp2 as b
+on a.id_mcaid = b.MEDICAID_RECIPIENT_ID;
+
+--These row counts should match: PASS
+--select count(distinct id_uw) from claims.tmp_ek_dugan_wahbe_data;
+--select count(*) from claims.tmp_ek_dugan_person_id;
+
+--These row counts should match: PASS -- 1,287,408
+--select count(*) from claims.tmp_ek_dugan_wahbe_data;
+--select count(*) from (select distinct id_uw, hbe_smoking_status, hbe_eligigibility_start_date, hbe_eligibility_end_date from claims.tmp_ek_dugan_wahbe_data) as a;
+
 
 -----------------------
 --Step 4: Pull out ACES IDs from P1 data for people in study period not found in WAHBE data
@@ -87,4 +113,97 @@ select count(*) from #temp6; -- 222,809 people did not match to WAHBE data (24.5
 select count(distinct id_mcaid) from #temp3 where MEDICAID_RECIPIENT_ID is not null; --687,153 people matched to WAHBE data (75.5%)
 select count(*) from claims.tmp_ek_dugan_person_id; --909,962 people in UW study
 
---NEXT STEP -- Ask Margaret/WAHBE if I can share 222,809 ACES IDs with WAHBE to see if they can find them in their data?
+
+-----------------------
+--Step 5: Compare demographic and coverage characteristics of Medicaid members included and excluded from WAHBE data
+-----------------------
+
+select top 1 * from #temp6;
+select top 1 * from #temp3 where medicaid_recipient_id is not null;
+select top 1 * from claims.final_mcaid_elig_timevar;
+
+--Folks not in WAHBE data
+IF OBJECT_ID(N'tempdb..#temp7') IS NOT NULL drop table #temp7;
+select a.id_mcaid, a.mbr_aces_idntfr, b.dual, b.bsp_group_cid, b.full_benefit, b.cov_type, sum(b.cov_time_day) as cov_time_day
+into #temp7
+from #temp6 as a
+left join claims.final_mcaid_elig_timevar as b
+on a.id_mcaid = b.id_mcaid
+where b.from_date <= '2021-12-31' and b.to_date >= '2016-01-01'
+group by a.id_mcaid, a.mbr_aces_idntfr, b.dual, b.bsp_group_cid, b.full_benefit, b.cov_type;
+
+IF OBJECT_ID(N'tempdb..#temp8') IS NOT NULL drop table #temp8;
+select *, 
+	rank() over (partition by id_mcaid order by cov_time_day desc, dual, bsp_group_cid, full_benefit, cov_type) as cov_rank
+into #temp8
+from #temp7;
+
+IF OBJECT_ID(N'tempdb..#temp9') IS NOT NULL drop table #temp9;
+select distinct id_mcaid, mbr_aces_idntfr, dual, bsp_group_cid, full_benefit, cov_type
+into #temp9
+from #temp8
+where cov_rank = 1;
+
+--Tabulate by coverage characteristics
+select 1 as sort_order, 'overall' as cov_group_cat, cast('1' as varchar(255)) as cov_group, count(distinct id_mcaid) as id_dcount from #temp9
+union
+select 2 as sort_order, 'dual' as cov_group_cat, cast(dual as varchar(255)) as dual, count(distinct id_mcaid) as id_dcount from #temp9 group by dual
+union
+select 3 as sort_order, 'full_benefit' as cov_group_cat, cast(full_benefit as varchar(255)) as full_benefit,
+	count(distinct id_mcaid) as id_dcount from #temp9 group by full_benefit
+union
+select 4 as sort_order, 'cov_type' as cov_group_cat, cast(cov_type as varchar(255)) as cov_type,
+	count(distinct id_mcaid) as id_dcount from #temp9 group by cov_type
+union
+select 5 as sort_order, 'bsp_group_name' as cov_group_cat, b.bsp_group_name, count(distinct id_mcaid) as id_dcount
+	from #temp9 as a
+	left join claims.ref_mcaid_rac_code as b
+	on a.bsp_group_cid = b.bsp_group_cid
+	group by b.bsp_group_name
+order by sort_order, cov_group_cat, cov_group;
+
+--Folks included in WAHBE data
+select top 1 * from #temp3 where medicaid_recipient_id is not null;
+select top 1 * from claims.final_mcaid_elig_timevar;
+
+IF OBJECT_ID(N'tempdb..#temp11') IS NOT NULL drop table #temp11;
+select a.id_mcaid, b.dual, b.bsp_group_cid, b.full_benefit, b.cov_type, sum(b.cov_time_day) as cov_time_day
+into #temp11
+from (select id_mcaid from #temp3 where medicaid_recipient_id is not null) as a
+left join claims.final_mcaid_elig_timevar as b
+on a.id_mcaid = b.id_mcaid
+where b.from_date <= '2021-12-31' and b.to_date >= '2016-01-01'
+group by a.id_mcaid, b.dual, b.bsp_group_cid, b.full_benefit, b.cov_type;
+
+IF OBJECT_ID(N'tempdb..#temp12') IS NOT NULL drop table #temp12;
+select *, 
+	rank() over (partition by id_mcaid order by cov_time_day desc, dual, bsp_group_cid, full_benefit, cov_type) as cov_rank
+into #temp12
+from #temp11;
+
+IF OBJECT_ID(N'tempdb..#temp13') IS NOT NULL drop table #temp13;
+select distinct id_mcaid, dual, bsp_group_cid, full_benefit, cov_type
+into #temp13
+from #temp12
+where cov_rank = 1;
+
+--Tabulate by coverage characteristics
+select 1 as sort_order, 'overall' as cov_group_cat, cast('1' as varchar(255)) as cov_group, count(distinct id_mcaid) as id_dcount from #temp13
+union
+select 2 as sort_order, 'dual' as cov_group_cat, cast(dual as varchar(255)) as dual, count(distinct id_mcaid) as id_dcount from #temp13 group by dual
+union
+select 3 as sort_order, 'full_benefit' as cov_group_cat, cast(full_benefit as varchar(255)) as full_benefit,
+	count(distinct id_mcaid) as id_dcount from #temp13 group by full_benefit
+union
+select 4 as sort_order, 'cov_type' as cov_group_cat, cast(cov_type as varchar(255)) as cov_type,
+	count(distinct id_mcaid) as id_dcount from #temp13 group by cov_type
+union
+select 5 as sort_order, 'bsp_group_name' as cov_group_cat, b.bsp_group_name, count(distinct id_mcaid) as id_dcount
+	from #temp13 as a
+	left join claims.ref_mcaid_rac_code as b
+	on a.bsp_group_cid = b.bsp_group_cid
+	group by b.bsp_group_name
+order by sort_order, cov_group_cat, cov_group;
+
+
+
