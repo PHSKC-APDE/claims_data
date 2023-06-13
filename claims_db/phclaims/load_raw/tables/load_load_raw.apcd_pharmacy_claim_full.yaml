@@ -159,6 +159,14 @@ part029:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_029.csv
     field_term: ','
     row_term: '0x0A'
+part030:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_030.csv
+    field_term: ','
+    row_term: '0x0A'
+part031:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_031.csv
+    field_term: ','
+    row_term: '0x0A'
 years:
     - part000
     - part001
@@ -190,3 +198,5 @@ years:
     - part027
     - part028
     - part029
+    - part030
+    - part031

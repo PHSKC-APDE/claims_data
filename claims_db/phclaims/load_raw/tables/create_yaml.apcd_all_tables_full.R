@@ -4,6 +4,7 @@
 
 #2/1/22 update: Added virtual desktop path, removed provider roster table, updated YAML parameters per Alastair's new load_table_from_file function
 #4/26/22 update:  Modify code to use CSV instead of XML format files from Enclave, change row terminator to '0x0A' (used by UNLOAD function, includes quotes)
+#6/13/23 update: file path for virtual machine DPHXPHAAPR5EBYK
 
 #### Create YAML files from CSV format files for all non-reference files ####
 
@@ -18,7 +19,9 @@ pacman::p_load(tidyverse, glue)
 read_path <- "\\\\kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" #Folder containing exported format files
 #write_path <- "C:/Users/kerneli/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KC laptop
 #write_path <- "C:/Users/kerneli.PH/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Eli's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
-write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/" #Susan's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
+#write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/" #Susan's Local GitHub folder on KCITENGPRRSTUD00.kc.kingcounty.lcl
+write_path <- "C:/Users/shernandez/OneDrive - King County/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/" #Susan's Local GitHub folder on DPHXPHAAPR5EBYK
+               
 
 server_path <- "KCITSQLUTPDBH51"
 db_name <- "PHClaims"

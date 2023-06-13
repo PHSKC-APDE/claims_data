@@ -105,6 +105,10 @@ part021:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_021.csv
     field_term: ','
     row_term: '0x0A'
+part022:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_022.csv
+    field_term: ','
+    row_term: '0x0A'
 years:
     - part000
     - part001
@@ -128,3 +132,4 @@ years:
     - part019
     - part020
     - part021
+    - part022
