@@ -17,8 +17,6 @@ vars:
     geo_city: VARCHAR(255)
     geo_state: VARCHAR(255)
     geo_zip: VARCHAR(255)
-    geo_zip_centroid: TINYINT
-    geo_street_centroid: TINYINT
     geo_county_code: varchar(255)
     geo_tract_code: VARCHAR(255)
     geo_hra_code: SMALLINT
