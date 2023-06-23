@@ -42,6 +42,17 @@
 
   # Select which schemas and tables to download the files
   etl_list <- apcd_etl_get_list_f(config)
+  if(!is.Date(files$file_date)) {
+    files$file_date <- as.Date(files$file_date)  
+  }
+  if(!is.Date(etl_list$file_date)) {
+    etl_list$file_date <- as.Date(etl_list$file_date)  
+  }
+  if(nrow(files) > 0) {
+    files <- files %>% left_join(etl_list) %>% filter(is.na(datetime_download))
+  } else {
+    files <- etl_list %>% filter(is.na(datetime_download))
+  }
   if(nrow(files) > 0) {
     files <- files %>% left_join(etl_list) %>% filter(is.na(datetime_download))
   } else {

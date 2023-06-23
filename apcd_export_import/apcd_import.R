@@ -41,8 +41,21 @@ if(T) {
 ### STEP 3: CHOOSE SCHEMAS AND TABLES TO DOWNLOAD, THEN DOWNLOAD FILES
 if(T) {
   # Select which schemas and tables to download the files
+  files <- apcd_ftp_get_file_list_f(config)
   etl_list <- apcd_etl_get_list_f(config)
+  if(!is.Date(files$file_date)) {
+    files$file_date <- as.Date(files$file_date)  
+  }
+  if(!is.Date(etl_list$file_date)) {
+    etl_list$file_date <- as.Date(etl_list$file_date)  
+  }
   if(nrow(files) > 0) {
+    files <- files %>% left_join(etl_list) %>% filter(is.na(datetime_download))
+  } else {
+    files <- etl_list %>% filter(is.na(datetime_download))
+  }
+  if(nrow(files) > 0) {
+    files$file_date <- as.Date(files$file_date)
     files <- files %>% left_join(etl_list) %>% filter(is.na(datetime_download))
   } else {
     files <- etl_list %>% filter(is.na(datetime_download))

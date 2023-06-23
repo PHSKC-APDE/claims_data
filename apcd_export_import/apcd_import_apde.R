@@ -11,7 +11,6 @@ if(T) {
   final_dir <- paste0(base_dir, "/final_schema")
   apcd_prep_check_f(config)
   files <- data.frame()
-  memory.limit(size = 56000)
 }
 
 ### STEP 2: REVIEW SFTP FILES AND CREATE ETL ENTRIES
@@ -42,7 +41,14 @@ if(T) {
 ### STEP 3: CHOOSE SCHEMAS AND TABLES TO DOWNLOAD, THEN DOWNLOAD FILES
 if(T) {
   # Select which schemas and tables to download the files
+  files <- apcd_ftp_get_file_list_f(config)
   etl_list <- apcd_etl_get_list_f(config)
+  if(!is.Date(files$file_date)) {
+    files$file_date <- as.Date(files$file_date)  
+  }
+  if(!is.Date(etl_list$file_date)) {
+    etl_list$file_date <- as.Date(etl_list$file_date)  
+  }
   if(nrow(files) > 0) {
     files <- files %>% left_join(etl_list) %>% filter(is.na(datetime_download))
   } else {
@@ -96,7 +102,7 @@ if(T) {
   import_errors <- list()
   for(f in 1:nrow(files)) {
     message(paste0("...Loading File: "  , f, ": ", files[f, "file_name"], "..."))
-    result <- apcd_data_load_f(config, file = files[f, ])  
+    result <- apcd_data_load_f(config, file = files[f, ], bulk = T)  
     message(paste0("......Loading Complete. ", nrow(files) - f, " of ", nrow(files), " left to import..."))
     if(!is.na(result)) {
       import_errors <- append(import_errors, result)
@@ -113,3 +119,4 @@ if(T) {
   }
 }
 
+file = files[1, ]

@@ -11,8 +11,8 @@
   DTS:LocaleID="1033"
   DTS:ObjectName="Package"
   DTS:PackageType="5"
-  DTS:VersionBuild="119"
-  DTS:VersionGUID="{52EEB3AF-9A26-4A0B-9F8B-72008F956EDB}">
+  DTS:VersionBuild="124"
+  DTS:VersionGUID="{1EAA7118-F760-4B25-A70B-A94F5A0CC083}">
   <DTS:Property
     DTS:Name="PackageFormatVersion">8</DTS:Property>
   <DTS:ConnectionManagers>
@@ -1460,7 +1460,6 @@
       DTS:refId="Package\DFT final apcd_claim_icdcm_header"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
-      DTS:Disabled="True"
       DTS:DTSID="{7b6f38e1-1f3e-41ed-af10-2750406ada09}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -1963,7 +1962,6 @@
       DTS:refId="Package\DFT final apcd_claim_line"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
-      DTS:Disabled="True"
       DTS:DTSID="{819e97e5-2f87-4e32-83e4-d1bbc21b7266}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -2628,7 +2626,6 @@
       DTS:refId="Package\DFT final apcd_claim_procedure"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
-      DTS:Disabled="True"
       DTS:DTSID="{ba1fa789-e1c8-4cc3-9d14-00627d185c45}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -3201,7 +3198,6 @@
       DTS:refId="Package\DFT final apcd_claim_provider"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
-      DTS:Disabled="True"
       DTS:DTSID="{c518d0f2-b45c-466b-baeb-e0b06fbc79b7}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -3665,7 +3661,6 @@
       DTS:refId="Package\DFT stage apcd_dental_claim"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
-      DTS:Disabled="True"
       DTS:DTSID="{207C8DBF-9556-45B1-9322-6F5179607450}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -4785,7 +4780,6 @@
       DTS:refId="Package\DFT stage apcd_eligibility"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
-      DTS:Disabled="True"
       DTS:DTSID="{10ac8aaa-1ac0-4409-a377-d111159ea4a7}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -6043,7 +6037,6 @@
       DTS:refId="Package\DFT stage apcd_medical_claim_header"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
-      DTS:Disabled="True"
       DTS:DTSID="{c94be952-9f22-4932-9c1f-144c1a808dee}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -7468,7 +7461,6 @@
       DTS:refId="Package\DFT stage apcd_member_month_detail"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
-      DTS:Disabled="True"
       DTS:DTSID="{9257f928-e612-4759-b0a0-be160b3327c8}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -7733,6 +7725,36 @@
                       cachedDataType="i4"
                       cachedName="etl_batch_id"
                       lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[etl_batch_id]" />
+                    <inputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\CSV File Destination.Inputs[CsvDestinationInput].Columns[dental_product_code_id]"
+                      cachedDataType="i8"
+                      cachedName="dental_product_code_id"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_product_code_id]" />
+                    <inputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\CSV File Destination.Inputs[CsvDestinationInput].Columns[dental_submitter_id]"
+                      cachedDataType="i8"
+                      cachedName="dental_submitter_id"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_submitter_id]" />
+                    <inputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\CSV File Destination.Inputs[CsvDestinationInput].Columns[dental_eligibility_id]"
+                      cachedDataType="i8"
+                      cachedName="dental_eligibility_id"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_eligibility_id]" />
+                    <inputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\CSV File Destination.Inputs[CsvDestinationInput].Columns[dental_commercial_eligibility_id]"
+                      cachedDataType="i8"
+                      cachedName="dental_commercial_eligibility_id"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_commercial_eligibility_id]" />
+                    <inputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\CSV File Destination.Inputs[CsvDestinationInput].Columns[dental_medicare_eligibility_id]"
+                      cachedDataType="i8"
+                      cachedName="dental_medicare_eligibility_id"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_medicare_eligibility_id]" />
+                    <inputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\CSV File Destination.Inputs[CsvDestinationInput].Columns[dental_medicaid_eligibility_id]"
+                      cachedDataType="i8"
+                      cachedName="dental_medicaid_eligibility_id"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_medicaid_eligibility_id]" />
                   </inputColumns>
                   <externalMetadataColumns />
                 </input>
@@ -7976,6 +7998,60 @@
                       lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[etl_batch_id]"
                       name="etl_batch_id"
                       truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_product_code_id]"
+                      dataType="i8"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_product_code_id]"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_product_code_id]"
+                      name="dental_product_code_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_submitter_id]"
+                      dataType="i8"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_submitter_id]"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_submitter_id]"
+                      name="dental_submitter_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_eligibility_id]"
+                      dataType="i8"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_eligibility_id]"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_eligibility_id]"
+                      name="dental_eligibility_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_commercial_eligibility_id]"
+                      dataType="i8"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_commercial_eligibility_id]"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_commercial_eligibility_id]"
+                      name="dental_commercial_eligibility_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_medicare_eligibility_id]"
+                      dataType="i8"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_medicare_eligibility_id]"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_medicare_eligibility_id]"
+                      name="dental_medicare_eligibility_id"
+                      truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_medicaid_eligibility_id]"
+                      dataType="i8"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_medicaid_eligibility_id]"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].Columns[dental_medicaid_eligibility_id]"
+                      name="dental_medicaid_eligibility_id"
+                      truncationRowDisposition="FailComponent" />
                   </outputColumns>
                   <externalMetadataColumns
                     isUsed="True">
@@ -8061,6 +8137,30 @@
                       refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[etl_batch_id]"
                       dataType="i4"
                       name="etl_batch_id" />
+                    <externalMetadataColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_product_code_id]"
+                      dataType="i8"
+                      name="dental_product_code_id" />
+                    <externalMetadataColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_submitter_id]"
+                      dataType="i8"
+                      name="dental_submitter_id" />
+                    <externalMetadataColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_eligibility_id]"
+                      dataType="i8"
+                      name="dental_eligibility_id" />
+                    <externalMetadataColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_commercial_eligibility_id]"
+                      dataType="i8"
+                      name="dental_commercial_eligibility_id" />
+                    <externalMetadataColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_medicare_eligibility_id]"
+                      dataType="i8"
+                      name="dental_medicare_eligibility_id" />
+                    <externalMetadataColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[dental_medicaid_eligibility_id]"
+                      dataType="i8"
+                      name="dental_medicaid_eligibility_id" />
                   </externalMetadataColumns>
                 </output>
                 <output
@@ -8143,6 +8243,36 @@
                       lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[rx_commercial_eligibility_id]"
                       name="rx_commercial_eligibility_id" />
                     <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_product_code_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_product_code_id]"
+                      name="dental_product_code_id" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_submitter_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_submitter_id]"
+                      name="dental_submitter_id" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_eligibility_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_eligibility_id]"
+                      name="dental_eligibility_id" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_commercial_eligibility_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_commercial_eligibility_id]"
+                      name="dental_commercial_eligibility_id" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicare_eligibility_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicare_eligibility_id]"
+                      name="dental_medicare_eligibility_id" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicaid_eligibility_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicaid_eligibility_id]"
+                      name="dental_medicaid_eligibility_id" />
+                    <outputColumn
                       refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[rx_medicare_eligibility_id]"
                       dataType="i8"
                       lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[rx_medicare_eligibility_id]"
@@ -8201,7 +8331,6 @@
       DTS:refId="Package\DFT stage apcd_pharmacy_claim"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
-      DTS:Disabled="True"
       DTS:DTSID="{c84c3353-cf43-4ae6-a13e-9e60f03e8ab9}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -9440,7 +9569,6 @@
       DTS:refId="Package\ZS Export CSV Batch final"
       DTS:CreationName="ZappySys.CsvExportTask"
       DTS:Description="ZS Export CSV Task"
-      DTS:Disabled="True"
       DTS:DTSID="{254a5c22-83f9-4fd9-8211-e3dc549b2e68}"
       DTS:ExecutableType="ZappySys.CsvExportTask"
       DTS:LocaleID="-1"
@@ -9468,7 +9596,7 @@
           Timeout="0"
           ThrowErrorIfSourceDataMissing="False"
           Connection="KCITSQLUTPDBH51.PHClaims"
-          Source="final.apcd_claim_ccw|final.apcd_elig_demo|final.apcd_elig_plr_2014|final.apcd_elig_plr_2015|final.apcd_elig_plr_2018|final.apcd_elig_plr_2019|final.apcd_elig_plr_2020|final.apcd_elig_plr_2016|final.apcd_elig_plr_20190630|final.apcd_elig_plr_20210228|final.apcd_elig_plr_2017|final.apcd_elig_timevar"
+          Source="final.apcd_claim_ccw|final.apcd_elig_demo|final.apcd_elig_plr_2014|final.apcd_elig_plr_2015|final.apcd_elig_plr_2016|final.apcd_elig_plr_2017|final.apcd_elig_plr_2018|final.apcd_elig_plr_2019|final.apcd_elig_plr_20190630|final.apcd_elig_plr_2020|final.apcd_elig_plr_2021|final.apcd_elig_plr_20220630|final.apcd_elig_timevar"
           SourceSplitChar="|"
           ExcludeViews="False"
           ExcludeTables="False"
@@ -9566,7 +9694,6 @@
       DTS:refId="Package\ZS Export CSV Batch stage"
       DTS:CreationName="ZappySys.CsvExportTask"
       DTS:Description="ZS Export CSV Task"
-      DTS:Disabled="True"
       DTS:DTSID="{e76dbd63-7e8c-4da6-8b67-3d51cdc19e7b}"
       DTS:ExecutableType="ZappySys.CsvExportTask"
       DTS:LocaleID="-1"
@@ -9753,7 +9880,7 @@
           Id="Package\DFT final apcd_claim_procedure"
           TopLeft="39,237" />
         <NodeLayout
-          Size="205,42"
+          Size="228,42"
           Id="Package\DFT final apcd_claim_provider"
           TopLeft="38,85" />
         <NodeLayout
@@ -9856,18 +9983,30 @@
         </EdgeLayout>
         <EdgeLayout
           Id="Package.PrecedenceConstraints[Constraint 11]"
-          TopLeft="141.25,53">
+          TopLeft="142,53">
           <EdgeLayout.Curve>
             <mssgle:Curve
               StartConnector="{assembly:Null}"
-              EndConnector="0,32"
+              EndConnector="10,32"
               Start="0,0"
-              End="0,24.5">
+              End="10,24.5">
               <mssgle:Curve.Segments>
                 <mssgle:SegmentCollection
                   Capacity="5">
                   <mssgle:LineSegment
-                    End="0,24.5" />
+                    End="0,12" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,12"
+                    Point2="0,16"
+                    Point3="4,16" />
+                  <mssgle:LineSegment
+                    End="6,16" />
+                  <mssgle:CubicBezierSegment
+                    Point1="6,16"
+                    Point2="10,16"
+                    Point3="10,20" />
+                  <mssgle:LineSegment
+                    End="10,24.5" />
                 </mssgle:SegmentCollection>
               </mssgle:Curve.Segments>
             </mssgle:Curve>
@@ -9900,18 +10039,30 @@
         </EdgeLayout>
         <EdgeLayout
           Id="Package.PrecedenceConstraints[Constraint 3]"
-          TopLeft="139,127">
+          TopLeft="152,127">
           <EdgeLayout.Curve>
             <mssgle:Curve
               StartConnector="{assembly:Null}"
-              EndConnector="0,33"
+              EndConnector="-14.5,33"
               Start="0,0"
-              End="0,25.5">
+              End="-14.5,25.5">
               <mssgle:Curve.Segments>
                 <mssgle:SegmentCollection
                   Capacity="5">
                   <mssgle:LineSegment
-                    End="0,25.5" />
+                    End="0,12.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="0,12.5"
+                    Point2="0,16.5"
+                    Point3="-4,16.5" />
+                  <mssgle:LineSegment
+                    End="-10.5,16.5" />
+                  <mssgle:CubicBezierSegment
+                    Point1="-10.5,16.5"
+                    Point2="-14.5,16.5"
+                    Point3="-14.5,20.5" />
+                  <mssgle:LineSegment
+                    End="-14.5,25.5" />
                 </mssgle:SegmentCollection>
               </mssgle:Curve.Segments>
             </mssgle:Curve>
@@ -10085,13 +10236,13 @@
       <GraphLayout
         Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
         <NodeLayout
-          Size="180,42"
-          Id="Package\DFT final apcd_claim_header\CSV File Destination"
-          TopLeft="572,309" />
-        <NodeLayout
           Size="157,42"
           Id="Package\DFT final apcd_claim_header\OLE DB Source"
           TopLeft="584,198" />
+        <NodeLayout
+          Size="180,42"
+          Id="Package\DFT final apcd_claim_header\CSV File Destination"
+          TopLeft="572,309" />
         <EdgeLayout
           Id="Package\DFT final apcd_claim_header.Paths[OLE DB Source Output]"
           TopLeft="662.25,240">
@@ -10117,6 +10268,19 @@
       </GraphLayout>
     </LayoutInfo>
   </TaskHost>
+  <PipelineComponentMetadata
+    design-time-name="Package\DFT final apcd_claim_header\OLE DB Source">
+    <Properties>
+      <Property>
+        <Name>DataSourceViewID</Name>
+      </Property>
+      <Property>
+        <Name>TableInfoObjectType</Name>
+        <Value
+          type="q2:string">Table</Value>
+      </Property>
+    </Properties>
+  </PipelineComponentMetadata>
   <TaskHost
     design-time-name="Package\DFT final apcd_claim_icdcm_header">
     <LayoutInfo>
@@ -10172,7 +10336,7 @@
     design-time-name="Package\DFT final apcd_claim_line">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT final apcd_claim_line\OLE DB Source"
@@ -10212,9 +10376,7 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <mssgm:EdgeLabel
-              BoundingBox="0,0,0,0"
-              RelativePosition="Any" />
+            <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10237,7 +10399,7 @@
     design-time-name="Package\DFT final apcd_claim_procedure">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT final apcd_claim_procedure\OLE DB Source"
@@ -10277,9 +10439,7 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <mssgm:EdgeLabel
-              BoundingBox="0,0,0,0"
-              RelativePosition="Any" />
+            <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10302,7 +10462,7 @@
     design-time-name="Package\DFT final apcd_claim_provider">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT final apcd_claim_provider\OLE DB Source"
@@ -10342,9 +10502,7 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <mssgm:EdgeLabel
-              BoundingBox="0,0,0,0"
-              RelativePosition="Any" />
+            <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10367,7 +10525,7 @@
     design-time-name="Package\DFT stage apcd_dental_claim">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT stage apcd_dental_claim\OLE DB Source"
@@ -10407,9 +10565,7 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <mssgm:EdgeLabel
-              BoundingBox="0,0,0,0"
-              RelativePosition="Any" />
+            <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10432,7 +10588,7 @@
     design-time-name="Package\DFT stage apcd_eligibility">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT stage apcd_eligibility\OLE DB Source"
@@ -10472,9 +10628,7 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <mssgm:EdgeLabel
-              BoundingBox="0,0,0,0"
-              RelativePosition="Any" />
+            <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10497,7 +10651,7 @@
     design-time-name="Package\DFT stage apcd_medical_claim_header">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
         <NodeLayout
           Size="180,42"
           Id="Package\DFT stage apcd_medical_claim_header\CSV File Destination"
@@ -10537,9 +10691,7 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <mssgm:EdgeLabel
-              BoundingBox="0,0,0,0"
-              RelativePosition="Any" />
+            <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10562,7 +10714,7 @@
     design-time-name="Package\DFT stage apcd_member_month_detail">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
         <NodeLayout
           Size="180,42"
           Id="Package\DFT stage apcd_member_month_detail\CSV File Destination"
@@ -10602,9 +10754,7 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <mssgm:EdgeLabel
-              BoundingBox="0,0,0,0"
-              RelativePosition="Any" />
+            <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10627,7 +10777,7 @@
     design-time-name="Package\DFT stage apcd_pharmacy_claim">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT stage apcd_pharmacy_claim\OLE DB Source"
@@ -10667,9 +10817,7 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <mssgm:EdgeLabel
-              BoundingBox="0,0,0,0"
-              RelativePosition="Any" />
+            <EdgeLabelCollection />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10677,19 +10825,6 @@
   </TaskHost>
   <PipelineComponentMetadata
     design-time-name="Package\DFT stage apcd_pharmacy_claim\OLE DB Source">
-    <Properties>
-      <Property>
-        <Name>DataSourceViewID</Name>
-      </Property>
-      <Property>
-        <Name>TableInfoObjectType</Name>
-        <Value
-          type="q2:string">Table</Value>
-      </Property>
-    </Properties>
-  </PipelineComponentMetadata>
-  <PipelineComponentMetadata
-    design-time-name="Package\DFT final apcd_claim_header\OLE DB Source">
     <Properties>
       <Property>
         <Name>DataSourceViewID</Name>
