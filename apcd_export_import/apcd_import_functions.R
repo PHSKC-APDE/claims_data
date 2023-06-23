@@ -296,6 +296,15 @@ apcd_ftp_get_file_list_f <- function(config) {
 ## Downloads file from SFTP and saves it to the specified directory. Updates the ETL log with file_path and datetime_download. Returns the datetime_download
 apcd_ftp_get_file_f <- function(config,  
                                 file) {
+  if(length(file$url) == 0) {
+    if(file$file_schema == config$ref_schema) {
+      file$url <- paste0(config$ftp_url, "ref_schema/", file$file_name)
+    } else if(file$file_schema == config$stage_schema) {
+      file$url <- paste0(config$ftp_url, "stage_schema/", file$file_name)
+    } else {
+      file$url <- paste0(config$ftp_url, "final_schema/", file$file_name)
+    }
+  }
   h <- curl::new_handle()
   curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
   # Download file
@@ -316,15 +325,18 @@ apcd_ftp_get_file_f <- function(config,
 
 ## Extracts file with gzip, counts the files rows, updates ETL log, archives old data, creates new table (if needed), loads data via BCP, counts rows loaded, updates ETL log
 apcd_data_load_f <- function(config,
-                             file) {
+                             file,
+                             bulk = F) {
   # Extract file
   message(paste0("......Extracting File: "  , file$file_name, "..."))
-  gunzip(file$file_path, remove = F)
+  gunzip(file$file_path, overwrite = T, remove = F)
   message("......Extracting Complete...")
   # Count rows in file and update ETL log
   message("......Counting Rows in File...")
   file_raw <- str_replace(file$file_path, ".gz", "")
-  file$rows_file <- read.table(text = shell(paste("wc -l", file_raw), intern = T))[1,1] - 1
+  file_info <- as.data.frame(shell(paste("wc -l", file_raw), intern = T))
+  file$rows_file <- read.table(text = file_info[nrow(file_info),1], sep = " ")[1,1] - 1
+  
   apcd_etl_entry_f(config,
                    etl_id = file$etl_id,
                    column_name = "rows_file",
@@ -351,13 +363,31 @@ apcd_data_load_f <- function(config,
   }
   # Load data via BCP
   message("......Loading Data to SQL... ")
-  load_table_from_file(conn = conn,
+  if(bulk == T) {
+    DBI::dbExecute(conn,
+              glue_sql("BULK INSERT 
+                        {`file$file_schema`}.{`file$file_table`}
+                        FROM {file_raw}
+                        WITH (
+                          BATCHSIZE = 100000,
+                          FIRSTROW = 2,
+                          FIELDTERMINATOR = {config$field_term},
+                          ROWTERMINATOR = {config$row_term},
+                          DATAFILETYPE = 'char',
+                          CODEPAGE = '65001',
+                          TABLOCK)",
+                       .con = conn))
+  }
+  else {
+    load_table_from_file(conn = conn,
                        config = config,
                        server = "apcd",
                        to_schema = file$file_schema,
                        to_table = file$file_table,
                        file_path = file_raw,
-                       truncate = F)
+                       truncate = F,
+                       tablock = T)
+  }
   message("......Loading Complete... ")
   
   # Count rows in table, subtract row counts from previously loaded files
