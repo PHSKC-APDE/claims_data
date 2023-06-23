@@ -58,6 +58,10 @@ part005:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_005.csv
     field_term: ','
     row_term: '0x0A'
+part006:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_006.csv
+    field_term: ','
+    row_term: '0x0A'
 years:
     - part000
     - part001
@@ -65,3 +69,4 @@ years:
     - part003
     - part004
     - part005
+    - part006

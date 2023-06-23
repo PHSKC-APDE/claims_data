@@ -22,6 +22,8 @@
 #' 
 #' @param conn SQL server connection created using \code{odbc} package
 #' @param source Which claims data source do you want to pull from?
+#' @param server Which server do you want to run the query against? NB. Currently only
+#' Medicaid data is available on HHSAW.
 #' @param from_date Begin date for coverage period, "YYYY-MM-DD", 
 #' defaults to 18 months prior to today's date (A)
 #' @param to_date End date for coverage period, "YYYY-MM-DD", 
@@ -1454,12 +1456,10 @@ claims_elig <- function(conn,
                                                 FROM {`schema_rac`}.{`tbl_rac`}",
                                                 .con = conn))
     
-    hra_names <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/hra_vid_region.csv",
-                                   select = c("hra", "vid"))
+    hra_names <- (rads.data::spatial_hra_vid_region)[,c("hra", "vid")]
     data.table::setnames(hra_names, c("hra", "vid"), c("geo_hra_name", "geo_hra_code"))
     
-    county_names <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/county_codes.csv",
-                                   select = c("geo_county_name", "geo_county_code_fips"))
+    county_names <- (rads.data::spatial_county_codes)[,c("geo_county_name", "geo_county_code_fips")]
     county_names <- dplyr::mutate(county_names, geo_county_code_fips = stringr::str_pad(geo_county_code_fips, width = 3, pad = "0"))
     
 

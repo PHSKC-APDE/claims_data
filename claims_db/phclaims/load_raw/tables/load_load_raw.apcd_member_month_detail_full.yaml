@@ -75,6 +75,10 @@ part011:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_011.csv
     field_term: ','
     row_term: '0x0A'
+part012:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_012.csv
+    field_term: ','
+    row_term: '0x0A'
 years:
     - part000
     - part001
@@ -88,3 +92,4 @@ years:
     - part009
     - part010
     - part011
+    - part012

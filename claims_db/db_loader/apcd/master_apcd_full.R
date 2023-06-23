@@ -34,14 +34,13 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_ccw.R")
-
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_ccw.R")
 
 #### SET UP VALUES FOR ETL LOG ####
 etl_date_min <- "2014-01-01"
-etl_date_max <- "2021-06-30" #UPDATE EACH QUARTER
-etl_delivery_date <- "2022-01-28" #UPDATE EACH QUARTER
-etl_note <- "Full refresh of APCD data using extract 10001" #UPDATE EACH QUARTER
+etl_date_max <- "2022-06-30" #UPDATE EACH QUARTER
+etl_delivery_date <- "2022-11-09" #UPDATE EACH QUARTER , date downloaded it to our KCIT server.
+etl_note <- "Full refresh of APCD data using extract 10009" #UPDATE EACH QUARTER
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### STEP 1: Load and QA new raw data to load_raw schema, and reference tables to ref schema ####
@@ -293,13 +292,7 @@ system.time(load_load_raw.apcd_pharmacy_claim_full_f(etl_date_min = etl_date_min
 #### LOAD_RAW PROVIDER ####
 ### Create tables
 
-# Create table shells for table chunks
-create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_provider_full.yaml",
-               server = "KCITSQLUTPDBH51",
-               overall = F,
-               ind_yr = T,
-               overwrite = T)
+
 
 # Create table shell for overall merged table
 create_table(conn = db_claims, 

@@ -13,7 +13,7 @@ vars:
     first_paid_dt: date
     last_paid_dt: date
     charge_amt: numeric(38,2)
-    diagnosis_code: varchar(10)
+    diagnosis_code_principal: varchar(10)
     icd_version_ind: varchar(10)
     header_status: varchar(20)
     denied_header_flag: varchar(1)
@@ -97,6 +97,18 @@ part011:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_011.csv
     field_term: ','
     row_term: '0x0A'
+part012:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_012.csv
+    field_term: ','
+    row_term: '0x0A'
+part013:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_013.csv
+    field_term: ','
+    row_term: '0x0A'
+part014:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/medical_claim_header_export/medical_claim_header_014.csv
+    field_term: ','
+    row_term: '0x0A'
 years:
     - part000
     - part001
@@ -110,3 +122,6 @@ years:
     - part009
     - part010
     - part011
+    - part012
+    - part013
+    - part014

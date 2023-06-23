@@ -16,8 +16,14 @@ Imports:
     odbc,
     DBI,
     dplyr,
-    stringr,
-    rlang
+    rads.data,
+    rlang,
+    stringr
+Remotes:
+    github::PHSKC-APDE/rads.data, github::PHSKC-APDE/dtsurvey
 Suggests:
-    tidyr
+    tidyr,
+    knitr,
+    rmarkdown
 RoxygenNote: 7.1.1
+VignetteBuilder: knitr

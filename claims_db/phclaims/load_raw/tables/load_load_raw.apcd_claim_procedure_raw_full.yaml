@@ -61,6 +61,18 @@ part011:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_011.csv
     field_term: ','
     row_term: '0x0A'
+part012:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_012.csv
+    field_term: ','
+    row_term: '0x0A'
+part013:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_013.csv
+    field_term: ','
+    row_term: '0x0A'
+part014:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_procedure_raw_export/claim_procedure_raw_014.csv
+    field_term: ','
+    row_term: '0x0A'
 years:
     - part000
     - part001
@@ -74,3 +86,6 @@ years:
     - part009
     - part010
     - part011
+    - part012
+    - part013
+    - part014

@@ -19,7 +19,7 @@ vars:
     professional_credential_code: varchar(20)
     npi: bigint
     primary_taxonomy: varchar(10)
-    secondary_taxonomy: varchar(20)
+    secondary_taxonomy_physical: varchar(20)
     city_physical: varchar(30)
     state_physical: varchar(2)
     zip_physical: varchar(15)

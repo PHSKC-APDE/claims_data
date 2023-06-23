@@ -58,7 +58,7 @@ load_load_raw.apcd_provider_full_f <- function(etl_date_min = NULL,
   load_table_from_file(conn = db_claims,
                          config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.",
                                            table_name_part, "_full.yaml"),
-                       overall = F, ind_yr = T, combine_yr = T, server = server, drop_index = F)
+                       overall = T, ind_yr = F, combine_yr = F, server = server, drop_index = F)
   
   
   #### ADD BATCH ID COLUMN ####
@@ -79,14 +79,7 @@ load_load_raw.apcd_provider_full_f <- function(etl_date_min = NULL,
   } else {
     table_config <- yaml::read_yaml(config_file)
   }
-  
-  
-  #### DROP ROW_NUMBER COLUMN FROM FINAL TABLE ####
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
-    "ALTER TABLE load_raw.{`table_name_part`}
-    DROP COLUMN row_number",
-    .con = db_claims))
-  
+
   
 
     #### DROP TABLE CHUNKS ####

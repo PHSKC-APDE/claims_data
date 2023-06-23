@@ -13,7 +13,6 @@ vars:
     primary_insurance_indicator_id: bigint
     subscriber_relationship_id: bigint
     gender_code: varchar(10)
-    age: integer
     coverage_level_id: bigint
     coverage_type_id: bigint
     market_category_id: bigint
@@ -56,8 +55,13 @@ part003:
     file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_003.csv
     field_term: ','
     row_term: '0x0A'
+part004:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_004.csv
+    field_term: ','
+    row_term: '0x0A'
 years:
     - part000
     - part001
     - part002
     - part003
+    - part004

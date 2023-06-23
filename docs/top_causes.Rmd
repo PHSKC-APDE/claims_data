@@ -1,0 +1,78 @@
+---
+title: "top_causes"
+author: "Kai Fukutaki"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette: default
+  github_document: default
+  pdf_document: default
+  urlcolor: blue
+  keep_md: true
+vignette: >
+  %\VignetteIndexEntry{top_causes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo = F, message=FALSE}
+library(claims)
+library(odbc)
+```
+
+## Introduction
+
+`top_causes` is a function to return the top X number of conditions for a given cohort. It is useful for summarizing the main health conditions affecting that cohort over a given time period, using either primary diagnosis or any diagnosis.
+
+## Arguments
+
+The arguments to always account for include:
+
+1\) `conn` \<- The database connection to use to access the data (see `create_db_connection` and `dbConnect` usage in PHSKC repos for how to set this up)
+2\) `source` \<- The claims data source to pull data from (All Payer Claims Database, Medicaid, Medicaid/Medicare, Medicare, or Medicare/Medicaid/Public Housing Authority).
+3\) `server` \<- Whether to access the data from the PHClaims51 server or HHSAW (note that this has to align with your `conn`).
+4\) `cohort` \<- Group of individuals of interest, typically generated with claims_elig function.
+5\) `cohort_id` \<- Field containing the ID in the cohort data (defaults to id_apde).
+
+Other common arguments include:
+
+1\) `from_date` and `to_date` \<- These default the start of the previous calendar year and the end of the previous calendar year or 6 months prior to today's date, whichever is earlier before the current date, respectively. Otherwise, input `YYYY-MM-DD` format dates for each to determine the time period of the cohort.
+2\) `ind_dates` \<- Flag to indicate that individualized dates are used to narrow the default date window.
+3\)`ind_from_date` \<- Field in the cohort data that contains an individual from date.
+4\)`ind_to_date` \<- Field in the cohort data that contains an individual to date.
+5\)`top` \<- The maximum number of condition groups that will be returned, default is 15.
+6\)`catch_all` \<- Determines whether or not catch_all codes are included in the list, default is no.
+7\)`primary_dx` \<- Whether or not to only look at the primary diagnosis field, default is TRUE.
+8\)`type` \<- Which types of visits to include. Choose from the following:
+*ed (any ED visit), 
+*ed_avoid_ny (any avoidable ED visit (based on NYU classification))
+*ed_avoid_ca (any avoidable ED visit (based on CA classification))
+*inpatient (any inpatient visit)
+*all (all claims, must be paired with override_all option)
+9\)`override_all` \<- Override the warning message about pulling all claims, default is FALSE.
+
+
+## Example uses
+
+After loading our DB connection to PHClaims and bringing in one of the cohorts from the `claims_elig` doc (female cohort over a 2-month period from ages 18-24 years from Medicaid on PHClaims server), we can then look at the top 5 causes for that cohort by primary diagnosis:
+
+```{r}
+mcaid_only <- claims_elig(conn = db_claims, source = "mcaid", server="phclaims",
+                                      from_date = "2014-01-01", to_date = "2016-02-25",
+                                      geo_zip = c("98104", "98133", "98155"),
+                                      cov_type = "FFS", race_asian = 1, 
+                                      show_query = T)
+top_15_dynamic <- top_causes(
+  cohort = mcaid_only, top = 5, conn = db_claims, source = "mcaid", server="phclaims"
+)
+```
+
+One question you might wonder is how the different dates interact: the dates of the cohort we passed in are different than the defaults that we used for `top_causes`. Since the cohort data uses to- and from-dates to select the cohort, but those dates are not actually kept in the cohort dataset, the cohort is only relevant for the IDs and not the to- and from-dates. Thus, in this example, we will still be getting the top causes for this cohort across the default time period for `top_causes`.
+
+An instance where the dates would be dependent on the cohort is when we use the `ind_dates` argument. This argument will allow for querying based on date ranges for each individual, rather than one date range for all members of the cohort. For this, we would need individual data ranges to be present in the cohort data.

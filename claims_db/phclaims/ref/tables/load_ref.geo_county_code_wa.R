@@ -10,7 +10,7 @@ if (!require("pacman")) {install.packages("pacman")}
 pacman::p_load(tidyverse, odbc)
 
 # Bring in data file
-county_codes <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/county_codes.csv")
+county_codes <- rads.data::spatial_county_codes
 county_codes <- county_codes %>% 
   mutate(geo_county_code_fips = stringr::str_pad(geo_county_code_fips, width = 3, pad = "0"),
          across(c("geo_county_fips_long", "geo_county_code_order", "geo_county_code_gnis",
