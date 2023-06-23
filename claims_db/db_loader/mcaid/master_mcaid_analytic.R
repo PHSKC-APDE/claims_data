@@ -32,9 +32,9 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/notify.R")
-memory.limit(size = 56000)
+#memory.limit(size = 56000) # Only necessary for R version < 4.2
 
-server <- dlg_list(c("phclaims", "hhsaw"), title = "Select Server.")$res
+server <- dlg_list(c("hhsaw", "phclaims"), title = "Select Server.")$res
 if(server == "hhsaw") {
   interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
   prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
@@ -378,11 +378,11 @@ claim_pharm_fail <- claim_load_f(table = "pharm")
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 #### MCAID_CLAIM_HEADER ####
-if (sum(claim_line_fail, claim_icdcm_header_fail, claim_procedure_fail, claim_pharm_fail) > 0) {
-  stop("One or more claims analytic tables failed, mcaid_claim_header not created. See metadata.mcaid_qa for details")
-} else {
+#if (sum(claim_line_fail, claim_icdcm_header_fail, claim_procedure_fail, claim_pharm_fail) > 0) {
+#  stop("One or more claims analytic tables failed, mcaid_claim_header not created. See metadata.mcaid_qa for details")
+#} else {
   claim_load_f(table = "header")
-}
+#}
 
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)

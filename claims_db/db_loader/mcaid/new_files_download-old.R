@@ -2,7 +2,7 @@
 #
 # Jeremy Whitehurst, PHSKC (APDE)
 #
-# 2023-06
+# 2020-05
 
 
 #### Set up global parameter and call in libraries ####
@@ -13,8 +13,10 @@ library(tidyverse) # Manipulate data
 library(dplyr) # Manipulate data
 library(lubridate) # Manipulate dates
 library(odbc) # Read to and write from SQL
+library(RCurl) # Read files from Github
 library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
+library(sf) # Read shape files
 library(keyring) # Access stored credentials
 library(stringr) # Various string functions
 library(AzureStor)
@@ -22,17 +24,17 @@ library(AzureAuth)
 library(svDialogs)
 library(R.utils)
 library(zip)
-library(sftp)
+library(curl)
+library(jsonlite)
+library(httpuv)
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
 
 #### CREATE CONNECTION ####
-##interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
-interactive_auth <- TRUE
-##prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
-prod <- TRUE
+interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
+prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
 
 db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
 
@@ -49,79 +51,93 @@ cont <- storage_container(blob_endp, "inthealth")
 #### Start File Processing
 if(T) {
   #### Set sftp url, credentials and directories
-  url <- "mft.wa.gov"
-  basedir <- "C:/temp/mcaid/"
-  dldir <- paste0(basedir, "download")
-  exdir <- paste0(basedir, "extract")
-  gzdir <- paste0(basedir, "gzip")
-  txtdir <- paste0(basedir, "txt")
+  url <- "https://sft.wa.gov/api/v1.5/files"
+  basedir <- "C:\\temp"
+  zipdir <- paste0(basedir, "\\zip\\")
+  exdir <- paste0(basedir, "\\extract\\")
+  gzdir <- paste0(basedir, "\\gz\\")
   schema <- "claims"
   table <- "metadata_etl_log"
   
-  ## Create SFTP/MFT connection
-  sftp_con <- sftp_connect(server = url,   
-                           username = key_list("hca_mft")[["username"]],   
-                           password = key_get("hca_mft", key_list("hca_mft")[["username"]]))
-  ## Get file list
-  sftp_files <- sftp_listfiles(sftp_con, recurse = T)
+  h <- curl::new_handle()
+  curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list("hca_sftp")[["username"]], ":", key_get("hca_sftp", key_list("hca_sftp")[["username"]])))
   
-  ## CHECK FOR EXISTING - TO DO!
+  ## Download JSON data of all zip files available in the home folder
+  json <- curl::curl_fetch_memory(url, handle = h)
+  ## Convert JSON to matrix
+  ftpfiles <- fromJSON(rawToChar(json$content))
+  zipfiles <- as.data.frame(ftpfiles[["files"]]["fileName"])
+  zipfiles$shortName <- substr(zipfiles[, "fileName"], 1, nchar(zipfiles[, "fileName"]) - 4)
   etl_exists <- 0
+  ## Compare files from ftp to files in etl_log
+  for (x in 1:nrow(zipfiles)) {
+    results <- DBI::dbGetQuery(db_claims,
+                               glue::glue_sql("SELECT * FROM {`schema`}.{`table`}
+                        WHERE CHARINDEX({zipfiles[x,'shortName']}, file_name, 1) > 0
+                        ORDER BY delivery_date DESC", .con = db_claims))
+    if (is.null(nrow(etl_exists)) == T) {
+      etl_exists <- results
+    } else {
+      etl_exists <- rbind(etl_exists, results)
+    }
+  }
   
-  if (nrow(sftp_files) > 0) {
-    proceed_msg <- paste0("Download the ", nrow(sftp_files), " files?")
+  ## Ask to remove existing file from ftp file list
+  if (nrow(etl_exists) > 0) {
+    for (x in 1:nrow(etl_exists)) {
+      remove_msg <- glue::glue("The file: {etl_exists[x,'file_name']} \\
+                              already exists in the [{table}] table \\
+                              with etl_batch_id: {etl_exists[x,'etl_batch_id']}.
+                              
+                              Remove it from the list of files to download?")
+      remove <- askYesNo(msg = remove_msg)
+      if (remove == T) {
+        zipfiles <- zipfiles[!zipfiles$shortName == substr(etl_exists[x, "file_name"], 1, nchar(etl_exists[x, "file_name"]) - 3), ]
+      }
+    }
+  } 
+  
+  if (nrow(zipfiles) > 0) {
+    proceed_msg <- "Download the following files?"
+    for (x in 1:nrow(zipfiles)) {
+      proceed_msg <- paste0(proceed_msg, "\n", zipfiles[x, "fileName"])
+    }
     proceed <- askYesNo(msg = proceed_msg)
   }
   
   if (proceed == T) {
     message(paste0("Downloading Files - ", Sys.time()))
-    sftp_download(file = sftp_files$name, tofolder = dldir)
-    message(paste0("Download Completed - ", Sys.time()))
+    ## Go through all of the filenames 
+    for (x in 1:nrow(zipfiles)) {
+      filename = zipfiles[x,"fileName"]
+      ## Set the destination for the download
+      zfile <- paste0(zipdir, filename)
+      ## Set the url for the file to download
+      message(paste0("Begin Downloading ", filename, " - ", Sys.time()))
+      ## Download file and write it to a zip file in the specified directory  
+      h <- curl::new_handle()
+      curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list("hca_sftp")[["username"]], ":", key_get("hca_sftp", key_list("hca_sftp")[["username"]])))
+      curl::curl_download(url = paste0(url,"/", filename), 
+                          destfile = paste0(zipdir, filename), 
+                          handle = h)
+      message(paste0("Download Completed - ", Sys.time()))
+    }
+    message(paste0("All Files Downloaded - ", Sys.time()))
     
-    zfiles <- data.frame("fileName" = list.files(dldir, pattern="*.gz", recursive = T))
+    zfiles <- data.frame("fileName" = list.files(zipdir, pattern="*.zip"))
     message(paste0("Extracting Files - ", Sys.time()))
     for (x in 1:nrow(zfiles)) {
       message(paste0("Begin Extracting ", zfiles[x, "fileName"], " - ", Sys.time()))
       ## Extract file to specified directory
-      gunzip(paste0(dldir, "/", zfiles[x, "fileName"]), destname = paste0(exdir, "/", gsub("csv[.]gz$", "txt", zfiles[x, "fileName"])), remove = F)
+      unzip(paste0(zipdir, zfiles[x, "fileName"]), exdir = exdir)
       message(paste0("Extraction Completed - ", Sys.time()))
     }
     message("------------------------------")
     message(paste0("All Files Extracted - ", Sys.time()))
   }
- 
-  #### Consolidate each set of files into a single TXT file
-  exdirs <- list.dirs(exdir)
-  message(paste0("Consolodating Each Set of Files into Single TXT - ", Sys.time()))
-  for(d in 1:length(exdirs)) {
-    if(exdirs[d] != exdir) {
-      efiles <- data.frame("fileName" = list.files(exdirs[d], pattern="*.txt"))
-      tname <- paste0(substr(efiles[1, "fileName"], 1, str_locate(efiles[1, "fileName"], "[.]")[1, 1] - 1), ".txt")
-      message(paste0("Begin Buidling ", tname, " - ", Sys.time()))
-      for(i in 1:nrow(efiles)) {
-        message(paste0("Reading File ", i, " of ", nrow(efiles), " - ", Sys.time()))
-        con <- file(paste0(exdirs[d],"/",efiles[i, "fileName"]),"r")
-        df <- readLines(con)
-        close(con)
-        if(i == 1) {
-          message(paste0("Creating ", tname, " - ", Sys.time()))
-        }
-        message(paste0("Writing ", length(df) - 1, " Rows to ", tname, " - ", Sys.time()))
-        for(x in 1:length(df)) {
-          if(x == 1 && i == 1) {
-            cat(df[x], file = paste0(txtdir, "/", tname), sep = "\n", append = F)
-          } else if(x > 1) {
-            cat(df[x], file = paste0(txtdir, "/", tname), sep = "\n", append = T)
-          }
-        }
-      }
-      message(paste0("File ", tname, " Complete - ", Sys.time()))
-    }
-    message(paste0("File Consolodation Complete - ", Sys.time()))
-  }
   
   #### Check text files' rows, columns and dates
-  tfiles <- data.frame("fileName" = list.files(txtdir, pattern="*.txt"))
+  tfiles <- data.frame("fileName" = list.files(exdir, pattern="*.txt"))
   message("------------------------------")
   message(paste0("Performing QA Checks - ", Sys.time()))
   message("------------------------------")
@@ -142,7 +158,7 @@ if(T) {
       config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml"))
       tfiles[x, "server_loc"] <- "//kcitsqlutpdbh51/importdata/Data/KC_Claim/"
     }
-    file_path = paste0(txtdir, "/", file_name)
+    file_path = paste0(exdir, file_name)
     ### rows
     row_cnt <- R.utils::countLines(file_path) - 1
     ### columns
@@ -240,8 +256,8 @@ if(T) {
       ## Compress file to specified directory
       tfiles[x, "gzName"] <- paste0(tfiles[x, "fileName"], ".gz")
       message(paste0("Begin Compressing ", tfiles[x, "gzName"], " - ", Sys.time()))
-      gzip(paste0(txtdir, "/", tfiles[x, "fileName"]), 
-           destname = paste0(gzdir, "/", tfiles[x, "gzName"]), 
+      gzip(paste0(exdir, tfiles[x, "fileName"]), 
+           destname = paste0(gzdir, tfiles[x, "gzName"]), 
            remove = F)
       message(paste0("Compression Completed - ", Sys.time()))
     }
@@ -253,7 +269,7 @@ if(T) {
       message(paste0("Begin Uploading/Renaming ", tfiles[x, "gzName"], " - ", Sys.time()))
       tfiles[x, "uploadName"] <- tfiles[x, "gzName"]
       storage_upload(cont, 
-                     paste0(gzdir, "/", tfiles[x, "gzName"]), 
+                     paste0(gzdir, tfiles[x, "gzName"]), 
                      paste0("claims/mcaid/", tfiles[x, "type"], "/incr/", tfiles[x, "uploadName"]))
       message(paste0("Upload Completed - ", Sys.time()))
     }
@@ -317,21 +333,17 @@ if(T) {
   }
   delete <- askYesNo("Delete Temporary Files?")
   if(delete == T) {
-    files <- list.files(dldir, recursive = T)
+    files <- list.files(zipdir)
     for (x in 1:length(files)) {
-      file.remove(paste0(dldir, "/", files[x]))
+      file.remove(paste0(zipdir,files[x]))
     }
-    files <- list.files(exdir, recursive = T)
+    files <- list.files(exdir)
     for (x in 1:length(files)) {
-      file.remove(paste0(exdir, "/", files[x]))
+      file.remove(paste0(exdir,files[x]))
     }
-    files <- list.files(txtdir, recursive = T)
+    files <- list.files(gzdir)
     for (x in 1:length(files)) {
-      file.remove(paste0(txtdir, "/", files[x]))
-    }
-    files <- list.files(gzdir, recursive = T)
-    for (x in 1:length(files)) {
-      file.remove(paste0(gzdir, "/", files[x]))
+      file.remove(paste0(gzdir,files[x]))
     }
   }
 }
