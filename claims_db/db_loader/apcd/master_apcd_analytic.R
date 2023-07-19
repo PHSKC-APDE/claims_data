@@ -168,7 +168,7 @@ system.time(load_stage.apcd_elig_plr_f(from_date = "2021-01-01", to_date = "2021
 system.time(load_stage.apcd_elig_plr_f(from_date = "2018-07-01", to_date = "2019-06-30", calendar_year = F, table_name = "20190630")) #2018-07-01 -> 2019-06-30, custom TPCHD window
 
 ##update to the most recent 12 months and update yaml file name (...\claims_db\phclaims\stage\tables)
-system.time(load_stage.apcd_elig_plr_f(from_date = "2021-07-01", to_date = "2022-06-30", calendar_year = F, table_name = "20220630")) #2021-07-01 -> 2022-06-3028, most recent 12 months
+system.time(load_stage.apcd_elig_plr_f(from_date = "2022-01-01", to_date = "2022-12-31", calendar_year = F, table_name = "20221231")) #2022-01-01 -> 2022-12-31, most recent 12 months
 
 
 ### D) Table-level QA
