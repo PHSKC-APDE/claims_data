@@ -78,7 +78,7 @@ qa_stage.apcd_claim_icdcm_header_f <- function() {
     count (distinct a.icdcm_norm) as qa
     from stage.apcd_claim_icdcm_header as a
     left join ref.icdcm_codes as b
-    on a.icdcm_norm = b.icdcm and a.icdcm_version = b.icdcm_ver
+    on a.icdcm_norm = b.icdcm and a.icdcm_version = b.icdcm_version
     where b.icdcm is null;",
     .con = db_claims))
   
