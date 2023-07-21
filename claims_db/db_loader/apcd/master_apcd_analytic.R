@@ -194,9 +194,9 @@ alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", t
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_2018")
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_2019")
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_2020")
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_20210228") #Old table for most recent 12 months
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_2021")
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_20190630")#Old table for most recent 12 months
-
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_20220630") #Old table for most recent 12 months
 
 ### G) Alter schema on new table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_elig_plr_2014")
