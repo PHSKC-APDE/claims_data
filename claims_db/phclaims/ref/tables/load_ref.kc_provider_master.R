@@ -19,7 +19,7 @@ load_ref.kc_provider_master_f <- function() {
     select distinct cast(npi as bigint) as npi, entity_type,
     case when len(zip_physical) = 5 then zip_physical else null end as geo_zip_practice,
     case when primary_taxonomy in ('-1','-2') or len(primary_taxonomy) != 10 then null else primary_taxonomy end as primary_taxonomy, 
-    case when secondary_taxonomy in ('-1','-2') or len(secondary_taxonomy) != 10 then null else secondary_taxonomy end as secondary_taxonomy, 
+    case when secondary_taxonomy_physical in ('-1','-2') or len(secondary_taxonomy_physical) != 10 then null else secondary_taxonomy_physical end as secondary_taxonomy, 
     1 as apcd_provider_master_flag
     into #provider_master
     from PHClaims.stage.apcd_provider_master;
