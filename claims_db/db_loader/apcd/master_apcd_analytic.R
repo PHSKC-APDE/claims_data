@@ -81,7 +81,7 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_timevar.yaml",
                overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
 
-### C) Load tables [CHANGE EXTRACT END DATE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!]
+### C) Load tables
 system.time(load_stage.apcd_elig_timevar_f())
 
 ### D) Table-level QA
