@@ -82,7 +82,7 @@ create_table(conn = db_claims,
                overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
 
 ### C) Load tables [CHANGE EXTRACT END DATE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!]
-system.time(load_stage.apcd_elig_timevar_f(extract_end_date = "2022-06-30"))
+system.time(load_stage.apcd_elig_timevar_f())
 
 ### D) Table-level QA
 system.time(apcd_timevar_qa1 <- qa_stage.apcd_elig_timevar_f())
