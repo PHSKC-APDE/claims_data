@@ -10,15 +10,7 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
 
 #### Load script ####
-load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
-  
-  ### Require extract_end_date
-  if (is.null(extract_end_date)) {
-    stop("Enter the end date for this APCD extract: \"YYYY-MM-DD\"")
-  }
-  
-  ### Process extract end date
-  extract_end_yearmo <- as.integer(stringr::str_sub(stringr::str_replace_all(extract_end_date, "-", ""), 1, 6))
+load_stage.apcd_elig_timevar_f <- function() {
   
   ### Run SQL query
   odbc::dbGetQuery(db_claims, glue::glue_sql(
