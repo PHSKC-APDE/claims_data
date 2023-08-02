@@ -102,7 +102,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
       datediff(day, min(from_date), max(to_date)) + 1 as cov_time_day
     into #temp3
     from #temp2
-    group by internal_member_id, zip_code, med_covgrp, pharm_covgrp, dental_covgrp, dual_flag, bsp_group_cid, full_benefit, group_num;
+    group by internal_member_id, zip_code, med_covgrp, pharm_covgrp, dental_covgrp, dual_flag, group_num;
     
     if object_id('tempdb..#temp2') is not null drop table #temp2;
     
