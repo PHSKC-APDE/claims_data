@@ -87,7 +87,7 @@ load_stage.apcd_elig_timevar_f <- function(extract_end_date = NULL) {
     if object_id('tempdb..#temp2') is not null drop table #temp2;
     select distinct internal_member_id, from_date, to_date, zip_code, med_covgrp, pharm_covgrp, dental_covgrp, dual_flag,
     	datediff(month, '1900-01-01', from_date) - row_number() 
-    	over (partition by internal_member_id, zip_code, med_covgrp, pharm_covgrp, dental_covgrp, dual_flag, order by from_date) as group_num
+    	over (partition by internal_member_id, zip_code, med_covgrp, pharm_covgrp, dental_covgrp, dual_flag order by from_date) as group_num
     into #temp2
     from #temp1;
     
