@@ -6,10 +6,8 @@ vars:
     overall_mcaid: tinyint
     overall_mcaid_med: tinyint
     overall_mcaid_pharm: tinyint
-    performance_11_wa: tinyint
-    performance_7_wa: tinyint
-    performance_11_ach: tinyint
-    performance_7_ach: tinyint
+    medical_coverage_7mo: tinyint
+    medical_coverage_11mo: tinyint
     geo_zip: varchar(10)
     geo_county: varchar(100)
     geo_ach: varchar(100)
@@ -34,8 +32,8 @@ vars:
     race_unknown: tinyint
     med_total_covd: bigint
     med_total_covper: numeric(4, 1)
-    full_benefit_covd: bigint
-    full_benefit_covper: numeric(4, 1)
+    medical_coverage_7mo: tinyint
+    medical_coverage_11mo: tinyint
     dual_covd: bigint
     dual_covper: numeric(4, 1)
     dual: tinyint
