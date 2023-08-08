@@ -196,7 +196,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
     
     
     if (rows_diff != 0) {
-      row_diff_qa_note <- paste0('Number of rows in stage ({rows_stage}) does not match ',
+      row_diff_qa_note <- paste0('Number of rows in stage (', rows_stage, ') does not match ',
                                  'raw (', rows_raw, ') + archive (', rows_archive, ')')
     } else {
       row_diff_qa_note <- paste0('Number of rows in stage matches raw + archive (', rows_stage, ')')
