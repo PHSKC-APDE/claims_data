@@ -72,14 +72,14 @@ qa_stage.apcd_claim_icdcm_header_f <- function() {
     where icdcm_raw is null;",
     .con = db_claims))
   
-  #count distinct ICD-CM codes that do not join to dx lookup table
+  #count distinct ICD-CM codes that do not join to icdcm lookup table
   res8 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.apcd_claim_icdcm_header' as 'table', '# of diagnoses not joining, expect <100' as qa_type,
     count (distinct a.icdcm_norm) as qa
     from stage.apcd_claim_icdcm_header as a
-    left join ref.dx_lookup as b
-    on a.icdcm_norm = b.dx and a.icdcm_version = b.dx_ver
-    where b.dx is null;",
+    left join ref.icdcm_codes as b
+    on a.icdcm_norm = b.icdcm and a.icdcm_version = b.icdcm_version
+    where b.icdcm is null;",
     .con = db_claims))
   
   #length of ICD-10-CM between 3 and 7

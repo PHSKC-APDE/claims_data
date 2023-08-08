@@ -2,7 +2,7 @@ server_path: KCITSQLUTPDBH51
 db_name: PHClaims
 to_schema: ref
 to_table: apcd_ethnicity_race_map
-file_path: C:/Users/kerneli/King County/King County Cross-Sector Data - General/References/APCD/apcd_ethnicity_race_mapping.csv
+file_path: C:/Users/shernandez/King County/DPH-KCCross-SectorData - General/References/APCD/apcd_ethnicity_race_mapping.csv
 field_term: ','
 row_term: \n
 vars:

@@ -21,8 +21,6 @@ vars:
     dental_commercial: tinyint
     dental_unknown: tinyint
     dual: tinyint
-    bsp_group_cid: varchar(255)
-    full_benefit: tinyint
     geo_zip: varchar(255)
     geo_county_code: varchar(255)
     geo_county: varchar(255)

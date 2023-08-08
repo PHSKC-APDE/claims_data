@@ -81,8 +81,8 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_timevar.yaml",
                overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
 
-### C) Load tables [CHANGE EXTRACT END DATE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!]
-system.time(load_stage.apcd_elig_timevar_f(extract_end_date = "2022-06-30"))
+### C) Load tables
+system.time(load_stage.apcd_elig_timevar_f())
 
 ### D) Table-level QA
 system.time(apcd_timevar_qa1 <- qa_stage.apcd_elig_timevar_f())
@@ -148,9 +148,9 @@ create_table(conn = db_claims,
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_20190630.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
 
-#2021-07-01 through 2022-06-30, update to most recent 12 months
+#2022-01-01 through 2022-12-31, update to most recent 12 months
 create_table(conn = db_claims, 
-             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_20220630.yaml",
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_20221231.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
 
 ### C) Load tables
@@ -168,7 +168,7 @@ system.time(load_stage.apcd_elig_plr_f(from_date = "2021-01-01", to_date = "2021
 system.time(load_stage.apcd_elig_plr_f(from_date = "2018-07-01", to_date = "2019-06-30", calendar_year = F, table_name = "20190630")) #2018-07-01 -> 2019-06-30, custom TPCHD window
 
 ##update to the most recent 12 months and update yaml file name (...\claims_db\phclaims\stage\tables)
-system.time(load_stage.apcd_elig_plr_f(from_date = "2021-07-01", to_date = "2022-06-30", calendar_year = F, table_name = "20220630")) #2021-07-01 -> 2022-06-3028, most recent 12 months
+system.time(load_stage.apcd_elig_plr_f(from_date = "2022-01-01", to_date = "2022-12-31", calendar_year = F, table_name = "20221231")) #2022-01-01 -> 2022-12-31, most recent 12 months
 
 
 ### D) Table-level QA
@@ -182,7 +182,7 @@ system.time(apcd_plr_2020_qa1 <- qa_stage.apcd_elig_plr_f(year = "2020"))
 system.time(apcd_plr_2021_qa1 <- qa_stage.apcd_elig_plr_f(year = "2021"))
 ##add the most recent complete year
 system.time(apcd_plr_custom2_qa <- qa_stage.apcd_elig_plr_f(year = "20190630"))
-system.time(apcd_plr_custom1_qa <- qa_stage.apcd_elig_plr_f(year = "20220630")) ##update QA script
+system.time(apcd_plr_custom1_qa <- qa_stage.apcd_elig_plr_f(year = "20221231")) ##update QA script
 
 ### E) Run line-level QA script on a single year only at \\dchs-shares01\dchsdata\dchsphclaimsdata\qa_line_level\qa_stage.apcd_elig_plr.sql
 
@@ -194,8 +194,9 @@ alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", t
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_2018")
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_2019")
 alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_2020")
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_20210228") #Old table for most recent 12 months
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_20190630")
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_2021")
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_20190630")#Old table for most recent 12 months
+alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_plr_20220630") #Old table for most recent 12 months
 
 ### G) Alter schema on new table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_elig_plr_2014")
@@ -206,7 +207,7 @@ alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", tab
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_elig_plr_2019")
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_elig_plr_2020")
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_elig_plr_2021")
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_elig_plr_20220630") #New table for most recent 12 months
+alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_elig_plr_20221231") #New table for most recent 12 months
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_elig_plr_20190630")
 
 ### H) Create clustered columnstore index
@@ -217,7 +218,7 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on final.apcd_elig_plr_2018")))
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on final.apcd_elig_plr_2019")))
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on final.apcd_elig_plr_2020")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on final.apcd_elig_plr_20220630"))) #New table for most recent 12 months
+system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on final.apcd_elig_plr_20221231"))) #New table for most recent 12 months
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on final.apcd_elig_plr_20190630")))
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
