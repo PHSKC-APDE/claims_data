@@ -672,7 +672,7 @@ rda_value_sets_new <- rda_value_sets_new %>%
                            "EXT017", "EXT010", "EXT019", "10.3", "INJ073", "GEN025", "INJ064", "INJ059", "MBD012",
                            "5.13") ~ "mh_depression",
     ccs_detail_code %in% c("MBD008", "5.7", "MBD013") ~ "mh_disrupt",
-    ccs_detail_code %in% c("MBD003", "5.8") ~ "mh_mania_bipola",
+    ccs_detail_code %in% c("MBD003", "5.8") ~ "mh_mania_bipolar",
     ccs_detail_code %in% c("12.2", "5.10", "MBD001") ~ "mh_psychotic",
     ccs_detail_code %in% c("5.11", "MBD017", "DIG007", "DIG018", "INF007", "CIR005", "MAL010", "DIG019",
                            "16.11", "2613") ~ "sud_alcohol",
