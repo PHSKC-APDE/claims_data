@@ -729,8 +729,69 @@ icd10cm <- icd10cm %>%
       TRUE ~ NA_integer_)
   )
 
-# QA : Check to make sure all rows now have CCS information filled in - 4 passes were necessary in April 2023
+#5th pass - fill in missing CCS information if first 6,5,4, or 3 digits of ICD-10-CM code matches with row below or above
+icd10cm <- icd10cm %>%
+  mutate(
+    ccs_broad_desc = case_when(
+      !is.na(ccs_broad_desc) ~ ccs_broad_desc,
+      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+      TRUE ~ NA_character_),
+    ccs_broad_code = case_when(
+      !is.na(ccs_broad_code) ~ ccs_broad_code,
+      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+      TRUE ~ NA_character_),
+    ccs_detail_desc = case_when(
+      !is.na(ccs_detail_desc) ~ ccs_detail_desc,
+      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+      TRUE ~ NA_character_),
+    ccs_detail_code = case_when(
+      !is.na(ccs_detail_code) ~ ccs_detail_code,
+      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+      TRUE ~ NA_character_),
+    ccs_catch_all = case_when(
+      !is.na(ccs_catch_all) ~ ccs_catch_all,
+      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+      TRUE ~ NA_integer_)
+  )
+
+# QA : Check to make sure all rows now have CCS information filled in - 5 passes were necessary in September 2023
 count(filter(icd10cm, is.na(ccs_broad_desc)))
+#View(filter(icd10cm, is.na(ccs_broad_desc)))
 
 # Clean up
 rm(ccs_10_raw, ccs_10_simple, ccs_9_raw, ccs_9_simple)
@@ -752,83 +813,21 @@ db_hhsaw <- DBI::dbConnect(odbc::odbc(),
 ## Pull in RDA measure value set from HHSAW
 ref.rda_value_set <- dbGetQuery(conn = db_hhsaw,
                                 "SELECT *
-  FROM [claims].[ref_rda_value_set_2021]
-  where data_source_type = 'Diagnosis' and code_set like 'ICD%'
+  FROM [ref].[rda_value_sets_apde]
+  where code_set in ('ICD9CM', 'ICD10CM')
   order by code_set, code;")
 
-## Add an ICD-CM version variable to allow separating table into ICD-9-CM and ICD-10-CM
-ref.rda_value_set <- ref.rda_value_set %>%
-  mutate(icdcm_version = case_when(
-    code_set == "ICD-9" ~ 9L,
-    code_set == "ICD-10" ~ 10L,
-    str_detect(code,"^[:digit:]") ~ 9L,
-    str_detect(code, "^E") & str_detect(desc_1, "poison|injury|injuries") ~ 9L,
-    str_detect(code, "^V") ~ 9L,
-    str_detect(code, "^[:alpha:]") ~ 10L,
-    TRUE ~ NA_integer_
-  ))
-
-## Fill in missing sub_group values
-ref.rda_value_set <- ref.rda_value_set %>%
-  mutate(sub_group = case_when(
-    sub_group != "NA" & !is.na(sub_group) ~ sub_group,
-    value_set_name == "OUD-Dx-Value-Set" ~ "Opioid",
-    str_detect(str_to_lower(desc_1), "alcohol") ~ "Alcohol",
-    str_detect(str_to_lower(desc_1), "cannabis") ~ "Cannabis",
-    str_detect(str_to_lower(desc_1), "cocaine") ~ "Cocaine",
-    str_detect(str_to_lower(desc_1), "hallucinogen") ~ "Hallucinogen",
-    str_detect(str_to_lower(desc_1), "inhalant") ~ "Inhalant",
-    str_detect(str_to_lower(desc_1), "sedat") ~ "Sedative",
-    str_detect(str_to_lower(desc_1), "amphetamine") ~ "Other Stimulant",
-    str_detect(str_to_lower(desc_1), "stimulant") ~ "Other Stimulant",
-    str_detect(str_to_lower(desc_1), "opium|opiate|heroin|narcotic|methadone") ~ "Opioid",
-    str_to_upper(desc_1) == "COMB OF OPOID TYPE DRUG W/ANY OTHER" ~ "Opioid",
-    value_set_name == "SUD-Dx-Value-Set" ~ "Other Substance",
-    TRUE ~ NA_character_
-  ))
-
-## Check to make sure all rows have a subgroup
-ref.rda_value_set %>% filter(is.na(sub_group) | sub_group == "NA") %>% count()
-
-## Normalize sub_group names for condition-specific variable creation
-ref.rda_value_set <- ref.rda_value_set %>%
-  mutate(sub_group = case_when(
-    sub_group == "ADHD" ~ "mh_adhd",
-    sub_group == "Adjustment" ~ "mh_adjustment",
-    sub_group == "Anxiety" ~ "mh_anxiety",
-    sub_group == "Depression" ~ "mh_depression",
-    sub_group == "Disrup/Impulse/Conduct" ~ "mh_disrupt",
-    sub_group == "Mania/Bipolar" ~ "mh_mania_bipolar",
-    sub_group == "Psychotic" ~ "mh_psychotic",
-    
-    sub_group == "Alcohol" ~ "sud_alcohol",
-    sub_group == "Cannabis" ~ "sud_cannabis",
-    sub_group == "Cocaine" ~ "sud_cocaine",
-    sub_group == "Hallucinogen" ~ "sud_hallucinogen",
-    sub_group == "Inhalant" ~ "sud_inhalant",
-    sub_group == "Opioid" ~ "sud_opioid",
-    sub_group == "Sedative" ~ "sud_sedative",
-    sub_group == "Other Stimulant" ~ "sud_other_stimulant",
-    sub_group == "Other Substance" ~ "sud_other_substance",
-    
-    TRUE ~ NA_character_))
-
-## QA
-# count(ref.rda_value_set, sub_group)
-# x <- filter(ref.rda_value_set, sub_group == "NA")
-# clipr::write_clip(x)
-
-## Separate by era and collapse to distinct rows at code-subgroup level
+## Separate by era and collapse to distinct rows at sub_group_condition level
 rda_icd9cm <- filter(ref.rda_value_set, icdcm_version == 9) %>%
-  distinct(code, sub_group) %>%
+  distinct(code, sub_group_condition) %>%
   mutate(flag = 1L)
 
 rda_icd10cm <- filter(ref.rda_value_set, icdcm_version == 10) %>%
-  distinct(code, sub_group) %>%
+  distinct(code, sub_group_condition) %>%
   mutate(flag = 1L)
 
 ## ICD-9-CM: Pivot data frames to wide to create flags for each condition
-rda_icd9cm <- pivot_wider(rda_icd9cm, names_from = sub_group, values_from = flag)
+rda_icd9cm <- pivot_wider(rda_icd9cm, names_from = sub_group_condition, values_from = flag)
 
 ## ICD-9-CM Create summary flags
 rda_icd9cm <- rda_icd9cm %>%
@@ -845,7 +844,7 @@ rda_icd9cm <- rda_icd9cm %>%
 
 
 ## ICD-10-CM: Pivot data frames to wide to create flags for each condition
-rda_icd10cm <- pivot_wider(rda_icd10cm, names_from = sub_group, values_from = flag)
+rda_icd10cm <- pivot_wider(rda_icd10cm, names_from = sub_group_condition, values_from = flag)
 
 ## ICD-10-CM Create summary flags
 rda_icd10cm <- rda_icd10cm %>%
@@ -862,8 +861,8 @@ rda_icd10cm <- rda_icd10cm %>%
 
 ## QA
 ## Check that bh_any is filled for every code
-# all(!is.na(rda_icd9cm$bh_any))
-# all(!is.na(rda_icd10cm$bh_any))
+all(!is.na(rda_icd9cm$bh_any))
+all(!is.na(rda_icd10cm$bh_any))
 
 ## Join to ICD-9-CM codes
 icd9cm <- left_join(icd9cm, rda_icd9cm, by = c("icdcode" = "code"))
@@ -942,7 +941,7 @@ icd10_codes <- unique(icd910cm[icd910cm$icdcm_version == 10,]$icdcm)
 
 # differences for each data source
 length(setdiff(mcaid[mcaid$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 2
-length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 15
+length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 26
 length(setdiff(apcd[apcd$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 0
 length(setdiff(apcd[apcd$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 390
 length(setdiff(chars[chars$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 236
