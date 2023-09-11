@@ -671,7 +671,7 @@ rda_value_sets_new <- rda_value_sets_new %>%
                            "EXT005", "EXT007", "EXT011", "EXT018", "EXT014", "EXT030", "EXT016", "EXT029",
                            "EXT017", "EXT010", "EXT019", "10.3", "INJ073", "GEN025", "INJ064", "INJ059", "MBD012",
                            "5.13") ~ "mh_depression",
-    ccs_detail_code %in% c("5.3", "MBD008", "5.7", "MBD013") ~ "mh_disrupt",
+    ccs_detail_code %in% c("MBD008", "5.7", "MBD013") ~ "mh_disrupt",
     ccs_detail_code %in% c("MBD003", "5.8") ~ "mh_mania_bipola",
     ccs_detail_code %in% c("12.2", "5.10", "MBD001") ~ "mh_psychotic",
     ccs_detail_code %in% c("5.11", "MBD017", "DIG007", "DIG018", "INF007", "CIR005", "MAL010", "DIG019",
@@ -685,6 +685,9 @@ rda_value_sets_new <- rda_value_sets_new %>%
     ccs_detail_code %in% c("MBD020") ~ "sud_sedative",
     
     #Assignments based on ICDCM codes (where CCS categories have to be disaggregated)
+    ccs_detail_code == "5.3" & code %in% c("31400", "31401") ~ "mh_adhd",
+    ccs_detail_code == "5.3" ~ "mh_disrupt",
+    
     ccs_detail_code %in% c("INJ075") & code %in% c("T510X1S", "T511X1S", "T512X1S", "T513X1S",
                                                    "T518X1S", "T5191XS") ~ "sud_alcohol",
     ccs_detail_code %in% c("INJ075") ~ "mh_depression",
