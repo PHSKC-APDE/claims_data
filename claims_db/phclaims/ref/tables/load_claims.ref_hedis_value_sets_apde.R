@@ -757,28 +757,29 @@ to_table_med_lists <- "ref_hedis_medication_lists_apde"
 ## Load data to HHSAW
 
 #HEDIS measures
-dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_measures), 
+system.time(dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_measures), 
              value = as.data.frame(hedis_measures), 
-             overwrite = T)
+             overwrite = T))
 
 #HEDIS value sets
-dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_value_sets), 
+system.time(dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_value_sets), 
              value = as.data.frame(hedis_value_sets), 
-             overwrite = T)
+             overwrite = T))
 
 #HEDIS medication measures
-dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_med_measures), 
+system.time(dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_med_measures), 
              value = as.data.frame(hedis_medication_measures), 
-             overwrite = T)
+             overwrite = T))
 
 #HEDIS medication lists
-dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_med_lists), 
+system.time(dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_med_lists), 
              value = as.data.frame(hedis_medication_lists), 
-             overwrite = T)
+             overwrite = T))
 
 # Add index on HEDIS value sets table
-DBI::dbExecute(db_hhsaw, 
+system.time(DBI::dbExecute(db_hhsaw, 
   glue::glue_sql(
-  "CREATE CLUSTERED INDEX [idx_cl_code_system_code] ON {`to_schema`}.{`to_table_value_sets`}(code_system, code)", .con = db_hhsaw))
+  "CREATE CLUSTERED INDEX [idx_cl_code_system_code] ON {`to_schema`}.{`to_table_value_sets`}(code_system, code)",
+  .con = db_hhsaw)))
 
 #PLACEHOLDER FOR WRITING TABLES TO PHCLAIMS ONCE SQL MIGRATION IS COMPLETE
