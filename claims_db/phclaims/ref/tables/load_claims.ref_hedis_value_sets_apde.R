@@ -756,27 +756,27 @@ to_table_med_lists <- "ref_hedis_medication_lists_apde"
 
 ## Load data to HHSAW
 
-#HEDIS measures
+#HEDIS measures (<1 min)
 system.time(dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_measures), 
              value = as.data.frame(hedis_measures), 
              overwrite = T))
 
-#HEDIS value sets
+#HEDIS value sets (69 min)
 system.time(dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_value_sets), 
              value = as.data.frame(hedis_value_sets), 
              overwrite = T))
 
-#HEDIS medication measures
+#HEDIS medication measures (<1 min)
 system.time(dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_med_measures), 
              value = as.data.frame(hedis_medication_measures), 
              overwrite = T))
 
-#HEDIS medication lists
+#HEDIS medication lists (225 min)
 system.time(dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table_med_lists), 
              value = as.data.frame(hedis_medication_lists), 
              overwrite = T))
 
-# Add index on HEDIS value sets table
+# Add index on HEDIS value sets table (<1 min)
 system.time(DBI::dbExecute(db_hhsaw, 
   glue::glue_sql(
   "CREATE CLUSTERED INDEX [idx_cl_code_system_code] ON {`to_schema`}.{`to_table_value_sets`}(code_system, code)",
