@@ -1,7 +1,7 @@
 # This code creates the the mcaid performance measures enrollment denominator table
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 #
 # R script developed by Alastair Matheson based on Philip Sylling's stored procedure
 
@@ -70,28 +70,29 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
   }
 
   
-  look_back_date_int <- DBI::dbGetQuery(
+  look_back_date_int <- as.integer(DBI::dbGetQuery(
     conn, glue::glue_sql("SELECT YEAR([24_month_prior]) * 100 + MONTH([24_month_prior]) FROM 
                          {`ref_schema`}.{DBI::SQL(ref_table)}perf_year_month 
                          WHERE year_month = {start_date_int}",
-                         .con = conn))
+                         .con = conn)))
   
   
   #### Set up initial temp table ####
-  # Delete existing table
-  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##temp', 'U') IS NOT NULL DROP TABLE ##temp")
+  # Delete existing temp table
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##temp_mcaid_perf', 'U') IS NOT NULL DROP TABLE ##temp_mcaid_perf")
   
-  
-  # Load into temp table
-  DBI::dbExecute(conn,
-                 glue::glue_sql("SELECT * INTO ##temp
-                                FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_perf_elig_member_month
-                                (CAST({look_back_date_int} AS VARCHAR(20)), CAST({end_date_int} AS VARCHAR(20)))",
-                                .con = conn))
+  # Load into temp table using function
+  if (exists("mcaid_perf_enroll_member_month_f") == FALSE) {
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/mcaid_perf_enroll_member_month_f.R")
+  }
+  mcaid_perf_enroll_member_month_f(conn = conn, server = server,
+                                   start_date_int = look_back_date_int, 
+                                   end_date_int = end_date_int,
+                                   output_table = "temp_mcaid_perf", output_temp = TRUE)
   
   # Set up an index
   DBI::dbExecute(conn,
-                 "CREATE CLUSTERED INDEX [idx_cl_#temp_id_mcaid_year_month] ON ##temp([id_mcaid], [year_month])")
+                 "CREATE CLUSTERED INDEX [idx_cl_#temp_id_mcaid_year_month] ON ##temp_mcaid_perf([id_mcaid], [year_month])")
 
 
 
@@ -148,7 +149,7 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
                  ,[zip_code]
                  ,[row_num]
                  INTO ##mcaid_perf_enroll_denom
-                 FROM ##temp")
+                 FROM ##temp_mcaid_perf")
   
   # Set up an index
   DBI::dbExecute(conn,
@@ -205,6 +206,7 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
 
   
   #### Make stage table ####
+  # If it doesn't exist, need to manually create it using create_stage.mcaid_perf_enroll_denom.sql
   DBI::dbExecute(conn,
                  glue::glue_sql(
                    "WITH CTE AS
@@ -249,21 +251,21 @@ load_stage_mcaid_perf_enroll_denom_f <- function(conn = NULL,
   
   
   ### Add new indices ####
-  DBI::dbExecute(conn, 
+  try(DBI::dbExecute(conn, 
                  glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_mcaid_perf_enroll_denom_id_mcaid_year_month] ON {`to_schema`}.{`to_table`}([id_mcaid], [year_month])",
-                                .con = conn))
-  DBI::dbExecute(conn, 
+                                .con = conn)))
+  try(DBI::dbExecute(conn, 
                  glue::glue_sql("CREATE NONCLUSTERED INDEX [idx_nc_mcaid_perf_enroll_denom_end_month_age] ON {`to_schema`}.{`to_table`}([end_month_age])",
-                                .con = conn))
-  DBI::dbExecute(conn, 
+                                .con = conn)))
+  try(DBI::dbExecute(conn, 
                  glue::glue_sql("CREATE NONCLUSTERED INDEX [idx_nc_mcaid_perf_enroll_denom_age_in_months] ON {`to_schema`}.{`to_table`}([age_in_months])",
-                                .con = conn))
+                                .con = conn)))
   
   message("Performance measure enrollment denominator table created")
   
   
   #### Clean up temp tables ####
-  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##temp', 'U') IS NOT NULL DROP TABLE ##temp")
+  DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##temp_mcaid_perf', 'U') IS NOT NULL DROP TABLE ##temp_mcaid_perf")
   DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##mcaid_perf_enroll_denom', 'U') IS NOT NULL
                  DROP TABLE ##mcaid_perf_enroll_denom")
   DBI::dbExecute(conn, "IF OBJECT_ID('tempdb..##last_year_month', 'U') IS NOT NULL

@@ -1,0 +1,13 @@
+source_data: mcare
+claim_header_from_schema: tmp
+claim_header_from_table: mcare_claim_header
+icdcm_from_schema: tmp
+icdcm_from_table: mcare_claim_icdcm_header
+schema: tmp
+to_table: mcare_claim_bh
+vars:
+    id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    from_date: date
+    to_date: date
+    bh_cond: varchar(200)
+    last_run: date

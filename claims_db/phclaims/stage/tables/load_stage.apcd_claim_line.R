@@ -2,9 +2,10 @@
 # Eli Kern, PHSKC (APDE)
 #
 # 2019-10
+# modified 7/28/23 to correct nonsensical discharge dates
 
 ### Run from master_apcd_analytic script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/apcd/master_apcd_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
 
 #### Load script ####
 load_stage.apcd_claim_line_f <- function() {
@@ -28,7 +29,13 @@ load_stage.apcd_claim_line_f <- function() {
     a.revenue_code,
     a.place_of_service_code,
     a.admission_dt as admission_date,
-    a.discharge_dt as discharge_date,
+    
+     case
+      when a.discharge_dt < a.admission_dt then a.last_service_dt
+      when a.admission_dt is null and a.discharge_dt < a.first_service_dt then a.last_service_dt
+      else a.discharge_dt
+    end as discharge_date,   
+    
     a.discharge_status_code,
     a.admission_point_of_origin_code,
     a.admission_type,

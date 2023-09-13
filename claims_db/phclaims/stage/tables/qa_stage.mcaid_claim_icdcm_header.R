@@ -2,7 +2,7 @@
 # This code QAs table [stage].[mcaid_claim_icdcm_header]
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 #
 # 2019-12
 # Alastair Matheson (building on SQL from Philip Sylling)
@@ -276,6 +276,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                          GROUP BY YEAR(first_service_date) ORDER by YEAR(first_service_date)", .con = conn))
     
     num_dx_overall <- left_join(num_dx_new, num_dx_current, by = "claim_year") %>%
+      mutate_at(vars(new_num_dx, current_num_dx), list(~ replace_na(., 0))) %>%
       mutate(pct_change = round((new_num_dx - current_num_dx) / current_num_dx * 100, 4))
     
     # Write findings to metadata
@@ -322,7 +323,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                                     "{DBI::SQL(glue::glue_collapse(
                  glue::glue_data(data.frame(year = num_dx_overall$claim_year[num_dx_overall$pct_change < 0], 
                                             pct = round(abs(num_dx_overall$pct_change[num_dx_overall$pct_change < 0]), 2)),
-                                 '{year} ({pct}% more)'), sep = ', ', last = ' and '))}')",
+                                 '{year} ({pct}% fewer)'), sep = ', ', last = ' and '))}')",
                                     .con = conn))
     }
   } else {

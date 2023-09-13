@@ -1,10 +1,10 @@
 # Header ####
   # Author: Danny Colombara
   # Date: February 20, 2020
-  # Purpose: QA claims.stage_mcaid_mcare_elig_timevar for SQL
+  # Purpose: QA stage.mcaid_mcare_elig_timevar for SQL
   #
   # This code is designed to be run as part of the master Medicaid/Medicare script:
-  # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
+  # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
   #
   #
 
@@ -12,8 +12,8 @@
 qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
   
 ## (1) set up ----
-  stage.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM claims.stage_mcaid_mcare_elig_timevar"))
-  last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM claims.stage_mcaid_mcare_elig_timevar")[[1]])
+  stage.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM stage.mcaid_mcare_elig_timevar"))
+  last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, "SELECT MAX (last_run) FROM stage.mcaid_mcare_elig_timevar")[[1]])
   
 ## (2) Simple QA ----
   if (load_only == F) {
@@ -23,13 +23,13 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
         odbc::dbGetQuery(db_claims, 
                          "SELECT c.qa_value from
                          (SELECT a.* FROM
-                         (SELECT * FROM claims.metadata_qa_xwalk_values
-                         WHERE table_name = 'claims.stage_mcaid_mcare_elig_timevar' AND
+                         (SELECT * FROM metadata.qa_xwalk_values
+                         WHERE table_name = 'stage.mcaid_mcare_elig_timevar' AND
                          qa_item = 'row_count') a
                          INNER JOIN
                          (SELECT MAX(qa_date) AS max_date 
-                         FROM claims.metadata_qa_xwalk_values
-                         WHERE table_name = 'claims.stage_mcaid_mcare_elig_timevar' AND
+                         FROM metadata.qa_xwalk_values
+                         WHERE table_name = 'stage.mcaid_mcare_elig_timevar' AND
                          qa_item = 'row_count') b
                          ON a.qa_date = b.max_date)c"))
       
@@ -40,10 +40,10 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
       if (row_diff < 0) {
         odbc::dbGetQuery(
           conn = db_claims,
-          glue::glue_sql("INSERT INTO claims.metadata_qa_xwalk
+          glue::glue_sql("INSERT INTO metadata.qa_xwalk
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
                          VALUES ({last_run}, 
-                         'claims.stage_mcaid_mcare_elig_timevar',
+                         'stage.mcaid_mcare_elig_timevar',
                          'Number new rows compared to most recent run', 
                          'FAIL', 
                          {Sys.time()}, 
@@ -52,15 +52,15 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
                          .con = db_claims))
         
         problem.row_diff <- glue::glue("Fewer rows than found last time.  
-                                       Check claims.metadata_qa_xwalk for details (last_run = {last_run})
+                                       Check metadata.qa_xwalk for details (last_run = {last_run})
                                        \n")
       } else {
         odbc::dbGetQuery(
           conn = db_claims,
-          glue::glue_sql("INSERT INTO claims.metadata_qa_xwalk
+          glue::glue_sql("INSERT INTO metadata.qa_xwalk
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
                          VALUES ({last_run}, 
-                         'claims.stage_mcaid_mcare_elig_timevar',
+                         'stage.mcaid_mcare_elig_timevar',
                          'Number new rows compared to most recent run', 
                          'PASS', 
                          {Sys.time()}, 
@@ -76,19 +76,19 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
       # get count of unique id (each id should only appear once)
       current.unique.id <- as.numeric(odbc::dbGetQuery(
         db_claims, "SELECT COUNT (DISTINCT id_apde) 
-        FROM claims.stage_mcaid_mcare_elig_timevar"))
+        FROM stage.mcaid_mcare_elig_timevar"))
       
       previous.unique.id <- as.numeric(
         odbc::dbGetQuery(db_claims, 
                          "SELECT c.qa_value from
                          (SELECT a.* FROM
-                         (SELECT * FROM claims.metadata_qa_xwalk_values
-                         WHERE table_name = 'claims.stage_mcaid_mcare_elig_timevar' AND
+                         (SELECT * FROM metadata.qa_xwalk_values
+                         WHERE table_name = 'stage.mcaid_mcare_elig_timevar' AND
                          qa_item = 'id_count') a
                          INNER JOIN
                          (SELECT MAX(qa_date) AS max_date 
-                         FROM claims.metadata_qa_xwalk_values
-                         WHERE table_name = 'claims.stage_mcaid_mcare_elig_timevar' AND
+                         FROM metadata.qa_xwalk_values
+                         WHERE table_name = 'stage.mcaid_mcare_elig_timevar' AND
                          qa_item = 'id_count') b
                          ON a.qa_date = b.max_date)c"))
       
@@ -99,10 +99,10 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
       if (id_diff < 0) {
         odbc::dbGetQuery(
           conn = db_claims,
-          glue::glue_sql("INSERT INTO claims.metadata_qa_xwalk
+          glue::glue_sql("INSERT INTO metadata.qa_xwalk
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
                          VALUES ({last_run}, 
-                         'claims.stage_mcaid_mcare_elig_timevar',
+                         'stage.mcaid_mcare_elig_timevar',
                          'Number distinct IDs compared to most recent run', 
                          'FAIL', 
                          {Sys.time()}, 
@@ -111,15 +111,15 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
                          .con = db_claims))
         
         problem.id_diff <- glue::glue("Fewer unique IDs than found last time.  
-                                       Check claims.metadata_qa_xwalk for details (last_run = {last_run})
+                                       Check metadata.qa_xwalk for details (last_run = {last_run})
                                        \n")
       } else {
         odbc::dbGetQuery(
           conn = db_claims,
-          glue::glue_sql("INSERT INTO claims.metadata_qa_xwalk
+          glue::glue_sql("INSERT INTO metadata.qa_xwalk
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
                          VALUES ({last_run}, 
-                         'claims.stage_mcaid_mcare_elig_timevar',
+                         'stage.mcaid_mcare_elig_timevar',
                          'Number distinct IDs compared to most recent run', 
                          'PASS', 
                          {Sys.time()}, 
@@ -137,9 +137,9 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
   } # close the load_only == F condition
   
 ## (3) Fill qa_xwalk_values table ----
-    qa.values <- glue::glue_sql("INSERT INTO claims.metadata_qa_xwalk_values
+    qa.values <- glue::glue_sql("INSERT INTO metadata.qa_xwalk_values
                                 (table_name, qa_item, qa_value, qa_date, note) 
-                                VALUES ('claims.stage_mcaid_mcare_elig_timevar',
+                                VALUES ('stage.mcaid_mcare_elig_timevar',
                                 'row_count', 
                                 {stage.count}, 
                                 {Sys.time()}, 
@@ -148,9 +148,9 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
     
     odbc::dbGetQuery(conn = db_claims, qa.values)
     
-    qa.values2 <- glue::glue_sql("INSERT INTO claims.metadata_qa_xwalk_values
+    qa.values2 <- glue::glue_sql("INSERT INTO metadata.qa_xwalk_values
                                 (table_name, qa_item, qa_value, qa_date, note) 
-                                VALUES ('claims.stage_mcaid_mcare_elig_timevar',
+                                VALUES ('stage.mcaid_mcare_elig_timevar',
                                 'id_count', 
                                 {current.unique.id}, 
                                 {Sys.time()}, 

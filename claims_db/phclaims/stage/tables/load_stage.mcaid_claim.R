@@ -5,8 +5,7 @@
 # 2019-05, updated 2020-02, 2020-07
 
 ### Run from master_mcaid_full script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
-
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_full.R
 
 load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, 
                                             conn_db = NULL, 
@@ -90,12 +89,25 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   # Check that the stage table actually exists so we don't accidentally wipe the archive table
   if (full_refresh == F & DBI::dbExistsTable(conn_dw, DBI::Id(schema = to_schema, table = to_table))) {
     if (server == "hhsaw") {
+      if(DBI::dbExistsTable(conn_dw, DBI::Id(schema = to_schema, table = paste0(archive_table, '_bak')))) {
+        try(DBI::dbSendQuery(conn_dw, 
+                             glue::glue_sql("DROP TABLE {`to_schema`}.{`paste0(archive_table, '_bak')`}", 
+                                            .con = conn_dw)))
+      }
       try(DBI::dbSendQuery(conn_dw, 
-                           glue::glue_sql("DROP TABLE {`archive_schema`}.{`archive_table`}",
+                           glue::glue_sql("RENAME OBJECT {`to_schema`}.{`archive_table`} TO {`paste0(archive_table, '_bak')`}",
                                           .con = conn_dw)))
-      DBI::dbSendQuery(conn_dw, 
-                       glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
+      try(DBI::dbSendQuery(conn_dw, 
+                           glue::glue_sql("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}",
+                                          .con = conn_dw)))
     } else if (server == "phclaims") {
+      if(DBI::dbExistsTable(conn_dw, DBI::Id(schema = archive_schema, table = paste0(archive_table, '_bak')))) {
+        try(DBI::dbSendQuery(conn_db, 
+                             glue::glue_sql("DROP TABLE {`archive_schema`}.{`paste0(archive_table, '_bak')`}", 
+                                            .con = conn_db)))
+      }
+      try(DBI::dbSendQuery(conn_db, 
+                           glue::glue("EXEC sp_rename '{archive_schema}.{archive_table}',  '{paste0(archive_table, '_bak')}'")))
       alter_schema_f(conn = conn_db, 
                      from_schema = to_schema, 
                      to_schema = archive_schema,
@@ -148,7 +160,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
       {`vars_truncated`*}, {current_batch_id} AS etl_batch_id
       FROM {`from_schema`}.{`from_table`}
       UNION
-      SELECT {`vars`*} FROM {bho_archive_schema}.{bho_archive_table}",
+      SELECT {`vars`*} FROM {`bho_archive_schema`}.{`bho_archive_table`}",
       .con = conn_dw)
   }
   
@@ -157,7 +169,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   
   
   ### Add index if needed
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
   if (server == "phclaims") {
     add_index_f(conn = conn_db, server = server, table_config = config)
   }
@@ -184,7 +196,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
     
     
     if (rows_diff != 0) {
-      row_diff_qa_note <- paste0('Number of rows in stage ({rows_stage}) does not match ',
+      row_diff_qa_note <- paste0('Number of rows in stage (', rows_stage, ') does not match ',
                                  'raw (', rows_raw, ') + archive (', rows_archive, ')')
     } else {
       row_diff_qa_note <- paste0('Number of rows in stage matches raw + archive (', rows_stage, ')')

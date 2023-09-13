@@ -54,7 +54,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
   
   
   ### Pull out run date of stage_mcaid_elig_demo
-  last_run <- as.POSIXct(odbc::dbGetQuery(db_claims, 
+  last_run <- as.POSIXct(odbc::dbGetQuery(conn, 
                                           glue::glue_sql("SELECT MAX (last_run) FROM {`to_schema`}.{`to_table`}",
                                                          .con = conn))[[1]])
   

@@ -1,33 +1,35 @@
-schema: load_raw
-table: apcd_pharmacy_claim
+server_path: KCITSQLUTPDBH51
+db_name: PHClaims
+to_schema: load_raw
+to_table: apcd_pharmacy_claim
 vars:
-    pharmacy_claim_service_line_id: numeric(38)
-    submitter_id: numeric(38)
-    internal_member_id: numeric(38)
+    pharmacy_claim_service_line_id: bigint
+    submitter_id: bigint
+    internal_member_id: bigint
     submitter_clm_control_num: varchar(272)
-    product_code_id: numeric(38)
-    subscriber_relationship_id: numeric(38)
-    line_counter: numeric(38)
+    product_code_id: bigint
+    subscriber_relationship_id: bigint
+    line_counter: integer
     prescription_filled_dt: date
     first_paid_dt: date
     last_paid_dt: date
-    national_drug_code: varchar(11)
+    national_drug_code: varchar(13)
     drug_name: varchar(80)
-    claim_status_id: numeric(38)
+    claim_status_id: bigint
     quantity: numeric(38,2)
-    days_supply: numeric(38)
-    thirty_day_equivalent: numeric(38)
+    days_supply: integer
+    thirty_day_equivalent: numeric(38,0)
     charge_amt: numeric(38,2)
-    refill_number: numeric(38)
-    generic_drug_ind_id: numeric(38)
-    compound_drug_code_id: numeric(38)
-    dispense_as_written_id: numeric(38)
-    pharmacy_mail_order_code: varchar(2)
-    pharmacy_provider_id: numeric(38)
-    pharmacy_internal_provider_id: numeric(38)
-    prscrbing_provider_id: numeric(38)
-    prscrbing_internal_provider_id: numeric(38)
-    network_indicator_id: numeric(38)
+    refill_number: varchar(10)
+    generic_drug_ind_id: bigint
+    compound_drug_code_id: bigint
+    dispense_as_written_id: bigint
+    pharmacy_mail_order_code: varchar(10)
+    pharmacy_provider_id: bigint
+    pharmacy_internal_provider_id: bigint
+    prscrbing_provider_id: bigint
+    prscrbing_internal_provider_id: bigint
+    network_indicator_id: bigint
     out_of_state_flag: varchar(1)
     orphaned_adjustment_flag: varchar(1)
     denied_claim_flag: varchar(1)
@@ -37,225 +39,164 @@ vars:
     medicaid_ffs_flag: varchar(2)
     injury_dt: date
     benefits_exhausted_dt: date
-    row_number: bigint
-table_part1:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_1.csv
+part000:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_000.csv
     field_term: ','
-    row_term: \n
-table_part10:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_10.csv
+    row_term: '0x0A'
+part001:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_001.csv
     field_term: ','
-    row_term: \n
-table_part11:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_11.csv
+    row_term: '0x0A'
+part002:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_002.csv
     field_term: ','
-    row_term: \n
-table_part12:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_12.csv
+    row_term: '0x0A'
+part003:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_003.csv
     field_term: ','
-    row_term: \n
-table_part13:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_13.csv
+    row_term: '0x0A'
+part004:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_004.csv
     field_term: ','
-    row_term: \n
-table_part14:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_14.csv
+    row_term: '0x0A'
+part005:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_005.csv
     field_term: ','
-    row_term: \n
-table_part15:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_15.csv
+    row_term: '0x0A'
+part006:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_006.csv
     field_term: ','
-    row_term: \n
-table_part16:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_16.csv
+    row_term: '0x0A'
+part007:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_007.csv
     field_term: ','
-    row_term: \n
-table_part17:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_17.csv
+    row_term: '0x0A'
+part008:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_008.csv
     field_term: ','
-    row_term: \n
-table_part18:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_18.csv
+    row_term: '0x0A'
+part009:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_009.csv
     field_term: ','
-    row_term: \n
-table_part19:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_19.csv
+    row_term: '0x0A'
+part010:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_010.csv
     field_term: ','
-    row_term: \n
-table_part2:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_2.csv
+    row_term: '0x0A'
+part011:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_011.csv
     field_term: ','
-    row_term: \n
-table_part20:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_20.csv
+    row_term: '0x0A'
+part012:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_012.csv
     field_term: ','
-    row_term: \n
-table_part21:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_21.csv
+    row_term: '0x0A'
+part013:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_013.csv
     field_term: ','
-    row_term: \n
-table_part22:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_22.csv
+    row_term: '0x0A'
+part014:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_014.csv
     field_term: ','
-    row_term: \n
-table_part23:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_23.csv
+    row_term: '0x0A'
+part015:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_015.csv
     field_term: ','
-    row_term: \n
-table_part24:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_24.csv
+    row_term: '0x0A'
+part016:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_016.csv
     field_term: ','
-    row_term: \n
-table_part25:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_25.csv
+    row_term: '0x0A'
+part017:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_017.csv
     field_term: ','
-    row_term: \n
-table_part26:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_26.csv
+    row_term: '0x0A'
+part018:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_018.csv
     field_term: ','
-    row_term: \n
-table_part27:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_27.csv
+    row_term: '0x0A'
+part019:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_019.csv
     field_term: ','
-    row_term: \n
-table_part28:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_28.csv
+    row_term: '0x0A'
+part020:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_020.csv
     field_term: ','
-    row_term: \n
-table_part29:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_29.csv
+    row_term: '0x0A'
+part021:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_021.csv
     field_term: ','
-    row_term: \n
-table_part3:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_3.csv
+    row_term: '0x0A'
+part022:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_022.csv
     field_term: ','
-    row_term: \n
-table_part30:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_30.csv
+    row_term: '0x0A'
+part023:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_023.csv
     field_term: ','
-    row_term: \n
-table_part31:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_31.csv
+    row_term: '0x0A'
+part024:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_024.csv
     field_term: ','
-    row_term: \n
-table_part32:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_32.csv
+    row_term: '0x0A'
+part025:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_025.csv
     field_term: ','
-    row_term: \n
-table_part33:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_33.csv
+    row_term: '0x0A'
+part026:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_026.csv
     field_term: ','
-    row_term: \n
-table_part34:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_34.csv
+    row_term: '0x0A'
+part027:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_027.csv
     field_term: ','
-    row_term: \n
-table_part35:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_35.csv
+    row_term: '0x0A'
+part028:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_028.csv
     field_term: ','
-    row_term: \n
-table_part36:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_36.csv
+    row_term: '0x0A'
+part029:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_029.csv
     field_term: ','
-    row_term: \n
-table_part37:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_37.csv
+    row_term: '0x0A'
+part030:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_030.csv
     field_term: ','
-    row_term: \n
-table_part38:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_38.csv
+    row_term: '0x0A'
+part031:
+    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_031.csv
     field_term: ','
-    row_term: \n
-table_part39:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_39.csv
-    field_term: ','
-    row_term: \n
-table_part4:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_4.csv
-    field_term: ','
-    row_term: \n
-table_part40:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_40.csv
-    field_term: ','
-    row_term: \n
-table_part41:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_41.csv
-    field_term: ','
-    row_term: \n
-table_part42:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_42.csv
-    field_term: ','
-    row_term: \n
-table_part43:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_43.csv
-    field_term: ','
-    row_term: \n
-table_part44:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_44.csv
-    field_term: ','
-    row_term: \n
-table_part5:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_5.csv
-    field_term: ','
-    row_term: \n
-table_part6:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_6.csv
-    field_term: ','
-    row_term: \n
-table_part7:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_7.csv
-    field_term: ','
-    row_term: \n
-table_part8:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_8.csv
-    field_term: ','
-    row_term: \n
-table_part9:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/pharmacy_claim_export/pharmacy_claim_9.csv
-    field_term: ','
-    row_term: \n
+    row_term: '0x0A'
 years:
-    - part1
-    - part10
-    - part11
-    - part12
-    - part13
-    - part14
-    - part15
-    - part16
-    - part17
-    - part18
-    - part19
-    - part2
-    - part20
-    - part21
-    - part22
-    - part23
-    - part24
-    - part25
-    - part26
-    - part27
-    - part28
-    - part29
-    - part3
-    - part30
-    - part31
-    - part32
-    - part33
-    - part34
-    - part35
-    - part36
-    - part37
-    - part38
-    - part39
-    - part4
-    - part40
-    - part41
-    - part42
-    - part43
-    - part44
-    - part5
-    - part6
-    - part7
-    - part8
-    - part9
+    - part000
+    - part001
+    - part002
+    - part003
+    - part004
+    - part005
+    - part006
+    - part007
+    - part008
+    - part009
+    - part010
+    - part011
+    - part012
+    - part013
+    - part014
+    - part015
+    - part016
+    - part017
+    - part018
+    - part019
+    - part020
+    - part021
+    - part022
+    - part023
+    - part024
+    - part025
+    - part026
+    - part027
+    - part028
+    - part029
+    - part030
+    - part031

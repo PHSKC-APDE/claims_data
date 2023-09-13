@@ -10,6 +10,8 @@
 #' 2) To restrict to certain visit types (e.g., ED visits, hospitalizations)
 #' 
 #' @param conn SQL server connection created using \code{odbc} package.
+#' @param server Which server do you want to run the query against? NB. Currently only
+#' Medicaid data is available on HHSAW.
 #' @param source Which claims data source do you want to pull from?
 #' @param cohort The group of individuals of interest. Note: it is possible to generate a cohort on the fly
 #' using \code{\link{claims_elig}}.
@@ -37,13 +39,22 @@
 #'
 #' @examples
 #' \dontrun{
-#' top_15 <- top_causes_f(cohort = focus_pop, cohort_id = id, conn = db.claims51)
-#' top_15_dynamic <- top_causes_f(cohort = mcaid_elig_f(conn = db.claims51, 
-#' from_date = "2017-01-01", to_date = "2017-12-31", korean = 1, zip = "98103"), top = 3)
+#' db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
+#' system.time(mcaid_only <- claims_elig(conn = db_hhsaw, source = "mcaid", 
+#'     from_date = "2014-01-01", to_date = "2015-02-25",
+#'     geo_zip = c("98104", "98133", "98155"),
+#'     cov_type = "FFS", race_asian = 1, 
+#'     show_query = T))
+#' top_15_dynamic <- top_causes(
+#'     cohort = mcaid_only, top = 3, conn = db_hhsaw, source = "mcaid",
+#'     server="hhsaw"
+#' )
 #' }
 #' 
 #' @export
+
 top_causes <- function(conn,
+                       server = c("phclaims", "hhsaw"),
                        source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
                        cohort,
                        cohort_id = NULL,
@@ -68,6 +79,20 @@ top_causes <- function(conn,
   
   # Source check
   source <- match.arg(source)
+  
+  if (server == "hhsaw" & source != "mcaid") {
+    stop("Currently only Medicaid data is available on HHSAW")
+  }
+  
+  if (server == "phclaims") {
+    header_schema <- "final"
+    header_tbl_prefix <- ""
+    ref_schema <- "ref"
+  } else { # HHSAW organizes under claims schema
+    header_schema <- "claims"
+    header_tbl_prefix <- "final_"
+    ref_schema <- "ref"
+  }
   
   # Source
   if (source == "apcd") {
@@ -138,7 +163,7 @@ top_causes <- function(conn,
   } else if (is.null(to_date)) {
     to_date <- as.Date(as.numeric(min(
       paste0(year(Sys.Date()) - 1, "-12-31"),
-      Sys.Date() - months(6))),
+      Sys.Date() %m-% months(6))),
       origin = "1970-01-01")
   }
   
@@ -152,6 +177,15 @@ top_causes <- function(conn,
     dx_num <- glue::glue_sql("WHERE d.icdcm_number IN ('01', 'admit') ", .con = conn)
   } else {
     dx_num <- DBI::SQL('')
+  }
+  
+  # Date range
+  if (ind_dates == T) {
+    extra_ind_cols <- glue::glue_sql("a.from_date_ind, a.to_date_ind, ")
+    from_to_date <- glue::glue_sql("WHERE b.from_date >= a.from_date_ind AND b.from_date <= a.to_date_ind) ", .con = conn)
+  } else {
+    extra_ind_cols <- DBI::SQL('')
+    from_to_date <- DBI::SQL('')
   }
   
   # Select visit type
@@ -266,80 +300,61 @@ top_causes <- function(conn,
   
   
   #### JOIN DXS TO DX LOOKUP ####
-  if (ind_dates == T) {
-    claim_query <- glue::glue_sql(
-      "SELECT DISTINCT c.id, c.claim_header_id, c.from_date, c.ed_pophealth_id, c.inpatient_id, 
-      e.ccs_final_plain_lang, e.ccs_catch_all
-    FROM 
-      (SELECT a.id, a.from_date_ind, a.to_date_ind, b.from_date, b.claim_header_id,
-      b.ed_pophealth_id, b.inpatient_id 
-      FROM ##temp_ids AS a
-      LEFT JOIN 
-      (SELECT {id_name}, first_service_date AS from_date, claim_header_id, ed_pophealth_id, inpatient_id, ccs_description
-      FROM PHClaims.final.{`paste0(source, '_claim_header')`}
-      WHERE first_service_date >= {from_date} AND first_service_date <= {to_date} AND 
-        {flags} ccs_description IS NOT NULL) AS b
-        ON a.id = b.{id_name}
-      WHERE b.from_date >= a.from_date_ind AND b.from_date <= a.to_date_ind) AS c
-      LEFT JOIN PHClaims.final.{`paste0(source, '_claim_icdcm_header')`} AS d
-      ON c.claim_header_id = d.claim_header_id
-      LEFT JOIN PHClaims.ref.dx_lookup AS e
-      ON d.icdcm_version = e.dx_ver AND d.icdcm_norm = e.dx {dx_num};",
-      .con = conn)
-  } else {
-    claim_query <- glue::glue_sql("
-    SELECT DISTINCT c.id, c.claim_header_id, c.from_date, c.ed_pophealth_id, c.inpatient_id, 
-      e.ccs_final_plain_lang, e.ccs_catch_all
-    FROM 
-      (SELECT a.id, b.from_date, b.claim_header_id, b.ed_pophealth_id, b.inpatient_id 
-      FROM ##temp_ids AS a 
-      LEFT JOIN 
-      (SELECT {id_name}, first_service_date AS from_date, claim_header_id, ed_pophealth_id, inpatient_id, ccs_description
-      FROM PHClaims.final.{`paste0(source, '_claim_header')`}
-      WHERE first_service_date >= {from_date} AND first_service_date <= {to_date} AND 
-        {flags} ccs_description IS NOT NULL) AS b
-      ON a.id = b.{id_name}) AS c
-      LEFT JOIN PHClaims.final.{`paste0(source, '_claim_icdcm_header')`} AS d
-      ON c.claim_header_id = d.claim_header_id
-      LEFT JOIN PHClaims.ref.dx_lookup AS e
-      ON d.icdcm_version = e.dx_ver AND d.icdcm_norm = e.dx {dx_num};",
-                                  .con = conn)
-  }
+  claim_query <- glue::glue_sql(
+    "SELECT DISTINCT c.id, c.claim_header_id, c.from_date, c.ed_pophealth_id, c.inpatient_id, 
+    e.ccs_detail_desc, e.ccs_catch_all
+  FROM 
+    (SELECT a.id, {extra_ind_cols} b.from_date, b.claim_header_id,
+    b.ed_pophealth_id, b.inpatient_id 
+    FROM ##temp_ids AS a
+    LEFT JOIN 
+    (SELECT {id_name}, first_service_date AS from_date, claim_header_id, ed_pophealth_id, inpatient_id, primary_diagnosis
+    FROM {`header_schema`}.{`paste0(header_tbl_prefix, source, '_claim_header')`}
+    WHERE first_service_date >= {from_date} AND first_service_date <= {to_date} AND 
+      {flags} primary_diagnosis IS NOT NULL) AS b
+    ON a.id = b.{id_name} {from_to_date}) AS c
+    LEFT JOIN {`header_schema`}.{`paste0(header_tbl_prefix, source, '_claim_icdcm_header')`} AS d
+    ON c.claim_header_id = d.claim_header_id
+    LEFT JOIN {`ref_schema`}.{`'icdcm_codes'`} AS e
+    ON d.icdcm_version = e.icdcm_version AND d.icdcm_norm = e.icdcm {dx_num};",
+    .con = conn)
+
   
   claims <- DBI::dbGetQuery(conn, claim_query)
+  claims <- claims[!is.na(claims$ccs_detail_desc),]
   
   #### PROCESS DATA IN R ####
   ### Decide whether or not to include catch-all categories
   if (catch_all == F) {
-    claims <- claims %>% filter(is.na(ccs_catch_all))
+    claims <- claims %>% filter(is.na(ccs_catch_all) | ccs_catch_all == 0)
   }
   
   ### Take top N causes
   if (type %in% c("ed", "ed_avoid_ny", "ed_avoid_ca")) {
     claims <- claims %>%
-      group_by(ccs_final_plain_lang) %>%
+      group_by(ccs_detail_desc) %>%
       summarise(claim_cnt = n_distinct(ed_pophealth_id)) %>%
       ungroup()
   } else if (type == "inpatient") {
     claims <- claims %>%
-      group_by(ccs_final_plain_lang) %>%
+      group_by(ccs_detail_desc) %>%
       summarise(claim_cnt = n_distinct(inpatient_id)) %>%
       ungroup()
   } else {
     claims <- claims %>%
-      group_by(ccs_final_plain_lang) %>%
+      group_by(ccs_detail_desc) %>%
       summarise(claim_cnt = n_distinct(claim_header_id)) %>%
       ungroup()
   }
-  
-  
-  final_n <- min(n_distinct(claims$ccs_final_plain_lang), top)
+
+
+  final_n <- min(n_distinct(claims$ccs_detail_desc), top)
   if (final_n < top) {
     print(paste0("Warning: Only ", final_n, " categories were found"))
   }
-  
+
   claims <- top_n(claims, final_n, wt = claim_cnt) %>%
-    arrange(-claim_cnt, ccs_final_plain_lang)
-  
+    arrange(-claim_cnt, ccs_detail_desc)
+
   return(claims)
 }

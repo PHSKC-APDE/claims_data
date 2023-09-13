@@ -4,13 +4,14 @@
 # 2020-08
 
 ### Run from master_apcd_full script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/apcd/master_apcd_full.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_full.R
 
 
 load_load_raw.apcd_procedure_full_f <- function(etl_date_min = NULL,
                                             etl_date_max = NULL,
                                             etl_delivery_date = NULL,
-                                            etl_note = NULL) {
+                                            etl_note = NULL,
+                                            server = NULL) {
   
   ### Set table name part
   table_name_part <- "apcd_claim_procedure_raw"
@@ -20,14 +21,18 @@ load_load_raw.apcd_procedure_full_f <- function(etl_date_min = NULL,
     stop("Enter a delivery date and note for the ETL batch ID function")
   }
   
+  ### Check entries are in place for ETL function
+  if (is.null(server)) {
+    stop("Enter a server name")
+  }
   
   # Load ETL and QA functions if not already present
   if (exists("load_metadata_etl_log_f") == F) {
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
   }
   
   if (exists("qa_file_row_count_f") == F) {
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
   }
   
   
@@ -40,7 +45,8 @@ load_load_raw.apcd_procedure_full_f <- function(etl_date_min = NULL,
                                               date_min = etl_date_min,
                                               date_max = etl_date_max,
                                               delivery_date = etl_delivery_date, 
-                                              note = etl_note)
+                                              note = etl_note,
+                                              server = "phclaims")
   
   if (is.na(current_batch_id)) {
     stop("No etl_batch_id. Check metadata.etl_log table")
@@ -49,10 +55,10 @@ load_load_raw.apcd_procedure_full_f <- function(etl_date_min = NULL,
   
   #### LOAD TABLES ####
   print("Loading tables to SQL")
-  load_table_from_file_f(conn = db_claims,
-                         config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.",
+  load_table_from_file(conn = db_claims,
+                         config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.",
                                            table_name_part, "_full.yaml"),
-                         overall = F, ind_yr = T, combine_yr = T, test_mode = F)
+                       overall = F, ind_yr = T, combine_yr = T, server = server, drop_index = F)
   
   
   #### ADD BATCH ID COLUMN ####
@@ -67,7 +73,7 @@ load_load_raw.apcd_procedure_full_f <- function(etl_date_min = NULL,
   
   
   #### LOAD YAML CONFIG FILE FOR FINAL COMMANDS ####
-  config_url <- paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.", table_name_part, "_full.yaml")
+  config_url <- paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.", table_name_part, "_full.yaml")
   if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(httr::GET(config_url))
   } else {
@@ -75,18 +81,11 @@ load_load_raw.apcd_procedure_full_f <- function(etl_date_min = NULL,
   }
   
   
-  #### DROP ROW_NUMBER COLUMN FROM FINAL TABLE ####
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
-    "ALTER TABLE load_raw.{`table_name_part`}
-    DROP COLUMN row_number",
-    .con = db_claims))
-  
-  
   #### DROP TABLE CHUNKS ####
   if (length(table_config$years) > 1) {
     lapply(table_config$years, function(x) {
       table_name <- glue::glue(table_name_part, "_", x)
-      odbc::dbGetQuery(db_claims, glue::glue_sql("DROP TABLE {`table_config$schema`}.{`table_name`}", .con = db_claims))
+      odbc::dbGetQuery(db_claims, glue::glue_sql("DROP TABLE {`table_config$to_schema`}.{`table_name`}", .con = db_claims))
       })
     }
 }

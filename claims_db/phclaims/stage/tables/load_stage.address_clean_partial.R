@@ -5,7 +5,7 @@
 
 
 ### Run from master_mcaid_partial script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
 #### PARTIAL ADDRESS_CLEAN SETUP ####
@@ -31,7 +31,8 @@
 load_stage.address_clean_partial_step1 <- function(server = NULL,
                                                    config = NULL,
                                                    source = NULL,
-                                                   get_config = F) {
+                                                   get_config = F,
+                                                   interactive_auth = NULL) {
   #### SET UP SERVER ####
   if (is.null(server)) {
     server <- NA
@@ -49,13 +50,13 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
     }
   }
   
-  conn <- create_db_connection(server)
+  conn <- create_db_connection(server, interactive = interactive_auth)
   from_schema <- config[[server]][["from_schema"]]
   from_table <- config[[server]][["from_table"]]
   to_schema <- config[[server]][["to_schema"]]
   to_table <- config[[server]][["to_table"]]
-  ref_schema <- config[[server]][["ref_schema"]]
-  ref_table <- config[[server]][["ref_table"]]
+  ref_schema <- config[["hhsaw"]][["ref_schema"]]
+  ref_table <- config[["hhsaw"]][["ref_table"]]
   informatica_ref_schema <- config[["informatica_ref_schema"]]
   informatica_input_table <- config[["informatica_input_table"]]
   informatica_output_table <- config[["informatica_output_table"]]
@@ -63,25 +64,27 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
   #### STEP 1A: Take address data from Medicaid that don't match to the ref table ####
   ### Bring in all Medicaid addresses not in the ref table
   # Include ETL batch ID to know where the addresses are coming from
-  new_add <- dbGetQuery(
+  conn <- create_db_connection(server, interactive = interactive_auth)
+  stage_adds <- DBI::dbGetQuery(
     conn,
-    glue::glue_sql("SELECT DISTINCT a.geo_add1_raw, a.geo_add2_raw, a.geo_city_raw,
-                   a.geo_state_raw, a.geo_zip_raw, a.geo_hash_raw, a.etl_batch_id,
-                   b.[exists]
-                   FROM
-                   (SELECT
+    glue::glue_sql("SELECT DISTINCT 
                      RSDNTL_ADRS_LINE_1 AS 'geo_add1_raw', 
                      RSDNTL_ADRS_LINE_2 AS 'geo_add2_raw', 
                      RSDNTL_CITY_NAME AS 'geo_city_raw', 
                      RSDNTL_STATE_CODE AS 'geo_state_raw', 
                      RSDNTL_POSTAL_CODE AS 'geo_zip_raw', 
                      geo_hash_raw, etl_batch_id
-                     FROM {`from_schema`}.{`from_table`}) a
-                   LEFT JOIN
-                   (SELECT geo_hash_raw, 1 AS [exists] FROM {`ref_schema`}.{`ref_table`}) b
-                   ON a.geo_hash_raw = b.geo_hash_raw
-                   WHERE b.[exists] IS NULL",
+                   FROM {`from_schema`}.{`from_table`}",
                    .con = conn))
+  
+  conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
+  ref_hashes <- DBI::dbGetQuery(
+    conn_hhsaw,
+    glue::glue_sql("SELECT geo_hash_raw
+                   FROM {`ref_schema`}.{`ref_table`}",
+                   .con = conn_hhsaw))
+  
+  new_add <- anti_join(stage_adds, ref_hashes)
   
   #### STEP 1B: Output data to run through Informatica ####
   # Record current time
@@ -96,7 +99,7 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
 
   if (nrow(new_add_out) > 0) {
     # Make connection to HHSAW
-    conn_hhsaw <- create_db_connection("hhsaw")
+    conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
     DBI::dbAppendTable(conn_hhsaw, DBI::Id(schema = informatica_ref_schema, table = informatica_input_table), 
                        new_add_out)
     message(nrow(new_add_out), " addresses were exported for Informatica cleanup")
@@ -121,7 +124,8 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
                                                    config = NULL,
                                                    source = NULL,
                                                    informatica_timestamp = NULL,
-                                                   get_config = F) {
+                                                   get_config = F,
+                                                   interactive_auth = NULL) {
 
   #### SET UP SERVER ####
   if (is.null(server)) {
@@ -140,13 +144,13 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
     }
   }
   
-  conn <- create_db_connection("hhsaw")
+  conn <- create_db_connection("hhsaw", interactive = interactive_auth)
   from_schema <- config[[server]][["from_schema"]]
   from_table <- config[[server]][["from_table"]]
-  to_schema <- config[[server]][["to_schema"]]
-  to_table <- config[[server]][["to_table"]]
-  ref_schema <- config[[server]][["ref_schema"]]
-  ref_table <- config[[server]][["ref_table"]]
+  to_schema <- config[["hhsaw"]][["to_schema"]]
+  to_table <- config[["hhsaw"]][["to_table"]]
+  ref_schema <- config[["hhsaw"]][["ref_schema"]]
+  ref_table <- config[["hhsaw"]][["ref_table"]]
   informatica_ref_schema <- config[["informatica_ref_schema"]]
   informatica_input_table <- config[["informatica_input_table"]]
   informatica_output_table <- config[["informatica_output_table"]]
@@ -154,7 +158,7 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
   
   if (!exists("create_table_f")) {
-    source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+    source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
   }
   
   #### STEP 2A: Pull in Informatica results ####
@@ -205,14 +209,15 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
   
   ### Tidy up some PO box and other messiness
   new_add_in <- new_add_in %>%
-    mutate(add1 = case_when(
-      is.na(add1) & !is.na(po_box) ~ po_box,
-      TRUE ~ add1),
-      add2 = case_when(
-        is.na(add2) & !is.na(po_box) & !is.na(add1) ~ po_box,
-        !is.na(add2) & !is.na(po_box) & !is.na(add1) ~ paste(add2, po_box, sep = " "),
-        TRUE ~ add2),
-      po_box = as.numeric(ifelse(!is.na(po_box), 1, 0))
+    mutate(add1 = case_when((is.na(add1) | add1 == "") & !is.na(po_box) ~ po_box,
+                            TRUE ~ add1),
+           add2 = case_when(add1 == po_box ~ add2,
+                            (is.na(add2) | add2 == "") & !is.na(po_box) & 
+                              !is.na(add1) ~ po_box,
+                            !is.na(add2) & !is.na(po_box) & 
+                              !is.na(add1) ~ paste(add2, po_box, sep = " "),
+                            TRUE ~ add2),
+           po_box = as.numeric(ifelse(!is.na(po_box), 1, 0))
     )
   
   
@@ -303,19 +308,24 @@ load_stage.address_clean_partial_step2 <- function(server = NULL,
                                                           stringr::str_replace_na(geo_state_clean, ''), 
                                                           stringr::str_replace_na(geo_zip_clean, ''), 
                                                           sep = "|"))),
+           geo_hash_geocode = toupper(openssl::sha256(paste(stringr::str_replace_na(geo_add1_clean, ''),  
+                                                          stringr::str_replace_na(geo_city_clean, ''), 
+                                                          stringr::str_replace_na(geo_state_clean, ''), 
+                                                          stringr::str_replace_na(geo_zip_clean, ''), 
+                                                          sep = "|"))),
            last_run = Sys.time()) %>%
     select(geo_add1_raw, geo_add2_raw, geo_add3_raw, geo_city_raw, 
            geo_state_raw, geo_zip_raw, geo_hash_raw,
            geo_add1_clean, geo_add2_clean, geo_city_clean, 
            geo_state_clean, geo_zip_clean, geo_hash_clean,
-           geo_geocode_skip, last_run) %>%
+           geo_hash_geocode, geo_geocode_skip, last_run) %>%
     # Convert all blank fields to be NA
     mutate_if(is.character, list(~ ifelse(. == "", NA_character_, .)))
   
   
   #### STEP 2C: APPEND to SQL ####
-  conn <- create_db_connection(server)
-  dbWriteTable(conn, 
+  conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth)
+  dbWriteTable(conn_hhsaw, 
                name = DBI::Id(schema = to_schema,  table = to_table),
                new_add_final,
                overwrite = F, append = T)

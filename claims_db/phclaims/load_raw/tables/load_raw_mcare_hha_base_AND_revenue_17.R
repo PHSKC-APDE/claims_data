@@ -26,8 +26,8 @@ devtools::install_github("PHSKC-APDE/claims_data")
 ##git_path <- "" --if using git specify here and add to the file path
 
 #SQL loading functions developed by APDE
-source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
+source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
 
 ##Disconnect and reconnect to database--
 #disconnect
@@ -39,7 +39,7 @@ db.claims51 <- dbConnect(odbc(), "PHClaims51")
 #### STEP 2: Create table shell ####
 create_table_f(conn = db.claims51, 
                config_file = file.path("C:/Users/sdawadi/Desktop/Mcare_yaml","create_load_raw_mcare_hospice_base_claims_k_17.yaml"),
-               #config_url = "https://raw.githubusercontent.com/PHSKC-APDE/pers_shuva/master/create_load_raw_mcare_inpatient_base_claims_k_17.yaml?token=ALY7265RMO3CACOE5X3GGGC6HXY5I",
+               #config_url = "https://raw.githubusercontent.com/PHSKC-APDE/pers_shuva/main/create_load_raw_mcare_inpatient_base_claims_k_17.yaml?token=ALY7265RMO3CACOE5X3GGGC6HXY5I",
                overall = T, ind_yr = F, test_mode = F)
 
 
@@ -63,7 +63,7 @@ load_table_from_file_f(conn = db.claims51,
 #### STEP 2: Create table shell ####
 create_table_f(conn = db.claims51, 
                config_file = file.path("C:/Users/sdawadi/Desktop/Mcare_yaml","create_load_raw_macare_hospice_rev_codes_17.yaml"),
-               #config_url = "https://raw.githubusercontent.com/PHSKC-APDE/pers_shuva/master/create_load_raw_mcare_inpatient_base_claims_k_17.yaml?token=ALY7265RMO3CACOE5X3GGGC6HXY5I",
+               #config_url = "https://raw.githubusercontent.com/PHSKC-APDE/pers_shuva/main/create_load_raw_mcare_inpatient_base_claims_k_17.yaml?token=ALY7265RMO3CACOE5X3GGGC6HXY5I",
                overall = T, ind_yr = F, test_mode = F)
 
 

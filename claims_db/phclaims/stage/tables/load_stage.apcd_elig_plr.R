@@ -3,8 +3,10 @@
 #
 # 2019-10
 
+#2023-08-02 update: Remove full benefit and performance cohort variables, add flags for any medical coverage 7-mo and 11-mo cohort
+
 ### Run from master_apcd_analytic script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/apcd/master_apcd_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
 
 #### Load script ####
 load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calendar_year = T, table_name = NULL) {
@@ -166,25 +168,6 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
         then datediff(day, from_date, to_date) + 1
       else 0
      end as dual_covd,
-    
-     ---------
-    --Medicaid Full Benefit (medical or pharmacy) coverage days
-    ---------
-    case
-      --coverage period fully contains date range
-      when from_date <= {from_date} and to_date >= {to_date} and ((med_medicaid = 1 or pharm_medicaid = 1) and (full_benefit = 1))
-        then datediff(day, {from_date}, {to_date}) + 1
-      --coverage period begins before and ends within date range
-      when from_date <= {from_date} and to_date < {to_date} and to_date >= {from_date} and 
-        ((med_medicaid = 1 or pharm_medicaid = 1) and (full_benefit = 1)) then datediff(day, {from_date}, to_date) + 1
-      --coverage period begins within and ends after date range
-      when from_date > {from_date}  and to_date >= {to_date} and from_date <= {to_date} and 
-        ((med_medicaid = 1 or pharm_medicaid = 1) and (full_benefit = 1)) then datediff(day, from_date, {to_date}) + 1
-      --coverage period begins and ends within date range
-      when from_date > {from_date} and to_date < {to_date} and ((med_medicaid = 1 or pharm_medicaid = 1) and (full_benefit = 1))
-        then datediff(day, from_date, to_date) + 1
-      else 0
-     end as full_benefit_covd,
     
     ---------
     --MEDICAL coverage gaps
@@ -354,7 +337,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     --------------------------
     
     if object_id('tempdb..#cov2') is not null drop table #cov2;
-    select id_apcd, from_date, to_date, med_total_covd, dual_covd, full_benefit_covd, med_medicaid_covd, med_medicare_covd, med_commercial_covd, med_total_pregap, med_total_postgap, med_medicaid_pregap, med_medicaid_postgap, 
+    select id_apcd, from_date, to_date, med_total_covd, dual_covd, med_medicaid_covd, med_medicare_covd, med_commercial_covd, med_total_pregap, med_total_postgap, med_medicaid_pregap, med_medicaid_postgap, 
       med_medicare_pregap, med_medicare_postgap, med_commercial_pregap, med_commercial_postgap, pharm_total_covd, pharm_medicaid_covd, pharm_medicare_covd, pharm_commercial_covd, pharm_total_pregap, 
       pharm_total_postgap, pharm_medicaid_pregap, pharm_medicaid_postgap, pharm_medicare_pregap, pharm_medicare_postgap, pharm_commercial_pregap, pharm_commercial_postgap,
     
@@ -430,10 +413,12 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     
     into #cov2
     from #cov1;
-    
+
+    if object_id('tempdb..#cov1') is not null drop table #cov1;
+
     
     --------------------------
-    --STEP 4: Summarize coverage and RAC-based information to person level
+    --STEP 4: Summarize coverage information to person level
     --------------------------
     if object_id('tempdb..#cov3') is not null drop table #cov3;
       ---------
@@ -444,8 +429,6 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
         sum(dual_covd) as dual_covd,
         cast(sum((dual_covd * 1.0)) / ((datediff(day, {from_date}, {to_date}) + 1) * 1.0) * 100.0 as decimal(4,1)) as dual_covper,
         case when sum(dual_covd) > 0 then 1 else 0 end as dual_flag,
-    	sum(full_benefit_covd) as full_benefit_covd,
-        cast(sum((full_benefit_covd * 1.0)) / ((datediff(day, {from_date}, {to_date}) + 1) * 1.0) * 100.0 as decimal(4,1)) as full_benefit_covper,
         sum(med_medicaid_covd) as med_medicaid_covd, sum(med_medicare_covd) as med_medicare_covd, sum(med_commercial_covd) as med_commercial_covd,
         cast(sum((med_medicaid_covd * 1.0)) / ((datediff(day, {from_date}, {to_date}) + 1) * 1.0) * 100.0 as decimal(4,1)) as med_medicaid_covper,
         cast(sum((med_medicare_covd * 1.0)) / ((datediff(day, {from_date}, {to_date}) + 1) * 1.0) * 100.0 as decimal(4,1)) as med_medicare_covper,
@@ -504,7 +487,9 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
       into #cov3
       from #cov2
       group by id_apcd;
-    
+
+    if object_id('tempdb..#cov2') is not null drop table #cov2;
+
     
     --------------------------
     --STEP 5: Summarize geographic information for member residence
@@ -599,11 +584,11 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     			when d.age >= 45 and d.age < 65 then '45-64'
     			when d.age >= 65 or d.ninety_only = 1 then '65 and over'
     	end as age_grp7,
-    	d.gender_me, d.gender_recent, d.gender_female, d.gender_male,
+    	d.gender_me, d.gender_recent, d.gender_female, d.gender_male, d.race_eth_me, d.race_me, d.race_eth_recent, d.race_recent, d.race_aian,
+    	d.race_asian, d.race_black, d.race_latino, d.race_nhpi, d.race_white, d.race_unknown,
     	
       --COVERAGE STATS
-      a.med_total_covd, a.med_total_covper, a.full_benefit_covd,
-      cast((a.full_benefit_covd * 1.0) / ((datediff(day, {from_date}, {to_date}) + 1) * 1.0) * 100.0 as decimal(4,1)) as full_benefit_covper,
+      a.med_total_covd, a.med_total_covper,
       a.dual_covd, a.dual_covper, a.dual_flag, a.med_medicaid_covd, a.med_medicare_covd, a.med_commercial_covd,
       a.med_medicaid_covper, a.med_medicare_covper, a.med_commercial_covper, a.med_total_ccovd_max, a.med_medicaid_ccovd_max, a.med_medicare_ccovd_max,
       a.med_commercial_ccovd_max, a.med_total_covgap_max, a.med_medicaid_covgap_max, a.med_medicare_covgap_max, a.med_commercial_covgap_max,
@@ -627,6 +612,10 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     ) as d
     on a.id = d.id_apcd;
     
+    if object_id('tempdb..#cov3') is not null drop table #cov3;
+    if object_id('tempdb..#geo') is not null drop table #geo;
+    if object_id('tempdb..#ach') is not null drop table #ach;
+
     
     --------------------------
     --STEP 8: Create final coverage cohort variables and select into table shell
@@ -634,34 +623,26 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     insert into PHClaims.stage.{`table_name_year`} with (tablock)
     select id_apcd, 
     
-    --coverage cohorts, state-level
-    --overall_wa marks members in WA state
-    --must incorproate DSRIP comprehensive coverage criteria (which can only be fairly applied if member has RAC codes for full Medicaid eligibility period)
-    --must incorproate dual exclusion and pseudo-TPL exclusion (based on commercial medical coverage)
-    case when geo_county is not null then 1 else 0 end as geo_wa,
-    case when (geo_county is not null and (med_medicaid_covd >= 1 or pharm_medicaid_covd >= 1)) then 1 else 0 end as overall_mcaid,
-    case when (geo_county is not null and med_medicaid_covd >= 1) then 1 else 0 end as overall_mcaid_med,
-    case when (geo_county is not null and pharm_medicaid_covd >= 1) then 1 else 0 end as overall_mcaid_pharm,
-    case when geo_county is not null and full_benefit_covper >= 91.7 and dual_covper < 8.3 and med_commercial_covper < 8.3
-    	then 1 else 0 end as performance_11_wa,
-    case when geo_county is not null and full_benefit_covper >= 58.3 and dual_covper < 41.7 and med_commercial_covper < 41.7
-    	then 1 else 0 end as performance_7_wa,
-      
-    --coverage cohorts, ach-level
-    --same as state-level with addition of ACH-level attribution logic
-    case when full_benefit_covper >= 91.7 and dual_covper < 8.3 and med_commercial_covper < 8.3 and geo_ach_covper >= 91.7
-    	then 1 else 0 end as performance_11_ach,
-    case when full_benefit_covper >= 58.3 and dual_covper < 41.7 and med_commercial_covper < 41.7 and geo_ach_covper >= 58.3
-    	then 1 else 0 end as performance_7_ach,
-    geo_zip, geo_county, geo_ach, geo_ach_covd, geo_ach_covper, age, age_grp7, gender_me, gender_recent, gender_female, gender_male, med_total_covd, med_total_covper, 
-    full_benefit_covd, full_benefit_covper, dual_covd, dual_covper, dual_flag, med_medicaid_covd, med_medicare_covd, med_commercial_covd,
+    --flags for various geographic and coverage cohorts (all coverage cohorts variables computed for WA residents only)
+    case when geo_county is not null then 1 else 0 end as geo_wa, -- WA state residents
+    case when (geo_county is not null and (med_medicaid_covd >= 1 or pharm_medicaid_covd >= 1)) then 1 else 0 end as overall_mcaid, -- 1+ days Medicaid
+    case when (geo_county is not null and med_medicaid_covd >= 1) then 1 else 0 end as overall_mcaid_med, -- 1+ days Medicaid medical coverage
+    case when (geo_county is not null and pharm_medicaid_covd >= 1) then 1 else 0 end as overall_mcaid_pharm, -- 1+ days Medicaid pharm coverage
+    case when geo_county is not null and med_total_covper >= 58.3 then 1 else 0 end as medical_coverage_7mo, -- 7+ months of ANY medical coverage
+    case when geo_county is not null and med_total_covper >= 91.7 then 1 else 0 end as medical_coverage_11mo, -- 11+ months of ANY medical coverage
+
+    geo_zip, geo_county, geo_ach, geo_ach_covd, geo_ach_covper, age, age_grp7, gender_me, gender_recent, gender_female, gender_male, race_eth_me, race_me,
+    race_eth_recent, race_recent, race_aian, race_asian, race_black, race_latino, race_nhpi, race_white, race_unknown, med_total_covd, med_total_covper, 
+    dual_covd, dual_covper, dual_flag, med_medicaid_covd, med_medicare_covd, med_commercial_covd,
     med_medicaid_covper, med_medicare_covper, med_commercial_covper, med_total_ccovd_max, med_medicaid_ccovd_max, med_medicare_ccovd_max,
     med_commercial_ccovd_max, med_total_covgap_max, med_medicaid_covgap_max, med_medicare_covgap_max, med_commercial_covgap_max,
     pharm_total_covd, pharm_total_covper, pharm_medicaid_covd, pharm_medicare_covd, pharm_commercial_covd, pharm_medicaid_covper, 
     pharm_medicare_covper, pharm_commercial_covper, pharm_total_ccovd_max, pharm_medicaid_ccovd_max, pharm_medicare_ccovd_max,
     pharm_commercial_ccovd_max, pharm_total_covgap_max, pharm_medicaid_covgap_max, pharm_medicare_covgap_max, pharm_commercial_covgap_max,
     getdate() as last_run
-    from #merge1;",
+    from #merge1;
+
+    if object_id('tempdb..#merge1') is not null drop table #merge1;",
     .con = db_claims))
 }
 
@@ -681,50 +662,36 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
       where a.id_cnt > 1;",
     .con = db_claims))
   
-  #wa vs ach 11-month
-  res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.{`table_name`}' as 'table', 'in state but not ach 11-month cohort, expect < 91.7' as qa_type, max(geo_ach_covper) as qa
-      from stage.{`table_name`}
-      where performance_11_wa = 1 and performance_11_ach = 0;",
-    .con = db_claims))
-  
-  #wa vs ach 11-month
-  res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.{`table_name`}' as 'table', 'in state but not ach 7-month cohort, expect <58.3' as qa_type, max(geo_ach_covper) as qa
-      from stage.{`table_name`}
-      where performance_7_wa = 1 and performance_7_ach = 0;",
-    .con = db_claims))
-  
   #number of members in WA state with non-WA county
-  res4 <- dbGetQuery(conn = db_claims, glue_sql(
+  res2 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.{`table_name`}' as 'table', 'non-WA county for WA resident, expect 0' as qa_type, count(id_apcd) as qa
       from stage.{`table_name`}
       where geo_wa = 1 and geo_county is null;",
     .con = db_claims))
   
   #number of non-WA residents
-  res5 <- dbGetQuery(conn = db_claims, glue_sql(
+  res3 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.{`table_name`}' as 'table', 'non-WA residents, expect 0' as qa_type, count(id_apcd) as qa
       from stage.{`table_name`}
       where geo_wa = 0 and geo_county is not null;",
     .con = db_claims))
   
   #number of overall Medicaid members
-  res6 <- dbGetQuery(conn = db_claims, glue_sql(
+  res4 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.{`table_name`}' as 'table', '# of overall Medicaid members' as qa_type, count(id_apcd) as qa
       from stage.{`table_name`}
       where overall_mcaid = 1;",
     .con = db_claims))
   
   #number of members with medical but not pharmacy Medicaid coverage
-  res7 <- dbGetQuery(conn = db_claims, glue_sql(
+  res5 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.{`table_name`}' as 'table', '# of members with medical but not pharmacy Medicaid' as qa_type, count(id_apcd) as qa
       from stage.{`table_name`}
       where overall_mcaid_med = 1 and overall_mcaid_pharm = 0;",
     .con = db_claims))
   
   #number of members with pharmacy but not medical Medicaid coverage
-  res8 <- dbGetQuery(conn = db_claims, glue_sql(
+  res6 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.{`table_name`}' as 'table', '# of members with pharmacy but not medical Medicaid, expect low' as qa_type, count(id_apcd) as qa
       from stage.{`table_name`}
       where overall_mcaid_med = 0 and overall_mcaid_pharm = 1;",
@@ -738,19 +705,19 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
   
   if(nchar(year) > 4) {
     
-    start_date <- ymd(year) - months(12) + days(1)
+    start_date <- ymd(year) %m-% months(12) %m+% days(1)
     end_date <- ymd(year)
     interval <- interval(start_date, end_date)
     
     start_feb <- ymd(paste0(str_sub(start_date,1,4),"0201"))
     end_feb <- ymd(paste0(str_sub(end_date,1,4),"0201"))
     
-    if((ymd(start_feb) %within% interval & leap_year(start_date)) | (ymd(end_feb) %within% interval & leap_year(end_date))) {
+    if((ymd(start_feb) %within% interval & leap_year(start_date)==T) | (ymd(end_feb) %within% interval & leap_year(end_date)==T)) {
       days <- 366} else {
         days <- 365}
   }
   
-  res9 <- dbGetQuery(conn = db_claims, glue_sql(
+  res7 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.{`table_name`}' as 'table', '# of members with day counts >{days}, expect 0' as qa_type, count(*) as qa
       from stage.{`table_name`}
       where med_total_covd > {days} or med_medicaid_covd > {days} or med_commercial_covd > {days} or
@@ -759,7 +726,7 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
     .con = db_claims))
   
   #number of members with percents > 100
-  res10 <- dbGetQuery(conn = db_claims, glue_sql(
+  res8 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.{`table_name`}' as 'table', '# of members with percents >100, expect 0' as qa_type, count(*) as qa
       from stage.{`table_name`}
       where med_total_covper > 100 or med_medicaid_covper > 100 or med_commercial_covper > 100 or
@@ -768,38 +735,10 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
     .con = db_claims))
   
   #number of overall Medicaid members who are out of state
-  res11 <- dbGetQuery(conn = db_claims, glue_sql(
+  res9 <- dbGetQuery(conn = db_claims, glue_sql(
     "select 'stage.{`table_name`}' as 'table', '# of overall Medicaid members out of state, expect 0' as qa_type, count(id_apcd) as qa
       from stage.{`table_name`}
       where overall_mcaid = 1 and geo_county is null;",
-    .con = db_claims))
-  
-  #number of 11-month cohort members who are out of state
-  res12 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.{`table_name`}' as 'table', '# of 11-month cohort members out of state, expect 0' as qa_type, count(id_apcd) as qa
-      from stage.{`table_name`}
-      where performance_11_wa = 1 and geo_county is null;",
-    .con = db_claims))
-
-  #number of 7-month cohort members who are out of state
-  res13 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.{`table_name`}' as 'table', '# of 7-month cohort members out of state, expect 0' as qa_type, count(id_apcd) as qa
-      from stage.{`table_name`}
-      where performance_7_wa = 1 and geo_county is null;",
-    .con = db_claims))
-  
-  #number of 11-month cohort members who are in ACH but not state cohort
-  res14 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.{`table_name`}' as 'table', '# of 11-month cohort members in ACH but not state cohort, expect 0' as qa_type, count(id_apcd) as qa
-      from stage.{`table_name`}
-      where performance_11_wa = 0 and performance_11_ach = 1;",
-    .con = db_claims))
-  
-  #number of 7-month cohort members who are in ACH but not state cohort
-  res15 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.{`table_name`}' as 'table', '# of 7-month cohort members in ACH but not state cohort, expect 0' as qa_type, count(id_apcd) as qa
-      from stage.{`table_name`}
-      where performance_7_wa = 0 and performance_7_ach = 1;",
     .con = db_claims))
   
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()

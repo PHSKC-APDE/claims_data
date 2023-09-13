@@ -17,9 +17,9 @@
     pacman::p_load(data.table, dplyr, odbc, lubridate, glue, httr)
     options("scipen"=10) # turn off scientific notation  
     options(warning.length = 8170) # get lengthy warnings, needed for SQL
-    kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv"
-    yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
-    qa.function.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/qa_stage.mcare_elig_timevar.R"
+    kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/zip_admin.csv"
+    yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
+    qa.function.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcare_elig_timevar.R"
     start.time <- Sys.time()
     
 ## (1) Load SQL data ----
@@ -182,11 +182,30 @@
         setcolorder(dt, names(table_config$vars))
         
     # Write table to SQL
-        dbWriteTable(db_claims, 
-                     tbl_id, 
-                     value = as.data.frame(dt),
-                     overwrite = T, append = F, 
-                     field.types = unlist(table_config$vars))
+        ### Sometimes get a network error if trying to do the whole thing so split into batches
+        start <- 1L
+        max_rows <- 100000L
+        cycles <- ceiling(nrow(dt)/max_rows)
+        
+        lapply(seq(start, cycles), function(i) {
+          start_row <- ifelse(i == 1, 1L, max_rows * (i-1) + 1)
+          end_row <- min(nrow(dt), max_rows * i)
+          
+          message("Loading cycle ", i, " of ", cycles)
+          if (i == 1) {
+            dbWriteTable(db_claims, 
+                         name = tbl_id, 
+                         value = as.data.frame(dt[start_row:end_row]),
+                         overwrite = T, append = F, 
+                         field.types = unlist(table_config$vars))
+          } else {
+            dbWriteTable(db_claims, 
+                         name = tbl_id, 
+                         value = as.data.frame(dt[start_row:end_row]),
+                         overwrite = F, append = T)
+          }
+        })
+        
         rm(table_config, tbl_id)
         
 ## (11) Run QA function ----

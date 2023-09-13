@@ -5,7 +5,7 @@
 # 2019-08
 
 ### Run from master_mcaid_partial script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
 load_stage.mcaid_elig_f <- function(conn_db = NULL,
@@ -14,7 +14,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
                                     full_refresh = F, 
                                     config = NULL) {
   
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/alter_schema.R")
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
   
   ### Error checks
   if (is.null(conn_dw)) {stop("No DW connection specificed")}
@@ -50,7 +50,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   qa_table <- ifelse(is.null(config[[server]][["qa_table"]]), '',
                       config[[server]][["qa_table"]])
   
-  
+  duplicate_type <- NA
 
   if (!is.null(config$etl$date_var)) {
     date_var <- config$etl$date_var
@@ -93,17 +93,31 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     stop(glue::glue_sql("Missing etl_batch_id in {`from_schema`}.{`from_table`}"))
   }
 
-  
+
   #### ARCHIVE EXISTING TABLE ####
   # Different approaches between Azure data warehouse (rename) and on-prem SQL DB (alter schema)
-  if (full_refresh == F) {
+  # Check that the stage table actually exists so we don't accidentally wipe the archive table
+  if (full_refresh == F & DBI::dbExistsTable(conn_dw, DBI::Id(schema = to_schema, table = to_table))) {
     if (server == "hhsaw") {
+      if(DBI::dbExistsTable(conn_dw, DBI::Id(schema = to_schema, table = paste0(archive_table, '_bak')))) {
+        try(DBI::dbSendQuery(conn_dw, 
+                             glue::glue_sql("DROP TABLE {`to_schema`}.{`paste0(archive_table, '_bak')`}", 
+                                            .con = conn_dw)))
+      }
       try(DBI::dbSendQuery(conn_dw, 
-                           glue::glue_sql("DROP TABLE {`archive_schema`}.{`archive_table`}",
+                           glue::glue_sql("RENAME OBJECT {`to_schema`}.{`archive_table`} TO {`paste0(archive_table, '_bak')`}",
                                           .con = conn_dw)))
-      DBI::dbSendQuery(conn_dw, 
-                       glue::glue("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}"))
+      try(DBI::dbSendQuery(conn_dw, 
+                           glue::glue_sql("RENAME OBJECT {`to_schema`}.{`to_table`} TO {`archive_table`}",
+                                          .con = conn_dw)))
     } else if (server == "phclaims") {
+      if(DBI::dbExistsTable(conn_dw, DBI::Id(schema = archive_schema, table = paste0(archive_table, '_bak')))) {
+        try(DBI::dbSendQuery(conn_db, 
+                             glue::glue_sql("DROP TABLE {`archive_schema`}.{`paste0(archive_table, '_bak')`}", 
+                                            .con = conn_db)))
+      }
+      try(DBI::dbSendQuery(conn_db, 
+                           glue::glue("EXEC sp_rename '{archive_schema}.{archive_table}',  '{paste0(archive_table, '_bak')}'")))
       alter_schema_f(conn = conn_db, 
                      from_schema = to_schema, 
                      to_schema = archive_schema,
@@ -186,7 +200,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
         duplicate_check_rac == rows_load_raw ~ "Only HOH_ID duplicates present",
       duplicate_check_reason == rows_load_raw & duplicate_check_hoh == rows_load_raw & 
         duplicate_check_rac != rows_load_raw ~ "Only RAC_NAME duplicates present")
-    
+    if(!exists('duplicate_type')) { duplicate_type <- NA }
     
     # Note: solution assumes only one duplicate type present in any given id/month/RAC combo
     if (!is.na(duplicate_type)) {
@@ -320,7 +334,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   # First drop existing table
   try(odbc::dbRemoveTable(conn_dw, DBI::Id(schema = to_schema, table = to_table)), silent = T)
   
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
   
   
   # Then set up first block of SQL, which varies by server

@@ -15,7 +15,7 @@ conn <- dbConnect(odbc(), "PHClaims51")
 
 
 #### Get YAML config file #####
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.provider_nppes_load.yaml"
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.provider_nppes_load.yaml"
 table_config <- yaml::yaml.load_file(config_url)
 file_path <- table_config$overall[["file_path"]][[1]]
 schema <- table_config[["schema"]][[1]]

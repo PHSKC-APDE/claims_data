@@ -1,0 +1,97 @@
+---
+title: "elig_timevar_collapse"
+author: "Kai Fukutaki"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette: default
+  github_document: default
+  pdf_document: default
+  urlcolor: blue
+  keep_md: true
+vignette: >
+  %\VignetteIndexEntry{elig_timevar_collapse}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo = F, message=FALSE}
+library(claims)
+library(odbc)
+```
+
+## Introduction
+
+`elig_timevar_collapse` is the most confusing function of the claims package at first, but extremely useful once you get to know it. Essentially, the function will "collapse" over whatever variable flags you pass in. This means that if you asked to collapse APCD data over med_covgrp and county, you would get back a table of APCD IDs broken up by from- and to-dates for each county and med_covgrp. If this is still confusing, play around with it and get a feel for how it works with different arguments (and get back to me on how to explain it better).
+
+Currently, only Medicaid and APCD data are supported.
+
+## Arguments
+
+While there are many arguments, they can be broken up into 6 general groups.
+
+The arguments to always account for include:
+
+1\) `conn` \<- The database connection to use to access the data (see `create_db_connection` and `dbConnect` usage in PHSKC repos for how to set this up)
+2\) `source` \<- The claims data source to pull data from (All Payer Claims Database, Medicaid, Medicaid/Medicare, Medicare, or Medicare/Medicaid/Public Housing Authority)
+3\) `server` \<- Whether to access the data from the PHClaims51 server or HHSAW (note that this has to align with your `conn`)
+
+Other arguments that apply to all sources include:
+
+1\) `dual` \<- Whether to collapse over the dual eligiblity flag.
+2\) `cov_time_day` \<- Whether to recalculate coverage time in days in the new period (i.e. days between from- and to-dates). Default is TRUE.
+3\) `last_run` \<- Bring in the last run date for the given source.
+4\) `ids` \<- Restrict to specified IDs of a given source. Use format c("<id1>", "<id2>") or pass a vector.
+5\) `geo_zip` \<- One of the "geo" arguments, collapses over ZIP code
+
+Arguments that apply only to Medicaid include:
+
+1\) `tpl` \<- Collapses over third party liability
+2\) `bsp_group_name` \<- Collapses over benefit service package group name
+3\) `full_benefit` \<- Collapses over flag for full medical benefits under Medicaid coverage
+4\) `cov_type` \<- Collapses over coverage type (managed vs fee-for-service)
+5\) `mco_id` \<- Collapses over mco_id (ID of managed care organization providing managed care coverage)
+
+and arguments that apply only to APCD include:
+
+1\) `med_covgrp` \<- Collapse over medical coverage phenotype code
+2\) `pharm_covgrp` \<- Collapse over pharmacy coverage phenotype code
+3\) `med_medicaid` \<- Collapse over flag of any combination of Medicaid medical coverage
+4\) `med_medicare` \<- Collapse over flag of any combination of Medicare coverage
+5\) `med_commercial` \<- Collapse over flag of any combination of commercial medical coverage
+6\) `pharm_medicaid` \<- Collapse over flag of any combination of Medicaid pharmacy coverage
+7\) `pharm_medicare` \<- Collapse over flag of any combination of Medicare pharmacy coverage
+8\) `pharm_commercial` \<- Collapse over flag of any combination of commercial pharmacy coverage
+
+All of the above collapse over their corresponding column name.
+
+"Geo" arguments applying only to Medicaid include:
+
+1\) `geo_add1` \<- Collapse over primary address
+2\) `geo_add2` \<- Collapse over secondary part of address
+3\) `geo_city` \<- Collapse over city
+4\) `geo_state` \<- Collapse over state
+5\) `geocode_vars` \<- Bring in all other geocoded data elements (county codes, tracts, HRAs, and school districts).
+
+"Geo" arguments applying only to APCD include:
+
+1\) `geo_county` \<- Collapse over county
+2\) `geo_ach` \<- Collapse over residential Accountable Communities of Health region
+
+## Example use
+
+After loading a DB connection to the PH Claims database, we can run a query to collapse APCD data by dual eligibility, medical coverage phenotype, and ZIP code. This will take a while (~10 mins on my machine) - the query is pretty big!
+
+```{r}
+covgrp_zip <- elig_timevar_collapse(
+  conn = db_claims, server="phclaims", source = "apcd", med_covgrp = T, geo_zip = T)
+```
+
+As you can see, we get back a table of APCD IDs, broken up by ZIP code and medical coverage group code. It also has the from- and to-dates for this ZIP-covgrp combination, and the calculated length of those dates in days.
+

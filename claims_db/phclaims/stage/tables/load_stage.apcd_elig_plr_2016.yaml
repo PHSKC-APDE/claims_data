@@ -1,15 +1,13 @@
-schema: stage
-table: apcd_elig_plr_2016
+to_schema: stage
+to_table: apcd_elig_plr_2016
 vars:
     id_apcd: bigint
     geo_wa: tinyint
     overall_mcaid: tinyint
     overall_mcaid_med: tinyint
     overall_mcaid_pharm: tinyint
-    performance_11_wa: tinyint
-    performance_7_wa: tinyint
-    performance_11_ach: tinyint
-    performance_7_ach: tinyint
+    medical_coverage_7mo: tinyint
+    medical_coverage_11mo: tinyint
     geo_zip: varchar(10)
     geo_county: varchar(100)
     geo_ach: varchar(100)
@@ -21,10 +19,19 @@ vars:
     gender_recent: varchar(8)
     gender_female: tinyint
     gender_male: tinyint
+    race_eth_me: varchar(100)
+    race_me: varchar(100)
+    race_eth_recent: varchar(100)
+    race_recent: varchar(100)
+    race_aian: tinyint
+    race_asian: tinyint
+    race_black: tinyint
+    race_latino: tinyint
+    race_nhpi: tinyint
+    race_white: tinyint
+    race_unknown: tinyint
     med_total_covd: bigint
     med_total_covper: numeric(4, 1)
-    full_benefit_covd: bigint
-    full_benefit_covper: numeric(4, 1)
     dual_covd: bigint
     dual_covper: numeric(4, 1)
     dual: tinyint

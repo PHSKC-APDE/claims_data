@@ -4,7 +4,7 @@
   # Purpose: Create stage.mcaid_mcare_elig_demo for SQL
   #
   # This code is designed to be run as part of the master Medicaid/Medicare script:
-  # https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
+  # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
   #
 
 ## Set up R Environment ----
@@ -15,7 +15,7 @@
   
   start.time <- Sys.time()
   
-  yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.yaml"
+  yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.yaml"
   
 ## (1) Connect to SQL Server ----    
   # db_claims <- dbConnect(odbc(), "PHClaims51")   
@@ -35,6 +35,7 @@
                                   lang_russian, lang_somali, lang_spanish, lang_ukrainian, lang_vietnamese 
                                   FROM PHClaims.final.mcaid_elig_demo"))
 
+
 ## (3) Merge on apde id ----
   mcare <- merge(apde[, .(id_apde, id_mcare)], mcare, by = "id_mcare", all.x = FALSE, all.y = TRUE)
   mcare[, id_mcare := NULL] # no longer needed now that have id_apde
@@ -42,14 +43,33 @@
   mcaid <- merge(apde[, .(id_apde, id_mcaid)], mcaid, by = "id_mcaid", all.x = FALSE, all.y = TRUE)
   mcaid[, id_mcaid := NULL] # no longer needed now that have id_apde
   
+  
+  ## Temp fix ----
+  # The new approach to ID matching means there is >1 row per id_apde for some people
+  # Need to consolidate data
+  # For now randomly select a row
+  set.seed(98104)
+  mcaid[, sorter := sample(1000, .N), by = "id_apde"]
+  mcaid <- mcaid[order(id_apde, sorter)]
+  mcaid <- mcaid[mcaid[, .I[1:1], by = id_apde]$V1]
+  mcaid[, sorter := NULL]
+  
+  set.seed(98104)
+  mcare[, sorter := sample(1000, .N), by = "id_apde"]
+  mcare <- mcare[order(id_apde, sorter)]
+  mcare <- mcare[mcare[, .I[1:1], by = id_apde]$V1]
+  mcare[, sorter := NULL]
+  
+  
 ## (4) Identify the duals and split from non-duals ----
   dual.id <- intersect(mcaid$id_apde, mcare$id_apde)
   
   mcare.solo <- mcare[!id_apde %in% dual.id]
   mcaid.solo <- mcaid[!id_apde %in% dual.id]  
   
-  mcare.dual <- mcare[id_apde %in% dual.id]
-  mcaid.dual <- mcaid[id_apde %in% dual.id]
+  mcare.dual <- unique(mcare[id_apde %in% dual.id])
+  mcaid.dual <- unique(mcaid[id_apde %in% dual.id])
+
 
 ## (5) Combine the data for duals ----
   # some data is assumed to be more reliable in one dataset compared to the other
@@ -95,13 +115,33 @@
   
   # Ensure columns are in same order in R & SQL
     setcolorder(elig, names(table_config$vars))
+    elig <- elig[, names(table_config$vars), with = FALSE]
   
   # Write table to SQL
-    dbWriteTable(db_claims, 
-                 DBI::Id(schema = table_config$schema, table = table_config$table), 
-                 value = as.data.frame(elig),
-                 overwrite = T, append = F, 
-                 field.types = unlist(table_config$vars))
+    ### Sometimes get a network error if trying to do the whole thing so split into batches
+    start <- 1L
+    max_rows <- 100000L
+    cycles <- ceiling(nrow(elig)/max_rows)
+    
+    lapply(seq(start, cycles), function(i) {
+      start_row <- ifelse(i == 1, 1L, max_rows * (i-1) + 1)
+      end_row <- min(nrow(elig), max_rows * i)
+      
+      message("Loading cycle ", i, " of ", cycles)
+      if (i == 1) {
+        dbWriteTable(db_claims, 
+                     DBI::Id(schema = table_config$schema, table = table_config$table), 
+                     value = as.data.frame(elig[start_row:end_row]),
+                     overwrite = T, append = F, 
+                     field.types = unlist(table_config$vars))
+      } else {
+        dbWriteTable(db_claims, 
+                     DBI::Id(schema = table_config$schema, table = table_config$table), 
+                     value = as.data.frame(elig[start_row:end_row]),
+                     overwrite = F, append = T)
+      }
+    })
+
 
 ## (9) Simple QA ----
     # Confirm that all rows were loaded to SQL ----

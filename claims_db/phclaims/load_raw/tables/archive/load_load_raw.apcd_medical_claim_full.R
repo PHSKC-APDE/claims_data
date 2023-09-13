@@ -4,7 +4,7 @@
 # 2019-10
 
 ### Run from master_apcd_full script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/apcd/master_apcd_full.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_full.R
 
 
 load_load_raw.apcd_medical_claim_full_f <- function(etl_date_min = NULL,
@@ -24,11 +24,11 @@ load_load_raw.apcd_medical_claim_full_f <- function(etl_date_min = NULL,
   
   # Load ETL and QA functions if not already present
   if (exists("load_metadata_etl_log_f") == F) {
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
   }
   
   if (exists("qa_file_row_count_f") == F) {
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
   }
   
   
@@ -51,7 +51,7 @@ load_load_raw.apcd_medical_claim_full_f <- function(etl_date_min = NULL,
   #### LOAD TABLES ####
   print("Loading tables to SQL")
   load_table_from_file_f(conn = db_claims,
-                         config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.",
+                         config_url = paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.",
                                              table_name_part, "_full.yaml"),
                          overall = F, ind_yr = T, combine_yr = T, test_mode = F)
   
@@ -68,7 +68,7 @@ load_load_raw.apcd_medical_claim_full_f <- function(etl_date_min = NULL,
   
   
   #### LOAD YAML CONFIG FILE FOR FINAL COMMANDS ####
-  config_url <- paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.", table_name_part, "_full.yaml")
+  config_url <- paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.", table_name_part, "_full.yaml")
   if (!is.null(config_url)) {
     table_config <- yaml::yaml.load(httr::GET(config_url))
   } else {

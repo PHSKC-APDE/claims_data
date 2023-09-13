@@ -1,12 +1,18 @@
-source_data: mcaid_mcare
-claim_header_from_schema: final
-claim_header_from_table: mcaid_mcare_claim_header
-icdcm_from_schema: final
-icdcm_from_table: mcaid_mcare_claim_icdcm_header
-schema: stage
-to_table: mcaid_mcare_claim_ccw
+phclaims:
+    claim_header_from_schema: final
+    claim_header_from_table: mcaid_mcare_claim_header
+    icdcm_from_schema: final
+    icdcm_from_table: mcaid_mcare_claim_icdcm_header
+    to_schema: stage
+    to_table: mcaid_mcare_claim_ccw
+    final_schema: final
+    final_table: 
+    ref_schema: ref
+    ref_table: 
+    qa_schema: metadata
+    qa_table: 
 vars:
-    id_apde: integer
+    id_apde: char(10)
     from_date: date
     to_date: date
     ccw_code: tinyint

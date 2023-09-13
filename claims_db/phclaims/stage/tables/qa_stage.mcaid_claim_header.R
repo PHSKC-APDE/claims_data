@@ -1,7 +1,7 @@
 # This code QAs the stage mcaid claim header table
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 #
 # 2019-12
 # Alastair Matheson (building on SQL from Philip Sylling)
@@ -267,7 +267,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
                                     .con = conn))
     }
   } else {
-    num_claim_fail <- 0
+    num_header_fail <- 0
     num_ed_fail <- 0
   }
   

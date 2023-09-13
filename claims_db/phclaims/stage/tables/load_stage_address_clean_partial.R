@@ -5,7 +5,7 @@
 
 
 ### Run from master_mcaid_partial script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
 #### PARTIAL ADDRESS_CLEAN SETUP ####
@@ -35,7 +35,7 @@ load_stage.address_clean_partial_step1 <- function(server = NULL,
                                                    source = NULL,
                                                    get_config = F) {
   
-  config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
+  config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
 
   #### SET UP SERVER ####
   if (is.null(server)) {

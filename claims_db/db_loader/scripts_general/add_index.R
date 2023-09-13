@@ -65,7 +65,7 @@ add_index_f <- function(conn,
     if (!is.null(table_config$to_schema)) {
       to_schema <- table_config$to_schema
     } else {
-      to_schema <- table_config$to_schema
+      to_schema <- table_config$schema
     }
     
     if (!is.null(table_config$to_table)) {

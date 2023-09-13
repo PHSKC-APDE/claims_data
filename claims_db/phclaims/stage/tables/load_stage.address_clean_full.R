@@ -16,10 +16,10 @@ db_apde51 <- dbConnect(odbc(), "PH_APDEStore51")
 db_claims <- dbConnect(odbc(), "PHClaims51")
 
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
-source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
+source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
 
 table_config <- yaml::yaml.load(getURL(
-    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
+    "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml"))
 
 
 #### INITAL ADDRESS_CLEAN SETUP ####
@@ -31,7 +31,7 @@ table_config <- yaml::yaml.load(getURL(
 
 ### Create SQL table
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.address_clean.yaml",
                overall = T, ind_yr = F)
 
 
@@ -135,7 +135,7 @@ combined_add <- combined_add %>%
 
 ### Create SQL table
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_clean.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/create_stage.address_clean.yaml",
                overall = T, ind_yr = F)
 
 # MORE CODE TO COME

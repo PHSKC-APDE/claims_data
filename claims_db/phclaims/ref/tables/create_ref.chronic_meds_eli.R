@@ -45,7 +45,7 @@ chronic_meds_crosswalk <- chronic_meds_crosswalk %>% mutate(last_run = Sys.time(
 
 
 #### Step 4: Get YAML config file #####
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/create_ref.chronic_meds_eli.yaml"
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/create_ref.chronic_meds_eli.yaml"
 table_config <- yaml::yaml.load_file(config_url)
 schema <- table_config[["schema"]][[1]]
 to_table <- table_config[["to_table"]][[1]]

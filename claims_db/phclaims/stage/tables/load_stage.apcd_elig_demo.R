@@ -4,7 +4,7 @@
 # 2019-10
 
 ### Run from master_apcd_analytic script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/apcd/master_apcd_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
 
 #### Load script ####
 load_stage.apcd_elig_demo_f <- function() {
@@ -27,15 +27,15 @@ load_stage.apcd_elig_demo_f <- function() {
     	max(gender_recent) as gender_recent
     into #mm_temp1
     from (
-    select internal_member_id, year_month, age, 
-    	--when age changes between two contiguous months (year_month diff = 1 or 89 [for 12 to 01], use this change to estimate DOB
-    	case when lag(age,1) over (partition by internal_member_id order by internal_member_id, year_month) < age and 
-    		(year_month - lag(year_month,1) over (partition by internal_member_id order by internal_member_id, year_month)) in (1, 89)
-    		then convert(date, cast(year_month - lag((age + 1) * 100,1) over (partition by internal_member_id order by internal_member_id, year_month) as varchar(200)) + '01')
+    select internal_member_id, cast(year_month as int) as year_month, age, 
+    	--when age changes between two contiguous months (year_month diff = 1 or 89 [for 12 to 01] AND difference in age = 1 year, use this change to estimate DOB
+    	case when age - lag(age,1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int)) = 1 and 
+    		(cast(year_month as int) - lag(cast(year_month as int),1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int))) in (1, 89)
+    		then convert(date, cast(cast(year_month as int) - lag((age + 1) * 100,1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int)) as varchar(200)) + '01')
     	end as dob_1,
     	--when only a single age is available for all history, use the last recorded age and month to estimate age (will overestimate age, thus choose an earlier DOB)
-    	case when lead(age,1) over (partition by internal_member_id order by internal_member_id, year_month) is null 
-    		then dateadd(month, 1, convert(date, cast((year_month - ((age + 1) * 100)) as varchar(200)) + '01'))
+    	case when lead(age,1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int)) is null 
+    		then dateadd(month, 1, convert(date, cast((cast(year_month as int) - ((age + 1) * 100)) as varchar(200)) + '01'))
     	end as dob_2,
       --create alone or in combination gender variables
       case when gender_code = 'F' then 1 when gender_code = 'U' then null else 0 end as female,
@@ -43,7 +43,7 @@ load_stage.apcd_elig_demo_f <- function() {
       case when gender_code = 'U' then 1 else 0 end as gender_unk,
       --create variable to hold most recent gender, ignore null and 'Unknown' values
       last_value(gender_code) over (partition by internal_member_id
-    	order by internal_member_id, case when gender_code = 'U' or gender_code is null then null else year_month end
+    	order by internal_member_id, case when gender_code = 'U' or gender_code is null then null else cast(year_month as int) end
     		rows between unbounded preceding and unbounded following) as gender_recent
     from PHClaims.stage.apcd_member_month_detail
     ) as a
@@ -81,6 +81,8 @@ load_stage.apcd_elig_demo_f <- function() {
     into #mm_final
     from #mm_temp1;
     
+    if object_id('tempdb..#mm_temp1') is not null drop table #mm_temp1;
+
     
     ------------------
     --STEP 3: Recode APCD race and latino variables
@@ -91,7 +93,7 @@ load_stage.apcd_elig_demo_f <- function() {
     if object_id('tempdb..#elig_temp1') is not null drop table #elig_temp1;
     select eligibility_id, internal_member_id as id_apcd, eligibility_end_dt,
     case when race_id1 in (1,2,3,4,5) then race_id1 else 0 end as race_id1,
-    case when race_id2 in (1,2,3,4,5) then race_id1 else 0 end as race_id2,
+    case when race_id2 in (1,2,3,4,5) then race_id2 else 0 end as race_id2,
     case when hispanic_id in (1,2) then hispanic_id else 0 end as latino_id
     into #elig_temp1
     from PHClaims.stage.apcd_eligibility;
@@ -130,6 +132,10 @@ load_stage.apcd_elig_demo_f <- function() {
     left join #elig_temp3 as c
     on a.eligibility_id = c.eligibility_id;
     
+    if object_id('tempdb..#elig_temp1') is not null drop table #elig_temp1;
+    if object_id('tempdb..#elig_temp2') is not null drop table #elig_temp2;
+    if object_id('tempdb..#elig_temp3') is not null drop table #elig_temp3;
+
     
     ------------------
     --STEP 6: Create normalized race variables
@@ -148,6 +154,8 @@ load_stage.apcd_elig_demo_f <- function() {
     into #elig_temp5
     from #elig_temp4;
     
+    if object_id('tempdb..#elig_temp4') is not null drop table #elig_temp4;
+
     
     ------------------
     --STEP 7: Create mutually exclusive race variables (two flavors)
@@ -177,6 +185,8 @@ load_stage.apcd_elig_demo_f <- function() {
     end as race_me
     into #elig_temp6
     from #elig_temp5;
+
+    if object_id('tempdb..#elig_temp5') is not null drop table #elig_temp5;
     
     
     ------------------
@@ -192,6 +202,8 @@ load_stage.apcd_elig_demo_f <- function() {
     	rows between unbounded preceding and unbounded following) as race_recent
     into #elig_temp7
     from #elig_temp6;
+
+    if object_id('tempdb..#elig_temp6') is not null drop table #elig_temp6;
     
     
     ------------------
@@ -216,6 +228,8 @@ load_stage.apcd_elig_demo_f <- function() {
     from #elig_temp7
     group by id_apcd;
     
+    if object_id('tempdb..#elig_temp7') is not null drop table #elig_temp7;
+
     
     ------------------
     --STEP 10: Join age, gender and race variables on member ID, and insert data
@@ -245,7 +259,10 @@ load_stage.apcd_elig_demo_f <- function() {
     	getdate() as last_run
     from #mm_final as a
     left join #elig_final as b
-    on a.id_apcd = b.id_apcd;",
+    on a.id_apcd = b.id_apcd;
+    
+    if object_id('tempdb..#mm_final') is not null drop table #mm_final;
+    if object_id('tempdb..#elig_final') is not null drop table #elig_final;",
     .con = db_claims))
 }
 
@@ -253,13 +270,13 @@ load_stage.apcd_elig_demo_f <- function() {
 qa_stage.apcd_elig_demo_f <- function() {
   
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_demo' as 'table', 'distinct count' as qa_type, count(distinct id_apcd) as qa from stage.apcd_elig_demo",
+    "select 'stage.apcd_elig_demo' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct id_apcd) as qa from stage.apcd_elig_demo",
     .con = db_claims))
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_member_month_detail' as 'table', 'distinct count' as qa_type, count(distinct internal_member_id) as qa from stage.apcd_member_month_detail",
+    "select 'stage.apcd_member_month_detail' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct internal_member_id) as qa from stage.apcd_member_month_detail",
     .con = db_claims))
   res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_demo' as 'table', 'count' as qa_type, count(id_apcd) as qa from stage.apcd_elig_demo",
+    "select 'stage.apcd_elig_demo' as 'table', 'count, expect to equal other qa values' as qa_type, count(id_apcd) as qa from stage.apcd_elig_demo",
     .con = db_claims))
   res_final <- bind_rows(res1, res2, res3)
 }

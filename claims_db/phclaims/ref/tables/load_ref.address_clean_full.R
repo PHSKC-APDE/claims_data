@@ -16,8 +16,8 @@ db_apde <- dbConnect(odbc(), "PH_APDEStore51")
 db_claims <- dbConnect(odbc(), "PHClaims51")
 
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
-source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
+source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
 
 
 #### INITAL ADDRESS_CLEAN SETUP ####
@@ -26,12 +26,12 @@ source("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_d
 
 ### Create SQL table
 create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
                overall = T, ind_yr = F)
 
 
 load_table_from_sql_f(conn = db_claims, 
-                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
+                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.address_clean.yaml",
                       truncate = T, truncate_date = F)
 
 
@@ -43,7 +43,7 @@ load_table_from_sql_f(conn = db_claims,
 
 ### Create SQL table
 create_table_f(conn = db_claims51, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_clean.yaml",
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/create_stage.address_clean.yaml",
                overall = T, ind_yr = F)
 
 # MORE CODE TO COME

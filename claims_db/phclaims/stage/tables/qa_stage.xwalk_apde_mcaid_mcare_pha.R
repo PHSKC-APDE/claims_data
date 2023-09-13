@@ -8,7 +8,7 @@
 # Notes: Type the <Alt> + <o> at the same time to collapse the code and view the structure
 # 
 # This code is designed to be run as part of the master Medicaid/Medicare script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
 #
 
 # This is all one function ----
@@ -195,12 +195,12 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_claims,
     problem.mcaid_id  <- glue::glue(" ") # no problem
   }
   
-  #### CHECK DISTINCT PID == DISTINCT PID IN [PH_APDEStore].[stage].[pha]####
+  #### CHECK DISTINCT ID_KC_PHA == DISTINCT ID_KC_PHA IN [PH_APDEStore].[stage].[pha]####
   id_count_pid <- as.numeric(odbc::dbGetQuery(
-    conn, "SELECT COUNT (DISTINCT pid) AS count FROM stage.xwalk_apde_mcaid_mcare_pha"))
+    conn, "SELECT COUNT (DISTINCT id_kc_pha) AS count FROM stage.xwalk_apde_mcaid_mcare_pha"))
   
   id_count_pid_orig <- as.numeric(odbc::dbGetQuery(
-    conn, "SELECT COUNT (DISTINCT pid) AS count FROM PH_APDEStore.stage.pha"))
+    conn, "SELECT COUNT (DISTINCT id_kc_pha) AS count FROM PH_APDEStore.stage.pha"))
   
   if (id_count_pid != id_count_pid_orig) {
     odbc::dbGetQuery(
@@ -213,12 +213,12 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_claims,
                      'Number distinct IDs', 
                      'FAIL', 
                      {Sys.time()}, 
-                     'There were {id_count_pid} distinct PID IDs but {id_count_pid_orig} in the most recent [PH_APDEStore].[stage].[pha] (they should be equal)'
+                     'There were {id_count_pid} distinct PHA IDs but {id_count_pid_orig} in the most recent [PH_APDEStore].[stage].[pha] (they should be equal)'
                      )
                      ",
                      .con = conn))
     
-    problem.pid  <- glue::glue("Number of distinct PID IDs is different from the number in [PH_APDEStore].[stage].[pha] data. 
+    problem.id_pha  <- glue::glue("Number of distinct PHA IDs is different from the number in [PH_APDEStore].[stage].[pha] data. 
                     Check metadata.qa_xwalk for details (last_run = {last_run})
                    \n")
   } else {
@@ -231,11 +231,11 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_claims,
                      'Number distinct IDs', 
                      'PASS', 
                      {Sys.time()}, 
-                     'The number of distinct PID IDs ({id_count_pid}) is equal to the number in [PH_APDEStore].[stage].[pha]  
+                     'The number of distinct PHA IDs ({id_count_pid}) is equal to the number in [PH_APDEStore].[stage].[pha]  
                      ({id_count_pid_orig})')",
                      .con = conn))
     
-    problem.pid  <- glue::glue(" ") # no problem
+    problem.id_pha  <- glue::glue(" ") # no problem
   }
   
   #### CHECK THAT id_mcare ARE DISTINCT (ONLY IN ONE ROW) ----
@@ -320,12 +320,12 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_claims,
   }
   
   
-  #### CHECK THAT pid ARE DISTINCT (ONLY IN ONE ROW) ----
+  #### CHECK THAT id_kc_pha ARE DISTINCT (ONLY IN ONE ROW) ----
   distinct_pid <- setDT(odbc::dbGetQuery(
-    conn, "SELECT pid, COUNT(pid) 
+    conn, "SELECT id_kc_pha, COUNT(id_kc_pha) 
            FROM [PHClaims].[stage].[xwalk_apde_mcaid_mcare_pha] 
-           GROUP BY pid 
-           HAVING COUNT(pid) > 1"))
+           GROUP BY id_kc_pha 
+           HAVING COUNT(id_kc_pha) > 1"))
   
   
   if (nrow(distinct_pid) !=0) {
@@ -334,14 +334,14 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_claims,
       glue::glue_sql("INSERT INTO metadata.qa_xwalk
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES ({last_run}, 
-                     'stage.xwalk_apde_mcapid_pha',
-                     'Duplicate pid', 
+                     'stage.xwalk_apde_mcaid_mcaid_pha',
+                     'Duplicate id_kc_pha', 
                      'FAIL', 
                      {Sys.time()}, 
-                     'There were duplicate pid (i.e., a given ID appeared in more than one row)')",
+                     'There were duplicate id_kc_pha (i.e., a given ID appeared in more than one row)')",
                      .con = conn))
     
-    problem.dup.pid <- glue::glue("There appear to be duplicate pid 
+    problem.dup.id_pha <- glue::glue("There appear to be duplicate id_kc_pha 
                     Check metadata.qa_xwalk for details (last_run = {last_run})
                    \n")
   } else {
@@ -350,14 +350,14 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_claims,
       glue::glue_sql("INSERT INTO metadata.qa_xwalk
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES ({last_run}, 
-                     'stage.xwalk_apde_mcapid_pha',
-                     'Duplicate pid', 
+                     'stage.xwalk_apde_mcaid_mcaid_pha',
+                     'Duplicate id_kc_pha', 
                      'PASS', 
                      {Sys.time()}, 
-                     'There were NO duplicate pid (good job!)')",
+                     'There were NO duplicate id_kc_pha (good job!)')",
                      .con = conn))
     
-    problem.dup.pid <- glue::glue(" ")
+    problem.dup.id_pha <- glue::glue(" ")
   }
   
   
@@ -419,15 +419,15 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_claims,
       
 
   #### Identify problems / fails ####
-  if(problem.mcare_id >1 | problem.mcaid_id>1 | problem.pid>1 | problem.dup.id_mcare>1 | problem.dup.id_mcaid>1 | problem.dup.pid>1 | problem.dup.id_apde>1){
+  if(problem.mcare_id >1 | problem.mcaid_id>1 | problem.id_pha>1 | problem.dup.id_mcare>1 | problem.dup.id_mcaid>1 | problem.dup.id_pha>1 | problem.dup.id_apde>1){
                     problems <- glue::glue("****STOP!!!!!!!!****
                          Please address the following issues that have been logged in [PHClaims].[metadata].[qa_xwalk] ... \n", 
                                            problem.mcare_id, "\n", 
                                            problem.mcaid_id, "\n", 
-                                           problem.pid, "\n", 
+                                           problem.id_pha, "\n", 
                                            problem.dup.id_mcare, "\n", 
                                            problem.dup.id_mcaid, "\n", 
-                                           problem.dup.pid, "\n", 
+                                           problem.dup.id_pha, "\n", 
                                            problem.dup.id_apde)}else{
                     problems <- glue::glue("All QA checks passed and recorded to [PHClaims].[metadata].[qa_xwalk]")       
                          }

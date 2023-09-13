@@ -8,7 +8,7 @@
 # Generally, the user will want to use the existing ref.address_geocode table.
 
 ### Run from master_mcaid_partial script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_partial.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
 ### Function elements
@@ -17,13 +17,32 @@
 # config = the YAML config file. Can be either an object already loaded into 
 #   R or a URL that should be used
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
+# troubleshoot_esri = if you want to submit individual addresses to ESRI one 
+#   at at time for troubleshooting
 
 stage_address_geocode_f <- function(conn = NULL,
                                     server = c("hhsaw", "phclaims"),
                                     config = NULL,
                                     get_config = F,
-                                    full_refresh = F) {
-
+                                    full_refresh = F, 
+                                    troubleshoot_esri = F) {
+  #### SET-UP----
+  # load necessary packages -- will cause an error upfront to avoid headaches later
+  library(dplyr)
+  library(tidyr)
+  library(stringr)
+  library(sf)
+  library(rjson)
+  library(DBI)
+  library(keyring)
+  
+  # check for necessary arguments that are not called for directly in the function arguments
+  if(!exists("s_shapes")){stop("You must define the s_shapes directory (e.g., s_shapes <- '//phshare01/epe_share/WORK/REQUESTS/Maps/Shapefiles/'")}
+  if(!exists("g_shapes")){stop("You must define the g_shapes directory (e.g., g_shapes <- g_shapes <- '//Kcitfsrprpgdw01/kclib/Plibrary2/'")}
+  if(!exists("interactive_auth")){stop("You must define interactive_auth in your environment for create_db_connection() (e.g., interactive_auth = TRUE")}
+  if(!exists("prod")){stop("You must define prod in your environment for create_db_connection() (e.g., prod = TRUE")}
+  
+  
   # Set up variables specific to the server
   server <- match.arg(server)
   
@@ -41,62 +60,73 @@ stage_address_geocode_f <- function(conn = NULL,
   to_table <- config[[server]][["to_table"]]
   stage_schema <- config[[server]][["stage_schema"]]
   stage_table <- ifelse(is.null(config[[server]][["stage_table"]]), '',
-                      config[[server]][["stage_table"]])
+                        config[[server]][["stage_table"]])
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- config[[server]][["ref_table"]]
   
-  
+  conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   
   #### PULL IN DATA ####
+  message(paste0("Pulling in data ... ", Sys.time()))
+  
   if (full_refresh == F) {
     # Join ref.address_clean to ref.address_geocode to find addresses not geocoded
     adds_to_code <- dbGetQuery(
       conn,
       glue::glue_sql("SELECT DISTINCT a.*, b.geocoded
                      FROM
-                     (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean
+                     (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, geo_hash_geocode
                        FROM {`ref_schema`}.address_clean WHERE geo_geocode_skip = 0) a
                      LEFT JOIN
-                     (SELECT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
-                       1 as geocoded
+                     (SELECT geo_hash_geocode, 1 as geocoded
                        FROM {`ref_schema`}.address_geocode) b
                      ON 
-                     (a.geo_add1_clean = b.geo_add1_clean OR (a.geo_add1_clean IS NULL AND b.geo_add1_clean IS NULL)) AND
-                     (a.geo_city_clean = b.geo_city_clean OR (a.geo_city_clean IS NULL AND b.geo_city_clean IS NULL)) AND
-                     (a.geo_state_clean = b.geo_state_clean OR (a.geo_state_clean IS NULL AND b.geo_state_clean IS NULL)) AND
-                     (a.geo_zip_clean = b.geo_zip_clean OR (a.geo_zip_clean IS NULL AND b.geo_zip_clean IS NULL))
+                     a.geo_hash_geocode = b.geo_hash_geocode
                      WHERE b.geocoded IS NULL",
                      .con = conn))
   } else {
     adds_to_code <- dbGetQuery(conn,
                                glue::glue_sql("SELECT DISTINCT geo_add1_clean, geo_city_clean, 
-                                              geo_state_clean, geo_zip_clean
+                                              geo_state_clean, geo_zip_clean, geo_hash_geocode
                                               FROM {`ref_schema`}.address_clean",
                                               .con = conn))
   }
   
-  
+  conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   if (nrow(adds_to_code) > 0) {
     # Combine addresses into single field to reduce erroneous matches
     adds_to_code <- adds_to_code %>%
-      mutate(geo_add_single = paste(geo_add1_clean, geo_city_clean, geo_zip_clean, sep = ", "))
-    
+      mutate(geo_add_single = paste(geo_add1_clean, geo_city_clean, geo_zip_clean, sep = ", ")) %>%
+      mutate(geo_add_single = gsub("\\[|\\]|\\}|\\{", "", geo_add_single))
     
     #### RUN THROUGH ESRI GEOCODER ####
+    message(paste0("Running through ESRI geocoder ... ", Sys.time()))
+    
     ### Source geocoding function
-    # Currently in a temporary location but will be moved eventually
-    auth <- Sys.getenv("GITHUB_TOKEN")
-    eval(parse(text = httr::GET(
-      url = "https://raw.githubusercontent.com/PHSKC-APDE/pers_alastair/master/general_functions/kc_geocode.R",
-      httr::authenticate(auth, "")) %>% httr::content(as = "text")))
+    # Temporrily the repo is private so need auth
+    #eval(parse(text = httr::content(httr::GET(
+    #  url = "https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/kc_geocode.R",
+    #  httr::authenticate(Sys.getenv("GITHUB_TOKEN"), "")), "text")))
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/kc_geocode.R")
     
     
     ### Run the addresses through the geocoder, taking the best result only
-    adds_coded_esri <- bind_rows(lapply(adds_to_code$geo_add_single, kc_geocode, 
-                                        street = NULL, city = NULL, zip = NULL, max_return = 10,
-                                        best_result = T))
+    if(troubleshoot_esri == F){
+      adds_coded_esri <- bind_rows(lapply(adds_to_code$geo_add_single, kc_geocode, 
+                                          street = NULL, city = NULL, zip = NULL, max_return = 10,
+                                          best_result = T))
+    } 
+    if(troubleshoot_esri == T){
+      adds_coded_esri <- data.table(input_addr = NA_character_, lon = NA_real_, lat = NA_real_, score = NA_real_, locName = NA_character_, matchAddr = NA_character_, addressType = NA_character_)
+      for(i in 1:nrow(adds_to_code)){
+        message("Processing adds_to_code$geo_add_single[", i, "] of ", nrow(adds_to_code))
+        esri_temp <- kc_geocode(singleline = adds_to_code$geo_add_single[i], street = NULL, city = NULL, zip = NULL, max_return = 10, best_result = T)
+        adds_coded_esri <- rbind(adds_coded_esri, esri_temp)
+      }
+    }
     
     
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     ### Convert CRS and set up fields of interest
     adds_coded <- left_join(adds_to_code, adds_coded_esri, by = c("geo_add_single" = "input_addr")) %>%
@@ -116,7 +146,7 @@ stage_address_geocode_f <- function(conn = NULL,
       mutate(geo_x = st_coordinates(adds_coded)[,1],
              geo_y = st_coordinates(adds_coded)[,2]) %>%
       mutate_at(vars(geo_x, geo_y), list( ~ ifelse(is.na(.), 0, .))) %>%
-      select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
+      select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, geo_hash_geocode,
              locName, score, geo_x, geo_y, matchAddr, addressType, drop)
     
     # Convert to WSG84 geographic coordinate system to obtain lat/lon
@@ -128,14 +158,16 @@ stage_address_geocode_f <- function(conn = NULL,
       st_drop_geometry()
     
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### RUN THROUGH HERE GEOCODER ####
+    message(paste0("Running through HERE geocoder ... ", Sys.time()))
+    
     ### Find addresses that need additional geocoding
     adds_coded_unmatch <- adds_coded %>%
       filter(locName == "zip_5_digit_gc" | is.na(locName)) %>%
       mutate(geo_add_single = paste(geo_add1_clean, geo_city_clean, geo_state_clean,
                                     geo_zip_clean, "USA", sep = ", ")) %>%
-      select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, geo_add_single)
+      select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, geo_hash_geocode, geo_add_single)
     
     
     if (nrow(adds_coded_unmatch) > 0) {
@@ -154,7 +186,7 @@ stage_address_geocode_f <- function(conn = NULL,
       
       here_url <- "http://geocoder.api.here.com/6.2/geocode.json"
       
-      
+      conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
       geocode_here_f <- function(address, here_app_code = app_code, here_app_id = app_id) {
         
         if (!is.character(address)) {
@@ -163,11 +195,12 @@ stage_address_geocode_f <- function(conn = NULL,
           add_text <- address
         }
         
+        here_url <- "https://geocode.search.hereapi.com/v1/geocode"
+        
         # Query HERE servers (make sure API key is stored)
         geo_query <- httr::GET(here_url, 
-                               query = list(app_id = here_app_id,
-                                            app_code = here_app_code,
-                                            searchtext = add_text))
+                               query = list(apiKey = here_app_code,
+                                            q = add_text))
         
         # Convert results to a list
         geo_reply <- httr::content(geo_query)
@@ -179,17 +212,25 @@ stage_address_geocode_f <- function(conn = NULL,
                              address_type = NA)
         
         # Check for a result
-        if (length(geo_reply$Response$View) > 0) {
+        if (length(geo_reply$items) > 0) {
           
           # Convert to a data frame
-          geo_reply <- as.data.frame(geo_reply$Response$View)
+          geo_reply <- as.data.frame(geo_reply$items)
+          
+          if (geo_reply$resultType == "locality") {
+            add_type <- geo_reply$localityType
+          } else if (geo_reply$resultType == "administrativeArea") {
+            add_type <- geo_reply$administrativeType
+          } else {
+            add_type <- geo_reply$resultType
+          }
           
           answer <- answer %>%
             mutate(
-              lat = geo_reply$Result.Location.NavigationPosition.Latitude,
-              lon = geo_reply$Result.Location.DisplayPosition.Longitude,
-              formatted_address = geo_reply$Result.Location.Address.Label,
-              address_type = geo_reply$Result.MatchLevel
+              lat = geo_reply$position.lat,
+              lon = geo_reply$position.lng,
+              formatted_address = geo_reply$address.label,
+              address_type = add_type
             )
         }
         return(answer)
@@ -209,16 +250,16 @@ stage_address_geocode_f <- function(conn = NULL,
         result$input_add <- adds_coded_unmatch$geo_add_single[i]
         result$geo_check_here <- 1
         # append the answer to the results file
-        adds_here <- rbind(adds_here, result)
+        adds_here <- dplyr::bind_rows(adds_here, result)
       }
       
       # Look at match results
       adds_here %>% group_by(address_type) %>% summarise(count = n())
-      
+      conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
       # Combine HERE results back to unmatched data
       adds_coded_here <- left_join(adds_coded_unmatch, adds_here,
                                    by = c("geo_add_single" = "input_add")) %>%
-        select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean,
+        select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, geo_hash_geocode,
                lat, lon, formatted_address, address_type, geo_check_here) %>%
         mutate_at(vars(lat, lon), list( ~ replace_na(., 0)))
       
@@ -234,14 +275,16 @@ stage_address_geocode_f <- function(conn = NULL,
         distinct()
       
     }
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     #### BRING ESRI AND HERE DATA TOGETHER ####
+    message(paste0("Joining ESRI and HERE geocoded data together ... ", Sys.time()))
+    
     if (nrow(adds_coded_unmatch) > 0) {
       # Collapse to useful columns and select matching from each source as appropriate
       adds_coded <- left_join(adds_coded, adds_coded_here, 
                               by = c("geo_add1_clean", "geo_city_clean", "geo_state_clean",
-                                     "geo_zip_clean")) 
+                                     "geo_zip_clean", "geo_hash_geocode")) 
       
       # Look at how the HERE geocodes improved things
       print(adds_coded %>% group_by(locName, address_type) %>% summarise(count = n()))
@@ -256,7 +299,9 @@ stage_address_geocode_f <- function(conn = NULL,
           geo_check_here = ifelse(is.na(geo_check_here), 0, geo_check_here),
           geo_geocode_source = case_when(
             !is.na(geo_lat.x) & 
-              locName %in% c("address_point_", "pin_address_on", "st_address_us", 
+              locName %in% c("king_address", "king_road", "ktsp_address", "ktsp_road", 
+                             "prc_address", "prc_road", "sno_address", "sno_road",
+                             "address_point_", "pin_address_on", "st_address_us", 
                              "trans_network_", 
                              "king_address_point",
                              "Kitsap_gcs", "ktsp_roadcl", "ktsp_siteaddr_pin",
@@ -264,14 +309,18 @@ stage_address_geocode_f <- function(conn = NULL,
                              "Snohomish_gcs", "sno_site_address", 
                              "sno_streets_centerline") ~ "esri",
             !is.na(geo_lat.y) & address_type %in% c("houseNumber", "street") ~ "here",
-            !is.na(geo_lat.x) & locName == "zip_5_digit_gc" ~ "esri",
-            !is.na(geo_lat.y) & address_type %in% c("postalCode") ~ "here",
+            !is.na(geo_lat.x) & locName %in% c("zip_5_digit_gc", "zipcode") ~ "esri",
+            !is.na(geo_lat.y) & address_type %in% c("postalCode", "subdistrict",
+                                                    "district", "city",
+                                                    "county", "state",
+                                                    "country", "addressBlock",
+                                                    "place") ~ "here",
             TRUE ~ NA_character_))
       
       # Print out any loc_names not accounted for
       adds_coded %>% filter(is.na(geo_geocode_source)) %>% distinct(locName, address_type)
       
-      
+      conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
       adds_coded <- adds_coded %>%
         mutate(geo_zip_centroid = ifelse((geo_geocode_source == "esri" & locName == "zip_5_digit_gc") |
                                            (geo_geocode_source == "here" & address_type %in% c("postalCode")),
@@ -303,7 +352,7 @@ stage_address_geocode_f <- function(conn = NULL,
                geo_y = ifelse(geo_geocode_source == "esri", geo_y.x, geo_y.y)
         ) %>%
         select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
-               geo_add_geocoded, geo_zip_geocoded, geo_add_type,
+               geo_hash_geocode, geo_add_geocoded, geo_zip_geocoded, geo_add_type,
                geo_check_esri, geo_check_here, geo_geocode_source, 
                geo_zip_centroid, geo_street_centroid,
                geo_lon, geo_lat, geo_x, geo_y, drop) %>%
@@ -322,33 +371,32 @@ stage_address_geocode_f <- function(conn = NULL,
                geo_zip_centroid = 0L,
                geo_street_centroid = 0L) %>%
         select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
-               geo_add_geocoded, geo_zip_geocoded, geo_add_type,
+               geo_hash_geocode, geo_add_geocoded, geo_zip_geocoded, geo_add_type,
                geo_check_esri, geo_check_here, geo_geocode_source, 
                geo_zip_centroid, geo_street_centroid,
                geo_lon, geo_lat, geo_x, geo_y, drop)
     }
     
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     ### Identify addresses that could not be geocoded to an acceptable level
     # Will flag them in ref.address_clean as addresses to skip future geocoding attempts
     adds_geocode_skip <- adds_coded %>% 
       filter(is.na(geo_geocode_source) | (drop == 1 & geo_geocode_source == "esri")) %>% 
-      select(geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean)
+      select(geo_hash_geocode)
     
     if (nrow(adds_geocode_skip) > 0) {
       # Set up SQL to update values in stage table
       update_sql <- glue::glue_data_sql(adds_geocode_skip, 
                                         "UPDATE {`stage_schema`}.{DBI::SQL(stage_table)}address_clean 
                                     SET geo_geocode_skip = 1 
-                                    WHERE (geo_add1_clean = {geo_add1_clean} AND geo_city_clean = {geo_city_clean} AND
-                                    geo_state_clean = {geo_state_clean} AND geo_zip_clean = {geo_zip_clean})",
+                                    WHERE geo_hash_geocode = {geo_hash_geocode}",
                                         .con = conn)
       # Need to account for NULL values properly
       update_sql <- str_replace_all(update_sql, "= NULL", "Is NULL")
       # Run code
       DBI::dbExecute(conn, glue::glue_collapse(update_sql, sep = "; "))
-      
+      conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
       # Check that more addresses were flagged for skipping
       stage_geocode_skip <- as.integer(DBI::dbGetQuery(
         conn, 
@@ -357,17 +405,16 @@ stage_address_geocode_f <- function(conn = NULL,
       ref_geocode_skip <- as.integer(DBI::dbGetQuery(
         conn, glue::glue_sql("SELECT SUM(geo_geocode_skip) AS skip_cnt FROM {`ref_schema`}.address_clean",
                              .con = conn)))
-      
+      conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
       if (stage_geocode_skip >= ref_geocode_skip) {
         # Update in ref table
         update_sql <- glue::glue_data_sql(adds_geocode_skip, 
                                           "UPDATE {`ref_schema`}.address_clean 
                                     SET geo_geocode_skip = 1 
-                                    WHERE (geo_add1_clean = {geo_add1_clean} AND geo_city_clean = {geo_city_clean} AND
-                                    geo_state_clean = {geo_state_clean} AND geo_zip_clean = {geo_zip_clean})",
+                                    WHERE geo_hash_geocode = {geo_hash_geocode}",
                                           .con = conn)
         DBI::dbExecute(conn, glue::glue_collapse(update_sql, sep = "; "))
-        
+        conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
         # Check counts
         ref_geocode_skip_new <- as.integer(DBI::dbGetQuery(
           conn, glue::glue_sql("SELECT SUM(geo_geocode_skip) AS skip_cnt FROM {`ref_schema`}.address_clean",
@@ -388,13 +435,15 @@ stage_address_geocode_f <- function(conn = NULL,
     adds_coded <- adds_coded %>% 
       filter(!(is.na(geo_geocode_source) | (drop == 1 & geo_geocode_source == "esri"))) %>%
       select(-drop)
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     #### JOIN TO SPATIAL FILES OF INTEREST ####
+    message(paste0("Join geocoded data to spatial files of interest ... ", Sys.time()))
+    
     ### Set up as spatial file
     adds_coded <- st_as_sf(adds_coded, coords = c("geo_lon", "geo_lat"), 
                            crs = 4326, remove = F)
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     
     ### Bring in shape files for relevant geographies
     block <- st_read(file.path(s_shapes, "Blocks/2010/WA state wide/block10.shp"))
@@ -418,7 +467,7 @@ stage_address_geocode_f <- function(conn = NULL,
     wa_dist <- st_transform(wa_dist, 4326)
     scc_dist <- st_transform(scc_dist, 4326)
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     # Block (also contains state and county FIPS)
     adds_coded_joined <- st_join(adds_coded, block) %>%
       select(geo_add1_clean:geo_y, STATEFP10, COUNTYFP10, TRACTCE10, BLOCKCE10, GEOID10, 
@@ -464,7 +513,7 @@ stage_address_geocode_f <- function(conn = NULL,
       select(geo_add1_clean:geo_wa_legdist, SCCDST,
              geometry) %>%
       rename(geo_scc_dist = SCCDST)
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     ### Convert factors to character etc.
     adds_coded_load <- adds_coded_joined %>%
       mutate_at(vars(geo_zip_clean, 
@@ -487,8 +536,10 @@ stage_address_geocode_f <- function(conn = NULL,
     #          geo_tractce10 = geo_tract_code, geo_blockce10 = geo_block_code,
     #          geo_block_geoid10 = geo_block_fullcode)
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### LOAD TO SQL ####
+    message(paste0("Load to SQL ... ", Sys.time()))
+    
     if (full_refresh == F) {
       # Check how many rows are already in the stage table
       stage_rows_before <- as.numeric(dbGetQuery(
@@ -499,7 +550,7 @@ stage_address_geocode_f <- function(conn = NULL,
         glue::glue_sql("SELECT COUNT (*) 
                      FROM
                      (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
-                       geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
+                       geo_hash_geocode, geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
                        geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
                        geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
                        geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
@@ -510,19 +561,22 @@ stage_address_geocode_f <- function(conn = NULL,
                        .con = conn)))
     } else if (full_refresh == T) {
       # Create new table if it doesn't exist
-      try(create_table_f(conn = conn, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
+      try(create_table_f(conn = conn, 
+                         server = server,
+                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/create_stage.address_geocode.yaml"))
     }
     
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     # Write data
     dbWriteTable(conn,
                  name = DBI::Id(schema = to_schema, table = to_table), 
                  value = as.data.frame(adds_coded_load), 
                  append = T, overwrite = F)
     
-    
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     #### BASIC QA ####
+    message(paste0("Running basic QA ... ", Sys.time()))
     if (full_refresh == F) {
       ### Compare row counts now
       row_load_ref_geo <- nrow(adds_coded_load)
@@ -533,7 +587,7 @@ stage_address_geocode_f <- function(conn = NULL,
         glue::glue_sql("SELECT COUNT (*) 
                      FROM
                      (SELECT DISTINCT geo_add1_clean, geo_city_clean, geo_state_clean, geo_zip_clean, 
-                       geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
+                       geo_hash_geocode, geo_add_geocoded, geo_zip_geocoded, geo_add_type, geo_check_esri, 
                        geo_check_here, geo_geocode_source, geo_zip_centroid, geo_street_centroid, 
                        geo_lon, geo_lat, geo_x, geo_y, geo_statefp10, geo_countyfp10, 
                        geo_tractce10, geo_blockce10, geo_block_geoid10, geo_pumace10, 
@@ -560,5 +614,5 @@ stage_address_geocode_f <- function(conn = NULL,
   
   
   
-   
+  
 }

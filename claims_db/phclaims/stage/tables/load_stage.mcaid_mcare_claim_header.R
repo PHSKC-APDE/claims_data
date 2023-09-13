@@ -3,14 +3,17 @@
 # Alastair Mathesonm PHSKC (APDE), 2020-01
 #
 # This code is designed to be run as part of the master Medicaid/Medicare script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_mcare_analytic.R
 #
 
 #### Load script ####
 load_stage.mcaid_mcare_claim_header_f <- function() {
   
+  
+  #### STEP 1: Union mcaid and mcare tables ####
+  message("STEP 1: Union mcaid and mcare tables to prepare for re-assignment of unique IDs for health care event concepts")
   ### Run SQL query
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
+  DBI::dbExecute(db_claims, glue::glue_sql(
     "--Code to load data to stage.mcare_claim_header table
     --Union of mcaid and mcare claim header tables
     --Eli Kern (PHSKC-APDE)
@@ -22,7 +25,7 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     --STEP 1: Union mcaid and mcare tables to prepare for re-assignment of unique IDs for health care event concepts
     -------------------
     
-    if object_id('tempdb..#temp1') is not null drop table #temp1;
+    if object_id('tempdb..##temp1') is not null drop table ##temp1;
     
     --Medicaid claims
     select
@@ -81,7 +84,7 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     ,a.sdoh_any
     ,a.intent
     ,a.mechanism
-    into #temp1
+    into ##temp1
     from PHClaims.final.mcaid_claim_header as a
     left join PHClaims.final.xwalk_apde_mcaid_mcare_pha as b
     on a.id_mcaid = b.id_mcaid
@@ -150,13 +153,17 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     on a.id_mcare = b.id_mcare
     --join to ICD-CM lookup table to create some columns
     left join PHClaims.ref.dx_lookup as c
-    on (a.primary_diagnosis = c.dx) and (a.icdcm_version = c.dx_ver);
-    
-    
-    ----------------
+    on (a.primary_diagnosis = c.dx) and (a.icdcm_version = c.dx_ver);",
+    .con = db_claims))
+  
+  
+  #### STEP 2: Assign unique ID to healthcare utilization concepts ####
+  message("STEP 2: Assign unique ID to healthcare utilization concepts that are grouped by person, service date")
+  DBI::dbExecute(db_claims, glue::glue_sql(
+    "----------------
     --STEP 2: Assign unique ID to healthcare utilization concepts that are grouped by person, service date
     -------------------
-    if object_id('tempdb..#temp2') is not null drop table #temp2;
+    if object_id('tempdb..##temp2') is not null drop table ##temp2;
     select 
     id_apde
     ,source_desc
@@ -237,14 +244,20 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     ,intent
     ,mechanism
     
-    into #temp2
-    from #temp1;
+    into ##temp2
+    from ##temp1;
     
     --drop other temp tables to make space
-    if object_id('tempdb..#temp1') is not null drop table #temp1;
-    
-    
-    ------------------
+    if object_id('tempdb..##temp1') is not null drop table ##temp1;",
+    .con = db_claims
+  ))
+  
+  
+  #### STEP 3: Conduct overlap and clustering for ED population health measure ####
+  message("STEP 3: Conduct overlap and clustering for ED population health measure (Yale measure)")
+  
+  DBI::dbExecute(db_claims, glue::glue_sql(
+    "------------------
     --STEP 3: Conduct overlap and clustering for ED population health measure (Yale measure)
     --Adaptation of Philip's Medicaid code, which is adaptation of Eli's original code
     -------------------
@@ -253,25 +266,25 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     --Union carrier, outpatient and inpatient ED visits
     -----
     --extract carrier ED visits and create left and right matching windows
-    if object_id('tempdb..#ed_yale_1') is not null drop table #ed_yale_1;
+    if object_id('tempdb..##ed_yale_1') is not null drop table ##ed_yale_1;
     select id_apde,
     claim_header_id collate SQL_Latin1_General_Cp1_CS_AS as claim_header_id,
     first_service_date, last_service_date, 'Carrier' as ed_type
-    into #ed_yale_1
-    from #temp2
+    into ##ed_yale_1
+    from ##temp2
     where ed_yale_carrier = 1
     
     union
     select id_apde,
     claim_header_id collate SQL_Latin1_General_Cp1_CS_AS as claim_header_id,
     first_service_date, last_service_date, 'Outpatient' as ed_type
-    from #temp2 where ed_yale_opt = 1
+    from ##temp2 where ed_yale_opt = 1
     
     union
     select id_apde,
     claim_header_id collate SQL_Latin1_General_Cp1_CS_AS as claim_header_id,
     first_service_date, last_service_date, 'Inpatient' as ed_type
-    from #temp2 where ed_yale_ipt = 1;
+    from ##temp2 where ed_yale_ipt = 1;
     
     -----
     --label duplicate/adjacent visits with a single [ed_pophealth_id]
@@ -281,8 +294,8 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     declare @match_window int;
     set @match_window = 1;
     
-    if object_id('tempdb..#ed_yale_final') is not null 
-    drop table #ed_yale_final;
+    if object_id('tempdb..##ed_yale_final') is not null 
+    drop table ##ed_yale_final;
     WITH [increment_stays_by_person] AS
     (
     SELECT
@@ -310,7 +323,7 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     	  WHEN DATEDIFF(DAY, LAG(first_service_date) OVER(PARTITION BY [id_apde]
     	  ORDER BY [first_service_date], [last_service_date], [claim_header_id]), [first_service_date]) > @match_window THEN 1
      END AS [increment]
-    FROM #ed_yale_1
+    FROM ##ed_yale_1
     --ORDER BY [id_apde], [first_service_date], [last_service_date], [claim_header_id]
     ),
     
@@ -351,16 +364,22 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     ,LAST_VALUE([last_service_date]) OVER(PARTITION BY [id_apde], [within_person_stay_id] 
      ORDER BY [id_apde], [within_person_stay_id] ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS [episode_last_service_date]
     
-    INTO #ed_yale_final
+    INTO ##ed_yale_final
     FROM [create_within_person_stay_id]
     ORDER BY id_apde, [first_service_date], [last_service_date], [claim_header_id];
     
     --drop other temp tables to make space
-    if object_id('tempdb..#ed_yale_1') is not null drop table #ed_yale_1;
-    
-    
-    ------------------
-    --STEP 9: Join back Yale table with header table on claim header ID
+    if object_id('tempdb..##ed_yale_1') is not null drop table ##ed_yale_1;",
+    .con = db_claims))
+  
+  
+  
+  #### STEP 4: Join back Yale table with header table on claim header ID ####
+  message("STEP 4: Join back Yale table with header table on claim header ID")
+  
+  DBI::dbExecute(db_claims, glue::glue_sql(
+    "------------------
+    --STEP 4: Join back Yale table with header table on claim header ID
     -------------------
     insert into PHClaims.stage.mcaid_mcare_claim_header with (tablock)
     select distinct
@@ -419,8 +438,8 @@ load_stage.mcaid_mcare_claim_header_f <- function() {
     ,a.intent
     ,a.mechanism
     ,getdate() as last_run
-    from #temp2 as a
-    left join #ed_yale_final as b
+    from ##temp2 as a
+    left join ##ed_yale_final as b
     on a.claim_header_id = b.claim_header_id;",
     .con = db_claims))
 }

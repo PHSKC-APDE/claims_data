@@ -6,7 +6,7 @@
 # 2019-10
 
 ### Run from master_apcd_analytic script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/apcd/master_apcd_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
 
 #### Load script ####
 load_stage.apcd_elig_year_month_matrix_full_f <- function(extract_end_date = NULL) {

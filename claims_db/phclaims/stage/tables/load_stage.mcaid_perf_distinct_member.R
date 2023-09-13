@@ -1,7 +1,7 @@
 # This code creates the the mcaid performance measures distinct member table
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 #
 # R script developed by Alastair Matheson based on Philip Sylling's stored procedure
 #
@@ -29,8 +29,8 @@ load_stage_mcaid_perf_distinct_member_f <- function(conn = NULL,
   
   #### Drop existing table ####
   DBI::dbExecute(conn,
-                 glue::glue_sql("IF OBJECT_ID('{`to_table`}.{DBI::SQL(to_table)}mcaid_perf_distinct_member','U') IS NOT NULL
-                                DROP TABLE {`to_table`}.{DBI::SQL(to_table)}mcaid_perf_distinct_member;",
+                 glue::glue_sql("IF OBJECT_ID('{`to_schema`}.{DBI::SQL(to_table)}mcaid_perf_distinct_member','U') IS NOT NULL
+                                DROP TABLE {`to_schema`}.{DBI::SQL(to_table)}mcaid_perf_distinct_member;",
                                 .con = conn))
   
   
@@ -39,14 +39,14 @@ load_stage_mcaid_perf_distinct_member_f <- function(conn = NULL,
                  glue::glue_sql("SELECT DISTINCT
                                 [id_mcaid]
                                 ,CAST(GETDATE() AS DATE) AS [load_date]
-                                INTO {`to_table`}.{DBI::SQL(to_table)}mcaid_perf_distinct_member
-                                FROM {`to_table`}.{DBI::SQL(to_table)}mcaid_perf_enroll_denom",
+                                INTO {`to_schema`}.{DBI::SQL(to_table)}mcaid_perf_distinct_member
+                                FROM {`to_schema`}.{DBI::SQL(to_table)}mcaid_perf_enroll_denom",
                                 .con = conn))
   
   
   #### Make index ####
   DBI::dbExecute(conn, 
                  glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_mcaid_perf_distinct_member_id_mcaid] 
-                                ON {`to_table`}.{DBI::SQL(to_table)}mcaid_perf_distinct_member([id_mcaid])",
+                                ON {`to_schema`}.{DBI::SQL(to_table)}mcaid_perf_distinct_member([id_mcaid])",
                                 .con = conn))
 }

@@ -23,6 +23,7 @@ copy_into_f <- function(
   config = NULL,
   config_url = NULL,
   config_file = NULL,
+  dl_path = NULL,
   file_type = c("csv", "parquet", "orc"),
   identity = NULL,
   secret = NULL,
@@ -51,7 +52,7 @@ copy_into_f <- function(
   # a Base-64 error. The RODBC doesn't seem to have that issue so for now we are
   # forcing the COPY INTO statement to use an RODBC connection
   if (rodbc == T) {
-    conn_rodbc <- RODBC::odbcConnect(dsn = "int_edw_20", 
+    conn_rodbc <- RODBC::odbcConnect(dsn = "int_edw_16", 
                                      uid = keyring::key_list("hhsaw_dev")[["username"]])
   }
   
@@ -124,11 +125,15 @@ copy_into_f <- function(
   if (!is.null(server)) {
     to_schema <- table_config[[server]][["to_schema"]]
     to_table <- table_config[[server]][["to_table"]]
-    dl_path <- table_config[[server]][["dl_path"]]
+    if (is.null(dl_path)) {
+      dl_path <- table_config[[server]][["dl_path"]]
+    }
   } else {
     to_schema <- table_config$to_schema
     to_table <- table_config$to_table
-    dl_path <- tabel_config$dl_path
+    if (is.null(dl_path)) {
+      dl_path <- table_config$dl_path
+    }
   }
   
   
@@ -136,13 +141,13 @@ copy_into_f <- function(
     compression <- DBI::SQL("")
   }
   
-  if (!is.null(identity) | !is.null(secret)) {
+  if (rodbc == T & (!is.null(identity) | !is.null(secret))) {
     auth_sql <- glue::glue_sql("CREDENTIAL = (IDENTITY = {identity},
                                SECRET = {secret}),", .con = conn)
   } else {
     auth_sql <- DBI::SQL("")
   }
-
+  
   #### RUN CODE ####
   if (overwrite == T) {
     message("Removing existing table and creating new one")
@@ -163,13 +168,11 @@ copy_into_f <- function(
         )", .con = conn))
   }
 
-  
   message(glue::glue("Creating [{to_schema}].[{to_table}] table"))
-  
   
   # Set up SQL
   load_sql <- glue::glue_sql(
-    "COPY INTO {`to_schema`}.{`to_table`}
+    "COPY INTO {`to_schema`}.{`to_table`} 
     ({`names(table_config$vars)`*})
     FROM {dl_path}
     WITH (
@@ -177,7 +180,7 @@ copy_into_f <- function(
       {auth_sql}
       MAXERRORS = {max_errors},
       COMPRESSION = {compression},
-      FIELDQUOTE = {field_quote}  ,
+      FIELDQUOTE = {field_quote},
       FIELDTERMINATOR = {field_terminator},
       ROWTERMINATOR = {row_terminator},
       FIRSTROW = {first_row}
@@ -189,6 +192,5 @@ copy_into_f <- function(
   } else {
     DBI::dbExecute(conn, load_sql)
   }
-  
   
 }

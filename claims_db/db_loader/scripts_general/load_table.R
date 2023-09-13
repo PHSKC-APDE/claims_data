@@ -30,7 +30,8 @@ load_table_from_file_f <- function(
   overall = T,
   ind_yr = F,
   combine_yr = T,
-  test_mode = F
+  test_mode = F,
+  filepath = NULL
 ) {
   
   
@@ -167,7 +168,6 @@ load_table_from_file_f <- function(
     add_index <- FALSE
   }
   
-  
   #### SET UP A FUNCTION FOR COMMON ACTIONS ####
   # Both the overall load and year-specific loads use a similar set of code
   loading_process_f <- function(conn_inner = conn,
@@ -188,9 +188,18 @@ load_table_from_file_f <- function(
       ind_yr_msg <- "overall"
     }
     
+    if (substring(filepath, nchar(filepath) - 2) == ".gz") {
+      # Extract file from gz and set filepath
+      message("Decompressing ", paste0(filepath, "..."))
+      R.utils::gunzip(filepath, 
+                    overwrite = T,
+                    remove = F)
+      filepath <- substring(filepath, 1, nchar(filepath) - 3)
+    }
+    
     # Add message to user
     message(glue('Loading {ind_yr_msg} [{schema_inner}].[{table_name_inner}] table(s) ',
-                 ' from {table_config_inner[[config_section]][["file_path"]]} {test_msg_inner}'))
+                 ' from {filepath} {test_msg_inner}'))
     
     # Truncate existing table if desired
     if (truncate_inner == T) {
@@ -241,12 +250,13 @@ load_table_from_file_f <- function(
     
     # Set up BCP arguments and run BCP
     bcp_args <- c(glue(' PHclaims.{schema_inner}.{table_name_inner} IN ', 
-                       ' "{table_config_inner[[config_section]][["file_path"]]}" ',
+                       ' "{filepath}" ',
                        ' {field_term} {row_term} -C 65001 -F 2 ',
                        ' -S KCITSQLUTPDBH51 -T -b 100000 {load_rows_inner} -c '))
     
     print(bcp_args)
     system2(command = "bcp", args = c(bcp_args))
+    file.remove(filepath)
   }
   
   
@@ -255,6 +265,9 @@ load_table_from_file_f <- function(
   if (overall == T) {
     # Run loading function
     if (!is.null(server)) {
+      if(is.null(filepath) == T) {
+        filepath <- table_config[[server]][["file_path"]]
+      }
       loading_process_f(config_section = server)
     } else {
       loading_process_f(config_section = "overall")
@@ -263,7 +276,7 @@ load_table_from_file_f <- function(
     
     if (add_index == T) {
       if (!exists("add_index_f")) {
-        devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+        devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
       }
       message("Adding index")
       add_index_f(conn = conn, table_config = table_config, server = server, test_mode = test_mode)
@@ -422,7 +435,7 @@ load_table_from_file_f <- function(
     
     if (add_index == T) {
       if (!exists("add_index_f")) {
-        devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+        devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
       }
       message("Adding index")
       add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
@@ -786,7 +799,7 @@ load_table_from_sql_f <- function(
   # Add index to the table (if desired)
   if (add_index == T) {
     if (!exists("add_index_f")) {
-      devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/add_index.R")
+      devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
     }
     message("Adding index")
     add_index_f(conn = conn, server = server, table_config = table_config, test_mode = test_mode)

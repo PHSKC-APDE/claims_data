@@ -4,7 +4,7 @@
 # 2020-07
 
 ### Run from master_mcaid_full script
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_full.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_full.R
 
 
 load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
@@ -28,11 +28,11 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
   
   # Load ETL and QA functions if not already present
   if (exists("load_metadata_etl_log_f") == F) {
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/etl_log.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
   }
   
   if (exists("qa_file_row_count_f") == F) {
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/qa_load_file.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
   }
   
   
@@ -57,7 +57,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
   if (qa_file_row == T) {
     print("Checking expected vs. actual row counts (will take a while")
     # Use the load config file for the list of tables to check and their expected row counts
-    qa_rows_file <- qa_file_row_count_f(config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
+    qa_rows_file <- qa_file_row_count_f(config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
                                         overall = F, ind_yr = T)
     
     # Report results out to SQL table
@@ -83,7 +83,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
   #### QA CHECK: ORDER OF COLUMNS IN SOURCE FILE MATCH TABLE SHELLS IN SQL ####
   print("Checking column order")
   qa_column <- qa_column_order_f(conn = db_claims,
-                                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
+                                 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
                                  overall = F, ind_yr = T)
   
   # Report results out to SQL table
@@ -108,7 +108,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
   #### LOAD TABLES ####
   print("Loading tables to SQL")
   load_table_from_file_f(conn = db_claims,
-                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
+                         config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
                          overall = F, ind_yr = T, combine_yr = T)
   
   
@@ -116,7 +116,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
   print("Checking loaded row counts vs. expected")
   # Use the load config file for the list of tables to check and their expected row counts
   qa_rows_sql <- qa_load_row_count_f(conn = db_claims,
-                                    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
+                                    config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
                                     overall = F, ind_yr = T, combine_yr = T)
   
   # Report individual results out to SQL table
@@ -223,7 +223,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
   
   #### QA CHECK: DATE RANGE MATCHES EXPECTED RANGE ####
   qa_date_range <- qa_date_range_f(conn = db_claims,
-                                   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
+                                   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_full.yaml",
                                    overall = F, ind_yr = T, combine_yr = T,
                                    date_var = "FROM_SRVC_DATE")
   

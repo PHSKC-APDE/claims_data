@@ -5,6 +5,9 @@ phclaims:
     to_table: mcaid_elig_timevar
     ref_schema: ref
     ref_table: 
+    address_schema: ref
+    address_table: address_clean
+    geocode_table: address_geocode
     qa_schema: metadata
     qa_table: 
 hhsaw:
@@ -14,6 +17,9 @@ hhsaw:
     to_table: stage_mcaid_elig_timevar
     ref_schema: claims
     ref_table: ref_
+    address_schema: ref
+    address_table: address_clean
+    geocode_table: address_geocode
     qa_schema: claims
     qa_table: metadata_
 vars:
@@ -33,8 +39,8 @@ vars:
     geo_city: VARCHAR(255)
     geo_state: VARCHAR(255)
     geo_zip: VARCHAR(255)
-    geo_zip_centroid: TINYINT
-    geo_street_centroid: TINYINT
+    geo_hash_clean: CHAR(64)
+    geo_hash_geocode: CHAR(64)
     geo_county_code: varchar(255)
     geo_tract_code: VARCHAR(255)
     geo_hra_code: SMALLINT

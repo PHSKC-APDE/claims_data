@@ -1,0 +1,57 @@
+---
+title: "claims_condition"
+author: "Kai Fukutaki"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette: default
+  github_document: default
+  pdf_document: default
+  urlcolor: blue
+  keep_md: true
+vignette: >
+  %\VignetteIndexEntry{claims_elig}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo = F, message=FALSE}
+library(claims)
+library(odbc)
+```
+
+## Introduction
+
+`claims_condition` is an easy way to query cohorts based on chronic health conditions. Contrast this with the massive `claims_elig` function, which obtains a cohort on pretty much everything else (race/eth, gender, etc.).
+
+## Arguments
+
+Fortunately, there are only a handful of arguments to worry about. These are:
+
+1\) `conn` \<- The database connection to use to access the data (see `create_db_connection` and `dbConnect` usage in PHSKC repos for how to set this up)
+2\) `source` \<- The claims data source to pull data from (All Payer Claims Database, Medicaid, Medicaid/Medicare, Medicare, or Medicare/Medicaid/Public Housing Authority)
+3\) `server` \<- Whether to access the data from the PHClaims51 server or HHSAW (note that this has to align with your `conn`)
+4\) `condition` \<- The chronic health condition requested to request a cohort of. You can select multiple using the format c("<condition1>", "<condition2>"). All possible options are listed in the arguments of the function, and this will be updated as data allows over time. Defaults to all conditions, so use defaults at your own risk!
+5\) `from_date` and `to_date` \<- These default to 18 and 6 months before the current date, respectively. Otherwise, input `YYYY-MM-DD` format dates for each to determine the time period of the cohort.
+
+
+## Example uses
+A typiycal use case would be to query those with claims for diabetes over the last calendar year (2021 in this example). After setting up a connection to HHSAW, try to think of the query before looking at the query below.
+
+```{r}
+# Set up DB connection to server 51 before running the line below
+diabetes_condition <- claims_condition(con = db_hhsaw,
+                                       source = "mcaid",
+                                       server = "hhsaw",
+                                       condition = "ccw_diabetes",
+                                       from_date = "2021-01-01",
+                                       to_date = "2021-12-31")
+```
+
+That's about it for examples, since there's not any other arguments!

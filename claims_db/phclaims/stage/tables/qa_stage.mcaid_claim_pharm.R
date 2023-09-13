@@ -1,7 +1,7 @@
 # This code QAs table claims.stage_mcaid_claim_pharm
 #
 # It is designed to be run as part of the master Medicaid script:
-# https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/db_loader/mcaid/master_mcaid_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 #
 # 2019-12
 # Alastair Matheson (building on SQL from Philip Sylling)
@@ -160,6 +160,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                          GROUP BY YEAR(rx_fill_date) ORDER by YEAR(rx_fill_date)", .con = conn))
     
     num_rx_overall <- left_join(num_rx_new, num_rx_current, by = "claim_year") %>%
+      mutate_at(vars(new_num_rx, current_num_rx), list(~ replace_na(., 0))) %>%
       mutate(pct_change = round((new_num_rx - current_num_rx) / current_num_rx * 100, 4))
     
     # Write findings to metadata

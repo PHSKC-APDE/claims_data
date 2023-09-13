@@ -2,30 +2,42 @@
 ##Lookup table for mapping WA county number to FIPS county codes
 ##Eli Kern (PHSKC-APDE)
 ##2019-10
+## Updated by Alastair Matheson, 2022-05
 
 
-#### Set up global parameter and call in libraries ####
-options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
+# Set up global parameter and call in libraries ----
+if (!require("pacman")) {install.packages("pacman")}
+pacman::p_load(tidyverse, odbc)
 
-library(pacman)
-pacman::p_load(tidyverse, lubridate, odbc, RCurl, configr, glue)
+# Bring in data file
+county_codes <- rads.data::spatial_county_codes
+county_codes <- county_codes %>% 
+  mutate(geo_county_code_fips = stringr::str_pad(geo_county_code_fips, width = 3, pad = "0"),
+         across(c("geo_county_fips_long", "geo_county_code_order", "geo_county_code_gnis",
+                  "geo_county_code_tiger", "geo_county_code_aff"), ~ as.character(.)))
 
-db_claims <- dbConnect(odbc(), "PHClaims51")
-git_path <- "H:/my documents/GitHub"
 
-#SQL loading functions developed by APDE
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/db_loader/scripts_general/load_table.R")
+# Load to PHClaims ----
+db_claims <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
 
-create_table_f(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.geo_county_code_wa.yaml",
-               overall = T,
-               ind_yr = F,
-               overwrite = T,
-               test_mode = F)
+DBI::dbWriteTable(db_claims,
+                  name = DBI::Id(schema = "ref", table = "geo_county_code_wa"),
+                  value = county_codes,
+                  overwrite = T, append = F)
 
-load_table_from_file_f(conn = db_claims, 
-                       config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/ref/tables/load_ref.geo_county_code_wa.yaml",
-                       overall = T,
-                       ind_yr = F,
-                       test_mode = F)
+
+# Load to HHSAW ----
+db_hhsaw <- DBI::dbConnect(odbc::odbc(),
+                           driver = "ODBC Driver 17 for SQL Server",
+                           server = "tcp:kcitazrhpasqlprp16.azds.kingcounty.gov,1433",
+                           database = "hhs_analytics_workspace",
+                           uid = keyring::key_list("hhsaw")[["username"]],
+                           pwd = keyring::key_get("hhsaw", keyring::key_list("hhsaw")[["username"]]),
+                           Encrypt = "yes",
+                           TrustServerCertificate = "yes",
+                           Authentication = "ActiveDirectoryPassword")
+
+DBI::dbWriteTable(db_hhsaw,
+                  name = DBI::Id(schema = "claims", table = "ref_geo_county_code_wa"),
+                  value = county_codes,
+                  overwrite = T, append = F)

@@ -1,7 +1,16 @@
-schema: stage
-table: mcaid_mcare_claim_line
+from_schema: final
+from_table_mcaid: mcaid_claim_line
+from_table_mcare: mcare_claim_line
+to_schema: stage
+to_table: mcaid_mcare_claim_line
+final_schema: final
+final_table: mcaid_mcare_claim_line
+xwalk_schema_old: archive
+xwalk_table_old: xwalk_apde_mcaid_mcaid_pha
+xwalk_schema_new: final
+xwalk_table_new: xwalk_apde_mcaid_mcaid_pha
 vars:
-    id_apde: bigint
+    id_apde: CHAR(10)
     source_desc: varchar(255)
     claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
     claim_line_id: bigint

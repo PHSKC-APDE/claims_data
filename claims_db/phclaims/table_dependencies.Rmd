@@ -25,7 +25,7 @@ color_font_light <- "Snow"
 color_font_dark <- "DarkOliveGreen"
 
 #### Pull in and set up data
-# input <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/table_dependencies.csv")
+# input <- data.table::fread("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/table_dependencies.csv")
 input <- data.table::fread("C:/code/claims_data/claims_db/phclaims/table_dependencies.csv")
 
 # Modify overall data
@@ -213,7 +213,7 @@ will impact downstream tables. Because of the volume of tables, the diagrams are
 
 Future plans for this documentation include turning it into an interactive document that would allow users to select a specific table and see all the related tables.
 
-Code to create this document is found here: <https://github.com/PHSKC-APDE/claims_data/blob/master/claims_db/phclaims/table_dependencies.Rmd>
+Code to create this document is found here: <https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/phclaims/table_dependencies.Rmd>
 
 
 ## APCD 

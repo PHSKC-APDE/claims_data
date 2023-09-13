@@ -3,6 +3,8 @@ phclaims:
     to_table: mcaid_perf_enroll_denom
     stage_schema: stage
     stage_table: 
+    final_schema: final
+    final_table: 
     ref_schema: ref
     ref_table: 
     archive_schema: archive
@@ -12,6 +14,8 @@ hhsaw:
     to_table: stage_mcaid_perf_enroll_denom
     stage_schema: claims
     stage_table: stage_
+    final_schema: claims
+    final_table: final_
     ref_schema: claims
     ref_table: ref_
     archive_schema: stg_claims

@@ -3,7 +3,7 @@ phclaims:
     to_table: mcaid_elig
     qa_schema: metadata
     qa_table: qa_mcaid
-    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_20210120.txt
+    file_path: //kcitsqlutpdbh51/importdata/Data/KC_Elig/KC_Elig_20210519.txt
     field_term: \t
     row_term: \n
 hhsaw:
@@ -14,11 +14,12 @@ hhsaw:
     ext_data_source: datascr_WS_EDW
     ext_schema: stg_claims
     ext_table: mcaid_elig_incr
-    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/incr/KC_Elig_20210120.gz
-row_count: 5470278
-date_min: 202001
-date_max: 202012
-date_delivery: 2021-01-21
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/mcaid/elig/incr/KC_Elig_20210519.gz
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: 5685035
+date_min: 202005
+date_max: 202104
+date_delivery: 2021-05-19
 index_type: ccs
 index_name: idx_ccs_load_raw_mcaid_elig
 vars:
@@ -41,6 +42,8 @@ vars:
     PRGNCY_DUE_DATE: DATE
     RPRTBL_RAC_CODE: INTEGER
     RPRTBL_RAC_NAME: VARCHAR(255)
+    SECONDARY_RAC_CODE: INTEGER
+    SECONDARY_RAC_NAME: VARCHAR(255)
     RPRTBL_BSP_GROUP_CID: INTEGER
     RPRTBL_BSP_GROUP_NAME: VARCHAR(255)
     FROM_DATE: DATE
@@ -60,5 +63,3 @@ vars:
     RSDNTL_COUNTY_NAME: VARCHAR(255)
     MBR_ACES_IDNTFR: VARCHAR(255)
     MBR_H_SID: VARCHAR(255)
-    SECONDARY_RAC_CODE: INTEGER
-    SECONDARY_RAC_NAME: VARCHAR(255)

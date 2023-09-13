@@ -11,7 +11,7 @@
   
   start.time <- Sys.time()
   
-  yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/master/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.yaml"
+  yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.yaml"
   
 ## (1) Connect to SQL Server ----    
   db_claims <- dbConnect(odbc(), "PHClaims51")   
@@ -32,7 +32,7 @@
   } # confirm all id_mcare are unique
   
 ## (4) Create King County ever indicator (moment by moment KC status will be in timevar table) ----
-  kc.zips <- fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/master/spatial_data/zip_admin.csv") #github file with KC zipcodes
+  kc.zips <- fread("https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/zip_admin.csv") #github file with KC zipcodes
   kc <- copy(mbsf[, c("id_mcare", "zip_code", "year")])
   kc[, geo_kc_ever := as.numeric(suppressWarnings(as.integer(zip_code)) %in% kc.zips$zip)] #creating the new var kc (a 0/1 var) 
   kc <- unique(kc[, c("id_mcare", "geo_kc_ever", "year")])

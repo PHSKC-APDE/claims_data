@@ -5,7 +5,7 @@
 --This script creates a stored procedure for use within R (only difference is that this does not create a temp table)
 
 --Refer to README file on GitHub to understand parameters below
---https://github.com/PHSKC-APDE/Medicaid/tree/master/analysis/Medicaid%20cohort%20function
+--https://github.com/PHSKC-APDE/Medicaid/tree/main/analysis/Medicaid%20cohort%20function
 
 --select database
 use PHClaims
