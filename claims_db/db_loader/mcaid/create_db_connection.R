@@ -29,25 +29,19 @@ create_db_connection <- function(server = c("phclaims", "hhsaw", "inthealth"),
   }
   
   if (server == "phclaims") {
-    tryCatch(
-      conn <- DBI::dbConnect(odbc::odbc(), "PHClaims"),
-      #if an error occurs, tell me the error
-      error = function(e) {
-        message('Could not connect using PHClaims ODBC name; trying PHClaims51')
-        trycatch(
-          conn <- DBI::dbConnect(odbc::odbc(), "PHClaims"),
-          error = function(e) {
-            message('Could not connect using PHClaims51 ODBC name; trying PHClaims40')
-            trycatch(
-              conn <- DBI::dbConnect(odbc::odbc(), "PHClaims40"),
-              error = function(e) {
-                message('Could not connect using any PHClaims ODBC names. Aborting.')
-              }
-            )
-          }
-        )
-      },
-    )
+    odbc_sources <- odbcListDataSources()$name
+    if ("PHClaims" %in% odbc_sources) {
+      conn <- DBI::dbConnect(odbc::odbc(), "PHClaims")
+    }
+    else if ("PHClaims51" %in% odbc_sources) {
+      conn <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
+    }
+    else if ("PHClaims40" %in% odbc_sources) {
+      conn <- DBI::dbConnect(odbc::odbc(), "PHClaims40")
+    }
+    else {
+      stop("PHClaims db is not in available ODBC sources.")
+    }
   } else if (interactive == F) {
     conn <- DBI::dbConnect(odbc::odbc(),
                            driver = "ODBC Driver 17 for SQL Server",
