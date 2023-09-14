@@ -489,312 +489,87 @@ icd10cm <- left_join(icd10cm, ccs_10_simple, by = c("icdcode" = "icdcode"))
 #y <- filter(icd10cm, is.na(ccs_broad_desc))
 #clipr::write_clip(y)
 
-#1st pass - fill in missing CCS information if first 6,5,4, or 3 digits of ICD-10-CM code matches with row below or above
-icd10cm <- icd10cm %>%
-  mutate(
-    ccs_broad_desc = case_when(
-      !is.na(ccs_broad_desc) ~ ccs_broad_desc,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_broad_code = case_when(
-      !is.na(ccs_broad_code) ~ ccs_broad_code,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_detail_desc = case_when(
-      !is.na(ccs_detail_desc) ~ ccs_detail_desc,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_detail_code = case_when(
-      !is.na(ccs_detail_code) ~ ccs_detail_code,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_catch_all = case_when(
-      !is.na(ccs_catch_all) ~ ccs_catch_all,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      TRUE ~ NA_integer_)
-  )
+#Use while loop to fill in missing CCS information until all ICD-10-CM codes are categorized
+icd10cm_na_ccs_count <- count(filter(icd10cm, is.na(ccs_broad_desc)))$n
+loop_pass <- 1
 
-#2nd pass - fill in missing CCS information if first 6,5,4, or 3 digits of ICD-10-CM code matches with row below or above
-icd10cm <- icd10cm %>%
-  mutate(
-    ccs_broad_desc = case_when(
-      !is.na(ccs_broad_desc) ~ ccs_broad_desc,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_broad_code = case_when(
-      !is.na(ccs_broad_code) ~ ccs_broad_code,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_detail_desc = case_when(
-      !is.na(ccs_detail_desc) ~ ccs_detail_desc,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_detail_code = case_when(
-      !is.na(ccs_detail_code) ~ ccs_detail_code,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_catch_all = case_when(
-      !is.na(ccs_catch_all) ~ ccs_catch_all,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      TRUE ~ NA_integer_)
-  )
+while (icd10cm_na_ccs_count > 0) {
+  
+  #Info to print for each loop
+  print(paste0("Fill in CCS info if first 6,5,4 or 3 digits of ICD-10-CM code matches row above/below; iteration number: ", loop_pass))
+  print(paste0("Number of ICD-10-CM codes missing a CCS description: ", icd10cm_na_ccs_count))
+  
+  #Code to run for each loop
+  icd10cm <- icd10cm %>%
+    mutate(
+      ccs_broad_desc = case_when(
+        !is.na(ccs_broad_desc) ~ ccs_broad_desc,
+        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+        TRUE ~ NA_character_),
+      ccs_broad_code = case_when(
+        !is.na(ccs_broad_code) ~ ccs_broad_code,
+        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+        TRUE ~ NA_character_),
+      ccs_detail_desc = case_when(
+        !is.na(ccs_detail_desc) ~ ccs_detail_desc,
+        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+        TRUE ~ NA_character_),
+      ccs_detail_code = case_when(
+        !is.na(ccs_detail_code) ~ ccs_detail_code,
+        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+        TRUE ~ NA_character_),
+      ccs_catch_all = case_when(
+        !is.na(ccs_catch_all) ~ ccs_catch_all,
+        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+        TRUE ~ NA_integer_)
+    )
+  
+  #Advance indices
+  icd10cm_na_ccs_count <- count(filter(icd10cm, is.na(ccs_broad_desc)))$n
+  loop_pass <- loop_pass + 1
+}
 
-#3rd pass - fill in missing CCS information if first 6,5,4, or 3 digits of ICD-10-CM code matches with row below or above
-icd10cm <- icd10cm %>%
-  mutate(
-    ccs_broad_desc = case_when(
-      !is.na(ccs_broad_desc) ~ ccs_broad_desc,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_broad_code = case_when(
-      !is.na(ccs_broad_code) ~ ccs_broad_code,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_detail_desc = case_when(
-      !is.na(ccs_detail_desc) ~ ccs_detail_desc,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_detail_code = case_when(
-      !is.na(ccs_detail_code) ~ ccs_detail_code,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_catch_all = case_when(
-      !is.na(ccs_catch_all) ~ ccs_catch_all,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      TRUE ~ NA_integer_)
-  )
-
-#4th pass - fill in missing CCS information if first 6,5,4, or 3 digits of ICD-10-CM code matches with row below or above
-icd10cm <- icd10cm %>%
-  mutate(
-    ccs_broad_desc = case_when(
-      !is.na(ccs_broad_desc) ~ ccs_broad_desc,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_broad_code = case_when(
-      !is.na(ccs_broad_code) ~ ccs_broad_code,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_detail_desc = case_when(
-      !is.na(ccs_detail_desc) ~ ccs_detail_desc,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_detail_code = case_when(
-      !is.na(ccs_detail_code) ~ ccs_detail_code,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_catch_all = case_when(
-      !is.na(ccs_catch_all) ~ ccs_catch_all,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      TRUE ~ NA_integer_)
-  )
-
-#5th pass - fill in missing CCS information if first 6,5,4, or 3 digits of ICD-10-CM code matches with row below or above
-icd10cm <- icd10cm %>%
-  mutate(
-    ccs_broad_desc = case_when(
-      !is.na(ccs_broad_desc) ~ ccs_broad_desc,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_broad_code = case_when(
-      !is.na(ccs_broad_code) ~ ccs_broad_code,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_detail_desc = case_when(
-      !is.na(ccs_detail_desc) ~ ccs_detail_desc,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_detail_code = case_when(
-      !is.na(ccs_detail_code) ~ ccs_detail_code,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-      TRUE ~ NA_character_),
-    ccs_catch_all = case_when(
-      !is.na(ccs_catch_all) ~ ccs_catch_all,
-      str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-      str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-      TRUE ~ NA_integer_)
-  )
-
-# QA : Check to make sure all rows now have CCS information filled in - 5 passes were necessary in September 2023
+# QA : Confirm all rows now have CCS information filled in by while loop above
 count(filter(icd10cm, is.na(ccs_broad_desc)))
 #View(filter(icd10cm, is.na(ccs_broad_desc)))
 
 # Clean up
-rm(ccs_10_raw, ccs_10_simple, ccs_9_raw, ccs_9_simple)
+rm(ccs_10_raw, ccs_10_simple, ccs_9_raw, ccs_9_simple, icd10cm_na_ccs_count, loop_pass)
 
 
 # Step 5: RDA-defined Mental Health and Substance User Disorder-related diagnoses ----
@@ -886,14 +661,16 @@ icd910cm <- icd910cm %>%
 # Pull out all CCW names and sort (ensures any new CCW conditions are caught)
 ccw_cols <- icd910cm %>% select(starts_with("ccw_")) %>% names() %>% sort()
 
-#Order variables for final table upload
+#Create last_run variable and order variables for final table upload
 icd910cm <- icd910cm %>%
+  mutate(last_run = Sys.time()) %>%
   select(
     icdcm:icdcm_description,
     ccs_broad_desc:ccs_catch_all,
     all_of(ccw_cols),
     bh_any:sud_other_substance,
     intent:mechanism_full,
+    last_run
   ) %>%
   # Remove any duplicates
   distinct()
