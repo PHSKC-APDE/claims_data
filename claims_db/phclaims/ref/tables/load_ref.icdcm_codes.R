@@ -54,6 +54,7 @@
 #' 7/9/2019 update: Added new ICD-CM-10 codes from APCD extract 159
 #' 5/10/2022 update: Overhauled CCW to account for new conditions and algorithms. General tidying.
 #' 5/1/2023 update: Overhaul code to update everything to new versions. Eliminate previous steps 4 and 5.
+#' 9/14/2023 update: Updated code for RDA-based BH flags, condensed CCS ICD-10-CM imputation code into while loop, added last_run col.
 
 
 
