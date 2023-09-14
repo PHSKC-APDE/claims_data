@@ -2,9 +2,9 @@ hhsaw:
     from_schema: claims
     from_table: stage_mcaid_claim
     to_schema: claims
-    to_table: stage_mcaid_claim_header
+    to_table: stage_mcaid_claim_header_eli_dev
     final_schema: claims
-    final_table: final_tmp_
+    final_table: final_
     ref_schema: claims
     ref_table: ref_
     icdcm_ref_schema: ref
