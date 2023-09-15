@@ -1,17 +1,3 @@
-phclaims:
-    claim_header_from_schema: final
-    claim_header_from_table: mcaid_claim_header
-    icdcm_from_schema: final
-    icdcm_from_table: mcaid_claim_icdcm_header
-    to_schema: stage
-    to_table: mcaid_claim_ccw
-    final_schema: final
-    final_table: mcaid_claim_ccw
-    final_table_pre: 
-    ref_schema: ref
-    ref_table_pre: 
-    qa_schema: metadata
-    qa_table_pre: 
 hhsaw:
     claim_header_from_schema: claims
     claim_header_from_table: final_mcaid_claim_header
@@ -24,6 +10,8 @@ hhsaw:
     final_table_pre: final_
     ref_schema: claims
     ref_table_pre: ref_
+    icdcm_ref_schema: ref
+    icdcm_ref_table: icdcm_codes
     qa_schema: claims
     qa_table_pre: metadata_
 vars:
