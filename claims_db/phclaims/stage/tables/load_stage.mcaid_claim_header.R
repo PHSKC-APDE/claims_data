@@ -899,7 +899,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
              ,j.pc_visit_id
              
              INTO ##temp_final
-             FROM ##temp2 as a
+             FROM ##temp1 as a
              left join ##ccs as d
              on a.claim_header_id = d.claim_header_id
              left join ##rda as e
@@ -959,7 +959,6 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   try(DBI::dbRemoveTable(conn, "##injury9cm", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##injury10cm", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##injury", temporary = T), silent = T)
-  try(DBI::dbRemoveTable(conn, "##temp2", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##temp_final", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##ed_yale_step_1", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##ed_yale_final", temporary = T), silent = T)
