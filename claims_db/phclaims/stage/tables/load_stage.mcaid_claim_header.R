@@ -283,7 +283,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                     ,1 AS [inpatient]
                     FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line AS a
                     INNER JOIN 
-                    (SELECT distint code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system 
+                    (SELECT distinct code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde 
                     WHERE [value_set_name] IN ('Nonacute Inpatient Stay') AND [code_system] = 'UBREV') AS b
                     ON a.[rev_code] = b.[code]
                   UNION
@@ -293,7 +293,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                     ,1 AS [inpatient]
                     FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line AS a
                     INNER JOIN 
-                    (SELECT distinct code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system 
+                    (SELECT distinct code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde 
                     WHERE [value_set_name] IN ('Nonacute Inpatient Stay') AND [code_system] = 'UBTOB') AS b
                     ON a.[rev_code] = b.[code]
                   );", .con = conn))
