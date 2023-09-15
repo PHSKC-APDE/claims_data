@@ -349,7 +349,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            ,header.billing_provider_npi
            ,header.drvd_drg_code
            --Inpatient stay flag
-		       ,hedis.inpatient
+		       ,case when hedis.inpatient is null then 0 else hedis.inpatient end as [inpatient]
            --ED visit (broad definition)
            ,case when header.clm_type_mcaid_id in (3,26,34)
               and (line.ed_rev_code = 1 or procedure_code.ed_pcode1 = 1 or header.place_of_service_code = '23') then 1 else 0 end as 'ed_perform'
