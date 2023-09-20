@@ -31,10 +31,10 @@ bcp_load_f <- function(server = NULL, table = NULL, read_file = NULL, format_fil
 
 
 #### STEP 2: Set universal parameters ####
-write_path <- "//kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" ##Folder to save Amazon S3 files to
+write_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" ##Folder to save Amazon S3 files to
 
-sql_server = "KCITSQLUTPDBH51"
-sql_server_odbc_name = "PHClaims51"
+sql_server = "KCITSQLPRPENT40"
+sql_server_odbc_name = "PHClaims"
 sql_database_name <- "phclaims" ##Name of SQL database where table will be created
 
 

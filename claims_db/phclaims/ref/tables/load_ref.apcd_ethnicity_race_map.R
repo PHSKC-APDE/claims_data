@@ -16,7 +16,7 @@ options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 
 library(pacman)
 pacman::p_load(tidyverse, lubridate, odbc, RCurl, configr, glue)
 
-db_claims <- dbConnect(odbc(), "PHClaims51")
+db_claims <- dbConnect(odbc(), "PHClaims")
 
 #SQL loading functions developed by APDE
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
@@ -27,11 +27,11 @@ create_table(conn = db_claims,
                overall = T,
                ind_yr = F,
                overwrite = T,
-               server = "KCITSQLUTPDBH51")
+               server = "KCITSQLPRPENT40")
 
 load_table_from_file(conn = db_claims, 
                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_ethnicity_race_map.yaml",
                        overall = T,
                        ind_yr = F,
-                       server = "KCITSQLUTPDBH51",
+                       server = "KCITSQLPRPENT40",
                        drop_index = F)

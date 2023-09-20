@@ -19,7 +19,7 @@ options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 
 library(pacman)
 pacman::p_load(tidyverse, lubridate, odbc, glue)
 
-db_claims <- dbConnect(odbc(), "PHClaims51")
+db_claims <- dbConnect(odbc(), "PHClaims")
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
@@ -48,7 +48,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### B) Create table
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_demo.yaml",
-               overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+               overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 ### C) Load tables
 system.time(load_stage.apcd_elig_demo_f())
@@ -79,7 +79,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### B) Create table
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_timevar.yaml",
-               overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+               overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 ### C) Load tables
 system.time(load_stage.apcd_elig_timevar_f())
@@ -112,46 +112,46 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 # 2014
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2014.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 # 2015
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2015.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 # 2016
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2016.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 # 2017
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2017.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 # 2018
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2018.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 # 2019
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2019.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 # 2020
 create_table(conn = db_claims, 
              config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2020.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 # 2021
 create_table(conn = db_claims, 
              config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2021.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 
 #2018-07-01 through 2019-06-30
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_20190630.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 #2022-01-01 through 2022-12-31, update to most recent 12 months
 create_table(conn = db_claims, 
              config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_20221231.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 ### C) Load tables
 system.time(load_stage.apcd_elig_plr_f(from_date = "2014-01-01", to_date = "2014-12-31")) #2014
@@ -231,7 +231,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### B) Create table
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_line.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_line_f())
@@ -260,7 +260,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### B) Create table
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_icdcm_header.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_icdcm_header_f())
@@ -289,7 +289,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### B) Create table
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_procedure.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_procedure_f())
@@ -318,7 +318,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### B) Create table
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_provider.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_provider_f())
@@ -350,7 +350,7 @@ alter_schema_f(conn = db_claims, from_schema = "ref", to_schema = "archive", tab
 ### C) Create table
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_provider_npi.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 ### D) Load tables
 system.time(load_ref.apcd_provider_npi_f())
@@ -378,7 +378,7 @@ alter_schema_f(conn = db_claims, from_schema = "ref", to_schema = "archive", tab
 ### C) Create table
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.kc_provider_master.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 ### D) Load tables
 system.time(load_ref.kc_provider_master_f())
@@ -401,7 +401,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### B) Create table
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_header_f())
@@ -429,7 +429,7 @@ system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore
 ### A) Create table
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLUTPDBH51")
+             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
 
 ### C) Load tables
 system.time(load_ccw(server = "phclaims", conn = db_claims, source = c("apcd"),
