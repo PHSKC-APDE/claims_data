@@ -792,52 +792,54 @@ system.time(DBI::dbExecute(db_hhsaw,
 to_server = "KCITSQLPRPENT40"
 to_database = "PHClaims"
 to_schema <- "ref"
-to_table <- "hedis_measures_apde_eli_dev"
 
-#Connect to database
-#conn <- DBI::dbConnect(odbc::odbc(), to_database)
-
-#Use bcpImport function to upload data frame to SQL
+#Import HEDIS (<1 min)
 system.time(bcputility::bcpImport(
   x = hedis_measures,
   connectargs = bcputility::makeConnectArgs(
     server = to_server,
     database = to_database,
     trustedconnection = TRUE),
-  table = paste0(to_schema,".",to_table),
-  bcpOptions = list("-b", 100000),
-  overwrite = TRUE)
-)
+  table = paste0(to_schema,".","hedis_measures_apde"),
+  bcpOptions = list("-b", 100000L),
+  overwrite = TRUE))
 
+#Import HEDIS value sets (<1 min)
+system.time(bcputility::bcpImport(
+  x = hedis_value_sets,
+  connectargs = bcputility::makeConnectArgs(
+    server = to_server,
+    database = to_database,
+    trustedconnection = TRUE),
+  table = paste0(to_schema,".","hedis_value_sets_apde"),
+  bcpOptions = list("-b", 100000L),
+  overwrite = TRUE))
 
-to_schema <- "ref"
-to_table_measures <- "hedis_measures_apde"
-to_table_value_sets <- "hedis_value_sets_apde"
-to_table_med_measures <- "hedis_medication_measures_apde"
-to_table_med_lists <- "hedis_medication_lists_apde"
+#Import HEDIS medication measures (<1 min)
+system.time(bcputility::bcpImport(
+  x = hedis_medication_measures,
+  connectargs = bcputility::makeConnectArgs(
+    server = to_server,
+    database = to_database,
+    trustedconnection = TRUE),
+  table = paste0(to_schema,".","hedis_medication_measures_apde"),
+  bcpOptions = list("-b", 100000L),
+  overwrite = TRUE))
 
-#HEDIS measures (<1 min)
-system.time(dbWriteTable(db_phclaims, name = DBI::Id(schema = to_schema, table = to_table_measures), 
-                         value = as.data.frame(hedis_measures), 
-                         overwrite = T))
-
-#HEDIS value sets (69 min)
-system.time(dbWriteTable(db_phclaims, name = DBI::Id(schema = to_schema, table = to_table_value_sets), 
-                         value = as.data.frame(hedis_value_sets), 
-                         overwrite = T))
-
-#HEDIS medication measures (<1 min)
-system.time(dbWriteTable(db_phclaims, name = DBI::Id(schema = to_schema, table = to_table_med_measures), 
-                         value = as.data.frame(hedis_medication_measures), 
-                         overwrite = T))
-
-#HEDIS medication lists (225 min)
-system.time(dbWriteTable(db_phclaims, name = DBI::Id(schema = to_schema, table = to_table_med_lists), 
-                         value = as.data.frame(hedis_medication_lists), 
-                         overwrite = T))
+#Import HEDIS medication lists (<1 min)
+system.time(bcputility::bcpImport(
+  x = hedis_medication_lists,
+  connectargs = bcputility::makeConnectArgs(
+    server = to_server,
+    database = to_database,
+    trustedconnection = TRUE),
+  table = paste0(to_schema,".","hedis_medication_lists_apde"),
+  bcpOptions = list("-b", 100000L),
+  overwrite = TRUE))
 
 # Add index on HEDIS value sets table (<1 min)
-system.time(DBI::dbExecute(db_phclaims, 
-                           glue::glue_sql(
-                             "CREATE CLUSTERED INDEX [idx_cl_code_system_code] ON {`to_schema`}.{`to_table_value_sets`}(code_system, code)",
-                             .con = db_phclaims)))
+conn <- DBI::dbConnect(odbc::odbc(), to_database)
+system.time(DBI::dbExecute(conn, 
+glue::glue_sql(
+ "CREATE CLUSTERED INDEX [idx_cl_code_system_code] ON {`to_schema`}.hedis_value_sets_apde (code_system, code)",
+ .con = conn)))
