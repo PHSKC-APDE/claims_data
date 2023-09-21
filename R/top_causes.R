@@ -40,7 +40,7 @@
 #' @examples
 #' \dontrun{
 #' db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
-#' system.time(mcaid_only <- claims_elig(conn = db_hhsaw, source = "mcaid", 
+#' system.time(mcaid_only <- claims_elig(conn = db_hhsaw, source = "mcaid", server = "hhsaw",
 #'     from_date = "2014-01-01", to_date = "2015-02-25",
 #'     geo_zip = c("98104", "98133", "98155"),
 #'     cov_type = "FFS", race_asian = 1, 
