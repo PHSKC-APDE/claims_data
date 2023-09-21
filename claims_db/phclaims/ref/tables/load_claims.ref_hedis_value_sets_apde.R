@@ -17,6 +17,10 @@ origin <- "1970-01-01" # Set the origin date, which is needed for many data/time
 hedis_file_path <- "//dchs-shares01/dchsdata/dchsphclaimsdata/hedis/"
 hedis_write_path <- "//dchs-shares01/dchsdata/dchsphclaimsdata/hedis/hedis_value_sets_for_sql_load/"
 
+#### SET UP FUNCTIONS ####
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_file.R")
+
 #Connect to HHSAW using ODBC driver
 db_hhsaw <- DBI::dbConnect(odbc::odbc(),
                            driver = "ODBC Driver 17 for SQL Server",
@@ -784,7 +788,27 @@ system.time(DBI::dbExecute(db_hhsaw,
 
 ## Load data to PHClaims
 
-db_phclaims <- DBI::dbConnect(odbc::odbc(), "PHClaims")
+#Set parameters for table creation
+to_server = "KCITSQLPRPENT40"
+to_database = "PHClaims"
+to_schema <- "ref"
+to_table <- "hedis_measures_apde_eli_dev"
+
+#Connect to database
+#conn <- DBI::dbConnect(odbc::odbc(), to_database)
+
+#Use bcpImport function to upload data frame to SQL
+system.time(bcputility::bcpImport(
+  x = hedis_measures,
+  connectargs = bcputility::makeConnectArgs(
+    server = to_server,
+    database = to_database,
+    trustedconnection = TRUE),
+  table = paste0(to_schema,".",to_table),
+  bcpOptions = list("-b", 100000),
+  overwrite = TRUE)
+)
+
 
 to_schema <- "ref"
 to_table_measures <- "hedis_measures_apde"
