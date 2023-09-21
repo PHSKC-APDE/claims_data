@@ -142,9 +142,9 @@
 #'
 #' @examples
 #' \dontrun{
-#' claims_elig(conn = db.claims51, source = "apcd", 
+#' claims_elig(conn = db_claims, source = "apcd", server = "phclaims",
 #'   from_date = "2017-01-01", to_date = "2017-06-30")
-#' claims_elig(conn = db.claims51, source = "mcaid", 
+#' claims_elig(conn = db_claims, source = "mcaid", server = "phclaims",
 #'   from_date = "2017-01-01", to_date = "2017-06-30", age_min = 18, 
 #'   age_max = 64, lang_me = c("ARABIC", "SOMALI"), zip = c("98103", "98105"))
 #' }

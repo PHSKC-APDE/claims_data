@@ -43,10 +43,10 @@
 #'
 #' @examples
 #' \dontrun{
-#' new_timevar <- elig_timevar_collapse(conn = db_claims51, server="phclaims",
+#' new_timevar <- elig_timevar_collapse(conn = db_hhsaw, server = "hhsaw",
 #' source = "mcaid", full_benefit = T, geo_add1 = T, geo_city = T, geo_zip = T,
 #' geocode_vars = T)
-#' new_timevar2 <- elig_timevar_collapse(conn = db_claims51, server="phclaims",
+#' new_timevar2 <- elig_timevar_collapse(conn = db_claims, server="phclaims",
 #' source = "apcd", med_covgrp = T, geo_county = T)
 #' new_timevar_hhsaw <- elig_timevar_collapse(conn = db_hhsaw, server="hhsaw",
 #' source = "mcaid", full_benefit = T, geo_add1 = T, geo_city = T, geo_zip = T,
