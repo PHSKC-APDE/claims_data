@@ -53,6 +53,9 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
   qa_schema <- config[[server]][["qa_schema"]]
   qa_table <- ifelse(is.null(config[[server]][["qa_table"]]), '',
                      config[[server]][["qa_table"]])
+  icdcm_ref_schema <- config[[server]][["icdcm_ref_schema"]]
+  icdcm_ref_table <- ifelse(is.null(config[[server]][["icdcm_ref_table"]]), '',
+                     config[[server]][["icdcm_ref_table"]])
   
   
   message("Running QA on ", to_schema, ".", to_table)
@@ -228,8 +231,8 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     conn, glue::glue_sql("SELECT count(distinct 'ICD' + CAST([icdcm_version] AS VARCHAR(2)) + ' - ' + [icdcm_norm])
                          FROM {`to_schema`}.{`to_table`} as a
                          WHERE not exists
-                         (SELECT 1 FROM {`ref_schema`}.{DBI::SQL(ref_table)}dx_lookup as b
-                         WHERE a.icdcm_version = b.dx_ver and a.icdcm_norm = b.dx)",
+                         (SELECT 1 FROM {`icdcm_ref_schema`}.{`icdcm_ref_table`} as b
+                         WHERE a.icdcm_version = b.icdcm_version and a.icdcm_norm = b.icdcm)",
                          .con = conn)))
   
   # Write findings to metadata
@@ -243,7 +246,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    'Almost all dx codes join to ICD-CM reference table', 
                    'PASS', 
                    {Sys.time()}, 
-                   'There were {dx_chk} dx values not in {DBI::SQL(ref_schema)}.{DBI::SQL(ref_table)}dx_lookup (acceptable is < 350)')",
+                   'There were {dx_chk} dx values not in {DBI::SQL(icdcm_ref_schema)}.{DBI::SQL(icdcm_ref_table)} (acceptable is < 350)')",
                                   .con = conn))
   } else {
     dx_fail <- 1
@@ -255,7 +258,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    'Almost all dx codes join to ICD-CM reference table', 
                    'FAIL', 
                    {Sys.time()}, 
-                   'There were {dx_chk} dx values not in {DBI::SQL(ref_schema)}.{DBI::SQL(ref_table)}dx_lookup table (acceptable is < 350)')",
+                   'There were {dx_chk} dx values not in {DBI::SQL(icdcm_ref_schema)}.{DBI::SQL(icdcm_ref_table)} table (acceptable is < 350)')",
                                   .con = conn))
   }
   
