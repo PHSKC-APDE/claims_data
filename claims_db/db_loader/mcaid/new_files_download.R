@@ -24,6 +24,7 @@ library(R.utils)
 library(zip)
 library(sftp)
 
+
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
@@ -51,7 +52,7 @@ if(T) {
   #### Set sftp url, credentials and directories
   url <- "mft.wa.gov"
   basedir <- "C:/temp/mcaid/"
-  dldir <- paste0(basedir, "download")
+  dldir <- paste0(basedir, "download/")
   exdir <- paste0(basedir, "extract")
   gzdir <- paste0(basedir, "gzip")
   txtdir <- paste0(basedir, "txt")
@@ -62,20 +63,25 @@ if(T) {
   sftp_con <- sftp_connect(server = url,   
                            username = key_list("hca_mft")[["username"]],   
                            password = key_get("hca_mft", key_list("hca_mft")[["username"]]))
-  ## Get file list
-  sftp_files <- sftp_listfiles(sftp_con, recurse = T)
-  
+  sftp_changedir(tofolder = "Claims", current_connection_name = "sftp_con")
+  sftp_claims <- sftp_listfiles(sftp_con, recurse = F)
+  sftp_changedir(tofolder = "../Eligibility", current_connection_name = "sftp_con")
+  sftp_elig <- sftp_listfiles(sftp_con, recurse = F)
+  sftp_file_cnt <- nrow(sftp_claims) + nrow(sftp_elig)
   ## CHECK FOR EXISTING - TO DO!
   etl_exists <- 0
   
-  if (nrow(sftp_files) > 0) {
-    proceed_msg <- paste0("Download the ", nrow(sftp_files), " files?")
+  if (sftp_file_cnt > 0) {
+    proceed_msg <- paste0("Download the ", sftp_file_cnt, " files?")
     proceed <- askYesNo(msg = proceed_msg)
   }
   
   if (proceed == T) {
     message(paste0("Downloading Files - ", Sys.time()))
-    sftp_download(file = sftp_files$name, tofolder = dldir)
+    sftp_changedir(tofolder = "../Claims", current_connection_name = "sftp_con")
+    sftp_download(file = sftp_claims$name, tofolder = paste0(dldir, "Claims"))
+    sftp_changedir(tofolder = "../Eligibility", current_connection_name = "sftp_con")
+    sftp_download(file = sftp_elig$name, tofolder = paste0(dldir, "Eligibility"))
     message(paste0("Download Completed - ", Sys.time()))
     
     zfiles <- data.frame("fileName" = list.files(dldir, pattern="*.gz", recursive = T))
