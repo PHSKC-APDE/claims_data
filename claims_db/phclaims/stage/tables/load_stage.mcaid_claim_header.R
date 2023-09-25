@@ -10,7 +10,8 @@
 # Revised: Philip Sylling | 2019-12-12 | Added Yale ED Measure, ed_pophealth_id
 # Revised: Philip Sylling | 2019-12-13 | Changed definition of [ed] column to HCA-ARM definition
 # Revised: Philip Sylling | 2019-12-13 | Added [ed_perform_id] which increments [ed] column by unique [id_mcaid], [first_service_date]
-# Revised: Alastair Matheson| 2020-01-27 | Added primary care flags
+# Revised: Alastair Matheson | 2020-01-27 | Added primary care flags
+# Revised: Eli Kern | 2023-09-13 | Added new BH flags, new CCS flags, renamed columns, removed outdated columns, revised injury code to be consistent with CHARS
 # 
 # Data Pull Run time: XX min
 # Create Index Run Time: XX min
@@ -41,53 +42,32 @@
 # ,[system_in_date]
 # ,[claim_header_id_date]
 # 
-# /* Derived claim event flag columns (formerly columns from [mcaid_claim_summary]) */
+# /* Derived claim event flag columns */
 #   
-#   ,[primary_diagnosis]
+# ,[primary_diagnosis]
 # ,[icdcm_version]
 # ,[primary_diagnosis_poa]
-# ,[mental_dx1]
-# ,[mental_dxany]
-# ,[mental_dx_rda_any]
-# ,[sud_dx_rda_any]
-# ,[maternal_dx1]
-# ,[maternal_broad_dx1]
-# ,[newborn_dx1]
-# ,[ed]
-# ,[ed_nohosp]
-# ,[ed_bh]
-# ,[ed_avoid_ca]
-# ,[ed_avoid_ca_nohosp]
-# ,[ed_ne_nyu]
-# ,[ed_pct_nyu]
-# ,[ed_pa_nyu]
-# ,[ed_npa_nyu]
-# ,[ed_mh_nyu]
-# ,[ed_sud_nyu]
-# ,[ed_alc_nyu]
-# ,[ed_injury_nyu]
-# ,[ed_unclass_nyu]
-# ,[ed_emergent_nyu]
-# ,[ed_nonemergent_nyu]
-# ,[ed_intermediate_nyu]
+# ,[ccs_broad_desc]
+# ,[ccs_broad_code]
+# ,[ccs_detail_desc]
+# ,[ccs_detail_code]
+# ,[mh_primary]
+# ,[mh_any]
+# ,[sud_primary]
+# ,[sud_any]
+# ,[injury_nature_narrow]
+# ,[injury_nature_broad]
+# ,[injury_nature_type]
+# ,[injury_nature_icdcm]
+# ,[injury_ecode]
+# ,[injury_intent]
+# ,[injury_mechanism]
+# ,[ed_perform]
+# ,[ed_perform_id]
+# ,[ed_pophealth]
+# ,[ed_pophealth_id]
 # ,[inpatient]
-# ,[ipt_medsurg]
-# ,[ipt_bh]
-# ,[intent]
-# ,[mechanism]
-# ,[sdoh_any]
-# ,[ed_sdoh]
-# ,[ipt_sdoh]
-# ,[ccs]
-# ,[ccs_description]
-# ,[ccs_description_plain_lang]
-# ,[ccs_mult1]
-# ,[ccs_mult1_description]
-# ,[ccs_mult2]
-# ,[ccs_mult2_description]
-# ,[ccs_mult2_plain_lang]
-# ,[ccs_final_description]
-# ,[ccs_final_plain_lang]
+# ,[inpatient_id]
 # ,[pc_visit]
 # ,[pc_visit_id] 
 # ,[last_run]
@@ -101,7 +81,7 @@
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
 load_stage_mcaid_claim_header_f <- function(conn = NULL,
-                                           server = c("hhsaw", "phclaims"),
+                                           server = c("hhsaw"),
                                            config = NULL,
                                            get_config = F) {
   
@@ -124,6 +104,8 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                       config[[server]][["ref_table"]])
+  icdcm_ref_schema <- config[[server]][["icdcm_ref_schema"]]
+  icdcm_ref_table <- config[[server]][["icdcm_ref_table"]]
   temp_schema <- config[[server]][["temp_schema"]]
   temp_table <- ifelse(is.null(config[[server]][["temp_table"]]), '',
                       config[[server]][["temp_table"]])
@@ -206,19 +188,6 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            ,system_in_date
            ,claim_header_id_date
            
-           --inpatient stay, clm_type_mcaid_id in (31,33) no longer works in 2019, Use HEDIS definition below
-           --,case when clm_type_mcaid_id in (31,33) then 1 else 0 end as 'inpatient'
-           --mental health-related DRG
-           ,case when drvd_drg_code between '876' and '897' or 
-            drvd_drg_code between '945' and '946' then 1 else 0 end as 'mh_drg'
-           --newborn/liveborn infant-related DRG
-           ,case when drvd_drg_code between '789' and '795' then 1 else 0 end as 'newborn_drg'
-           --maternity-related DRG or type of bill
-           ,case when type_of_bill_code in 
-           ('840','841','842','843','844','845','847','848','84F','84G','84H',
-              '84I','84J','84K','84M','84O','84X','84Y','84Z') or 
-              drvd_drg_code between '765' and '782' 
-           then 1 else 0 end as 'maternal_drg_tob'
            INTO ##header
            FROM {`temp_schema`}.{DBI::SQL(temp_table)}mcaid_claim_header",
                                 .con = conn))
@@ -234,13 +203,8 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
     conn, glue::glue_sql(
       "select 
            claim_header_id
-           --ed visits sub-flags
-           --,max(case when rev_code like '045[01269]' or rev_code like '0981' then 1 else 0 end) as 'ed_rev_code'
-           --Revised to match HCA-ARM Definition
+           --ed visits sub-flags for HCA-ARM/DHSH-RDA Definition
            ,max(case when rev_code like '045[01269]' then 1 else 0 end) as 'ed_rev_code'
-           --maternity revenue codes
-           ,max(case when rev_code in ('0112','0122','0132','0142','0152','0720','0721','0722','0724')
-                then 1 else 0 end) as 'maternal_rev_code'
            into ##line
            FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line
            group by claim_header_id",
@@ -258,49 +222,6 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            --primary diagnosis code with version
            ,max(case when icdcm_number = '01' then icdcm_norm else null end) as primary_diagnosis
            ,max(case when icdcm_number = '01' then icdcm_version else null end) as icdcm_version
-           --mental health-related primary diagnosis (HEDIS 2017)
-           ,max(case when icdcm_number = '01'
-                and ((icdcm_norm between '290' and '316' and icdcm_version = 9)
-                     or (icdcm_norm between 'F03' and 'F0391' and icdcm_version = 10)
-                     or (icdcm_norm between 'F10' and 'F69' and icdcm_version = 10)
-                     or (icdcm_norm between 'F80' and 'F99' and icdcm_version = 10))
-                then 1 else 0 end) AS 'dx1_mental'
-           --mental health-related, any diagnosis (HEDIS 2017)
-           ,max(case when ((icdcm_norm between '290' and '316' and icdcm_version = 9)
-                           or (icdcm_norm between 'F03' and 'F0391' and icdcm_version = 10)
-                           or (icdcm_norm between 'F10' and 'F69' and icdcm_version = 10)
-                           or (icdcm_norm between 'F80' and 'F99' and icdcm_version = 10))
-                then 1 else 0 end) AS 'dxany_mental'
-           --newborn-related primary diagnosis (HEDIS 2017)
-           ,max(case when icdcm_number = '01'
-                and ((icdcm_norm between 'V30' and 'V39' and icdcm_version = 9)
-                     or (icdcm_norm between 'Z38' and 'Z389' and icdcm_version = 10))
-                then 1 else 0 end) AS 'dx1_newborn'
-           --maternity-related primary diagnosis (HEDIS 2017)
-           ,max(case when icdcm_number = '01'
-                and ((icdcm_norm between '630' and '679' and icdcm_version = 9)
-                     or (icdcm_norm between 'V24' and 'V242' and icdcm_version = 9)
-                     or (icdcm_norm between 'O00' and 'O9279' and icdcm_version = 10)
-                     or (icdcm_norm between 'O98' and 'O9989' and icdcm_version = 10)
-                     or (icdcm_norm between 'O9A' and 'O9A53' and icdcm_version = 10)
-                     or (icdcm_norm between 'Z0371' and 'Z0379' and icdcm_version = 10)
-                     or (icdcm_norm between 'Z332' and 'Z3329' and icdcm_version = 10)
-                     or (icdcm_norm between 'Z39' and 'Z3909' and icdcm_version = 10))
-                then 1 else 0 end) AS 'dx1_maternal'
-           --maternity-related primary diagnosis (broader)
-           ,max(case when icdcm_number = '01'
-                and ((icdcm_norm between '630' and '679' and icdcm_version = 9)
-                     or (icdcm_norm between 'V20' and 'V29' and icdcm_version = 9) /*broader*/
-                       or (icdcm_norm between 'O00' and 'O9279' and icdcm_version = 10)
-                     or (icdcm_norm between 'O94' and 'O9989' and icdcm_version = 10) /*broader*/
-                       or (icdcm_norm between 'O9A' and 'O9A53' and icdcm_version = 10)
-                     or (icdcm_norm between 'Z0371' and 'Z0379' and icdcm_version = 10)
-                     or (icdcm_norm between 'Z30' and 'Z392' and icdcm_version = 10) /*broader*/
-                       or (icdcm_norm between 'Z3A0' and 'Z3A49' and icdcm_version = 10)) /*broader*/
-                  then 1 else 0 end) AS 'dx1_maternal_broad'
-           --SDOH-related (any diagnosis)
-           ,max(case when icdcm_norm between 'Z55' and 'Z659' and icdcm_version = 10
-                then 1 else 0 end) AS 'sdoh_any'
            --Primary care-related visits
            ,MAX(CASE WHEN dx.icdcm_number IN ('01', '02') AND dx.icdcm_version = 10 AND 
             pc_ref.pc_dxcode = 1 THEN 1 ELSE 0 END) AS 'pc_zcode' 
@@ -325,8 +246,6 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                  glue::glue_sql("SELECT px.claim_header_id 
            --ed visits sub-flags
            ,max(case when px.procedure_code like '9928[123458]' then 1 else 0 end) as 'ed_pcode1'
-           -- Dropped to match HCA-ARM Definition
-           --,max(case when px.procedure_code between '10021' and '69990' then 1 else 0 end) as 'ed_pcode2'
            ,MAX(ISNULL(pc_ref.pc_pcode, 0)) AS pc_pcode 
            INTO ##procedure_code FROM
            (SELECT claim_header_id, procedure_code FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_procedure) AS px
@@ -352,10 +271,10 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                  ,1 AS [inpatient]
                  INTO ##hedis_inpatient_definition
                  FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line AS a
-                 INNER JOIN {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system AS b
-                 ON [value_set_name] IN ('Inpatient Stay')
-                  AND [code_system] = 'UBREV'
-                  AND a.[rev_code] = b.[code]
+                 INNER JOIN 
+                 (SELECT distinct code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde
+                  WHERE [value_set_name] IN ('Inpatient Stay') AND [code_system] = 'UBREV') AS b
+                 ON a.[rev_code] = b.[code]
                   
                   EXCEPT
                   (SELECT [id_mcaid]
@@ -363,20 +282,20 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                     ,[first_service_date]
                     ,1 AS [inpatient]
                     FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line AS a
-                    INNER JOIN {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system AS b
-                    ON [value_set_name] IN ('Nonacute Inpatient Stay')
-                      AND [code_system] = 'UBREV'
-                      AND a.[rev_code] = b.[code]
+                    INNER JOIN 
+                    (SELECT distinct code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde 
+                    WHERE [value_set_name] IN ('Nonacute Inpatient Stay') AND [code_system] = 'UBREV') AS b
+                    ON a.[rev_code] = b.[code]
                   UNION
                   SELECT [id_mcaid]
                     ,[claim_header_id]
                     ,[first_service_date]
                     ,1 AS [inpatient]
                     FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line AS a
-                    INNER JOIN {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system AS b
-                    ON [value_set_name] IN ('Nonacute Inpatient Stay')
-                      AND [code_system] = 'UBTOB'
-                      AND a.[rev_code] = b.[code]
+                    INNER JOIN 
+                    (SELECT distinct code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde 
+                    WHERE [value_set_name] IN ('Nonacute Inpatient Stay') AND [code_system] = 'UBTOB') AS b
+                    ON a.[rev_code] = b.[code]
                   );", .con = conn))
   
   # Add index
@@ -429,35 +348,19 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            ,header.clm_status_code
            ,header.billing_provider_npi
            ,header.drvd_drg_code
-           --Mental health-related primary diagnosis
-           ,case when header.mh_drg = 1 or diag.dx1_mental = 1 then 1 else 0 end as 'mental_dx1'
-           --Mental health-related, any diagnosis
-           ,case when header.mh_drg = 1 or diag.dxany_mental = 1 then 1 else 0 end as 'mental_dxany'
-           --Maternity-related care (primary diagnosis only)
-           ,case when header.maternal_drg_tob = 1 or line.maternal_rev_code = 1 or diag.dx1_maternal = 1 then 1 else 0 end as 'maternal_dx1'
-           --Maternity-related care (primary diagnosis only), broader definition for diagnosis codes
-           ,case when header.maternal_drg_tob = 1 or line.maternal_rev_code = 1 or diag.dx1_maternal_broad = 1 then 1 else 0 end as 'maternal_broad_dx1'
-           --Newborn-related care (prim. diagnosis only)
-           ,case when header.newborn_drg = 1 or diag.dx1_newborn = 1 then 1 else 0 end as 'newborn_dx1'
-           --Inpatient stay flag [not using claim_type_mcaid_id any more]
-           --,header.inpatient
-		       ,hedis.inpatient
+           --Inpatient stay flag
+		       ,case when hedis.inpatient is null then 0 else hedis.inpatient end as [inpatient]
            --ED visit (broad definition)
            ,case when header.clm_type_mcaid_id in (3,26,34)
-           and (line.ed_rev_code = 1 or procedure_code.ed_pcode1 = 1 or header.place_of_service_code = '23') then 1 else 0 end as 'ed'
-           --Revised to match HCA-ARM Definition
-           --and (line.ed_rev_code = 1 or procedure_code.ed_pcode1 = 1 or (header.place_of_service_code = '23' and ed_pcode2 = 1)) then 1 else 0 end as 'ed'
+              and (line.ed_rev_code = 1 or procedure_code.ed_pcode1 = 1 or header.place_of_service_code = '23') then 1 else 0 end as 'ed_perform'
            --Primary diagnosis and version
-           
            ,diag.primary_diagnosis
            ,diag.icdcm_version
            ,header.primary_diagnosis_poa
-           --SDOH flags
-           ,diag.sdoh_any
            --Primary care visit
-           ,CASE WHEN (diag.pc_zcode = 1 OR procedure_code.pc_pcode = 1) AND
-            pc_provider.pc_provider = 1 AND 
-            header.clm_type_mcaid_id NOT IN (19, 31, 33) --Ambulatory surgery centers/inpatient 
+           ,CASE WHEN (diag.pc_zcode = 1 OR procedure_code.pc_pcode = 1)
+              AND pc_provider.pc_provider = 1
+              AND header.clm_type_mcaid_id NOT IN (19, 31, 33) --Ambulatory surgery centers/inpatient 
             THEN 1 ELSE 0 END AS pc_visit
            
            INTO ##temp1
@@ -474,91 +377,42 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            ON header.billing_provider_npi = pc_provider.billing_provider_npi",
                                 .con = conn))
   
-  
-  #### STEP 8: AVOIDABLE ED VISIT FLAG, CALIFORNIA ALGORITHM ####
-  message("STEP 8: AVOIDABLE ED VISIT FLAG, CALIFORNIA ALGORITHM")
-  try(DBI::dbRemoveTable(conn, "##avoid_ca", temporary = T), silent = T)
-  DBI::dbExecute(conn,
-                 glue::glue_sql("SELECT 
-           b.claim_header_id
-           ,max(a.ed_avoid_ca) as 'ed_avoid_ca'
-           INTO ##avoid_ca
-           FROM (select dx, dx_ver, ed_avoid_ca from {`ref_schema`}.{DBI::SQL(ref_table)}dx_lookup where ed_avoid_ca = 1) as a
-           inner join (select claim_header_id, icdcm_norm, icdcm_version FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header where icdcm_number = '01') as b
-           on (a.dx_ver = b.icdcm_version) and (a.dx = b.icdcm_norm)
-           group by b.claim_header_id",
-                                .con = conn))
-  
-  # Add index
-  DBI::dbExecute(conn, "create clustered index [idx_cl_##avoid_ca] on ##avoid_ca(claim_header_id)")
-  
-  
-  #### STEP 9: ED CLASSIFICATION, NYU ALGORITHM ####
-  message("STEP 9: ED CLASSIFICATION, NYU ALGORITHM")
-  try(DBI::dbRemoveTable(conn, "##avoid_nyu", temporary = T), silent = T)
-  DBI::dbExecute(conn,
-                 glue::glue_sql("select 
-           b.claim_header_id
-           ,a.ed_needed_unavoid_nyu
-           ,a.ed_needed_avoid_nyu
-           ,a.ed_pc_treatable_nyu
-           ,a.ed_nonemergent_nyu
-           ,a.ed_mh_nyu
-           ,a.ed_sud_nyu
-           ,a.ed_alc_nyu
-           ,a.ed_injury_nyu
-           ,a.ed_unclass_nyu
-           into ##avoid_nyu
-           from {`ref_schema`}.{DBI::SQL(ref_table)}dx_lookup as a
-           inner join (select claim_header_id, icdcm_norm, icdcm_version 
-           FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header where icdcm_number = '01') as b
-           on a.dx_ver = b.icdcm_version and a.dx = b.icdcm_norm",
-                                .con = conn))
-  
-  # Add index
-  DBI::dbExecute(conn, "create clustered index [idx_cl_##avoid_nyu] on ##avoid_nyu(claim_header_id)")
-  
-  
-  #### STEP 10: CCS GROUPINGS (CCS, CCS-LEVEL 1, CCS-LEVEL 2), PRIMARY DX, FINAL CATEGORIZATION ####
-  message("STEP 10: CCS GROUPINGS (CCS, CCS-LEVEL 1, CCS-LEVEL 2), PRIMARY DX, FINAL CATEGORIZATION")
+
+  #### STEP 8: CCS GROUPINGS (BROAD, DETAIL) FOR PRIMARY DIAGNOSIS ####
+  message("STEP 8: CCS GROUPINGS (BROAD, DETAIL) FOR PRIMARY DX")
   try(DBI::dbRemoveTable(conn, "##ccs", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
            b.claim_header_id
-           ,a.ccs
-           ,a.ccs_description
-           ,a.ccs_description_plain_lang
-           ,a.multiccs_lv1
-           ,a.multiccs_lv1_description
-           ,a.multiccs_lv2
-           ,a.multiccs_lv2_description
-           ,a.multiccs_lv2_plain_lang
-           ,a.ccs_final_code
-           ,a.ccs_final_description
-           ,a.ccs_final_plain_lang
+           ,a.ccs_broad_desc
+           ,a.ccs_broad_code
+           ,a.ccs_detail_desc
+           ,a.ccs_detail_code
            INTO ##ccs
-           FROM {`ref_schema`}.{DBI::SQL(ref_table)}dx_lookup as a
+           FROM {`icdcm_ref_schema`}.{DBI::SQL(icdcm_ref_table)} as a
            inner join (select claim_header_id, icdcm_norm, icdcm_version 
            FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header where icdcm_number = '01') as b
-           on a.dx_ver = b.icdcm_version and a.dx = b.icdcm_norm",
+           on (a.icdcm_version = b.icdcm_version) and (a.icdcm = b.icdcm_norm)",
                                 .con = conn))
   
   # Add index
   DBI::dbExecute(conn, "create clustered index [idx_cl_##ccs] on ##ccs(claim_header_id)")
   
   
-  #### STEP 11: RDA MENTAL HEALTH AND SUBSTANCE USE DISORDER DX FLAGS, ANY DX ####
-  message("STEP 11: RDA MENTAL HEALTH AND SUBSTANCE USE DISORDER DX FLAGS, ANY DX")
+  #### STEP 9: RDA BEHAVIORAL HEALTH DIAGNOSIS FLAGS ####
+  message("STEP 9: RDA BEHAVIORAL HEALTH DIAGNOSIS FLAGS")
   try(DBI::dbRemoveTable(conn, "##rda", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
            b.claim_header_id
-           ,max(a.mental_dx_rda) as 'mental_dx_rda_any'
-           ,max(a.sud_dx_rda) as 'sud_dx_rda_any'
+           ,max(case when b.icdcm_number = '01' and a.mh_any = 1 then 1 else 0 end) as mh_primary
+           ,max(case when a.mh_any = 1 then 1 else 0 end) as mh_any
+           ,max(case when b.icdcm_number = '01' and a.sud_any = 1 then 1 else 0 end) as sud_primary
+           ,max(case when a.sud_any = 1 then 1 else 0 end) as sud_any
            INTO ##rda
-           FROM {`ref_schema`}.{DBI::SQL(ref_table)}dx_lookup as a
+           FROM {`icdcm_ref_schema`}.{DBI::SQL(icdcm_ref_table)} as a
            inner join {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header as b
-           on a.dx_ver = b.icdcm_version and a.dx = b.icdcm_norm
+           on (a.icdcm_version = b.icdcm_version) and (a.icdcm = b.icdcm_norm)
            group by b.claim_header_id",
                                 .con = conn))
   
@@ -566,114 +420,230 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   DBI::dbExecute(conn, "create clustered index [idx_cl_##rda] on ##rda(claim_header_id)")
   
   
-  #### STEP 12: INJURY INTENT AND MECHANISM, ICD9-CM ####
-  message("STEP 12: INJURY INTENT AND MECHANISM, ICD9-CM")
-  try(DBI::dbRemoveTable(conn, "##injury9cm", temporary = T), silent = T)
-  DBI::dbExecute(conn,
-                 glue::glue_sql("SELECT 
-           c.claim_header_id
-           ,c.intent
-           ,c.mechanism
-           INTO ##injury9cm
-           FROM 
-           (--find external cause codes (ICD9-CM) for each TCN, then rank by diagnosis number
-             SELECT 
-             b.claim_header_id
-             ,intent
-             ,mechanism
-             ,row_number() over (partition by b.claim_header_id order by b.icdcm_number) as 'diag_rank'
-             FROM (SELECT 
-                dx, intent, mechanism FROM {`ref_schema`}.{DBI::SQL(ref_table)}dx_lookup 
-                WHERE intent is not null and dx_ver = 9) as a
-             INNER JOIN 
-             (SELECT claim_header_id, icdcm_norm, icdcm_number 
-             FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header 
-             WHERE icdcm_version = 9) as b
-             on (a.dx = b.icdcm_norm)
-           ) as c
-           --only keep the highest ranked external cause code per claim
-           where c.diag_rank = 1",
-                                .con = conn))
-  
-  
-  #### STEP 13: INJURY INTENT AND MECHANISM, ICD10-CM ####
-  message("STEP 13: INJURY INTENT AND MECHANISM, ICD10-CM")
-  try(DBI::dbRemoveTable(conn, "##injury10cm", temporary = T), silent = T)
-  DBI::dbExecute(conn,
-                 glue::glue_sql("SELECT 
-           b.claim_header_id
-           INTO ##inj10_temp1
-           FROM (
-            SELECT dx, injury_icd10cm 
-            FROM {`ref_schema`}.{DBI::SQL(ref_table)}dx_lookup 
-            WHERE injury_icd10cm = 1 and dx_ver = 10) as a
-          INNER JOIN 
-            (SELECT claim_header_id, icdcm_norm 
-            FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header 
-            WHERE icdcm_number = '01' and icdcm_version = 10) as b
-          ON a.dx = b.icdcm_norm;
-           
-           --grab the full list of diagnosis codes for these injury claims
-           if object_id('tempdb..#inj10_temp2') is not null 
-           drop table ##inj10_temp2;
-           SELECT 
-           b.claim_header_id
-           ,b.icdcm_norm
-           ,b.icdcm_number
-           INTO ##inj10_temp2
-           FROM ##inj10_temp1 as a
-           INNER JOIN 
-            (SELECT claim_header_id, icdcm_norm, icdcm_number 
-            FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header 
-            WHERE icdcm_version = 10) as b
-           ON a.claim_header_id = b.claim_header_id;
-           
-           --grab the highest ranked external cause code for each injury claim
-           if object_id('tempdb..#injury10cm') is not null 
-           drop table ##injury10cm;
-           SELECT 
-           c.claim_header_id
-           ,c.intent
-           ,c.mechanism
-           INTO ##injury10cm
-           FROM 
-            (SELECT b.claim_header_id
-              ,intent
-              ,mechanism
-              ,row_number() over (partition by b.claim_header_id order by b.icdcm_number) as 'diag_rank'
-            FROM (
-              SELECT dx, dx_ver, intent, mechanism 
-              FROM {`ref_schema`}.{DBI::SQL(ref_table)}dx_lookup 
-              WHERE intent is not null and dx_ver = 10) as a
-            INNER JOIN ##inj10_temp2 as b
-            ON a.dx = b.icdcm_norm
-           ) as c
-           WHERE c.diag_rank = 1",
-                                .con = conn))
-  
-  # Clean up temp tables from this stage
-  try(DBI::dbRemoveTable(conn, "##inj10_temp1", temporary = T), silent = T)
-  try(DBI::dbRemoveTable(conn, "##inj10_temp2", temporary = T), silent = T)
-  
-  
-  #### STEP 14: UNION ICD9-CM AND ICD10-CM INJURY TABLES ####
-  message("STEP 14: UNION ICD9-CM AND ICD10-CM INJURY TABLES")
+  #### STEP 10: INJURY CAUSE AND NATURE PER CDC GUIDANCE ####
+  message("STEP 10: INJURY CAUSE AND NATURE PER CDC GUIDANCE")
   try(DBI::dbRemoveTable(conn, "##injury", temporary = T), silent = T)
   DBI::dbExecute(conn,
-                 glue::glue_sql("SELECT claim_header_id, intent, mechanism 
-                          INTO ##injury 
-                          FROM ##injury9cm
-                          UNION
-                          SELECT claim_header_id, intent, mechanism 
-                          FROM ##injury10cm",
-                                .con = conn))
+                 glue::glue_sql(
+
+  "
+  ----------------------------------
+  --STEP 1: Create table of distinct ICD-CM codes
+  ----------------------------------
+  if object_id('tempdb..##icdcm_distinct') is not null drop table ##icdcm_distinct;
+  select distinct icdcm_norm, icdcm_version
+  into ##icdcm_distinct
+  from {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header;
+  
+  ----------------------------------
+  --STEP 2: Flag nature-of-injury codes per CDC injury hospitalization surveillance definition for ICD-9-CM and ICD-10-CM
+  --Refer to 7/5/19 NHSR report for ICD-9-CM and ICD-10-CM surveillance case definition for injury hospitalizations
+  --ICD-9-CM definition is in 2nd paragraph of introduction
+  --ICD-10-CM definition is in Table C (note this is same as Table B in 2020 NHSR update to nature of injury body region classification)
+  --Tip - For using SQL between operator, the second parameter must be the last value in the list we want to include or it will miss values (e.g. 9949 not 994)
+  ----------------------------------
+  if object_id('tempdb..##injury_nature_ref') is not null drop table ##injury_nature_ref;
+  select distinct *
+  into ##injury_nature_ref
+  from ##icdcm_distinct
+  
+  --Apply CDC surveillance definition for ICD-9-CM codes
+  where (icdcm_version = 9 and 
+  	(icdcm_norm between '800%' and '9949%' or icdcm_norm like '9955%' or icdcm_norm between '99580%' and '99585%') -- inclusion
+  	and icdcm_norm not like '9093%' -- exclusion
+  	and icdcm_norm not like '9095%' -- exclusion
+  )
+  
+  --Apply CDC surveillance definition for ICD-10-CM codes
+  or (icdcm_version = 10 and (
+  	(icdcm_norm like 'S%' and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	or (icdcm_norm between 'T07%' and 'T3499XS' and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	or (icdcm_norm between 'T36%' and 'T50996S' and substring(icdcm_norm,6,1) in ('1', '2', '3', '4') and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	or (icdcm_norm like 'T3[679]9%' and substring(icdcm_norm,5,1) in ('1', '2', '3', '4') and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	or (icdcm_norm like 'T414%' and substring(icdcm_norm,5,1) in ('1', '2', '3', '4') and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	or (icdcm_norm like 'T427%' and substring(icdcm_norm,5,1) in ('1', '2', '3', '4') and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion 
+  	or (icdcm_norm like 'T4[3579]9%' and substring(icdcm_norm,5,1) in ('1', '2', '3', '4') and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	or (icdcm_norm between 'T51%' and 'T6594XS' and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	or (icdcm_norm between 'T66%' and 'T7692XS' and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	or (icdcm_norm like 'T79%' and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	or (icdcm_norm between 'O9A2%' and 'O9A53' and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	or (icdcm_norm like 'T8404%' and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	or (icdcm_norm like 'M97%' and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
+  	)
+  );
+  
+  ----------------------------------
+  --STEP 3: Create flags for broad and narrrow injury surveillance definitions
+  ----------------------------------
+  if object_id('tempdb..##injury_nature') is not null drop table ##injury_nature;
+  select a.*,
+  case when b.icdcm_norm is not null and a.icdcm_number = '01' then 1 else 0 end as injury_narrow,
+  case when b.icdcm_norm is not null then 1 else 0 end as injury_broad
+  into ##injury_nature
+  from {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header as a
+  left join ##injury_nature_ref as b
+  on (a.icdcm_norm = b.icdcm_norm) and (a.icdcm_version = b.icdcm_version);
+  
+  ----------------------------------
+  --STEP 4: Identify external cause-of-injury codes for intent and mechanism
+  ----------------------------------
+  
+  --LIKE join distinct ICD-10-CM codes to ICD-10-CM external cause-of-injury code reference table
+  IF object_id(N'tempdb..##injury_cause_icd10cm_ref') is not null drop table ##injury_cause_icd10cm_ref;
+  select distinct a.icdcm_norm, a.icdcm_version, b.intent, b.mechanism
+  into ##injury_cause_icd10cm_ref
+  from (select * from ##icdcm_distinct where icdcm_version = 10) as a
+  inner join (
+  	select icdcm, icdcm + '%' as icdcm_like, icdcm_version, intent, mechanism
+  	from ref.icdcm_codes
+  	where icdcm_version = 10 and intent is not null
+  ) as b
+  on (a.icdcm_norm like b.icdcm_like) and (a.icdcm_version = b.icdcm_version);
+  
+  --LIKE join distinct ICD-9-CM codes to ICD-9-CM external cause-of-injury code reference table
+  IF object_id(N'tempdb..##injury_cause_icd9cm_ref') is not null drop table ##injury_cause_icd9cm_ref;
+  select distinct a.icdcm_norm, a.icdcm_version, b.intent, b.mechanism
+  into ##injury_cause_icd9cm_ref
+  from (select * from ##icdcm_distinct where icdcm_version = 9) as a
+  inner join (
+  	select icdcm, icdcm + '%' as icdcm_like, icdcm_version, intent, mechanism
+  	from {`icdcm_ref_schema`}.{DBI::SQL(icdcm_ref_table)}
+  	where icdcm_version = 9 and intent is not null
+  ) as b
+  on (a.icdcm_norm like b.icdcm_like) and (a.icdcm_version = b.icdcm_version);
+  
+  --UNION ICD-10-CM and ICD-9-CM CHARS reference table
+  IF object_id(N'tempdb..##injury_cause_ref') is not null drop table ##injury_cause_ref;
+  select *
+  into ##injury_cause_ref
+  from ##injury_cause_icd9cm_ref
+  union
+  select *
+  from ##injury_cause_icd10cm_ref;
+  
+  --EXACT join of above table to claims data with injury flags
+  IF object_id(N'tempdb..##injury_nature_cause') is not null drop table ##injury_nature_cause;
+  select a.*, b.intent, b.mechanism,
+  case when b.intent is not null and b.mechanism is not null then 1 else 0 end as ecode_flag
+  into ##injury_nature_cause
+  from ##injury_nature as a
+  left join ##injury_cause_ref as b
+  on (a.icdcm_norm = b.icdcm_norm) and (a.icdcm_version = b.icdcm_version);
+  
+  --Create rank variables for valid external cause-of-injury codes and for nature-of-injury codes
+  IF object_id(N'tempdb..##injury_nature_cause_ranks') is not null drop table ##injury_nature_cause_ranks;
+  select *,
+  case
+  	when ecode_flag = 0 then null
+  	else row_number() over (partition by claim_header_id, ecode_flag order by icdcm_number)
+  end as ecode_rank,
+  case
+  	when injury_broad = 0 then null
+  	else row_number() over (partition by claim_header_id, injury_broad order by icdcm_number)
+  end as injury_nature_rank
+  into ##injury_nature_cause_ranks
+  from ##injury_nature_cause;
+  
+  ----------------------------------
+  --STEP 5: Aggregate to claim header level
+  ----------------------------------
+  
+  --Create some aggregated fields
+  IF object_id(N'tempdb..##injury_cause_header_level_tmp') is not null drop table ##injury_cause_header_level_tmp;
+  select claim_header_id,
+    icdcm_norm,
+  	max(injury_narrow) over (partition by claim_header_id) as injury_narrow,
+  	max(injury_broad) over (partition by claim_header_id) as injury_broad,
+  	intent, mechanism,
+  	max(ecode_flag) over (partition by claim_header_id) as ecode_flag_max,
+  	ecode_rank
+  into ##injury_cause_header_level_tmp
+  from ##injury_nature_cause_ranks;
+  
+  --Collapse to claim header level
+  IF object_id(N'tempdb..##injury_cause_header_level_tmp2') is not null drop table ##injury_cause_header_level_tmp2;
+  select distinct claim_header_id, 
+    case when ecode_rank = 1 then icdcm_norm else null end as ecode,
+	  injury_narrow, injury_broad, intent, mechanism
+  into ##injury_cause_header_level_tmp2
+  from ##injury_cause_header_level_tmp
+  where (ecode_flag_max = 0) or (ecode_flag_max = 1 and ecode_rank = 1); -- subset to claim header level by selecting 1st-ranked ecode or stays having no ecodes at all
+  
+  --Add back first-ranked diagnosis with a nature-of-injury code
+  IF object_id(N'tempdb..##injury_cause_header_level_tmp3') is not null drop table ##injury_cause_header_level_tmp3;
+  select a.*, b.icdcm_norm as icdcm_injury_nature, b.icdcm_version as icdcm_injury_nature_version
+  into ##injury_cause_header_level_tmp3
+  from ##injury_cause_header_level_tmp2 as a
+  left join (select * from ##injury_nature_cause_ranks where injury_nature_rank = 1) as b
+  on a.claim_header_id = b.claim_header_id;
+      
+  ----------------------------------
+  --STEP 6: Create reference table to categorize type of nature of injury
+  ----------------------------------
+  
+  --First join to ref.icdcm_codes to grab CCS detail description, removing [initial encounter] phrase
+  IF object_id(N'tempdb..##distinct_injury_nature_icdcm_tmp1') is not null drop table ##distinct_injury_nature_icdcm_tmp1;
+  select distinct icdcm_injury_nature, icdcm_injury_nature_version,
+  	case
+  		when b.ccs_detail_desc like '%; initial encounter%' then replace(b.ccs_detail_desc, '; initial encounter', '')
+  		when b.ccs_detail_desc like '%, initial encounter%' then replace(b.ccs_detail_desc, ', initial encounter', '')
+  		else b.ccs_detail_desc
+  	end as ccs_detail_desc
+  into ##distinct_injury_nature_icdcm_tmp1
+  from ##injury_cause_header_level_tmp3 as a
+  left join {`icdcm_ref_schema`}.{DBI::SQL(icdcm_ref_table)} as b
+  on (a.icdcm_injury_nature = b.icdcm) and (a.icdcm_injury_nature_version = b.icdcm_version)
+  where a.icdcm_injury_nature is not null;
+  
+  --Normalize type of injury categories
+  IF object_id(N'tempdb..##distinct_injury_nature_icdcm_final') is not null drop table ##distinct_injury_nature_icdcm_final;
+  select icdcm_injury_nature, icdcm_injury_nature_version,
+  case
+  	when ccs_detail_desc in ('Other specified injury', 'Other unspecified injury') then 'Other injuries'
+  	when ccs_detail_desc in ('Spinal cord injury (SCI)') then 'Spinal cord injury'
+  	when ccs_detail_desc in ('Effect of other external causes',
+  		'External cause codes: other specified, classifiable and NEC',
+  		'External cause codes: unspecified mechanism',
+  		'Other injuries and conditions due to external causes')
+  		then 'Other injuries and conditions due to external causes'
+  	when ccs_detail_desc in ('Crushing injury', 'Crushing injury or internal injury') then 'Crushing injury or internal injury'
+  	when ccs_detail_desc in ('Burns', 'Burn and corrosion') then 'Burn and corrosion'
+  	else ccs_detail_desc
+  end as ccs_detail_desc
+  into ##distinct_injury_nature_icdcm_final
+  from ##distinct_injury_nature_icdcm_tmp1;
+  
+  ----------------------------------
+  --STEP 7: Add broad type categories to nature of injury ICD-CM codes
+  ----------------------------------
+  select a.*, b.ccs_detail_desc as icdcm_injury_nature_type
+  into ##injury
+  from ##injury_cause_header_level_tmp3 as a
+  left join ##distinct_injury_nature_icdcm_final as b
+  on (a.icdcm_injury_nature = b.icdcm_injury_nature) and (a.icdcm_injury_nature_version = b.icdcm_injury_nature_version);
+  ", .con = conn))
+  
+  # Clean up temp tables from this stage
+  try(DBI::dbRemoveTable(conn, "##icdcm_distinct", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury_nature_ref", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury_nature", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury_cause_icd10cm_ref", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury_cause_icd9cm_ref", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury_cause_ref", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury_nature_cause", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury_nature_cause_ranks", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury_cause_header_level_tmp", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury_cause_header_level_tmp2", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury_cause_header_level_tmp3", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##distinct_injury_nature_icdcm_tmp1", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##distinct_injury_nature_icdcm_final", temporary = T), silent = T)
   
   # Add index
   DBI::dbExecute(conn, "create clustered index [idx_cl_##injury] on ##injury(claim_header_id)")
   
   
-  #### STEP 15: CREATE ID COLUMNS FOR EVENTS THAT ARE ONLY COUNTED ONCE PER DAY ####
-  message("STEP 15: CREATE ID COLUMNS FOR EVENTS THAT ARE ONLY COUNTED ONCE PER DAY")
+  #### STEP 11: CREATE ID COLUMNS FOR EVENTS THAT ARE ONLY COUNTED ONCE PER DAY OR EPISODE ####
+  message("STEP 11: CREATE ID COLUMNS FOR EVENTS THAT ARE ONLY COUNTED ONCE PER DAY OR EPISODE")
   # [ed_pophealth_id] (YALE ED MEASURE)
   # [ed_perform_id]
   # [inpatient_id]
@@ -839,8 +809,8 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   try(DBI::dbRemoveTable(conn, "##ed_perform_id", temporary = T), silent = T)
   DBI::dbExecute(
     conn, "SELECT [claim_header_id]
-          ,CASE WHEN [ed] = 0 THEN null
-            ELSE dense_rank() OVER(ORDER BY CASE WHEN [ed] = 0 THEN 2 ELSE 1 END, 
+          ,CASE WHEN [ed_perform] = 0 THEN null
+            ELSE dense_rank() OVER(ORDER BY CASE WHEN [ed_perform] = 0 THEN 2 ELSE 1 END, 
                                    [id_mcaid], [first_service_date]) end as [ed_perform_id]
             INTO ##ed_perform_id
             FROM ##temp1;")
@@ -880,132 +850,56 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   DBI::dbExecute(conn, "create clustered index [idx_cl_##pc_visit_id] on ##pc_visit_id([claim_header_id])")
   
   
-  #### STEP 16: CREATE FLAGS THAT REQUIRE COMPARISON OF PREVIOUSLY CREATED EVENT-BASED FLAGS ACROSS TIME ####
-  message("STEP 16: CREATE FLAGS THAT REQUIRE COMPARISON OF PREVIOUSLY CREATED EVENT-BASED FLAGS ACROSS TIME")
-  try(DBI::dbRemoveTable(conn, "##temp2", temporary = T), silent = T)
-  DBI::dbExecute(conn,
-                 "SELECT temp1.*, case when ed_nohosp.ed_nohosp = 1 then 1 else 0 end as 'ed_nohosp'
-           INTO ##temp2
-           FROM ##temp1 as temp1
-           --ED flag that rules out visits with an inpatient stay within 24hrs
-           LEFT JOIN (
-             SELECT y.id_mcaid, y.claim_header_id, ed_nohosp = 1
-             FROM (
-               --group by ID and ED visit date and take minimum difference to get closest inpatient stay
-               SELECT distinct x.id_mcaid, x.claim_header_id, min(x.eh_ddiff) as 'eh_ddiff_pmin'
-               FROM (
-                 SELECT distinct e.id_mcaid, ed_date = e.first_service_date, hosp_date = h.first_service_date, claim_header_id,
-                 --create field that calculates difference in days between each ED visit and following inpatient stay
-                 --set to null when comparison is between ED visits and PRIOR inpatient stays
-                 case when datediff(dd, e.first_service_date, h.first_service_date) >=0 
-                    then datediff(dd, e.first_service_date, h.first_service_date)
-                  else null
-                  end as 'eh_ddiff'
-                 FROM ##temp1 as e
-                 LEFT JOIN (
-                   SELECT distinct id_mcaid, first_service_date
-                   FROM ##temp1
-                   WHERE inpatient = 1
-                 ) as h
-                 ON e.id_mcaid = h.id_mcaid
-                 WHERE e.ed = 1
-               ) as x
-               GROUP BY x.id_mcaid, x.claim_header_id
-             ) as y
-             WHERE y.eh_ddiff_pmin > 1 or y.eh_ddiff_pmin is null
-           ) ed_nohosp
-           on temp1.claim_header_id = ed_nohosp.claim_header_id")
-  
-  
-  # Add index
-  DBI::dbExecute(conn, "create clustered index [idx_cl_##temp2] on ##temp2(claim_header_id)")
-  
-  
-  #### STEP 17: CREATE FINAL TABLE STRUCTURE ####
-  message("STEP 17: CREATE FINAL TABLE STRUCTURE")
+  #### STEP 14: CREATE FINAL TABLE STRUCTURE ####
+  message("STEP 14: CREATE FINAL TABLE STRUCTURE")
   create_table_f(conn = conn, 
                  config = config,
                  server = server,
                  overwrite = T)
   
   
-  #### STEP 18: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE) ####
-  message("STEP 18: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE)")
+  #### STEP 12: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE) ####
+  message("STEP 12: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE)")
   try(DBI::dbRemoveTable(conn, "##temp_final", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  "SELECT 
              a.*
-               --ED-related flags
-             ,case when a.ed = 1 and a.mental_dxany = 1 then 1 else 0 end as 'ed_bh'
-             ,case when a.ed = 1 and b.ed_avoid_ca = 1 then 1 else 0 end as 'ed_avoid_ca'
-             ,case when a.ed_nohosp = 1 and b.ed_avoid_ca = 1 then 1 else 0 end as 'ed_avoid_ca_nohosp'
-             
-             --original nine categories of NYU ED algorithm
-             ,case when a.ed = 1 and c.ed_nonemergent_nyu > 0.50 then 1 else 0 end as 'ed_ne_nyu'
-             ,case when a.ed = 1 and c.ed_pc_treatable_nyu > 0.50 then 1 else 0 end as 'ed_pct_nyu'
-             ,case when a.ed = 1 and c.ed_needed_avoid_nyu > 0.50 then 1 else 0 end as 'ed_pa_nyu'
-             ,case when a.ed = 1 and c.ed_needed_unavoid_nyu > 0.50 then 1 else 0 end as 'ed_npa_nyu'
-             ,case when a.ed = 1 and c.ed_mh_nyu > 0.50 then 1 else 0 end as 'ed_mh_nyu'
-             ,case when a.ed = 1 and c.ed_sud_nyu > 0.50 then 1 else 0 end as 'ed_sud_nyu'
-             ,case when a.ed = 1 and c.ed_alc_nyu > 0.50 then 1 else 0 end as 'ed_alc_nyu'
-             ,case when a.ed = 1 and c.ed_injury_nyu > 0.50 then 1 else 0 end as 'ed_injury_nyu'
-             
-             ,case when a.ed = 1 and ((c.ed_unclass_nyu > 0.50)  or 
-                                      (c.ed_nonemergent_nyu <= 0.50 and c.ed_pc_treatable_nyu <= 0.50
-                                        and c.ed_needed_avoid_nyu <= 0.50 and c.ed_needed_unavoid_nyu <= 0.50 
-                                        and c.ed_mh_nyu <= 0.50 and c.ed_sud_nyu <= 0.50
-                                        and c.ed_alc_nyu <= 0.50 and c.ed_injury_nyu <= 0.50 and c.ed_unclass_nyu <= 0.50))
-             then 1 else 0 end as 'ed_unclass_nyu'
-             
-             --collapsed 3 categories of NYU ED algorithm based on Ghandi et al.
-             ,case when a.ed = 1 and (c.ed_needed_unavoid_nyu + c.ed_needed_avoid_nyu) > 0.50 then 1 else 0 end as 'ed_emergent_nyu'
-             ,case when a.ed = 1 and (c.ed_pc_treatable_nyu + c.ed_nonemergent_nyu) > 0.50 then 1 else 0 end as 'ed_nonemergent_nyu'
-             ,case when a.ed = 1 and (((c.ed_needed_unavoid_nyu + c.ed_needed_avoid_nyu) = 0.50) or 
-                                      ((c.ed_pc_treatable_nyu + c.ed_nonemergent_nyu) = 0.50)) then 1 else 0 end as 'ed_intermediate_nyu'
 									  
 			       --Increment [ed] column by distinct [id_mcaid], [first_service_date]
 			       ,h.[ed_perform_id]
 			       --Yale ED MEASURE
+			       ,case when g.[ed_pophealth_id] is not null then 1 else 0 end as 'ed_pophealth'
 			       ,g.[ed_pophealth_id]
              
              --Inpatient-related flags
-             ,case when a.inpatient = 1 and a.mental_dx1 = 0 and a.newborn_dx1 = 0 and a.maternal_dx1 = 0 then 1 else 0 end as 'ipt_medsurg'
-             ,case when a.inpatient = 1 and a.mental_dxany = 1 then 1 else 0 end as 'ipt_bh'
              ,i.[inpatient_id]
              
              --Injuries
-             ,f.intent
-             ,f.mechanism
+             ,f.injury_narrow as injury_nature_narrow
+             ,f.injury_broad as injury_nature_broad
+             ,f.icdcm_injury_nature_type as injury_nature_type
+             ,f.icdcm_injury_nature as injury_nature_icdcm
+             ,f.ecode as injury_ecode
+             ,f.intent as injury_intent
+             ,f.mechanism as injury_mechanism
              
              --CCS
-             ,d.ccs
-             ,d.ccs_description
-             ,d.ccs_description_plain_lang
-             ,d.multiccs_lv1 as 'ccs_mult1'
-             ,d.multiccs_lv1_description as 'ccs_mult1_description'
-             ,d.multiccs_lv2 as 'ccs_mult2'
-             ,d.multiccs_lv2_description as 'ccs_mult2_description'
-             ,d.multiccs_lv2_plain_lang as 'ccs_mult2_plain_lang'
-             ,d.ccs_final_description
-             ,d.ccs_final_plain_lang
+             ,d.ccs_broad_desc
+             ,d.ccs_broad_code
+             ,d.ccs_detail_desc
+             ,d.ccs_detail_code
              
-             --RDA MH and SUD flags
-             ,case when e.mental_dx_rda_any = 1 then 1 else 0 end as 'mental_dx_rda_any'
-             ,case when e.sud_dx_rda_any = 1 then 1 else 0 end as 'sud_dx_rda_any'
-             
-             --SDOH ED and IPT flags
-             ,case when a.ed = 1 and a.sdoh_any = 1 then 1 else 0 end as 'ed_sdoh'
-             ,case when a.inpatient = 1 and a.sdoh_any = 1 then 1 else 0 end as 'ipt_sdoh'
+             --RDA BH flags
+             ,case when e.mh_primary = 1 then 1 else 0 end as 'mh_primary'
+             ,case when e.mh_any = 1 then 1 else 0 end as 'mh_any'
+             ,case when e.sud_primary = 1 then 1 else 0 end as 'sud_primary'
+             ,case when e.sud_any = 1 then 1 else 0 end as 'sud_any'
              
              --Primary care
              ,j.pc_visit_id
              
              INTO ##temp_final
-             FROM ##temp2 as a
-             left join ##avoid_ca as b
-             on a.claim_header_id = b.claim_header_id
-             left join ##avoid_nyu as c
-             on a.claim_header_id = c.claim_header_id
+             FROM ##temp1 as a
              left join ##ccs as d
              on a.claim_header_id = d.claim_header_id
              left join ##rda as e
@@ -1023,8 +917,8 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            ")
   
   
-  #### STEP 19: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER ####
-  message("STEP 19: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER")
+  #### STEP 13: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER ####
+  message("STEP 13: COPY FINAL TEMP TABLE INTO STAGE.MCAID_CLAIM_HEADER")
   message("Loading to stage table")
   
   # Delete and remake table
@@ -1039,8 +933,8 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                           FROM ##temp_final", .con = conn))
   
   
-  #### STEP 20: ADD INDEX ####
-  message("STEP 20: ADD INDEX")
+  #### STEP 14: ADD INDEX ####
+  message("STEP 14: ADD INDEX")
   message("Creating index on final table")
   time_start <- Sys.time()
   add_index_f(conn, server = server, table_config = config)
@@ -1049,9 +943,8 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                      " secs ({round(difftime(time_end, time_start, units = 'mins'), 2)} mins)"))
   
   
-  
-  #### STEP 21: CLEAN UP TEMP TABLES ####
-  message("STEP 21: CLEAN UP TEMP TABLES")
+  #### STEP 15: CLEAN UP TEMP TABLES ####
+  message("STEP 15: CLEAN UP TEMP TABLES")
   try(DBI::dbRemoveTable(conn, 
                          name = DBI::Id(schema = temp_schema, table = paste0(temp_table, "mcaid_claim_header"))),
       silent = T)
@@ -1061,14 +954,11 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   try(DBI::dbRemoveTable(conn, "##procedure_code", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##pc_provider", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##temp1", temporary = T), silent = T)
-  try(DBI::dbRemoveTable(conn, "##avoid_ca", temporary = T), silent = T)
-  try(DBI::dbRemoveTable(conn, "##avoid_nyu", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##ccs", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##rda", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##injury9cm", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##injury10cm", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##injury", temporary = T), silent = T)
-  try(DBI::dbRemoveTable(conn, "##temp2", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##temp_final", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##ed_yale_step_1", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "##ed_yale_final", temporary = T), silent = T)

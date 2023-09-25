@@ -29,6 +29,8 @@
 # icdcm_from_table: name of the source ICD-CM table
 # ref_schema: schema the ref tables are in (usually 'ref')
 # ref_table_pre: prefix for ref table names (may be null, depending on the server)
+# icdcm_ref_schema: schema the ICD-CM reference table is in (e.g., ref)
+# icdcm_ref_table: name of ICD-CM reference table (e.g., icdcm_codes)
 #
 ## Specific to each CCW condition (optional)
 # ccw_code: numeric code for this CCW condition (see relevant ref table, e.g., claims.ref_ccw_lookup)
@@ -133,6 +135,8 @@ load_ccw <- function(conn = NULL,
     claim_header_from_table <- table_config[["claim_header_from_table"]][[1]]
     icdcm_from_schema <- table_config[["icdcm_from_schema"]][[1]]
     icdcm_from_table <- table_config[["icdcm_from_table"]][[1]]
+    icdcm_ref_schema <- table_config[["icdcm_ref_schema"]][[1]]
+    icdcm_ref_table <- table_config[["icdcm_ref_table"]][[1]]
     # Assumes working in PHClaims for ref data if using older YAML format
     ref_schema <- "ref"
     ref_table_pre <- ""
@@ -416,7 +420,7 @@ load_ccw <- function(conn = NULL,
           --join to diagnosis reference table, subset to those with CCW exclusion flag
             inner join (
             SELECT dx, dx_ver, {`dx_exclude1`} 
-            FROM {`ref_schema`}.{DBI::SQL(ref_table_pre)}dx_lookup
+            FROM {`icdcm_ref_schema`}.{`icdcm_ref_table`}
             where {`dx_exclude1`} = 1
             ) ref
       
@@ -446,7 +450,7 @@ load_ccw <- function(conn = NULL,
           --join to diagnosis reference table, subset to those with CCW exclusion flag
             inner join (
             SELECT dx, dx_ver, {`dx_exclude1`}, {`dx_exclude2`} 
-            FROM {`ref_schema`}.{DBI::SQL(ref_table_pre)}dx_lookup
+            FROM {`icdcm_ref_schema`}.{`icdcm_ref_table`}
             where {`dx_exclude1`} = 1 or {`dx_exclude2`} = 1
             ) ref
             
@@ -527,7 +531,7 @@ load_ccw <- function(conn = NULL,
     --join to diagnosis reference table, subset to those with CCW condition
     inner join (
       SELECT dx, dx_ver, {`config_cond$ccw_abbrev`}
-      FROM {`ref_schema`}.{DBI::SQL(ref_table_pre)}dx_lookup
+      FROM {`icdcm_ref_schema`}.{`icdcm_ref_table`}
       where {`config_cond$ccw_abbrev`} = 1 AND dx_ver = {icd}) ref
       
       on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)

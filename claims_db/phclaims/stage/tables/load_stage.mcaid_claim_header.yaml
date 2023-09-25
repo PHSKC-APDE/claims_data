@@ -1,16 +1,3 @@
-phclaims:
-    from_schema: stage
-    from_table: mcaid_claim
-    to_schema: stage
-    to_table: mcaid_claim_header
-    final_schema: final
-    final_table: 
-    ref_schema: ref
-    ref_table: 
-    temp_schema: tmp
-    temp_table: 
-    qa_schema: metadata
-    qa_table: 
 hhsaw:
     from_schema: claims
     from_table: stage_mcaid_claim
@@ -20,6 +7,8 @@ hhsaw:
     final_table: final_
     ref_schema: claims
     ref_table: ref_
+    icdcm_ref_schema: ref
+    icdcm_ref_table: icdcm_codes
     temp_schema: claims
     temp_table: tmp_
     qa_schema: claims
@@ -51,51 +40,27 @@ vars:
     primary_diagnosis: VARCHAR(255)
     icdcm_version: TINYINT
     primary_diagnosis_poa: VARCHAR(255)
-    mental_dx1: TINYINT
-    mental_dxany: TINYINT
-    mental_dx_rda_any: TINYINT
-    sud_dx_rda_any: TINYINT
-    maternal_dx1: TINYINT
-    maternal_broad_dx1: TINYINT
-    newborn_dx1: TINYINT
-    ed: TINYINT
-    ed_nohosp: TINYINT
-    ed_bh: TINYINT
-    ed_avoid_ca: TINYINT
-    ed_avoid_ca_nohosp: TINYINT
-    ed_ne_nyu: TINYINT
-    ed_pct_nyu: TINYINT
-    ed_pa_nyu: TINYINT
-    ed_npa_nyu: TINYINT
-    ed_mh_nyu: TINYINT
-    ed_sud_nyu: TINYINT
-    ed_alc_nyu: TINYINT
-    ed_injury_nyu: TINYINT
-    ed_unclass_nyu: TINYINT
-    ed_emergent_nyu: TINYINT
-    ed_nonemergent_nyu: TINYINT
-    ed_intermediate_nyu: TINYINT
+    ccs_broad_desc: VARCHAR(500)
+    ccs_broad_code: VARCHAR(255)
+    ccs_detail_desc: VARCHAR(500)
+    ccs_detail_code: VARCHAR(255)
+    mh_primary: TINYINT
+    mh_any: TINYINT
+    sud_primary: TINYINT
+    sud_any: TINYINT
+    injury_nature_narrow: TINYINT
+    injury_nature_broad: TINYINT
+    injury_nature_type: VARCHAR(255)
+    injury_nature_icdcm: VARCHAR(255)
+    injury_ecode: VARCHAR(255)
+    injury_intent: VARCHAR(255)
+    injury_mechanism: VARCHAR(255)
+    ed_perform: TINYINT
     ed_perform_id: BIGINT
+    ed_pophealth: TINYINT
     ed_pophealth_id: BIGINT
     inpatient: TINYINT
-    ipt_medsurg: TINYINT
-    ipt_bh: TINYINT
     inpatient_id: BIGINT
-    intent: VARCHAR(255)
-    mechanism: VARCHAR(255)
-    sdoh_any: TINYINT
-    ed_sdoh: TINYINT
-    ipt_sdoh: TINYINT
-    ccs: VARCHAR(255)
-    ccs_description: VARCHAR(500)
-    ccs_description_plain_lang: VARCHAR(500)
-    ccs_mult1: VARCHAR(255)
-    ccs_mult1_description: VARCHAR(500)
-    ccs_mult2: VARCHAR(255)
-    ccs_mult2_description: VARCHAR(500)
-    ccs_mult2_plain_lang: VARCHAR(500)
-    ccs_final_description: VARCHAR(500)
-    ccs_final_plain_lang: VARCHAR(500)
     pc_visit: TINYINT
     pc_visit_id: BIGINT
     last_run: DATETIME

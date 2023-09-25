@@ -4,6 +4,7 @@
 ## Adapted code from Eli Kern and Alastair Matheson (PHSKC-APDE) for claim_ccw
 ## 2021-10
 ## Run time: ~3h (Medicaid/HHSAW_prod)
+## Eli 9/15/24 update: Modify to use new RDA value sets reference table
 
 ### Function elements
 # conn = database connection
@@ -132,21 +133,19 @@ load_bh <- function(conn = NULL,
    ,bh_cond
    ,link = 1 
    INTO ##header_bh
-   --BASED ON DIAGNOSIS (group certain substances into other based on exploratory analysis)
+   --BASED ON DIAGNOSIS
    FROM (SELECT 
       {`id_source`}
 	    ,svc_date
-      ,CASE when b.value_set_name = 'SUD-Dx-Value-Set' and b.sub_group in ('NA', 'Hallucinogen', 'Inhalant') then 'Other Substance'
-		    else b.sub_group
-		    end as 'bh_cond'
+      ,b.sub_group_condition as 'bh_cond'
         FROM  (SELECT DISTINCT {`id_source`}, icdcm_norm, first_service_date as 'svc_date'
                 FROM {`icdcm_from_schema`}.{`icdcm_from_table`} 
                 ) as a
-        INNER JOIN (SELECT sub_group, code_set, code, value_set_name
+        INNER JOIN (SELECT sub_group_condition, code_set, code, value_set_name
     		            FROM  {`ref_schema`}.{`ref_table`}
-    		            WHERE value_set_name in ('MI-Diagnosis', 'SUD-Dx-Value-Set') 
+    		            WHERE code_set in ('ICD9CM', 'ICD10CM') 
     		            ) as b
-    		ON a.icdcm_norm = b.code 
+    		ON (a.icdcm_norm = b.code) and (a.icdcm_version = b.icdcm_version) 
    ) diag
    
    UNION
@@ -159,17 +158,11 @@ load_bh <- function(conn = NULL,
    -- BASED ON PRESCRIPTIONS
    FROM (SELECT DISTINCT a.{`id_source`}
 			,a.rx_fill_date as 'svc_date'
-	        ,CASE 
-            WHEN b.sub_group = 'ADHD Rx' THEN 'ADHD'
-            WHEN b.sub_group = 'Antianxiety Rx' THEN 'Anxiety'
-            WHEN b.sub_group = 'Antidepressants Rx' THEN 'Depression'
-            WHEN b.sub_group = 'Antimania Rx' THEN 'Mania/Bipolar'
-            WHEN b.sub_group = 'Antipsychotic Rx' THEN 'Psychotic'
-            end as 'bh_cond'
+	    ,b.sub_group_condition as 'bh_cond'
     FROM {`claim_pharm_from_schema`}.{`claim_pharm_from_table`} a
-    INNER JOIN (SELECT sub_group, code_set, code
+    INNER JOIN (SELECT sub_group_condition, code_set, code
     	          FROM {`ref_schema`}.{`ref_table`}
-    	          WHERE value_set_name = 'Psychotropic-NDC') as b
+    	          WHERE code_set in ('NDC')) as b
     ON a.ndc = b.code
           ) rx
       ",.con = conn)
