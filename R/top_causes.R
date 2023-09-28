@@ -31,8 +31,6 @@
 #' @param primary_dx Whether or not to only look at the primary diagnosis field, default is TRUE.
 #' @param type Which types of visits to include. Choose from the following:
 #' ed (any ED visit), 
-#' ed_avoid_ny (any avoidable ED visit (based on NYU classification))
-#' ed_avoid_ca (any avoidable ED visit (based on CA classification))
 #' inpatient (any inpatient visit)
 #' all (all claims, must be paired with override_all option)
 #' @param override_all Override the warning message about pulling all claims, default is FALSE.
@@ -67,7 +65,7 @@ top_causes <- function(conn,
                        top = 15,
                        catch_all = F,
                        primary_dx = T,
-                       type = c("ed", "ed_avoid_ny", "ed_avoid_ca", "inpatient", "all"),
+                       type = c("ed", "inpatient", "all"),
                        override_all = F) {
   
   
@@ -191,10 +189,6 @@ top_causes <- function(conn,
   # Select visit type
   if (type == "ed") {
     flags <- glue::glue_sql(" (ed_pophealth_id IS NOT NULL) AND ", .con = conn)
-  } else if (type == "ed_avoid_ny") {
-    flags <- glue::glue_sql(" (ed_nonemergent_nyu = 1) AND ", .con = conn)
-  } else if (type == "ed_avoid_ca") {
-    flags <- glue::glue_sql(" (ed_avoid_ca = 1) AND ", .con = conn)
   } else if (type == "inpatient") {
     flags <- glue::glue_sql(" (inpatient_id IS NOT NULL) AND ", .con = conn)
   } else if (type == "all" & override_all == T) {
@@ -330,7 +324,7 @@ top_causes <- function(conn,
   }
   
   ### Take top N causes
-  if (type %in% c("ed", "ed_avoid_ny", "ed_avoid_ca")) {
+  if (type == "ed") {
     claims <- claims %>%
       group_by(ccs_detail_desc) %>%
       summarise(claim_cnt = n_distinct(ed_pophealth_id)) %>%
