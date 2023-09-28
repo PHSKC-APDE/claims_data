@@ -51,8 +51,6 @@ Other common arguments include:
 7\)`primary_dx` \<- Whether or not to only look at the primary diagnosis field, default is TRUE.
 8\)`type` \<- Which types of visits to include. Choose from the following:
 *ed (any ED visit), 
-*ed_avoid_ny (any avoidable ED visit (based on NYU classification))
-*ed_avoid_ca (any avoidable ED visit (based on CA classification))
 *inpatient (any inpatient visit)
 *all (all claims, must be paired with override_all option)
 9\)`override_all` \<- Override the warning message about pulling all claims, default is FALSE.
