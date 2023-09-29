@@ -281,7 +281,6 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   
   
   #### SUM UP FAILURES ####
-  fail_tot <- sum(ids_fail, procedure_format_fail, procedure_num_fail,
-                  procedure_fail, num_procedure_fail)
+  fail_tot <- sum(ids_fail, procedure_format_fail, procedure_num_fail, num_procedure_fail)
   return(fail_tot)
 }
