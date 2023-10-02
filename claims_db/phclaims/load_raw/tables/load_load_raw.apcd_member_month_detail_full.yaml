@@ -1,4 +1,4 @@
-server_path: KCITSQLUTPDBH51
+server_path: KCITSQLPRPENT40
 db_name: PHClaims
 to_schema: load_raw
 to_table: apcd_member_month_detail
@@ -28,55 +28,59 @@ vars:
     gender_code: varchar(10)
     zip_code: varchar(15)
 part000:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_000.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_000.csv
     field_term: ','
     row_term: '0x0A'
 part001:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_001.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_001.csv
     field_term: ','
     row_term: '0x0A'
 part002:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_002.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_002.csv
     field_term: ','
     row_term: '0x0A'
 part003:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_003.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_003.csv
     field_term: ','
     row_term: '0x0A'
 part004:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_004.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_004.csv
     field_term: ','
     row_term: '0x0A'
 part005:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_005.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_005.csv
     field_term: ','
     row_term: '0x0A'
 part006:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_006.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_006.csv
     field_term: ','
     row_term: '0x0A'
 part007:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_007.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_007.csv
     field_term: ','
     row_term: '0x0A'
 part008:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_008.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_008.csv
     field_term: ','
     row_term: '0x0A'
 part009:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_009.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_009.csv
     field_term: ','
     row_term: '0x0A'
 part010:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_010.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_010.csv
     field_term: ','
     row_term: '0x0A'
 part011:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_011.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_011.csv
     field_term: ','
     row_term: '0x0A'
 part012:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/member_month_detail_export/member_month_detail_012.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_012.csv
+    field_term: ','
+    row_term: '0x0A'
+part013:
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/member_month_detail_export/member_month_detail_013.csv
     field_term: ','
     row_term: '0x0A'
 years:
@@ -93,3 +97,4 @@ years:
     - part010
     - part011
     - part012
+    - part013
