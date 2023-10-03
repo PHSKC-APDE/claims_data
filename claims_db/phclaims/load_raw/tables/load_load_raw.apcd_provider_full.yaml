@@ -1,4 +1,4 @@
-server_path: KCITSQLUTPDBH51
+server_path: KCITSQLPRPENT40
 db_name: PHClaims
 to_schema: load_raw
 to_table: apcd_provider
@@ -20,6 +20,6 @@ vars:
     city: varchar(30)
     state: varchar(2)
     zip: varchar(15)
-file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/provider_export/provider_000.csv
+file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/provider_export/provider_000.csv
 field_term: ','
 row_term: '0x0A'
