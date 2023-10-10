@@ -358,7 +358,7 @@ qa_result <- odbc::dbGetQuery(db_claims,
                                 .con = db_claims))
 
 #export
-write_csv(qa_result, paste0("//KCITSQLPRPENT40/ImportData/Data/APCD_data_import/qa_result_", as.character(Sys.Date()), ".csv"))
+write_csv(qa_result, paste0("//dphcifs/APDE-CDIP/APCD/APCD_data_import/qa_result_", as.character(Sys.Date()), ".csv"))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
