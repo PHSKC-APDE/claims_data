@@ -38,8 +38,13 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ####
-#Before creating this table, run following QA script to check for new ethnicities to map to race categories
-#https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_ethnicity_race_map_update_check.sql
+##Before creating this table, run following QA script to check for new ethnicities to map to race categories
+#https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/
+#i.	Add any new ethnicity to race map rows to the CSV file. 
+#ii.	This CSV file is on SharePoint and thus not synced to GitHub. 
+      #a.	SHAREPOINT\King County Cross-Sector Data - General\References\APCD\apcd_ethnicity_race_mapping.csv
+#iii.	Recreate the ref.apcd_ethnicity_race_map table using the script on GitHub:
+      #a.	claims_data/claims_db/phclaims/ref/tables/load_ref.apcd_ethnicity_race_map.R
 ####
 
 ### A) Call in functions
