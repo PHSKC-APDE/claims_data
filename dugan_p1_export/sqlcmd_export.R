@@ -62,6 +62,7 @@ system.time(lapply(claims_schema_tables, function(x) {
   #Set schema and table
   schema <- "claims"
   table <- x
+  table_name <- str_replace_all(table, "tmp_ek_", "") #remove tmp_ek_ from table name for file export
   
   #Set up string containing column headings for binding to output within sqlcmd command
   table_columns <- dbGetQuery(conn = db_hhsaw, statement = 
@@ -77,7 +78,7 @@ system.time(lapply(claims_schema_tables, function(x) {
                         '-G -U {user} -P {pass} -C -N -M ',
                         '-s, -W -k2 -h -1 ',
                         '-Q "set nocount on; select {table_column_string}; select * from {schema}.{table};" ',
-                        '-o "{export_path}{table}.csv"'))
+                        '-o "{export_path}{table_name}.csv"'))
   
   # Run sqlcmd command
   system.time(system2(command = "sqlcmd", args = c(sqlcmd_args), stdout = TRUE, stderr = TRUE))
