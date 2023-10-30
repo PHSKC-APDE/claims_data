@@ -6,6 +6,11 @@
 --Will create persisent tables with claims.tmp_ek prefix
 --Export to CIFS folder once created by KCIT, then compress, then share via SFTP
 
+--October 2023 updates:
+--Replaced dx_lookup table with ref.icdcm_codes
+--Create updated tmp_ek_dugan_person_id table while preserving prior-assigned IDs
+--Generate claims tables for export, updating end date for claim window to most recent possible (accounting for 4-month lag)
+
 
 -----------------------
 --Step 1: Prepare list of columns from all tables to share with Dugan team
@@ -18,11 +23,11 @@ case
 	else data_type
 end as data_type
 from INFORMATION_SCHEMA.COLUMNS
-where table_schema = 'claims' and
+where table_schema in ('claims', 'ref') and
 table_name in ('final_mcaid_elig_timevar', 'final_mcaid_elig_demo', 'final_mcaid_claim_procedure',
 	'final_mcaid_claim_pharm', 'final_mcaid_claim_line', 'final_mcaid_claim_icdcm_header',
 	'final_mcaid_claim_header', 'final_mcaid_claim_ccw', 'final_mcaid_claim_bh',
-	'ref_date', 'ref_dx_lookup', 'ref_geo_kc_zip', 'ref_kc_claim_type', 'ref_mcaid_rac_code', 'ref_mco')
+	'ref_date', 'icdcm_codes', 'ref_geo_kc_zip', 'ref_kc_claim_type', 'ref_mcaid_rac_code', 'ref_mco')
 order by table_schema, table_name, ordinal_position;
 
 --Copied to "table_column_selection.xlsx" file for flagging columns to include in extract
@@ -32,16 +37,36 @@ order by table_schema, table_name, ordinal_position;
 --Restrict people by having 1 or more day of coverage during study period: 01-01-2016 to 12-31-2021
 -----------------------
 
-IF OBJECT_ID(N'claims.tmp_ek_dugan_person_id', N'U') IS NOT NULL DROP TABLE claims.tmp_ek_dugan_person_id;
-select a.id_mcaid, ROW_NUMBER() over (order by a.id_mcaid) as id_uw
-into claims.tmp_ek_dugan_person_id
-from (select distinct id_mcaid from claims.final_mcaid_elig_timevar where from_date <= '2021-12-31' and to_date >= '2016-01-01') as a;
+--Original code from January 2023 - do not rerun as it will destory prior-assigned id_uw values
+--IF OBJECT_ID(N'claims.tmp_ek_dugan_person_id_20230118', N'U') IS NOT NULL DROP TABLE claims.tmp_ek_dugan_person_id_20230118;
+--select a.id_mcaid, ROW_NUMBER() over (order by a.id_mcaid) as id_uw
+--into claims.tmp_ek_dugan_person_id_20230118
+--from (select distinct id_mcaid from claims.final_mcaid_elig_timevar where from_date <= '2021-12-31' and to_date >= '2016-01-01') as a;
+
+--Generate list of distinct IDs for people with coverage during study period
+drop table if exists #temp1;
+select distinct id_mcaid
+into #temp1
+from claims.final_mcaid_elig_timevar where from_date <= '2023-05-31' and to_date >= '2016-01-01';
+
+--Join IDs to prior id_uw table, preserving prior-assigned id_uw values whereever possible, generating new values for new people
+--Adding a descending sort for id_uw before id_mcaid in row_number() step ensures that nulls are sorted last, meaning that row numbers will not be reused
+drop table if exists claims.tmp_ek_dugan_person_id_20231026;
+select a.id_mcaid,
+case
+	when b.id_uw is not null then b.id_uw
+	else ROW_NUMBER() over (order by b.id_uw desc, a.id_mcaid)
+end as id_uw
+into claims.tmp_ek_dugan_person_id_20231026
+from #temp1 as a
+left join claims.tmp_ek_dugan_person_id_20230118 as b
+on a.id_mcaid = b.id_mcaid;
 
 --confirm that no id_uw has more than 1 row or more than 1 id_mcaid value
 select count(*)
 from (
 	select id_uw, count(*) as row_count
-	from claims.tmp_ek_dugan_person_id
+	from claims.tmp_ek_dugan_person_id_20231026
 	group by id_uw
 ) as a
 where a.row_count > 1;
@@ -49,7 +74,7 @@ where a.row_count > 1;
 select count(*)
 from (
 	select id_uw, count(distinct id_mcaid) as id_mcaid_dcount
-	from claims.tmp_ek_dugan_person_id
+	from claims.tmp_ek_dugan_person_id_20231026
 	group by id_uw
 ) as a
 where a.id_mcaid_dcount > 1;
@@ -59,6 +84,7 @@ where a.id_mcaid_dcount > 1;
 --Step 3: Create claims and elig tables for export, limiting to people in claims.tmp_ek_dugan_person_id table
 --Remove identifier columns and unecessary columns per Step 1 above
 --For claims tables, restrict claims to those having first_service and last_service dates during study period
+--Total run time: 54 min on 10/26/23
 -----------------------
 
 --------------
@@ -73,7 +99,7 @@ bh_cond,
 last_run
 into claims.tmp_ek_mcaid_claim_bh
 from claims.final_mcaid_claim_bh as a
-inner join claims.tmp_ek_dugan_person_id as b
+inner join claims.tmp_ek_dugan_person_id_20231026 as b
 on a.id_mcaid = b.id_mcaid;
 
 --------------
@@ -89,7 +115,7 @@ ccw_desc,
 last_run
 into claims.tmp_ek_mcaid_claim_ccw
 from claims.final_mcaid_claim_ccw as a
-inner join claims.tmp_ek_dugan_person_id as b
+inner join claims.tmp_ek_dugan_person_id_20231026 as b
 on a.id_mcaid = b.id_mcaid;
 
 --------------
@@ -128,10 +154,10 @@ pc_visit_id,
 last_run
 into claims.tmp_ek_mcaid_claim_header
 from claims.final_mcaid_claim_header as a
-inner join claims.tmp_ek_dugan_person_id as b
+inner join claims.tmp_ek_dugan_person_id_20231026 as b
 on a.id_mcaid = b.id_mcaid
-where a.first_service_date between '2016-01-01' and '2021-12-31'
-	and a.last_service_date between '2016-01-01' and '2021-12-31';
+where a.first_service_date between '2016-01-01' and '2023-05-31'
+	and a.last_service_date between '2016-01-01' and '2023-05-31';
 
 --Confirm min and max of from_date and to_date, respectively, match study period
 select min(first_service_date) as from_date_min, max(last_service_date) as to_date_max from claims.tmp_ek_mcaid_claim_header;
@@ -152,10 +178,10 @@ icdcm_number,
 last_run
 into claims.tmp_ek_mcaid_claim_icdcm_header
 from claims.final_mcaid_claim_icdcm_header as a
-inner join claims.tmp_ek_dugan_person_id as b
+inner join claims.tmp_ek_dugan_person_id_20231026 as b
 on a.id_mcaid = b.id_mcaid
-where a.first_service_date between '2016-01-01' and '2021-12-31'
-	and a.last_service_date between '2016-01-01' and '2021-12-31';
+where a.first_service_date between '2016-01-01' and '2023-05-31'
+	and a.last_service_date between '2016-01-01' and '2023-05-31';
 
 --Confirm min and max of from_date and to_date, respectively, match study period
 select min(first_service_date) as from_date_min, max(last_service_date) as to_date_max from claims.tmp_ek_mcaid_claim_icdcm_header;
@@ -175,10 +201,10 @@ rac_code_line,
 last_run
 into claims.tmp_ek_mcaid_claim_line
 from claims.final_mcaid_claim_line as a
-inner join claims.tmp_ek_dugan_person_id as b
+inner join claims.tmp_ek_dugan_person_id_20231026 as b
 on a.id_mcaid = b.id_mcaid
-where a.first_service_date between '2016-01-01' and '2021-12-31'
-	and a.last_service_date between '2016-01-01' and '2021-12-31';
+where a.first_service_date between '2016-01-01' and '2023-05-31'
+	and a.last_service_date between '2016-01-01' and '2023-05-31';
 
 --Confirm min and max of from_date and to_date, respectively, match study period
 select min(first_service_date) as from_date_min, max(last_service_date) as to_date_max from claims.tmp_ek_mcaid_claim_line;
@@ -200,10 +226,10 @@ pharmacy_npi,
 last_run
 into claims.tmp_ek_mcaid_claim_pharm
 from claims.final_mcaid_claim_pharm as a
-inner join claims.tmp_ek_dugan_person_id as b
+inner join claims.tmp_ek_dugan_person_id_20231026 as b
 on a.id_mcaid = b.id_mcaid
-where a.rx_fill_date between '2016-01-01' and '2021-12-31'
-	and a.rx_fill_date between '2016-01-01' and '2021-12-31';
+where a.rx_fill_date between '2016-01-01' and '2023-05-31'
+	and a.rx_fill_date between '2016-01-01' and '2023-05-31';
 
 --Confirm min and max of from_date and to_date, respectively, match study period
 select min(rx_fill_date) as from_date_min, max(rx_fill_date) as to_date_max from claims.tmp_ek_mcaid_claim_pharm;
@@ -226,10 +252,10 @@ modifier_4,
 last_run
 into claims.tmp_ek_mcaid_claim_procedure
 from claims.final_mcaid_claim_procedure as a
-inner join claims.tmp_ek_dugan_person_id as b
+inner join claims.tmp_ek_dugan_person_id_20231026 as b
 on a.id_mcaid = b.id_mcaid
-where a.first_service_date between '2016-01-01' and '2021-12-31'
-	and a.last_service_date between '2016-01-01' and '2021-12-31';
+where a.first_service_date between '2016-01-01' and '2023-05-31'
+	and a.last_service_date between '2016-01-01' and '2023-05-31';
 
 --Confirm min and max of from_date and to_date, respectively, match study period
 select min(first_service_date) as from_date_min, max(last_service_date) as to_date_max from claims.tmp_ek_mcaid_claim_procedure;
@@ -241,8 +267,8 @@ IF OBJECT_ID(N'claims.tmp_ek_mcaid_elig_demo', N'U') IS NOT NULL DROP TABLE clai
 select
 b.id_uw,
 case
-	when floor((datediff(day, dob, '2021-12-31') + 1) / 365.25) >= 0 then floor((datediff(day, dob, '2021-12-31') + 1) / 365.25)
-	when floor((datediff(day, dob, '2021-12-31') + 1) / 365.25) < 0 then 0
+	when floor((datediff(day, dob, '2023-05-31') + 1) / 365.25) >= 0 then floor((datediff(day, dob, '2023-05-31') + 1) / 365.25)
+	when floor((datediff(day, dob, '2023-05-31') + 1) / 365.25) < 0 then 0
 end as age,
 gender_me,
 gender_recent,
@@ -292,7 +318,7 @@ lang_vietnamese_t,
 last_run
 into claims.tmp_ek_mcaid_elig_demo
 from claims.final_mcaid_elig_demo as a
-inner join claims.tmp_ek_dugan_person_id as b
+inner join claims.tmp_ek_dugan_person_id_20231026 as b
 on a.id_mcaid = b.id_mcaid;
 
 --Confirm min and max of age
@@ -320,9 +346,9 @@ cov_time_day,
 last_run
 into claims.tmp_ek_mcaid_elig_timevar
 from claims.final_mcaid_elig_timevar as a
-inner join claims.tmp_ek_dugan_person_id as b
+inner join claims.tmp_ek_dugan_person_id_20231026 as b
 on a.id_mcaid = b.id_mcaid
-where a.from_date <= '2021-12-31' and a.to_date >= '2016-01-01';
+where a.from_date <= '2023-05-31' and a.to_date >= '2016-01-01';
 
 
 -----------------------
@@ -331,7 +357,7 @@ where a.from_date <= '2021-12-31' and a.to_date >= '2016-01-01';
 -----------------------
 
 --check age calculation: PASS
-select * from claims.tmp_ek_dugan_person_id where id_uw = 274950;
+select * from claims.tmp_ek_dugan_person_id_20231026 where id_uw = 274950;
 select * from claims.tmp_ek_mcaid_elig_demo where id_uw = 274950;
 select * from claims.final_mcaid_elig_demo where id_mcaid = 'ENTER';
 
@@ -340,7 +366,4 @@ select * from claims.final_mcaid_elig_demo where id_mcaid = 'ENTER';
 --Step 5: Export tables to CIFS folder setup by KCIT
 -----------------------
 
---Waiting for guidance from Jeremy
---Tried using sqlcmd utility, which worked, but I couldn't figure out how to get rid of --- inserted between header row and values
---Don't want to try BCP, as I hate it
---Couldn't use SSMS data export wizard as I couldn't use Windows Authentication - I didn't see an Azure option
+--Use SSIS package in Visual Studio 2022 to export claims and ref tables to CIFS folder

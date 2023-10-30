@@ -44,11 +44,11 @@ case
 	else data_type
 end as data_type
 from INFORMATION_SCHEMA.COLUMNS
-where table_schema = 'claims' and
+where table_schema in ('claims', 'ref') and
 table_name in ('tmp_ek_mcaid_elig_timevar', 'tmp_ek_mcaid_elig_demo', 'tmp_ek_mcaid_claim_procedure',
 	'tmp_ek_mcaid_claim_pharm', 'tmp_ek_mcaid_claim_line', 'tmp_ek_mcaid_claim_icdcm_header',
 	'tmp_ek_mcaid_claim_header', 'tmp_ek_mcaid_claim_ccw', 'tmp_ek_mcaid_claim_bh',
-	'ref_date', 'ref_dx_lookup', 'ref_geo_kc_zip', 'ref_kc_claim_type', 'ref_mcaid_rac_code', 'ref_mco')
+	'ref_date', 'icdcm_codes', 'ref_geo_kc_zip', 'ref_kc_claim_type', 'ref_mcaid_rac_code', 'ref_mco')
 order by table_schema, table_name, ordinal_position;")
 
 #Remove tmp_ek_ prefix from table names
@@ -63,11 +63,11 @@ from sys.tables t
 inner join sys.indexes i on t.OBJECT_ID = i.object_id
 inner join sys.partitions p on i.object_id = p.OBJECT_ID and i.index_id = p.index_id
 left outer join sys.schemas s ON t.schema_id = s.schema_id
-where s.Name = 'claims' and
+where s.Name in ('claims', 'ref') and
 	t.Name in ('tmp_ek_mcaid_elig_timevar', 'tmp_ek_mcaid_elig_demo', 'tmp_ek_mcaid_claim_procedure',
 	'tmp_ek_mcaid_claim_pharm', 'tmp_ek_mcaid_claim_line', 'tmp_ek_mcaid_claim_icdcm_header',
 	'tmp_ek_mcaid_claim_header', 'tmp_ek_mcaid_claim_ccw', 'tmp_ek_mcaid_claim_bh',
-	'ref_date', 'ref_dx_lookup', 'ref_geo_kc_zip', 'ref_kc_claim_type', 'ref_mcaid_rac_code', 'ref_mco')
+	'ref_date', 'icdcm_codes', 'ref_geo_kc_zip', 'ref_kc_claim_type', 'ref_mcaid_rac_code', 'ref_mco')
 group by s.Name, t.Name; ")
 
 #Remove tmp_ek_ prefix from table names
@@ -100,5 +100,5 @@ count(row_count_qa, row_count_match)
 ####Step 3: Export metadata ####
 data <- list(col_meta, row_count_qa)
 sheet <- list("table_column_formats", "table_row_counts")
-filename <- paste0(export_path, "p1_tables_metadata.xlsx")
+filename <- paste0(export_path, "p1_tables_metadata_2023-10-26.xlsx")
 write_xlsx(data, file = filename, sheetName = sheet)

@@ -58,7 +58,7 @@ on a.id_mcaid = b.MEDICAID_RECIPIENT_ID;
 IF OBJECT_ID(N'claims.tmp_ek_dugan_wahbe_data', N'U') IS NOT NULL DROP TABLE claims.tmp_ek_dugan_wahbe_data;
 select distinct a.id_uw,
 	b.smoking_status as hbe_smoking_status,
-	b.eligibility_start_date as hbe_eligigibility_start_date,
+	b.eligibility_start_date as hbe_eligibility_start_date,
 	b.eligibility_end_date as hbe_eligibility_end_date
 into claims.tmp_ek_dugan_wahbe_data
 from #temp3 as a
