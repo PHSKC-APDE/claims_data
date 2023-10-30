@@ -11,6 +11,7 @@ filelist <- list.files("//phcifs.ph.lcl/SFTP_DATA/APDEDataExchange/UW_Dugan_Team
                        full.names = T)
 
 system.time(for(file in filelist) {
+  print(file)
   destination <- gsub("Staging", "FromKingCounty", file)
   copyFile(file, destination, overwrite = T, verbose = F)
 })
