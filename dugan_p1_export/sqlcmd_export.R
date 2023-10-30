@@ -112,6 +112,3 @@ system.time(lapply(ref_schema_tables, function(x) {
   # Run sqlcmd command
   system.time(system2(command = "sqlcmd", args = c(sqlcmd_args), stdout = TRUE, stderr = TRUE))
 }))
-
-
-#### Step 5: Should I count rows in exported files? ####

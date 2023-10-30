@@ -15,7 +15,8 @@ library(keyring)
 library(openxlsx2)
 
 #Enter credentials for HHSAW
-key_set("hhsaw", username = "eli.kern@kingcounty.gov")
+#key_set("hhsaw", username = "eli.kern@kingcounty.gov")
+key_list()
 
 #Establish connection to HHSAW
 db_hhsaw <- DBI::dbConnect(odbc::odbc(),
