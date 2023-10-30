@@ -2,17 +2,7 @@
 options(max.print = 350, tibble.print_max = 50, scipen = 999)
 origin <- "1970-01-01" # Date origin
 Sys.setenv(TZ="America/Los_Angeles") # Set Time Zone
-library(tidyverse) # Manipulate data
-library(data.table) # Manipulate data
-library(lubridate) # Manipulate dates
-library(odbc) # Read to and write from SQL
-library(RCurl) # Read files from Github
-library(configr) # Read in YAML files
-library(glue) # Safely combine SQL code
-library(RecordLinkage)
-library(claims)
-library(keyring)
-library(openxlsx2)
+pacman::p_load(tidyverse, odbc, openxlsx2, rlang, glue, keyring)
 
 #Enter credentials for HHSAW
 #key_set("hhsaw", username = "eli.kern@kingcounty.gov")
@@ -52,8 +42,9 @@ table_name in ('tmp_ek_mcaid_elig_timevar', 'tmp_ek_mcaid_elig_demo', 'tmp_ek_mc
 	'ref_date', 'icdcm_codes', 'ref_geo_kc_zip', 'ref_kc_claim_type', 'ref_mcaid_rac_code', 'ref_mco')
 order by table_schema, table_name, ordinal_position;")
 
-#Remove tmp_ek_ prefix from table names
+#Remove tmp_ek_ prefix from table names and add ref prefix to icdcm_codes
 col_meta <- col_meta %>% mutate(table_name = str_replace_all(table_name, "tmp_ek_", ""))
+col_meta <- col_meta %>% mutate(table_name = str_replace_all(table_name, "icdcm_codes", "ref_icdcm_codes"))
 
 #Table row counts
 row_meta <- dbGetQuery(
@@ -71,35 +62,13 @@ where s.Name in ('claims', 'ref') and
 	'ref_date', 'icdcm_codes', 'ref_geo_kc_zip', 'ref_kc_claim_type', 'ref_mcaid_rac_code', 'ref_mco')
 group by s.Name, t.Name; ")
 
-#Remove tmp_ek_ prefix from table names
+#Remove tmp_ek_ prefix from table names and add ref prefix to icdcm_codes
 row_meta <- row_meta %>% mutate(table_name = str_replace_all(table_name, "tmp_ek_", ""))
-
-
-####Step 2: Bring in log file saved from Visual Studio SSIS package ####
-
-#Read in raw text file
-log_raw <- read_table("//phcifs.ph.lcl/SFTP_DATA/APDEDataExchange/UW_Dugan_Team/Staging/log_2023-01-20.txt", 
-                  col_names = FALSE, skip = 1)
-
-#Subset to rows with row counts and needed columns
-log <- log_raw %>%
-  filter(str_detect(X9, "rows")) %>%
-  rename(table_name = X6, row_count_exported = X8) %>%
-  mutate(
-    table_name = str_trim(str_replace_all(table_name, "\"", ""), side = c("both")),
-    row_count_exported = as.integer(row_count_exported)) %>%
-  select(table_name, row_count_exported)
-
-#Join SSIS exported row counts to SQL table row counts
-row_count_qa <- left_join(row_meta, log, by = "table_name")
-
-#Test for row count match
-row_count_qa <- row_count_qa %>% mutate(row_count_match = case_when(row_count_sql == row_count_exported ~ 1, TRUE ~ 0))
-count(row_count_qa, row_count_match)
+row_meta <- row_meta %>% mutate(table_name = str_replace_all(table_name, "icdcm_codes", "ref_icdcm_codes"))
 
 
 ####Step 3: Export metadata ####
-data <- list(col_meta, row_count_qa)
+data <- list(col_meta, row_meta)
 sheet <- list("table_column_formats", "table_row_counts")
-filename <- paste0(export_path, "p1_tables_metadata_2023-10-26.xlsx")
+filename <- paste0(export_path, "p1_tables_metadata_", Sys.Date(), ".xlsx")
 write_xlsx(data, file = filename, sheetName = sheet)
