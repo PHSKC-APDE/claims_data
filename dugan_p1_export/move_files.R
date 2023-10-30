@@ -7,7 +7,7 @@
 library(R.utils)
 filelist <- list.files("//phcifs.ph.lcl/SFTP_DATA/APDEDataExchange/UW_Dugan_Team/Staging", 
                        pattern = "\\.gz$|\\.xlsx$|\\.csv$",
-                       recursive = T,
+                       recursive = T, ##This means all files will be copied, thus don't keep anything here you don't want copied
                        full.names = T)
 
 system.time(for(file in filelist) {
