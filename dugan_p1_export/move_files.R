@@ -2,11 +2,11 @@
 # APDE, PHSKC
 # 2023-01
 
-#### Move GZIP files and format file from Staging to FromKingCounty folder on CIFS ####
+#### Move GZIP files, format file and WAHBE CSV file from Staging to FromKingCounty folder on CIFS ####
 
 library(R.utils)
 filelist <- list.files("//phcifs.ph.lcl/SFTP_DATA/APDEDataExchange/UW_Dugan_Team/Staging", 
-                       pattern = "\\.gz$|\\.xlsx$",
+                       pattern = "\\.gz$|\\.xlsx$|\\.csv$",
                        recursive = T,
                        full.names = T)
 
