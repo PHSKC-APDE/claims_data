@@ -10,5 +10,6 @@ filelist <- list.files("//phcifs.ph.lcl/SFTP_DATA/APDEDataExchange/UW_Dugan_Team
                        recursive = T,
                        full.names = T)
 system.time(for(file in filelist) {
-  gzip(file, remove = T, overwrite = T)
+  print(file)
+  system.time(gzip(file, remove = T, overwrite = T))
 })
