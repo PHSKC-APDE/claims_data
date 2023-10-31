@@ -419,12 +419,12 @@ load_ccw <- function(conn = NULL,
       
           --join to diagnosis reference table, subset to those with CCW exclusion flag
             inner join (
-            SELECT dx, dx_ver, {`dx_exclude1`} 
+            SELECT icdcm, icdcm_version, {`dx_exclude1`} 
             FROM {`icdcm_ref_schema`}.{`icdcm_ref_table`}
             where {`dx_exclude1`} = 1
             ) ref
       
-            on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
+            on (diag.icdcm_norm = ref.icdcm) and (diag.icdcm_version = ref.icdcm_version)
             where (ref.{`dx_exclude1`} = 1 {dx_exclude1_fields_condition})
             group by diag.claim_header_id
             ) as exclude
@@ -449,12 +449,12 @@ load_ccw <- function(conn = NULL,
 
           --join to diagnosis reference table, subset to those with CCW exclusion flag
             inner join (
-            SELECT dx, dx_ver, {`dx_exclude1`}, {`dx_exclude2`} 
+            SELECT icdcm, icdcm_version, {`dx_exclude1`}, {`dx_exclude2`} 
             FROM {`icdcm_ref_schema`}.{`icdcm_ref_table`}
             where {`dx_exclude1`} = 1 or {`dx_exclude2`} = 1
             ) ref
             
-            on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
+            on (diag.icdcm_norm = ref.icdcm) and (diag.icdcm_version = ref.icdcm_version)
             where (ref.{`dx_exclude1`} = 1 {dx_exclude1_fields_condition}) or 
               (ref.{`dx_exclude2`} = 1 {dx_exclude2_fields_condition})
             group by diag.claim_header_id
@@ -530,11 +530,11 @@ load_ccw <- function(conn = NULL,
 
     --join to diagnosis reference table, subset to those with CCW condition
     inner join (
-      SELECT dx, dx_ver, {`config_cond$ccw_abbrev`}
+      SELECT icdcm, icdcm_version, {`config_cond$ccw_abbrev`}
       FROM {`icdcm_ref_schema`}.{`icdcm_ref_table`}
-      where {`config_cond$ccw_abbrev`} = 1 AND dx_ver = {icd}) ref
+      where {`config_cond$ccw_abbrev`} = 1 AND icdcm_version = {icd}) ref
       
-      on (diag.icdcm_norm = ref.dx) and (diag.icdcm_version = ref.dx_ver)
+      on (diag.icdcm_norm = ref.icdcm) and (diag.icdcm_version = ref.icdcm_version)
       ) as diag_lookup
   
       on header.claim_header_id = diag_lookup.claim_header_id 
