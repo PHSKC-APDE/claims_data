@@ -151,11 +151,9 @@ load_ccw <- function(conn = NULL,
   
   # If not, use the default list from the ref table
   if (length(conditions) == 0) {
-    if (server == "hhsaw") {
-      conditions_ref <- dbGetQuery(conn, "SELECT * FROM claims.ref_ccw_lookup")
-    } else if (server == "phclaims") {
-      conditions_ref <- dbGetQuery(conn, "SELECT * FROM ref.ccw_lookup")
-    }
+    conditions_ref <- dbGetQuery(conn, 
+                                 glue::glue_sql("SELECT * FROM {`ref_schema`}.{DBI::SQL(ref_table)}ccw_lookup",
+                                                .con = conn))
     
     # Get list of conditions to run
     if ("all" %in% ccw_list_name) {
