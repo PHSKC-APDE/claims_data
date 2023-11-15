@@ -125,8 +125,8 @@ load_ccw <- function(conn = NULL,
     claim_header_from_table <- table_config[[server]][["claim_header_from_table"]][[1]]
     icdcm_from_schema <- table_config[[server]][["icdcm_from_schema"]][[1]]
     icdcm_from_table <- table_config[[server]][["icdcm_from_table"]][[1]]
-    icdcm_ref_schema <- table_config[["icdcm_ref_schema"]][[1]]
-    icdcm_ref_table <- table_config[["icdcm_ref_table"]][[1]]
+    icdcm_ref_schema <- table_config[[server]][["icdcm_ref_schema"]][[1]]
+    icdcm_ref_table <- table_config[[server]][["icdcm_ref_table"]][[1]]
     ref_schema <- table_config[[server]][["ref_schema"]][[1]]
     ref_table_pre <- ifelse(is.null(table_config[[server]][["ref_table_pre"]]), '',
                         table_config[[server]][["ref_table_pre"]])
