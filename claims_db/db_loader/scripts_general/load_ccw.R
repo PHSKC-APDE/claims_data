@@ -490,7 +490,7 @@ load_ccw <- function(conn = NULL,
   
   
   ## Temp table to hold condition-specific claims and dates ----
-  header_load <- function(conn = db_claims, config_cond, icd = c(9, 10), print_query = F) {
+  header_load <- function(conn = conn, config_cond, icd = c(9, 10), print_query = F) {
     if (config_cond$icd_run == F) {
       return()
     }
@@ -560,7 +560,7 @@ load_ccw <- function(conn = NULL,
   
   
   ## Temp table to hold ID and rolling time matrix ----
-  rolling_load <- function(conn = db_claims, config_cond, icd = c(9, 10), print_query = F) {
+  rolling_load <- function(conn = conn, config_cond, icd = c(9, 10), print_query = F) {
     if (config_cond$icd_run == F) {
       return()
     }
@@ -620,7 +620,7 @@ load_ccw <- function(conn = NULL,
   
   
   ## Collapse dates across both ICD versions ----
-  ccw_load <- function(conn = db_claims, config_cond_9, config_cond_10, print_query = F) {
+  ccw_load <- function(conn = conn, config_cond_9, config_cond_10, print_query = F) {
     ccw_tbl <- DBI::SQL(paste0("##", config_cond_10$ccw_abbrev))
     
     ### Determine code based on if both ICD version headers were made ----
@@ -744,7 +744,7 @@ load_ccw <- function(conn = NULL,
   
   
   ## Insert condition table into stage combined CCW table ----
-  stage_load <- function(conn = db_claims, config_cond, print_query = F) {
+  stage_load <- function(conn = conn, config_cond, print_query = F) {
     ccw_tbl <- DBI::SQL(paste0("##", config_cond$ccw_abbrev))
     
     sql4 <- glue::glue_sql(
@@ -773,29 +773,29 @@ load_ccw <- function(conn = NULL,
   
   # ## TEST ----
   # test <- config_cond_gen(cond = "cond_stroke2", icd = 9, ccw_source = "yaml", table_config = table_config2)
-  # header_load(conn = db_claims, config = test, icd = 9, print_query = T)
-  # rolling_load(conn = db_claims, config = test, icd = 9, print_query = T)
+  # header_load(conn = conn, config = test, icd = 9, print_query = T)
+  # rolling_load(conn = conn, config = test, icd = 9, print_query = T)
   # 
   # 
   # test2 <- config_cond_gen(cond = "cond_stroke2", icd = 10, ccw_source = "yaml", table_config = table_config2)
-  # header_load(conn = db_claims, config = test2, icd = 10, print_query = T)
-  # rolling_load(conn = db_claims, config = test2, icd = 10, print_query = T)
+  # header_load(conn = conn, config = test2, icd = 10, print_query = T)
+  # rolling_load(conn = conn, config = test2, icd = 10, print_query = T)
   # 
   # 
-  # ccw_load(conn = db_claims, config_cond_9 = test, config_cond_10 = test2, print_query = T)
-  # stage_load(conn = db_claims, config_cond = test2, print_query = T)
+  # ccw_load(conn = conn, config_cond_9 = test, config_cond_10 = test2, print_query = T)
+  # stage_load(conn = conn, config_cond = test2, print_query = T)
   # 
   # 
   # test3 <- config_cond_gen(cond = "asthma", icd = 9, ccw_source = "ref", table_config = conditions_ref)
-  # header_load(conn = db_claims, config = test3, icd = 9, print_query = T)
-  # rolling_load(conn = db_claims, config = test3, icd = 9, print_query = T)
+  # header_load(conn = conn, config = test3, icd = 9, print_query = T)
+  # rolling_load(conn = conn, config = test3, icd = 9, print_query = T)
   #   
   # test4 <- config_cond_gen(cond = "asthma", icd = 10, ccw_source = "ref", table_config = conditions_ref)
-  # header_load(conn = db_claims, config = test4, icd = 10, print_query = T)
-  # rolling_load(conn = db_claims, config = test4, icd = 10, print_query = T)
+  # header_load(conn = conn, config = test4, icd = 10, print_query = T)
+  # rolling_load(conn = conn, config = test4, icd = 10, print_query = T)
   # 
-  # ccw_load(conn = db_claims, config_cond_9 = test3, config_cond_10 = test4, print_query = T)
-  # stage_load(conn = db_claims, config_cond = test4, print_query = T)
+  # ccw_load(conn = conn, config_cond_9 = test3, config_cond_10 = test4, print_query = T)
+  # stage_load(conn = conn, config_cond = test4, print_query = T)
   # 
   # ## END TEST ----
   
@@ -818,8 +818,8 @@ load_ccw <- function(conn = NULL,
     }
     
     # Make header and rolling time tables
-    header_load(conn = db_claims, config = config_9, icd = 9, print_query = print_query)
-    rolling_load(conn = db_claims, config = config_9, icd = 9, print_query = print_query)
+    header_load(conn = conn, config = config_9, icd = 9, print_query = print_query)
+    rolling_load(conn = conn, config = config_9, icd = 9, print_query = print_query)
     
     
     ## ICD-10 ----
@@ -831,13 +831,13 @@ load_ccw <- function(conn = NULL,
     }
     
     # Make header and rolling time tables
-    header_load(conn = db_claims, config = config_10, icd = 10, print_query = print_query)
-    rolling_load(conn = db_claims, config = config_10, icd = 10, print_query = print_query)
+    header_load(conn = conn, config = config_10, icd = 10, print_query = print_query)
+    rolling_load(conn = conn, config = config_10, icd = 10, print_query = print_query)
     
     
     ## Combine ----
-    ccw_load(conn = db_claims, config_cond_9 = config_9, config_cond_10 = config_10, print_query = F)
-    stage_load(conn = db_claims, config_cond = config_10, print_query = F)
+    ccw_load(conn = conn, config_cond_9 = config_9, config_cond_10 = config_10, print_query = F)
+    stage_load(conn = conn, config_cond = config_10, print_query = F)
   })
   
   #Run time of all steps
