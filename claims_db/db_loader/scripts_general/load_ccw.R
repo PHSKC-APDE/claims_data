@@ -498,13 +498,10 @@ load_ccw <- function(conn = NULL,
     header_tbl <- DBI::SQL(paste0("##header_dx", icd))
     
     # Build SQL query
-    # Split out tabel drop from table creation so it works in Synapse Analytics
-    sql1a <- glue::glue_sql(
-      "--#drop temp table if it exists
-    if object_id('tempdb..{header_tbl}') IS NOT NULL drop table {header_tbl};",
-      .con = conn)
+    # Split out table drop from table creation so it works in Synapse Analytics
+    try(DBI::dbRemoveTable(conn, header_tbl, temporary = T), silent = T)
     
-    sql1b <- glue::glue_sql(
+    sql1 <- glue::glue_sql(
       "--apply CCW claim type criteria to define conditions 1 and 2
     SELECT header.{`id_source`}, header.claim_header_id, header.claim_type_id, 
       header.first_service_date, diag_lookup.{`config_cond$ccw_abbrev`},
@@ -549,13 +546,11 @@ load_ccw <- function(conn = NULL,
       .con = conn)
     
     if (print_query == T) {
-      print(sql1a)
-      print(sql1b)
+      print(sql1)
     }
     
     #Run SQL query
-    dbGetQuery(conn = conn, sql1a)
-    dbGetQuery(conn = conn, sql1b)
+    dbGetQuery(conn = conn, sql1)
   }
   
   
@@ -584,11 +579,9 @@ load_ccw <- function(conn = NULL,
     
     
     # Again, split table drop from creation
-    sql2a <- glue::glue_sql(
-      "if object_id('tempdb..{rolling_tbl}') IS NOT NULL drop table {rolling_tbl};",
-      .con = conn)
+    try(DBI::dbRemoveTable(conn, rolling_tbl, temporary = T), silent = T)
     
-    sql2b <- glue::glue_sql(
+    sql2 <- glue::glue_sql(
       "--join rolling time table to person ids
       SELECT id.{`id_source`}, rolling.start_window, rolling.end_window
       INTO {rolling_tbl}
@@ -609,13 +602,11 @@ load_ccw <- function(conn = NULL,
       .con = conn)
     
     if (print_query == T) {
-      print(sql2a)
-      print(sql2b)
+      print(sql2)
     }
     
     #Run SQL query
-    dbGetQuery(conn = conn, sql2a)
-    dbGetQuery(conn = conn, sql2b)
+    dbGetQuery(conn = conn, sql2)
   }
   
   
@@ -667,12 +658,9 @@ load_ccw <- function(conn = NULL,
     
     ### Set up code ----
     # Split out table drop from creation
-    sql3a <- glue::glue_sql(
-      "--#drop temp table if it exists
-        if object_id('tempdb..{ccw_tbl}') IS NOT NULL drop table {ccw_tbl};",
-      .con = conn)
+    try(DBI::dbRemoveTable(conn, ccw_tbl, temporary = T), silent = T)
     
-    sql3b <- glue::glue_sql(
+    sql3 <- glue::glue_sql(
       "--collapse to single row per ID and contiguous time period
         SELECT distinct d.{`id_source`}, min(d.start_window) as 'from_date', 
           max(d.end_window) as 'to_date', {config_cond_10$ccw_code} as 'ccw_code',
@@ -733,13 +721,11 @@ load_ccw <- function(conn = NULL,
       .con = conn)
     
     if (print_query == T) {
-      print(sql3a)
-      print(sql3b)
+      print(sql3)
     }
     
     #Run SQL query
-    dbGetQuery(conn = conn, sql3a)
-    dbGetQuery(conn = conn, sql3b)
+    dbGetQuery(conn = conn, sql3)
   }
   
   
