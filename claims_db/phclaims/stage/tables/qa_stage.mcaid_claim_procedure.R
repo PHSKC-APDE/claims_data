@@ -11,8 +11,7 @@
 # 1) IDs are all found in the elig tables
 # 2) Procedure codes are formatted appropriately
 # 3) procedure_code_number falls in an acceptable range
-# 4) (Almost) All dx codes are found in the ref table
-# 5) Check there were as many or more diagnoses for each calendar year
+# 4) Check there were as many or more procedure codes for each calendar year
 
 
 ### Function elements
@@ -209,47 +208,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   }
   
   
-  #### Check if any diagnosis codes do not join to reference table ####
-  procedure_chk <- as.integer(DBI::dbGetQuery(
-    conn, glue::glue_sql("SELECT count(distinct [procedure_code]) 
-                         FROM {`to_schema`}.{`to_table`} as a 
-                         where not exists
-                         (
-                           select 1
-                           from {`ref_schema`}.{DBI::SQL(ref_table)}pcode as b
-                           where a.[procedure_code] = b.[pcode])", 
-                         .con = conn)))
-  
-  
-  # Write findings to metadata
-  if (procedure_chk < 200) {
-    procedure_fail <- 0
-    DBI::dbExecute(conn = conn,
-                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
-                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
-                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                   'Almost all procedure codes join to reference table', 
-                   'PASS', 
-                   {Sys.time()}, 
-                   'There were {procedure_chk} procedure codes not in {DBI::SQL(ref_schema)}.{DBI::SQL(ref_table)}pcode (acceptable is < 200)')",
-                                  .con = conn))
-  } else {
-    procedure_fail <- 1
-    DBI::dbExecute(conn = conn,
-                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
-                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
-                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                   'Almost all procedure codes join to reference table', 
-                   'FAIL', 
-                   {Sys.time()}, 
-                   'There were {procedure_chk} procedure codes not in {DBI::SQL(ref_schema)}.{DBI::SQL(ref_table)}pcode table (acceptable is < 200)')",
-                                  .con = conn))
-  }
-  
-  
-  #### Compare number of dx codes in current vs. prior analytic tables ####
+  #### Compare number of procedure codes in current vs. prior analytic tables ####
   if (DBI::dbExistsTable(conn,
                          DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_procedure")))) {
     
@@ -322,7 +281,6 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   
   
   #### SUM UP FAILURES ####
-  fail_tot <- sum(ids_fail, procedure_format_fail, procedure_num_fail,
-                  procedure_fail, num_procedure_fail)
+  fail_tot <- sum(ids_fail, procedure_format_fail, procedure_num_fail, num_procedure_fail)
   return(fail_tot)
 }

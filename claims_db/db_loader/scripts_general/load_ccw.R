@@ -153,11 +153,9 @@ load_ccw <- function(conn = NULL,
   
   # If not, use the default list from the ref table
   if (length(conditions) == 0) {
-    if (server == "hhsaw") {
-      conditions_ref <- dbGetQuery(conn, "SELECT * FROM claims.ref_ccw_lookup")
-    } else if (server == "phclaims") {
-      conditions_ref <- dbGetQuery(conn, "SELECT * FROM ref.ccw_lookup")
-    }
+    conditions_ref <- dbGetQuery(conn, 
+                                 glue::glue_sql("SELECT * FROM {`ref_schema`}.{DBI::SQL(ref_table_pre)}ccw_lookup",
+                                                .con = conn))
     
     # Get list of conditions to run
     if ("all" %in% ccw_list_name) {
@@ -492,7 +490,7 @@ load_ccw <- function(conn = NULL,
   
   
   ## Temp table to hold condition-specific claims and dates ----
-  header_load <- function(conn = db_claims, config_cond, icd = c(9, 10), print_query = F) {
+  header_load <- function(conn = conn, config_cond, icd = c(9, 10), print_query = F) {
     if (config_cond$icd_run == F) {
       return()
     }
@@ -500,11 +498,11 @@ load_ccw <- function(conn = NULL,
     header_tbl <- DBI::SQL(paste0("##header_dx", icd))
     
     # Build SQL query
-    sql1 <- glue::glue_sql(
-      "--#drop temp table if it exists
-    if object_id('tempdb..{header_tbl}') IS NOT NULL drop table {header_tbl};
+    # Split out table drop from table creation so it works in Synapse Analytics
+    try(DBI::dbRemoveTable(conn, header_tbl, temporary = T), silent = T)
     
-    --apply CCW claim type criteria to define conditions 1 and 2
+    sql1 <- glue::glue_sql(
+      "--apply CCW claim type criteria to define conditions 1 and 2
     SELECT header.{`id_source`}, header.claim_header_id, header.claim_type_id, 
       header.first_service_date, diag_lookup.{`config_cond$ccw_abbrev`},
       diag_lookup.{`id_source`} as id_source_tmp,  -- zero rows returned without this, unclear why
@@ -557,7 +555,7 @@ load_ccw <- function(conn = NULL,
   
   
   ## Temp table to hold ID and rolling time matrix ----
-  rolling_load <- function(conn = db_claims, config_cond, icd = c(9, 10), print_query = F) {
+  rolling_load <- function(conn = conn, config_cond, icd = c(9, 10), print_query = F) {
     if (config_cond$icd_run == F) {
       return()
     }
@@ -580,10 +578,11 @@ load_ccw <- function(conn = NULL,
     }
     
     
+    # Again, split table drop from creation
+    try(DBI::dbRemoveTable(conn, rolling_tbl, temporary = T), silent = T)
+    
     sql2 <- glue::glue_sql(
-      "if object_id('tempdb..{rolling_tbl}') IS NOT NULL drop table {rolling_tbl};
-      
-      --join rolling time table to person ids
+      "--join rolling time table to person ids
       SELECT id.{`id_source`}, rolling.start_window, rolling.end_window
       INTO {rolling_tbl}
       
@@ -612,7 +611,7 @@ load_ccw <- function(conn = NULL,
   
   
   ## Collapse dates across both ICD versions ----
-  ccw_load <- function(conn = db_claims, config_cond_9, config_cond_10, print_query = F) {
+  ccw_load <- function(conn = conn, config_cond_9, config_cond_10, print_query = F) {
     ccw_tbl <- DBI::SQL(paste0("##", config_cond_10$ccw_abbrev))
     
     ### Determine code based on if both ICD version headers were made ----
@@ -658,11 +657,11 @@ load_ccw <- function(conn = NULL,
     
     
     ### Set up code ----
+    # Split out table drop from creation
+    try(DBI::dbRemoveTable(conn, ccw_tbl, temporary = T), silent = T)
+    
     sql3 <- glue::glue_sql(
-      "--#drop temp table if it exists
-        if object_id('tempdb..{ccw_tbl}') IS NOT NULL drop table {ccw_tbl};
-      
-      --collapse to single row per ID and contiguous time period
+      "--collapse to single row per ID and contiguous time period
         SELECT distinct d.{`id_source`}, min(d.start_window) as 'from_date', 
           max(d.end_window) as 'to_date', {config_cond_10$ccw_code} as 'ccw_code',
           {config_cond_10$ccw_abbrev} as 'ccw_desc'
@@ -731,7 +730,7 @@ load_ccw <- function(conn = NULL,
   
   
   ## Insert condition table into stage combined CCW table ----
-  stage_load <- function(conn = db_claims, config_cond, print_query = F) {
+  stage_load <- function(conn = conn, config_cond, print_query = F) {
     ccw_tbl <- DBI::SQL(paste0("##", config_cond$ccw_abbrev))
     
     sql4 <- glue::glue_sql(
@@ -760,29 +759,29 @@ load_ccw <- function(conn = NULL,
   
   # ## TEST ----
   # test <- config_cond_gen(cond = "cond_stroke2", icd = 9, ccw_source = "yaml", table_config = table_config2)
-  # header_load(conn = db_claims, config = test, icd = 9, print_query = T)
-  # rolling_load(conn = db_claims, config = test, icd = 9, print_query = T)
+  # header_load(conn = conn, config = test, icd = 9, print_query = T)
+  # rolling_load(conn = conn, config = test, icd = 9, print_query = T)
   # 
   # 
   # test2 <- config_cond_gen(cond = "cond_stroke2", icd = 10, ccw_source = "yaml", table_config = table_config2)
-  # header_load(conn = db_claims, config = test2, icd = 10, print_query = T)
-  # rolling_load(conn = db_claims, config = test2, icd = 10, print_query = T)
+  # header_load(conn = conn, config = test2, icd = 10, print_query = T)
+  # rolling_load(conn = conn, config = test2, icd = 10, print_query = T)
   # 
   # 
-  # ccw_load(conn = db_claims, config_cond_9 = test, config_cond_10 = test2, print_query = T)
-  # stage_load(conn = db_claims, config_cond = test2, print_query = T)
+  # ccw_load(conn = conn, config_cond_9 = test, config_cond_10 = test2, print_query = T)
+  # stage_load(conn = conn, config_cond = test2, print_query = T)
   # 
   # 
   # test3 <- config_cond_gen(cond = "asthma", icd = 9, ccw_source = "ref", table_config = conditions_ref)
-  # header_load(conn = db_claims, config = test3, icd = 9, print_query = T)
-  # rolling_load(conn = db_claims, config = test3, icd = 9, print_query = T)
+  # header_load(conn = conn, config = test3, icd = 9, print_query = T)
+  # rolling_load(conn = conn, config = test3, icd = 9, print_query = T)
   #   
   # test4 <- config_cond_gen(cond = "asthma", icd = 10, ccw_source = "ref", table_config = conditions_ref)
-  # header_load(conn = db_claims, config = test4, icd = 10, print_query = T)
-  # rolling_load(conn = db_claims, config = test4, icd = 10, print_query = T)
+  # header_load(conn = conn, config = test4, icd = 10, print_query = T)
+  # rolling_load(conn = conn, config = test4, icd = 10, print_query = T)
   # 
-  # ccw_load(conn = db_claims, config_cond_9 = test3, config_cond_10 = test4, print_query = T)
-  # stage_load(conn = db_claims, config_cond = test4, print_query = T)
+  # ccw_load(conn = conn, config_cond_9 = test3, config_cond_10 = test4, print_query = T)
+  # stage_load(conn = conn, config_cond = test4, print_query = T)
   # 
   # ## END TEST ----
   
@@ -805,8 +804,8 @@ load_ccw <- function(conn = NULL,
     }
     
     # Make header and rolling time tables
-    header_load(conn = db_claims, config = config_9, icd = 9, print_query = print_query)
-    rolling_load(conn = db_claims, config = config_9, icd = 9, print_query = print_query)
+    header_load(conn = conn, config = config_9, icd = 9, print_query = print_query)
+    rolling_load(conn = conn, config = config_9, icd = 9, print_query = print_query)
     
     
     ## ICD-10 ----
@@ -818,13 +817,13 @@ load_ccw <- function(conn = NULL,
     }
     
     # Make header and rolling time tables
-    header_load(conn = db_claims, config = config_10, icd = 10, print_query = print_query)
-    rolling_load(conn = db_claims, config = config_10, icd = 10, print_query = print_query)
+    header_load(conn = conn, config = config_10, icd = 10, print_query = print_query)
+    rolling_load(conn = conn, config = config_10, icd = 10, print_query = print_query)
     
     
     ## Combine ----
-    ccw_load(conn = db_claims, config_cond_9 = config_9, config_cond_10 = config_10, print_query = F)
-    stage_load(conn = db_claims, config_cond = config_10, print_query = F)
+    ccw_load(conn = conn, config_cond_9 = config_9, config_cond_10 = config_10, print_query = F)
+    stage_load(conn = conn, config_cond = config_10, print_query = F)
   })
   
   #Run time of all steps

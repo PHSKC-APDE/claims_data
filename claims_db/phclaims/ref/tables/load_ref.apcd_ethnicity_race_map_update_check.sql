@@ -1,3 +1,4 @@
+--csv file is looked here:--SHAREPOINT\King County Cross-Sector Data - General\References\APCD\apcd_ethnicity_race_mapping.csv
 --run this code to identify ethnicities in APCD data that are missing from ethnicity_race crosswalk
 --1st ethnicity variable
 select z.ethnicity_id1, z.race_id, z.race_desc, count(*) as row_count

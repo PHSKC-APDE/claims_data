@@ -38,12 +38,12 @@ copy_into_f <- function(
   
   
   #### SET UP SERVER ####
-  if (is.null(server)) {
-    server <- NA
-  } else if (server %in% c("phclaims", "hhsaw")) {
-    server <- server
-  } else if (!server %in% c("phclaims", "hhsaw")) {
-    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+  if (!is.null(server)) {
+    if (server %in% c("phclaims", "hhsaw")) {
+      server <- server
+    } else if (!server %in% c("phclaims", "hhsaw")) {
+      stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+    }
   }
   
   
@@ -73,7 +73,7 @@ copy_into_f <- function(
       stop("Config file does not exist, check file name")
     }
     
-    if (is.yaml.file(config_file) == F) {
+    if (configr::is.yaml.file(config_file) == F) {
       stop(glue::glue("Config file is not a YAML config file. ", 
                       "Check there are no duplicate variables listed"))
     }

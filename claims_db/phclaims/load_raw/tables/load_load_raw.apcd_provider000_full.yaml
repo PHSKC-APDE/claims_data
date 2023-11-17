@@ -1,7 +1,7 @@
 server_path: KCITSQLPRPENT40
 db_name: PHClaims
 to_schema: load_raw
-to_table: apcd_provider
+to_table: apcd_provider000
 vars:
     provider_id: bigint
     extract_id: bigint

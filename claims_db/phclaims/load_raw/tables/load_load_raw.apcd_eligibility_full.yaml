@@ -1,4 +1,4 @@
-server_path: KCITSQLUTPDBH51
+server_path: KCITSQLPRPENT40
 db_name: PHClaims
 to_schema: load_raw
 to_table: apcd_eligibility
@@ -40,23 +40,23 @@ vars:
     dup_flag_managed_care: varchar(1)
     dup_flag_part_d: varchar(1)
 part000:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_000.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/eligibility_export/eligibility_000.csv
     field_term: ','
     row_term: '0x0A'
 part001:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_001.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/eligibility_export/eligibility_001.csv
     field_term: ','
     row_term: '0x0A'
 part002:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_002.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/eligibility_export/eligibility_002.csv
     field_term: ','
     row_term: '0x0A'
 part003:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_003.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/eligibility_export/eligibility_003.csv
     field_term: ','
     row_term: '0x0A'
 part004:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/eligibility_export/eligibility_004.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/eligibility_export/eligibility_004.csv
     field_term: ','
     row_term: '0x0A'
 years:
