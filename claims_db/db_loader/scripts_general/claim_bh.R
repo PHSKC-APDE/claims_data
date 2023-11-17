@@ -91,6 +91,8 @@ load_bh <- function(conn = NULL,
     icdcm_from_table <- table_config[[server]][["icdcm_from_table"]][[1]]
     ref_schema <- table_config[[server]][["ref_schema"]][[1]]
     ref_table <- table_config[[server]][["ref_table"]][[1]]
+    icdcm_ref_schema <- table_config[[server]][["icdcm_ref_schema"]][[1]]
+    icdcm_ref_table <- table_config[[server]][["icdcm_ref_table"]][[1]]
     rolling_schema <- table_config[[server]][["rolling_schema"]][[1]] 
     rolling_table <- table_config[[server]][["rolling_table"]][[1]] 
   } else {
@@ -105,6 +107,8 @@ load_bh <- function(conn = NULL,
     # Assumes working in PHClaims for ref data if using older YAML format
     ref_schema <- "ref"
     ref_table <- ""
+    icdcm_ref_schema <- table_config[["icdcm_ref_schema"]][[1]]
+    icdcm_ref_table <- table_config[["icdcm_ref_table"]][[1]]
   }
   
   
@@ -138,10 +142,10 @@ load_bh <- function(conn = NULL,
       {`id_source`}
 	    ,svc_date
       ,b.sub_group_condition as 'bh_cond'
-        FROM  (SELECT DISTINCT {`id_source`}, icdcm_norm, first_service_date as 'svc_date'
+        FROM  (SELECT DISTINCT {`id_source`}, icdcm_norm, icdcm_version, first_service_date as 'svc_date'
                 FROM {`icdcm_from_schema`}.{`icdcm_from_table`} 
                 ) as a
-        INNER JOIN (SELECT sub_group_condition, code_set, code, value_set_name
+        INNER JOIN (SELECT sub_group_condition, code_set, code, icdcm_version, value_set_name
     		            FROM  {`ref_schema`}.{`ref_table`}
     		            WHERE code_set in ('ICD9CM', 'ICD10CM') 
     		            ) as b

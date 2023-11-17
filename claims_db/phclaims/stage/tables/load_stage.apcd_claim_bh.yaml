@@ -5,6 +5,8 @@ icdcm_from_schema: final
 icdcm_from_table: apcd_claim_icdcm_header
 to_schema: stage
 to_table: apcd_claim_bh
+icdcm_ref_schema: ref
+icdcm_ref_table: icdcm_codes
 vars:
     id_apcd: bigint
     from_date: date

@@ -110,8 +110,8 @@ if (qa_stage_mcaid_elig_demo == 0) {
   
   rm(final_mcaid_elig_demo_config, qa_rows_final_elig_demo, to_schema, to_table, qa_schema, qa_table)
 } else {
-  stop(glue::glue("Something went wrong with the mcaid_elig_demo run. See {`stage_mcaid_elig_demo_config[[server]][['qa_schema']]`}.
-    {DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid"))
+  stop(paste0(glue::glue("Something went wrong with the mcaid_elig_demo run. See {DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_schema']])}."),
+    glue::glue("{DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid")))
 }
 
 
@@ -127,6 +127,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 stage_mcaid_elig_timevar_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.yaml")
 
 # Run function
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 load_stage_mcaid_elig_timevar_f(conn = db_claims, server = server, config = stage_mcaid_elig_timevar_config)
 
 # Re-establish connection because it drops out faster in Azure VM
@@ -184,7 +185,7 @@ if (qa_stage_mcaid_elig_timevar == 0) {
   
   rm(final_mcaid_elig_timevar_config, qa_rows_final_elig_timevar, to_schema, to_table, qa_schema, qa_table)
 } else {
-  stop(paste0(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {stage_mcaid_elig_timevar_config[[server]][['qa_schema']]}."),
+  stop(paste0(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {DBI::SQL(stage_mcaid_elig_timevar_config[[server]][['qa_schema']])}."),
               glue::glue("{DBI::SQL(ifelse(is.null(stage_mcaid_elig_timevar_config[[server]][['qa_table']]), 
                '', stage_mcaid_elig_timevar_config[[server]][['qa_table']]))}qa_mcaid")))
 }
@@ -378,11 +379,11 @@ claim_pharm_fail <- claim_load_f(table = "pharm")
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 #### MCAID_CLAIM_HEADER ####
-#if (sum(claim_line_fail, claim_icdcm_header_fail, claim_procedure_fail, claim_pharm_fail) > 0) {
-#  stop("One or more claims analytic tables failed, mcaid_claim_header not created. See metadata.mcaid_qa for details")
-#} else {
+if (sum(claim_line_fail, claim_icdcm_header_fail, claim_procedure_fail, claim_pharm_fail) > 0) {
+  stop("One or more claims analytic tables failed, mcaid_claim_header not created. See metadata.mcaid_qa for details")
+} else {
   claim_load_f(table = "header")
-#}
+}
 
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
@@ -489,11 +490,16 @@ load_stage_mcaid_perf_distinct_member_f(conn = db_claims, server = server)
 
 
 #### ASTHMA MEDICATION RATIO ####
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_perf_measure_amr.R")
 stage_mcaid_perf_measure_amr_f(conn = db_claims, server = server,
                                max_month = max_elig_month,
                                return_data = F)
 
+
+
+
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
 #### DROP TABLES NO LONGER NEEDED ####
 bak_check <- dlg_list(c("Yes", "No"), title = "CHECK BACKUP TABLES?")$res
@@ -602,3 +608,8 @@ if(send_email == "Yes") {
   apde_notify_f(msg_name = "claims_mcaid_update",
                 vars = vars)
 }
+
+
+
+
+glue::glue("Something went wrong with the mcaid_elig_demo run. See {DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_schema']])}.{DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid")
