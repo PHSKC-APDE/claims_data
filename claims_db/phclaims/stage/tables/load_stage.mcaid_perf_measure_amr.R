@@ -138,7 +138,7 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
            ON a.id_mcaid = b.id_mcaid AND a.claim_header_id = b.claim_header_id
            INNER JOIN
            (SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS dx_ver 
-             FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system 
+             FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde 
              WHERE value_set_name = 'Asthma') c 
            ON b.icdcm_norm = c.code AND b.icdcm_version = c.dx_ver",
                  .con = conn))
@@ -151,9 +151,9 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
   i <- 1
   lapply(months_list, function(x) {
     
-    sql_temp <- glue::glue_sql("(SELECT id_mcaid, claim_header_id, first_service_date, last_service_date, ed, inpatient 
+    sql_temp <- glue::glue_sql("(SELECT id_mcaid, claim_header_id, first_service_date, last_service_date, ed_perform, inpatient 
                       FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_header 
-                      WHERE (ed = 1 OR inpatient = 1) AND 
+                      WHERE (ed_perform = 1 OR inpatient = 1) AND 
                       first_service_date <= {x} AND 
                       first_service_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, {x}))) a 
                      INNER JOIN 
@@ -166,7 +166,7 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
       try(dbRemoveTable(conn, "##asthma_ed_inpat", temporary = T), silent = T)
       DBI::dbExecute(conn, 
                      glue::glue_sql("SELECT a.id_mcaid, 'end_month' = {x}, 
-                      SUM(a.ed) AS ed_cnt, SUM(a.inpatient) AS inpat_cnt 
+                      SUM(a.ed_perform) AS ed_cnt, SUM(a.inpatient) AS inpat_cnt 
                       INTO ##asthma_ed_inpat FROM {sql_temp}",
                                     .con = conn))
       i <<- i + 1
@@ -174,7 +174,7 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
       DBI::dbExecute(conn, 
                      glue::glue_sql("INSERT INTO ##asthma_ed_inpat 
                       SELECT a.id_mcaid, 'end_month' = {x}, 
-                      SUM(a.ed) AS ed_cnt, SUM(a.inpatient) AS inpat_cnt 
+                      SUM(a.ed_perform) AS ed_cnt, SUM(a.inpatient) AS inpat_cnt 
                       FROM {sql_temp}",
                                     .con = conn))
     }
@@ -201,7 +201,7 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
                        FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_procedure) c 
                        ON a.id_mcaid = c.id_mcaid AND a.claim_header_id = c.claim_header_id 
                        INNER JOIN 
-                       (SELECT code FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system 
+                       (SELECT code FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde
                          WHERE value_set_name = 'Outpatient') d 
                        ON c.procedure_code = d.code 
                        GROUP BY a.id_mcaid",
@@ -246,10 +246,11 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
                         WHERE rx_fill_date <= {x} AND 
                         rx_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, {x}))) a 
                       INNER JOIN
-                      (SELECT medication_list_name, ndc_code, generic_product_name, [route], [description]
-                        FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code 
+                      (SELECT medication_list_name, [code] AS 'ndc_code', generic_product_name, [route], drug_class AS 'description'
+                        FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_medication_lists_apde 
                         WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications') 
-                        AND [route] = 'oral' AND [description] = 'Leukotriene modifiers') b
+                        AND [route] = 'oral' AND [drug_class] = 'Leukotriene modifiers' 
+                        AND code_system = 'NDC') b
                       ON a.ndc = b.ndc_code
                       GROUP BY a.id_mcaid, a.rx_fill_date, b.generic_product_name) c 
                      GROUP BY c.id_mcaid, c.rx_fill_date
@@ -292,10 +293,11 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
                         WHERE rx_fill_date <= {x} AND 
                         rx_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, {x}))) a 
                       INNER JOIN
-                      (SELECT medication_list_name, ndc_code, generic_product_name, [route], [description]
-                        FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code 
+                      (SELECT medication_list_name, [code] AS 'ndc_code', generic_product_name, [route], drug_class AS 'description'
+                        FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_medication_lists_apde 
                         WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications') 
-                        AND [route] = 'oral' AND [description] <> 'Leukotriene modifiers') b
+                        AND [route] = 'oral' AND [drug_class] <> 'Leukotriene modifiers'
+                        AND code_system = 'NDC') b
                       ON a.ndc = b.ndc_code
                       GROUP BY a.id_mcaid, a.rx_fill_date, b.generic_product_name) c 
                      GROUP BY c.id_mcaid, c.rx_fill_date
@@ -333,10 +335,10 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
                       WHERE rx_fill_date <= {x} AND 
                       rx_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, {x}))) a 
                      INNER JOIN
-                     (SELECT medication_list_name, ndc_code, generic_product_name, [route]
-                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code
+                     (SELECT medication_list_name, [code] AS 'ndc_code', generic_product_name, [route]
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_medication_lists_apde
                        WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications')
-                       AND [route] = 'inhalation') b 
+                       AND [route] = 'inhalation' AND code_system = 'NDC') b 
                      ON a.ndc = b.ndc_code
                      GROUP BY a.id_mcaid, a.rx_fill_date
                      ORDER BY a.id_mcaid, a.rx_fill_date",
@@ -374,10 +376,11 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
                       WHERE rx_fill_date <= {x} AND 
                       rx_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, {x}))) a 
                      INNER JOIN
-                     (SELECT medication_list_name, ndc_code, [route], [description]
-                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code
+                     (SELECT medication_list_name, [code] AS 'ndc_code', [route], drug_class AS 'description'
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_medication_lists_apde
                        WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications')
-                       AND [route] IN ('intravenous', 'subcutaneous') AND [description] = 'Antibody inhibitor') b
+                       AND [route] IN ('intravenous', 'subcutaneous') AND drug_class = 'Antibody inhibitor'
+                       AND code_system = 'NDC') b
                      ON a.ndc = b.ndc_code
                      GROUP BY a.id_mcaid, a.rx_fill_date, a.ndc
                      ORDER BY a.id_mcaid, a.rx_fill_date",
@@ -414,10 +417,11 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
                WHERE rx_fill_date <= {x} AND 
                rx_fill_date >= DATEADD(DAY, 1, DATEADD(YEAR, -1, {x}))) a 
               INNER JOIN
-              (SELECT medication_list_name, ndc_code, [route], [description] 
-              FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code 
+              (SELECT medication_list_name, [code] AS 'ndc_code', [route], drug_class AS 'description'
+              FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_medication_lists_apde
               WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications') 
-                AND [route] IN ('intravenous', 'subcutaneous') AND [description] <> 'Antibody inhibitor') b 
+                AND [route] IN ('intravenous', 'subcutaneous') AND drug_class <> 'Antibody inhibitor'
+                AND code_system = 'NDC') b 
               ON a.ndc = b.ndc_code
               GROUP BY a.id_mcaid, a.rx_fill_date, a.ndc 
               ORDER BY a.id_mcaid, a.rx_fill_date",
@@ -547,31 +551,31 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
                      ON a.id_mcaid = b.id_mcaid AND a.claim_header_id = b.claim_header_id
                      INNER JOIN
                      (SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde
                        WHERE value_set_name = 'Emphysema'
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde
                        WHERE value_set_name = 'Other Emphysema'
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde
                        WHERE value_set_name = 'COPD'
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde
                        WHERE value_set_name = 'Obstructive Chronic Bronchitis' 
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde
                        WHERE value_set_name = 'Chronic Respiratory Conditions Due To Fumes/Vapors' 
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde
                        WHERE value_set_name = 'Cystic Fibrosis' 
                        UNION
                        SELECT code, CASE WHEN SUBSTRING(code_system, 4, 1) = '9' THEN 9 ELSE 10 END AS icdcm_version
-                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_code_system
+                       FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde
                        WHERE value_set_name = 'Acute Respiratory Failure' 
                      ) c
                      ON b.icdcm_norm = c.code AND b.icdcm_version = c.icdcm_version",
@@ -740,9 +744,10 @@ stage_mcaid_perf_measure_amr_f <- function(conn = NULL,
             (SELECT id_mcaid, ndc, rx_fill_date, rx_days_supply, rx_quantity
             FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_pharm) a 
             INNER JOIN
-            (SELECT medication_list_name, ndc_code, generic_product_name, [route], package_size
-            FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_ndc_code 
-            WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications')) b
+            (SELECT medication_list_name, [code] AS 'ndc_code', generic_product_name, [route], package_size
+            FROM {`ref_schema`}.{DBI::SQL(ref_table)}hedis_medication_lists_apde
+            WHERE  medication_list_name IN ('Asthma Controller Medications', 'Asthma Reliever Medications')
+              AND code_system = 'NDC') b
             ON a.ndc = b.ndc_code
             GROUP BY a.id_mcaid, b.medication_list_name, a.rx_fill_date, b.[route], 
               b.generic_product_name, a.rx_quantity, b.package_size) c",
