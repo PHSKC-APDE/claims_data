@@ -267,7 +267,7 @@ if(T) {
     
     db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
     for (x in 1:nrow(tfiles)) {
-      tfiles[x, "batch_id"] <- load_metadata_etl_log_file_f(conn = db_claims, 
+      tfiles[x, "batch_id_prod"] <- load_metadata_etl_log_file_f(conn = db_claims, 
                                                             server = "hhsaw",
                                                             batch_type = "incremental", 
                                                             data_source = "Medicaid", 
@@ -281,45 +281,25 @@ if(T) {
     }
     schema <- "metadata"
     table <- "etl_log"
-    proceed_msg <- glue("Would you like to copy to files to PHClaims?")
+    proceed_msg <- glue("Would you like to create ETL Log Entries on HHSAW Dev?")
     proceed <- askYesNo(msg = proceed_msg)
-    ## Copy files and data to PHClaims
     if (proceed == T) {
-      blob_token <- AzureAuth::get_azure_token(
-        resource = "https://storage.azure.com", 
-        tenant = keyring::key_get("adl_tenant", "dev"),
-        app = keyring::key_get("adl_app", "dev"),
-        auth_type = "authorization_code",
-        use_cache = F
-      )
-      blob_endp <- storage_endpoint("https://inthealthdtalakegen2.blob.core.windows.net", token = blob_token)
-      cont <- storage_container(blob_endp, "inthealth")
-      message(paste0("Downloading Files - ", Sys.time()))
+      db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = F)
       for (x in 1:nrow(tfiles)) {
-        message(paste0("Begin Downloading ", tfiles[x, "uploadName"], 
-                       " to ", tfiles[x, "server_loc"]," - ", Sys.time()))
-        storage_download(cont, 
-                         paste0("claims/mcaid/", tfiles[x, "type"], "/incr/", tfiles[x, "uploadName"]), 
-                         paste0(tfiles[x, "server_loc"], tfiles[x, "uploadName"]))
-        message(paste0("Download Completed - ", Sys.time()))
-      }
-      message(paste0("All Files Downloaded - ", Sys.time()))
-      db_claims <- create_db_connection(server = "phclaims", interactive = interactive_auth, prod = prod)
-      for (x in 1:nrow(tfiles)) {
-        tfiles[x, "batch_id"] <- load_metadata_etl_log_file_f(conn = db_claims, 
-                                                              server = "phclaims",
+        tfiles[x, "batch_id_dev"] <- load_metadata_etl_log_file_f(conn = db_claims, 
+                                                              server = "hhsaw",
                                                               batch_type = "incremental", 
                                                               data_source = "Medicaid", 
                                                               date_min = tfiles[x, "min_date"],
                                                               date_max = tfiles[x, "max_date"],
                                                               delivery_date = tfiles[x, "del_date"], 
                                                               file_name = tfiles[x, "uploadName"],
-                                                              file_loc = tfiles[x, "server_loc"],
+                                                              file_loc = paste0("claims/mcaid/", tfiles[x, "type"], "/incr/"),
                                                               row_cnt = tfiles[x, "row_cnt"], 
                                                               note = paste0("Partial refresh of Medicaid ", tfiles[x, "type"], " data"))
       }
     }
-    message(paste0("All Files Processed - ", Sys.time()))
+    message(paste0("All Entries Created - ", Sys.time()))
   }
   delete <- askYesNo("Delete Temporary Files?")
   if(delete == T) {
