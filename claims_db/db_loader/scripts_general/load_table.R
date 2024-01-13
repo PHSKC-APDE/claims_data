@@ -1,8 +1,7 @@
 #### FUNCTIONS TO LOAD DATA TO SQL TABLES
 # Alastair Matheson
 # Created:        2019-04-15
-# Last modified:  2019-07-25
-
+# Last modified:  2023-09-20
 
 ### Plans for future improvements:
 # Add warning when overall table is about to be overwritten
@@ -252,7 +251,7 @@ load_table_from_file_f <- function(
     bcp_args <- c(glue(' PHclaims.{schema_inner}.{table_name_inner} IN ', 
                        ' "{filepath}" ',
                        ' {field_term} {row_term} -C 65001 -F 2 ',
-                       ' -S KCITSQLUTPDBH51 -T -b 100000 {load_rows_inner} -c '))
+                       ' -S KCITSQLPRPENT40 -T -b 100000 {load_rows_inner} -c '))
     
     print(bcp_args)
     system2(command = "bcp", args = c(bcp_args))

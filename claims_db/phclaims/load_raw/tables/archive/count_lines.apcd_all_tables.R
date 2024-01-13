@@ -15,9 +15,9 @@
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
 library(tidyverse)
 library(openxlsx)
-read_dir <- "//kcitsqlutpdbh51/ImportData/Data/APCD_data_import"
+read_dir <- "//dphcifs/apde-cdip/apcd/apcd_data_import"
 #write_path <- "C:/Users/kerneli/King County/King County Cross-Sector Data - General/ETL/"
-write_path <- "//kcitsqlutpdbh51/ImportData/Data/APCD_data_import/"
+write_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/"
 
 #Create list of tables
 table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",

@@ -11,8 +11,8 @@
   DTS:LocaleID="1033"
   DTS:ObjectName="Package"
   DTS:PackageType="5"
-  DTS:VersionBuild="125"
-  DTS:VersionGUID="{3DCE714C-9E7F-457F-9880-46803287496A}">
+  DTS:VersionBuild="135"
+  DTS:VersionGUID="{26E17875-22F9-467B-84D3-6D98BF3ED9F9}">
   <DTS:Property
     DTS:Name="PackageFormatVersion">8</DTS:Property>
   <DTS:ConnectionManagers>
@@ -72,15 +72,15 @@
       </DTS:ObjectData>
     </DTS:ConnectionManager>
     <DTS:ConnectionManager
-      DTS:refId="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
+      DTS:refId="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
       DTS:CreationName="OLEDB"
-      DTS:DTSID="{B2B9B667-59AF-4976-A1EA-96D554889139}"
-      DTS:ObjectName="KCITSQLUTPDBH51.PHClaims">
+      DTS:DTSID="{C5D746F8-456D-4FED-BF55-4EA569DB05FB}"
+      DTS:ObjectName="KCITSQLPRPENT40.PHClaims">
       <DTS:ObjectData>
         <DTS:ConnectionManager
           DTS:ConnectRetryCount="1"
           DTS:ConnectRetryInterval="5"
-          DTS:ConnectionString="Data Source=KCITSQLUTPDBH51;Initial Catalog=PHClaims;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;" />
+          DTS:ConnectionString="Data Source=KCITSQLPRPENT40;Initial Catalog=PHClaims;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;" />
       </DTS:ObjectData>
     </DTS:ConnectionManager>
     <DTS:ConnectionManager
@@ -145,6 +145,7 @@
       DTS:refId="Package\DFT final apcd_claim_header"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
+      DTS:Disabled="True"
       DTS:DTSID="{7c64ddc8-6ea2-4c6d-9d09-79e29e08ad69}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -592,8 +593,8 @@
               <connections>
                 <connection
                   refId="Package\DFT final apcd_claim_header\OLE DB Source.Connections[OleDbConnection]"
-                  connectionManagerID="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
-                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
+                  connectionManagerID="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
+                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
                   description="The OLE DB runtime connection used to access the database."
                   name="OleDbConnection" />
               </connections>
@@ -1201,6 +1202,18 @@
                   name="OLE DB Source Error Output">
                   <outputColumns>
                     <outputColumn
+                      refId="Package\DFT final apcd_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\DFT final apcd_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\DFT final apcd_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\DFT final apcd_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                    <outputColumn
                       refId="Package\DFT final apcd_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[id_apcd]"
                       dataType="i8"
                       lineageId="Package\DFT final apcd_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[id_apcd]"
@@ -1428,18 +1441,6 @@
                       dataType="dbTimeStamp"
                       lineageId="Package\DFT final apcd_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[last_run]"
                       name="last_run" />
-                    <outputColumn
-                      refId="Package\DFT final apcd_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      dataType="i4"
-                      lineageId="Package\DFT final apcd_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      name="ErrorCode"
-                      specialFlags="1" />
-                    <outputColumn
-                      refId="Package\DFT final apcd_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      dataType="i4"
-                      lineageId="Package\DFT final apcd_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      name="ErrorColumn"
-                      specialFlags="2" />
                   </outputColumns>
                   <externalMetadataColumns />
                 </output>
@@ -1460,6 +1461,7 @@
       DTS:refId="Package\DFT final apcd_claim_icdcm_header"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
+      DTS:Disabled="True"
       DTS:DTSID="{7b6f38e1-1f3e-41ed-af10-2750406ada09}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -1730,8 +1732,8 @@
               <connections>
                 <connection
                   refId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Connections[OleDbConnection]"
-                  connectionManagerID="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
-                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
+                  connectionManagerID="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
+                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
                   description="The OLE DB runtime connection used to access the database."
                   name="OleDbConnection" />
               </connections>
@@ -1880,6 +1882,18 @@
                   name="OLE DB Source Error Output">
                   <outputColumns>
                     <outputColumn
+                      refId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                    <outputColumn
                       refId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[id_apcd]"
                       dataType="i8"
                       lineageId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[id_apcd]"
@@ -1930,18 +1944,6 @@
                       dataType="dbTimeStamp"
                       lineageId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[last_run]"
                       name="last_run" />
-                    <outputColumn
-                      refId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      dataType="i4"
-                      lineageId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      name="ErrorCode"
-                      specialFlags="1" />
-                    <outputColumn
-                      refId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      dataType="i4"
-                      lineageId="Package\DFT final apcd_claim_icdcm_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      name="ErrorColumn"
-                      specialFlags="2" />
                   </outputColumns>
                   <externalMetadataColumns />
                 </output>
@@ -1962,6 +1964,7 @@
       DTS:refId="Package\DFT final apcd_claim_line"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
+      DTS:Disabled="True"
       DTS:DTSID="{819e97e5-2f87-4e32-83e4-d1bbc21b7266}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -2268,8 +2271,8 @@
               <connections>
                 <connection
                   refId="Package\DFT final apcd_claim_line\OLE DB Source.Connections[OleDbConnection]"
-                  connectionManagerID="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
-                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
+                  connectionManagerID="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
+                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
                   description="The OLE DB runtime connection used to access the database."
                   name="OleDbConnection" />
               </connections>
@@ -2508,6 +2511,18 @@
                   name="OLE DB Source Error Output">
                   <outputColumns>
                     <outputColumn
+                      refId="Package\DFT final apcd_claim_line\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\DFT final apcd_claim_line\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\DFT final apcd_claim_line\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\DFT final apcd_claim_line\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                    <outputColumn
                       refId="Package\DFT final apcd_claim_line\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[id_apcd]"
                       dataType="i8"
                       lineageId="Package\DFT final apcd_claim_line\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[id_apcd]"
@@ -2594,18 +2609,6 @@
                       dataType="dbTimeStamp"
                       lineageId="Package\DFT final apcd_claim_line\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[last_run]"
                       name="last_run" />
-                    <outputColumn
-                      refId="Package\DFT final apcd_claim_line\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      dataType="i4"
-                      lineageId="Package\DFT final apcd_claim_line\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      name="ErrorCode"
-                      specialFlags="1" />
-                    <outputColumn
-                      refId="Package\DFT final apcd_claim_line\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      dataType="i4"
-                      lineageId="Package\DFT final apcd_claim_line\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      name="ErrorColumn"
-                      specialFlags="2" />
                   </outputColumns>
                   <externalMetadataColumns />
                 </output>
@@ -2626,6 +2629,7 @@
       DTS:refId="Package\DFT final apcd_claim_procedure"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
+      DTS:Disabled="True"
       DTS:DTSID="{ba1fa789-e1c8-4cc3-9d14-00627d185c45}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -2912,8 +2916,8 @@
               <connections>
                 <connection
                   refId="Package\DFT final apcd_claim_procedure\OLE DB Source.Connections[OleDbConnection]"
-                  connectionManagerID="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
-                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
+                  connectionManagerID="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
+                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
                   description="The OLE DB runtime connection used to access the database."
                   name="OleDbConnection" />
               </connections>
@@ -3100,6 +3104,18 @@
                   name="OLE DB Source Error Output">
                   <outputColumns>
                     <outputColumn
+                      refId="Package\DFT final apcd_claim_procedure\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\DFT final apcd_claim_procedure\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\DFT final apcd_claim_procedure\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\DFT final apcd_claim_procedure\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                    <outputColumn
                       refId="Package\DFT final apcd_claim_procedure\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[id_apcd]"
                       dataType="i8"
                       lineageId="Package\DFT final apcd_claim_procedure\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[id_apcd]"
@@ -3166,18 +3182,6 @@
                       dataType="dbTimeStamp"
                       lineageId="Package\DFT final apcd_claim_procedure\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[last_run]"
                       name="last_run" />
-                    <outputColumn
-                      refId="Package\DFT final apcd_claim_procedure\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      dataType="i4"
-                      lineageId="Package\DFT final apcd_claim_procedure\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      name="ErrorCode"
-                      specialFlags="1" />
-                    <outputColumn
-                      refId="Package\DFT final apcd_claim_procedure\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      dataType="i4"
-                      lineageId="Package\DFT final apcd_claim_procedure\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      name="ErrorColumn"
-                      specialFlags="2" />
                   </outputColumns>
                   <externalMetadataColumns />
                 </output>
@@ -3198,6 +3202,7 @@
       DTS:refId="Package\DFT final apcd_claim_provider"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
+      DTS:Disabled="True"
       DTS:DTSID="{c518d0f2-b45c-466b-baeb-e0b06fbc79b7}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -3459,8 +3464,8 @@
               <connections>
                 <connection
                   refId="Package\DFT final apcd_claim_provider\OLE DB Source.Connections[OleDbConnection]"
-                  connectionManagerID="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
-                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
+                  connectionManagerID="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
+                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
                   description="The OLE DB runtime connection used to access the database."
                   name="OleDbConnection" />
               </connections>
@@ -3588,6 +3593,18 @@
                   name="OLE DB Source Error Output">
                   <outputColumns>
                     <outputColumn
+                      refId="Package\DFT final apcd_claim_provider\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\DFT final apcd_claim_provider\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\DFT final apcd_claim_provider\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\DFT final apcd_claim_provider\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                    <outputColumn
                       refId="Package\DFT final apcd_claim_provider\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[id_apcd]"
                       dataType="i8"
                       lineageId="Package\DFT final apcd_claim_provider\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[id_apcd]"
@@ -3629,18 +3646,6 @@
                       dataType="dbTimeStamp"
                       lineageId="Package\DFT final apcd_claim_provider\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[last_run]"
                       name="last_run" />
-                    <outputColumn
-                      refId="Package\DFT final apcd_claim_provider\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      dataType="i4"
-                      lineageId="Package\DFT final apcd_claim_provider\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      name="ErrorCode"
-                      specialFlags="1" />
-                    <outputColumn
-                      refId="Package\DFT final apcd_claim_provider\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      dataType="i4"
-                      lineageId="Package\DFT final apcd_claim_provider\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      name="ErrorColumn"
-                      specialFlags="2" />
                   </outputColumns>
                   <externalMetadataColumns />
                 </output>
@@ -3661,6 +3666,7 @@
       DTS:refId="Package\DFT stage apcd_dental_claim"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
+      DTS:Disabled="True"
       DTS:DTSID="{207C8DBF-9556-45B1-9322-6F5179607450}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -4068,8 +4074,8 @@
               <connections>
                 <connection
                   refId="Package\DFT stage apcd_dental_claim\OLE DB Source.Connections[OleDbConnection]"
-                  connectionManagerID="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
-                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
+                  connectionManagerID="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
+                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
                   description="The OLE DB runtime connection used to access the database."
                   name="OleDbConnection" />
               </connections>
@@ -4561,6 +4567,18 @@
                   name="OLE DB Source Error Output">
                   <outputColumns>
                     <outputColumn
+                      refId="Package\DFT stage apcd_dental_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\DFT stage apcd_dental_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_dental_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\DFT stage apcd_dental_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                    <outputColumn
                       refId="Package\DFT stage apcd_dental_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_claim_service_line_id]"
                       dataType="i8"
                       lineageId="Package\DFT stage apcd_dental_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_claim_service_line_id]"
@@ -4748,18 +4766,6 @@
                       dataType="i4"
                       lineageId="Package\DFT stage apcd_dental_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[etl_batch_id]"
                       name="etl_batch_id" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_dental_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      dataType="i4"
-                      lineageId="Package\DFT stage apcd_dental_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      name="ErrorCode"
-                      specialFlags="1" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_dental_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      dataType="i4"
-                      lineageId="Package\DFT stage apcd_dental_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      name="ErrorColumn"
-                      specialFlags="2" />
                   </outputColumns>
                   <externalMetadataColumns />
                 </output>
@@ -4780,6 +4786,7 @@
       DTS:refId="Package\DFT stage apcd_eligibility"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
+      DTS:Disabled="True"
       DTS:DTSID="{10ac8aaa-1ac0-4409-a377-d111159ea4a7}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -4998,11 +5005,6 @@
                       cachedName="gender_code"
                       lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Output].Columns[gender_code]" />
                     <inputColumn
-                      refId="Package\DFT stage apcd_eligibility\CSV File Destination.Inputs[CsvDestinationInput].Columns[age]"
-                      cachedDataType="i4"
-                      cachedName="age"
-                      lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Output].Columns[age]" />
-                    <inputColumn
                       refId="Package\DFT stage apcd_eligibility\CSV File Destination.Inputs[CsvDestinationInput].Columns[coverage_level_id]"
                       cachedDataType="i8"
                       cachedName="coverage_level_id"
@@ -5217,8 +5219,8 @@
               <connections>
                 <connection
                   refId="Package\DFT stage apcd_eligibility\OLE DB Source.Connections[OleDbConnection]"
-                  connectionManagerID="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
-                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
+                  connectionManagerID="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
+                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
                   description="The OLE DB runtime connection used to access the database."
                   name="OleDbConnection" />
               </connections>
@@ -5320,15 +5322,6 @@
                       length="10"
                       lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Output].Columns[gender_code]"
                       name="gender_code"
-                      truncationRowDisposition="FailComponent" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Output].Columns[age]"
-                      dataType="i4"
-                      errorOrTruncationOperation="Conversion"
-                      errorRowDisposition="FailComponent"
-                      externalMetadataColumnId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[age]"
-                      lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Output].Columns[age]"
-                      name="age"
                       truncationRowDisposition="FailComponent" />
                     <outputColumn
                       refId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Output].Columns[coverage_level_id]"
@@ -5645,10 +5638,6 @@
                       length="10"
                       name="gender_code" />
                     <externalMetadataColumn
-                      refId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[age]"
-                      dataType="i4"
-                      name="age" />
-                    <externalMetadataColumn
                       refId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[coverage_level_id]"
                       dataType="i8"
                       name="coverage_level_id" />
@@ -5788,6 +5777,18 @@
                   name="OLE DB Source Error Output">
                   <outputColumns>
                     <outputColumn
+                      refId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                    <outputColumn
                       refId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[eligibility_id]"
                       dataType="i8"
                       lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[eligibility_id]"
@@ -5841,11 +5842,6 @@
                       length="10"
                       lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[gender_code]"
                       name="gender_code" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[age]"
-                      dataType="i4"
-                      lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[age]"
-                      name="age" />
                     <outputColumn
                       refId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[coverage_level_id]"
                       dataType="i8"
@@ -6005,18 +6001,6 @@
                       dataType="i4"
                       lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[etl_batch_id]"
                       name="etl_batch_id" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      dataType="i4"
-                      lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      name="ErrorCode"
-                      specialFlags="1" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      dataType="i4"
-                      lineageId="Package\DFT stage apcd_eligibility\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      name="ErrorColumn"
-                      specialFlags="2" />
                   </outputColumns>
                   <externalMetadataColumns />
                 </output>
@@ -6253,13 +6237,6 @@
                       cachedScale="2"
                       lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].Columns[charge_amt]" />
                     <inputColumn
-                      refId="Package\DFT stage apcd_medical_claim_header\CSV File Destination.Inputs[CsvDestinationInput].Columns[diagnosis_code]"
-                      cachedCodepage="1252"
-                      cachedDataType="str"
-                      cachedLength="10"
-                      cachedName="diagnosis_code"
-                      lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].Columns[diagnosis_code]" />
-                    <inputColumn
                       refId="Package\DFT stage apcd_medical_claim_header\CSV File Destination.Inputs[CsvDestinationInput].Columns[icd_version_ind]"
                       cachedCodepage="1252"
                       cachedDataType="str"
@@ -6453,6 +6430,13 @@
                       cachedDataType="i4"
                       cachedName="etl_batch_id"
                       lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].Columns[etl_batch_id]" />
+                    <inputColumn
+                      refId="Package\DFT stage apcd_medical_claim_header\CSV File Destination.Inputs[CsvDestinationInput].Columns[diagnosis_code_principal]"
+                      cachedCodepage="1252"
+                      cachedDataType="str"
+                      cachedLength="10"
+                      cachedName="diagnosis_code_principal"
+                      lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].Columns[diagnosis_code_principal]" />
                   </inputColumns>
                   <externalMetadataColumns />
                 </input>
@@ -6509,8 +6493,8 @@
               <connections>
                 <connection
                   refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Connections[OleDbConnection]"
-                  connectionManagerID="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
-                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
+                  connectionManagerID="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
+                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
                   description="The OLE DB runtime connection used to access the database."
                   name="OleDbConnection" />
               </connections>
@@ -6610,17 +6594,6 @@
                       name="charge_amt"
                       precision="38"
                       scale="2"
-                      truncationRowDisposition="FailComponent" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].Columns[diagnosis_code]"
-                      codePage="1252"
-                      dataType="str"
-                      errorOrTruncationOperation="Conversion"
-                      errorRowDisposition="FailComponent"
-                      externalMetadataColumnId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[diagnosis_code]"
-                      length="10"
-                      lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].Columns[diagnosis_code]"
-                      name="diagnosis_code"
                       truncationRowDisposition="FailComponent" />
                     <outputColumn
                       refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].Columns[icd_version_ind]"
@@ -6960,6 +6933,17 @@
                       lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].Columns[etl_batch_id]"
                       name="etl_batch_id"
                       truncationRowDisposition="FailComponent" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].Columns[diagnosis_code_principal]"
+                      codePage="1252"
+                      dataType="str"
+                      errorOrTruncationOperation="Conversion"
+                      errorRowDisposition="FailComponent"
+                      externalMetadataColumnId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[diagnosis_code_principal]"
+                      length="10"
+                      lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].Columns[diagnosis_code_principal]"
+                      name="diagnosis_code_principal"
+                      truncationRowDisposition="FailComponent" />
                   </outputColumns>
                   <externalMetadataColumns
                     isUsed="True">
@@ -7005,12 +6989,6 @@
                       name="charge_amt"
                       precision="38"
                       scale="2" />
-                    <externalMetadataColumn
-                      refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[diagnosis_code]"
-                      codePage="1252"
-                      dataType="str"
-                      length="10"
-                      name="diagnosis_code" />
                     <externalMetadataColumn
                       refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[icd_version_ind]"
                       codePage="1252"
@@ -7169,6 +7147,12 @@
                       refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[etl_batch_id]"
                       dataType="i4"
                       name="etl_batch_id" />
+                    <externalMetadataColumn
+                      refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Output].ExternalColumns[diagnosis_code_principal]"
+                      codePage="1252"
+                      dataType="str"
+                      length="10"
+                      name="diagnosis_code_principal" />
                   </externalMetadataColumns>
                 </output>
                 <output
@@ -7176,6 +7160,18 @@
                   isErrorOut="true"
                   name="OLE DB Source Error Output">
                   <outputColumns>
+                    <outputColumn
+                      refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
                     <outputColumn
                       refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[medical_claim_header_id]"
                       dataType="i8"
@@ -7228,13 +7224,6 @@
                       name="charge_amt"
                       precision="38"
                       scale="2" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[diagnosis_code]"
-                      codePage="1252"
-                      dataType="str"
-                      length="10"
-                      lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[diagnosis_code]"
-                      name="diagnosis_code" />
                     <outputColumn
                       refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[icd_version_ind]"
                       codePage="1252"
@@ -7430,17 +7419,12 @@
                       lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[etl_batch_id]"
                       name="etl_batch_id" />
                     <outputColumn
-                      refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      dataType="i4"
-                      lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      name="ErrorCode"
-                      specialFlags="1" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      dataType="i4"
-                      lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      name="ErrorColumn"
-                      specialFlags="2" />
+                      refId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[diagnosis_code_principal]"
+                      codePage="1252"
+                      dataType="str"
+                      length="10"
+                      lineageId="Package\DFT stage apcd_medical_claim_header\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[diagnosis_code_principal]"
+                      name="diagnosis_code_principal" />
                   </outputColumns>
                   <externalMetadataColumns />
                 </output>
@@ -7811,8 +7795,8 @@
               <connections>
                 <connection
                   refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Connections[OleDbConnection]"
-                  connectionManagerID="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
-                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
+                  connectionManagerID="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
+                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
                   description="The OLE DB runtime connection used to access the database."
                   name="OleDbConnection" />
               </connections>
@@ -8243,36 +8227,6 @@
                       lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[rx_commercial_eligibility_id]"
                       name="rx_commercial_eligibility_id" />
                     <outputColumn
-                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_product_code_id]"
-                      dataType="i8"
-                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_product_code_id]"
-                      name="dental_product_code_id" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_submitter_id]"
-                      dataType="i8"
-                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_submitter_id]"
-                      name="dental_submitter_id" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_eligibility_id]"
-                      dataType="i8"
-                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_eligibility_id]"
-                      name="dental_eligibility_id" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_commercial_eligibility_id]"
-                      dataType="i8"
-                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_commercial_eligibility_id]"
-                      name="dental_commercial_eligibility_id" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicare_eligibility_id]"
-                      dataType="i8"
-                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicare_eligibility_id]"
-                      name="dental_medicare_eligibility_id" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicaid_eligibility_id]"
-                      dataType="i8"
-                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicaid_eligibility_id]"
-                      name="dental_medicaid_eligibility_id" />
-                    <outputColumn
                       refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[rx_medicare_eligibility_id]"
                       dataType="i8"
                       lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[rx_medicare_eligibility_id]"
@@ -8311,6 +8265,36 @@
                       dataType="i4"
                       lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[etl_batch_id]"
                       name="etl_batch_id" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_product_code_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_product_code_id]"
+                      name="dental_product_code_id" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_submitter_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_submitter_id]"
+                      name="dental_submitter_id" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_eligibility_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_eligibility_id]"
+                      name="dental_eligibility_id" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_commercial_eligibility_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_commercial_eligibility_id]"
+                      name="dental_commercial_eligibility_id" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicare_eligibility_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicare_eligibility_id]"
+                      name="dental_medicare_eligibility_id" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicaid_eligibility_id]"
+                      dataType="i8"
+                      lineageId="Package\DFT stage apcd_member_month_detail\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[dental_medicaid_eligibility_id]"
+                      name="dental_medicaid_eligibility_id" />
                   </outputColumns>
                   <externalMetadataColumns />
                 </output>
@@ -8331,6 +8315,7 @@
       DTS:refId="Package\DFT stage apcd_pharmacy_claim"
       DTS:CreationName="Microsoft.Pipeline"
       DTS:Description="Data Flow Task"
+      DTS:Disabled="True"
       DTS:DTSID="{c84c3353-cf43-4ae6-a13e-9e60f03e8ab9}"
       DTS:ExecutableType="Microsoft.Pipeline"
       DTS:LocaleID="-1"
@@ -8764,8 +8749,8 @@
               <connections>
                 <connection
                   refId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Connections[OleDbConnection]"
-                  connectionManagerID="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
-                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLUTPDBH51.PHClaims]"
+                  connectionManagerID="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
+                  connectionManagerRefId="Package.ConnectionManagers[KCITSQLPRPENT40.PHClaims]"
                   description="The OLE DB runtime connection used to access the database."
                   name="OleDbConnection" />
               </connections>
@@ -9324,6 +9309,18 @@
                   name="OLE DB Source Error Output">
                   <outputColumns>
                     <outputColumn
+                      refId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      dataType="i4"
+                      lineageId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
+                      name="ErrorCode"
+                      specialFlags="1" />
+                    <outputColumn
+                      refId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      dataType="i4"
+                      lineageId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
+                      name="ErrorColumn"
+                      specialFlags="2" />
+                    <outputColumn
                       refId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[pharmacy_claim_service_line_id]"
                       dataType="i8"
                       lineageId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[pharmacy_claim_service_line_id]"
@@ -9537,18 +9534,6 @@
                       dataType="i4"
                       lineageId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[etl_batch_id]"
                       name="etl_batch_id" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      dataType="i4"
-                      lineageId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorCode]"
-                      name="ErrorCode"
-                      specialFlags="1" />
-                    <outputColumn
-                      refId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      dataType="i4"
-                      lineageId="Package\DFT stage apcd_pharmacy_claim\OLE DB Source.Outputs[OLE DB Source Error Output].Columns[ErrorColumn]"
-                      name="ErrorColumn"
-                      specialFlags="2" />
                   </outputColumns>
                   <externalMetadataColumns />
                 </output>
@@ -9569,6 +9554,7 @@
       DTS:refId="Package\ZS Export CSV Batch final"
       DTS:CreationName="ZappySys.CsvExportTask"
       DTS:Description="ZS Export CSV Task"
+      DTS:Disabled="True"
       DTS:DTSID="{254a5c22-83f9-4fd9-8211-e3dc549b2e68}"
       DTS:ExecutableType="ZappySys.CsvExportTask"
       DTS:LocaleID="-1"
@@ -9595,8 +9581,8 @@
           ProgressIntervalRows="20000"
           Timeout="0"
           ThrowErrorIfSourceDataMissing="False"
-          Connection="KCITSQLUTPDBH51.PHClaims"
-          Source="final.apcd_claim_ccw|final.apcd_elig_demo|final.apcd_elig_plr_2014|final.apcd_elig_plr_2015|final.apcd_elig_plr_2016|final.apcd_elig_plr_2017|final.apcd_elig_plr_2018|final.apcd_elig_plr_2019|final.apcd_elig_plr_20190630|final.apcd_elig_plr_2020|final.apcd_elig_plr_2021|final.apcd_elig_plr_20220630|final.apcd_elig_timevar"
+          Connection="KCITSQLPRPENT40.PHClaims"
+          Source="final.apcd_claim_ccw|final.apcd_elig_demo|final.apcd_elig_plr_2014|final.apcd_elig_plr_2015|final.apcd_elig_plr_2016|final.apcd_elig_plr_2017|final.apcd_elig_plr_2018|final.apcd_elig_plr_2019|final.apcd_elig_plr_20190630|final.apcd_elig_plr_2020|final.apcd_elig_plr_2021|final.apcd_elig_plr_2022|final.apcd_elig_plr_20230331|final.apcd_elig_timevar"
           SourceSplitChar="|"
           ExcludeViews="False"
           ExcludeTables="False"
@@ -9631,6 +9617,7 @@
       DTS:refId="Package\ZS Export CSV Batch ref"
       DTS:CreationName="ZappySys.CsvExportTask"
       DTS:Description="ZS Export CSV Task"
+      DTS:Disabled="True"
       DTS:DTSID="{B1887FA5-FDF1-4DFB-8B45-928EB814BF01}"
       DTS:ExecutableType="ZappySys.CsvExportTask"
       DTS:LocaleID="-1"
@@ -9657,8 +9644,8 @@
           ProgressIntervalRows="20000"
           Timeout="0"
           ThrowErrorIfSourceDataMissing="False"
-          Connection="KCITSQLUTPDBH51.PHClaims"
-          Source="ref.apcd_claim_type|ref.apcd_primary_insurance_indicator|ref.apcd_compound_drug_code|ref.apcd_generic_drug_ind|ref.kc_claim_type|ref.apcd_entitlement_code|ref.apcd_network_indicator|ref.apcd_payment_arrangement_ind|ref.apcd_admission_type|ref.apcd_coverage_type|ref.apcd_exchange_metallic_tier|ref.apcd_medicare_status|ref.apcd_dental_tooth_surface|ref.apcd_type_of_setting|ref.apcd_place_of_setting|ref.apcd_coverage_level|ref.apcd_race|ref.apcd_dental_quadrant|ref.apcd_dispense_as_written|ref.apcd_market_category|ref.apcd_claim_status|ref.apcd_ethnicity_race_map|ref.apcd_admission_point_of_origin|ref.apcd_dual_eligibility_code|ref.apcd_subscriber_relationship|ref.pc_visit_oregon|ref.ccw_lookup|ref.geo_county_code_wa|ref.apcd_discharge_status|ref.apcd_place_of_service|ref.apcd_product_code|ref.kc_claim_type_crosswalk|ref.apcd_aid_category|ref.apcd_procedure_modifier_code|ref.apcd_type_of_bill|ref.apcd_revenue_code|ref.apcd_ethnicity|ref.apcd_zip_group|ref.ahrq_pqi_value_set_2021|ref.apcd_specialty|ref.apcd_drg_ref|ref.apcd_zip|ref.date|ref.apcd_procedure_code|ref.apcd_icd_procedure|ref.dx_lookup|ref.apcd_provider_npi|ref.kc_provider_master"
+          Connection="KCITSQLPRPENT40.PHClaims"
+          Source="ref.ahrq_pqi_value_set_2021|ref.apcd_admission_point_of_origin|ref.apcd_admission_type|ref.apcd_aid_category|ref.apcd_claim_status|ref.apcd_claim_type|ref.apcd_compound_drug_code|ref.apcd_coverage_level|ref.apcd_coverage_type|ref.apcd_dental_quadrant|ref.apcd_dental_tooth_surface|ref.apcd_discharge_status|ref.apcd_dispense_as_written|ref.apcd_drg_ref|ref.apcd_dual_eligibility_code|ref.apcd_entitlement_code|ref.apcd_ethnicity|ref.apcd_ethnicity_race_map|ref.apcd_exchange_metallic_tier|ref.apcd_generic_drug_ind|ref.apcd_icd_procedure|ref.apcd_market_category|ref.apcd_medicare_status|ref.apcd_network_indicator|ref.apcd_payment_arrangement_ind|ref.apcd_place_of_service|ref.apcd_place_of_setting|ref.apcd_primary_insurance_indicator|ref.apcd_procedure_code|ref.apcd_procedure_modifier_code|ref.apcd_product_code|ref.apcd_provider_npi|ref.apcd_race|ref.apcd_revenue_code|ref.apcd_specialty|ref.apcd_subscriber_relationship|ref.apcd_type_of_bill|ref.apcd_type_of_setting|ref.apcd_zip|ref.apcd_zip_group|ref.ccw_lookup|ref.date|ref.geo_county_code_wa|ref.kc_claim_type|ref.kc_claim_type_crosswalk|ref.kc_provider_master|ref.pc_visit_oregon"
           SourceSplitChar="|"
           ExcludeViews="False"
           ExcludeTables="False"
@@ -9693,6 +9680,7 @@
       DTS:refId="Package\ZS Export CSV Batch stage"
       DTS:CreationName="ZappySys.CsvExportTask"
       DTS:Description="ZS Export CSV Task"
+      DTS:Disabled="True"
       DTS:DTSID="{e76dbd63-7e8c-4da6-8b67-3d51cdc19e7b}"
       DTS:ExecutableType="ZappySys.CsvExportTask"
       DTS:LocaleID="-1"
@@ -9719,8 +9707,8 @@
           ProgressIntervalRows="20000"
           Timeout="0"
           ThrowErrorIfSourceDataMissing="False"
-          Connection="KCITSQLUTPDBH51.PHClaims"
-          Source="stage.apcd_provider_master|stage.apcd_provider"
+          Connection="KCITSQLPRPENT40.PHClaims"
+          Source="stage.apcd_provider|stage.apcd_provider_master"
           SourceSplitChar="|"
           ExcludeViews="False"
           ExcludeTables="False"
@@ -10233,7 +10221,7 @@
     design-time-name="Package\DFT final apcd_claim_header">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT final apcd_claim_header\OLE DB Source"
@@ -10261,7 +10249,9 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <EdgeLabelCollection />
+            <mssgm:EdgeLabel
+              BoundingBox="0,0,0,0"
+              RelativePosition="Any" />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10284,7 +10274,7 @@
     design-time-name="Package\DFT final apcd_claim_icdcm_header">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT final apcd_claim_icdcm_header\OLE DB Source"
@@ -10312,7 +10302,9 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <EdgeLabelCollection />
+            <mssgm:EdgeLabel
+              BoundingBox="0,0,0,0"
+              RelativePosition="Any" />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10335,7 +10327,7 @@
     design-time-name="Package\DFT final apcd_claim_line">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT final apcd_claim_line\OLE DB Source"
@@ -10375,7 +10367,9 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <EdgeLabelCollection />
+            <mssgm:EdgeLabel
+              BoundingBox="0,0,0,0"
+              RelativePosition="Any" />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10398,7 +10392,7 @@
     design-time-name="Package\DFT final apcd_claim_procedure">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT final apcd_claim_procedure\OLE DB Source"
@@ -10438,7 +10432,9 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <EdgeLabelCollection />
+            <mssgm:EdgeLabel
+              BoundingBox="0,0,0,0"
+              RelativePosition="Any" />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10461,7 +10457,7 @@
     design-time-name="Package\DFT final apcd_claim_provider">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT final apcd_claim_provider\OLE DB Source"
@@ -10501,7 +10497,9 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <EdgeLabelCollection />
+            <mssgm:EdgeLabel
+              BoundingBox="0,0,0,0"
+              RelativePosition="Any" />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10524,7 +10522,7 @@
     design-time-name="Package\DFT stage apcd_dental_claim">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT stage apcd_dental_claim\OLE DB Source"
@@ -10564,7 +10562,9 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <EdgeLabelCollection />
+            <mssgm:EdgeLabel
+              BoundingBox="0,0,0,0"
+              RelativePosition="Any" />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10587,7 +10587,7 @@
     design-time-name="Package\DFT stage apcd_eligibility">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT stage apcd_eligibility\OLE DB Source"
@@ -10627,7 +10627,9 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <EdgeLabelCollection />
+            <mssgm:EdgeLabel
+              BoundingBox="0,0,0,0"
+              RelativePosition="Any" />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>
@@ -10715,13 +10717,13 @@
       <GraphLayout
         Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
         <NodeLayout
-          Size="180,42"
-          Id="Package\DFT stage apcd_member_month_detail\CSV File Destination"
-          TopLeft="497,305" />
-        <NodeLayout
           Size="157,42"
           Id="Package\DFT stage apcd_member_month_detail\OLE DB Source"
           TopLeft="472,149" />
+        <NodeLayout
+          Size="180,42"
+          Id="Package\DFT stage apcd_member_month_detail\CSV File Destination"
+          TopLeft="497,305" />
         <EdgeLayout
           Id="Package\DFT stage apcd_member_month_detail.Paths[OLE DB Source Output]"
           TopLeft="550.5,191">
@@ -10776,7 +10778,7 @@
     design-time-name="Package\DFT stage apcd_pharmacy_claim">
     <LayoutInfo>
       <GraphLayout
-        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml">
+        Capacity="4" xmlns="clr-namespace:Microsoft.SqlServer.IntegrationServices.Designer.Model.Serialization;assembly=Microsoft.SqlServer.IntegrationServices.Graph" xmlns:mssgle="clr-namespace:Microsoft.SqlServer.Graph.LayoutEngine;assembly=Microsoft.SqlServer.Graph" xmlns:assembly="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:mssgm="clr-namespace:Microsoft.SqlServer.Graph.Model;assembly=Microsoft.SqlServer.Graph">
         <NodeLayout
           Size="157,42"
           Id="Package\DFT stage apcd_pharmacy_claim\OLE DB Source"
@@ -10816,7 +10818,9 @@
             </mssgle:Curve>
           </EdgeLayout.Curve>
           <EdgeLayout.Labels>
-            <EdgeLabelCollection />
+            <mssgm:EdgeLabel
+              BoundingBox="0,0,0,0"
+              RelativePosition="Any" />
           </EdgeLayout.Labels>
         </EdgeLayout>
       </GraphLayout>

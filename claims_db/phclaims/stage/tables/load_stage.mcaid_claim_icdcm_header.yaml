@@ -20,6 +20,8 @@ hhsaw:
     ref_table: ref_
     qa_schema: claims
     qa_table: metadata_
+    icdcm_ref_schema: ref
+    icdcm_ref_table: icdcm_codes
 index_type: ccs
 index_name: idx_ccs_mcaid_claim_icdcm_header
 vars:

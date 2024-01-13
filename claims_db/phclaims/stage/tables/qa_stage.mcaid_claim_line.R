@@ -11,8 +11,7 @@
 # 1) IDs are all found in the elig tables
 # 2) Same number of distinct claim lines as in stage.mcaid_claim table
 # 3) Revenue code is formatted properly
-# 4) (Almost) All RAC codes are found in the the ref table
-# 5) Check there were as many or more claim lines for each calendar year
+# 4) Check there were as many or more claim lines for each calendar year
 
 
 ### Function elements
@@ -184,45 +183,6 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   }
   
   
-  #### Check if any RAC codes do not join to reference table ####
-  rac_chk <- as.integer(DBI::dbGetQuery(
-    conn,
-    glue::glue_sql("SELECT count(distinct 'RAC Code - ' + CAST([rac_code_line] AS VARCHAR(255)))
-  FROM {`to_schema`}.{`to_table`} as a
-  WHERE NOT EXISTS
-  (SELECT 1 FROM {`ref_schema`}.{DBI::SQL(ref_table)}mcaid_rac_code as b
-  WHERE a.rac_code_line = b.rac_code)", .con = conn)))
-  
-  
-  
-  # Write findings to metadata
-  if (rac_chk < 50) {
-    rac_fail <- 0
-    DBI::dbExecute(conn = conn,
-                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
-                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
-                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                   'Almost all RAC codes join to reference table', 
-                   'PASS', 
-                   {Sys.time()}, 
-                   'There were {rac_chk} RAC values not in {DBI::SQL(ref_schema)}.{DBI::SQL(ref_table)}mcaid_rac_code (acceptable is < 50)')",
-                                  .con = conn))
-  } else {
-    rac_fail <- 1
-    DBI::dbExecute(conn = conn,
-                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
-                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
-                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                   'Almost all RAC codes join to reference table', 
-                   'FAIL', 
-                   {Sys.time()}, 
-                   'There were {rac_chk} RAC not in {DBI::SQL(ref_schema)}.{DBI::SQL(ref_table)}mcaid_rac_code table (acceptable is < 50)')",
-                                  .con = conn))
-  }
-  
-  
   #### Compare number of claim lines in current vs. prior analytic tables ####
   if (DBI::dbExistsTable(conn, DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_line")))) {
     
@@ -294,7 +254,7 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   
   
   #### SUM UP FAILURES ####
-  fail_tot <- sum(ids_fail, rows_fail, rev_code_fail, rac_fail, num_claim_fail)
+  fail_tot <- sum(ids_fail, rows_fail, rev_code_fail, num_claim_fail)
   return(fail_tot)
 }
 

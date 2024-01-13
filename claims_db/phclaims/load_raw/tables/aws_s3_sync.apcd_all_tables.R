@@ -5,12 +5,13 @@
 #### Save WA-APCD data from Amazon S3 bucket to local secure drive ####
 
 #2019-10-1 update: Changed local file location from J drive to machine running SQL Server
+#2023-09-20 update: Change local file path to CIFS folder given that server 51 is being retired
 
 ##### Set up global parameters and call in libraries #####
 options(max.print = 350, tibble.print_max = 50, scipen = 999)
 library(tidyverse)
 origin <- "1970-01-01" # Date origin
-write_path <- "\\\\kcitsqlutpdbh51/ImportData/Data/APCD_data_import/" ##Folder to save Amazon S3 files to
+write_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" ##Folder to save Amazon S3 files to
 s3_folder <- "\"s3://waae-kc-ext/apcd_export/\"" ##Name of S3 folder containing data and format files
 
 #### Save/sync files from Amazon S3 bucket to drive ####

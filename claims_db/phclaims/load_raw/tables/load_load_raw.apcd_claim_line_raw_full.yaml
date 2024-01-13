@@ -1,4 +1,4 @@
-server_path: KCITSQLUTPDBH51
+server_path: KCITSQLPRPENT40
 db_name: PHClaims
 to_schema: load_raw
 to_table: apcd_claim_line_raw
@@ -18,95 +18,99 @@ vars:
     admission_point_of_origin_code: varchar(10)
     admission_type: varchar(10)
 part000:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_000.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_000.csv
     field_term: ','
     row_term: '0x0A'
 part001:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_001.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_001.csv
     field_term: ','
     row_term: '0x0A'
 part002:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_002.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_002.csv
     field_term: ','
     row_term: '0x0A'
 part003:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_003.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_003.csv
     field_term: ','
     row_term: '0x0A'
 part004:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_004.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_004.csv
     field_term: ','
     row_term: '0x0A'
 part005:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_005.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_005.csv
     field_term: ','
     row_term: '0x0A'
 part006:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_006.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_006.csv
     field_term: ','
     row_term: '0x0A'
 part007:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_007.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_007.csv
     field_term: ','
     row_term: '0x0A'
 part008:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_008.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_008.csv
     field_term: ','
     row_term: '0x0A'
 part009:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_009.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_009.csv
     field_term: ','
     row_term: '0x0A'
 part010:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_010.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_010.csv
     field_term: ','
     row_term: '0x0A'
 part011:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_011.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_011.csv
     field_term: ','
     row_term: '0x0A'
 part012:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_012.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_012.csv
     field_term: ','
     row_term: '0x0A'
 part013:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_013.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_013.csv
     field_term: ','
     row_term: '0x0A'
 part014:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_014.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_014.csv
     field_term: ','
     row_term: '0x0A'
 part015:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_015.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_015.csv
     field_term: ','
     row_term: '0x0A'
 part016:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_016.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_016.csv
     field_term: ','
     row_term: '0x0A'
 part017:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_017.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_017.csv
     field_term: ','
     row_term: '0x0A'
 part018:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_018.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_018.csv
     field_term: ','
     row_term: '0x0A'
 part019:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_019.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_019.csv
     field_term: ','
     row_term: '0x0A'
 part020:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_020.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_020.csv
     field_term: ','
     row_term: '0x0A'
 part021:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_021.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_021.csv
     field_term: ','
     row_term: '0x0A'
 part022:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/claim_line_raw_export/claim_line_raw_022.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_022.csv
+    field_term: ','
+    row_term: '0x0A'
+part023:
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/claim_line_raw_export/claim_line_raw_023.csv
     field_term: ','
     row_term: '0x0A'
 years:
@@ -133,3 +137,4 @@ years:
     - part020
     - part021
     - part022
+    - part023

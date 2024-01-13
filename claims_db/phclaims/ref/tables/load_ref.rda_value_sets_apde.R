@@ -888,7 +888,7 @@ myteamfolder_rda_value_set_existing$
   save_rdata(rda_value_sets_updated,file = paste0("rda_value_sets_current_backup_", Sys.Date(), ".rdata"))
 
 
-#### Step 8: Upload updated reference table to HHSAW ####
+#### Step 8: Upload updated reference table to HHSAW and PHClaims ####
 
 to_schema <- "ref"
 to_table <- "rda_value_sets_apde"
@@ -902,3 +902,16 @@ dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table),
 DBI::dbExecute(db_hhsaw, 
                glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_codeset_code] ON {`to_schema`}.{`to_table`} (code_set, code)",
                               .con = db_hhsaw))
+
+
+db_phclaims <- DBI::dbConnect(odbc::odbc(), "PHClaims")
+
+# Load data
+dbWriteTable(db_phclaims, name = DBI::Id(schema = to_schema, table = to_table), 
+             value = as.data.frame(rda_value_sets_updated), 
+             overwrite = T)
+
+# Add index
+DBI::dbExecute(db_phclaims, 
+               glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_codeset_code] ON {`to_schema`}.{`to_table`} (code_set, code)",
+                              .con = db_phclaims))

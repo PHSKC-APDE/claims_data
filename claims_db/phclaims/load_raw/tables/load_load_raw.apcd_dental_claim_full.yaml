@@ -1,4 +1,4 @@
-server_path: KCITSQLUTPDBH51
+server_path: KCITSQLPRPENT40
 db_name: PHClaims
 to_schema: load_raw
 to_table: apcd_dental_claim
@@ -35,31 +35,31 @@ vars:
     orphaned_adjustment_flag: varchar(1)
     denied_claim_flag: varchar(1)
 part000:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_000.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/dental_claim_export/dental_claim_000.csv
     field_term: ','
     row_term: '0x0A'
 part001:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_001.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/dental_claim_export/dental_claim_001.csv
     field_term: ','
     row_term: '0x0A'
 part002:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_002.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/dental_claim_export/dental_claim_002.csv
     field_term: ','
     row_term: '0x0A'
 part003:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_003.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/dental_claim_export/dental_claim_003.csv
     field_term: ','
     row_term: '0x0A'
 part004:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_004.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/dental_claim_export/dental_claim_004.csv
     field_term: ','
     row_term: '0x0A'
 part005:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_005.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/dental_claim_export/dental_claim_005.csv
     field_term: ','
     row_term: '0x0A'
 part006:
-    file_path: //kcitsqlutpdbh51/ImportData/Data/APCD_data_import/dental_claim_export/dental_claim_006.csv
+    file_path: //dphcifs/apde-cdip/apcd/apcd_data_import/dental_claim_export/dental_claim_006.csv
     field_term: ','
     row_term: '0x0A'
 years:

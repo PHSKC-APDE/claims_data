@@ -5,7 +5,7 @@
 #### Uncompress WA-APCD GZIP files from Analytic Enclave ####
 
 library(R.utils)
-filelist <- list.files("//kcitsqlutpdbh51/ImportData/Data/APCD_data_import", 
+filelist <- list.files("//dphcifs/apde-cdip/apcd/apcd_data_import", 
                        pattern = "\\.gz$",
                        recursive = T,
                        full.names = T)

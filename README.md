@@ -45,10 +45,10 @@ Folder Access:
   - Geocoding
   
 SQL Database Access:
-- KCITSQLUTPDBH51
+- KCITSQLPRPENT40
   - KCIT SQL Server (local)
   - Windows Authentication
-  - ODBC - User DSN - SQL Server - /w Windows NT authentication - PHClaims51
+  - ODBC - User DSN - SQL Server - /w Windows NT authentication - PHClaims
  - KCITSQLUTPDBH51
    - KCIT SQL Server (local)
    - Windows Authentication
