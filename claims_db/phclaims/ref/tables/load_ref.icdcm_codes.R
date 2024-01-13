@@ -55,11 +55,7 @@
 #' 5/10/2022 update: Overhauled CCW to account for new conditions and algorithms. General tidying.
 #' 5/1/2023 update: Overhaul code to update everything to new versions. Eliminate previous steps 4 and 5.
 #' 9/14/2023 update: Updated code for RDA-based BH flags, condensed CCS ICD-10-CM imputation code into while loop, added last_run col.
-
-
-
-
-library(car) # used to recode variables
+#' 1/9/2024 update: 1) Improve alignment of ccs between ICD-9/10-CM, 2) create ccs_super_category (5 levels)
 
 
 # SET OPTIONS AND BRING IN PACKAGES ----
@@ -67,7 +63,7 @@ options(scipen = 6, digits = 4, warning.length = 8170)
 origin <- "1970-01-01"
 
 if (!require("pacman")) {install.packages("pacman")}
-pacman::p_load(svDialogs, tidyverse, lubridate, odbc, glue, openxlsx, RecordLinkage, phonics, psych)
+pacman::p_load(svDialogs, tidyverse, lubridate, odbc, glue, openxlsx)
 
 ## Bring in relevant functions ----
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
@@ -142,6 +138,7 @@ ext_cause_10cm <- left_join(ext_cause_10cm, ext10cm_5, by = "code_5", suffix = c
                             is.na(intent.y) ~ "")) %>%
   select(., code, code_6, code_5, version, intent, mechanism, mechanism_full)
 
+rm(list = ls(pattern = "^ext9cm_"))
 rm(list = ls(pattern = "^ext10cm_"))
 
 ## Merge cause framework with ICD-10-CM code list --
@@ -180,7 +177,6 @@ icd10cm <- icd10cm %>%
   select(-icd_6, -icd_5)
 
 rm(list = ls(pattern = "^ext_cause_"))
-rm(ext10cm_5, ext10cm_6)
 
 ## QA for completeness of join for ICD-10-CM external cause of injury intent and mechanism
 #Refer to National Health Statistics Reports  Number 136  December 30, 2019, Table B for relevant ICD-10-CM ranges
@@ -246,7 +242,7 @@ rm(ccw_qa)
 icd9cm <- left_join(icd9cm, ccw, by = c("icdcode" = "dx", "ver" = "ver"))
 icd10cm <- left_join(icd10cm, ccw, by = c("icdcode" = "dx", "ver" = "ver"))
 
-rm(ccw)
+rm(ccw, ccw_17_xx, ccw_99_16)
 
 
 
@@ -380,6 +376,44 @@ ccs_9_simple <- ccs_9_simple %>%
                            "5.15","5.6","5.7","6.9","8.8","8.9","9.12") ~ 1L,
     TRUE ~ 0L))
 
+
+##Manual recoding certain ccs_broad and ccs_detail groups to normalize with ICD-10-CM
+ccs_9_simple <- ccs_9_simple %>%
+  mutate(
+    ccs_broad_desc = case_when(
+      ccs_detail_desc == "Allergic reactions" ~ "Injury, poisoning and certain other consequences of external causes",
+      ccs_detail_desc == "Gangrene" ~ "Diseases of the circulatory system",
+      TRUE ~ ccs_broad_desc),
+    ccs_broad_code = case_when(
+      ccs_detail_desc == "Allergic reactions" ~ "INJ",
+      ccs_detail_desc == "Gangrene" ~ "CIR",
+      TRUE ~ ccs_broad_code),
+    ccs_detail_desc = case_when(
+      ccs_detail_desc == "Other infections; including parasitic" ~ "Parasitic, other specified and unspecified infections",
+      ccs_detail_desc == "Dental disease" ~ "Any dental condition including traumatic injury",
+      ccs_detail_desc == "Bleeding in the stomach/intestines" ~ "Gastrointestinal hemorrhage",
+      ccs_detail_desc == "Pancreatic disorders (not diabetes)" ~ "Pancreatic disorders (excluding diabetes)",
+      ccs_detail_desc == "Headache" ~ "Headache; including migraine",
+      ccs_detail_desc == "Aspiration pneumonitis; food/vomitus" ~ "Aspiration pneumonitis",
+      ccs_detail_desc == "Failure of the respiratory system" ~ "Respiratory failure; insufficiency; arrest",
+      ccs_detail_desc == "Pleurisy; pneumothorax; pulmonary collapse" ~ "Pleurisy, pleural effusion and pulmonary collapse",
+      ccs_detail_desc == "Diabetes mellitus with complications" ~ "Diabetes mellitus with complication",
+      ccs_detail_desc == "Diabetes mellitus without complication" ~ "Diabetes mellitus without complication",
+      ccs_detail_desc == "Administrative/social admission" ~ "Encounter for administrative purposes",
+      ccs_detail_desc == "Alcohol use disorders" ~ "Alcohol-related disorders",
+      ccs_detail_desc == "Anxiety disorders" ~ "Anxiety and fear-related disorders",
+      ccs_detail_desc == "Attention deficit conduct and disruptive behavior disorders" ~ "Disruptive, impulse-control and conduct disorders",
+      ccs_detail_desc == "Developmental disorders" ~ "Neurodevelopmental disorders",
+      ccs_detail_desc == "Mood disorders" ~ "Depressive disorders",
+      ccs_detail_desc == "Schizophrenia and other psychotic disorders" ~ "Schizophrenia spectrum and other psychotic disorders",
+      ccs_detail_desc == "Suicide and self-harm" ~ "Suicidal ideation/attempt/intentional self-harm",
+      ccs_detail_desc == "Cancer; other and unspecified primary" ~ "Cancer of other sites",
+      ccs_detail_desc == "Normal pregnancy and/or delivery" ~ "Uncomplicated pregnancy, delivery or puerperium",
+      ccs_detail_desc == "Abdominal pain" ~ "Abdominal pain and other digestive/abdomen signs and symptoms",
+      ccs_detail_desc == "Bacterial infection" ~ "Bacterial infections",
+      TRUE ~ ccs_detail_desc))
+
+
 ##Collapse to required variables only
 ccs_9_simple <- select(ccs_9_simple, icdcode, ccs_broad_desc:ccs_catch_all) %>% distinct()
 
@@ -443,6 +477,34 @@ ccs_10_simple <- ccs_10_simple %>%
                            "RSP007", "RSP016", "DIG025") ~ 1L,
     TRUE ~ 0L)) %>%
   select(icdcode, ccs_broad_desc, ccs_broad_code, ccs_detail_desc, ccs_detail_code, ccs_catch_all)
+
+##Manual recoding certain ccs_broad and ccs_detail groups to normalize with ICD-9-CM
+ccs_10_simple <- ccs_10_simple %>%
+  mutate(ccs_detail_desc = case_when(
+    ccs_detail_desc == "Liveborn" ~ "Birth of child",
+    ccs_detail_desc == "Other specified and unspecified perinatal conditions" ~ "Other perinatal conditions",
+    ccs_detail_desc == "Other specified and unspecified congenital anomalies" ~ "Other congenital anomalies",
+    ccs_detail_desc == "Other specified and unspecified hematologic conditions" ~ "Other hematologic conditions",
+    ccs_detail_desc == "Hypertension with complications and secondary hypertension" ~ "Hypertension",
+    ccs_detail_desc == "Acquired deformities (excluding foot)" ~ "Acquired deformities",
+    ccs_detail_desc == "Other specified bone disease and musculoskeletal deformities" ~ "Other bone disease and musculoskeletal deformities",
+    ccs_detail_desc == "Other specified connective tissue disease" ~ "Other connective tissue disease",
+    ccs_detail_desc == "Other nervous system disorders (neither hereditary nor degenerative)" ~ "Other nervous system disorders",
+    ccs_detail_desc == "Other nervous system disorders (often hereditary or degenerative)" ~ "Hereditary and degenerative nervous system conditions",
+    ccs_detail_desc == "Paralysis (other than cerebral palsy)" ~ "Paralysis",
+    ccs_detail_desc == "Chronic obstructive pulmonary disease and bronchiectasis" ~ "Chronic obstructive pulmonary disease",
+    ccs_detail_desc == "Other specified and unspecified lower respiratory disease" ~ "Other lower respiratory disease",
+    ccs_detail_desc == "Other specified and unspecified upper respiratory disease" ~ "Other upper respiratory disease",
+    ccs_detail_desc == "Other specified and unspecified skin disorders" ~ "Other skin disorders",
+    ccs_detail_desc == "Other specified inflammatory condition of skin" ~ "Other inflammatory condition of skin",
+    ccs_detail_desc == "Skin and subcutaneous tissue infections" ~ "Skin infections",
+    ccs_detail_desc == "Other specified and unspecified endocrine disorders" ~ "Other endocrine disorders",
+    ccs_detail_desc == "Other specified and unspecified nutritional and metabolic disorders" ~ "Other nutritional; endocrine; and metabolic disorders",
+    ccs_detail_desc == "Encounter for observation and examination for conditions ruled out (excludes infectious disease, neoplasm, mental disorders)" ~ "Other screening for suspected conditions (not mental disorders or infectious disease)",
+    ccs_detail_desc == "Other aftercare encounter" ~ "Other aftercare",
+    ccs_detail_desc == "Miscellaneous mental and behavioral disorders/conditions" ~ "Miscellaneous mental health disorders",
+    ccs_detail_desc == "Fever" ~ "Fever of unknown origin",
+    TRUE ~ ccs_detail_desc))
 
 
 ## Step 4C: Join to ICD-9-CM codes --
@@ -573,6 +635,19 @@ count(filter(icd10cm, is.na(ccs_broad_desc)))
 rm(ccs_10_raw, ccs_10_simple, ccs_9_raw, ccs_9_simple, icd10cm_na_ccs_count, loop_pass)
 
 
+##Step 4E: Join to APDE crosswalk (developed by Danny and Eli) to add midlevel and superlevel categories for ccs_detail
+#This is to add flexibility for reporting leading causes of health care utilization (e.g. hospitalizations)
+
+ccs_mid_super_level_xwalk <- 
+  read.xlsx("https://github.com/PHSKC-APDE/reference-data/raw/main/claims_data/ccs_midlevel_superlevel_xwalk.xlsx", 
+            sheet = "ccs_midlevel_superlevel_xwalk") %>%
+  select(ccs_detail_desc, ccs_midlevel_desc, ccs_superlevel_desc)
+
+icd9cm <- left_join(icd9cm, ccs_mid_super_level_xwalk, by = "ccs_detail_desc")
+
+icd10cm <- left_join(icd10cm, ccs_mid_super_level_xwalk, by = "ccs_detail_desc")
+
+
 # Step 5: RDA-defined Mental Health and Substance User Disorder-related diagnoses ----
 
 ## Connect to HHSAW using ODBC driver
@@ -667,7 +742,10 @@ icd910cm <- icd910cm %>%
   mutate(last_run = Sys.time()) %>%
   select(
     icdcm:icdcm_description,
-    ccs_broad_desc:ccs_catch_all,
+    ccs_superlevel_desc,
+    ccs_broad_desc:ccs_broad_code,
+    ccs_midlevel_desc,
+    ccs_detail_desc:ccs_catch_all,
     all_of(ccw_cols),
     bh_any:sud_other_substance,
     intent:mechanism_full,
