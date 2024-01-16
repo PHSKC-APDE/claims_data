@@ -40,8 +40,10 @@ vars:
     primary_diagnosis: VARCHAR(255)
     icdcm_version: TINYINT
     primary_diagnosis_poa: VARCHAR(255)
+    ccs_superlevel_desc: VARCHAR(255)
     ccs_broad_desc: VARCHAR(500)
     ccs_broad_code: VARCHAR(255)
+    ccs_midlevel_desc: VARCHAR(255)
     ccs_detail_desc: VARCHAR(500)
     ccs_detail_code: VARCHAR(255)
     mh_primary: TINYINT
