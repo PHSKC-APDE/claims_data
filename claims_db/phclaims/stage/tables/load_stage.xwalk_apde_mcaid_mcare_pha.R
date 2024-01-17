@@ -10,10 +10,13 @@
 #        Agreed with Alastair 2024/01/12 that we should have a 1:1 KCMASTER <> id_apde
 #        and that there can be multiple rows for each KCMASTER_ID
 #
+# This code is designed to be run as part of the master Medicaid/Medicare script:
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid_mcare/master_mcaid_mcare_analytic.R
+#
 
 # Set up ----
   options(error = NULL, scipen = 999)
-  rm(list=ls())
+  # rm(list=ls())
   library(data.table)
   library(rads)
   library(odbc)
