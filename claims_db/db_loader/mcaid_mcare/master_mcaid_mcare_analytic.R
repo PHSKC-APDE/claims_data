@@ -16,6 +16,7 @@ library(RCurl) # Read files from Github
 library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
 library(RecordLinkage)
+library(rads) # misc APDE functions
 
 
 # NB. Currently Medicare data can only be loaded to on-prem servers so DO NOT USE HHSAW
@@ -24,15 +25,7 @@ server <- select.list(choices = c("phclaims", "hhsaw"))
 if (server == "phclaims") {
   db_claims <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
 } else if (server == "hhsaw") {
-  db_claims <- DBI::dbConnect(odbc::odbc(),
-                              driver = "ODBC Driver 17 for SQL Server",
-                              server = "tcp:kcitazrhpasqlprp16.azds.kingcounty.gov,1433",
-                              database = "hhs_analytics_workspace",
-                              uid = keyring::key_list("hhsaw_dev")[["username"]],
-                              pwd = keyring::key_get("hhsaw_dev", keyring::key_list("hhsaw_dev")[["username"]]),
-                              Encrypt = "yes",
-                              TrustServerCertificate = "yes",
-                              Authentication = "ActiveDirectoryPassword")
+  db_claims <- rads::validate_hhsaw_key()
 }
 
 
@@ -46,34 +39,36 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
 
 
-#### IDENTITY LINKAGE ####
+#### IDENTITY LINKAGE (CROSSWALK TABLE) ####
 # Make stage version of linkage
-# stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.yaml")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.R")
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.R")
 
 # QA stage version
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.xwalk_apde_mcaid_mcare_pha.R")
-qa_xwalk_apde_mcaid_mcare_pha_f(conn = db_claims, load_only = F)
-
+    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.xwalk_apde_mcaid_mcare_pha.R")
+    qa_xwalk_apde_mcaid_mcare_pha_f(conn = db_claims, 
+                                    skip_mcare = T, # will create a column of id_mcare with NULL values when skip_mcare = T, this is a place holder until we have an actual linkage
+                                    load_only = F # keep load_only = F unless it is the first time you are running the QA code
+                                    )
 
 # Archive previous xwalk table so that we can more easily update IDs in claims tables below
-alter_schema_f(conn = db_claims, 
-               from_schema = "final", 
-               to_schema = "archive",
-               table_name = "xwalk_apde_mcaid_mcare_pha")
-
-# Alter schema to final table (currently hard coded, use YAML eventually)
-alter_schema_f(conn = db_claims, 
-               from_schema = "stage", 
-               to_schema = "final",
-               table_name = "xwalk_apde_mcaid_mcare_pha")
+    if(odbc::dbExistsTable(conn = db_claims, DBI::Id(schema = 'claims', table = 'final_xwalk_apde_mcaid_mcare_pha')) == F) {
+      stop("\n\U1F6D1 [claims].[final_xwalk_apde_mcaid_mcare_pha] cannot be archived becaues it does not exist")
+    }else{
+      # drop archive table if it exists
+        if(odbc::dbExistsTable(conn = db_claims, DBI::Id(schema = 'claims', table = 'archive_xwalk_apde_mcaid_mcare_pha'))){
+          DBI::dbExecute(conn = db_claims, "DROP TABLE [claims].[archive_xwalk_apde_mcaid_mcare_pha]")
+        }
+      # rename final table as archive table
+        DBI::dbExecute(conn = db_claims, "EXEC sp_rename 'claims.final_xwalk_apde_mcaid_mcare_pha', 'archive_xwalk_apde_mcaid_mcare_pha'")
+      # copy stage into final
+        DBI::dbExecute(conn = db_claims, "SELECT * INTO claims.final_xwalk_apde_mcaid_mcare_pha 
+                                             FROM claims.stage_xwalk_apde_mcaid_mcare_pha WITH (TABLOCK)")
+  }
 
 # Add index
-DBI::dbExecute(db_claims,
-               'CREATE CLUSTERED COLUMNSTORE INDEX "idx_ccs_final_xwalk_apde_mcaid_mcare_pha" ON 
-                              final.xwalk_apde_mcaid_mcare_pha')
-
-
+    DBI::dbExecute(db_claims,
+                   'CREATE CLUSTERED COLUMNSTORE INDEX "idx_ccs_final_xwalk_apde_mcaid_mcare_pha" ON 
+                                  claims.final_xwalk_apde_mcaid_mcare_pha')
 
 #### CREATE ELIG ANALYTIC TABLES ------------------------------------------- ----
 #### MCAID_MCARE_ELIG_DEMO ####
