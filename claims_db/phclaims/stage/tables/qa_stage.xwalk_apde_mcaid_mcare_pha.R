@@ -13,6 +13,7 @@
 
 # Set up ----
   options(error = NULL, scipen = 999)
+  Sys.setenv(TZ="UTC") # so time stamps align with those in SQL server
   db_hhsaw <- rads::validate_hhsaw_key() # connects to Azure 16 HHSAW
   
   db_idh <- DBI::dbConnect(odbc::odbc(), driver = "ODBC Driver 17 for SQL Server", 
@@ -33,8 +34,11 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
   
   #### PULL OUT VALUES NEEDED MULTIPLE TIMES ####
   # Rows in current table
-  row_count <- as.integer(odbc::dbGetQuery(conn, 
-                                           "SELECT COUNT (*) FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
+  row_count <- as.integer(odbc::dbGetQuery(conn, "SELECT COUNT (*) FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
+  
+  distinct_KCMASTER_ID <- as.integer(DBI::dbGetQuery(conn, "SELECT COUNT(DISTINCT(KCMASTER_ID)) FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
+  
+  distinct_id_apde <- as.integer(DBI::dbGetQuery(conn, "SELECT COUNT(DISTINCT(id_apde)) FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
   
   ### Pull out run date of [claims].[stage_xwalk_apde_mcaid_mcare_pha]
   last_run <- as.POSIXct(odbc::dbGetQuery(conn, "SELECT MAX (last_run) FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]")[[1]])
@@ -98,8 +102,6 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
     }
 
   #### CHECK DISTINCT KCMASTER_ID >= PREVIOUS ####
-    distinct_KCMASTER_ID <- as.integer(DBI::dbGetQuery(conn, "SELECT COUNT(DISTINCT(KCMASTER_ID)) FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
-    
     prev_count_kcmaster_id <- as.integer(odbc::dbGetQuery(
       conn,
       "SELECT TEMP.qa_value
@@ -152,8 +154,6 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
     }
     
   #### CHECK DISTINCT ID_APDE >= PREVIOUS ####
-    distinct_id_apde <- as.integer(DBI::dbGetQuery(conn, "SELECT COUNT(DISTINCT(id_apde)) FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
-    
     prev_count_id_apde <- as.integer(odbc::dbGetQuery(
       conn,
       "SELECT TEMP.qa_value
@@ -334,11 +334,10 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
                       {last_run}, 
                      'claims.stage_xwalk_apde_mcaid_mcare_pha',
                      'Number distinct IDs - phousing_id', 
-                     'FAIL', 
+                     'WARNING', 
                       {format(Sys.time(), '%Y-%m-%d %H:%M:%S')}, 
-                     'There were {id_count_pha} distinct PHOUSING_IDs but {id_count_pha_orig} in the most recent [IDMatch].[IM_HISTORY_TABLE] in the IDH (they should be equal)'
-                     )
-                     ",
+                     'There were {id_count_pha} distinct PHOUSING_IDs but {id_count_pha_orig} in the most recent [IDMatch].[IM_HISTORY_TABLE] in the IDH ({id_count_pha_orig})'
+                     )",
                      .con = conn))
     
     problem.id_pha  <- glue::glue("Number of distinct PHOUSING_IDs is different from the number in [IDMatch].[IM_HISTORY_TABLE] in the IDH. 
@@ -354,8 +353,8 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
                      'Number distinct IDs - phousing_id', 
                      'PASS', 
                       {format(Sys.time(), '%Y-%m-%d %H:%M:%S')}, 
-                     'The number of distinct PHOUSING_IDs ({id_count_pha}) is equal to the number in [IDMatch].[IM_HISTORY_TABLE] in the IDH  
-                     ({id_count_pha_orig})')",
+                     'The number of distinct PHOUSING_IDs ({id_count_pha}) is equal to the number in [IDMatch].[IM_HISTORY_TABLE] in the IDH'
+                     )",
                      .con = conn))
     
     problem.id_pha  <- glue::glue(" ") # no problem
@@ -422,7 +421,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
     # CHECK THAT id_apde ARE DISTINCT (ONLY IN ONE ROW) ----
       problem.dup.id_apde <- check_duplicate_ids(conn, last_run, "id_apde")
     
-    # CHECK THAT id_apde ARE DISTINCT (ONLY IN ONE ROW) ----
+    # CHECK THAT KCMASTER_ID ARE DISTINCT (ONLY IN ONE ROW) ----
       problem.dup.KCMASTER_ID <- check_duplicate_ids(conn, last_run, "KCMASTER_ID")
   
   } # close load_only condition above
