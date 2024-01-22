@@ -20,6 +20,7 @@ hhsaw:
     address_schema: ref
     address_table: address_clean
     geocode_table: address_geocode
+    geokc_table: ref_geo_kc_zip
     qa_schema: claims
     qa_table: metadata_
 vars:
