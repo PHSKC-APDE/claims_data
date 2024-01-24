@@ -46,5 +46,6 @@ vars:
     geo_tract_code: VARCHAR(255)
     geo_hra_code: SMALLINT
     geo_school_code: VARCHAR(255)
+    geo_kc: BIT
     cov_time_day: SMALLINT
     last_run: DATETIME
