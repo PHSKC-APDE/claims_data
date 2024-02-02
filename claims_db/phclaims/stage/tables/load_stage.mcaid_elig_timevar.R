@@ -43,6 +43,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   address_schema <- config[["hhsaw"]][["address_schema"]]
   address_table <- config[["hhsaw"]][["address_table"]]
   geocode_table <- config[["hhsaw"]][["geocode_table"]]
+  geokc_table <- config[["hhsaw"]][["geokc_table"]]
   
   message("Creating ", to_schema, ".", to_table, ". This will take ~80 minutes to run.")
   
@@ -407,6 +408,8 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   if (server == "hhsaw") {
     address_geocode_table <- glue::glue_sql("{`address_schema`}.{`geocode_table`}", 
                                             .con = conn)
+    address_geokc_table <- glue::glue_sql("{`to_schema`}.{`geokc_table`}", 
+                                          .con = conn)
   } else {
     conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
     df_address_geocode <- odbc::dbGetQuery(conn_hhsaw, 
@@ -440,6 +443,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     a.geo_hash_clean, a.geo_hash_geocode, 
     b.geo_county_code, b.geo_tract_code, 
     b.geo_hra_code, b.geo_school_code, a.cov_time_day,
+    c.geo_kc_new, 
     {Sys.time()} AS last_run
     INTO {`to_schema`}.{`to_table`}
     FROM
@@ -454,7 +458,12 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
         geo_id10_tract AS geo_tract_code, geo_id10_hra AS geo_hra_code, 
         geo_id10_schooldistrict AS geo_school_code
         FROM ", address_geocode_table, ") b
-      ON a.geo_hash_geocode = b.geo_hash_geocode"),
+      ON a.geo_hash_geocode = b.geo_hash_geocode
+      LEFT JOIN
+      (SELECT DISTINCT geo_zip, geo_kc AS geo_kc_new
+       FROM ", address_geokc_table, ") c
+      ON a.geo_zip = c.geo_zip
+    "),
     .con = conn)
   
   message("Running step 5b: Join to geocodes and load to stage table")
@@ -464,6 +473,20 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   message(paste0("Step 5b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
                  " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
                  " mins)"))
+  
+  # Use APDE method for King County residence flag
+  # Step 5c ~ XX minutes
+  step5c_sql <- glue::glue_sql(paste0(
+    "ALTER TABLE {`to_schema`}.{`to_table`}
+       ADD geo_kc AS
+         CASE
+           WHEN (geo_county_code IS NOT NULL) AND (geo_county_code IN (033, 53033)) THEN 1
+           WHEN (geo_county_code IS NULL) AND (geo_kc_new = 1) THEN 1
+           ELSE 0
+         END
+       DROP COLUMN geo_kc_new
+    "),
+    .con = conn)
   
   
   #### STEP 6: REMOVE TEMPORARY TABLES ####
@@ -486,3 +509,4 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
                  " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
                  " mins)"))
 }
+
