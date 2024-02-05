@@ -24,7 +24,7 @@ bene_enrollment_sql <- glue::glue_sql(
   "drop table if exists claims.stage_mcare_bene_enrollment
   select
   [etl_batch_id]
-  ,[bene_id]
+  ,cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id
   ,[bene_enrollmt_ref_yr]
   ,[zip_cd]
   ,[bene_birth_dt]
@@ -88,7 +88,7 @@ bene_enrollment_sql <- glue::glue_sql(
 -- Union command will drop any duplicate rows within years
   UNION SELECT
   a.[etl_batch_id]
-  ,a.[bene_id]
+  ,cast(trim(a.bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id
   ,a.[bene_enrollmt_ref_yr]
   ,a.[bene_zip_cd]
   ,a.[bene_birth_dt]
@@ -170,7 +170,7 @@ odbc::dbGetQuery(conn = db_hhsaw, bene_check_sql)
 bene_names_sql <- glue::glue_sql("
   drop table if exists claims.stage_mcare_bene_names;
   select distinct
-  bene_id,
+  cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id,
   bene_srnm_name,
   bene_gvn_name,
   bene_mdl_name
@@ -182,9 +182,56 @@ odbc::dbSendQuery(conn = db_hhsaw, bene_names_sql)
 bene_ssn_sql <- glue::glue_sql("
   drop table if exists claims.stage_mcare_bene_ssn;
   select distinct
-  bene_id,
+  cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id,
   ssn
   into claims.stage_mcare_bene_ssn
   from [claims].[stage_mcare_bene_ssn_xwalk]",
 .con = db_hhsaw)
 odbc::dbSendQuery(conn = db_hhsaw, bene_ssn_sql)
+
+
+# ---- Extra: ----
+# Demonstrate need for case sensitivity
+tables_sql <- glue::glue_sql("
+--View collations settings of tables used in this demonstration
+--Collation name must be set as SQL_Latin1_General_CP1_CS_AS for case sensitivity to be respected
+SELECT t.name, c.name, c.collation_name
+FROM SYS.COLUMNS c
+JOIN SYS.TABLES t ON t.object_id = c.object_id
+WHERE t.name in ('stage_mcare_edb_user_view', 'stage_mcare_bcarrier_claims')
+and c.name in ('bene_id', 'clm_id')
+order by t.name desc, c.name;",
+.con = db_hhsaw)
+test <- odbc::dbGetQuery(conn = db_hhsaw, tables_sql)
+
+bene_ssn_sql <- glue::glue_sql("
+--Demonstrate case-sensitive nature of bene_id variable
+with temp1 as (select distinct
+cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id_cs,
+cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CI_AS as bene_id_ci,
+lower(trim(bene_id)) as bene_id_lowercase
+from claims.stage_mcare_edb_user_view
+)
+
+select 'case-sensitive trimmed varchar' as column_type, count(distinct bene_id_cs) as bene_id_dcount from temp1
+union select 'case-insensitive trimmed varchar' as column_type, count(distinct bene_id_ci) as bene_id_dcount from temp1
+union select 'lowercase trimmed varchar' as column_type,count(distinct bene_id_lowercase) as bene_id_dcount from temp1
+order by bene_id_dcount desc;",
+.con = db_hhsaw)
+test2 <- odbc::dbGetQuery(conn = db_hhsaw, bene_ssn_sql)
+
+clm_id_sql <- glue::glue_sql("
+--Demonstrate case-sensitive nature of clm_id variable
+with temp2 as (select distinct
+cast(trim(clm_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as clm_id_cs,
+cast(trim(clm_id) as varchar(255)) collate SQL_Latin1_General_CP1_CI_AS as clm_id_ci,
+lower(trim(clm_id)) as clm_id_lowercase
+from claims.stage_mcare_bcarrier_claims
+)
+
+select 'case-sensitive trimmed varchar' as column_type, count(distinct clm_id_cs) as clm_id_dcount from temp2
+union select 'case-insensitive trimmed varchar' as column_type, count(distinct clm_id_ci) as clm_id_dcount from temp2
+union select 'lowercase trimmed varchar' as column_type,count(distinct clm_id_lowercase) as clm_id_dcount from temp2
+order by clm_id_dcount desc;",
+.con = db_hhsaw)
+test3 <- odbc::dbGetQuery(conn = db_hhsaw, clm_id_sql)
