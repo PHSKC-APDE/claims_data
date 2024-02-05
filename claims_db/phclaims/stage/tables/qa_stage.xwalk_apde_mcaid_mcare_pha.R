@@ -26,22 +26,24 @@
 
 # This is all one function ----
 qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
-                                            skip_mcare = T, # until Medicare is abel to be linked
+                                            skip_mcare = T, # until Medicare is able to be linked
                                             load_only = F) {
   
   # If this is the first time ever loading data, only load values.
   #   Otherwise, check against existing QA values
   
   #### PULL OUT VALUES NEEDED MULTIPLE TIMES ####
+  xwalk <- setDT(odbc::dbGetQuery(conn, "SELECT *FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
+  
   # Rows in current table
-  row_count <- as.integer(odbc::dbGetQuery(conn, "SELECT COUNT (*) FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
+  row_count <- nrow(xwalk)
   
-  distinct_KCMASTER_ID <- as.integer(DBI::dbGetQuery(conn, "SELECT COUNT(DISTINCT(KCMASTER_ID)) FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
-  
-  distinct_id_apde <- as.integer(DBI::dbGetQuery(conn, "SELECT COUNT(DISTINCT(id_apde)) FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
+  distinct_KCMASTER_ID <- uniqueN(xwalk[!is.na(KCMASTER_ID)]$KCMASTER_ID)
+
+  distinct_id_apde <- uniqueN(xwalk[!is.na(id_apde)]$id_apde)
   
   ### Pull out run date of [claims].[stage_xwalk_apde_mcaid_mcare_pha]
-  last_run <- as.POSIXct(odbc::dbGetQuery(conn, "SELECT MAX (last_run) FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]")[[1]])
+  last_run <- max(xwalk$last_run)
   
   #### If load_only == F (meaning, want to QA vs previous values) ####
   if (load_only == F) {
@@ -207,9 +209,8 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
   
   #### CHECK DISTINCT MCARE IDS >= DISTINCT IN MCARE ELIG DEMO ####
   if(skip_mcare == F){
-      id_count_mcare <- as.integer(odbc::dbGetQuery(
-        conn, "SELECT COUNT (DISTINCT id_mcare) AS count FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
-      
+      id_count_mcare <- uniqueN(xwalk[!is.na(id_mcare)]$id_mcare)
+
       id_count_mcare_elig_demo <- as.integer(odbc::dbGetQuery(
         conn, 
         "SELECT TEMP.qa_value
@@ -263,9 +264,8 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
   } 
   
   #### CHECK DISTINCT MCAID IDS == DISTINCT IN MCAID ELIG DEMO ####
-  id_count_mcaid <- as.integer(odbc::dbGetQuery(
-    conn, "SELECT COUNT (DISTINCT id_mcaid) AS count FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
-  
+  id_count_mcaid <- uniqueN(xwalk[!is.na(id_mcaid)]$id_mcaid)
+
   id_count_mcaid_elig_demo <- as.integer(odbc::dbGetQuery(
     conn,
     "SELECT TEMP.qa_value
@@ -318,9 +318,8 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
   }
   
   #### CHECK DISTINCT PHOUSING_ID == DISTINCT PHOUSING_ID IN [IDMatch].[IM_HISTORY_TABLE] in IDH ####
-  id_count_pha <- as.integer(odbc::dbGetQuery(
-    conn, "SELECT COUNT (DISTINCT PHOUSING_ID) AS count FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha]"))
-  
+  id_count_pha <- uniqueN(xwalk[!is.na(phousing_id)]$phousing_id)
+
   id_count_pha_orig <- as.integer(odbc::dbGetQuery(
     conn = db_idh, "SELECT COUNT (DISTINCT PHOUSING_ID) AS count FROM [IDMatch].[IM_HISTORY_TABLE] 
     WHERE IS_HISTORICAL = 'N' AND KCMASTER_ID IS NOT NULL"))
@@ -360,70 +359,41 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
     problem.id_pha  <- glue::glue(" ") # no problem
   }
   
-  #### CREATE FUNCTION TO CHECK THAT IDs in XWALk TABLE ARE DISTINCT (ONLY IN ONE ROW) ----
-      check_duplicate_ids <- function(conn, last_run, identifier = NULL) {
-        # Construct the SQL query using paste0()
-        query <- paste0(
-          "SELECT ", identifier, ", freq = COUNT(", identifier, ") ",
-          "FROM [claims].[stage_xwalk_apde_mcaid_mcare_pha] ",
-          "GROUP BY ", identifier, " ",
-          "HAVING COUNT(", identifier, ") > 1"
-        )
-        distinct_ids <- setDT(odbc::dbGetQuery(conn, query))
-        
-        if (nrow(distinct_ids) != 0) {
-          # Construct the INSERT query for the case of duplicates
-          insert_query <- paste0(
-            "INSERT INTO [claims].[metadata_qa_xwalk] ",
-            "(last_run, table_name, qa_item, qa_result, qa_date, note) ",
-            "VALUES ('", last_run, "', ",
-            "'claims.stage_xwalk_apde_mcaid_mcare_pha', ",
-            "'Duplicate ", identifier, "', ",
-            "'WARNING', ",
-            "'", format(Sys.time(), '%Y-%m-%d %H:%M:%S'), "', ",
-            "'There were ", nrow(distinct_ids), " duplicate ", identifier, " (i.e., a given ID appeared in more than one row)')"
-          )
-          odbc::dbGetQuery(conn, insert_query)
+  #### CHECK that EACH IDENTIFIER ONLY PAIRS with a SINGLE id_apde ----
+      for(myID in c('id_mcaid', 'id_mcare', 'phousing_id', 'KCMASTER_ID')){
+        tempy <- unique(xwalk[!is.na(get(myID)), .(id_apde, get(myID))])
+        setnames(tempy, 'V2', myID)
+        if(identical(uniqueN(tempy[[myID]]), nrow(tempy))){
+          message(paste0('\U0001f642 ', myID, ' is uniquely paired with id_apde'))
           
-          problem_message <- paste0("There appear to be duplicate ", identifier, 
-                                    " Check [claims].[metadata_qa_xwalk] for details (last_run = ", last_run, ")\n")
-        } else {
-          # Construct the INSERT query for the case of no duplicates
           insert_query <- paste0(
             "INSERT INTO [claims].[metadata_qa_xwalk] ",
             "(last_run, table_name, qa_item, qa_result, qa_date, note) ",
             "VALUES ('", last_run, "', ",
             "'claims.stage_xwalk_apde_mcaid_mcare_pha', ",
-            "'Duplicate ", identifier, "', ",
+            "'Unique pairing with id_apde - ", myID, "',",
             "'PASS', ",
             "'", format(Sys.time(), '%Y-%m-%d %H:%M:%S'), "', ",
-            "'There were NO duplicate ", identifier, " (good job!)')"
+            "'There were ", uniqueN(tempy[[myID]]), " ",  myID,  " values and ", nrow(tempy), " ", myID, "--id_apde pairs')"
           )
-          odbc::dbGetQuery(conn, insert_query)
           
-          problem_message <- ""
+        }else{warning('\n\U00026A0\U0001f47f\U00026A0 At least one value of ', myID, ' has been paired with more than one id_apde. This should be fixed before continuing')
+        
+            insert_query <- paste0(
+              "INSERT INTO [claims].[metadata_qa_xwalk] ",
+              "(last_run, table_name, qa_item, qa_result, qa_date, note) ",
+              "VALUES ('", last_run, "', ",
+              "'claims.stage_xwalk_apde_mcaid_mcare_pha', ",
+              "'Unique pairing with id_apde - ", myID, "',",
+              "'WARNING', ",
+              "'", format(Sys.time(), '%Y-%m-%d %H:%M:%S'), "', ",
+              "'There were ", uniqueN(tempy[[myID]]), " ",  myID,  " values but ", nrow(tempy), " ", myID, "--id_apde pairs')"
+            )
+            
         }
         
-        return(problem_message)
+        odbc::dbGetQuery(conn, insert_query)
       }
-  
-    # CHECK THAT id_mcare ARE DISTINCT (ONLY IN ONE ROW) ----
-      if(skip_mcare == F){
-        problem.dup.id_mcare <- check_duplicate_ids(conn, last_run, "id_mcare")
-      } 
-    
-    # CHECK THAT id_mcaid ARE DISTINCT (ONLY IN ONE ROW) ----
-      problem.dup.id_mcaid <- check_duplicate_ids(conn, last_run, "id_mcaid")
-    
-    # CHECK THAT phousing_id ARE DISTINCT (ONLY IN ONE ROW) ----
-      problem.dup.phousing_id <- check_duplicate_ids(conn, last_run, "phousing_id")
-  
-    # CHECK THAT id_apde ARE DISTINCT (ONLY IN ONE ROW) ----
-      problem.dup.id_apde <- check_duplicate_ids(conn, last_run, "id_apde")
-    
-    # CHECK THAT KCMASTER_ID ARE DISTINCT (ONLY IN ONE ROW) ----
-      problem.dup.KCMASTER_ID <- check_duplicate_ids(conn, last_run, "KCMASTER_ID")
-  
   } # close load_only condition above
   
   #### LOAD VALUES TO QA_VALUES TABLE ####
@@ -467,9 +437,9 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
   #### Identify problems / fails ####
     if(load_only == F){
       if(any(sapply(grep('^problem\\.', ls(), value = TRUE), function(x) nchar(get(x)) > 1))){
-        problems <- glue::glue("****STOP!!!!!!!!****\nPlease address the following issues that have been logged in [claims].[metadata_qa_xwalk] ... \n\n", 
+        problems <- glue::glue("****STOP!!!!!!!!****\n\U0001f47f Please address the following issues that have been logged in [claims].[metadata_qa_xwalk] ... \n\n", 
                                paste(mget(grep('^problem\\.', ls(), value = T)), collapse = '\n'))}else{
-                                 problems <- glue::glue("All QA checks passed and recorded to [claims].[metadata_qa_xwalk]")       
+                                 problems <- glue::glue("\U0001f642 All QA checks passed and recorded to [claims].[metadata_qa_xwalk]")       
                                }
       message(problems)
       
