@@ -484,10 +484,16 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
            WHEN (geo_county_code IS NULL) AND (geo_kc_new = 1) THEN 1
            ELSE 0
          END
-       DROP COLUMN geo_kc_new
     "),
     .con = conn)
   
+  message("Running step 5c: Creating geo_kc column")
+  time_start <- Sys.time()
+  odbc::dbGetQuery(conn = conn, step5c_sql)
+  time_end <- Sys.time()
+  message(paste0("Step 5c took ", round(difftime(time_end, time_start, units = "secs"), 2), 
+                 " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
+                 " mins)"))
   
   #### STEP 6: REMOVE TEMPORARY TABLES ####
   message("Running step 6: Remove temporary tables")
