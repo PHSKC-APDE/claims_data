@@ -32,7 +32,7 @@ if (server == "phclaims") {
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_ccw.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_ccw.R") 
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
@@ -50,21 +50,21 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
                                     load_only = F # keep load_only = F unless it is the first time you are running the QA code
                                     )
 
-# Archive previous xwalk table so that we can more easily update IDs in claims tables below
-    if(odbc::dbExistsTable(conn = db_claims, DBI::Id(schema = 'claims', table = 'final_xwalk_apde_mcaid_mcare_pha')) == F) {
-      stop("\n\U1F6D1 [claims].[final_xwalk_apde_mcaid_mcare_pha] cannot be archived becaues it does not exist")
-    }else{
-      # drop archive table if it exists
-        if(odbc::dbExistsTable(conn = db_claims, DBI::Id(schema = 'claims', table = 'archive_xwalk_apde_mcaid_mcare_pha'))){
-          DBI::dbExecute(conn = db_claims, "DROP TABLE [claims].[archive_xwalk_apde_mcaid_mcare_pha]")
-        }
-      # rename final table as archive table
-        DBI::dbExecute(conn = db_claims, "EXEC sp_rename 'claims.final_xwalk_apde_mcaid_mcare_pha', 'archive_xwalk_apde_mcaid_mcare_pha'")
-      # copy stage into final
-        DBI::dbExecute(conn = db_claims, "SELECT * INTO claims.final_xwalk_apde_mcaid_mcare_pha 
+# Save stage xwalk as final and archive for posterity
+    # drop final if exists
+    if(odbc::dbExistsTable(conn = db_claims, DBI::Id(schema = 'claims', table = 'final_xwalk_apde_mcaid_mcare_pha')) == T) {
+      DBI::dbExecute(conn = db_claims, "DROP TABLE [claims].[final_xwalk_apde_mcaid_mcare_pha]")
+    }
+    
+    # copy stage to final
+    DBI::dbExecute(conn = db_claims, "SELECT * INTO claims.final_xwalk_apde_mcaid_mcare_pha 
                                              FROM claims.stage_xwalk_apde_mcaid_mcare_pha WITH (TABLOCK)")
-  }
-
+    
+    # append new xwalk data from final into archive
+    DBI::dbExecute(conn = db_claims, "INSERT INTO claims.archive_xwalk_apde_mcaid_mcare_pha (id_apde, KCMASTER_ID, id_mcaid, id_mcare, phousing_id, last_run) 
+                                      SELECT id_apde, KCMASTER_ID, id_mcaid, id_mcare, phousing_id, last_run
+                                      FROM claims.final_xwalk_apde_mcaid_mcare_pha 
+                                      WITH (TABLOCK)")
 # Add index
     DBI::dbExecute(db_claims,
                    'CREATE CLUSTERED COLUMNSTORE INDEX "idx_ccs_final_xwalk_apde_mcaid_mcare_pha" ON 

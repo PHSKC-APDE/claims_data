@@ -131,7 +131,7 @@
 #' during requested data range (use ACH codes), can take multiple values (AP)
 #' @param geo_kc_ever Ever resided in King County (ME)
 #' @param geo_kc_min Minimum amount of requested date range a person needs to have 
-#' resided in King County to be included (AP/ME)
+#' resided in King County to be included (AP/MD/ME)
 #' @param timevar_denom Which denominator is used to calculate the percentages
 #' for time-varying parameters (e.g., dual_min, geo_kc_min). Choose from
 #' duration (number of days in selected period, i.e., between from_date and to_date)
@@ -1303,21 +1303,15 @@ claims_elig <- function(conn,
   }
   
   # King County (APCD/MCARE)
-  if (source %in% c("apcd", "mcaid_mcare", "mcare", "mcaid_mcare_pha")) {
-    geo_kc_sql <- timevar_gen_sql(var = "geo_kc", pct = T)
-    
-    if (!is.null(geo_kc_min)) {
-      geo_kc_where_sql <- glue::glue_sql(
-        " AND geo_kc_final.geo_kc_pct >= {geo_kc_min} ",
-        .con = conn)
-    } else {
-      geo_kc_where_sql <- DBI::SQL('')
-    }
+  geo_kc_sql <- timevar_gen_sql(var = "geo_kc", pct = T)
+  
+  if (!is.null(geo_kc_min)) {
+    geo_kc_where_sql <- glue::glue_sql(
+      " AND geo_kc_final.geo_kc_pct >= {geo_kc_min} ",
+      .con = conn)
   } else {
-    geo_kc_sql <- DBI::SQL('')
     geo_kc_where_sql <- DBI::SQL('')
   }
-  
   
   
   #### TIME-VARYING VARIABLES ####
@@ -1340,7 +1334,8 @@ claims_elig <- function(conn,
       mco_id_final.mco_id, mco_id_final.mco_id_days, 
       geo_zip_final.geo_zip, geo_zip_final.geo_zip_days, 
       geo_hra_code_final.geo_hra_code, geo_hra_code_final.geo_hra_code_days, 
-      geo_county_code_final.geo_county_code, geo_county_code_final.geo_county_code_days, "
+      geo_county_code_final.geo_county_code, geo_county_code_final.geo_county_code_days, 
+      geo_kc_final.geo_kc, geo_kc_final.geo_kc_pct, "
       , .con = conn)
   } else if (source == "mcaid_mcare") {
     timevar_vars <- glue::glue_sql(
