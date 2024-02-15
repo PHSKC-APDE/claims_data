@@ -268,7 +268,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   try(DBI::dbRemoveTable(conn, "##hedis_inpatient_definition", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql(
-                   "SELECT [id_mcaid]
+                   "SELECT distinct [id_mcaid]
                  ,[claim_header_id]
                  ,[first_service_date]
                  ,1 AS [inpatient]
@@ -280,7 +280,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                  ON a.[rev_code] = b.[code]
                   
                   EXCEPT
-                  (SELECT [id_mcaid]
+                  (SELECT distinct [id_mcaid]
                     ,[claim_header_id]
                     ,[first_service_date]
                     ,1 AS [inpatient]
@@ -290,15 +290,15 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                     WHERE [value_set_name] IN ('Nonacute Inpatient Stay') AND [code_system] = 'UBREV') AS b
                     ON a.[rev_code] = b.[code]
                   UNION
-                  SELECT [id_mcaid]
+                  SELECT distinct [id_mcaid]
                     ,[claim_header_id]
                     ,[first_service_date]
                     ,1 AS [inpatient]
-                    FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line AS a
+                    FROM {`final_schema`}.{DBI::SQL(final_table)}final_mcaid_claim_header AS a
                     INNER JOIN 
-                    (SELECT distinct code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde 
+                    (SELECT distinct code from claims.ref_hedis_value_sets_apde 
                     WHERE [value_set_name] IN ('Nonacute Inpatient Stay') AND [code_system] = 'UBTOB') AS b
-                    ON a.[rev_code] = b.[code]
+                    ON case when len(a.[type_of_bill_code]) = 3 then '0' + a.[type_of_bill_code] else a.[type_of_bill_code] end = b.[code]
                   );", .con = conn))
   
   # Add index
