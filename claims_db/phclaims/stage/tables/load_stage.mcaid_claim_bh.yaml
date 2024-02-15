@@ -20,4 +20,4 @@ vars:
   from_date: date
   to_date: date
   bh_cond: varchar(200)
-  last_run: date
+  last_run: datetime
