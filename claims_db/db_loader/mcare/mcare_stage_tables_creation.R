@@ -190,6 +190,24 @@ bene_ssn_sql <- glue::glue_sql("
 odbc::dbSendQuery(conn = db_hhsaw, bene_ssn_sql)
 
 
+# ---- STEP 3: Header-level medical claim concepts ----
+# Code to create stage_mcare_claim_header_prep table
+# Columns selected based on concepts/columns needed to create analytic-ready claim tables
+# Reference: https://kc1.sharepoint.com/:x:/r/teams/DPH-KCCross-SectorData/Shared%20Documents/General/References/Medicare/ResDAC%20file%20layouts/apde_claims_columns_needed_2024.xlsx?d=w157ab8c163714967847462a7271df79a&csf=1&web=1&e=uweatj
+# Exclude denied claims per ResDAC guidance
+# Exclude claims among people with no enrollment data
+# Trim white space for id_mcare, claim_header_id
+
+db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
+
+claim_header_prep_sql <- glue::glue_sql(
+  "drop table if exists claims.stage_mcare_claim_header_prep;
+  --BLANK--
+  ",
+  .con = db_hhsaw)
+odbc::dbSendQuery(conn = db_hhsaw, claim_header_prep_sql)
+
+
 # ---- Extra: ----
 # Demonstrate need for case sensitivity
 tables_sql <- glue::glue_sql("
