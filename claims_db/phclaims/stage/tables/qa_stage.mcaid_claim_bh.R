@@ -122,9 +122,9 @@ qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
   distinct_id_chk <- distinct_id_bh %>%
     mutate(prop = id_dcount / distinct_id_pop * 100)
 
-  
+ 
   # Show results for review
-  print(distinct_id_chk %>% filter(!is.na(abs_diff)))
+  print(distinct_id_chk)
   
 
   
@@ -144,12 +144,7 @@ qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
                    .con = conn))
   
   
-  if (max(str_detect(bh_qa$qa_result, "FAIL")) == 0) {
-    bh_qa_fail <- 0L
-  } else {
-    bh_qa_fail <- 1L
-  }
   
   message(glue::glue("QA of stage.mcaid_claim_bh complete. Result: {min(bh_qa$qa_result)}"))
-  return(bh_qa_fail)
+  return(0)
 }

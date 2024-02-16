@@ -294,7 +294,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                     ,[claim_header_id]
                     ,[first_service_date]
                     ,1 AS [inpatient]
-                    FROM {`final_schema`}.{DBI::SQL(final_table)}final_mcaid_claim_header AS a
+                    FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_header AS a
                     INNER JOIN 
                     (SELECT distinct code from claims.ref_hedis_value_sets_apde 
                     WHERE [value_set_name] IN ('Nonacute Inpatient Stay') AND [code_system] = 'UBTOB') AS b
