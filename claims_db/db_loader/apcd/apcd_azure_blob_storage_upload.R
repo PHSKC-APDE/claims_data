@@ -65,7 +65,7 @@ system.time(
 #                                  dest = paste0("claims/apcd")))
 
 ##Then test same code using a for loop to load one file at a time - this might end up being faster for large files like this
-#For now use repetitive code but if this option is faster, then replace with a loop just as Jeremy does
+#Run time: 104 min
 file_read_folder <- "//dphcifs/apde-cdip/apcd/apcd_data_import/dental_claim_export/"
 file_paths_list <- as.list(list.files(path = file.path(file_read_folder), full.names = F, pattern = "*.gz", all.files = F))
 system.time(for (i in 1:length(file_paths_list)) {
@@ -80,29 +80,9 @@ system.time(for (i in 1:length(file_paths_list)) {
 
 
 
-system.time(AzureStor::storage_upload(cont,
-                                      src = paste0(file_read_folder, "provider_master_000.csv.gz"),
-                                      dest = paste0("claims/apcd/", "provider_master_000.csv.gz")))
-
-
-
-
-
-
 #### Jeremy's code ####
 
-    ## Compress files into gz format
-    message(paste0("Uploading and Renaming Files - ", Sys.time()))
-    for (x in 1:nrow(tfiles)) {
-      ## Upload file to specified directory on Azure blob
-      message(paste0("Begin Uploading/Renaming ", tfiles[x, "gzName"], " - ", Sys.time()))
-      tfiles[x, "uploadName"] <- tfiles[x, "gzName"]
-      storage_upload(cont, 
-                     paste0(gzdir, "/", tfiles[x, "gzName"]), 
-                     paste0("claims/mcaid/", tfiles[x, "type"], "/incr/", tfiles[x, "uploadName"]))
-      message(paste0("Upload Completed - ", Sys.time()))
-    }
-    message(paste0("All Files Uploaded - ", Sys.time()))
+
     
     db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
     for (x in 1:nrow(tfiles)) {
