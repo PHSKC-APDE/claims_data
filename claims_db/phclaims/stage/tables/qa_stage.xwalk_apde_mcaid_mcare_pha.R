@@ -73,7 +73,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
         conn = conn,
         glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES ({last_run}, 
+                       VALUES ({format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                        'claims.stage_xwalk_apde_mcaid_mcare_pha',
                        'Number new rows compared to most recent run', 
                        'FAIL', 
@@ -83,14 +83,14 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
                        .con = conn))
       
       problem.row_diff <- glue::glue("Fewer rows than found last time.  
-                      Check [claims].[metadata_qa_xwalk] for details (last_run = {last_run})
+                      Check [claims].[metadata_qa_xwalk] for details (last_run = {format(last_run, '%Y-%m-%d %H:%M:%S')})
                       \n")
     } else {
       odbc::dbGetQuery(
         conn = conn,
         glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES ({last_run}, 
+                       VALUES ({format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                        'claims.stage_xwalk_apde_mcaid_mcare_pha',
                        'Number new rows compared to most recent run', 
                        'PASS', 
@@ -125,7 +125,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
         glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES (
-                      {last_run}, 
+                      {format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                      'claims.stage_xwalk_apde_mcaid_mcare_pha',
                      'Number distinct IDs - KCMASTER_ID', 
                      'FAIL', 
@@ -136,14 +136,14 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
                        .con = conn))
       
       problem.KCMASTER_ID  <- glue::glue("Number of distinct KCMASTER_IDs is less than the most recent in [claims].[metadata_qa_xwalk_values]. 
-                    Check [claims].[metadata_qa_xwalk] for details (last_run = {last_run})
+                    Check [claims].[metadata_qa_xwalk] for details (last_run = {format(last_run, '%Y-%m-%d %H:%M:%S')})
                    \n")
     } else {
       odbc::dbGetQuery(
         conn = conn,
         glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                      'claims.stage_xwalk_apde_mcaid_mcare_pha',
                      'Number distinct IDs - KCMASTER_ID', 
                      'PASS', 
@@ -177,7 +177,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
         glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES (
-                      {last_run}, 
+                      {format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                      'claims.stage_xwalk_apde_mcaid_mcare_pha',
                      'Number distinct IDs - ID_APDE', 
                      'FAIL', 
@@ -188,14 +188,14 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
                        .con = conn))
       
       problem.ID_APDE  <- glue::glue("Number of distinct ID_APDEs is less than the most recent in [claims].[metadata_qa_xwalk_values]. 
-                    Check [claims].[metadata_qa_xwalk] for details (last_run = {last_run})
+                    Check [claims].[metadata_qa_xwalk] for details (last_run = {format(last_run, '%Y-%m-%d %H:%M:%S')})
                    \n")
     } else {
       odbc::dbGetQuery(
         conn = conn,
         glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                      'claims.stage_xwalk_apde_mcaid_mcare_pha',
                      'Number distinct IDs - ID_APDE', 
                      'PASS', 
@@ -232,7 +232,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
           glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES (
-                        {last_run}, 
+                        {format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                        'claims.stage_xwalk_apde_mcaid_mcare_pha',
                        'Number distinct IDs - Medicare', 
                        'FAIL', 
@@ -243,14 +243,14 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
                          .con = conn))
         
         problem.mcare_id  <- glue::glue("Number of distinct MCARE IDs is less than the number in [claims].[stage_mcare_elig_demo] data. 
-                      Check [claims].[metadata_qa_xwalk] for details (last_run = {last_run})
+                      Check [claims].[metadata_qa_xwalk] for details (last_run = {format(last_run, '%Y-%m-%d %H:%M:%S')})
                      \n")
       } else {
         odbc::dbGetQuery(
           conn = conn,
           glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES ({last_run}, 
+                       VALUES ({format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                        'claims.stage_xwalk_apde_mcaid_mcare_pha',
                        'Number distinct IDs - Medicare', 
                        'PASS', 
@@ -287,7 +287,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
       glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES (
-                      {last_run}, 
+                      {format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                      'claims.stage_xwalk_apde_mcaid_mcare_pha',
                      'Number distinct IDs - Medicaid', 
                      'FAIL', 
@@ -298,14 +298,14 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
                      .con = conn))
     
     problem.mcaid_id  <- glue::glue("Number of distinct MCAID IDs is different from the number in [claims].[stage_mcaid_elig_demo] data. 
-                    Check [claims].[metadata_qa_xwalk] for details (last_run = {last_run})
+                    Check [claims].[metadata_qa_xwalk] for details (last_run = {format(last_run, '%Y-%m-%d %H:%M:%S')})
                    \n")
   } else {
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                      'claims.stage_xwalk_apde_mcaid_mcare_pha',
                      'Number distinct IDs - Medicaid', 
                      'PASS', 
@@ -330,7 +330,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
       glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES (
-                      {last_run}, 
+                      {format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                      'claims.stage_xwalk_apde_mcaid_mcare_pha',
                      'Number distinct IDs - phousing_id', 
                      'WARNING', 
@@ -340,14 +340,14 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
                      .con = conn))
     
     problem.id_pha  <- glue::glue("Number of distinct PHOUSING_IDs is different from the number in [IDMatch].[IM_HISTORY_TABLE] in the IDH. 
-                    Check [claims].[metadata_qa_xwalk] for details (last_run = {last_run})
+                    Check [claims].[metadata_qa_xwalk] for details (last_run = {format(last_run, '%Y-%m-%d %H:%M:%S')})
                    \n")
   } else {
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, '%Y-%m-%d %H:%M:%S')}, 
                      'claims.stage_xwalk_apde_mcaid_mcare_pha',
                      'Number distinct IDs - phousing_id', 
                      'PASS', 
