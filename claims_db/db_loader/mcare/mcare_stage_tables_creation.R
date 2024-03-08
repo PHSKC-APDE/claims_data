@@ -12,7 +12,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/c
 
 
 # ---- STEP 1: ----
-# Code to create state_mcare_bene_enrollment table from MBFS tables
+# Code to create state_mcare_bene_enrollment table from MBSF tables
 # Columns selected based on review of Danny's original 2019 scripts used to
 # create elig_timevar and elig_demo tables
 # Reference: https://kc1.sharepoint.com/:x:/r/teams/DPH-KCCross-SectorData/Shared%20Documents/General/References/Medicare/ResDAC%20file%20layouts/apde_mbsf_columns_needed_2024.xlsx?d=w4d88d662b43a4097811423fc7813313b&csf=1&web=1&e=1CBks8
