@@ -9,8 +9,8 @@ dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd
 base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
 row_count: 165901496
 col_count: 31
-date_min: 201401
-date_max: 202309
+date_min: 2014-01-01
+date_max: 2023-09-30
 date_delivery: 2024-03-04
 note_delivery: Full refresh of APCD data using extract 10019
 index_type: ccs
