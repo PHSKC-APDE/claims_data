@@ -12,6 +12,7 @@ col_count: 31
 date_min: 201401
 date_max: 202309
 date_delivery: 2024-03-04
+note_delivery: Full refresh of APCD data using extract 10019
 index_type: ccs
 index_name: idx_ccs_load_raw_apcd_dental_claim
 vars:
