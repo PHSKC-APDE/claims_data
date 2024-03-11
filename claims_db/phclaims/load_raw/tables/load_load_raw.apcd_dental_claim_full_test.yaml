@@ -1,12 +1,13 @@
-to_schema: stg_claims
-to_table: apcd_dental_claim
-qa_schema: claims
-qa_table: metadata_qa_apcd
-ext_data_source: datascr_WS_EDW
-ext_schema: stg_claims
-ext_table: apcd_dental_claim
-dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/dental_claim_import/
-base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_dental_claim
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_dental_claim
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/dental_claim_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
 row_count: 165901496
 col_count: 31
 date_min: 2014-01-01
