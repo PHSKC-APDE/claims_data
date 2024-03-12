@@ -37,14 +37,18 @@ db_claims <- create_db_connection(server, interactive = interactive_auth, prod =
 
 #### STEP 2: PRECURSOR TO LOOP THAT WILL EVENTUALLY HANDLE ALL TABLES ####
 
+## Closing message (before loop begins)
+message(paste0("Beginning process to copy tables to inthealth_edw - ", Sys.time()))
+
 
 ##Load YAML config file (will need to build URL dynamically in loop)
 table_name <- "apcd_dental_claim"
-message("Loading YAML config file for: ", table_name)
-table_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.apcd_dental_claim_full_test.yaml"))
+message("Loading YAML config file for: ", table_name, " - ", Sys.time())
+table_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_stg_claims.apcd_dental_claim_full.yaml"))
 
 
 ##Retrieve ETL batch ID or create if this is the first entry for ETL run
+message("Creating/reusing ETL batch ID for: ", table_name, " - ", Sys.time())
 existing_batch_id <- DBI::dbGetQuery(db_claims, 
                            glue::glue_sql("SELECT * FROM claims.metadata_etl_log
                                   WHERE date_load_raw IS NULL
@@ -65,16 +69,16 @@ if(!identical(existing_batch_id, integer(0))){
                                                    delivery_date = table_config$date_delivery, 
                                                    note = table_config$note_delivery,
                                                    row_cnt = table_config$row_count,
-                                                   file_name = table_config$to_table,
-                                                   file_loc = table_config$dl_path,
-                                                   server = "hhsaw")
+                                                   file_name = table_config[[server]][["to_table"]],
+                                                   file_loc = table_config[[server]][["dl_path"]],
+                                                   server = server)
 }
 
 
 ##Load data
 #Note that tables in EDW automatically have an index created
 #This function will automatically combine all GZIP files in a given folder into a single SQL table
-message("Loading data for: ", table_config[[server]][["to_table"]])
+message("Loading data for: ", table_config[[server]][["to_table"]], " - ", Sys.time())
 to_schema <- table_config[[server]][["to_schema"]]
 to_table <- table_config[[server]][["to_table"]]
 dl_path <- table_config[[server]][["dl_path"]]
@@ -92,7 +96,7 @@ system.time(copy_into_f(conn = dw_inthealth,
 
 
 ##QA row and column counts
-message("Running row count comparison QA for: ", table_config[[server]][["to_table"]])
+message("Running row count comparison QA for: ", table_config[[server]][["to_table"]], " - ", Sys.time())
 qa_rows_sql <- qa_load_row_count_f(conn = dw_inthealth,
                                    server = server,
                                    config = table_config,
@@ -122,7 +126,7 @@ if (qa_rows_sql$outcome[1] == "FAIL") {
 
 
 ## Add batch ID column
-message(paste0("Adding batch ID column to: ", table_config[[server]][["to_table"]]))
+message(paste0("Adding batch ID column to: ", table_config[[server]][["to_table"]]), " - ", Sys.time())
 DBI::dbExecute(dw_inthealth,
                glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`} 
                   ADD etl_batch_id INTEGER DEFAULT {current_batch_id}",
@@ -134,9 +138,13 @@ DBI::dbExecute(dw_inthealth,
 
 
 ## Add date_load_raw to metadata_etl_log table
-message(paste0("Adding date_load_raw to metadata_etl_log for: ", table_config[[server]][["to_table"]]))
+message(paste0("Adding date_load_raw to metadata_etl_log for: ", table_config[[server]][["to_table"]]), " - ", Sys.time())
 DBI::dbExecute(db_claims,
                glue::glue_sql("UPDATE claims.metadata_etl_log 
                                SET date_load_raw = GETDATE() 
                                WHERE etl_batch_id = {current_batch_id}",
                               .con = db_claims))
+
+
+## Closing message (after loop completes)
+message(paste0("All tables have been successfully copied to inthealth_edw - ", Sys.time()))
