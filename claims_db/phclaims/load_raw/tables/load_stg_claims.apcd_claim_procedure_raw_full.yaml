@@ -1,0 +1,27 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_claim_procedure_raw
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_claim_procedure_raw
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/claim_procedure_raw_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: 1374646282
+col_count: 10
+date_min: '2014-01-01'
+date_max: '2023-09-30'
+date_delivery: '2024-03-04'
+note_delivery: apcd_claim_procedure_raw, extract 10019
+vars:
+    internal_member_id: bigint
+    medical_claim_header_id: bigint
+    first_service_dt: date
+    last_service_dt: date
+    procedure_code: varchar(10)
+    procedure_code_number: varchar(4)
+    procedure_modifier_code_1: varchar(10)
+    procedure_modifier_code_2: varchar(10)
+    procedure_modifier_code_3: varchar(10)
+    procedure_modifier_code_4: varchar(10)

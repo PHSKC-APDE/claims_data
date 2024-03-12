@@ -1,0 +1,34 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_provider
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_provider
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/provider_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: 52180473
+col_count: 17
+date_min: '2014-01-01'
+date_max: '2023-09-30'
+date_delivery: '2024-03-04'
+note_delivery: apcd_provider, extract 10019
+vars:
+    provider_id: bigint
+    extract_id: bigint
+    submitter_id: bigint
+    internal_provider_id: bigint
+    organization_name: varchar(100)
+    last_name: varchar(100)
+    first_name: varchar(60)
+    middle_name: varchar(2)
+    generation_suffix: varchar(10)
+    entity_type: varchar(10)
+    professional_credential_code: varchar(20)
+    orig_npi: bigint
+    primary_specialty_id: bigint
+    primary_specialty_code: varchar(50)
+    city: varchar(30)
+    state: varchar(2)
+    zip: varchar(15)

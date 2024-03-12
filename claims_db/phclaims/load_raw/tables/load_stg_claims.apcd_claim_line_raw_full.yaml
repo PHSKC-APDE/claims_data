@@ -1,0 +1,31 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_claim_line_raw
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_claim_line_raw
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/claim_line_raw_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: 1621304354
+col_count: 14
+date_min: '2014-01-01'
+date_max: '2023-09-30'
+date_delivery: '2024-03-04'
+note_delivery: apcd_claim_line_raw, extract 10019
+vars:
+    id_apcd: bigint
+    claim_header_id: bigint
+    claim_line_id: bigint
+    line_counter: integer
+    first_service_dt: date
+    last_service_dt: date
+    charge_amt: numeric(38,2)
+    revenue_code: varchar(10)
+    place_of_service_code: varchar(10)
+    admission_dt: date
+    discharge_dt: date
+    discharge_status_code: varchar(10)
+    admission_point_of_origin_code: varchar(10)
+    admission_type: varchar(10)
