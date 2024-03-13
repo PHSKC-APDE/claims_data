@@ -82,7 +82,7 @@ lapply(folder_list, function(folder_list) {
    message(paste0("Begin Uploading ", file_name, " - ", Sys.time()))
    AzureStor::storage_upload(cont,
                              src = paste0(folder_path, file_name),
-                             dest = paste0("claims/apcd/dental_claim_import/", file_name))
+                             dest = paste0("claims/apcd/", folder_selected, "_import/", file_name))
    message(paste0("Upload Completed - ", Sys.time()))})
    
    #Count number of GZIP files uploaded to Azure Blob Storage
