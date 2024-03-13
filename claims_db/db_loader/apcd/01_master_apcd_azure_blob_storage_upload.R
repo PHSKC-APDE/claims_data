@@ -24,7 +24,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 ##Establish connection to HHSAW prod
 #interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
-interactive_auth <- FALSE
+interactive_auth <- FALSE #must be set to true if running from Azure VM
 #prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
 prod <- TRUE
 db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
@@ -81,7 +81,7 @@ lapply(folder_list, function(folder_list) {
    file_name <- file_paths_list[i]
    message(paste0("Begin Uploading/Renaming ", file_name, " - ", Sys.time()))
    AzureStor::storage_upload(cont,
-                             src = paste0(file_read_folder, file_name),
+                             src = paste0(folder_path, file_name),
                              dest = paste0("claims/apcd/dental_claim_import/", file_name))
    message(paste0("Upload Completed - ", Sys.time()))})
    
