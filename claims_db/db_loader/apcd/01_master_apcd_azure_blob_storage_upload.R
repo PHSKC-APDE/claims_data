@@ -18,7 +18,6 @@ pacman::p_load(tidyverse, odbc, configr, glue, keyring, AzureStor, AzureAuth, sv
 keyring::key_list()
 
 #### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
 
 #### STEP 1: CREATE CONNECTIONS ####
@@ -46,98 +45,71 @@ cont <- storage_container(blob_endp, "inthealth")
 
 #### STEP 2: UPLOAD GZIP FILES TO AZURE BLOG STORAGE ####
 
-## Test a single file (provider master)
-message(paste0("Uploading test WA-APCD file - ", Sys.time()))
-file_read_folder <- "//dphcifs/apde-cdip/apcd/apcd_data_import/provider_master_export/"
-#Note that for first time I had to add RStudio Session to Windows Firewall exception
-system.time(
-  AzureStor::storage_multiupload(cont,
-                                 src = paste0(file_read_folder, "*.gz"),
-                                 dest = paste0("claims/apcd/provider_master_import")))
+#Note that storage_upload (one file at a time) is faster than storage_multiupload (parallel uploads) for large files
+#Run time for dental claim files: 104 min
 
-##Test on dental data (multiple files) using parallel connections
-#Run time: 126min
-# message(paste0("Uploading test multiple WA-APCD files - ", Sys.time()))
-# file_read_folder <- "//dphcifs/apde-cdip/apcd/apcd_data_import/dental_claim_export/"
-# system.time(
-#   AzureStor::storage_multiupload(cont,
-#                                  src = paste0(file_read_folder, "*.gz"),
-#                                  dest = paste0("claims/apcd")))
+## Beginning message (before loop begins)
+message(paste0("Beginning process to load GZIP files to Azure Blob Storage - ", Sys.time()))
 
-##Then test same code using a for loop to load one file at a time - this might end up being faster for large files like this
-#Run time: 104 min
-file_read_folder <- "//dphcifs/apde-cdip/apcd/apcd_data_import/dental_claim_export/"
-file_paths_list <- as.list(list.files(path = file.path(file_read_folder), full.names = F, pattern = "*.gz", all.files = F))
-system.time(for (i in 1:length(file_paths_list)) {
- file_name <- file_paths_list[i]
- message(paste0("Begin Uploading/Renaming ", file_name, " - ", Sys.time()))
- AzureStor::storage_upload(cont,
-                           src = paste0(file_read_folder, file_name),
-                           dest = paste0("claims/apcd/dental_claim_import/", file_name))
- message(paste0("Upload Completed - ", Sys.time()))
+##Set up empty dataframe to hold QA results
+file_count_qa_results <- data.frame(
+  folder=as.character(),
+  file_count=as.integer(),
+  qa_result=as.character(),
+  load_complete_time=as.character()
+)
+
+#Establish list of CIFS folders for which GZIP files will be loaded to Azure Blob Storage
+folder_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
+                   "member_month_detail", "pharmacy_claim", "provider", "provider_master")
+
+#Begin loop
+lapply(folder_list, function(folder_list) {
+
+  #Select table from list
+  folder_selected <- folder_list
+  message(paste0("Working on folder for: ", folder_selected, " - ", Sys.time()))
+  
+  #Create CIFS folder path, load list of GZIP files, and count GZIP files
+  folder_path <- glue("//dphcifs/apde-cdip/apcd/apcd_data_import/", folder_selected, "_export/")
+  file_paths_list <- as.list(list.files(path = file.path(folder_path), full.names = F, pattern = "*.gz", all.files = F))
+  file_count_cifs <- length(file_paths_list)
+  message(paste0("Number of GZIP files in CIFS folder for: ", folder_selected, " - ", file_count_cifs, " files"))
+  
+  #Load GZIP files to Azure Blob Storage using AzureStor package
+  system.time(for (i in 1:length(file_paths_list)) {
+   file_name <- file_paths_list[i]
+   message(paste0("Begin Uploading/Renaming ", file_name, " - ", Sys.time()))
+   AzureStor::storage_upload(cont,
+                             src = paste0(file_read_folder, file_name),
+                             dest = paste0("claims/apcd/dental_claim_import/", file_name))
+   message(paste0("Upload Completed - ", Sys.time()))})
+   
+   #Count number of GZIP files uploaded to Azure Blob Storage
+   file_list_azure <- AzureStor::list_storage_files(cont, dir = glue("claims/apcd/", folder_selected, "_import/"))$name
+   file_count_azure <- length(file_list_azure[grepl("*.gz$", file_list_azure)])
+   message(paste0("Number of GZIP files in Azure for: ", folder_selected, " - ", file_count_azure, " files"))
+   
+   #QA check
+   if(file_count_cifs == file_count_azure) {
+     qa_files_azure <- "PASS"
+   } else {
+     qa_files_azure <- "FAIL"
+   }
+  
+   if (qa_files_azure == "FAIL") {
+     stop(glue::glue("Mismatching file count between CIFS and Azure Blob Storage for: ", folder_selected,
+                     ". Rerun script to try loading files again."))
+   } else if(qa_files_azure == "PASS") {
+     message("Number of files loaded to Azure match number of files on CIFS for: ", folder_selected, ". Loading complete.")
+   }
+   
+   #Write QA results to R dataframe
+   qa_result_inner <- data.frame(folder=folder_selected, file_count = file_count_cifs, qa_result = qa_files_azure,
+                                 load_complete_time = as.character(Sys.time()))
+   file_count_qa_results <- bind_rows(file_count_qa_results, qa_result_inner)
+
 })
 
-
-
-
-#### Jeremy's code ####
-
-
-    
-    db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
-    for (x in 1:nrow(tfiles)) {
-      tfiles[x, "batch_id_prod"] <- load_metadata_etl_log_file_f(conn = db_claims, 
-                                                            server = "hhsaw",
-                                                            batch_type = "incremental", 
-                                                            data_source = "Medicaid", 
-                                                            date_min = tfiles[x, "min_date"],
-                                                            date_max = tfiles[x, "max_date"],
-                                                            delivery_date = tfiles[x, "del_date"], 
-                                                            file_name = tfiles[x, "uploadName"],
-                                                            file_loc = paste0("claims/mcaid/", tfiles[x, "type"], "/incr/"),
-                                                            row_cnt = tfiles[x, "row_cnt"], 
-                                                            note = paste0("Partial refresh of Medicaid ", tfiles[x, "type"], " data"))
-    }
-    schema <- "metadata"
-    table <- "etl_log"
-    proceed_msg <- glue("Would you like to create ETL Log Entries on HHSAW Dev?")
-    proceed <- askYesNo(msg = proceed_msg)
-    if (proceed == T) {
-      db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = F)
-      for (x in 1:nrow(tfiles)) {
-        tfiles[x, "batch_id_dev"] <- load_metadata_etl_log_file_f(conn = db_claims, 
-                                                              server = "hhsaw",
-                                                              batch_type = "incremental", 
-                                                              data_source = "Medicaid", 
-                                                              date_min = tfiles[x, "min_date"],
-                                                              date_max = tfiles[x, "max_date"],
-                                                              delivery_date = tfiles[x, "del_date"], 
-                                                              file_name = tfiles[x, "uploadName"],
-                                                              file_loc = paste0("claims/mcaid/", tfiles[x, "type"], "/incr/"),
-                                                              row_cnt = tfiles[x, "row_cnt"], 
-                                                              note = paste0("Partial refresh of Medicaid ", tfiles[x, "type"], " data"))
-      }
-    }
-    message(paste0("All Entries Created - ", Sys.time()))
-  }
-  delete <- askYesNo("Delete Temporary Files?")
-  if(delete == T) {
-    files <- list.files(dldir, recursive = T)
-    for (x in 1:length(files)) {
-      file.remove(paste0(dldir, "/", files[x]))
-    }
-    files <- list.files(exdir, recursive = T)
-    for (x in 1:length(files)) {
-      file.remove(paste0(exdir, "/", files[x]))
-    }
-    files <- list.files(txtdir, recursive = T)
-    for (x in 1:length(files)) {
-      file.remove(paste0(txtdir, "/", files[x]))
-    }
-    files <- list.files(gzdir, recursive = T)
-    for (x in 1:length(files)) {
-      file.remove(paste0(gzdir, "/", files[x]))
-    }
-  }
-
-rm(list=ls())
+## Closing message (after loop completes)
+message(paste0("All files have been successfully loaded to Azure Blob Storage - ", Sys.time()))
