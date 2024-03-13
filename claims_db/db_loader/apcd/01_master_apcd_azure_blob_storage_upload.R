@@ -79,7 +79,7 @@ lapply(folder_list, function(folder_list) {
   #Load GZIP files to Azure Blob Storage using AzureStor package
   system.time(for (i in 1:length(file_paths_list)) {
    file_name <- file_paths_list[i]
-   message(paste0("Begin Uploading/Renaming ", file_name, " - ", Sys.time()))
+   message(paste0("Begin Uploading ", file_name, " - ", Sys.time()))
    AzureStor::storage_upload(cont,
                              src = paste0(folder_path, file_name),
                              dest = paste0("claims/apcd/dental_claim_import/", file_name))
