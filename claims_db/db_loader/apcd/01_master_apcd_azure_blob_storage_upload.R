@@ -76,13 +76,13 @@ lapply(folder_list, function(folder_list) {
   message(paste0("Number of GZIP files in CIFS folder for: ", folder_selected, " - ", file_count_cifs, " files"))
   
   #Load GZIP files to Azure Blob Storage using AzureStor package
-  system.time(for (i in 1:length(file_paths_list)) {
+  for (i in 1:length(file_paths_list)) {
    file_name <- file_paths_list[i]
    message(paste0("Begin Uploading ", file_name, " - ", Sys.time()))
    AzureStor::storage_upload(cont,
                              src = paste0(folder_path, file_name),
                              dest = paste0("claims/apcd/", folder_selected, "_import/", file_name))
-   message(paste0("Upload Completed - ", Sys.time()))})
+   message(paste0("Upload Completed - ", Sys.time()))}
    
    #Count number of GZIP files uploaded to Azure Blob Storage
    file_list_azure <- AzureStor::list_storage_files(cont, dir = glue("claims/apcd/", folder_selected, "_import/"))$name
@@ -107,6 +107,7 @@ lapply(folder_list, function(folder_list) {
    qa_result_inner <- data.frame(folder=folder_selected, file_count = file_count_cifs, qa_result = qa_files_azure,
                                  load_complete_time = as.character(Sys.time()))
    file_count_qa_results <- bind_rows(file_count_qa_results, qa_result_inner)
+   return(file_count_qa_results)
 
 })
 
