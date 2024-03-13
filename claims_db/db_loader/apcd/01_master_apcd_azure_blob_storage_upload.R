@@ -46,7 +46,6 @@ cont <- storage_container(blob_endp, "inthealth")
 #### STEP 2: UPLOAD GZIP FILES TO AZURE BLOG STORAGE ####
 
 #Note that storage_upload (one file at a time) is faster than storage_multiupload (parallel uploads) for large files
-#Run time for dental claim files: 104 min
 
 ## Beginning message (before loop begins)
 message(paste0("Beginning process to load GZIP files to Azure Blob Storage - ", Sys.time()))
