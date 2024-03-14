@@ -130,17 +130,6 @@ lapply(folder_list, function(folder_list) {
                     Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
   }
   
-  ## Add batch ID column
-  # message(paste0("Adding batch ID column to: ", table_config[[server]][["to_table"]]), " - ", Sys.time())
-  # DBI::dbExecute(dw_inthealth,
-  #                glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`} 
-  #                   ADD etl_batch_id INTEGER DEFAULT {current_batch_id}",
-  #                               .con = dw_inthealth))
-  # DBI::dbExecute(dw_inthealth,
-  #                glue::glue_sql("UPDATE {`to_schema`}.{`to_table`} 
-  #                   SET etl_batch_id = {current_batch_id}",
-  #                               .con = dw_inthealth))
-  
   ## Add date_load_raw to metadata_etl_log table
   message(paste0("Adding date_load_raw to metadata_etl_log for: ", table_config[[server]][["to_table"]]), " - ", Sys.time())
   DBI::dbExecute(db_claims,
