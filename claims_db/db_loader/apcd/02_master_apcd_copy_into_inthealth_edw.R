@@ -44,8 +44,6 @@ message(paste0("Beginning process to copy tables to inthealth_edw - ", Sys.time(
 folder_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
                     "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
-folder_list <- folder_list[[5]] #testing code
-
 #Begin loop
 lapply(folder_list, function(folder_list) {
 
