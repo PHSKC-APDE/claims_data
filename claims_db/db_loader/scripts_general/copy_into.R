@@ -122,6 +122,12 @@ copy_into_f <- function(
     stop("batch_id must be provided if batch_id_assign == T")
   }
   
+  # Check for overwrite == F and batch_id_assign == T
+  if (batch_id_assign == TRUE & overwrite == FALSE) {
+    stop("batch_id_assign should not be used if overwrite == FALSE")
+  }
+  
+  
   #### VARIABLES ####
   file_type <- match.arg(file_type)
   max_errors <- round(max_errors, 0)
