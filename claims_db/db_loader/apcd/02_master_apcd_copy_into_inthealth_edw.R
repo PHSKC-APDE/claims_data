@@ -35,7 +35,7 @@ dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
 
-#### STEP 2: PRECURSOR TO LOOP THAT WILL EVENTUALLY HANDLE ALL TABLES ####
+#### STEP 2: LOAD DATA FOR ALL TABLES ####
 
 ## Beginning message (before loop begins)
 message(paste0("Beginning process to copy tables to inthealth_edw - ", Sys.time()))
