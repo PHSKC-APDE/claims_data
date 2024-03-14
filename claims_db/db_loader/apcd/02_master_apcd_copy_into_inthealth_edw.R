@@ -28,7 +28,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 #### STEP 1: CREATE CONNECTIONS ####
 
 ##Establish connection to inthealth_edw prod
-interactive_auth <- T #must be set to true if running from Azure VM
+interactive_auth <- TRUE #must be set to true if running from Azure VM
 prod <- TRUE
 server <- "hhsaw"
 dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
