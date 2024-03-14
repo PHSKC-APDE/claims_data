@@ -28,7 +28,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 #### STEP 1: CREATE CONNECTIONS ####
 
 ##Establish connection to inthealth_edw prod
-interactive_auth <- FALSE #must be set to true if running from Azure VM
+interactive_auth <- T #must be set to true if running from Azure VM
 prod <- TRUE
 server <- "hhsaw"
 dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
@@ -43,6 +43,8 @@ message(paste0("Beginning process to copy tables to inthealth_edw - ", Sys.time(
 #Establish list of Azuer Blob Storage folders for which GZIP files will be copied to inthealth_edw
 folder_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
                     "member_month_detail", "pharmacy_claim", "provider", "provider_master")
+
+folder_list <- folder_list[[5]] #testing code
 
 #Begin loop
 lapply(folder_list, function(folder_list) {
@@ -60,11 +62,8 @@ lapply(folder_list, function(folder_list) {
   message("Creating/reusing ETL batch ID for: ", table_name, " - ", Sys.time())
   existing_batch_id <- DBI::dbGetQuery(db_claims, 
                              glue::glue_sql("SELECT * FROM claims.metadata_etl_log
-                                    WHERE date_load_raw IS NULL
-                                     AND row_count is not null
-                                     AND data_source = 'APCD'
-                                     AND batch_type = 'Full Refresh'
-                                    ORDER BY date_min, date_max",
+                                    WHERE data_source = 'APCD'
+                                     AND delivery_date = '{`DBI::SQL(table_config$date_delivery)`}'",
                                             .con = db_claims))$etl_batch_id
   
   if(!identical(existing_batch_id, integer(0))){
@@ -100,7 +99,9 @@ lapply(folder_list, function(folder_list) {
               field_terminator = ",",
               row_terminator = "0x0A",
               overwrite = TRUE,
-              rodbc = FALSE))
+              rodbc = FALSE,
+              batch_id_assign = FALSE,
+              batch_id = current_batch_id))
   
   ##QA row and column counts
   message("Running row count comparison QA for: ", table_config[[server]][["to_table"]], " - ", Sys.time())
@@ -132,15 +133,15 @@ lapply(folder_list, function(folder_list) {
   }
   
   ## Add batch ID column
-  message(paste0("Adding batch ID column to: ", table_config[[server]][["to_table"]]), " - ", Sys.time())
-  DBI::dbExecute(dw_inthealth,
-                 glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`} 
-                    ADD etl_batch_id INTEGER DEFAULT {current_batch_id}",
-                                .con = dw_inthealth))
-  DBI::dbExecute(dw_inthealth,
-                 glue::glue_sql("UPDATE {`to_schema`}.{`to_table`} 
-                    SET etl_batch_id = {current_batch_id}",
-                                .con = dw_inthealth))
+  # message(paste0("Adding batch ID column to: ", table_config[[server]][["to_table"]]), " - ", Sys.time())
+  # DBI::dbExecute(dw_inthealth,
+  #                glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`} 
+  #                   ADD etl_batch_id INTEGER DEFAULT {current_batch_id}",
+  #                               .con = dw_inthealth))
+  # DBI::dbExecute(dw_inthealth,
+  #                glue::glue_sql("UPDATE {`to_schema`}.{`to_table`} 
+  #                   SET etl_batch_id = {current_batch_id}",
+  #                               .con = dw_inthealth))
   
   ## Add date_load_raw to metadata_etl_log table
   message(paste0("Adding date_load_raw to metadata_etl_log for: ", table_config[[server]][["to_table"]]), " - ", Sys.time())
