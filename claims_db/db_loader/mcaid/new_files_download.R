@@ -31,7 +31,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 #### CREATE CONNECTION ####
 ##interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
-interactive_auth <- TRUE
+interactive_auth <- FALSE
 ##prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
 prod <- TRUE
 

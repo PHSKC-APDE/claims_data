@@ -8,16 +8,17 @@ hhsaw:
   to_schema: claims
   to_table: stage_mcaid_claim_bh
   final_schema: claims
-  final_table: final_
+  final_table: final_mcaid_claim_bh
+  final_table_pre: final_
   ref_schema: ref
   ref_table: rda_value_sets_apde
   rolling_schema: claims
   rolling_table: ref_rolling_time_24mo_2012_2020
   qa_schema: claims
-  qa_table: metadata_
+  qa_table_pre: metadata_
 vars:
   id_mcaid: varchar(255)
   from_date: date
   to_date: date
   bh_cond: varchar(200)
-  last_run: date
+  last_run: datetime

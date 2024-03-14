@@ -210,9 +210,9 @@ copy_into_f <- function(
   }
   
   load_sql <- glue::glue_sql(
-    "COPY INTO {`to_schema`}.{`to_table`} 
+    "COPY INTO {`to_schema`}.{`to_table`}
     ({`var_names_with_batch_id`*} {DBI::SQL(`batch_id_var_default`)})
-    FROM {dl_path}
+    FROM {DBI::SQL(glue_collapse(glue_sql('{dl_path}', .con = conn), sep = ', \n'))}
     WITH (
       FILE_TYPE = {file_type},
       {auth_sql}

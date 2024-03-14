@@ -12,6 +12,7 @@
 # Revised: Philip Sylling | 2019-12-13 | Added [ed_perform_id] which increments [ed] column by unique [id_mcaid], [first_service_date]
 # Revised: Alastair Matheson | 2020-01-27 | Added primary care flags
 # Revised: Eli Kern | 2023-09-13 | Added new BH flags, new CCS flags, renamed columns, removed outdated columns, revised injury code to be consistent with CHARS
+# Revised: Eli Kern | 2024-01-16 | Added ccs_superlevel_desc and ccs_midlevel_desc columns to aid with tabulating leading causes
 # 
 # Data Pull Run time: XX min
 # Create Index Run Time: XX min
@@ -47,8 +48,10 @@
 # ,[primary_diagnosis]
 # ,[icdcm_version]
 # ,[primary_diagnosis_poa]
+# ,[ccs_superlevel_desc]
 # ,[ccs_broad_desc]
 # ,[ccs_broad_code]
+# ,[ccs_midlevel_desc]
 # ,[ccs_detail_desc]
 # ,[ccs_detail_code]
 # ,[mh_primary]
@@ -265,7 +268,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   try(DBI::dbRemoveTable(conn, "##hedis_inpatient_definition", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql(
-                   "SELECT [id_mcaid]
+                   "SELECT distinct [id_mcaid]
                  ,[claim_header_id]
                  ,[first_service_date]
                  ,1 AS [inpatient]
@@ -277,7 +280,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                  ON a.[rev_code] = b.[code]
                   
                   EXCEPT
-                  (SELECT [id_mcaid]
+                  (SELECT distinct [id_mcaid]
                     ,[claim_header_id]
                     ,[first_service_date]
                     ,1 AS [inpatient]
@@ -287,15 +290,15 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                     WHERE [value_set_name] IN ('Nonacute Inpatient Stay') AND [code_system] = 'UBREV') AS b
                     ON a.[rev_code] = b.[code]
                   UNION
-                  SELECT [id_mcaid]
+                  SELECT distinct [id_mcaid]
                     ,[claim_header_id]
                     ,[first_service_date]
                     ,1 AS [inpatient]
-                    FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line AS a
+                    FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_header AS a
                     INNER JOIN 
-                    (SELECT distinct code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde 
+                    (SELECT distinct code from claims.ref_hedis_value_sets_apde 
                     WHERE [value_set_name] IN ('Nonacute Inpatient Stay') AND [code_system] = 'UBTOB') AS b
-                    ON a.[rev_code] = b.[code]
+                    ON case when len(a.[type_of_bill_code]) = 3 then '0' + a.[type_of_bill_code] else a.[type_of_bill_code] end = b.[code]
                   );", .con = conn))
   
   # Add index
@@ -378,14 +381,16 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                                 .con = conn))
   
 
-  #### STEP 8: CCS GROUPINGS (BROAD, DETAIL) FOR PRIMARY DIAGNOSIS ####
-  message("STEP 8: CCS GROUPINGS (BROAD, DETAIL) FOR PRIMARY DX")
+  #### STEP 8: CCS GROUPINGS (SUPERLEVEL, BROAD, MIDLEVEL, DETAIL) FOR PRIMARY DIAGNOSIS ####
+  message("STEP 8: CCS GROUPINGS (SUPERLEVEL, BROAD, MIDLEVEL, DETAIL) FOR PRIMARY DX")
   try(DBI::dbRemoveTable(conn, "##ccs", temporary = T), silent = T)
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT 
            b.claim_header_id
+           ,a.ccs_superlevel_desc
            ,a.ccs_broad_desc
            ,a.ccs_broad_code
+           ,a.ccs_midlevel_desc
            ,a.ccs_detail_desc
            ,a.ccs_detail_code
            INTO ##ccs
@@ -884,8 +889,10 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
              ,f.mechanism as injury_mechanism
              
              --CCS
+             ,d.ccs_superlevel_desc
              ,d.ccs_broad_desc
              ,d.ccs_broad_code
+             ,d.ccs_midlevel_desc
              ,d.ccs_detail_desc
              ,d.ccs_detail_code
              
