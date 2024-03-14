@@ -56,29 +56,20 @@ lapply(folder_list, function(folder_list) {
       table_name,
       "_full.yaml")))
   
-  ##Retrieve ETL batch ID or create if this is the first entry for ETL run
-  message("Creating/reusing ETL batch ID for: ", table_name, " - ", Sys.time())
-  existing_batch_id <- DBI::dbGetQuery(db_claims, 
-                             glue::glue_sql("SELECT * FROM claims.metadata_etl_log
-                                    WHERE data_source = 'APCD'
-                                     AND delivery_date = '{`DBI::SQL(table_config$date_delivery)`}'",
-                                            .con = db_claims))$etl_batch_id
-  
-  if(!identical(existing_batch_id, integer(0))){
-    current_batch_id <- existing_batch_id
-  } else {
-    current_batch_id <- load_metadata_etl_log_file_f(conn = db_claims, 
-                                                     batch_type = "full", 
-                                                     data_source = "APCD", 
-                                                     date_min = table_config$date_min,
-                                                     date_max = table_config$date_max,
-                                                     delivery_date = table_config$date_delivery, 
-                                                     note = table_config$note_delivery,
-                                                     row_cnt = table_config$row_count,
-                                                     file_name = table_config[[server]][["to_table"]],
-                                                     file_loc = table_config[[server]][["dl_path"]],
-                                                     server = server)
-  }
+  ##Create ETL batch ID (each table will have its own ETL batch ID)
+  message("Creating ETL batch ID for: ", table_name, " - ", Sys.time())
+  current_batch_id <- load_metadata_etl_log_file_f(conn = db_claims, 
+                                                   batch_type = "full", 
+                                                   data_source = "APCD", 
+                                                   date_min = table_config$date_min,
+                                                   date_max = table_config$date_max,
+                                                   delivery_date = table_config$date_delivery, 
+                                                   note = table_config$note_delivery,
+                                                   row_cnt = table_config$row_count,
+                                                   file_name = table_config[[server]][["to_table"]],
+                                                   file_loc = table_config[[server]][["dl_path"]],
+                                                   server = server,
+                                                   auto_proceed = TRUE)
   
   ##Load data
   #Note that tables in EDW automatically have an index created
@@ -98,7 +89,7 @@ lapply(folder_list, function(folder_list) {
               row_terminator = "0x0A",
               overwrite = TRUE,
               rodbc = FALSE,
-              batch_id_assign = FALSE,
+              batch_id_assign = TRUE,
               batch_id = current_batch_id))
   
   ##QA row and column counts
@@ -135,7 +126,8 @@ lapply(folder_list, function(folder_list) {
   DBI::dbExecute(db_claims,
                  glue::glue_sql("UPDATE claims.metadata_etl_log 
                                  SET date_load_raw = GETDATE() 
-                                 WHERE etl_batch_id = {current_batch_id}",
+                                 WHERE etl_batch_id = {current_batch_id}
+                                 AND file_name = {to_table}",
                                 .con = db_claims))
 })
 
