@@ -1,6 +1,7 @@
 #### FUNCTION TO COPY DATA FROM THE DATA LAKE TO THE DATA WAREHOUSE
 # Alastair Matheson
 # Created:        2019-04-04
+# 3/14/24 update: Eli added parameters for assigning an ETL batch ID within the copy into statement
 
 
 ### Plans for future improvements:
@@ -34,7 +35,9 @@ copy_into_f <- function(
   row_terminator = "\\n",
   first_row = 2,
   overwrite = T,
-  rodbc = F) {
+  rodbc = F,
+  batch_id_assign = F,
+  batch_id = NULL) {
   
   
   #### SET UP SERVER ####
@@ -114,13 +117,27 @@ copy_into_f <- function(
     stop("first_row must be numeric")
   }
 
-  
+  # Check for missing batch_id value if batch_id_assign == T
+  if (batch_id_assign == TRUE & is.null(batch_id)) {
+    stop("batch_id must be provided if batch_id_assign == T")
+  }
   
   #### VARIABLES ####
   file_type <- match.arg(file_type)
   max_errors <- round(max_errors, 0)
   compression <- match.arg(compression)
   first_row <- round(first_row, 0)
+  
+  # Parse batch_id_assign parameter
+  if(batch_id_assign == TRUE) {
+    batch_id_var_name <- "etl_batch_id"
+    batch_id_var_type <- "integer"
+    batch_id_var_default <- paste0("default ", batch_id)
+  } else {
+    batch_id_var_name <- ""
+    batch_id_var_type <- ""
+    batch_id_var_default <- ""
+  }
   
   if (!is.null(server)) {
     to_schema <- table_config[[server]][["to_schema"]]
@@ -160,7 +177,15 @@ copy_into_f <- function(
   }
   
   ### Create table if it doesn't exist
-  if (DBI::dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table)) == F) {
+  if (DBI::dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table)) == F & batch_id_assign == T) {
+    DBI::dbExecute(conn, glue::glue_sql(
+      "CREATE TABLE {`to_schema`}.{`to_table`} (
+          {DBI::SQL(glue_collapse(glue_sql('{`c(names(table_config$vars),batch_id_var_name)`} {DBI::SQL(c(table_config$vars,batch_id_var_type))}',
+                                           .con = conn), sep = ', \n'))}
+        )", .con = conn))
+  }
+  
+  if (DBI::dbExistsTable(conn, DBI::Id(schema = to_schema, table = to_table)) == F & batch_id_assign == F) {
     DBI::dbExecute(conn, glue::glue_sql(
       "CREATE TABLE {`to_schema`}.{`to_table`} (
           {DBI::SQL(glue_collapse(glue_sql('{`names(table_config$vars)`} {DBI::SQL(table_config$vars)}',
@@ -171,9 +196,16 @@ copy_into_f <- function(
   message(glue::glue("Creating [{to_schema}].[{to_table}] table"))
   
   # Set up SQL
+  
+  if(batch_id_assign == T) {
+    var_names_with_batch_id <- c(names(table_config$vars), batch_id_var_name)
+  } else {
+    var_names_with_batch_id <- names(table_config$vars)
+  }
+  
   load_sql <- glue::glue_sql(
     "COPY INTO {`to_schema`}.{`to_table`} 
-    ({`names(table_config$vars)`*})
+    ({`var_names_with_batch_id`*} {DBI::SQL(`batch_id_var_default`)})
     FROM {dl_path}
     WITH (
       FILE_TYPE = {file_type},
