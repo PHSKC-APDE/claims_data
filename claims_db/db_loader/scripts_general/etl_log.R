@@ -9,6 +9,9 @@
 # Use with caution to avoid creating duplicate entries.
 # Note that this will not overwrite checking for near-exact matches but will auto-reuse them. 
 
+# 3/14/24 Eli update: Tweaked code that produces "proceed" object to 1) fix parentheses around OR statement
+  # and 2) set proceed <- T if auto_proceed == T and nrow(matches) >= 1
+
 
 load_metadata_etl_log_file_f <- function(conn = NULL,
                                     server = NULL,
@@ -123,9 +126,11 @@ load_metadata_etl_log_file_f <- function(conn = NULL,
   
   
   #### CHECK ABOUT CREATING NEW ENTRY ####
-  if ((auto_proceed == T )& nrow(matches) == 0 | nrow(latest_source) == 0) {
+  if (auto_proceed == T & (nrow(matches) == 0 | nrow(latest_source) == 0)) {
     proceed <- T
-  } 
+  } else if (auto_proceed == T & nrow(matches) >= 1) {
+    proceed <- T
+  }
   
   if (auto_proceed == F) {
     # Check if wanting to make a new ID when there is a close match
@@ -316,9 +321,11 @@ load_metadata_etl_log_f <- function(conn = NULL,
   
   
   #### CHECK ABOUT CREATING NEW ENTRY ####
-  if ((auto_proceed == T )& nrow(matches) == 0 | nrow(latest_source) == 0) {
+  if (auto_proceed == T & (nrow(matches) == 0 | nrow(latest_source) == 0)) {
     proceed <- T
-    } 
+  } else if (auto_proceed == T & nrow(matches) >= 1) {
+    proceed <- T
+  }
   
   if (auto_proceed == F) {
     # Check if wanting to make a new ID when there is a close match
