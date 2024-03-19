@@ -40,7 +40,7 @@ db_claims <- create_db_connection(server, interactive = interactive_auth, prod =
 ## Beginning message (before loop begins)
 message(paste0("Beginning process to copy tables to inthealth_edw - ", Sys.time()))
 
-#Establish list of Azuer Blob Storage folders for which GZIP files will be copied to inthealth_edw
+#Establish list of Azure Blob Storage folders for which GZIP files will be copied to inthealth_edw
 folder_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
                     "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
@@ -132,5 +132,27 @@ lapply(folder_list, function(folder_list) {
 })
 
 
-## Closing message (after loop completes)
+#### STEP 3: CONFIRM EXTERNAL TABLES ON HHSAW ARE WORKING ####
+
+##Query external tables and return row counts
+external_table_row_counts <- lapply(folder_list, function(folder_list) {
+  
+  table_selected <- folder_list
+  message(paste0("Querying row count for HHSAW external table: ", table_selected))
+  sql_query <- dbGetQuery(conn = db_claims, glue_sql("SELECT count(*) as row_count FROM [claims].[stage_apcd_{DBI::SQL(`table_selected`)}];",
+                                                     .con = db_claims))
+  da_inner <- data.frame(table_name = table_selected, row_count = sql_query$row_count)
+  return(da_inner)
+}) %>%
+  bind_rows()
+
+## QA message
+if (table(external_table_row_counts$row_count>0)["TRUE"][[1]] != length(folder_list)) {
+  stop(glue::glue("Not all external tables have non-zero row counts. Inspect manually"))
+} else {
+  message("All external tables are working properly.")
+}
+
+
+## Closing message
 message(paste0("All tables have been successfully copied to inthealth_edw - ", Sys.time()))
