@@ -4,13 +4,18 @@
 # 2019-10
 
 #2022-04-26 update: Update to account for new format file structure
+#2024-03-21 update: Update to push data to HHSAW with new naming syntax
 
-### Run from master_apcd_full script
-# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_full.R
+## Set up global parameters and call in libraries
+options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
+origin <- "1970-01-01" # Date origin
+pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils)
 
-
-load_ref.apcd_reference_tables_full_f <- function(x) {
-
+## Connect to HHSAW
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
+interactive_auth <- TRUE #must be set to true if running from Azure VM
+prod <- TRUE
+db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 
 #### STEP 1: Define inner bcp load function ####
 
@@ -25,23 +30,26 @@ bcp_load_f <- function(server = NULL, table = NULL, read_file = NULL, format_fil
   else {nrow = ""}
   
   #Load data file
-  bcp_args <- c(table, "in", read_file, "-t ,", "-C 65001", "-F 2", paste0("-S ", server, " -T"), "-b 100000", nrow, "-c")
-  system2(command = "bcp", args = c(bcp_args))
+  bcp_args <- c(glue((table, "in", read_file, "-t ,", "-C 65001", "-F 2", glue("-S ", server, " -T"),
+
+                "-b 100000", nrow, "-c")
+  system2(command = "bcp", args = c(bcp_args), stdout = TRUE, stderr = TRUE)
 }
 
 
 #### STEP 2: Set universal parameters ####
-write_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" ##Folder to save Amazon S3 files to
-
-sql_server = "KCITSQLPRPENT40"
-sql_server_odbc_name = "PHClaims"
-sql_database_name <- "phclaims" ##Name of SQL database where table will be created
+write_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" ##Folder where APCD data is downloaded from AWS
+sql_server <- "HHSAW_prod" ##Name of ODBC connection set up on this machine
+sql_server <- "tcp:kcitazrhpasqlprp16.azds.kingcounty.gov,1433"
+sql_server <- "tcp:kcitazrhpasqlprp16.azds.kingcounty.gov"
+sql_server <- "kcitazrhpasqlprp16.azds.kingcounty.gov"
+sql_database_name <- "hhs_analytics_workspace" ##Name of SQL database where table will be created
 
 
 #### STEP 3: Create SQL table shell ####
 
 ##Set parameters specific to tables
-sql_schema_name <- "ref" ##Name of schema where table will be created
+sql_schema_name <- "claims" ##Name of schema where table will be created
 read_path <- paste0(write_path, "small_table_reference_export/")
 
 long_file_list <- as.list(list.files(path = file.path(read_path), pattern = "*.csv", full.names = T))
@@ -58,9 +66,8 @@ table_list <- as.list(distinct(format_file, table_name)$table_name)
 system.time(lapply(seq_along(table_list), y=table_list, function(y, i) {
 
   #Extract table name
-  #table_name_part <- short_file_list[[i]]
-  table_name_part <- table_list[[1]]
-  sql_table <- paste0("apcd_", table_name_part) ##Name of SQL table to be created and loaded to
+  table_name_part <- table_list[[i]]
+  sql_table <- paste0("ref_apcd_", table_name_part) ##Name of SQL table to be created and loaded to
 
   #Extract column names and types from format file
   format_file_subset <- filter(format_file, table_name == table_name_part)
@@ -75,7 +82,7 @@ system.time(lapply(seq_along(table_list), y=table_list, function(y, i) {
                 fields = format_vector, row.names = NULL)
   
   #Print helpful message
-  print(paste0("Table shell for reference table ", table_name_part, " successfully created."))
+  message(paste0("Table shell for reference table ", table_name_part, " successfully created."))
   
 }))
 
@@ -88,12 +95,20 @@ system.time(lapply(seq_along(long_file_list), y=long_file_list, function(y, i) {
 
   #Extract table name
   table_name_part <- short_file_list[[i]]
-  sql_table <- paste0("apcd_", table_name_part) ##Name of SQL table to be created and loaded to
+  sql_table <- paste0("ref_apcd_", table_name_part) ##Name of SQL table to be created and loaded to
   print(table_name_part)
 
-  #Load data using BCP
+  #Prep BCP arguments
   file_name <- y[[i]]
-  bcp_load_f(server = sql_server, table = paste0(sql_database_name, ".", sql_schema_name, ".", sql_table), read_file = file_name)
+  bcp_args <- c(glue('{sql_schema_name}.{sql_table} IN ',
+                     '"{file_name}" ',
+                     '-t , -C 65001 -F 2 ',
+                     '-S "{sql_server}" -d "{sql_database_name}" ',
+                     '-b 100000 -c ',
+                     '-G -U {keyring::key_list("hhsaw")$username} -P {keyring::key_get("hhsaw", keyring::key_list("hhsaw")$username)} -D'))
+  
+  
+  system2(command = "bcp", args = c(bcp_args), stdout = TRUE, stderr = TRUE)
   
   #Print helpful message
   print(paste0("Data for reference table ", table_name_part, " successfully loaded."))
