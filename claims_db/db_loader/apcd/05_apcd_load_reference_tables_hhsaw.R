@@ -13,7 +13,7 @@ pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils)
 
 #### STEP 1: Connect to HHSAW ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
-interactive_auth <- TRUE #must be set to true if running from Azure VM
+interactive_auth <- FALSE
 prod <- TRUE
 db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 
@@ -82,7 +82,7 @@ system.time(lapply(seq_along(long_file_list), y=long_file_list, function(y, i) {
                      '-t , -C 65001 -F 2 ',
                      '-S "{sql_server}" -d "{sql_database_name}" ',
                      '-b 100000 -c ',
-                     '-G -U {keyring::key_list("hhsaw")$username} -D'))
+                     '-G -U {keyring::key_list("hhsaw")$username} -P {keyring::key_get("hhsaw", keyring::key_list("hhsaw")[["username"]])} -D'))
   
   
   system2(command = "bcp", args = c(bcp_args), invisible = FALSE)
@@ -90,4 +90,3 @@ system.time(lapply(seq_along(long_file_list), y=long_file_list, function(y, i) {
   #Print helpful message
   print(paste0("Data for reference table ", table_name_part, " successfully loaded."))
 }))
-}
