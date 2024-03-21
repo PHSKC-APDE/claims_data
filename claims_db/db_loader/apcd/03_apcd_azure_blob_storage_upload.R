@@ -23,9 +23,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 #### STEP 1: CREATE CONNECTIONS ####
 
 ##Establish connection to HHSAW prod
-#interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
-interactive_auth <- FALSE #must be set to true if running from Azure VM
-#prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
+interactive_auth <- FALSE
 prod <- TRUE
 db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
 
