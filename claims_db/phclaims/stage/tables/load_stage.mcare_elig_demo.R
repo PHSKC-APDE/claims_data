@@ -209,7 +209,7 @@
                          'stage.mcare_elig_demo',
                          'Number new rows compared to most recent run', 
                          'FAIL', 
-                         {Sys.time()}, 
+                         {format(Sys.time(), usetz = FALSE)}, 
                          'There were {row_diff} fewer rows in the most recent table 
                          ({stage.count} vs. {previous_rows})')",
                          .con = db_claims))
@@ -226,7 +226,7 @@
                          'stage.mcare_elig_demo',
                          'Number new rows compared to most recent run', 
                          'PASS', 
-                         {Sys.time()}, 
+                         {format(Sys.time(), usetz = FALSE)}, 
                          'There were {row_diff} more rows in the most recent table 
                          ({stage.count} vs. {previous_rows})')",
                          .con = db_claims))
@@ -255,7 +255,7 @@
                          'stage.mcare_elig_demo',
                          'Number distinct IDs', 
                          'FAIL', 
-                         {Sys.time()}, 
+                         {format(Sys.time(), usetz = FALSE)}, 
                          'There were {stage.count.unique} distinct IDs but {stage.count} rows overall (should be the same)'
                          )
                          ",
@@ -273,7 +273,7 @@
                          'stage.mcare_elig_demo',
                          'Number distinct IDs', 
                          'PASS', 
-                         {Sys.time()}, 
+                         {format(Sys.time(), usetz = FALSE)}, 
                          'The number of distinct IDs matched number of overall rows ({stage.count.unique})')",
                          .con = db_claims))
         
@@ -294,7 +294,7 @@
                                 VALUES ('stage.mcare_elig_demo',
                                 'row_count', 
                                 {stage.count}, 
-                                {Sys.time()}, 
+                                {format(Sys.time(), usetz = FALSE)}, 
                                 '')",
                                 .con = db_claims)
     

@@ -188,7 +188,7 @@
                        'stage.mcare_mbsf',
                        'Number rows compared to load_raw', 
                        'FAIL', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'There were {row_diff} excess rows in the staged tables 
                        ({stage.count} vs. {raw.count})')",
                        .con = db_claims))
@@ -204,7 +204,7 @@
                        'stage.mcare_mbsf',
                        'Number rows compared to load_raw', 
                        'PASS', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'There were {row_diff} fewer rows in the staged vs. raw tables 
                        ({stage.count} vs. {raw.count})')",
                        .con = db_claims))
@@ -242,7 +242,7 @@
                        'stage.mcare_mbsf',
                        'Number new rows compared to most recent run', 
                        'FAIL', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'There were {row_diff} fewer rows in the most recent table 
                        ({stage.count} vs. {previous_rows})')",
                          .con = db_claims))
@@ -259,7 +259,7 @@
                        'stage.mcare_mbsf',
                        'Number new rows compared to most recent run', 
                        'PASS', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'There were {row_diff} more rows in the most recent table 
                        ({stage.count} vs. {previous_rows})')",
                          .con = db_claims))
@@ -288,7 +288,7 @@
                        'stage.mcare_mbsf',
                        'Number distinct IDs', 
                        'FAIL', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'There were {stage.count.unique} distinct ID/YEAR combinations but {stage.count} rows overall (should be the same)'
                        )
                        ",
@@ -306,7 +306,7 @@
                        'stage.mcare_mbsf',
                        'Number distinct IDs', 
                        'PASS', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'The number of distinct ID/YEAR combinations matched number of overall rows ({stage.count.unique})')",
                            .con = db_claims))
           
@@ -329,7 +329,7 @@
                                      VALUES ('stage.mcare_mbsf',
                                      'row_count', 
                                      {stage.count}, 
-                                     {Sys.time()}, 
+                                     {format(Sys.time(), usetz = FALSE)}, 
                                      '')",
                                      .con = db_claims)
       

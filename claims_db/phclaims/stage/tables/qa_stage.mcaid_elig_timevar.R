@@ -82,7 +82,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Number new rows compared to most recent run', 
                    'FAIL', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'There were {row_diff} fewer rows in the most recent table ({row_count} vs. {previous_rows})')",
                        .con = conn))
       
@@ -97,7 +97,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Number new rows compared to most recent run', 
                    'PASS', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'There were {row_diff} more rows in the most recent table ({row_count} vs. {previous_rows})')",
                        .con = conn))
       
@@ -124,7 +124,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Number distinct IDs', 
                        'FAIL', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'There were {id_count_timevar} distinct IDs but {id_count_elig} in the raw data (should be the same)')",
                      .con = conn))
     
@@ -140,7 +140,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Number distinct IDs', 
                        'PASS', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'The number of distinct IDs matched number in raw data ({id_count_timevar})')",
                      .con = conn))
   }
@@ -168,7 +168,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Duplicate rows', 
                        'FAIL', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'There were {dup_row_count} distinct rows (excl. ref_geo vars) \\
                     but {row_count} rows overall (should be the same)')",
                      .con = conn))
@@ -185,7 +185,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Duplicate rows', 
                        'PASS', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'The number of distinct rows (excl. ref_geo vars) \\
                      matched number total rows ({row_count})')",
                      .con = conn))
@@ -216,7 +216,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                              'Date range',
                              'FAIL',
-                             {Sys.time()}, 
+                             {format(Sys.time(), usetz = FALSE)}, 
                              'Some from/to dates fell outside the CLNDR_YEAR_MNTH range \\
                              (min: {`date_range_timevar$from_date`}, max: {`date_range_timevar$to_date`})')",
                      .con = conn))
@@ -233,7 +233,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                              'Date range',
                              'PASS',
-                             {Sys.time()}, 
+                             {format(Sys.time(), usetz = FALSE)}, 
                              'All from/to dates fell within the CLNDR_YEAR_MNTH range \\
                              (min: {`date_range_elig$from_date`}, max: {`date_range_elig$to_date`})')",
                      .con = conn))
@@ -267,7 +267,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   #                            '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
   #                            'Specific IDs',
   #                            'FAIL',
-  #                            {Sys.time()}, 
+  #                            {format(Sys.time(), usetz = FALSE)}, 
   #                            'Some from/to dates did not match expected results for specific IDs')",
   #                    .con = conn))
   # } else {
@@ -280,7 +280,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   #                            '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
   #                            'Specific IDs',
   #                            'PASS',
-  #                            {Sys.time()}, 
+  #                            {format(Sys.time(), usetz = FALSE)}, 
   #                            'All from/to dates matched expected results for specific IDs')",
   #                    .con = conn))
   # }
@@ -293,7 +293,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              VALUES ('{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                      'row_count', 
                                      {row_count}, 
-                                     {Sys.time()}, 
+                                     {format(Sys.time(), usetz = FALSE)}, 
                                      '')",
                              .con = conn)
   

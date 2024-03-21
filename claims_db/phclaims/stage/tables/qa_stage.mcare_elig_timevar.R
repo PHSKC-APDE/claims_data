@@ -54,7 +54,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                        'stage.mcare_elig_timevar',
                        'Number new rows compared to most recent run', 
                        'FAIL', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'There were {row_diff} fewer rows in the most recent table 
                        ({row_count} vs. {previous_rows})')",
                        .con = conn))
@@ -71,7 +71,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                        'stage.mcare_elig_timevar',
                        'Number new rows compared to most recent run', 
                        'PASS', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'There were {row_diff} more rows in the most recent table 
                        ({row_count} vs. {previous_rows})')",
                        .con = conn))
@@ -105,7 +105,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                      'stage.mcare_elig_timevar',
                      'Number distinct IDs', 
                      'FAIL', 
-                     {Sys.time()}, 
+                     {format(Sys.time(), usetz = FALSE)}, 
                      'There were {id_count_timevar} distinct IDs but {id_count_mbsf} in the WA MBSF data (should be the same)'
                      )
                      ",
@@ -123,7 +123,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                      'stage.mcare_elig_timevar',
                      'Number distinct IDs', 
                      'PASS', 
-                     {Sys.time()}, 
+                     {format(Sys.time(), usetz = FALSE)}, 
                      'The number of distinct IDs matched number in the WA MBSF data  
                      ({id_count_timevar})')",
                      .con = conn))
@@ -148,7 +148,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                      'stage.mcare_elig_timevar',
                      'Duplicate rows', 
                      'FAIL', 
-                     {Sys.time()}, 
+                     {format(Sys.time(), usetz = FALSE)}, 
                      'There were {dup_row_count} distinct rows but {row_count} rows overall (should be the same)')",
                      .con = conn))
     
@@ -164,7 +164,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                      'stage.mcare_elig_timevar',
                      'Duplicate rows', 
                      'PASS', 
-                     {Sys.time()}, 
+                     {format(Sys.time(), usetz = FALSE)}, 
                      'The number of distinct rows (excl. ref_geo vars) matched number total rows ({row_count})')",
                      .con = conn))
     
@@ -190,7 +190,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                      'stage.mcare_elig_timevar',
                      'Date range',
                      'FAIL',
-                     {Sys.time()}, 
+                     {format(Sys.time(), usetz = FALSE)}, 
                      'Some from/to dates fell outside the CLNDR_YEAR_MNTH range 
                      (min: {`from`}, max: {`to`})')",
                      .con = conn,
@@ -210,7 +210,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                      'stage.mcare_elig_timevar',
                      'Date range',
                      'PASS',
-                     {Sys.time()}, 
+                     {format(Sys.time(), usetz = FALSE)}, 
                      'All from/to dates fell within the CLNDR_YEAR_MNTH range 
                      (min: {`from`}, max: {`to`})')",
                      .con = conn,
@@ -227,7 +227,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                              VALUES ('stage.mcare_elig_timevar',
                              'row_count', 
                              {row_count}, 
-                             {Sys.time()}, 
+                             {format(Sys.time(), usetz = FALSE)}, 
                              '')",
                              .con = conn)
   

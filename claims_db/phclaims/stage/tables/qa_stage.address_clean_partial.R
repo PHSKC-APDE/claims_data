@@ -65,7 +65,7 @@ qa.address_clean_partial <- function(conn = NULL,
                              '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                              'Row counts',
                              'FAIL',
-                             {Sys.time()}, 
+                             {format(Sys.time(), usetz = FALSE)}, 
                              'Stage table has {rows_stage - rows_ref} fewer rows than ref table')",
                               .con = conn))
     message(glue::glue("FAIL: Stage table has {rows_stage - rows_ref} fewer rows than ref table"))
@@ -78,7 +78,7 @@ qa.address_clean_partial <- function(conn = NULL,
                              '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                              'Row counts',
                              'PASS',
-                             {Sys.time()}, 
+                             {format(Sys.time(), usetz = FALSE)}, 
                              'Stage table has {rows_stage - rows_ref} more rows than ref table')",
                               .con = conn))
     message(glue::glue("PASS: Stage table has {rows_stage - rows_ref} more rows than ref table"))
@@ -102,7 +102,7 @@ qa.address_clean_partial <- function(conn = NULL,
                              '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                              'Field names',
                              'FAIL',
-                             {Sys.time()}, 
+                             {format(Sys.time(), usetz = FALSE)}, 
                              'Stage table columns do not match ref table')",
                               .con = conn))
     message("FAIL: Column order does not match between stage and ref.address_clean tables")
@@ -115,7 +115,7 @@ qa.address_clean_partial <- function(conn = NULL,
                              '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                              'Field names',
                              'PASS',
-                             {Sys.time()}, 
+                             {format(Sys.time(), usetz = FALSE)}, 
                              'Stage table columns match ref table')",
                               .con = conn))
     message("PASS: Column order matches between stage and ref.address_clean tables")

@@ -68,7 +68,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                         'load_raw.mcaid_claim',
                                         'Number of rows in source file(s) match(es) expected value', 
                                         {qa_rows_file$outcome},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_rows_file$note})",
                                     .con = db_claims))
     
@@ -94,7 +94,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                         'load_raw.mcaid_claim',
                                         'Order of columns in source file matches SQL table', 
                                         {qa_column$outcome},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_column$note})",
                                   .con = db_claims))
   
@@ -127,7 +127,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                         'load_raw.mcaid_claim',
                                         'Number rows loaded to SQL vs. expected value(s)', 
                                         {qa_rows_sql$outcome[1]},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_rows_sql$note[1]})",
                                   .con = db_claims))
   # Report combined years result out to SQL table
@@ -138,7 +138,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                 'load_raw.mcaid_claim',
                                 'Number rows loaded to combined SQL table vs. expected value(s)', 
                                 {qa_rows_sql$outcome[2]},
-                                {Sys.time()},
+                                {format(Sys.time(), usetz = FALSE)},
                                 {qa_rows_sql$note[2]})",
                                   .con = db_claims))
   
@@ -203,7 +203,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                     'load_raw.mcaid_claim',
                                     'Distinct TCNs', 
                                     'FAIL',
-                                    {Sys.time()},
+                                    {format(Sys.time(), usetz = FALSE)},
                                     'No. distinct TCNs did not match rows even after excluding addresses')",
                                     .con = db_claims))
     stop("Number of distinct rows does not match total expected")
@@ -215,7 +215,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                   'load_raw.mcaid_claim',
                                   'Distinct TCNs', 
                                   'PASS',
-                                  {Sys.time()},
+                                  {format(Sys.time(), usetz = FALSE)},
                                   'Number of distinct TCNs equals total # rows (after excluding address fields)')",
                                     .con = db_claims))
   }
@@ -235,7 +235,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                         'load_raw.mcaid_claim',
                                         'Actual vs. expected date range in data', 
                                         {qa_date_range$outcome[1]},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_date_range$note[1]})",
                                   .con = db_claims))
   # Report combined years result out to SQL table
@@ -246,7 +246,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                                 'load_raw.mcaid_claim',
                                 'Actual vs. expected date range in combined SQL table', 
                                 {qa_date_range$outcome[2]},
-                                {Sys.time()},
+                                {format(Sys.time(), usetz = FALSE)},
                                 {qa_date_range$note[2]})",
                                   .con = db_claims))
   
@@ -286,7 +286,7 @@ load_load_raw.mcaid_claim_full_f <- function(etl_date_min = "2012-01-01",
                    VALUES ('load_raw.mcaid_claim',
                    'row_count', 
                    '{total_rows}', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'Count after full refresh')",
                    .con = db_claims))
   

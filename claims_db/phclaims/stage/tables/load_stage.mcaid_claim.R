@@ -222,7 +222,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
                                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   {row_diff_qa_type}, 
                                   'FAIL',
-                                  {Sys.time()},
+                                  {format(Sys.time(), usetz = FALSE)},
                                   {row_diff_qa_note})",
                                   .con = conn_db))
     warning("Number of rows does not match total expected")
@@ -235,7 +235,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
                                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   {row_diff_qa_type}, 
                                   'PASS',
-                                  {Sys.time()},
+                                  {format(Sys.time(), usetz = FALSE)},
                                   {row_diff_qa_note})",
                                   .con = conn_db))
   }
@@ -257,7 +257,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
                                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Null Medicaid IDs', 
                                   'FAIL',
-                                  {Sys.time()},
+                                  {format(Sys.time(), usetz = FALSE)},
                                   'Null IDs found. Investigate further.')",
                                   .con = conn_db))
     warning("Null Medicaid IDs found in claims.stage_mcaid_claim")
@@ -270,7 +270,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
                                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Null Medicaid IDs', 
                                   'PASS',
-                                  {Sys.time()},
+                                  {format(Sys.time(), usetz = FALSE)},
                                   'No null IDs found')",
                                   .con = conn_db))
   }
@@ -285,7 +285,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
                    VALUES ('{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'row_count', 
                    '{rows_stage}', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    {refresh_type})",
                    refresh_type = ifelse(full_refresh == F, 
                                          'Count after partial refresh', 
@@ -304,7 +304,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
                                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Overall QA result', 
                                   'FAIL',
-                                  {Sys.time()},
+                                  {format(Sys.time(), usetz = FALSE)},
                                   'One or more QA steps failed')",
                                   .con = conn_db))
     stop("One or more QA steps failed. See claims.metadata_qa_mcaid for more details")
@@ -316,7 +316,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
                                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Overall QA result', 
                                   'PASS',
-                                  {Sys.time()},
+                                  {format(Sys.time(), usetz = FALSE)},
                                   'All QA steps passed')",
                                   .con = conn_db))
   }

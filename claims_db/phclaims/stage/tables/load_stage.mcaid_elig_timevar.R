@@ -444,7 +444,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     b.geo_county_code, b.geo_tract_code, 
     b.geo_hra_code, b.geo_school_code, a.cov_time_day,
     c.geo_kc_new, 
-    {Sys.time()} AS last_run
+    {format(Sys.time(), usetz = FALSE)} AS last_run
     INTO {`to_schema`}.{`to_table`}
     FROM
     (SELECT id_mcaid, from_date, to_date, 

@@ -87,7 +87,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Number new rows compared to most recent run', 
                    'FAIL', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'There were {row_diff} fewer rows in the most recent table 
                        ({row_count} vs. {previous_rows})')",
                        .con = conn))
@@ -104,7 +104,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Number new rows compared to most recent run', 
                    'PASS', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'There were {row_diff} more rows in the most recent table 
                        ({row_count} vs. {previous_rows})')",
                        .con = conn))
@@ -126,7 +126,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Number distinct IDs', 
                        'FAIL', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'There were {id_count} distinct IDs but {row_count} rows (should be the same)')",
                        .con = conn))
       
@@ -142,7 +142,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Number distinct IDs', 
                        'PASS', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'The number of distinct IDs matched the number of rows ({id_count})')",
                        .con = conn))
     }
@@ -163,7 +163,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Number distinct IDs matches raw data', 
                        'FAIL', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'There were {id_count} distinct IDs but {id_count_raw} IDs in the raw data (should be the same)')",
                        .con = conn))
       
@@ -179,7 +179,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Number distinct IDs matches raw data', 
                        'PASS', 
-                       {Sys.time()}, 
+                       {format(Sys.time(), usetz = FALSE)}, 
                        'The number of distinct IDs matched the number in the raw data ({id_count})')",
                        .con = conn))
     }
@@ -194,7 +194,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                              VALUES ('{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                      'row_count', 
                                      {row_count}, 
-                                     {Sys.time()}, 
+                                     {format(Sys.time(), usetz = FALSE)}, 
                                      'Count after refresh')",
                              .con = conn)
   

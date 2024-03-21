@@ -103,7 +103,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
 #                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
 #                                        'Number of rows in source file(s) match(es) expected value', 
 #                                        {qa_rows_file$outcome},
-#                                        {Sys.time()},
+#                                        {format(Sys.time(), usetz = FALSE)},
 #                                        {qa_rows_file$note})",
 #                                  .con = conn))
     
@@ -128,7 +128,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
 #                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
 #                                        'Order of columns in source file matches SQL table', 
 #                                        {qa_column$outcome},
-#                                        {Sys.time()},
+#                                        {format(Sys.time(), usetz = FALSE)},
 #                                        {qa_column$note})",
 #                                  .con = conn))
     
@@ -179,7 +179,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                         '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                         'Number rows loaded to SQL vs. expected value(s)', 
                                         {qa_rows_sql$outcome[1]},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_rows_sql$note[1]})",
                                 .con = conn))
   
@@ -217,7 +217,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                     '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                     'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON)', 
                                     'FAIL',
-                                    {Sys.time()},
+                                    {format(Sys.time(), usetz = FALSE)},
                                     'Number distinct rows ({distinct_rows}) != total rows ({total_rows})')",
                                   .con = conn))
     warning(glue("Number of distinct rows ({distinct_rows}) does not match total expected ({total_rows})"))
@@ -229,7 +229,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON)', 
                                   'PASS',
-                                  {Sys.time()},
+                                  {format(Sys.time(), usetz = FALSE)},
                                   'Number of distinct rows equals total # rows ({total_rows})')",
                                   .con = conn))
   }
@@ -252,7 +252,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                         '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                         'Actual vs. expected date range in data', 
                                         {qa_date_range$outcome[1]},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_date_range$note[1]})",
                                 .con = conn))
   
@@ -278,7 +278,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Length of Medicaid ID', 
                    'FAIL', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'Minimum ID length was {id_len$min_len}, maximum was {id_len$max_len}')",
                      .con = conn))
     
@@ -293,7 +293,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Length of Medicaid ID', 
                    'PASS', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'All Medicaid IDs were 11 characters')",
                      .con = conn))
   }
@@ -318,7 +318,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Length of RAC codes', 
                    'FAIL', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'Min RPRTBLE_RAC_CODE length was {rac_len$min_len}, max was {rac_len$max_len};
                    Min SECONDARY_RAC_CODE length was {rac_len$min_len2}, max was {rac_len$max_len2}')",
                      .con = conn))
@@ -334,7 +334,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Length of RAC codes', 
                    'PASS', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'All RAC codes (reportable and secondary) were 4 characters')",
                      .con = conn))
   }
@@ -365,7 +365,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'NULL from dates', 
                    'FAIL', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'There were {from_nulls$null_dates} NULL from dates ({pct_null}% of total rows)')",
                      .con = conn))
     
@@ -380,7 +380,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'NULL from dates', 
                    'PASS', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    '<2% of from date rows were null ({pct_null}% of total rows)')",
                      .con = conn))
   }

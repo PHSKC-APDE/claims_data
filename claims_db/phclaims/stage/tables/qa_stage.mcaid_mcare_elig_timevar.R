@@ -46,7 +46,7 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
                          'stage.mcaid_mcare_elig_timevar',
                          'Number new rows compared to most recent run', 
                          'FAIL', 
-                         {Sys.time()}, 
+                         {format(Sys.time(), usetz = FALSE)}, 
                          'There were {row_diff} fewer rows in the most recent table 
                          ({stage.count} vs. {previous_rows})')",
                          .con = db_claims))
@@ -63,7 +63,7 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
                          'stage.mcaid_mcare_elig_timevar',
                          'Number new rows compared to most recent run', 
                          'PASS', 
-                         {Sys.time()}, 
+                         {format(Sys.time(), usetz = FALSE)}, 
                          'There were {row_diff} more rows in the most recent table 
                          ({stage.count} vs. {previous_rows})')",
                          .con = db_claims))
@@ -105,7 +105,7 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
                          'stage.mcaid_mcare_elig_timevar',
                          'Number distinct IDs compared to most recent run', 
                          'FAIL', 
-                         {Sys.time()}, 
+                         {format(Sys.time(), usetz = FALSE)}, 
                          'There were {id_diff} fewer IDs in the most recent table 
                          ({current.unique.id} vs. {previous.unique.id})')",
                          .con = db_claims))
@@ -122,7 +122,7 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
                          'stage.mcaid_mcare_elig_timevar',
                          'Number distinct IDs compared to most recent run', 
                          'PASS', 
-                         {Sys.time()}, 
+                         {format(Sys.time(), usetz = FALSE)}, 
                          'There were {id_diff} more IDs in the most recent table 
                          ({current.unique.id} vs. {previous.unique.id})')",
                          .con = db_claims))
@@ -142,7 +142,7 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
                                 VALUES ('stage.mcaid_mcare_elig_timevar',
                                 'row_count', 
                                 {stage.count}, 
-                                {Sys.time()}, 
+                                {format(Sys.time(), usetz = FALSE)}, 
                                 '')",
                                 .con = db_claims)
     
@@ -153,7 +153,7 @@ qa_mcaid_mcare_elig_timevar_f <- function(conn = db_claims, load_only = F) {
                                 VALUES ('stage.mcaid_mcare_elig_timevar',
                                 'id_count', 
                                 {current.unique.id}, 
-                                {Sys.time()}, 
+                                {format(Sys.time(), usetz = FALSE)}, 
                                 '')",
                                 .con = db_claims)
     

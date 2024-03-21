@@ -59,7 +59,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                         'load_raw.mcaid_elig',
                                         'Number of rows in source file(s) match(es) expected value', 
                                         {qa_rows_file$outcome},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_rows_file$note})",
                                   .con = db_claims))
   
@@ -84,7 +84,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                         'load_raw.mcaid_elig',
                                         'Order of columns in source file matches SQL table', 
                                         {qa_column$outcome},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_column$note})",
                                   .con = db_claims))
   
@@ -117,7 +117,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                         'load_raw.mcaid_elig',
                                         'Number rows loaded to SQL vs. expected value(s)', 
                                         {qa_rows_sql$outcome[1]},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_rows_sql$note[1]})",
                                   .con = db_claims))
   # Report combined years result out to SQL table
@@ -128,7 +128,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                 'load_raw.mcaid_elig',
                                 'Number rows loaded to combined SQL table vs. expected value(s)', 
                                 {qa_rows_sql$outcome[2]},
-                                {Sys.time()},
+                                {format(Sys.time(), usetz = FALSE)},
                                 {qa_rows_sql$note[2]})",
                                   .con = db_claims))
   
@@ -174,7 +174,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                     'load_raw.mcaid_elig',
                                     'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON)', 
                                     'FAIL',
-                                    {Sys.time()},
+                                    {format(Sys.time(), usetz = FALSE)},
                                     'Number distinct rows ({distinct_rows}) != total rows ({total_rows})')",
                                     .con = db_claims))
     warning(glue("Number of distinct rows ({distinct_rows}) does not match total expected ({total_rows})"))
@@ -186,7 +186,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                   'load_raw.mcaid_elig',
                                   'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON)', 
                                   'PASS',
-                                  {Sys.time()},
+                                  {format(Sys.time(), usetz = FALSE)},
                                   'Number of distinct rows equals total # rows ({total_rows})')",
                                     .con = db_claims))
   }
@@ -206,7 +206,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                         'load_raw.mcaid_elig',
                                         'Actual vs. expected date range in data', 
                                         {qa_date_range$outcome[1]},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_date_range$note[1]})",
                                   .con = db_claims))
   # Report combined years result out to SQL table
@@ -217,7 +217,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                                 'load_raw.mcaid_elig',
                                 'Actual vs. expected date range in combined SQL table', 
                                 {qa_date_range$outcome[2]},
-                                {Sys.time()},
+                                {format(Sys.time(), usetz = FALSE)},
                                 {qa_date_range$note[2]})",
                                   .con = db_claims))
   
@@ -246,7 +246,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                    'load_raw.mcaid_elig',
                    'Length of Medicaid ID', 
                    'FAIL', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'Minimum ID length was {id_len$min_len}, maximum was {id_len$max_len}')",
                      .con = db_claims))
     
@@ -261,7 +261,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                    'load_raw.mcaid_elig',
                    'Length of Medicaid ID', 
                    'PASS', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'All Medicaid IDs were 11 characters')",
                      .con = db_claims))
   }
@@ -285,7 +285,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                    'load_raw.mcaid_elig',
                    'Length of RAC codes', 
                    'FAIL', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'Min RPRTBLE_RAC_CODE length was {rac_len$min_len}, max was {rac_len$max_len};
                    Min SECONDARY_RAC_CODE length was {rac_len$min_len2}, max was {rac_len$max_len2}')",
                      .con = db_claims))
@@ -301,7 +301,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                    'load_raw.mcaid_elig',
                    'Length of RAC codes', 
                    'PASS', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'All RAC codes (reportable and secondary) were 4 characters')",
                      .con = db_claims))
   }
@@ -331,7 +331,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                    'load_raw.mcaid_elig',
                    'NULL from dates', 
                    'FAIL', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'There were {from_nulls$null_dates} NULL from dates ({pct_null}% of total rows)')",
                      .con = db_claims))
     
@@ -346,7 +346,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                    'load_raw.mcaid_elig',
                    'NULL from dates', 
                    'PASS', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    '<2% of from date rows were null ({pct_null}% of total rows)')",
                      .con = db_claims))
   }
@@ -374,7 +374,7 @@ load_load_raw.mcaid_elig_full_f <- function(etl_date_min = "2012-01-01",
                    VALUES ('load_raw.mcaid_elig',
                    'row_count', 
                    '{total_rows}', 
-                   {Sys.time()}, 
+                   {format(Sys.time(), usetz = FALSE)}, 
                    'Count after full refresh')",
                    .con = db_claims))
   

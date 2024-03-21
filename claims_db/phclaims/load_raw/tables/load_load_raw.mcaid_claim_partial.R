@@ -104,7 +104,7 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
 #                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
 #                                        'Number of rows in source file(s) match(es) expected value', 
 #                                        {qa_rows_file$outcome},
-#                                        {Sys.time()},
+#                                        {format(Sys.time(), usetz = FALSE)},
 #                                        {qa_rows_file$note})",
 #                                      .con = conn))
       
@@ -131,7 +131,7 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
 #                                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
 #                                        'Order of columns in source file matches SQL table', 
 #                                        {qa_column$outcome},
-#                                        {Sys.time()},
+#                                        {format(Sys.time(), usetz = FALSE)},
 #                                        {qa_column$note})",
 #                                    .con = conn))
     
@@ -181,7 +181,7 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
                                         '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                         'Number rows loaded to SQL vs. expected value(s)', 
                                         {qa_rows_sql$outcome[1]},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_rows_sql$note[1]})",
                                   .con = conn))
   
@@ -219,7 +219,7 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
                                     '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                     'Distinct TCNs', 
                                     'FAIL',
-                                    {Sys.time()},
+                                    {format(Sys.time(), usetz = FALSE)},
                                     'No. distinct TCNs did not match rows even after excluding addresses')",
                                     .con = conn))
     stop("Number of distinct rows does not match total expected")
@@ -231,7 +231,7 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
                                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                   'Distinct TCNs', 
                                   'PASS',
-                                  {Sys.time()},
+                                  {format(Sys.time(), usetz = FALSE)},
                                   'Number of distinct TCNs equals total # rows (after excluding address fields)')",
                                     .con = conn))
   }
@@ -254,7 +254,7 @@ load_load_raw.mcaid_claim_partial_f <- function(conn = NULL,
                                         '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                                         'Actual vs. expected date range in data', 
                                         {qa_date_range$outcome[1]},
-                                        {Sys.time()},
+                                        {format(Sys.time(), usetz = FALSE)},
                                         {qa_date_range$note[1]})",
                                   .con = conn))
   
