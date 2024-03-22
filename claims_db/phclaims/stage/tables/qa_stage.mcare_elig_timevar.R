@@ -50,7 +50,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
         conn = conn,
         glue::glue_sql("INSERT INTO metadata.qa_mcare
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES ({last_run}, 
+                       VALUES ({format(last_run, usetz = FALSE)}, 
                        'stage.mcare_elig_timevar',
                        'Number new rows compared to most recent run', 
                        'FAIL', 
@@ -60,14 +60,14 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                        .con = conn))
       
       problem.row_diff <- glue::glue("Fewer rows than found last time.  
-                      Check metadata.qa_mcare for details (last_run = {last_run})
+                      Check metadata.qa_mcare for details (last_run = {format(last_run, usetz = FALSE)})
                       \n")
     } else {
       odbc::dbGetQuery(
         conn = conn,
         glue::glue_sql("INSERT INTO metadata.qa_mcare
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES ({last_run}, 
+                       VALUES ({format(last_run, usetz = FALSE)}, 
                        'stage.mcare_elig_timevar',
                        'Number new rows compared to most recent run', 
                        'PASS', 
@@ -101,7 +101,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
       glue::glue_sql("INSERT INTO metadata.qa_mcare
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES (
-                      {last_run}, 
+                      {format(last_run, usetz = FALSE)}, 
                      'stage.mcare_elig_timevar',
                      'Number distinct IDs', 
                      'FAIL', 
@@ -112,14 +112,14 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                      .con = conn))
     
     problem.ids  <- glue::glue("Number of distinct IDs doesn't match the number in WA MBSF data. 
-                    Check metadata.qa_mcare for details (last_run = {last_run})
+                    Check metadata.qa_mcare for details (last_run = {format(last_run, usetz = FALSE)})
                    \n")
   } else {
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcare
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, usetz = FALSE)}, 
                      'stage.mcare_elig_timevar',
                      'Number distinct IDs', 
                      'PASS', 
@@ -144,7 +144,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcare
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, usetz = FALSE)}, 
                      'stage.mcare_elig_timevar',
                      'Duplicate rows', 
                      'FAIL', 
@@ -153,14 +153,14 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                      .con = conn))
     
     problem.dups <- glue::glue("There appear to be duplicate rows. 
-                    Check metadata.qa_mcare for details (last_run = {last_run})
+                    Check metadata.qa_mcare for details (last_run = {format(last_run, usetz = FALSE)})
                    \n")
   } else {
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcare
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, usetz = FALSE)}, 
                      'stage.mcare_elig_timevar',
                      'Duplicate rows', 
                      'PASS', 
@@ -186,7 +186,7 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcare 
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, usetz = FALSE)}, 
                      'stage.mcare_elig_timevar',
                      'Date range',
                      'FAIL',
@@ -199,14 +199,14 @@ qa_mcare_elig_timevar_f <- function(conn = db_claims,
                      ))
     
     problem.dates <- glue::glue("Some from/to dates fell outside the CLNDR_YEAR_MNTH range. 
-                    Check metadata.qa_mcare for details (last_run = {last_run})
+                    Check metadata.qa_mcare for details (last_run = {format(last_run, usetz = FALSE)})
                     \n")
   } else {
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO metadata.qa_mcare 
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, usetz = FALSE)}, 
                      'stage.mcare_elig_timevar',
                      'Date range',
                      'PASS',

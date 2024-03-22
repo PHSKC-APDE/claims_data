@@ -136,7 +136,7 @@ qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
                    VALUES 
                    {DBI::SQL(glue_collapse(
                      glue_data_sql(bh_qa, 
-                                   '({etl_batch_id}, {last_run}, {table_name}, {qa_item}, 
+                                   '({etl_batch_id}, {format(last_run, usetz = FALSE)}, {table_name}, {qa_item}, 
                                    {qa_result}, {qa_date}, {note})', 
                                    .con = conn), 
                      sep = ', ')

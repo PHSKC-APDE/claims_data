@@ -83,7 +83,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
         conn = conn,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Number new rows compared to most recent run', 
                    'FAIL', 
@@ -93,14 +93,14 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        .con = conn))
       
       message(glue::glue("Fewer rows than found last time.  
-                  Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {last_run}"))
+                  Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
     } else {
       row_qa_fail <- 0
       DBI::dbExecute(
         conn = conn,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Number new rows compared to most recent run', 
                    'PASS', 
@@ -122,7 +122,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
         conn = conn,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES ({last_run}, 
+                       VALUES ({format(last_run, usetz = FALSE)}, 
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Number distinct IDs', 
                        'FAIL', 
@@ -131,14 +131,14 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        .con = conn))
       
       message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
-                      Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {last_run}"))
+                      Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
     } else {
       id_distinct_qa_fail <- 0
       DBI::dbExecute(
         conn = conn,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES ({last_run}, 
+                       VALUES ({format(last_run, usetz = FALSE)}, 
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Number distinct IDs', 
                        'PASS', 
@@ -159,7 +159,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
         conn = conn,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES ({last_run}, 
+                       VALUES ({format(last_run, usetz = FALSE)}, 
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Number distinct IDs matches raw data', 
                        'FAIL', 
@@ -168,14 +168,14 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        .con = conn))
       
       message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
-                      Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {last_run}"))
+                      Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
     } else {
       id_stage_qa_fail <- 0
       DBI::dbExecute(
         conn = conn,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                       VALUES ({last_run}, 
+                       VALUES ({format(last_run, usetz = FALSE)}, 
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                        'Number distinct IDs matches raw data', 
                        'PASS', 

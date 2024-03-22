@@ -90,7 +90,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Distinct IDs compared to elig tables', 
                    'PASS', 
@@ -103,7 +103,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Distinct IDs compared to elig tables', 
                    'FAIL', 
@@ -132,7 +132,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Length of ICD-9-CM codes', 
                    'PASS', 
@@ -144,7 +144,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Length of ICD-9-CM codes', 
                    'FAIL', 
@@ -166,7 +166,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Length of ICD-10-CM codes', 
                    'PASS', 
@@ -179,7 +179,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Length of ICD-10-CM codes', 
                    'FAIL', 
@@ -204,7 +204,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'icdcm_number = 01-12 or admit', 
                    'PASS', 
@@ -216,7 +216,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'icdcm_number = 01-12 or admit', 
                    'FAIL', 
@@ -241,7 +241,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Almost all dx codes join to ICD-CM reference table', 
                    'PASS', 
@@ -253,7 +253,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Almost all dx codes join to ICD-CM reference table', 
                    'FAIL', 
@@ -289,7 +289,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of diagnoses', 
                    'PASS', 
@@ -305,7 +305,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of diagnoses', 
                    'FAIL', 
@@ -317,7 +317,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of diagnoses', 
                    'FAIL', 

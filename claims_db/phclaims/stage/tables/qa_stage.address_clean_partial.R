@@ -61,7 +61,7 @@ qa.address_clean_partial <- function(conn = NULL,
     dbGetQuery(conn,
                glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, usetz = FALSE)}, 
                              '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                              'Row counts',
                              'FAIL',
@@ -74,7 +74,7 @@ qa.address_clean_partial <- function(conn = NULL,
     dbGetQuery(conn,
                glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, usetz = FALSE)}, 
                              '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                              'Row counts',
                              'PASS',
@@ -98,7 +98,7 @@ qa.address_clean_partial <- function(conn = NULL,
     dbGetQuery(conn,
                glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, usetz = FALSE)}, 
                              '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                              'Field names',
                              'FAIL',
@@ -111,7 +111,7 @@ qa.address_clean_partial <- function(conn = NULL,
     dbGetQuery(conn,
                glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                     VALUES ({last_run}, 
+                     VALUES ({format(last_run, usetz = FALSE)}, 
                              '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                              'Field names',
                              'PASS',

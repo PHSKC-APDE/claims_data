@@ -83,7 +83,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Distinct IDs compared to elig tables', 
                    'PASS', 
@@ -96,7 +96,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Distinct IDs compared to elig tables', 
                    'FAIL', 
@@ -122,7 +122,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Format of ndc field', 
                    'PASS', 
@@ -134,7 +134,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Format of ndc field', 
                    'FAIL', 
@@ -170,7 +170,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of pharmacy claim rows', 
                    'PASS', 
@@ -186,7 +186,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of pharmacy claim row', 
                    'FAIL', 
@@ -198,7 +198,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of pharmacy claim row', 
                    'FAIL', 

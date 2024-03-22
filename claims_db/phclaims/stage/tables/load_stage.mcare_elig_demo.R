@@ -205,7 +205,7 @@
           conn = db_claims,
           glue::glue_sql("INSERT INTO metadata.qa_mcare
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
+                         VALUES ({format(last_run, usetz = FALSE)}, 
                          'stage.mcare_elig_demo',
                          'Number new rows compared to most recent run', 
                          'FAIL', 
@@ -215,14 +215,14 @@
                          .con = db_claims))
         
         problem.row_diff <- glue::glue("Fewer rows than found last time.  
-                                       Check metadata.qa_mcare for details (last_run = {last_run})
+                                       Check metadata.qa_mcare for details (last_run = {format(last_run, usetz = FALSE)})
                                        \n")
       } else {
         odbc::dbGetQuery(
           conn = db_claims,
           glue::glue_sql("INSERT INTO metadata.qa_mcare
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
+                         VALUES ({format(last_run, usetz = FALSE)}, 
                          'stage.mcare_elig_demo',
                          'Number new rows compared to most recent run', 
                          'PASS', 
@@ -251,7 +251,7 @@
           glue::glue_sql("INSERT INTO metadata.qa_mcare
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
                          VALUES (
-                         {last_run}, 
+                         {format(last_run, usetz = FALSE)}, 
                          'stage.mcare_elig_demo',
                          'Number distinct IDs', 
                          'FAIL', 
@@ -262,14 +262,14 @@
                          .con = db_claims))
         
         problem.ids  <- glue::glue("Number of distinct IDs doesn't match the number of rows. 
-                                   Check metadata.qa_mcare for details (last_run = {last_run})
+                                   Check metadata.qa_mcare for details (last_run = {format(last_run, usetz = FALSE)})
                                    \n")
       } else {
         odbc::dbGetQuery(
           conn = db_claims,
           glue::glue_sql("INSERT INTO metadata.qa_mcare
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
+                         VALUES ({format(last_run, usetz = FALSE)}, 
                          'stage.mcare_elig_demo',
                          'Number distinct IDs', 
                          'PASS', 

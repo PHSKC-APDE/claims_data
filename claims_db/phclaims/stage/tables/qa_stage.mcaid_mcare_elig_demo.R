@@ -42,7 +42,7 @@ qa_mcaid_mcare_elig_demo_f <- function(conn = db_claims, load_only = F) {
           conn = db_claims,
           glue::glue_sql("INSERT INTO metadata.qa_xwalk
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
+                         VALUES ({format(last_run, usetz = FALSE)}, 
                          'stage.mcaid_mcare_elig_demo',
                          'Number new rows compared to most recent run', 
                          'FAIL', 
@@ -52,14 +52,14 @@ qa_mcaid_mcare_elig_demo_f <- function(conn = db_claims, load_only = F) {
                          .con = db_claims))
         
         problem.row_diff <- glue::glue("Fewer rows than found last time.  
-                                       Check metadata.qa_xwalk for details (last_run = {last_run})
+                                       Check metadata.qa_xwalk for details (last_run = {format(last_run, usetz = FALSE)})
                                        \n")
       } else {
         odbc::dbGetQuery(
           conn = db_claims,
           glue::glue_sql("INSERT INTO metadata.qa_xwalk
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
+                         VALUES ({format(last_run, usetz = FALSE)}, 
                          'stage.mcaid_mcare_elig_demo',
                          'Number new rows compared to most recent run', 
                          'PASS', 
@@ -84,7 +84,7 @@ qa_mcaid_mcare_elig_demo_f <- function(conn = db_claims, load_only = F) {
           glue::glue_sql("INSERT INTO metadata.qa_xwalk
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
                          VALUES (
-                         {last_run}, 
+                         {format(last_run, usetz = FALSE)}, 
                          'stage.mcaid_mcare_elig_demo',
                          'Number distinct IDs', 
                          'FAIL', 
@@ -95,14 +95,14 @@ qa_mcaid_mcare_elig_demo_f <- function(conn = db_claims, load_only = F) {
                          .con = db_claims))
         
         problem.ids  <- glue::glue("Number of distinct IDs doesn't match the number of rows. 
-                                   Check metadata.qa_xwalk for details (last_run = {last_run})
+                                   Check metadata.qa_xwalk for details (last_run = {format(last_run, usetz = FALSE)})
                                    \n")
       } else {
         odbc::dbGetQuery(
           conn = db_claims,
           glue::glue_sql("INSERT INTO metadata.qa_xwalk
                          (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                         VALUES ({last_run}, 
+                         VALUES ({format(last_run, usetz = FALSE)}, 
                          'stage.mcaid_mcare_elig_demo',
                          'Number distinct IDs', 
                          'PASS', 

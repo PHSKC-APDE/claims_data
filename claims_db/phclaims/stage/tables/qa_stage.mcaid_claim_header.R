@@ -81,7 +81,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Distinct IDs compared to elig tables', 
                    'PASS', 
@@ -94,7 +94,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Distinct IDs compared to elig tables', 
                    'FAIL', 
@@ -118,7 +118,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'All claim headers are distinct', 
                    'PASS', 
@@ -130,7 +130,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'All claim headers are distinct', 
                    'FAIL', 
@@ -165,7 +165,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of claim headers', 
                    'PASS', 
@@ -181,7 +181,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of claim headers', 
                    'FAIL', 
@@ -193,7 +193,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of claim headers', 
                    'FAIL', 
@@ -230,7 +230,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of ED visits', 
                    'PASS', 
@@ -244,7 +244,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of ED visits', 
                    'FAIL', 
@@ -256,7 +256,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
       DBI::dbExecute(conn = conn, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({last_run}, 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                    'Change in number of ED visits', 
                    'FAIL', 
