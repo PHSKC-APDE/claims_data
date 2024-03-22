@@ -7,11 +7,10 @@
 #
 # Eli Kern, PHSKC (APDE)
 # Adapted from Alastair Matheson's Medicaid script
-#
 # 2019-10
 
-#2022-02: switched to using APDE repo functions where Alastair has moved them over
-
+#2022-02: Eli switched to using APDE repo functions where Alastair has moved them over
+#2024-03: Eli updated for migration to Azure HHSAW
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
@@ -19,19 +18,22 @@ options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 
 library(pacman)
 pacman::p_load(tidyverse, lubridate, odbc, glue)
 
-db_claims <- dbConnect(odbc(), "PHClaims")
-
 #### SET UP FUNCTIONS ####
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
-#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_file.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_sql.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/add_index.R")
-
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_ccw.R")
+
+## Connect to HHSAW
+interactive_auth <- TRUE #Set to FALSE FOR HVC VM
+prod <- TRUE
+db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 1: apcd_elig_demo ####
