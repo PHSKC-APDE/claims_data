@@ -10,7 +10,9 @@
 #updated yaml file to match current parameter synatx
 #updates ethnicity_race map Excel file to add one new ethnicity code
 
-#2024-03-22 update: Wrote table to HHSAW using dbWriteTable instead of YAML file approach
+#2024-03-22 updates:
+#Wrote table to HHSAW using dbWriteTable instead of YAML file approach
+#Added Cuban to ethnicity-race map
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
