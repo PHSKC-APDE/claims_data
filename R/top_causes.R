@@ -180,7 +180,7 @@ top_causes <- function(conn,
   # Date range
   if (ind_dates == T) {
     extra_ind_cols <- glue::glue_sql("a.from_date_ind, a.to_date_ind, ")
-    from_to_date <- glue::glue_sql("WHERE b.from_date >= a.from_date_ind AND b.from_date <= a.to_date_ind) ", .con = conn)
+    from_to_date <- glue::glue_sql("WHERE b.from_date >= a.from_date_ind AND b.from_date <= a.to_date_ind ", .con = conn)
   } else {
     extra_ind_cols <- DBI::SQL('')
     from_to_date <- DBI::SQL('')
