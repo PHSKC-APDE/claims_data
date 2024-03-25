@@ -30,7 +30,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_ccw.R")
 
 ## Connect to HHSAW
-interactive_auth <- TRUE #Set to FALSE FOR HVC VM
+interactive_auth <- FALSE
 prod <- TRUE
 db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 
@@ -55,7 +55,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### B) Create table
 create_table(conn = db_claims, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_demo.yaml",
-               overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
+               overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
 ### C) Load tables
 system.time(load_stage.apcd_elig_demo_f())
@@ -66,13 +66,13 @@ system.time(apcd_demo_qa1 <- qa_stage.apcd_elig_demo_f())
 
 ### E) Run line-level QA script at https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/phclaims/stage/tables/qa_stage.apcd_elig_demo.sql           
 
-### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_elig_demo")
+### F) Alter name on new table
 
-### G) Alter schema on new table
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_elig_demo")
+#Write new code here
 
 ### H) Create clustered columnstore index
+
+#-update this code
 system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_demo on final.apcd_elig_demo")))
 
 

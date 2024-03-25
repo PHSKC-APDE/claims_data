@@ -1,5 +1,5 @@
-to_schema: stage
-to_table: apcd_elig_demo
+to_schema: claims
+to_table: stage_apcd_elig_demo
 vars:
     id_apcd: bigint
     dob: date

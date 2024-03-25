@@ -6,6 +6,8 @@
 ### Run from master_apcd_analytic script
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
 
+# 2024-03-25 update: Modified for migration to Azure HHSAW
+
 #### Load script ####
 load_stage.apcd_elig_demo_f <- function() {
   odbc::dbGetQuery(db_claims, glue::glue_sql(
@@ -45,7 +47,7 @@ load_stage.apcd_elig_demo_f <- function() {
       last_value(gender_code) over (partition by internal_member_id
     	order by internal_member_id, case when gender_code = 'U' or gender_code is null then null else cast(year_month as int) end
     		rows between unbounded preceding and unbounded following) as gender_recent
-    from PHClaims.stage.apcd_member_month_detail
+    from claims.stage_apcd_member_month_detail
     ) as a
     group by a.internal_member_id;
     
@@ -96,7 +98,7 @@ load_stage.apcd_elig_demo_f <- function() {
     case when race_id2 in (1,2,3,4,5) then race_id2 else 0 end as race_id2,
     case when hispanic_id in (1,2) then hispanic_id else 0 end as latino_id
     into #elig_temp1
-    from PHClaims.stage.apcd_eligibility;
+    from claims.stage_apcd_eligibility;
     
     
     ------------------
@@ -107,16 +109,16 @@ load_stage.apcd_elig_demo_f <- function() {
     select a.eligibility_id, a.internal_member_id as id_apcd, a.eligibility_end_dt,
     case when b.ethnicity_id is null then 0 else b.race_id end as race_id3
     into #elig_temp2
-    from PHClaims.stage.apcd_eligibility as a
-    left join PHClaims.ref.apcd_ethnicity_race_map as b
+    from claims.stage_apcd_eligibility as a
+    left join claims.ref_apcd_ethnicity_race_map as b
     on a.ethnicity_id1 = b.ethnicity_id;
     
     if object_id('tempdb..#elig_temp3') is not null drop table #elig_temp3;
     select a.eligibility_id, a.internal_member_id as id_apcd, a.eligibility_end_dt,
     case when b.ethnicity_id is null then 0 else b.race_id end as race_id4
     into #elig_temp3
-    from PHClaims.stage.apcd_eligibility as a
-    left join PHClaims.ref.apcd_ethnicity_race_map as b
+    from claims.stage_apcd_eligibility as a
+    left join claims.ref_apcd_ethnicity_race_map as b
     on a.ethnicity_id2 = b.ethnicity_id;
     
     
@@ -236,7 +238,7 @@ load_stage.apcd_elig_demo_f <- function() {
     --Note that left join ensures that only people who have made it to member_month_detail table (per OnPoint processing) are in elig_demo
     --For extract 187, 658 people were in eligibility but not member_month_detail table
     -------------------
-    insert into PHClaims.stage.apcd_elig_demo with (tablock)
+    insert into claims.stage_apcd_elig_demo with (tablock)
     select
     	a.id_apcd,
     	a.dob,
@@ -270,13 +272,13 @@ load_stage.apcd_elig_demo_f <- function() {
 qa_stage.apcd_elig_demo_f <- function() {
   
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_demo' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct id_apcd) as qa from stage.apcd_elig_demo",
+    "select 'claims.stage_apcd_elig_demo' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct id_apcd) as qa from claims.stage_apcd_elig_demo",
     .con = db_claims))
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_member_month_detail' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct internal_member_id) as qa from stage.apcd_member_month_detail",
+    "select 'claims.stage_apcd_member_month_detail' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct internal_member_id) as qa from claims.stage_apcd_member_month_detail",
     .con = db_claims))
   res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_demo' as 'table', 'count, expect to equal other qa values' as qa_type, count(id_apcd) as qa from stage.apcd_elig_demo",
+    "select 'claims.stage_apcd_elig_demo' as 'table', 'count, expect to equal other qa values' as qa_type, count(id_apcd) as qa from claims.stage_apcd_elig_demo",
     .con = db_claims))
   res_final <- bind_rows(res1, res2, res3)
 }
