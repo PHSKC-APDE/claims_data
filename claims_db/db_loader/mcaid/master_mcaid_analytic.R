@@ -99,11 +99,11 @@ if (qa_stage_mcaid_elig_demo == 0) {
     conn = db_claims,
     glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_elig_demo}, 
+                 VALUES ({format({last_run_elig_demo}, usetz = FALSE)}, 
                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                  'Number final rows compared to stage', 
                  {qa_rows_final_elig_demo$qa_result}, 
-                 {Sys.time()}, 
+                 {format(Sys.time(), usetz = FALSE)}, 
                  {qa_rows_final_elig_demo$note})",
                    .con = db_claims))
   
@@ -175,11 +175,11 @@ if (qa_stage_mcaid_elig_timevar == 0) {
     conn = db_claims,
     glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_elig_timevar}, 
+                 VALUES ({format(last_run_elig_timevar, usetz = FALSE)}, 
                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                  'Number final rows compared to stage', 
                  {qa_rows_final_elig_timevar$qa_result}, 
-                 {Sys.time()}, 
+                 {format(Sys.time(), usetz = FALSE)}, 
                  {qa_rows_final_elig_timevar$note})",
                    .con = db_claims))
   
@@ -328,11 +328,11 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
       conn = db_claims,
       glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim}, 
+                 VALUES ({format(last_run_claim, usetz = FALSE)}, 
                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                  'Number final rows compared to stage', 
                  'PASS', 
-                 {Sys.time()}, 
+                 {format(Sys.time(), usetz = FALSE)}, 
                  'All rows transferred to final table ({rows_claim_stage})')",
                      .con = db_claims))
     
@@ -343,11 +343,11 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
       conn = db_claims,
       glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({last_run_claim}, 
+                 VALUES ({format(last_run_claim, usetz = FALSE)}, 
                  '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
                  'Number final rows compared to stage', 
                  'FAIL', 
-                 {Sys.time()}, 
+                 {format(Sys.time(), usetz = FALSE)}, 
                  '{rows_claim_final} rows in final table (expecting {rows_claim_stage})')",
                      .con = db_claims))
     

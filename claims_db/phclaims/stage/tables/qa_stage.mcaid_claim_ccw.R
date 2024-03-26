@@ -407,7 +407,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
                    {DBI::SQL(glue_collapse(
                      glue_data_sql(ccw_qa, 
                                    '({etl_batch_id}, {format(last_run, usetz = FALSE)}, {table_name}, {qa_item}, 
-                                   {qa_result}, {qa_date}, {note})', 
+                                   {qa_result}, {format(qa_date, usetz = FALSE)}, {note})', 
                                    .con = conn), 
                      sep = ', ')
                    )};",
