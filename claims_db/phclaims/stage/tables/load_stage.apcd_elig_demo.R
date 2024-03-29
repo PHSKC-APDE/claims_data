@@ -58,11 +58,7 @@ load_stage.apcd_elig_demo_f <- function() {
     if object_id('tempdb..#mm_final') is not null drop table #mm_final;
     select
     	id_apcd,
-    	--age is missing when only age 90 is available in member month, ninety_only flag is equal to 1
-    	case
-    		when ninety_only = 0 then dob
-    		else null
-    	end as dob,
+    	dob,
     	ninety_only,
     	--mutally inclusive gender
     	female as gender_female,
