@@ -22,8 +22,8 @@ options("scipen"=999) # turn off scientific notation
 db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
 
 ## Read data ----
-product <- fread("X:/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/20240207/product.csv", encoding="Latin-1")
-package <- fread("X:/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/20240207/package.csv", encoding="Latin-1")
+product <- fread("X:/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/20240403/product.csv", encoding="Latin-1")
+package <- fread("X:/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/20240403/package.csv", encoding="Latin-1")
 
 package <- package[,c("PRODUCTID", "PRODUCTNDC", "NDCPACKAGECODE",
                       "STARTMARKETINGDATE", "ENDMARKETINGDATE")]
@@ -55,6 +55,12 @@ setcolorder(allcodes, c("PRODUCTID", "ndc", "PRODUCTNDC", "NDCPACKAGECODE",
                         "STARTMARKETINGDATE", "ENDMARKETINGDATE", "NONPROPRIETARYNAME",
                         "PROPRIETARYNAME", "PROPRIETARYNAMESUFFIX", "DOSAGEFORMNAME",
                         "ACTIVE_NUMERATOR_STRENGTH", "ACTIVE_INGRED_UNIT"))
+
+# TODO: Investigate these ones
+missing <- fread("X:/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/missingndc.csv", encoding="Latin-1")
+missing$ndc <- as.character(missing$ndc)
+allcodes <- rbindlist(list(allcodes, missing), use.names=T, fill=T)
+
 ## Upload ----
 DBI::dbWriteTable(conn = db_hhsaw, 
                   name = DBI::Id(schema = "ref", table = "ndc_codes"),
