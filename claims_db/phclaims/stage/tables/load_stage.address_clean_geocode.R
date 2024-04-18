@@ -113,7 +113,7 @@ load_stage.address_clean_geocode_check <- function(interactive_auth = T,
                              glue::glue_sql("SELECT TOP (1) * 
                                         FROM {`log_schema`}.{`log_table`}
                                         WHERE [destination] = {paste0(geocode_schema, '.', geocode_table)}
-                                            AND [timestamp] > {clean$timestamp}
+                                            AND [timestamp] > {format(clean$timestamp, usetz = FALSE)}
                                           ORDER BY [timestamp] ASC",
                                           
                                             .con = conn_hhsaw))  
