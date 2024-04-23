@@ -1,5 +1,6 @@
-##Script to update RDA value sets for SQL upload
-##Eli Kern, September 2023
+## Script to update RDA value sets for SQL upload
+## Eli Kern, September 2023
+## Use "APDE protocol for updating DSHS Research and Data Analysis"
 
 #### Setup ####
 
