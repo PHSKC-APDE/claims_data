@@ -23,7 +23,7 @@
 #' - https://www.cdc.gov/nchs/injury/injury_matrices.htm#:~:text=The%20external%20cause-of-injury,What%20are%20the%20matrices%3F
 #' - ICD 10 CM articles (for more information on external cause of injury section)
 #' Step 3 CCW:
-#'   - Download updated version of 30 CCW here (updated each February):
+#'   - Download updated version of 30 CCW here (updated each July):
 #'   https://www2.ccwdata.org/web/guest/condition-categories-chronic 
 #'   - Archive old version of ccw17_xx in X-sector/CCW
 #'   - Use "Algorithms Change History" at the end to revise ccw17_xx sheet from
@@ -40,8 +40,9 @@
 #'     - Check there are no new detail codes to add to the catch-all
 #' 	   - Check that all rows have CCS information filled in after 4 passes
 #' 	   (add more passes or adjust as necessary)
-#' Step 5 RDA-defined mental health and substance use disorder:
+#' Step 5 RDA-defined mental health and substance use disorder (updated each May-June):
 #'   - Check to see if there's an updated table on HHSAW (claims.ref_rda_value_set_20xx)
+#'   - If not could look into running/updating load_ref.rda_value_sets_apde.R
 #'   - Check for new drug categories or mental health categories
 #'   
 #'   
@@ -56,6 +57,7 @@
 #' 5/1/2023 update: Overhaul code to update everything to new versions. Eliminate previous steps 4 and 5.
 #' 9/14/2023 update: Updated code for RDA-based BH flags, condensed CCS ICD-10-CM imputation code into while loop, added last_run col.
 #' 1/9/2024 update: 1) Improve alignment of ccs between ICD-9/10-CM, 2) create ccs_super_category (5 levels)
+#' 4/23/2024 update: Bring in Step 0 function to add new data
 
 
 # SET OPTIONS AND BRING IN PACKAGES ----
@@ -63,15 +65,40 @@ options(scipen = 6, digits = 4, warning.length = 8170)
 origin <- "1970-01-01"
 
 if (!require("pacman")) {install.packages("pacman")}
-pacman::p_load(svDialogs, tidyverse, lubridate, odbc, glue, openxlsx)
+pacman::p_load(data.table, DBI, dplyr, glue, lubridate, odbc, openxlsx, readxl, reshape2, stringr, svDialogs, tidyverse, xlsx)
 
 ## Bring in relevant functions ----
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
+new_year <- F
+
+# Step 0 (optional): Add new year of ICD-CM codes
+if (new_year) {
+  root_dir <- "C:/Users/kfukutaki/King County/DPH-KCCross-SectorData - ICD-CM/ICD-10-CM_CMS"
+  
+  new_data <- fread(file = glue::glue("{root_dir}/2024_code_descriptions/icd10cm_codes_2024.txt"),
+                    sep = "",
+                    header = F,
+  )
+  new_data <- colsplit(new_data$V1," ",c("icdcode","dx_description"))
+  new_data <- new_data[!duplicated(new_data), ]
+  new_data['ver'] <- 10
+  
+  # bring in existing table from <2019
+  old_data <- read_excel("C:/Users/kfukutaki/OneDrive - King County/Documents/Code/reference-data/claims_data/ICD_9_10_CM_Complete.xlsx")
+  old_data <- as.data.table(old_data)
+  
+  all_data <- bind_rows(old_data, new_data)
+  all_data <- distinct(all_data, icdcode, ver, .keep_all = TRUE)
+  
+  write.xlsx(all_data,
+             file="C:/Users/kfukutaki/OneDrive - King County/Documents/Code/reference-data/claims_data/ICD_9_10_CM_Complete.xlsx",
+             rowNames = F)
+  }
 
 
 # Step 1: CMS ICD-9-CM and ICD-10-CM codes ----
 url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ICD_9_10_CM_Complete.xlsx?raw=true"
-icd910cm <- read.xlsx(url, sheet = "Sheet1", colNames = T)
+icd910cm <- read.xlsx(url, colNames = T)
 
 icd9cm <- filter(icd910cm, ver == 9)
 icd10cm <- filter(icd910cm, ver == 10)
@@ -420,7 +447,7 @@ ccs_9_simple <- select(ccs_9_simple, icdcode, ccs_broad_desc:ccs_catch_all) %>% 
 
 ## Step 4B: Read in CCS reference table for ICD-10-CM
 
-ccs_10_raw <- read_csv("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/DXCCSR_v2023-1.csv?raw=true", 
+ccs_10_raw <- read_csv("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/DXCCSR_v2024-1.csv?raw=true", 
                        col_select = c(1,7,8)) %>%
   
   #rename variables
