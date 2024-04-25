@@ -37,8 +37,9 @@ message(paste0("Beginning process to copy data from INTHEALTH_EDW to HHSAW - ", 
 table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility",
                    "medical_claim_header", "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
-#Testing code
-table_list <- list("provider_master")
+#One-time list to just run tables not yet done by Philip
+table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_provider_raw",
+                   "member_month_detail", "provider")
 
 #Begin loop
 lapply(table_list, function(table_list) {
