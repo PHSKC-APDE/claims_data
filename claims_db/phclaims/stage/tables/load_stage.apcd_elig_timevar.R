@@ -5,6 +5,7 @@
 
 #2022-04-26 update: Added new variables for dental coverage, and added geo_kc flag for KC residence
 #2023-08-02 update: Removed use of eligibility table, thus removing bsp_group_cid and full_benefit variables
+#2023-04-26 update: Modified for migration to HHSAW
 
 ### Run from master_apcd_analytic script
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
@@ -70,7 +71,7 @@ load_stage.apcd_elig_timevar_f <- function() {
       end as dental_covgrp
       
     into #temp1
-    from phclaims.stage.apcd_member_month_detail;
+    from claims.stage_apcd_member_month_detail_cci;
     
     
     ------------
@@ -102,7 +103,7 @@ load_stage.apcd_elig_timevar_f <- function() {
     ------------
     --STEP 4: Add additional coverage flag and geographic variables and insert data into table shell
     ----------------
-    insert into PHClaims.stage.apcd_elig_timevar with (tablock)
+    insert into claims.stage_apcd_elig_timevar with (tablock)
     select 
     a.internal_member_id as id_apcd,
     a.from_date,
@@ -137,11 +138,11 @@ load_stage.apcd_elig_timevar_f <- function() {
     a.cov_time_day,
     getdate() as last_run
     from #temp3 as a
-    left join (select distinct zip_code, zip_group_desc from phclaims.ref.apcd_zip_group where zip_group_type_desc = 'County') as b
+    left join (select distinct zip_code, zip_group_desc from claims.ref_apcd_zip_group where zip_group_type_desc = 'County') as b
     on a.zip_code = b.zip_code
-    left join (select distinct zip_code, zip_group_code, zip_group_desc from phclaims.ref.apcd_zip_group where left(zip_group_type_desc, 3) = 'Acc') as c
+    left join (select distinct zip_code, zip_group_code, zip_group_desc from claims.ref_apcd_zip_group where left(zip_group_type_desc, 3) = 'Acc') as c
     on a.zip_code = c.zip_code
-    left join PHClaims.ref.geo_county_code_wa as d
+    left join claims.ref_geo_county_code_wa as d
     on b.zip_group_desc = d.geo_county_name;
     
     if object_id('tempdb..#temp3') is not null drop table #temp3;",
@@ -152,58 +153,58 @@ load_stage.apcd_elig_timevar_f <- function() {
 qa_stage.apcd_elig_timevar_f <- function() {
   
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'member count, expect match to raw tables' as qa_type, count(distinct id_apcd) as qa
-    from stage.apcd_elig_timevar",
+    "select 'claims.stage_apcd_elig_timevar' as 'table', 'member count, expect match to raw tables' as qa_type, count(distinct id_apcd) as qa
+    from claims.stage_apcd_elig_timevar",
     .con = db_claims))
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_member_month_detail' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
-    from stage.apcd_member_month_detail",
+    "select 'claims.stage_apcd_member_month_detail_cci' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
+    from claims.stage_apcd_member_month_detail_cci",
     .con = db_claims))
   res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'final.apcd_elig_demo' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct id_apcd) as qa
-    from final.apcd_elig_demo",
+    "select 'claims.final_apcd_elig_demo' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct id_apcd) as qa
+    from claims.final_apcd_elig_demo",
     .con = db_claims))
   res4 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'member count, King 2016, expect match to member_month' as qa_type, count(distinct id_apcd) as qa
-    from stage.apcd_elig_timevar
+    "select 'claims.stage_apcd_elig_timevar' as 'table', 'member count, King 2016, expect match to member_month' as qa_type, count(distinct id_apcd) as qa
+    from claims.stage_apcd_elig_timevar
       where from_date <= '2016-12-31' and to_date >= '2016-01-01'
       and geo_ach = 'HealthierHere'",
     .con = db_claims))
   res5 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_member_month_detail' as 'table', 'member count, King 2016, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
-    from stage.apcd_member_month_detail
+    "select 'claims.stage_apcd_member_month_detail_cci' as 'table', 'member count, King 2016, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
+    from claims.stage_apcd_member_month_detail_cci
       where left(year_month,4) = '2016'
-      and zip_code in (select zip_code from phclaims.ref.apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
+      and zip_code in (select zip_code from claims.ref_apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
     .con = db_claims))
   res6 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_eligibility' as 'table', 'member count, King 2016, expect slightly more than timevar' as qa_type, count(distinct internal_member_id) as qa
-    from stage.apcd_eligibility
+    "select 'claims.stage_apcd_eligibility_cci' as 'table', 'member count, King 2016, expect slightly more than timevar' as qa_type, count(distinct internal_member_id) as qa
+    from claims.stage_apcd_eligibility_cci
       where eligibility_start_dt <= '2016-12-31' and eligibility_end_dt >= '2016-01-01'
-      and zip in (select zip_code from phclaims.ref.apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
+      and zip in (select zip_code from claims.ref_apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
     .con = db_claims))
   res7 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'count of member elig segments with no coverage, expect 0' as qa_type, count(distinct id_apcd) as qa
-    from stage.apcd_elig_timevar
+    "select 'claims.stage_apcd_elig_timevar' as 'table', 'count of member elig segments with no coverage, expect 0' as qa_type, count(distinct id_apcd) as qa
+    from claims.stage_apcd_elig_timevar
     where med_covgrp = 0 and pharm_covgrp = 0 and dental_covgrp = 0;",
     .con = db_claims))
   res8 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'max to_date, expect max to_date of latest extract' as qa_type,
+    "select 'claims.stage_apcd_elig_timevar' as 'table', 'max to_date, expect max to_date of latest extract' as qa_type,
     cast(left(max(to_date),4) + SUBSTRING(cast(max(to_date) as varchar(255)),6,2) + right(max(to_date),2) as integer) as qa
-    from stage.apcd_elig_timevar;",
+    from claims.stage_apcd_elig_timevar;",
     .con = db_claims))
   res9 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'mcaid-mcare duals with dual flag = 0, expect 0' as qa_type, count(*) as qa
-    from stage.apcd_elig_timevar
+    "select 'claims.stage_apcd_elig_timevar' as 'table', 'mcaid-mcare duals with dual flag = 0, expect 0' as qa_type, count(*) as qa
+    from claims.stage_apcd_elig_timevar
     where (med_covgrp = 4 or pharm_covgrp = 4) and dual = 0;",
     .con = db_claims))
   res10 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'non-WA resident segments with non-null county name, expect 0' as qa_type, count(*) as qa
-    from stage.apcd_elig_timevar
+    "select 'claims.stage_apcd_elig_timevar' as 'table', 'non-WA resident segments with non-null county name, expect 0' as qa_type, count(*) as qa
+    from claims.stage_apcd_elig_timevar
     where geo_wa = 0 and geo_county is not null;",
     .con = db_claims))
   res11 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_elig_timevar' as 'table', 'WA resident segments with null county name, expect 0' as qa_type, count(*) as qa
-    from stage.apcd_elig_timevar
+    "select 'claims.stage_apcd_elig_timevar' as 'table', 'WA resident segments with null county name, expect 0' as qa_type, count(*) as qa
+    from claims.stage_apcd_elig_timevar
     where geo_wa = 1 and geo_county is null;",
     .con = db_claims))
   
