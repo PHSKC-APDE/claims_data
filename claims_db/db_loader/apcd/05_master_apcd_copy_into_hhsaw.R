@@ -37,18 +37,14 @@ message(paste0("Beginning process to copy data from INTHEALTH_EDW to HHSAW - ", 
 table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility",
                    "medical_claim_header", "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
-#One-time list to just run tables not yet done by Philip
-table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_provider_raw",
-                   "member_month_detail", "provider")
-
 #Begin loop
 lapply(table_list, function(table_list) {
 
   table_name <- glue::glue_sql(table_list)
   message(paste0("Working on table: ", table_name))
-  system.time(DBI::dbExecute(conn = db_claims,
+  DBI::dbExecute(conn = db_claims,
                  glue::glue_sql("execute claims.usp_load_stage_apcd_{`table_name`}_cci;",
-                                .con = db_claims)))
+                                .con = db_claims))
   
   inthealth_row_count <- DBI::dbGetQuery(conn = db_claims,
                                          glue::glue_sql("select count(*) as row_count from claims.stage_apcd_{`table_name`};",
