@@ -2,9 +2,11 @@
 # Eli Kern, PHSKC (APDE)
 #
 # 2019-11
+#
+# 2024-04-29 update: Modified for HHSAW migration
 
 ### Run from master_apcd_analytic script
-# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/07_apcd_create_analytic_tables.R
 
 #### Load script ####
 load_ref.kc_provider_master_f <- function() {
@@ -22,7 +24,7 @@ load_ref.kc_provider_master_f <- function() {
     case when secondary_taxonomy_physical in ('-1','-2') or len(secondary_taxonomy_physical) != 10 then null else secondary_taxonomy_physical end as secondary_taxonomy, 
     1 as apcd_provider_master_flag
     into #provider_master
-    from PHClaims.stage.apcd_provider_master;
+    from claims.stage_apcd_provider_master_cci;
     
     
     ------------------
@@ -34,7 +36,7 @@ load_ref.kc_provider_master_f <- function() {
     case when len(zip) = 5 then zip else null end as geo_zip_practice,
     case when len(primary_specialty_code) = 10 then primary_specialty_code else null end as taxonomy
     into #temp1
-    from PHClaims.stage.apcd_provider;
+    from claims.stage_apcd_provider_cci;
     
     --choose most common entity type
     if object_id('tempdb..#entity_rank') is not null drop table #entity_rank;
@@ -127,7 +129,7 @@ load_ref.kc_provider_master_f <- function() {
     ------------------
     --STEP 3: Join provider_master and provider table rows and insert into table shell
     -------------------
-    insert into PHClaims.ref.kc_provider_master with (tablock)
+    insert into claims.ref_kc_provider_master with (tablock)
     select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, apcd_provider_master_flag, getdate() as last_run
     from #provider_master
     union
@@ -141,11 +143,11 @@ qa_ref.kc_provider_master_f <- function() {
   
     #no NPI should have more than 1 row
     res1 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'ref.kc_provider_master' as 'table', '# of NPIs with >1 row, expect 0' as qa_type,
+      "select 'claims.ref_kc_provider_master' as 'table', '# of NPIs with >1 row, expect 0' as qa_type,
       count(*) as qa
       from (
       	select npi, count(*) as row_count
-      	FROM ref.kc_provider_master
+      	FROM claims.ref_kc_provider_master
       	group by npi
       ) as a
       where a.row_count >1;",
@@ -153,25 +155,25 @@ qa_ref.kc_provider_master_f <- function() {
     
     #no NPI should be any length other than 10 digits
     res2 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'ref.kc_provider_master' as 'table', '# of NPIs with length != 10, expect 0' as qa_type,
+      "select 'claims.ref_kc_provider_master' as 'table', '# of NPIs with length != 10, expect 0' as qa_type,
       count(*) as qa
-      from ref.kc_provider_master
+      from claims.ref_kc_provider_master
       where len(npi) != 10;",
       .con = db_claims))
     
     #taxonomy should be 10 digits long
     res3 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'ref.kc_provider_master' as 'table', '# of taxonomies with length != 10, expect 0' as qa_type,
+      "select 'claims.ref_kc_provider_master' as 'table', '# of taxonomies with length != 10, expect 0' as qa_type,
       count(*) as qa
-      from ref.kc_provider_master
+      from claims.ref_kc_provider_master
       where len(primary_taxonomy) != 10 or len(secondary_taxonomy) != 10;",
       .con = db_claims))
     
     #ZIP codes should be 5 digits long
     res4 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'ref.kc_provider_master' as 'table', '# of ZIP codes with length != 5, expect 0' as qa_type,
+      "select 'claims.ref_kc_provider_master' as 'table', '# of ZIP codes with length != 5, expect 0' as qa_type,
       count(*) as qa
-      from ref.kc_provider_master
+      from claims.ref_kc_provider_master
       where len(geo_zip_practice) != 5;",
       .con = db_claims))
   
