@@ -2,9 +2,11 @@
 # Eli Kern, PHSKC (APDE)
 #
 # 2019-10
+#
+# 2024-04-29 update: Modified for HHSAW migration
 
 ### Run from master_apcd_analytic script
-# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/07_apcd_create_analytic_tables.R
 
 #### Load script ####
 load_stage.apcd_claim_provider_f <- function() {
@@ -15,9 +17,9 @@ load_stage.apcd_claim_provider_f <- function() {
     ------------------
     --STEP 1: Extract header-level provider variables, reshape, and insert into table shell
     -------------------
-    insert into PHClaims.stage.apcd_claim_provider with (tablock)
+    insert into claims.stage_apcd_claim_provider with (tablock)
     select internal_member_id as id_apcd, medical_claim_header_id as claim_header_id, first_service_dt as first_service_date, 
     last_service_dt as last_service_date, provider_id_apcd, provider_id_raw_apcd, provider_type, getdate() as last_run
-    from PHClaims.stage.apcd_claim_provider_raw;",
+    from claims.stage_apcd_claim_provider_raw_cci;",
     .con = db_claims))
 }

@@ -1,5 +1,5 @@
-to_schema: ref
-to_table: kc_provider_master
+to_schema: claims
+to_table: ref_kc_provider_master
 vars:
     npi: bigint
     entity_type: varchar(255)

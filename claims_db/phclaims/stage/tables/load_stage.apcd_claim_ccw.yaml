@@ -1,9 +1,9 @@
-claim_header_from_schema: final
-claim_header_from_table: apcd_claim_header
-icdcm_from_schema: final
-icdcm_from_table: apcd_claim_icdcm_header
-to_schema: stage
-to_table: apcd_claim_ccw
+claim_header_from_schema: claims
+claim_header_from_table: final_apcd_claim_header
+icdcm_from_schema: claims
+icdcm_from_table: final_apcd_claim_icdcm_header
+to_schema: claims
+to_table: stage_apcd_claim_ccw
 icdcm_ref_schema: ref
 icdcm_ref_table: icdcm_codes
 vars:

@@ -1,5 +1,5 @@
-to_schema: ref
-to_table: apcd_provider_npi
+to_schema: claims
+to_table: ref_apcd_provider_npi
 vars:
     provider_id_apcd: bigint
     npi: bigint
