@@ -26,11 +26,11 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
   ### Process year for table name
   if (calendar_year == T) {
     table_name_year <- stringr::str_sub(from_date,1,4)
-    table_name_year <- paste0("apcd_elig_plr_", table_name_year)
+    table_name_year <- glue::glue_sql(paste0("apcd_elig_plr_", table_name_year))
   }
   
   if (calendar_year == F) {
-    table_name_year <- paste0("apcd_elig_plr_", table_name)
+    table_name_year <- glue::glue_sql(paste0("apcd_elig_plr_", table_name))
   }
   
   ### Run SQL query
