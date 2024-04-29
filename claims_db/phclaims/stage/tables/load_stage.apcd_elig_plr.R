@@ -207,7 +207,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
       from #cov1
       group by id_apcd;
 
-    if object_id('tempdb..#cov1') is not null drop table #cov2;
+    if object_id('tempdb..#cov1') is not null drop table #cov1;
 
     
     --------------------------
@@ -329,7 +329,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     ) as d
     on a.id = d.id_apcd;
     
-    if object_id('tempdb..#cov2') is not null drop table #cov3;
+    if object_id('tempdb..#cov2') is not null drop table #cov2;
     if object_id('tempdb..#geo') is not null drop table #geo;
     if object_id('tempdb..#ach') is not null drop table #ach;
 
