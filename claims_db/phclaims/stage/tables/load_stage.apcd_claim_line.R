@@ -2,10 +2,12 @@
 # Eli Kern, PHSKC (APDE)
 #
 # 2019-10
-# modified 7/28/23 to correct nonsensical discharge dates
+#
+# 2023-07-28 update: Corrected nonsensical discharge dates
+# 2024-04-29 update: Modified for HHSAW migration
 
 ### Run from master_apcd_analytic script
-# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/07_apcd_create_analytic_tables.R
 
 #### Load script ####
 load_stage.apcd_claim_line_f <- function() {
@@ -17,7 +19,7 @@ load_stage.apcd_claim_line_f <- function() {
     --STEP 1: Select (distinct) desired columns from claim line table
     --Exclude all denied/orphaned claim lines
     -------------------
-    insert into PHClaims.stage.apcd_claim_line with (tablock)
+    insert into claims.stage_apcd_claim_line with (tablock)
     select distinct
     a.id_apcd,
     a.claim_header_id,
@@ -40,9 +42,9 @@ load_stage.apcd_claim_line_f <- function() {
     a.admission_point_of_origin_code,
     a.admission_type,
     getdate() as last_run
-    from PHClaims.stage.apcd_claim_line_raw as a
+    from claims.stage_apcd_claim_line_raw_cci as a
     --exclude denined/orphaned claims
-    left join PHClaims.stage.apcd_medical_claim_header as b
+    left join claims.stage_apcd_medical_claim_header_cci as b
     on a.claim_header_id = b.medical_claim_header_id
     where b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N';",
     .con = db_claims))
@@ -53,20 +55,20 @@ qa_stage.apcd_claim_line_f <- function() {
   
   #make sure everyone is in elig_demo
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_claim_line' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+    "select 'claims.stage_apcd_claim_line' as 'table', '# members not in elig_demo, expect 0' as qa_type,
     count(a.id_apcd) as qa
-    from stage.apcd_claim_line as a
-    left join final.apcd_elig_demo as b
+    from claims.stage_apcd_claim_line as a
+    left join claims.final_apcd_elig_demo as b
     on a.id_apcd = b.id_apcd
     where b.id_apcd is null;",
     .con = db_claims))
   
   #make sure everyone is in elig_timevar
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.apcd_claim_line' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
+    "select 'claims.stage_apcd_claim_line' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
     count(a.id_apcd) as qa
-    from stage.apcd_claim_line as a
-    left join final.apcd_elig_timevar as b
+    from claims.stage_apcd_claim_line as a
+    left join claims.final_apcd_elig_timevar as b
     on a.id_apcd = b.id_apcd
     where b.id_apcd is null;",
     .con = db_claims))
