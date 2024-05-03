@@ -49,7 +49,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
   if (load_only == F) {
   #### COMPARE COUNT OF XWALK ROWS TO PREVIOUS COUNT ####
     # Pull in the reference value
-    previous_rows <- as.numeric(
+    previous_rows <- as.integer(
       odbc::dbGetQuery(conn, 
                        "SELECT TEMP.qa_value
                         FROM [claims].[metadata_qa_xwalk_values] TEMP
