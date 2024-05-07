@@ -340,7 +340,7 @@ claim_header_prep_sql <- glue::glue_sql(
 
 --bcarrier claims
 
---select top 100--testing code
+select --top 100--testing code
 
 --core data elements
 trim(bene_id) as id_mcare,
@@ -443,7 +443,7 @@ from stg_claims.mcare_bcarrier_claims
 where carr_clm_pmt_dnl_cd in ('1','2','3','4','5','6','7','8','9')
 
 --dme claims
-union --select top 100--testing code
+union select --top 100--testing code
 
 --core data elements
 trim(bene_id) as id_mcare,
@@ -545,7 +545,7 @@ from stg_claims.mcare_dme_claims
 where carr_clm_pmt_dnl_cd in ('1','2','3','4','5','6','7','8','9')
 
 --hha claims
-union --select top 100--testing code
+union select --top 100--testing code
 
 --core data elements
 trim(bene_id) as id_mcare,
@@ -647,7 +647,7 @@ from stg_claims.mcare_hha_base_claims
 where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
 
 --hospice claims
-union --select top 100--testing code
+union select --top 100--testing code
 
 --core data elements
 trim(bene_id) as id_mcare,
@@ -749,7 +749,7 @@ from stg_claims.mcare_hospice_base_claims
 where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
 
 --inpatient claims
-union --select top 100--testing code
+union select --top 100--testing code
 
 --core data elements
 trim(bene_id) as id_mcare,
@@ -851,7 +851,7 @@ from stg_claims.mcare_inpatient_base_claims
 where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
 
 --inpatient claims data structure J
-union --select top 100--testing code
+union select --top 100--testing code
 
 --core data elements
 trim(bene_id) as id_mcare,
@@ -953,7 +953,7 @@ from stg_claims.mcare_inpatient_base_claims_j
 where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
 
 --outpatient claims
-union --select top 100--testing code
+union select --top 100--testing code
 
 --core data elements
 trim(bene_id) as id_mcare,
@@ -1055,7 +1055,7 @@ from stg_claims.mcare_outpatient_base_claims
 where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
 
 --outpatient claims data structure J
-union --select top 100--testing code
+union select --top 100--testing code
 
 --core data elements
 trim(bene_id) as id_mcare,
@@ -1157,7 +1157,7 @@ from stg_claims.mcare_outpatient_base_claims_j
 where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
 
 --snf claims
-union --select top 100--testing code
+union select --top 100--testing code
 
 --core data elements
 trim(bene_id) as id_mcare,
