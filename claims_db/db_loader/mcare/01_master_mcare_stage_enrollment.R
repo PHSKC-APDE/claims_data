@@ -19,7 +19,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/c
 dw_inthealth <- create_db_connection("inthealth", interactive = FALSE, prod = TRUE)
 
 bene_enrollment_sql <- glue::glue_sql(
-  "drop table if exists stg_claims.mcare_bene_enrollment
+  "if object_id(N'stg_claims.mcare_bene_enrollment', N'U') is not null drop table stg_claims.mcare_bene_enrollment;
   select
   [etl_batch_id]
   ,cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id
@@ -166,7 +166,7 @@ odbc::dbGetQuery(conn = dw_inthealth, bene_check_sql)
 # not loaded here)
 
 bene_names_sql <- glue::glue_sql("
-  drop table if exists stg_claims.mcare_bene_names;
+  if object_id(N'stg_claims.mcare_bene_names', N'U') is not null drop table stg_claims.mcare_bene_names;
   select distinct
   cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id,
   bene_srnm_name,
@@ -178,7 +178,7 @@ bene_names_sql <- glue::glue_sql("
 odbc::dbSendQuery(conn = dw_inthealth, bene_names_sql)
 
 bene_ssn_sql <- glue::glue_sql("
-  drop table if exists stg_claims.mcare_bene_ssn;
+  if object_id(N'stg_claims.mcare_bene_ssn', N'U') is not null drop table stg_claims.mcare_bene_ssn;
   select distinct
   cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id,
   ssn
