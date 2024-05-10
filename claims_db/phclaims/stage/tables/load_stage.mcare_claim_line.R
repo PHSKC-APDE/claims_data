@@ -23,7 +23,7 @@ load_stage.mcare_claim_line_f <- function() {
     --STEP 1: Select (distinct) desired columns from multi-year claim tables on stage schema
     --Exclude all denied claims using proposed approach per ResDAC 01-2020 consult
     -------------------
-    insert into PHClaims.stage.mcare_claim_line with (tablock)
+    insert into stg_claims.stage_mcare_claim_line with (tablock)
     
     --bcarrier
     select
