@@ -153,7 +153,7 @@ odbc::dbSendQuery(conn = dw_inthealth, bene_enrollment_sql)
 # PASS condition: Expect 0
 bene_check_sql <- glue::glue_sql("
   select count(a.bene_id) as row_count
-  from stg_claims.stage_mcare_mbsf_d_cmpnts as a
+  from stg_claims.mcare_mbsf_d_cmpnts as a
   left join stg_claims.mcare_mbsf_ab_summary as b
   on a.bene_id = b.bene_id
   where b.bene_id is null;",
@@ -288,7 +288,7 @@ max(date_distribution$year)
 # bar chart of birthdays by year
 ggplot(date_distribution, aes(x=bene_birth_dt))+ 
   geom_histogram(binwidth=30, colour="purple") +
-  scale_x_date(labels = date_format("%Y")) +
+  scale_x_date(labels = scales::date_format("%Y")) +
   ylab("Frequency") + xlab("Year") +
   theme_bw()
 
