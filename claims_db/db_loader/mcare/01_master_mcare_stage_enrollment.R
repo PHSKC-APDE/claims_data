@@ -12,15 +12,14 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/c
 
 
 # ---- STEP 1: Create state_mcare_bene_enrollment table from MBSF tables ----
-# Columns selected based on review of Danny's original 2019 scripts used to
-# create elig_timevar and elig_demo tables
+# Columns selected based on review of Danny's original 2019 scripts used to create elig_timevar and elig_demo tables
 # Reference: https://kc1.sharepoint.com/:x:/r/teams/DPH-KCCross-SectorData/Shared%20Documents/General/References/Medicare/ResDAC%20file%20layouts/apde_mbsf_columns_needed_2024.xlsx?d=w4d88d662b43a4097811423fc7813313b&csf=1&web=1&e=1CBks8
 
 
-db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = FALSE, prod = TRUE)
 
 bene_enrollment_sql <- glue::glue_sql(
-  "drop table if exists claims.stage_mcare_bene_enrollment
+  "drop table if exists stg_claims.mcare_bene_enrollment
   select
   [etl_batch_id]
   ,cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id
@@ -79,8 +78,8 @@ bene_enrollment_sql <- glue::glue_sql(
   ,[dual_stus_cd_10]
   ,[dual_stus_cd_11]
   ,[dual_stus_cd_12]
-  into claims.stage_mcare_bene_enrollment
-  from [claims].[stage_mcare_mbsf_abcd_summary]
+  into stg_claims.mcare_bene_enrollment
+  from stg_claims.mcare_mbsf_abcd_summary
 -- Union to 2014 data
 -- Join Part ABC and Part D data for 2014
 -- QA below confirms left join is appropriate because no one has Part D but not Part AB
@@ -143,49 +142,50 @@ bene_enrollment_sql <- glue::glue_sql(
   ,b.[dual_stus_cd_10]
   ,b.[dual_stus_cd_11]
   ,b.[dual_stus_cd_12]
-  from [claims].[stage_mcare_mbsf_ab_summary] as a
-  left join [claims].[stage_mcare_mbsf_d_cmpnts] as b 
-  on a.bene_id = b.bene_id",
-.con = db_hhsaw)
-odbc::dbSendQuery(conn = db_hhsaw, bene_enrollment_sql)
+  from stg_claims.mcare_mbsf_ab_summary as a
+  left join stg_claims.mcare_mbsf_d_cmpnts as b 
+  on a.bene_id = b.bene_id;",
+.con = dw_inthealth)
+odbc::dbSendQuery(conn = dw_inthealth, bene_enrollment_sql)
 
 # Confirm that no one has Part D coverage but not Part AB coverage in 2014
 # Confirm no bene_id in mbsf_d table that doesn't exist in mbsf_ab table
 # PASS condition: Expect 0
 bene_check_sql <- glue::glue_sql("
   select count(a.bene_id) as row_count
-  from [claims].[stage_mcare_mbsf_d_cmpnts] as a
-  left join [claims].[stage_mcare_mbsf_ab_summary] as b
+  from stg_claims.stage_mcare_mbsf_d_cmpnts as a
+  left join stg_claims.mcare_mbsf_ab_summary as b
   on a.bene_id = b.bene_id
-  where b.bene_id is null",
-.con = db_hhsaw)
-odbc::dbGetQuery(conn = db_hhsaw, bene_check_sql)
+  where b.bene_id is null;",
+.con = dw_inthealth)
+odbc::dbGetQuery(conn = dw_inthealth, bene_check_sql)
+
 
 # ---- STEP 2: Create NAMES and SSN tables for person linkage ---- 
 # Note that HIC (alternate unique ID table is not used for linkage and thus
 # not loaded here)
 
 bene_names_sql <- glue::glue_sql("
-  drop table if exists claims.stage_mcare_bene_names;
+  drop table if exists stg_claims.mcare_bene_names;
   select distinct
   cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id,
   bene_srnm_name,
   bene_gvn_name,
   bene_mdl_name
-  into claims.stage_mcare_bene_names
-  from [claims].[stage_mcare_edb_user_view]",
-.con = db_hhsaw)
-odbc::dbSendQuery(conn = db_hhsaw, bene_names_sql)
+  into stg_claims.mcare_bene_names
+  from stg_claims.mcare_edb_user_view;",
+.con = dw_inthealth)
+odbc::dbSendQuery(conn = dw_inthealth, bene_names_sql)
 
 bene_ssn_sql <- glue::glue_sql("
-  drop table if exists claims.stage_mcare_bene_ssn;
+  drop table if exists stg_claims.mcare_bene_ssn;
   select distinct
   cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id,
   ssn
-  into claims.stage_mcare_bene_ssn
-  from [claims].[stage_mcare_bene_ssn_xwalk]",
-.con = db_hhsaw)
-odbc::dbSendQuery(conn = db_hhsaw, bene_ssn_sql)
+  into stg_claims.mcare_bene_ssn
+  from stg_claims.mcare_bene_ssn_xwalk;",
+.con = dw_inthealth)
+odbc::dbSendQuery(conn = dw_inthealth, bene_ssn_sql)
 
 
 # --- QA Step 2: ---
@@ -195,15 +195,15 @@ with temp1 as (select distinct
 cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id_cs,
 cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CI_AS as bene_id_ci,
 lower(trim(bene_id)) as bene_id_lowercase
-from claims.stage_mcare_bene_names
+from stg_claims.mcare_bene_names
 )
 
 select 'case-sensitive trimmed varchar' as column_type, count(distinct bene_id_cs) as bene_id_dcount from temp1
 union select 'case-insensitive trimmed varchar' as column_type, count(distinct bene_id_ci) as bene_id_dcount from temp1
 union select 'lowercase trimmed varchar' as column_type,count(distinct bene_id_lowercase) as bene_id_dcount from temp1
 order by bene_id_dcount desc;",
-.con = db_hhsaw)
-bene_names_casetest <- odbc::dbGetQuery(conn = db_hhsaw, bene_names_casetest_sql)
+.con = dw_inthealth)
+bene_names_casetest <- odbc::dbGetQuery(conn = dw_inthealth, bene_names_casetest_sql)
 print(bene_names_casetest)
 
 bene_ssn_casetest_sql <- glue::glue_sql("
@@ -211,53 +211,53 @@ with temp1 as (select distinct
 cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id_cs,
 cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CI_AS as bene_id_ci,
 lower(trim(bene_id)) as bene_id_lowercase
-from claims.stage_mcare_bene_ssn
+from stg_claims.mcare_bene_ssn
 )
 
 select 'case-sensitive trimmed varchar' as column_type, count(distinct bene_id_cs) as bene_id_dcount from temp1
 union select 'case-insensitive trimmed varchar' as column_type, count(distinct bene_id_ci) as bene_id_dcount from temp1
 union select 'lowercase trimmed varchar' as column_type,count(distinct bene_id_lowercase) as bene_id_dcount from temp1
 order by bene_id_dcount desc;",
-.con = db_hhsaw)
-bene_ssn_casetest <- odbc::dbGetQuery(conn = db_hhsaw, bene_ssn_casetest_sql)
+.con = dw_inthealth)
+bene_ssn_casetest <- odbc::dbGetQuery(conn = dw_inthealth, bene_ssn_casetest_sql)
 print(bene_ssn_casetest)
 
 # Ensure there are very few bene_id values in the [claims].[stage_mcare_bene_enrollment]
 # table that do not match to the [claims].[stage_mcare_bene_names] or [claims].[stage_mcare_bene_ssn] tables
 bene_id_test_names_sql <- glue::glue_sql("
 SELECT  a.bene_id
-FROM claims.stage_mcare_bene_enrollment a
-LEFT JOIN claims.stage_mcare_bene_names b
+FROM stg_claims.mcare_bene_enrollment a
+LEFT JOIN stg_claims.mcare_bene_names b
   ON a.bene_id = b.bene_id
 WHERE b.bene_id IS NULL   
 ",
-.con = db_hhsaw)
-bene_id_test_names <- odbc::dbGetQuery(conn = db_hhsaw, bene_id_test_names_sql)
+.con = dw_inthealth)
+bene_id_test_names <- odbc::dbGetQuery(conn = dw_inthealth, bene_id_test_names_sql)
 nrow(bene_id_test_names)
 
 bene_id_test_ssn_sql <- glue::glue_sql("
 SELECT  a.bene_id
-FROM claims.stage_mcare_bene_enrollment a
-LEFT JOIN claims.stage_mcare_bene_ssn b
+FROM stg_claims.mcare_bene_enrollment a
+LEFT JOIN stg_claims.mcare_bene_ssn b
   ON a.bene_id = b.bene_id
 WHERE b.bene_id IS NULL                                         
 ",
-.con = db_hhsaw)
-bene_id_test_ssn <- odbc::dbGetQuery(conn = db_hhsaw, bene_id_test_ssn_sql)
+.con = dw_inthealth)
+bene_id_test_ssn <- odbc::dbGetQuery(conn = dw_inthealth, bene_id_test_ssn_sql)
 nrow(bene_id_test_ssn)
 
 bene_id_test_both_sql <- glue::glue_sql("
 SELECT a.bene_id
-FROM claims.stage_mcare_bene_enrollment a
+FROM stg_claims.mcare_bene_enrollment a
   LEFT JOIN (
-    SELECT DISTINCT bene_id FROM claims.stage_mcare_bene_names
+    SELECT DISTINCT bene_id FROM stg_claims.mcare_bene_names
 	UNION
-	SELECT DISTINCT bene_id FROM claims.stage_mcare_bene_ssn
+	SELECT DISTINCT bene_id FROM stg_claims.mcare_bene_ssn
 	) b ON a.bene_id = b.bene_id
 	WHERE b.bene_id IS NULL                                   
 ",
-.con = db_hhsaw)
-bene_id_test_both <- odbc::dbGetQuery(conn = db_hhsaw, bene_id_test_both_sql)
+.con = dw_inthealth)
+bene_id_test_both <- odbc::dbGetQuery(conn = dw_inthealth, bene_id_test_both_sql)
 nrow(bene_id_test_both)
 
 # Ensure that the date of birth variable in the [claims].[stage_mcare_bene_enrollment] 
@@ -268,10 +268,10 @@ nrow(bene_id_test_both)
 # as this would indicate that something went wrong with how these dates were formatted/parsed along the way.
 date_check_sql <- glue::glue_sql("
 SELECT bene_enrollmt_ref_yr, bene_id, bene_birth_dt, bene_death_dt
-FROM claims.stage_mcare_bene_enrollment
+FROM stg_claims.mcare_bene_enrollment
 ",
-.con = db_hhsaw)
-date_check <- odbc::dbGetQuery(conn = db_hhsaw, date_check_sql)
+.con = dw_inthealth)
+date_check <- odbc::dbGetQuery(conn = dw_inthealth, date_check_sql)
 
 # Assert dates are length 10
 invalid_date_length <- date_check[str_count(date_check$bene_birth_dt) != 10,]
@@ -332,11 +332,11 @@ tables_sql <- glue::glue_sql("
 SELECT t.name, c.name, c.collation_name
 FROM SYS.COLUMNS c
 JOIN SYS.TABLES t ON t.object_id = c.object_id
-WHERE t.name in ('stage_mcare_edb_user_view', 'stage_mcare_bcarrier_claims')
+WHERE t.name in ('mcare_edb_user_view', 'mcare_bcarrier_claims')
 and c.name in ('bene_id', 'clm_id')
 order by t.name desc, c.name;",
-.con = db_hhsaw)
-test1 <- odbc::dbGetQuery(conn = db_hhsaw, tables_sql)
+.con = dw_inthealth)
+test1 <- odbc::dbGetQuery(conn = dw_inthealth, tables_sql)
 
 bene_ssn_sql <- glue::glue_sql("
 --Demonstrate case-sensitive nature of bene_id variable
@@ -344,15 +344,15 @@ with temp1 as (select distinct
 cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id_cs,
 cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CI_AS as bene_id_ci,
 lower(trim(bene_id)) as bene_id_lowercase
-from claims.stage_mcare_edb_user_view
+from stg_claims.mcare_edb_user_view
 )
 
 select 'case-sensitive trimmed varchar' as column_type, count(distinct bene_id_cs) as bene_id_dcount from temp1
 union select 'case-insensitive trimmed varchar' as column_type, count(distinct bene_id_ci) as bene_id_dcount from temp1
 union select 'lowercase trimmed varchar' as column_type,count(distinct bene_id_lowercase) as bene_id_dcount from temp1
 order by bene_id_dcount desc;",
-.con = db_hhsaw)
-test2 <- odbc::dbGetQuery(conn = db_hhsaw, bene_ssn_sql)
+.con = dw_inthealth)
+test2 <- odbc::dbGetQuery(conn = dw_inthealth, bene_ssn_sql)
 
 clm_id_sql <- glue::glue_sql("
 --Demonstrate case-sensitive nature of clm_id variable
@@ -360,12 +360,12 @@ with temp2 as (select distinct
 cast(trim(clm_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as clm_id_cs,
 cast(trim(clm_id) as varchar(255)) collate SQL_Latin1_General_CP1_CI_AS as clm_id_ci,
 lower(trim(clm_id)) as clm_id_lowercase
-from claims.stage_mcare_bcarrier_claims
+from stg_claims.mcare_bcarrier_claims
 )
 
 select 'case-sensitive trimmed varchar' as column_type, count(distinct clm_id_cs) as clm_id_dcount from temp2
 union select 'case-insensitive trimmed varchar' as column_type, count(distinct clm_id_ci) as clm_id_dcount from temp2
 union select 'lowercase trimmed varchar' as column_type,count(distinct clm_id_lowercase) as clm_id_dcount from temp2
 order by clm_id_dcount desc;",
-.con = db_hhsaw)
-test3 <- odbc::dbGetQuery(conn = db_hhsaw, clm_id_sql)
+.con = dw_inthealth)
+test3 <- odbc::dbGetQuery(conn = dw_inthealth, clm_id_sql)
