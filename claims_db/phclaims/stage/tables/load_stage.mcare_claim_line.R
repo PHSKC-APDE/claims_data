@@ -2,9 +2,11 @@
 # Eli Kern, PHSKC (APDE)
 #
 # 2019-12
+#
+#2024-05-10 Eli update: Data from HCA, ETL in inthealth_edw
 
-### Run from master_mcare_full_union script
-# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/master_mcare_full_union.R
+### Run from 03_master_mcare_claims_analytic.R script
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/03_master_mcare_claims_analytic.R
 
 #### Load script ####
 load_stage.mcare_claim_line_f <- function() {
@@ -15,8 +17,7 @@ load_stage.mcare_claim_line_f <- function() {
     --Distinct line-level claim variables that do not have a dedicated table (e.g. revenue code). In other words elements for which there is only one distinct 
     --value per claim line.
     --Eli Kern (PHSKC-APDE)
-    --2020-01
-    --Run time: XX min
+    --2024-05
     
     ------------------
     --STEP 1: Select (distinct) desired columns from multi-year claim tables on stage schema
