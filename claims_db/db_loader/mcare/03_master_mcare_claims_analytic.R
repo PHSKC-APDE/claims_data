@@ -1,34 +1,29 @@
-#### MASTER CODE TO CREATE ANALYTIC TABLES FOR MCARE DATA ON STAGE SCHEMA
+#### MASTER SCRIPT TO CREATE ANALYTIC CLAIMS TABLES FOR MCARE DATA IN INTHEALTH_EDW
 #
-# Loads and QAs data on stage schema
-# Changes schema of existing final tables to archive
-# Changes schema of new stage tables to final
-# Adds clustered columnstore indexes to new final tables
+# Loads and QAs data with stage in table name as prefix
+# Archives current final tables
+# Changes stage in table name to final
 #
 # Eli Kern, PHSKC (APDE)
 # Adapted from Eli Kern's APCD analytic script
 #
-# 2020-01
+# 2024-05
 
 #Note: Currently only includes code for claims analytic tables, elig tables are run from separate script
 
+#### SET UP ####
 
-#### Set up global parameter and call in libraries ####
+#Set global parameters and call in libraries
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
+pacman::p_load(DBI, glue, tidyverse, lubridate, odbc, configr, RCurl)
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
 
-library(pacman)
-pacman::p_load(tidyverse, lubridate, odbc, RCurl, configr, glue)
+#Connect to inthealth_edw
+dw_inthealth <- create_db_connection("inthealth", interactive = FALSE, prod = TRUE)
 
-db_claims <- dbConnect(odbc(), "PHClaims51")
-
-#### SET UP FUNCTIONS ####
+#Set up functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_ccw.R")
+
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 1: mcare_claim_line ####
@@ -39,9 +34,9 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_line.yaml"
 
 ### B) Create table
-create_table_f(conn = db_claims, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+create_table_f(conn = dw_inthealth, 
+             config_url = config_url,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
 system.time(load_stage.mcare_claim_line_f())
