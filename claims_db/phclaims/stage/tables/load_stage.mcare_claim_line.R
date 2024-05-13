@@ -247,8 +247,9 @@ qa_stage.mcare_claim_line_qa_f <- function() {
   
   #confirm that claim types with expected revenue codes have data for each year
   res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-  "select 'rows with non-null revenue code' as qa_type,
-  filetype_mcare, year(last_service_date) as service_year, count(*) as row_count
+  "select 'stg_claims.stage_mcare_claim_line' as 'table',
+  'rows with non-null revenue code' as qa_type,
+  filetype_mcare, year(last_service_date) as service_year, count(*) as qa
   from stg_claims.stage_mcare_claim_line
   where revenue_code is not null
   group by filetype_mcare, year(last_service_date)
@@ -257,8 +258,9 @@ qa_stage.mcare_claim_line_qa_f <- function() {
   
   #confirm that claim types with expected revenue codes have data for each year
   res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-  "select 'rows with non-null place of service and type of service code' as qa_type,
-  filetype_mcare, year(last_service_date) as service_year, count(*) as row_count
+  "select 'stg_claims.stage_mcare_claim_line' as 'table',
+  'rows with non-null place of service and type of service code' as qa_type,
+  filetype_mcare, year(last_service_date) as service_year, count(*) as qa
   from stg_claims.stage_mcare_claim_line
   where place_of_service_code is not null and type_of_service is not null
   group by filetype_mcare, year(last_service_date)
