@@ -18,6 +18,10 @@ options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 
 pacman::p_load(DBI, glue, tidyverse, lubridate, odbc, configr, RCurl)
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
 
+#Set expected years of data for QA checks
+years_expected <- 8 #number of years of data we expect (2014+)
+years_expected_dme <- 7 #number of years of data we expect for DME files (2015+)
+
 #Connect to inthealth_edw
 dw_inthealth <- create_db_connection("inthealth", interactive = FALSE, prod = TRUE)
 
@@ -45,15 +49,59 @@ system.time(load_stage.mcare_claim_line_f())
 system.time(mcare_claim_line_qa <- qa_stage.mcare_claim_line_qa_f())
 rm(config_url)
 
+##Process QA results
+
+#Revenue code check by filetype and year
+qa_line_1 <- NULL
+for (i in c("hha", "hospice", "inpatient", "outpatient", "snf")) {
+  x <- filter(mcare_claim_line_qa, str_detect(qa_type, "revenue code") & filetype_mcare == i) %>%
+    nrow()
+  if(i == "dme") {
+    y <- years_expected_dme == x
+  } else
+    y <- years_expected == x
+  qa_line_1 <- c(qa_line_1,y)
+}
+qa_line_1 <- all(qa_line_1)
+rm(i,x,y)
+
+#Place of service and type of service codes check by filetype and year
+qa_line_2 <- NULL
+for (i in c("carrier", "dme")) {
+  x <- filter(mcare_claim_line_qa, str_detect(qa_type, "place of service") & filetype_mcare == i) %>%
+    nrow()
+  if(i == "dme") {
+    y <- years_expected_dme == x
+  } else
+    y <- years_expected == x
+  qa_line_2 <- c(qa_line_2,y)
+}
+qa_line_2 <- all(qa_line_2)
+rm(i,x,y)
+
+#All members included in bene_enrollment table
+qa_line_3 <- mcare_claim_line_qa$qa[mcare_claim_line_qa$qa_type=="# members not in bene_enrollment, expect 0"]
+
+#Final QA check
+if(qa_line_1 == TRUE & qa_line_2 == TRUE & qa_line_3 == 0L) {
+  message("mcare_claim_line QA result: PASS")
+} else {
+  stop("mcare_claim_line QA result: FAIL")
+}
+
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = dw_inthealth,
-               glue::glue_sql("execute sp_rename 'stg_claims.final_mcare_claim_line', 'archive_mcare_claim_line';",
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_line TO archive_mcare_claim_line;",
                               .con = dw_inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
 DBI::dbExecute(conn = dw_inthealth,
-               glue::glue_sql("execute sp_rename 'stg_claims.stage_mcare_claim_line', 'final_mcare_claim_line';",
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_line TO final_mcare_claim_line;",
                               .con = dw_inthealth))
+
+
+#### CONTINUE HERE ####
+
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 2: mcare_claim_icdcm_header ####
