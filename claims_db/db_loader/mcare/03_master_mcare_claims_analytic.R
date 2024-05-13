@@ -41,17 +41,19 @@ create_table_f(conn = dw_inthealth,
 ### C) Load tables
 system.time(load_stage.mcare_claim_line_f())
 
-### D) Table-level QA (12 min)
+### D) Table-level QA (1 min)
 system.time(mcare_claim_line_qa <- qa_stage.mcare_claim_line_qa_f())
 rm(config_url)
 
-### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcare_claim_line")
+### E) Archive current stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("execute sp_rename 'stg_claims.final_mcare_claim_line', 'archive_mcare_claim_line';",
+                              .con = dw_inthealth))
 
-### G) Alter schema on new table
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcare_claim_line")
-
-
+### F) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("execute sp_rename 'stg_claims.stage_mcare_claim_line', 'final_mcare_claim_line';",
+                              .con = dw_inthealth))
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 2: mcare_claim_icdcm_header ####
