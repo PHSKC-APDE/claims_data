@@ -12,7 +12,7 @@
 load_stage.mcare_claim_line_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
+  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
     "--Code to load data to stage.mcare_claim_line table
     --Distinct line-level claim variables that do not have a dedicated table (e.g. revenue code). In other words elements for which there is only one distinct 
     --value per claim line.
@@ -23,255 +23,257 @@ load_stage.mcare_claim_line_f <- function() {
     --STEP 1: Select (distinct) desired columns from multi-year claim tables on stage schema
     --Exclude all denied claims using proposed approach per ResDAC 01-2020 consult
     -------------------
-    insert into stg_claims.stage_mcare_claim_line with (tablock)
-    
+    insert into stg_claims.stage_mcare_claim_line
+        
     --bcarrier
     select
     --top 100
-    rtrim(a.id_mcare) as id_mcare,
-    rtrim(a.claim_header_id) as claim_header_id,
-    a.claim_line_id,
-    b.first_service_date,
-    b.last_service_date,
+    trim(a.bene_id) as id_mcare,
+    trim(a.clm_id) as claim_header_id,
+    trim(a.line_num) as claim_line_id,
+    cast(b.clm_from_dt as date) as first_service_date,
+    cast(b.clm_thru_dt as date) as last_service_date,
     revenue_code = null,
-    a.place_of_service_code,
-    a.type_of_service,
+    a.line_place_of_srvc_cd as place_of_service_code,
+    a.line_cms_type_srvc_cd as type_of_service,
     'carrier' as filetype_mcare,
     getdate() as last_run
-    from PHClaims.stage.mcare_bcarrier_line as a
-    left join PHClaims.stage.mcare_bcarrier_claims as b
-    on a.claim_header_id = b.claim_header_id
-    left join PHClaims.final.mcare_elig_demo as c
-    on a.id_mcare = c.id_mcare
+    from stg_claims.mcare_bcarrier_line as a
+    left join stg_claims.mcare_bcarrier_claims as b
+    on a.clm_id = b.clm_id
+    left join stg_claims.mcare_bene_enrollment as c
+    on a.bene_id = c.bene_id
     --exclude denined claims using carrier/dme claim method
-    where b.denial_code in ('1','2','3','4','5','6','7','8','9')
-    --exclude claims among people who have eligibility data
-    and c.id_mcare is not null
-    
+    where b.carr_clm_pmt_dnl_cd in ('1','2','3','4','5','6','7','8','9')
+    --exclude claims among people who have no eligibility data
+    and c.bene_id is not null
+        
     --dme
     union
     select
     --top 100
-    rtrim(a.id_mcare) as id_mcare,
-    rtrim(a.claim_header_id) as claim_header_id,
-    a.claim_line_id,
-    b.first_service_date,
-    b.last_service_date,
+    trim(a.bene_id) as id_mcare,
+    trim(a.clm_id) as claim_header_id,
+    trim(a.line_num) as claim_line_id,
+    cast(b.clm_from_dt as date) as first_service_date,
+    cast(b.clm_thru_dt as date) as last_service_date,
     revenue_code = null,
-    a.place_of_service_code,
-    a.type_of_service,
+    a.line_place_of_srvc_cd as place_of_service_code,
+    a.line_cms_type_srvc_cd as type_of_service,
     'dme' as filetype_mcare,
     getdate() as last_run
-    from PHClaims.stage.mcare_dme_line as a
-    left join PHClaims.stage.mcare_dme_claims as b
-    on a.claim_header_id = b.claim_header_id
-    left join PHClaims.final.mcare_elig_demo as c
-    on a.id_mcare = c.id_mcare
+    from stg_claims.mcare_dme_line as a
+    left join stg_claims.mcare_dme_claims as b
+    on a.clm_id = b.clm_id
+    left join stg_claims.mcare_bene_enrollment as c
+    on a.bene_id = c.bene_id
     --exclude denined claims using carrier/dme claim method
-    where b.denial_code in ('1','2','3','4','5','6','7','8','9')
-    --exclude claims among people who have eligibility data
-    and c.id_mcare is not null
-    
+    where b.carr_clm_pmt_dnl_cd in ('1','2','3','4','5','6','7','8','9')
+    --exclude claims among people who have no eligibility data
+    and c.bene_id is not null
+        
     --hha
     union
     select
     --top 100
-    rtrim(a.id_mcare) as id_mcare,
-    rtrim(a.claim_header_id) as claim_header_id,
-    a.claim_line_id,
-    b.first_service_date,
-    b.last_service_date,
-    a.revenue_code,
+    trim(a.bene_id) as id_mcare,
+    trim(a.clm_id) as claim_header_id,
+    trim(a.clm_line_num) as claim_line_id,
+    cast(b.clm_from_dt as date) as first_service_date,
+    cast(b.clm_thru_dt as date) as last_service_date,
+    a.rev_cntr as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'hha' as filetype_mcare,
     getdate() as last_run
-    from PHClaims.stage.mcare_hha_revenue_center as a
-    left join PHClaims.stage.mcare_hha_base_claims as b
-    on a.claim_header_id = b.claim_header_id
-    left join PHClaims.final.mcare_elig_demo as c
-    on a.id_mcare = c.id_mcare
-    --exclude denined claims using carrier/dme claim method
-    where (b.denial_code_facility = '' or b.denial_code_facility is null)
-    --exclude claims among people who have eligibility data
-    and c.id_mcare is not null
-    
+    from stg_claims.mcare_hha_revenue_center as a
+    left join stg_claims.mcare_hha_base_claims  as b
+    on a.clm_id = b.clm_id
+    left join stg_claims.mcare_bene_enrollment as c
+    on a.bene_id = c.bene_id
+    --exclude denined claims using facility claim method
+    where (b.clm_mdcr_non_pmt_rsn_cd = '' or b.clm_mdcr_non_pmt_rsn_cd is null)
+    --exclude claims among people who have no eligibility data
+    and c.bene_id is not null
+        
     --hospice
     union
     select
     --top 100
-    rtrim(a.id_mcare) as id_mcare,
-    rtrim(a.claim_header_id) as claim_header_id,
-    a.claim_line_id,
-    b.first_service_date,
-    b.last_service_date,
-    a.revenue_code,
+    trim(a.bene_id) as id_mcare,
+    trim(a.clm_id) as claim_header_id,
+    trim(a.clm_line_num) as claim_line_id,
+    cast(b.clm_from_dt as date) as first_service_date,
+    cast(b.clm_thru_dt as date) as last_service_date,
+    a.rev_cntr as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'hospice' as filetype_mcare,
     getdate() as last_run
-    from PHClaims.stage.mcare_hospice_revenue_center as a
-    left join PHClaims.stage.mcare_hospice_base_claims as b
-    on a.claim_header_id = b.claim_header_id
-    left join PHClaims.final.mcare_elig_demo as c
-    on a.id_mcare = c.id_mcare
-    --exclude denined claims using carrier/dme claim method
-    where (b.denial_code_facility = '' or b.denial_code_facility is null)
-    --exclude claims among people who have eligibility data
-    and c.id_mcare is not null
-    
+    from stg_claims.mcare_hospice_revenue_center as a
+    left join stg_claims.mcare_hospice_base_claims as b
+    on a.clm_id = b.clm_id
+    left join stg_claims.mcare_bene_enrollment as c
+    on a.bene_id = c.bene_id
+    --exclude denined claims using facility claim method
+    where (b.clm_mdcr_non_pmt_rsn_cd = '' or b.clm_mdcr_non_pmt_rsn_cd is null)
+    --exclude claims among people who have no eligibility data
+    and c.bene_id is not null
+        
     --inpatient
     union
     select
     --top 100
-    rtrim(a.id_mcare) as id_mcare,
-    rtrim(a.claim_header_id) as claim_header_id,
-    a.claim_line_id,
-    b.first_service_date,
-    b.last_service_date,
-    a.revenue_code,
+    trim(a.bene_id) as id_mcare,
+    trim(a.clm_id) as claim_header_id,
+    trim(a.clm_line_num) as claim_line_id,
+    cast(b.clm_from_dt as date) as first_service_date,
+    cast(b.clm_thru_dt as date) as last_service_date,
+    a.rev_cntr as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'inpatient' as filetype_mcare,
     getdate() as last_run
-    from PHClaims.stage.mcare_inpatient_revenue_center as a
-    left join PHClaims.stage.mcare_inpatient_base_claims as b
-    on a.claim_header_id = b.claim_header_id
-    left join PHClaims.final.mcare_elig_demo as c
-    on a.id_mcare = c.id_mcare
-    --exclude denined claims using carrier/dme claim method
-    where (b.denial_code_facility = '' or b.denial_code_facility is null)
-    --exclude claims among people who have eligibility data
-    and c.id_mcare is not null
+    from stg_claims.mcare_inpatient_revenue_center as a
+    left join stg_claims.mcare_inpatient_base_claims as b
+    on a.clm_id = b.clm_id
+    left join stg_claims.mcare_bene_enrollment as c
+    on a.bene_id = c.bene_id
+    --exclude denined claims using facility claim method
+    where (b.clm_mdcr_non_pmt_rsn_cd = '' or b.clm_mdcr_non_pmt_rsn_cd is null)
+    --exclude claims among people who have no eligibility data
+    and c.bene_id is not null
     
+    --inpatient data structure j
+    union
+    select
+    --top 100
+    trim(a.bene_id) as id_mcare,
+    trim(a.clm_id) as claim_header_id,
+    trim(a.clm_line_num) as claim_line_id,
+    cast(b.clm_from_dt as date) as first_service_date,
+    cast(b.clm_thru_dt as date) as last_service_date,
+    a.rev_cntr as revenue_code,
+    place_of_service_code = null,
+    type_of_service = null,
+    'inpatient' as filetype_mcare,
+    getdate() as last_run
+    from stg_claims.mcare_inpatient_revenue_center_j as a
+    left join stg_claims.mcare_inpatient_base_claims_j as b
+    on a.clm_id = b.clm_id
+    left join stg_claims.mcare_bene_enrollment as c
+    on a.bene_id = c.bene_id
+    --exclude denined claims using facility claim method
+    where (b.clm_mdcr_non_pmt_rsn_cd = '' or b.clm_mdcr_non_pmt_rsn_cd is null)
+    --exclude claims among people who have no eligibility data
+    and c.bene_id is not null
+        
     --outpatient
     union
     select
     --top 100
-    rtrim(a.id_mcare) as id_mcare,
-    rtrim(a.claim_header_id) as claim_header_id,
-    a.claim_line_id,
-    b.first_service_date,
-    b.last_service_date,
-    a.revenue_code,
+    trim(a.bene_id) as id_mcare,
+    trim(a.clm_id) as claim_header_id,
+    trim(a.clm_line_num) as claim_line_id,
+    cast(b.clm_from_dt as date) as first_service_date,
+    cast(b.clm_thru_dt as date) as last_service_date,
+    a.rev_cntr as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'outpatient' as filetype_mcare,
     getdate() as last_run
-    from PHClaims.stage.mcare_outpatient_revenue_center as a
-    left join PHClaims.stage.mcare_outpatient_base_claims as b
-    on a.claim_header_id = b.claim_header_id
-    left join PHClaims.final.mcare_elig_demo as c
-    on a.id_mcare = c.id_mcare
-    --exclude denined claims using carrier/dme claim method
-    where (b.denial_code_facility = '' or b.denial_code_facility is null)
-    --exclude claims among people who have eligibility data
-    and c.id_mcare is not null
+    from stg_claims.mcare_outpatient_revenue_center as a
+    left join stg_claims.mcare_outpatient_base_claims as b
+    on a.clm_id = b.clm_id
+    left join stg_claims.mcare_bene_enrollment as c
+    on a.bene_id = c.bene_id
+    --exclude denined claims using facility claim method
+    where (b.clm_mdcr_non_pmt_rsn_cd = '' or b.clm_mdcr_non_pmt_rsn_cd is null)
+    --exclude claims among people who have no eligibility data
+    and c.bene_id is not null
     
+    --outpatient data structure j
+    union
+    select
+    --top 100
+    trim(a.bene_id) as id_mcare,
+    trim(a.clm_id) as claim_header_id,
+    trim(a.clm_line_num) as claim_line_id,
+    cast(b.clm_from_dt as date) as first_service_date,
+    cast(b.clm_thru_dt as date) as last_service_date,
+    a.rev_cntr as revenue_code,
+    place_of_service_code = null,
+    type_of_service = null,
+    'outpatient' as filetype_mcare,
+    getdate() as last_run
+    from stg_claims.mcare_outpatient_revenue_center_j as a
+    left join stg_claims.mcare_outpatient_base_claims_j as b
+    on a.clm_id = b.clm_id
+    left join stg_claims.mcare_bene_enrollment as c
+    on a.bene_id = c.bene_id
+    --exclude denined claims using facility claim method
+    where (b.clm_mdcr_non_pmt_rsn_cd = '' or b.clm_mdcr_non_pmt_rsn_cd is null)
+    --exclude claims among people who have no eligibility data
+    and c.bene_id is not null
+        
     --snf
     union
     select
     --top 100
-    rtrim(a.id_mcare) as id_mcare,
-    rtrim(a.claim_header_id) as claim_header_id,
-    a.claim_line_id,
-    b.first_service_date,
-    b.last_service_date,
-    a.revenue_code,
+    trim(a.bene_id) as id_mcare,
+    trim(a.clm_id) as claim_header_id,
+    trim(a.clm_line_num) as claim_line_id,
+    cast(b.clm_from_dt as date) as first_service_date,
+    cast(b.clm_thru_dt as date) as last_service_date,
+    a.rev_cntr as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'snf' as filetype_mcare,
     getdate() as last_run
-    from PHClaims.stage.mcare_snf_revenue_center as a
-    left join PHClaims.stage.mcare_snf_base_claims as b
-    on a.claim_header_id = b.claim_header_id
-    left join PHClaims.final.mcare_elig_demo as c
-    on a.id_mcare = c.id_mcare
-    --exclude denined claims using carrier/dme claim method
-    where (b.denial_code_facility = '' or b.denial_code_facility is null)
-    --exclude claims among people who have eligibility data
-    and c.id_mcare is not null;",
-        .con = db_claims))
+    from stg_claims.mcare_snf_revenue_center as a
+    left join stg_claims.mcare_snf_base_claims as b
+    on a.clm_id = b.clm_id
+    left join stg_claims.mcare_bene_enrollment as c
+    on a.bene_id = c.bene_id
+    --exclude denined claims using facility claim method
+    where (b.clm_mdcr_non_pmt_rsn_cd = '' or b.clm_mdcr_non_pmt_rsn_cd is null)
+    --exclude claims among people who have no eligibility data
+    and c.bene_id is not null;",
+        .con = dw_inthealth))
     }
 
 #### Table-level QA script ####
 qa_stage.mcare_claim_line_qa_f <- function() {
   
-  #confirm that claim line counts match for a specific revenue code
-  res1 <- dbGetQuery(conn = db_claims, glue_sql(
-  "select 'stage.mcare_claim_line' as 'table', 'row count revenue code, expect match with outpatient table' as qa_type,
-  count(*) as qa
-  from stage.mcare_claim_line
-  where filetype_mcare = 'outpatient' and revenue_code = '0450';",
-  .con = db_claims))
+  #confirm that claim types with expected revenue codes have data for each year
+  res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "select 'rows with non-null revenue code' as qa_type,
+  filetype_mcare, year(last_service_date) as service_year, count(*) as row_count
+  from stg_claims.stage_mcare_claim_line
+  where revenue_code is not null
+  group by filetype_mcare, year(last_service_date)
+  order by filetype_mcare, year(last_service_date);",
+  .con = dw_inthealth))
   
-  res2 <- dbGetQuery(conn = db_claims, glue_sql(
-  "select 'stage.mcare_outpatient_revenue_center' as 'table', 'row count revenue code, expect match with claim_line table' as qa_type,
-  count(*) as qa
-  from (
-    select distinct a.id_mcare, a.claim_header_id, a.claim_line_id, b.first_service_date,
-    b.last_service_date, a.revenue_code
-    from stage.mcare_outpatient_revenue_center as a
-    left join stage.mcare_outpatient_base_claims as b
-    on a.claim_header_id = b.claim_header_id
-    left join PHClaims.final.mcare_elig_demo as c
-    on a.id_mcare = c.id_mcare
-    --exclude denined claims using carrier/dme claim method
-    where (b.denial_code_facility = '' or b.denial_code_facility is null)
-    --exclude claims among people who have eligibility data
-    and c.id_mcare is not null
-    --specific revenue code
-    and a.revenue_code = '0450'
-  ) as x;",
-  .con = db_claims))
-  
-  #confirm that claim line counts match for a specific place of service code
-  res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.mcare_claim_line' as 'table', 'row count, expect match with carrier table' as qa_type,
-    count(*) as qa
-    from stage.mcare_claim_line
-    where filetype_mcare = 'carrier' and place_of_service_code = '81';",
-    .con = db_claims))
-  
-  res4 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'stage.mcare_bcarrier_line' as 'table', 'row count, expect match with claim_line table' as qa_type,
-    count(*) as qa
-    from (
-    	select distinct a.id_mcare, a.claim_header_id, a.claim_line_id, b.first_service_date,
-    	b.last_service_date, a.place_of_service_code, a.type_of_service
-    	from stage.mcare_bcarrier_line as a
-    	left join stage.mcare_bcarrier_claims as b
-    	on a.claim_header_id = b.claim_header_id
-    	left join PHClaims.final.mcare_elig_demo as c
-    	on a.id_mcare = c.id_mcare
-    	--exclude denined claims using carrier/dme claim method
-    	where b.denial_code in ('1','2','3','4','5','6','7','8','9')
-    	--exclude claims among people who have eligibility data
-    	and c.id_mcare is not null
-    	--specific place of service code
-    	and a.place_of_service_code = '81'
-    ) as x;",
-    .con = db_claims))
+  #confirm that claim types with expected revenue codes have data for each year
+  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "select 'rows with non-null place of service and type of service code' as qa_type,
+  filetype_mcare, year(last_service_date) as service_year, count(*) as row_count
+  from stg_claims.stage_mcare_claim_line
+  where place_of_service_code is not null and type_of_service is not null
+  group by filetype_mcare, year(last_service_date)
+  order by filetype_mcare, year(last_service_date);",
+  .con = dw_inthealth))
 
-  #make sure everyone is in elig_demo
-  res5 <- dbGetQuery(conn = db_claims, glue_sql(
-  "select 'stage.mcare_claim_line' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+  #make sure everyone is in bene_enrollment table
+  res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "select 'stg_claims.stage_mcare_claim_line' as 'table', '# members not in bene_enrollment, expect 0' as qa_type,
     count(a.id_mcare) as qa
-    from stage.mcare_claim_line as a
-    left join final.mcare_elig_demo as b
-    on a.id_mcare = b.id_mcare
-    where b.id_mcare is null;",
-  .con = db_claims))
-  
-  #make sure everyone is in elig_timevar
-  res6 <- dbGetQuery(conn = db_claims, glue_sql(
-  "select 'stage.mcare_claim_line' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
-    count(a.id_mcare) as qa
-    from stage.mcare_claim_line as a
-    left join final.mcare_elig_timevar as b
-    on a.id_mcare = b.id_mcare
-    where b.id_mcare is null;",
-  .con = db_claims))
+    from stg_claims.stage_mcare_claim_line as a
+    left join stg_claims.mcare_bene_enrollment as b
+    on a.id_mcare = b.bene_id
+    where b.bene_id is null;",
+  .con = dw_inthealth))
 
 res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }
