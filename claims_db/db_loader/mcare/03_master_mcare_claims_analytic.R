@@ -116,7 +116,7 @@ create_table_f(conn = dw_inthealth,
 ### C) Load tables
 system.time(load_stage.mcare_claim_icdcm_header_f())
 
-### D) Table-level QA (X min)
+### D) Table-level QA
 system.time(mcare_claim_icdcm_header_qa <- qa_stage.mcare_claim_icdcm_header_qa_f())
 rm(config_url)
 
@@ -184,7 +184,6 @@ DBI::dbExecute(conn = dw_inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_icdcm_header TO final_mcare_claim_icdcm_header;",
                               .con = dw_inthealth))
 
-#### CONTINUE HERE ####
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 3: mcare_claim_procedure ####
@@ -195,24 +194,82 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_procedure.yaml"
 
 ### B) Create table
-create_table_f(conn = db_claims, 
+create_table_f(conn = dw_inthealth, 
                config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+               overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
 system.time(load_stage.mcare_claim_procedure_f())
 
-### D) Table-level QA (14 min)
+### D) Table-level QA
 system.time(mcare_claim_procedure_qa <- qa_stage.mcare_claim_procedure_qa_f())
 rm(config_url)
 
-### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcare_claim_procedure")
+##Process QA results
 
-### G) Alter schema on new table
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcare_claim_procedure")
+#HCPCS code check by filetype and year
+qa_procedure_1 <- NULL
+for (i in c("hha", "hospice", "inpatient", "outpatient", "snf", "carrier", "dme")) {
+  x <- filter(mcare_claim_procedure_qa, str_detect(qa_type, "hcpcs") & filetype_mcare == i) %>%
+    nrow()
+  if(i == "dme") {
+    y <- years_expected_dme == x
+  } else
+    y <- years_expected == x
+  qa_procedure_1 <- c(qa_procedure_1,y)
+}
+qa_procedure_1 <- all(qa_procedure_1)
+rm(i,x,y)
 
+#BETOS code check by filetype and year
+qa_procedure_2 <- NULL
+for (i in c("carrier", "dme")) {
+  x <- filter(mcare_claim_procedure_qa, str_detect(qa_type, "betos") & filetype_mcare == i) %>%
+    nrow()
+  if(i == "dme") {
+    y <- years_expected_dme == x
+  } else
+    y <- years_expected == x
+  qa_procedure_2 <- c(qa_procedure_2,y)
+}
+qa_procedure_2 <- all(qa_procedure_2)
+rm(i,x,y)
 
+#ICD procedure code #1 check by filetype and year
+qa_procedure_3 <- NULL
+for (i in c("inpatient")) {
+  x <- filter(mcare_claim_procedure_qa, str_detect(qa_type, "ICD procedure") & filetype_mcare == i) %>%
+    nrow()
+  if(i == "dme") {
+    y <- years_expected_dme == x
+  } else
+    y <- years_expected == x
+  qa_procedure_3 <- c(qa_procedure_3,y)
+}
+qa_procedure_3 <- all(qa_procedure_3)
+rm(i,x,y)
+
+#All members included in bene_enrollment table
+qa_procedure_4 <- mcare_claim_procedure_qa$qa[mcare_claim_procedure_qa$qa_type=="# members not in bene_enrollment, expect 0"]
+
+#Final QA check
+if(qa_procedure_1 == TRUE & qa_procedure_2 == TRUE & qa_procedure_3 == TRUE & qa_procedure_4 == 0L) {
+  message("mcare_claim_procedure QA result: PASS")
+} else {
+  stop("mcare_claim_procedure QA result: FAIL")
+}
+
+### E) Archive current stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_procedure TO archive_mcare_claim_procedure;",
+                              .con = dw_inthealth))
+
+### F) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_procedure TO final_mcare_claim_procedure;",
+                              .con = dw_inthealth))
+
+#### CONTINUE HERE ####
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 4: mcare_claim_provider ####
