@@ -269,7 +269,6 @@ DBI::dbExecute(conn = dw_inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_procedure TO final_mcare_claim_procedure;",
                               .con = dw_inthealth))
 
-#### CONTINUE HERE ####
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 4: mcare_claim_provider ####
@@ -280,35 +279,29 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_provider.yaml"
 
 ### B) Create table
-create_table_f(conn = db_claims, 
+create_table_f(conn = dw_inthealth, 
                config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+               overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
 system.time(load_stage.mcare_claim_provider_f())
 
-### D) Table-level QA (15 min)
+### D) Table-level QA
 system.time(mcare_claim_provider_qa <- qa_stage.mcare_claim_provider_qa_f())
 rm(config_url)
 
-### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcare_claim_provider")
+##Process QA results
 
-### G) Alter schema on new table
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcare_claim_provider")
+##placeholder for renaming code
+# Next step - rerun just QA script and write code to process results,
+# Will need new variables for expected year counts
 
 
-## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### INDEX ALL TABLES PRIOR TO CREATING CLAIM_HEADER TABLE ####
-## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_claim_line on final.mcare_claim_line")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_claim_icdcm_header on final.mcare_claim_icdcm_header")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_claim_procedure on final.mcare_claim_procedure")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_claim_provider on final.mcare_claim_provider")))
+#### PLACEHOLDER FOR PHARM TABLE - NEW TABLE ####
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 4: mcare_claim_header ####
+#### Table 6: mcare_claim_header ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -334,9 +327,3 @@ alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", t
 
 ### G) Alter schema on new table
 alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcare_claim_header")
-
-
-## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### INDEX CLAIM_HEADER TABLE ####
-## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_stage_mcare_claim_header on final.mcare_claim_header")))
