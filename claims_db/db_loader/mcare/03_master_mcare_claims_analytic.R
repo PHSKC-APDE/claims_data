@@ -22,6 +22,10 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/c
 years_expected <- 8 #number of years of data we expect (2014+)
 years_expected_dme <- 7 #number of years of data we expect for DME files (2015+)
 
+years_expected_provider_from2014 <- 8 #number of years of data we expect (2014+)
+years_expected_provider_from2015 <- 7 #number of years of data we expect (2015+)
+years_expected_provider_from2017 <- 5 #number of years of data we expect (2017+)
+
 #Connect to inthealth_edw
 dw_inthealth <- create_db_connection("inthealth", interactive = FALSE, prod = TRUE)
 
@@ -83,7 +87,7 @@ rm(i,x,y)
 qa_line_3 <- mcare_claim_line_qa$qa[mcare_claim_line_qa$qa_type=="# members not in bene_enrollment, expect 0"]
 
 #Final QA check
-if(qa_line_1 == TRUE & qa_line_2 == TRUE & qa_line_3 == 0L) {
+if(all(c(qa_line_1:qa_line_2)) == TRUE & qa_line_3 == 0L) {
   message("mcare_claim_line QA result: PASS")
 } else {
   stop("mcare_claim_line QA result: FAIL")
@@ -168,7 +172,7 @@ rm(i,x,y)
 qa_icdcm_4 <- mcare_claim_icdcm_header_qa$qa[mcare_claim_icdcm_header_qa$qa_type=="# members not in bene_enrollment, expect 0"]
 
 #Final QA check
-if(qa_icdcm_1 == TRUE & qa_icdcm_2 == TRUE & qa_icdcm_3 == TRUE & qa_icdcm_4 == 0L) {
+if(all(c(qa_icdcm_1:qa_icdcm_3)) == TRUE & qa_icdcm_4 == 0L) {
   message("mcare_claim_icdcm_header QA result: PASS")
 } else {
   stop("mcare_claim_icdcm_header QA result: FAIL")
@@ -253,7 +257,7 @@ rm(i,x,y)
 qa_procedure_4 <- mcare_claim_procedure_qa$qa[mcare_claim_procedure_qa$qa_type=="# members not in bene_enrollment, expect 0"]
 
 #Final QA check
-if(qa_procedure_1 == TRUE & qa_procedure_2 == TRUE & qa_procedure_3 == TRUE & qa_procedure_4 == 0L) {
+if(all(c(qa_procedure_1:qa_procedure_3)) == TRUE & qa_procedure_4 == 0L) {
   message("mcare_claim_procedure QA result: PASS")
 } else {
   stop("mcare_claim_procedure QA result: FAIL")
@@ -292,9 +296,122 @@ rm(config_url)
 
 ##Process QA results
 
-##placeholder for renaming code
-# Next step - rerun just QA script and write code to process results,
-# Will need new variables for expected year counts
+#Attending provider check by filetype and year
+qa_provider_1 <- NULL
+for (i in c("hha", "hospice", "inpatient", "outpatient", "snf")) {
+  x <- filter(mcare_claim_provider_qa, str_detect(qa_type, "provider type") & provider_type == "attending" &
+                filetype_mcare == i) %>% nrow()
+    y <- years_expected_provider_from2014 == x
+    qa_provider_1 <- c(qa_provider_1,y)
+}
+qa_provider_1 <- all(qa_provider_1)
+rm(i,x,y)
+
+#Billing provider check by filetype and year
+qa_provider_2 <- NULL
+for (i in c("hha", "hospice", "inpatient", "outpatient", "snf", "carrier", "dme")) {
+  x <- filter(mcare_claim_provider_qa, str_detect(qa_type, "provider type") & provider_type == "billing" &
+                filetype_mcare == i) %>% nrow()
+  if(i %in% c("carrier", "dme")) {
+    y <- years_expected_provider_from2015 == x
+  } else {
+    y <- years_expected_provider_from2014 == x
+  }
+  qa_provider_2 <- c(qa_provider_2,y)
+}
+qa_provider_2 <- all(qa_provider_2)
+rm(i,x,y)
+
+#Operating provider check by filetype and year
+qa_provider_3 <- NULL
+for (i in c("inpatient", "outpatient")) {
+  x <- filter(mcare_claim_provider_qa, str_detect(qa_type, "provider type") & provider_type == "operating" &
+                filetype_mcare == i) %>% nrow()
+  y <- years_expected_provider_from2014 == x
+  qa_provider_3 <- c(qa_provider_3,y)
+}
+qa_provider_3 <- all(qa_provider_3)
+rm(i,x,y)
+
+
+#Other provider check by filetype and year
+qa_provider_4 <- NULL
+for (i in c("inpatient", "outpatient")) {
+  x <- filter(mcare_claim_provider_qa, str_detect(qa_type, "provider type") & provider_type == "other" &
+                filetype_mcare == i) %>% nrow()
+  y <- years_expected_provider_from2014 == x
+  qa_provider_4 <- c(qa_provider_4,y)
+}
+qa_provider_4 <- all(qa_provider_4)
+rm(i,x,y)
+
+#Referring provider check by filetype and year
+qa_provider_5 <- NULL
+for (i in c("hha", "hospice", "outpatient", "carrier", "dme")) {
+  x <- filter(mcare_claim_provider_qa, str_detect(qa_type, "provider type") & provider_type == "referring" &
+                filetype_mcare == i) %>% nrow()
+  if(i %in% c("outpatient", "dme")) {
+    y <- years_expected_provider_from2015 == x
+  } else {
+    y <- years_expected_provider_from2014 == x
+  }
+  qa_provider_5 <- c(qa_provider_5,y)
+}
+qa_provider_5 <- all(qa_provider_5)
+rm(i,x,y)
+
+#Rendering provider check by filetype and year
+qa_provider_6 <- NULL
+for (i in c("snf", "inpatient", "outpatient", "carrier")) {
+  x <- filter(mcare_claim_provider_qa, str_detect(qa_type, "provider type") & provider_type == "rendering" &
+                filetype_mcare == i) %>% nrow()
+  if(i %in% c("inpatient")) {
+    y <- years_expected_provider_from2015 == x
+  } else {
+    y <- years_expected_provider_from2014 == x
+  }
+  qa_provider_6 <- c(qa_provider_6,y)
+}
+qa_provider_6 <- all(qa_provider_6)
+rm(i,x,y)
+
+#Site of service provider check by filetype and year
+qa_provider_7 <- NULL
+for (i in c("hha", "hospice", "outpatient", "carrier")) {
+  x <- filter(mcare_claim_provider_qa, str_detect(qa_type, "provider type") & provider_type == "site_of_service" &
+                filetype_mcare == i) %>% nrow()
+  if(i %in% c("outpatient")) {
+    y <- years_expected_provider_from2015 == x
+  } else if(i %in% c("carrier")) {
+    y <- years_expected_provider_from2017 == x
+  } else {
+    y <- years_expected_provider_from2014 == x
+  }
+  qa_provider_7 <- c(qa_provider_7,y)
+}
+qa_provider_7 <- all(qa_provider_7)
+rm(i,x,y)
+
+#All members included in bene_enrollment table
+qa_provider_8 <- mcare_claim_provider_qa$qa[mcare_claim_provider_qa$qa_type=="# members not in bene_enrollment, expect 0"]
+
+#Final QA check
+if(all(c(qa_provider_1:qa_provider_7)) == TRUE & qa_provider_8 == 0L) {
+  message("mcare_claim_provider QA result: PASS")
+} else {
+  stop("mcare_claim_provider QA result: FAIL")
+}
+
+### E) Archive current stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_provider TO archive_mcare_claim_provider;",
+                              .con = dw_inthealth))
+
+### F) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_provider TO final_mcare_claim_provider;",
+                              .con = dw_inthealth))
+
 
 
 #### PLACEHOLDER FOR PHARM TABLE - NEW TABLE ####
