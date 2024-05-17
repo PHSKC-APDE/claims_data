@@ -1,0 +1,30 @@
+schema: stg_claims
+table: stage_mcare_claim_pharm
+vars:
+    id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    claim_header_id: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    claim_line_id: varchar(255) 
+    last_service_date: date
+    prscrbr_npi: varchar(255)
+    ndc: varchar(255)
+    facility_drug_quantity: numeric(19,3)
+    facility_drug_quantity_unit: varchar(255)
+    cmpnd_cd: varchar(255)
+    qty_dspnsd_num: numeric(19,3)
+    days_suply_num: smallint
+    fill_num: smallint
+    ptnt_pay_amt: numeric(19,3)
+    othr_troop_amt: numeric(19,3)
+    lics_amt: numeric(19,3)
+    plro_amt: numeric(19,3)
+    cvrd_d_plan_pd_amt: numeric(19,3)
+    ncvrd_plan_pd_amt: numeric(19,3)
+    tot_rx_cst_amt: numeric(19,3)
+    dosage_form_code: varchar(255)
+    dosage_form_code_desc: varchar(255)
+    strength: varchar(255)
+    pharmacy_id: varchar(255)
+    brand_generic_flag: varchar(255)
+    pharmacy_type: varchar(255)
+    filetype_mcare: varchar(255)
+    last_run: datetime
