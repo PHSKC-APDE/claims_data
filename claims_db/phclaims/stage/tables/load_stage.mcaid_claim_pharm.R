@@ -58,27 +58,17 @@ load_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                              ,cast(DAYS_SUPPLY as smallint) as rx_days_supply
                              ,cast(SBMTD_DISPENSED_QUANTITY as numeric(19,3)) as rx_quantity
                              ,cast(PRSCRPTN_FILLED_DATE as date) as rx_fill_date
-                             
+                             ,DRUG_DOSAGE as rx_dosage_form
+							 ,PACKAGE_SIZE_UOM as rx_dosage_unit
                              ,cast(case when (len([PRSCRBR_ID]) = 10 and 
                                               isnumeric([PRSCRBR_ID]) = 1 and 
                                               left([PRSCRBR_ID], 1) in (1,2)) then 'NPI'
                                    when (len([PRSCRBR_ID]) = 9 and 
                                          isnumeric(substring([PRSCRBR_ID], 1, 2)) = 0 and 
                                          isnumeric(substring([PRSCRBR_ID], 3, 7)) = 1) then 'DEA'
-                                   when (len([PRSCRBR_ID]) = 6 and 
-                                         isnumeric(substring([PRSCRBR_ID], 1, 1)) = 0 and 
-                                         isnumeric(substring([PRSCRBR_ID], 2, 5)) = 1) then 'UPIN'
                                    when [PRSCRBR_ID] = '5123456787' then 'WA HCA'
-                                   when [PRSCRBR_ID] is not null then 'UNKNOWN' end as varchar(10)) as prescriber_id_format
-                             
-                             ,cast(case when (len([PRSCRBR_ID]) <> 10 or 
-                                              isnumeric([PRSCRBR_ID]) = 0 or 
-                                              left([PRSCRBR_ID], 1) not in (1,2)) then [PRSCRBR_ID] end as varchar(255)) as prescriber_id
-                             
-                             ,cast(case when (len([PRSCRBR_ID]) = 10 and 
-                                              isnumeric([PRSCRBR_ID]) = 1 and 
-                                              left([PRSCRBR_ID], 1) in (1,2)) then [PRSCRBR_ID] end as bigint) as pharmacy_npi
-                             
+                                   when [PRSCRBR_ID] is not null then 'UNKNOWN' end as varchar(10)) as prescriber_id_format                           
+                             ,PRSCRBR_ID as prescriber_id                                                        
                              ,getdate() as last_run
                              INTO {`to_schema`}.{`to_table`}
                              FROM {`from_schema`}.{`from_table`}
