@@ -1,0 +1,30 @@
+schema: stg_claims
+table: stage_mcare_claim_pharm_char
+vars:
+    pharmacy_id: varchar(255)
+    physical_location_state_code: varchar(255)
+    physical_location_open_date: date
+    physical_location_close_date: date
+    dispenser_class: varchar(255)
+    primary_dispenser_type: varchar(255)
+    primary_taxonomy_code: varchar(255)
+    secondary_dispenser_type: varchar(255)
+    secondary_taxonomy_code: varchar(255)
+    tertiary_dispenser_type: varchar(255)
+    tertiary_taxonomy_code: varchar(255)
+    relationship_id: varchar(255)
+    relationship_from_dt: date
+    relationship_thru_dt: date
+    relationship_type: varchar(255)
+    prnt_org_id: varchar(255)
+    eprscrb_srvc_ind: varchar(255)
+    eprscrb_srvc_cd: varchar(255)
+    dme_srvc_ind: varchar(255)
+    dme_srvc_cd: varchar(255)
+    walkin_clinic_ind: varchar(255)
+    walkin_clinic_cd: varchar(255)
+    immunizations_ind: varchar(255)
+    immunizations_cd: varchar(255)
+    status_340b_ind: varchar(255)
+    status_340b_cd: varchar(255)
+    last_run: datetime
