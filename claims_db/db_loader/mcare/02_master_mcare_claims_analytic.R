@@ -51,14 +51,31 @@ system.time(mcare_elig_demo_qa <- qa_stage.mcare_elig_demo_qa_f())
 rm(config_url)
 
 #Process results
+if(all(c(mcare_elig_demo_qa$qa[[1]] == 0
+         & mcare_elig_demo_qa$qa[[2]] == 0
+         & mcare_elig_demo_qa$qa[[3]] == 0
+         & mcare_elig_demo_qa$qa[[4]] == 0))) {
+  message("mcare_elig_demo QA result: PASS")
+} else {
+  stop("mcare_elig_demo QA result: FAIL")
+}
+
+### E) Archive current stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_elig_demo TO archive_mcare_elig_demo;",
+                              .con = dw_inthealth))
+
+### F) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_elig_demo TO final_mcare_elig_demo;",
+                              .con = dw_inthealth))
 
 
-#### Placeholder for elig_timevar ####
-#Renumber tables below
+#### PLACEHOLDER FOR ELIG_TIMEVAR TABLE ####
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 1: mcare_claim_line ####
+#### Table 3: mcare_claim_line ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -129,7 +146,7 @@ DBI::dbExecute(conn = dw_inthealth,
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 2: mcare_claim_icdcm_header ####
+#### Table 4: mcare_claim_icdcm_header ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -214,7 +231,7 @@ DBI::dbExecute(conn = dw_inthealth,
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 3: mcare_claim_procedure ####
+#### Table 5: mcare_claim_procedure ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -299,7 +316,7 @@ DBI::dbExecute(conn = dw_inthealth,
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 4: mcare_claim_provider ####
+#### Table 6: mcare_claim_provider ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -437,7 +454,7 @@ DBI::dbExecute(conn = dw_inthealth,
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 5: mcare_claim_pharm ####
+#### Table 7: mcare_claim_pharm ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -506,7 +523,7 @@ DBI::dbExecute(conn = dw_inthealth,
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 6: mcare_claim_pharm_char ####
+#### Table 8: mcare_claim_pharm_char ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -536,7 +553,7 @@ DBI::dbExecute(conn = dw_inthealth,
 #### continue here ####
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 6: mcare_claim_header ####
+#### Table 9: mcare_claim_header ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
