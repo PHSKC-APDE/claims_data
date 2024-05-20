@@ -276,7 +276,7 @@ qa_stage.mcare_elig_demo_qa_f <- function() {
   }
   res2 <- as.data.frame(list(
     "table" = "stg_claims.stage_mcare_elig_demo",
-    "qa_type" = "row count different from bene_enrollment table, expect 0",
+    "qa_type" = "distinct person count different from bene_enrollment table, expect 0",
     "qa" = qa2
   ))
   
