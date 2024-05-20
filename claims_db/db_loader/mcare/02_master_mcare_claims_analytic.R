@@ -1,4 +1,4 @@
-#### MASTER SCRIPT TO CREATE ANALYTIC CLAIMS TABLES FOR MCARE DATA IN INTHEALTH_EDW
+#### MASTER SCRIPT TO CREATE ANALYTIC TABLES FOR MCARE DATA IN INTHEALTH_EDW
 #
 # Loads and QAs data with stage in table name as prefix
 # Archives current final tables
@@ -28,6 +28,33 @@ dw_inthealth <- create_db_connection("inthealth", interactive = FALSE, prod = TR
 
 #Set up functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 1: mcare_elig_demo ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.yaml"
+
+### B) Create table
+create_table_f(conn = dw_inthealth, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T)
+
+### C) Load tables
+system.time(load_stage.mcare_elig_demo_f())
+
+### D) Table-level QA (1 min)
+system.time(mcare_elig_demo_qa <- qa_stage.mcare_elig_demo_qa_f())
+rm(config_url)
+
+#Process results
+
+
+#### Placeholder for elig_timevar ####
+#Renumber tables below
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##

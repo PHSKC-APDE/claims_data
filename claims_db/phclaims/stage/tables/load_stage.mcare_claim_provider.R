@@ -5,8 +5,8 @@
 #
 #2024-05-15 Eli update: Data from HCA, ETL in inthealth_edw
 
-### Run from 03_master_mcare_claims_analytic.R script
-# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/03_master_mcare_claims_analytic.R
+### Run from 02_master_mcare_claims_analytic.R script
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/02_master_mcare_claims_analytic.R
 
 #### Load script ####
 load_stage.mcare_claim_provider_f <- function() {

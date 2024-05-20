@@ -3,8 +3,8 @@
 #
 # 2024-05
 
-### Run from 03_master_mcare_claims_analytic.R script
-# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/03_master_mcare_claims_analytic.R
+### Run from 02_master_mcare_claims_analytic.R script
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/02_master_mcare_claims_analytic.R
 
 #### Load script ####
 load_stage.mcare_claim_pharm_char_f <- function() {
