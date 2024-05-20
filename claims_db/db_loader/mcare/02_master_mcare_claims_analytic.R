@@ -46,7 +46,7 @@ create_table_f(conn = dw_inthealth,
 ### C) Load tables
 system.time(load_stage.mcare_elig_demo_f())
 
-### D) Table-level QA (1 min)
+### D) Table-level QA
 system.time(mcare_elig_demo_qa <- qa_stage.mcare_elig_demo_qa_f())
 rm(config_url)
 
@@ -73,7 +73,7 @@ create_table_f(conn = dw_inthealth,
 ### C) Load tables
 system.time(load_stage.mcare_claim_line_f())
 
-### D) Table-level QA (1 min)
+### D) Table-level QA
 system.time(mcare_claim_line_qa <- qa_stage.mcare_claim_line_qa_f())
 rm(config_url)
 
