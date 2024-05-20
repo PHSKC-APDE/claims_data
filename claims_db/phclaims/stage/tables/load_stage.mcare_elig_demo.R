@@ -268,7 +268,7 @@ qa_stage.mcare_elig_demo_qa_f <- function() {
   qa2a_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select count(*) as row_count from stg_claims.stage_mcare_elig_demo;", .con = dw_inthealth))
   qa2b_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select count(*) as row_count from stg_claims.stage_mcare_bene_enrollment;", .con = dw_inthealth))
+    "select count(*) as row_count from stg_claims.mcare_bene_enrollment;", .con = dw_inthealth))
   qa2 <- qa2a_result$row_count == qa2b_result$row_count
   res2 <- as.data.frame(list(
     "table" = "stg_claims.stage_mcare_elig_demo",
