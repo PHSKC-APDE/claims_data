@@ -47,7 +47,7 @@ load_stage.mcare_elig_timevar_f <- function() {
     ),
     hmos as (
     	select
-    	top 1000
+    	--top 1000
     	bene_id,
     	bene_enrollmt_ref_yr as cal_year,
     	right(cal_mon,2) as cal_mon,
@@ -70,7 +70,7 @@ load_stage.mcare_elig_timevar_f <- function() {
     ),
     rx as (
     	select
-    	top 1000
+    	--top 1000
     	bene_id,
     	bene_enrollmt_ref_yr as cal_year,
     	right(cal_mon,2) as cal_mon,
@@ -93,7 +93,7 @@ load_stage.mcare_elig_timevar_f <- function() {
     ),
     duals as (
     	select
-    	top 1000
+    	--top 1000
     	bene_id,
     	bene_enrollmt_ref_yr as cal_year,
     	right(cal_mon,2) as cal_mon,
