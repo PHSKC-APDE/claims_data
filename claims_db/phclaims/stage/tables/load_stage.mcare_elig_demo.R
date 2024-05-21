@@ -1,10 +1,10 @@
-#### CODE TO LOAD & TABLE-LEVEL QA STAGE.MCARE_claim_pharm
+#### CODE TO LOAD & TABLE-LEVEL QA STAGE.MCARE_elig_demo
 # Eli Kern, PHSKC (APDE)
 #
 # 2024-05
 
-### Run from 03_master_mcare_claims_analytic.R script
-# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/03_master_mcare_claims_analytic.R
+### Run from 02_master_mcare_claims_analytic.R script
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/02_master_mcare_claims_analytic.R
 
 #### Load script ####
 load_stage.mcare_elig_demo_f <- function() {
