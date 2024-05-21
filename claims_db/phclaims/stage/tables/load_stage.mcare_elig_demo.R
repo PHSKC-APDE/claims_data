@@ -259,20 +259,24 @@ qa_stage.mcare_elig_demo_qa_f <- function() {
     group by id_mcare
     )
     select 'stg_claims.stage_mcare_elig_demo' as 'table',
-    'people with more than 1 row' as qa_type, count(*) as qa
+    'people with more than 1 row, expect 0' as qa_type, count(*) as qa
     from test_1
     where row_count >1;",
     .con = dw_inthealth))
   
-  #confirm row count matches with bene_enrollment table
+  #confirm distinct person count matches with bene_enrollment table
   qa2a_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select count(*) as row_count from stg_claims.stage_mcare_elig_demo;", .con = dw_inthealth))
   qa2b_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select count(*) as row_count from stg_claims.stage_mcare_bene_enrollment;", .con = dw_inthealth))
-  qa2 <- qa2a_result$row_count == qa2b_result$row_count
+    "select count(distinct bene_id) as row_count from stg_claims.mcare_bene_enrollment;", .con = dw_inthealth))
+  if(qa2a_result$row_count == qa2b_result$row_count) {
+    qa2 <- 0L
+  } else {
+    qa2 <- 1L
+  }
   res2 <- as.data.frame(list(
     "table" = "stg_claims.stage_mcare_elig_demo",
-    "qa_type" = "row count comparison with bene_enrollment table",
+    "qa_type" = "distinct person count different from bene_enrollment table, expect 0",
     "qa" = qa2
   ))
   
