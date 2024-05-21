@@ -126,7 +126,7 @@ load_stage.mcare_elig_timevar_f <- function() {
     
     
     ----------------------
-    --STEP 2: Recode and create new enrollment indicators, and create start and end date columns
+    --STEP 2a: Recode and create new enrollment indicators, and create start and end date columns
     --Medicare entitlement and buyins (Parts A+B): https://resdac.org/cms-data/variables/medicare-entitlementbuy-indicator
     --Medicare Advantage (Part C): https://www.resdac.org/articles/identifying-medicare-managed-care-beneficiaries-master-beneficiary-summary-or-denominator
     --Prescription coverage (Part D): https://resdac.org/cms-data/variables/monthly-part-d-contract-number-january
@@ -180,6 +180,21 @@ load_stage.mcare_elig_timevar_f <- function() {
     
     
     ----------------------
+    --STEP 2b: Drop months with no coverage (data)
+    ----------------------
+    if object_id(N'tempdb..#timevar_02b') is not null drop table #timevar_02b;
+    with cov_type_sum as (
+    select *,
+    part_a + part_b + part_c + part_d + state_buyin + partial_dual + full_dual as cov_type_sum
+    from #timevar_02
+    )
+    select *
+    into #timevar_02b
+    from cov_type_sum
+    where cov_type_sum > 0;
+    
+    
+    ----------------------
     --STEP 3: Identify contiguous periods
     ----------------------
     if object_id(N'tempdb..#timevar_03') is not null drop table #timevar_03;
@@ -209,7 +224,7 @@ load_stage.mcare_elig_timevar_f <- function() {
     	order by id_mcare, from_date), from_date
     ) as group_num
     into #timevar_03
-    from #timevar_02;
+    from #timevar_02b;
     
     
     ----------------------
@@ -301,6 +316,31 @@ load_stage.mcare_elig_timevar_f <- function() {
     
     
     ----------------------
+    --STEP 6b: Truncate to_date based on death_dt where relevant
+    ----------------------
+    if object_id(N'tempdb..#timevar_06b') is not null drop table #timevar_06b;
+    select
+    a.id_mcare,
+    a.geo_zip,
+    a.part_a,
+    a.part_b,
+    a.part_c,
+    a.part_d,
+    a.state_buyin,
+    a.partial_dual,
+    a.full_dual,
+    a.from_date,
+    case
+    	when a.to_date > b.death_dt then b.death_dt
+    	else a.to_date
+    end as to_date
+    into #timevar_06b
+    from #timevar_06 as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.id_mcare = b.id_mcare;
+    
+    
+    ----------------------
     --STEP 7: Calculate days of coverage
     ----------------------
     if object_id(N'tempdb..#timevar_07') is not null drop table #timevar_07;
@@ -318,7 +358,7 @@ load_stage.mcare_elig_timevar_f <- function() {
     full_dual,
     datediff(dd, from_date, to_date) + 1 as cov_time_day
     into #timevar_07
-    from #timevar_06;
+    from #timevar_06b;
     
     
     ----------------------
