@@ -71,7 +71,27 @@ DBI::dbExecute(conn = dw_inthealth,
                               .con = dw_inthealth))
 
 
-#### PLACEHOLDER FOR ELIG_TIMEVAR TABLE ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 2: mcare_elig_timevar ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
+
+### B) Create table
+create_table_f(conn = dw_inthealth, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T)
+
+### C) Load tables
+system.time(load_stage.mcare_elig_timevar_f())
+
+### D) Table-level QA
+system.time(mcare_elig_timevar_qa <- qa_stage.mcare_elig_timevar_qa_f())
+rm(config_url)
+
+#Process results
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
