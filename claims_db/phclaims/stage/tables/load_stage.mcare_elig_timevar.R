@@ -1,218 +1,357 @@
-## Header ####
-    # Author: Danny Colombara
-    # 
-    # R version: 3.5.3
-    #
-    # Purpose: Create load_stage.mcare_elig_timevar on SQL server
-    #          Will track time varying elements of Medicare enrollment data
-    # 
-    # Notes: Type the <Alt> + <o> at the same time to collapse the code and view the structure
-    #
-    #        Need at least 32 GB of RAM to run
-    #
-    #        Run time is approximately 22 minutes
+#### CODE TO LOAD & TABLE-LEVEL QA STAGE.MCARE_elig_timevar
+# Eli Kern, PHSKC (APDE)
+#
+# 2024-05
 
-## Set up environment ----
-    rm(list=ls())
-    pacman::p_load(data.table, dplyr, odbc, lubridate, glue, httr)
-    options("scipen"=10) # turn off scientific notation  
-    options(warning.length = 8170) # get lengthy warnings, needed for SQL
-    kc.zips.url <- "https://raw.githubusercontent.com/PHSKC-APDE/reference-data/main/spatial_data/zip_admin.csv"
-    yaml.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
-    qa.function.url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcare_elig_timevar.R"
-    start.time <- Sys.time()
-    
-## (1) Load SQL data ----
-    # Connect to SQL server
-      db_claims <- dbConnect(odbc(), "PHClaims51") 
+### Run from 02_master_mcare_claims_analytic.R script
+# https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/02_master_mcare_claims_analytic.R
+
+#### Load script ####
+load_stage.mcare_elig_timevar_f <- function() {
   
-    ## Death date ----
-        # Create query strings 
-        query.string <- glue::glue_sql ("SELECT id_mcare, death_dt FROM final.mcare_elig_demo")
+  ### Run SQL query
+  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
+    "---------------------
+    --Create elig_timevar table from bene_enrollment table
+    --Eli Kern, adapted from Danny Colombara script
+    --2024-05
+    ----------------------
     
-        # Pull data and save as data.table object
-        death <- setDT(DBI::dbGetQuery(db_claims, query.string))
+    ----------------------
+    --STEP 1: Pull out desired enrollment columns, minor transformations, reshape wide to long
+    ----------------------
+    if object_id(N'tempdb..#timevar_01') is not null drop table #timevar_01;
+    with buyins as (
+    	select
+    	--top 1000
+    	bene_id,
+    	bene_enrollmt_ref_yr as cal_year,
+    	right(cal_mon,2) as cal_mon,
+    	case when len(zip_cd) < 5 then null else left(zip_cd,5) end as geo_zip,
+    	buyins as buyins
+    	from stg_claims.mcare_bene_enrollment as a
+    	unpivot(buyins for cal_mon in (
+    		mdcr_entlmt_buyin_ind_01,
+    		mdcr_entlmt_buyin_ind_02,
+    		mdcr_entlmt_buyin_ind_03,
+    		mdcr_entlmt_buyin_ind_04,
+    		mdcr_entlmt_buyin_ind_05,
+    		mdcr_entlmt_buyin_ind_06,
+    		mdcr_entlmt_buyin_ind_07,
+    		mdcr_entlmt_buyin_ind_08,
+    		mdcr_entlmt_buyin_ind_09,
+    		mdcr_entlmt_buyin_ind_10,
+    		mdcr_entlmt_buyin_ind_11,
+    		mdcr_entlmt_buyin_ind_12)
+    	) as buyins
+    ),
+    hmos as (
+    	select
+    	top 1000
+    	bene_id,
+    	bene_enrollmt_ref_yr as cal_year,
+    	right(cal_mon,2) as cal_mon,
+    	hmos as hmos
+    	from stg_claims.mcare_bene_enrollment as a
+    	unpivot(hmos for cal_mon in (
+    		hmo_ind_01,
+    		hmo_ind_02,
+    		hmo_ind_03,
+    		hmo_ind_04,
+    		hmo_ind_05,
+    		hmo_ind_06,
+    		hmo_ind_07,
+    		hmo_ind_08,
+    		hmo_ind_09,
+    		hmo_ind_10,
+    		hmo_ind_11,
+    		hmo_ind_12)
+    	) as hmos
+    ),
+    rx as (
+    	select
+    	top 1000
+    	bene_id,
+    	bene_enrollmt_ref_yr as cal_year,
+    	right(cal_mon,2) as cal_mon,
+    	rx as rx
+    	from stg_claims.mcare_bene_enrollment as a
+    	unpivot(rx for cal_mon in (
+    		ptd_cntrct_id_01,
+    		ptd_cntrct_id_02,
+    		ptd_cntrct_id_03,
+    		ptd_cntrct_id_04,
+    		ptd_cntrct_id_05,
+    		ptd_cntrct_id_06,
+    		ptd_cntrct_id_07,
+    		ptd_cntrct_id_08,
+    		ptd_cntrct_id_09,
+    		ptd_cntrct_id_10,
+    		ptd_cntrct_id_11,
+    		ptd_cntrct_id_12)
+    	) as rx
+    ),
+    duals as (
+    	select
+    	top 1000
+    	bene_id,
+    	bene_enrollmt_ref_yr as cal_year,
+    	right(cal_mon,2) as cal_mon,
+    	duals as duals
+    	from stg_claims.mcare_bene_enrollment as a
+    	unpivot(duals for cal_mon in (
+    		dual_stus_cd_01,
+    		dual_stus_cd_02,
+    		dual_stus_cd_03,
+    		dual_stus_cd_04,
+    		dual_stus_cd_05,
+    		dual_stus_cd_06,
+    		dual_stus_cd_07,
+    		dual_stus_cd_08,
+    		dual_stus_cd_09,
+    		dual_stus_cd_10,
+    		dual_stus_cd_11,
+    		dual_stus_cd_12)
+    	) as duals
+    )
+    select x.*, y.hmos, z.rx, w.duals
+    into #timevar_01
+    from buyins as x
+    left join hmos as y
+    on (x.bene_id = y.bene_id) and (x.cal_year = y.cal_year) and (x.cal_mon = y.cal_mon)
+    left join rx as z
+    on (x.bene_id = z.bene_id) and (x.cal_year = z.cal_year) and (x.cal_mon = z.cal_mon)
+    left join duals as w
+    on (x.bene_id = w.bene_id) and (x.cal_year = w.cal_year) and (x.cal_mon = w.cal_mon);
+    
+    
+    ----------------------
+    --STEP 2: Recode and create new enrollment indicators, and create start and end date columns
+    --Medicare entitlement and buyins (Parts A+B): https://resdac.org/cms-data/variables/medicare-entitlementbuy-indicator
+    --Medicare Advantage (Part C): https://www.resdac.org/articles/identifying-medicare-managed-care-beneficiaries-master-beneficiary-summary-or-denominator
+    --Prescription coverage (Part D): https://resdac.org/cms-data/variables/monthly-part-d-contract-number-january
+    --Medicare-Medicaid dual eligibility: https://resdac.org/cms-data/variables/medicare-medicaid-dual-eligibility-code-january
+    ----------------------
+    if object_id(N'tempdb..#timevar_02') is not null drop table #timevar_02;
+    select
+    bene_id as id_mcare,
+    b.first_day_month as from_date,
+    b.last_day_month as to_date,
+    geo_zip,
+    --Part A coverage (inpatient)
+    case
+    	when buyins in ('1','3','A','C') then 1
+    	when buyins in ('0','2','B') then 0
+    end as part_a,
+    --Part B coverage (outpatient)
+    case
+    	when buyins in ('2','3','B','C') then 1
+    	when buyins in ('0','1','A') then 0
+    end as part_b,
+    --Part C coverage (Medicare Advantage)
+    case
+    	when hmos in ('1','2','A','B','C') then 1
+    	when hmos in ('0','4') then 0
+    end as part_c,
+    --Part D coverage (prescriptions)
+    case
+    	when rx in ('N', 'NULL', '*', '0', 'NA') or rx is null then 0
+    	when left(rx,1) in ('E', 'H', 'R', 'S', 'X') then 1
+    end as part_d,
+    --State buy-in
+    case
+    	when buyins in ('0','1','2','3') then 0
+    	when buyins in ('A','B','C') then 1
+    end as state_buyin,
+    --Partial dual
+    case
+    	when duals in ('NULL', '**', '0', '00', '2', '02', '4', '04', '8', '08', '9', '09', '99', '10', 'NA') or duals is null then 0
+    	when duals in ('1', '01', '3', '03', '5', '05', '6', '06') then 1
+    end as partial_dual,
+    --Full dual
+    case
+    	when duals in ('NULL', '**', '0', '00', '9', '09', '99', 'NA', '1', '01', '3', '03', '5', '05', '6', '06') or duals is null then 0
+    	when duals in ('2', '02', '4', '04', '8', '08', '10') then 1
+    end as full_dual
+    into #timevar_02
+    from #timevar_01 as a
+    left join (select distinct year_month, first_day_month, last_day_month from stg_claims.ref_date) as b
+    on cast(cast(a.cal_year as varchar(4)) + a.cal_mon as int) = b.year_month;
+    
+    
+    ----------------------
+    --STEP 3: Identify contiguous periods
+    ----------------------
+    if object_id(N'tempdb..#timevar_03') is not null drop table #timevar_03;
+    select distinct
+    id_mcare,
+    from_date,
+    to_date,
+    geo_zip,
+    part_a,
+    part_b,
+    part_c,
+    part_d,
+    state_buyin,
+    partial_dual,
+    full_dual,
+    datediff(day, lag(to_date) over (
+    	partition by
+    	id_mcare,
+    	geo_zip,
+    	part_a,
+    	part_b,
+    	part_c,
+    	part_d,
+    	state_buyin,
+    	partial_dual,
+    	full_dual
+    	order by id_mcare, from_date), from_date
+    ) as group_num
+    into #timevar_03
+    from #timevar_02;
+    
+    
+    ----------------------
+    --STEP 4: Assign unique identifier (row number) to first date in a contiguous series of dates
+    ----------------------
+    if object_id(N'tempdb..#timevar_04') is not null drop table #timevar_04;
+    select distinct
+    id_mcare,
+    from_date,
+    to_date,
+    geo_zip,
+    part_a,
+    part_b,
+    part_c,
+    part_d,
+    state_buyin,
+    partial_dual,
+    full_dual,
+    case
+    	when group_num > 1 or group_num is null then row_number() over (partition by id_mcare order by from_date) + 1
+    	when group_num <= 1 then null
+    end as group_num
+    into #timevar_04
+    from #timevar_03;
+    
+    
+    ----------------------
+    --STEP 5: Spread group_number to all rows with contiguous dates for each person
+    ----------------------
+    if object_id(N'tempdb..#timevar_05') is not null drop table #timevar_05;
+    select distinct
+    id_mcare,
+    from_date,
+    to_date,
+    geo_zip,
+    part_a,
+    part_b,
+    part_c,
+    part_d,
+    state_buyin,
+    partial_dual,
+    full_dual,
+    max(group_num) over (
+    	partition by
+    	id_mcare,
+    	geo_zip,
+    	part_a,
+    	part_b,
+    	part_c,
+    	part_d,
+    	state_buyin,
+    	partial_dual,
+    	full_dual
+    	order by from_date
+    ) as group_num
+    into #timevar_05
+    from #timevar_04;
+    
+    
+    ----------------------
+    --STEP 6: Find min/max dates for all contiguous periods
+    ----------------------
+    if object_id(N'tempdb..#timevar_06') is not null drop table #timevar_06;
+    select distinct
+    id_mcare,
+    geo_zip,
+    part_a,
+    part_b,
+    part_c,
+    part_d,
+    state_buyin,
+    partial_dual,
+    full_dual,
+    min(from_date) as from_date,
+    max(to_date) as to_date
+    into #timevar_06
+    from #timevar_05
+    group by
+    id_mcare,
+    geo_zip,
+    part_a,
+    part_b,
+    part_c,
+    part_d,
+    state_buyin,
+    partial_dual,
+    full_dual,
+    group_num;
+    
+    
+    ----------------------
+    --STEP 7: Calculate days of coverage
+    ----------------------
+    if object_id(N'tempdb..#timevar_07') is not null drop table #timevar_07;
+    select
+    id_mcare,
+    from_date,
+    to_date,
+    geo_zip,
+    part_a,
+    part_b,
+    part_c,
+    part_d,
+    state_buyin,
+    partial_dual,
+    full_dual,
+    datediff(dd, from_date, to_date) + 1 as cov_time_day
+    into #timevar_07
+    from #timevar_06;
+    
+    
+    ----------------------
+    --STEP 8: Flag contiguous periods (considering time only), add geo_kc flag, load to persistent table
+    ----------------------
+    insert into stg_claims.stage_mcare_elig_timevar
+    select
+    a.id_mcare,
+    a.from_date,
+    a.to_date,
+    case
+    	when datediff(day, lag(a.to_date, 1) over
+    	(partition by a.id_mcare order by a.id_mcare, a.from_date), a.from_date) = 1
+    	then 1 else 0
+    end as contiguous,
+    a.part_a,
+    a.part_b,
+    a.part_c,
+    a.part_d,
+    a.full_dual,
+    a.partial_dual,
+    a.state_buyin,
+    a.geo_zip,
+    b.geo_kc,
+    a.cov_time_day,
+    getdate() as last_run
+    from #timevar_07 as a
+    left join (select distinct geo_zip, geo_kc from stg_claims.ref_geo_kc_zip) as b
+    on a.geo_zip = b.geo_zip;",
+    .con = dw_inthealth))
+}
 
-        # Ensure that the complete number of rows were downloaded
-        sql.row.count <- as.numeric(odbc::dbGetQuery(db_claims, "SELECT COUNT (*) FROM final.mcare_elig_demo"))
-        if(sql.row.count != nrow(death))
-          stop("Mismatching row count, error reading in data")
-        
-        # only keep rows with death dates
-        death <- death[!is.na(death_dt)]
-        
-        # convert death_dt to class == date
-        death[, death_dt := ymd(death_dt)]
-        
-    ## MBSF data ----
-        # Identify variables of interest   
-          mbsf.vars <- paste(
-            c("bene_id", "bene_enrollmt_ref_yr", "zip_cd",
-              paste0("dual_stus_cd_", formatC(1:12, width = 2, flag = "0")), 
-              paste0("mdcr_entlmt_buyin_ind_", formatC(1:12, width = 2, flag = "0")), 
-              paste0("hmo_ind_", formatC(1:12, width = 2, flag = "0"))),
-            collapse = ", ")
-          
-        # Create query strings 
-          query.string <- glue_sql ("SELECT ", mbsf.vars, " FROM stage.mcare_mbsf")
-        
-        # Pull data and save as data.table object
-          dt <- setDT(DBI::dbGetQuery(db_claims, query.string))
-          
-        # Ensure that the complete number of rows were downloaded
-          sql.row.count <- as.numeric(odbc::dbGetQuery(db_claims, 
-                                                      "SELECT COUNT (*) FROM stage.mcare_mbsf"))
-          if(sql.row.count != nrow(dt))
-            stop("Mismatching row count, error reading in data")
-      
-## (2) Rename columns in MBSF ---- 
-      setnames(dt, names(dt), gsub("dual_stus_cd_", "dual_", names(dt)))    
-      setnames(dt, names(dt), gsub("mdcr_entlmt_buyin_ind_", "buyin_", names(dt)))    
-      setnames(dt, names(dt), gsub("hmo_ind_", "hmo_", names(dt)))    
-      setnames(dt, c("zip_cd", "bene_id", "bene_enrollmt_ref_yr"), c("geo_zip", "id_mcare", "data_year"))
-
-## (3) Reshape wide to long ----
-      # reshaping multiple unrelated columns simultaneously uses 'enhanced melt': https://cran.r-project.org/web/packages/data.table/vignettes/datatable-reshape.html
-      dt <- melt(dt, 
-                id.vars = c("id_mcare", "data_year", "geo_zip"), 
-                measure = list(grep("dual", names(dt), value = T), 
-                               grep("buyin", names(dt), value = T), 
-                               grep("hmo", names(dt), value = T) ), 
-                value.name = c("duals", "buyins", "hmos"), variable.name = c("month"))
-      
-## (4) Recode / create indicators ----
-      # part a
-      dt[buyins %in% c("1", "3", "A", "C"), part_a := 1]
-      dt[buyins %in% c("0", "2", "B"), part_a := 0]
-      
-      # part b
-      dt[buyins %in% c("2", "3", "B", "C"), part_b := 1]
-      dt[buyins %in% c("0", "1", "A"), part_b := 0]
-      
-      # part c
-      dt[hmos %in% c("1", "2", "A", "B", "C"), part_c := 1]
-      dt[hmos %in% c("0", "4"), part_c := 0] # https://www.resdac.org/articles/identifying-medicare-managed-care-beneficiaries-master-beneficiary-summary-or-denominator
-      
-      # buyin
-      dt[buyins %in% c("0", "1", "2", "3"), buy_in := 0]
-      dt[buyins %in% c("A", "B", "C"), buy_in := 1]
-      
-      # partial dual (can't define for 2011-2014, i.e., MBSF AB)
-      dt[!data_year %in% c(2011:2014) & ( duals %in% c(0, 2, 4, 8, 9) | is.na(duals) ), partial := 0]
-      dt[!data_year %in% c(2011:2014) & duals %in% c(1, 3, 5, 6), partial := 1]
-      dt[data_year %in% c(2011:2014), partial := NA]
-
-      # dual (defined differently for 2011-2014 & 2015+)
-      dt[data_year %in% c(2011:2014), dual := buy_in]
-      
-      dt[!data_year %in% c(2011:2014) & ( duals %in% c(0) | is.na(duals) ), dual := 0]
-      dt[!data_year %in% c(2011:2014)  & duals %in% c(1, 2, 3, 4, 5, 6, 8), dual := 1]
-     
-      # drop vars no longer needed
-      dt[, c("buyins", "hmos", "duals") := NULL] 
-
-## (5) Create start / end dates ----
-      ## Clear memory because computer is wimpy ----
-      gc() 
-      
-      ## Create from_date ----
-      dt[, from_date := ymd(paste0(data_year, "-", month, "-01"))] # from date is always first day of the month 
-
-      ## Create to_date ----
-      dt[, to_date := days_in_month(from_date)] # identify last day of month (adapts for Leap years)
-      dt[, to_date := ymd(paste0(data_year, "-", month, "-", to_date))] #
-
-      ## Merge on death date ----
-      dt <- merge(dt, death, by= "id_mcare", all.x = TRUE, all.y = FALSE)            
-      gc()
-      
-      ## Truncate data based on death_dt ----
-      dt <- dt[!(!is.na(death_dt) & from_date > death_dt)]  # drop rows when from_date is after death
-      dt[to_date > death_dt, to_date := death_dt]
-
-      ## Clean up ----
-      dt[, c("data_year", "month", "death_dt") := NULL] # drop vars no longer needed
-      dt <- dt[!(part_a == 0 & part_b == 0 & part_c == 0), ] # drop rows where not enrolled in Mcare
-      gc()
-      
-## (6) Set the key to order the data ----      
-      setkeyv(dt, c("id_mcare", "from_date"))
-      
-## (7) Collapse data if dates are contiguous and all data is the same ----
-      dt[, gr := cumsum(from_date - shift(to_date, fill=1) != 1), by = c(setdiff(names(dt), c("from_date", "to_date")))] # unique group # (gr) for each set of contiguous dates & constant data 
-      dt <- dt[, .(from_date=min(from_date), to_date=max(to_date)), by = c(setdiff(names(dt), c("from_date", "to_date")))] 
-      dt[, gr := NULL]
-      setkey(dt, id_mcare, from_date)      
-
-## (8) Identify contiguous periods ----
-        # If contiguous with the PREVIOUS row, then it is marked as contiguous. This is the same as mcaid_elig_timevar
-        dt[, prev_to_date := c(NA, to_date[-.N]), by = "id_mcare"] # much faster than shift(..."lag") ... create row with the previous 'to_date'
-        dt[, contiguous := 0]
-        dt[from_date - prev_to_date == 1, contiguous := 1]
-        
-        # simple error check
-        if(nrow(dt[prev_to_date>=from_date]) != 0)
-          stop("STOP!! 
-                The previous 'to_date' is greater than or equal to the 'from_date'. 
-                This indicates a logical error in the creation of the collapsed segments.
-                Please review the code above to identify the error.")
-        
-        dt[, prev_to_date := NULL] # drop because no longer needed
-        
-## (9) Add King County indicator & cov_time_day ----
-        kc.zips <- fread(kc.zips.url)
-        dt[, geo_kc := 0]
-        dt[geo_zip %in% unique(as.character(kc.zips$zip)), geo_kc := 1]
-        rm(kc.zips)
-        
-        dt[, cov_time_day := as.integer(to_date - from_date) + 1]
-        
-## (10) Load to SQL ----
-    # Add date stamp to data
-        dt[, last_run := Sys.time()]
-            
-    # Pull YAML from GitHub
-        table_config <- yaml::yaml.load(httr::GET(yaml.url))
-        
-    # Create table ID
-        tbl_id <- DBI::Id(schema = table_config$schema, 
-                                     table = table_config$table)  
-        
-    # Ensure columns are in same order in R & SQL
-        setcolorder(dt, names(table_config$vars))
-        
-    # Write table to SQL
-        ### Sometimes get a network error if trying to do the whole thing so split into batches
-        start <- 1L
-        max_rows <- 100000L
-        cycles <- ceiling(nrow(dt)/max_rows)
-        
-        lapply(seq(start, cycles), function(i) {
-          start_row <- ifelse(i == 1, 1L, max_rows * (i-1) + 1)
-          end_row <- min(nrow(dt), max_rows * i)
-          
-          message("Loading cycle ", i, " of ", cycles)
-          if (i == 1) {
-            dbWriteTable(db_claims, 
-                         name = tbl_id, 
-                         value = as.data.frame(dt[start_row:end_row]),
-                         overwrite = T, append = F, 
-                         field.types = unlist(table_config$vars))
-          } else {
-            dbWriteTable(db_claims, 
-                         name = tbl_id, 
-                         value = as.data.frame(dt[start_row:end_row]),
-                         overwrite = F, append = T)
-          }
-        })
-        
-        rm(table_config, tbl_id)
-        
-## (11) Run QA function ----
-        source(qa.function.url)
-
-        qa_mcare_elig_timevar_f(conn = db_claims, load_only = F)
-        
-## The end! ----
-        run.time <- Sys.time() - start.time
-        print(run.time)
+#### Table-level QA script ####
+qa_stage.mcare_elig_timevar_qa_f <- function() {
+  
+}
