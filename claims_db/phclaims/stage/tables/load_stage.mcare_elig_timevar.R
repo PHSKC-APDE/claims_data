@@ -192,7 +192,7 @@ load_stage.mcare_elig_timevar_f <- function() {
     a.id_mcare,
     a.from_date,
     case
-    	when a.from_date <= b.death_dt and a.to_date > b.death_dt then b.death_dt
+    	when b.death_dt is not null and a.from_date <= b.death_dt and a.to_date > b.death_dt then b.death_dt
     	else a.to_date
     end as to_date,
     a.geo_zip,
@@ -208,7 +208,7 @@ load_stage.mcare_elig_timevar_f <- function() {
     left join stg_claims.final_mcare_elig_demo as b
     on a.id_mcare = b.id_mcare
     where a.cov_type_sum > 0
-    	and a.from_date <= b.death_dt;
+    	and (a.from_date <= b.death_dt or b.death_dt is null);
     
     
     ----------------------
