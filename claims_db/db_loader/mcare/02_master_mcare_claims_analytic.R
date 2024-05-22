@@ -92,6 +92,30 @@ system.time(mcare_elig_timevar_qa <- qa_stage.mcare_elig_timevar_qa_f())
 rm(config_url)
 
 #Process results
+if(all(c(mcare_elig_timevar_qa$qa[[1]] == 0
+         & mcare_elig_timevar_qa$qa[[2]] == 0
+         & mcare_elig_timevar_qa$qa[[3]] == 0
+         & mcare_elig_timevar_qa$qa[[4]] == 0
+         & mcare_elig_timevar_qa$qa[[5]] == 0
+         & mcare_elig_timevar_qa$qa[[6]] == 0
+         & mcare_elig_timevar_qa$qa[[7]] == 0
+         & mcare_elig_timevar_qa$qa[[8]] == 0
+         & mcare_elig_timevar_qa$qa[[9]] == 0
+         & mcare_elig_timevar_qa$qa[[10]] == 0))) {
+  message("mcare_elig_timevar QA result: PASS")
+} else {
+  stop("mcare_elig_timevar QA result: FAIL")
+}
+
+### E) Archive current stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_elig_timevar TO archive_mcare_elig_timevar;",
+                              .con = dw_inthealth))
+
+### F) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_elig_timevar TO final_mcare_elig_timevar;",
+                              .con = dw_inthealth))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
