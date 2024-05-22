@@ -180,7 +180,7 @@ load_stage.mcare_elig_timevar_f <- function() {
     
     
     ----------------------
-    --STEP 2b: Drop months with no coverage (data)
+    --STEP 2b: Drop months with no coverage (data), drop months that occur after death_dt, truncate to_date to death_dt where relevant
     ----------------------
     if object_id(N'tempdb..#timevar_02b') is not null drop table #timevar_02b;
     with cov_type_sum as (
@@ -188,10 +188,27 @@ load_stage.mcare_elig_timevar_f <- function() {
     part_a + part_b + part_c + part_d + state_buyin + partial_dual + full_dual as cov_type_sum
     from #timevar_02
     )
-    select *
+    select
+    a.id_mcare,
+    a.from_date,
+    case
+    	when a.from_date <= b.death_dt and a.to_date > b.death_dt then b.death_dt
+    	else a.to_date
+    end as to_date,
+    a.geo_zip,
+    a.part_a,
+    a.part_b,
+    a.part_c,
+    a.part_d,
+    a.state_buyin,
+    a.partial_dual,
+    a.full_dual
     into #timevar_02b
-    from cov_type_sum
-    where cov_type_sum > 0;
+    from cov_type_sum as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.id_mcare = b.id_mcare
+    where a.cov_type_sum > 0
+    	and a.from_date <= b.death_dt;
     
     
     ----------------------
@@ -316,31 +333,6 @@ load_stage.mcare_elig_timevar_f <- function() {
     
     
     ----------------------
-    --STEP 6b: Truncate to_date based on death_dt where relevant
-    ----------------------
-    if object_id(N'tempdb..#timevar_06b') is not null drop table #timevar_06b;
-    select
-    a.id_mcare,
-    a.geo_zip,
-    a.part_a,
-    a.part_b,
-    a.part_c,
-    a.part_d,
-    a.state_buyin,
-    a.partial_dual,
-    a.full_dual,
-    a.from_date,
-    case
-    	when a.to_date > b.death_dt then b.death_dt
-    	else a.to_date
-    end as to_date
-    into #timevar_06b
-    from #timevar_06 as a
-    left join stg_claims.final_mcare_elig_demo as b
-    on a.id_mcare = b.id_mcare;
-    
-    
-    ----------------------
     --STEP 7: Calculate days of coverage
     ----------------------
     if object_id(N'tempdb..#timevar_07') is not null drop table #timevar_07;
@@ -358,7 +350,7 @@ load_stage.mcare_elig_timevar_f <- function() {
     full_dual,
     datediff(dd, from_date, to_date) + 1 as cov_time_day
     into #timevar_07
-    from #timevar_06b;
+    from #timevar_06;
     
     
     ----------------------
