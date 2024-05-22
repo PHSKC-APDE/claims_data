@@ -386,4 +386,202 @@ load_stage.mcare_elig_timevar_f <- function() {
 #### Table-level QA script ####
 qa_stage.mcare_elig_timevar_qa_f <- function() {
   
+  #Count of people with to_date after death_dt, expect 0
+  res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_mcare_elig_timevar' as 'table',
+    'people with to_date after death_dt, expect 0' as qa_type,
+    count(distinct a.id_mcare) as qa
+    from stg_claims.stage_mcare_elig_timevar as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.id_mcare = b.id_mcare
+    where a.to_date > b.death_dt;",
+    .con = dw_inthealth))
+  
+  #Count of people with to_date before from_date or from_date after to_date, expect 0
+  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_mcare_elig_timevar' as 'table',
+    'people with to_date before from_date or from_date after to_date, expect 0' as qa_type,
+    count(distinct id_mcare) as qa
+    from stg_claims.stage_mcare_elig_timevar
+    where (to_date < from_date) or (from_date > to_date);",
+    .con = dw_inthealth))
+  
+  #Part A coverage 1-month person count matches bene_enrollment table, after accounting for death date censoring
+  qa3a_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct a.bene_id) as qa
+    from stg_claims.mcare_bene_enrollment as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.bene_id = b.id_mcare
+    where a.bene_enrollmt_ref_yr = 2016 and a.mdcr_entlmt_buyin_ind_04 in ('1','3','A','C')
+    	and (b.death_dt >= '2016-04-01' or b.death_dt is null);", .con = dw_inthealth))
+  qa3b_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct id_mcare) as qa
+    from stg_claims.stage_mcare_elig_timevar
+    where from_date <= '2016-04-30' and to_date >= '2016-04-01' and part_a = 1;", .con = dw_inthealth))
+  if(qa3a_result$qa == qa3b_result$qa) {
+    qa3 <- 0L
+  } else {
+    qa3 <- 1L
+  }
+  res3 <- as.data.frame(list(
+    "table" = "stg_claims.stage_mcare_elig_timevar",
+    "qa_type" = "part A 1-mon person count different from bene_enrollment table, expect 0",
+    "qa" = qa3
+  )) 
+  
+  #Part B coverage 1-month person count matches bene_enrollment table, after accounting for death date censoring
+  qa4a_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct a.bene_id) as qa
+    from stg_claims.mcare_bene_enrollment as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.bene_id = b.id_mcare
+    where a.bene_enrollmt_ref_yr = 2018 and a.mdcr_entlmt_buyin_ind_07 in ('2','3','B','C')
+    	and (b.death_dt >= '2018-07-01' or b.death_dt is null);", .con = dw_inthealth))
+  qa4b_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct id_mcare) as qa
+    from stg_claims.stage_mcare_elig_timevar
+    where from_date <= '2018-07-31' and to_date >= '2018-07-01' and part_b = 1;", .con = dw_inthealth))
+  if(qa4a_result$qa == qa4b_result$qa) {
+    qa4 <- 0L
+  } else {
+    qa4 <- 1L
+  }
+  res4 <- as.data.frame(list(
+    "table" = "stg_claims.stage_mcare_elig_timevar",
+    "qa_type" = "part B 1-mon person count different from bene_enrollment table, expect 0",
+    "qa" = qa4
+  ))
+  
+  #Part C coverage 1-month person count matches bene_enrollment table, after accounting for death date censoring
+  qa5a_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct a.bene_id) as qa
+    from stg_claims.mcare_bene_enrollment as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.bene_id = b.id_mcare
+    where a.bene_enrollmt_ref_yr = 2020 and a.hmo_ind_01 in ('1','2','A','B','C')
+    	and (b.death_dt >= '2020-01-01' or b.death_dt is null);", .con = dw_inthealth))
+  qa5b_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct id_mcare) as qa
+    from stg_claims.stage_mcare_elig_timevar
+    where from_date <= '2020-01-31' and to_date >= '2020-01-01' and part_c = 1;", .con = dw_inthealth))
+  if(qa5a_result$qa == qa5b_result$qa) {
+    qa5 <- 0L
+  } else {
+    qa5 <- 1L
+  }
+  res5 <- as.data.frame(list(
+    "table" = "stg_claims.stage_mcare_elig_timevar",
+    "qa_type" = "part C 1-mon person count different from bene_enrollment table, expect 0",
+    "qa" = qa5
+  ))
+  
+  #Part D coverage 1-month person count matches bene_enrollment table, after accounting for death date censoring
+  qa6a_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct a.bene_id) as qa
+    from stg_claims.mcare_bene_enrollment as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.bene_id = b.id_mcare
+    where a.bene_enrollmt_ref_yr = 2014 and left(ptd_cntrct_id_11,1) in ('E', 'H', 'R', 'S', 'X')
+    	and (b.death_dt >= '2014-11-01' or b.death_dt is null);", .con = dw_inthealth))
+  qa6b_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct id_mcare) as qa
+    from stg_claims.stage_mcare_elig_timevar
+    where from_date <= '2014-11-30' and to_date >= '2014-11-01' and part_d = 1;", .con = dw_inthealth))
+  if(qa6a_result$qa == qa6b_result$qa) {
+    qa6 <- 0L
+  } else {
+    qa6 <- 1L
+  }
+  res6 <- as.data.frame(list(
+    "table" = "stg_claims.stage_mcare_elig_timevar",
+    "qa_type" = "part D 1-mon person count different from bene_enrollment table, expect 0",
+    "qa" = qa6
+  ))
+  
+  #Partial dual coverage 1-month person count matches bene_enrollment table, after accounting for death date censoring
+  qa7a_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct a.bene_id) as qa
+    from stg_claims.mcare_bene_enrollment as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.bene_id = b.id_mcare
+    where a.bene_enrollmt_ref_yr = 2021 and a.dual_stus_cd_03 in ('1', '01', '3', '03', '5', '05', '6', '06')
+    	and (b.death_dt >= '2021-03-01' or b.death_dt is null);", .con = dw_inthealth))
+  qa7b_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct id_mcare) as qa
+    from stg_claims.stage_mcare_elig_timevar
+    where from_date <= '2021-03-31' and to_date >= '2021-03-01' and partial_dual = 1;", .con = dw_inthealth))
+  if(qa7a_result$qa == qa7b_result$qa) {
+    qa7 <- 0L
+  } else {
+    qa7 <- 1L
+  }
+  res7 <- as.data.frame(list(
+    "table" = "stg_claims.stage_mcare_elig_timevar",
+    "qa_type" = "partial dual 1-mon person count different from bene_enrollment table, expect 0",
+    "qa" = qa7
+  ))
+  
+  #Full dual coverage 1-month person count matches bene_enrollment table, after accounting for death date censoring
+  qa8a_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct a.bene_id) as qa
+    from stg_claims.mcare_bene_enrollment as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.bene_id = b.id_mcare
+    where a.bene_enrollmt_ref_yr = 2021 and a.dual_stus_cd_03 in ('2', '02', '4', '04', '8', '08', '10')
+    	and (b.death_dt >= '2021-03-01' or b.death_dt is null);", .con = dw_inthealth))
+  qa8b_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct id_mcare) as qa
+    from stg_claims.stage_mcare_elig_timevar
+    where from_date <= '2021-03-31' and to_date >= '2021-03-01' and full_dual = 1;", .con = dw_inthealth))
+  if(qa8a_result$qa == qa8b_result$qa) {
+    qa8 <- 0L
+  } else {
+    qa8 <- 1L
+  }
+  res8 <- as.data.frame(list(
+    "table" = "stg_claims.stage_mcare_elig_timevar",
+    "qa_type" = "full dual 1-mon person count different from bene_enrollment table, expect 0",
+    "qa" = qa8
+  ))
+  
+  #State buy-in coverage 1-month person count matches bene_enrollment table, after accounting for death date censoring
+  qa9a_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct a.bene_id) as qa
+    from stg_claims.mcare_bene_enrollment as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.bene_id = b.id_mcare
+    where a.bene_enrollmt_ref_yr = 2021 and a.mdcr_entlmt_buyin_ind_03 in ('A','B','C')
+    	and (b.death_dt >= '2021-03-01' or b.death_dt is null);", .con = dw_inthealth))
+  qa9b_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct id_mcare) as qa
+    from stg_claims.stage_mcare_elig_timevar
+    where from_date <= '2021-03-31' and to_date >= '2021-03-01' and state_buyin = 1;", .con = dw_inthealth))
+  if(qa9a_result$qa == qa9b_result$qa) {
+    qa9 <- 0L
+  } else {
+    qa9 <- 1L
+  }
+  res9 <- as.data.frame(list(
+    "table" = "stg_claims.stage_mcare_elig_timevar",
+    "qa_type" = "state buy-in 1-mon person count different from bene_enrollment table, expect 0",
+    "qa" = qa9
+  ))
+  
+  #Count of distinct people matches bene_enrollment table
+  qa10a_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct id_mcare) as qa from stg_claims.stage_mcare_elig_timevar;", .con = dw_inthealth))
+  qa10b_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select count(distinct bene_id) as qa from stg_claims.mcare_bene_enrollment;", .con = dw_inthealth))
+  if(qa10a_result$qa == qa10b_result$qa) {
+    qa10 <- 0L
+  } else {
+    qa10 <- 1L
+  }
+  res10 <- as.data.frame(list(
+    "table" = "stg_claims.stage_mcare_elig_timevar",
+    "qa_type" = "distinct person count difference from bene_enrollment table, expect 0",
+    "qa" = qa10
+  ))
+
+res_final <- mget(ls(pattern="^res")) %>% bind_rows()  
 }
