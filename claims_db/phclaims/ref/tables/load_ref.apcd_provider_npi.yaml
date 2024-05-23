@@ -1,4 +1,4 @@
-to_schema: claims
+to_schema: stg_claims
 to_table: ref_apcd_provider_npi
 vars:
     provider_id_apcd: bigint

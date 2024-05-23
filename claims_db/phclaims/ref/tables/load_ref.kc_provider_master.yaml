@@ -1,4 +1,4 @@
-to_schema: claims
+to_schema: stg_claims
 to_table: ref_kc_provider_master
 vars:
     npi: bigint

@@ -1,4 +1,4 @@
-to_schema: claims
+to_schema: stg_claims
 to_table: stage_apcd_elig_plr_2022
 vars:
     id_apcd: bigint
