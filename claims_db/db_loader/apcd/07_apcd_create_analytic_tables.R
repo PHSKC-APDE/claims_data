@@ -59,8 +59,6 @@ if((apcd_demo_qa1$qa[[1]] == apcd_demo_qa1$qa[[2]]) & (apcd_demo_qa1$qa[[1]] == 
   stop("apcd_elig_demo QA result: FAIL")
 }
 
-#### CONTINUE HERE! ####
-
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 2: apcd_elig_timevar ####
@@ -70,7 +68,7 @@ if((apcd_demo_qa1$qa[[1]] == apcd_demo_qa1$qa[[2]]) & (apcd_demo_qa1$qa[[1]] == 
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_timevar.R")
 
 ### B) Create table
-create_table(conn = db_claims, 
+create_table(conn = dw_inthealth, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_timevar.yaml",
                overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
@@ -82,10 +80,10 @@ system.time(apcd_timevar_qa1 <- qa_stage.apcd_elig_timevar_f())
 
 if(
   (apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, expect match to raw tables"]==
-    apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, expect match to timevar" & apcd_timevar_qa1$table=="claims.stage_apcd_member_month_detail_cci"])
+    apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, expect match to timevar" & apcd_timevar_qa1$table=="stg_claims.apcd_member_month_detail"])
   
   & (apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, expect match to raw tables"]==
-    apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, expect match to timevar" & apcd_timevar_qa1$table=="claims.final_apcd_elig_demo"])
+    apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, expect match to timevar" & apcd_timevar_qa1$table=="stg_claims.stage_apcd_elig_demo"])
   
   & (apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, King 2016, expect match to member_month"]==
      apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, King 2016, expect match to timevar"])
@@ -100,16 +98,6 @@ if(
 } else {
   stop("apcd_elig_timevar QA result: FAIL")
 }
-
-### E) Alter name on new table
-DBI::dbExecute(conn = db_claims,
-               glue::glue_sql("execute sp_rename 'claims.stage_apcd_elig_timevar', 'final_apcd_elig_timevar';",
-                              .con = db_claims))
-
-### F) Create clustered columnstore index
-system.time(DBI::dbExecute(conn = db_claims,
-                           glue::glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_timevar on claims.final_apcd_elig_timevar;",
-                                          .con = db_claims)))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -210,30 +198,6 @@ if(all(elig_plr_qa_composite_result$qa_result) == TRUE) {
 } else {
   stop("apcd_elig_plr QA result: FAIL")
 }
-
-### E) Alter name on new table
-DBI::dbExecute(conn = db_claims, glue::glue_sql("execute sp_rename 'claims.stage_apcd_elig_plr_2014', 'final_apcd_elig_plr_2014';", .con = db_claims))
-DBI::dbExecute(conn = db_claims, glue::glue_sql("execute sp_rename 'claims.stage_apcd_elig_plr_2015', 'final_apcd_elig_plr_2015';", .con = db_claims))
-DBI::dbExecute(conn = db_claims, glue::glue_sql("execute sp_rename 'claims.stage_apcd_elig_plr_2016', 'final_apcd_elig_plr_2016';", .con = db_claims))
-DBI::dbExecute(conn = db_claims, glue::glue_sql("execute sp_rename 'claims.stage_apcd_elig_plr_2017', 'final_apcd_elig_plr_2017';", .con = db_claims))
-DBI::dbExecute(conn = db_claims, glue::glue_sql("execute sp_rename 'claims.stage_apcd_elig_plr_2018', 'final_apcd_elig_plr_2018';", .con = db_claims))
-DBI::dbExecute(conn = db_claims, glue::glue_sql("execute sp_rename 'claims.stage_apcd_elig_plr_2019', 'final_apcd_elig_plr_2019';", .con = db_claims))
-DBI::dbExecute(conn = db_claims, glue::glue_sql("execute sp_rename 'claims.stage_apcd_elig_plr_2020', 'final_apcd_elig_plr_2020';", .con = db_claims))
-DBI::dbExecute(conn = db_claims, glue::glue_sql("execute sp_rename 'claims.stage_apcd_elig_plr_2021', 'final_apcd_elig_plr_2021';", .con = db_claims))
-DBI::dbExecute(conn = db_claims, glue::glue_sql("execute sp_rename 'claims.stage_apcd_elig_plr_2022', 'final_apcd_elig_plr_2022';", .con = db_claims))
-##placeholder for adding the next complete calendar year table
-
-### F) Create clustered columnstore index
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on claims.final_apcd_elig_plr_2014")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on claims.final_apcd_elig_plr_2015")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on claims.final_apcd_elig_plr_2016")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on claims.final_apcd_elig_plr_2017")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on claims.final_apcd_elig_plr_2018")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on claims.final_apcd_elig_plr_2019")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on claims.final_apcd_elig_plr_2020")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on claims.final_apcd_elig_plr_2021")))
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_plr on claims.final_apcd_elig_plr_2022")))
-##placeholder for adding the next complete calendar year table
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
