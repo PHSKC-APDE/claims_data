@@ -47,7 +47,7 @@ load_stage.apcd_elig_demo_f <- function() {
       last_value(gender_code) over (partition by internal_member_id
     	order by internal_member_id, case when gender_code = 'U' or gender_code is null then null else cast(year_month as int) end
     		rows between unbounded preceding and unbounded following) as gender_recent
-    from claims.stage_apcd_member_month_detail_cci
+    from stg_claims.apcd_member_month_detail
     ) as a
     group by a.internal_member_id;
     
@@ -94,7 +94,7 @@ load_stage.apcd_elig_demo_f <- function() {
     case when race_id2 in (1,2,3,4,5) then race_id2 else 0 end as race_id2,
     case when hispanic_id in (1,2) then hispanic_id else 0 end as latino_id
     into #elig_temp1
-    from claims.stage_apcd_eligibility_cci;
+    from stg_claims.apcd_eligibility;
     
     
     ------------------
@@ -105,16 +105,16 @@ load_stage.apcd_elig_demo_f <- function() {
     select a.eligibility_id, a.internal_member_id as id_apcd, a.eligibility_end_dt,
     case when b.ethnicity_id is null then 0 else b.race_id end as race_id3
     into #elig_temp2
-    from claims.stage_apcd_eligibility_cci as a
-    left join claims.ref_apcd_ethnicity_race_map as b
+    from stg_claims.apcd_eligibility as a
+    left join stg_claims.ref_apcd_ethnicity_race_map as b
     on a.ethnicity_id1 = b.ethnicity_id;
     
     if object_id('tempdb..#elig_temp3') is not null drop table #elig_temp3;
     select a.eligibility_id, a.internal_member_id as id_apcd, a.eligibility_end_dt,
     case when b.ethnicity_id is null then 0 else b.race_id end as race_id4
     into #elig_temp3
-    from claims.stage_apcd_eligibility_cci as a
-    left join claims.ref_apcd_ethnicity_race_map as b
+    from stg_claims.apcd_eligibility as a
+    left join stg_claims.ref_apcd_ethnicity_race_map as b
     on a.ethnicity_id2 = b.ethnicity_id;
     
     
@@ -268,13 +268,13 @@ load_stage.apcd_elig_demo_f <- function() {
 qa_stage.apcd_elig_demo_f <- function() {
   
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_apcd_elig_demo' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct id_apcd) as qa from claims.stage_apcd_elig_demo",
+    "select 'stg_claims.stage_apcd_elig_demo' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct id_apcd) as qa from stg_claims.stage_apcd_elig_demo",
     .con = db_claims))
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_apcd_member_month_detail_cci' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct internal_member_id) as qa from claims.stage_apcd_member_month_detail_cci",
+    "select 'stg_claims.apcd_member_month_detail' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct internal_member_id) as qa from stg_claims.apcd_member_month_detail",
     .con = db_claims))
   res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_apcd_elig_demo' as 'table', 'count, expect to equal other qa values' as qa_type, count(id_apcd) as qa from claims.stage_apcd_elig_demo",
+    "select 'stg_claims.stage_apcd_elig_demo' as 'table', 'count, expect to equal other qa values' as qa_type, count(id_apcd) as qa from stg_claims.stage_apcd_elig_demo",
     .con = db_claims))
   res_final <- bind_rows(res1, res2, res3)
 }
