@@ -12,14 +12,14 @@
 load_stage.apcd_claim_provider_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
+  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
     "
     ------------------
     --STEP 1: Extract header-level provider variables, reshape, and insert into table shell
     -------------------
-    insert into claims.stage_apcd_claim_provider with (tablock)
+    insert into stg_claims.stage_apcd_claim_provider
     select internal_member_id as id_apcd, medical_claim_header_id as claim_header_id, first_service_dt as first_service_date, 
     last_service_dt as last_service_date, provider_id_apcd, provider_id_raw_apcd, provider_type, getdate() as last_run
-    from claims.stage_apcd_claim_provider_raw_cci;",
-    .con = db_claims))
+    from stg_claims.apcd_claim_provider_raw;",
+    .con = dw_inthealth))
 }

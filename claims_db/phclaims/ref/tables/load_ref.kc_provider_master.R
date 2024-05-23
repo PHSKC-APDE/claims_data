@@ -12,7 +12,7 @@
 load_ref.kc_provider_master_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
+  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
     "
     ------------------
     --STEP 1: Prepare provider data from provider_master table
@@ -24,7 +24,7 @@ load_ref.kc_provider_master_f <- function() {
     case when secondary_taxonomy_physical in ('-1','-2') or len(secondary_taxonomy_physical) != 10 then null else secondary_taxonomy_physical end as secondary_taxonomy, 
     1 as apcd_provider_master_flag
     into #provider_master
-    from claims.stage_apcd_provider_master_cci;
+    from stg_claims.apcd_provider_master;
     
     
     ------------------
@@ -36,7 +36,7 @@ load_ref.kc_provider_master_f <- function() {
     case when len(zip) = 5 then zip else null end as geo_zip_practice,
     case when len(primary_specialty_code) = 10 then primary_specialty_code else null end as taxonomy
     into #temp1
-    from claims.stage_apcd_provider_cci;
+    from stg_claims.apcd_provider;
     
     --choose most common entity type
     if object_id('tempdb..#entity_rank') is not null drop table #entity_rank;
@@ -129,53 +129,53 @@ load_ref.kc_provider_master_f <- function() {
     ------------------
     --STEP 3: Join provider_master and provider table rows and insert into table shell
     -------------------
-    insert into claims.ref_kc_provider_master with (tablock)
+    insert into stg_claims.ref_kc_provider_master
     select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, apcd_provider_master_flag, getdate() as last_run
     from #provider_master
     union
     select npi, entity_type, geo_zip_practice, primary_taxonomy, secondary_taxonomy, apcd_provider_master_flag, getdate() as last_run
     from #provider;",
-    .con = db_claims))
+    .con = dw_inthealth))
 }
 
 #### Table-level QA script ####
 qa_ref.kc_provider_master_f <- function() {
   
     #no NPI should have more than 1 row
-    res1 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'claims.ref_kc_provider_master' as 'table', '# of NPIs with >1 row, expect 0' as qa_type,
+    res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+      "select 'stg_claims.ref_kc_provider_master' as 'table', '# of NPIs with >1 row, expect 0' as qa_type,
       count(*) as qa
       from (
       	select npi, count(*) as row_count
-      	FROM claims.ref_kc_provider_master
+      	FROM stg_claims.ref_kc_provider_master
       	group by npi
       ) as a
       where a.row_count >1;",
-      .con = db_claims))
+      .con = dw_inthealth))
     
     #no NPI should be any length other than 10 digits
-    res2 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'claims.ref_kc_provider_master' as 'table', '# of NPIs with length != 10, expect 0' as qa_type,
+    res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+      "select 'stg_claims.ref_kc_provider_master' as 'table', '# of NPIs with length != 10, expect 0' as qa_type,
       count(*) as qa
-      from claims.ref_kc_provider_master
+      from stg_claims.ref_kc_provider_master
       where len(npi) != 10;",
-      .con = db_claims))
+      .con = dw_inthealth))
     
     #taxonomy should be 10 digits long
-    res3 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'claims.ref_kc_provider_master' as 'table', '# of taxonomies with length != 10, expect 0' as qa_type,
+    res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+      "select 'stg_claims.ref_kc_provider_master' as 'table', '# of taxonomies with length != 10, expect 0' as qa_type,
       count(*) as qa
-      from claims.ref_kc_provider_master
+      from stg_claims.ref_kc_provider_master
       where len(primary_taxonomy) != 10 or len(secondary_taxonomy) != 10;",
-      .con = db_claims))
+      .con = dw_inthealth))
     
     #ZIP codes should be 5 digits long
-    res4 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'claims.ref_kc_provider_master' as 'table', '# of ZIP codes with length != 5, expect 0' as qa_type,
+    res4 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+      "select 'stg_claims.ref_kc_provider_master' as 'table', '# of ZIP codes with length != 5, expect 0' as qa_type,
       count(*) as qa
-      from claims.ref_kc_provider_master
+      from stg_claims.ref_kc_provider_master
       where len(geo_zip_practice) != 5;",
-      .con = db_claims))
+      .con = dw_inthealth))
   
     res_final <- mget(ls(pattern="^res")) %>% bind_rows()
   

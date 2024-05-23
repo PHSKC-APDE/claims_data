@@ -13,13 +13,13 @@
 load_stage.apcd_claim_line_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
+  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
     "
     ------------------
     --STEP 1: Select (distinct) desired columns from claim line table
     --Exclude all denied/orphaned claim lines
     -------------------
-    insert into claims.stage_apcd_claim_line with (tablock)
+    insert into stg_claims.stage_apcd_claim_line
     select distinct
     a.id_apcd,
     a.claim_header_id,
@@ -42,36 +42,36 @@ load_stage.apcd_claim_line_f <- function() {
     a.admission_point_of_origin_code,
     a.admission_type,
     getdate() as last_run
-    from claims.stage_apcd_claim_line_raw_cci as a
+    from stg_claims.apcd_claim_line_raw as a
     --exclude denined/orphaned claims
-    left join claims.stage_apcd_medical_claim_header_cci as b
+    left join stg_claims.apcd_medical_claim_header as b
     on a.claim_header_id = b.medical_claim_header_id
     where b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N';",
-    .con = db_claims))
+    .con = dw_inthealth))
 }
 
 #### Table-level QA script ####
 qa_stage.apcd_claim_line_f <- function() {
   
   #make sure everyone is in elig_demo
-  res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_apcd_claim_line' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+  res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_apcd_claim_line' as 'table', '# members not in elig_demo, expect 0' as qa_type,
     count(a.id_apcd) as qa
-    from claims.stage_apcd_claim_line as a
-    left join claims.final_apcd_elig_demo as b
+    from stg_claims.stage_apcd_claim_line as a
+    left join stg_claims.stage_apcd_elig_demo as b
     on a.id_apcd = b.id_apcd
     where b.id_apcd is null;",
-    .con = db_claims))
+    .con = dw_inthealth))
   
   #make sure everyone is in elig_timevar
-  res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_apcd_claim_line' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
+  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_apcd_claim_line' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
     count(a.id_apcd) as qa
-    from claims.stage_apcd_claim_line as a
-    left join claims.final_apcd_elig_timevar as b
+    from stg_claims.stage_apcd_claim_line as a
+    left join stg_claims.stage_apcd_elig_timevar as b
     on a.id_apcd = b.id_apcd
     where b.id_apcd is null;",
-    .con = db_claims))
+    .con = dw_inthealth))
   
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()
   

@@ -12,7 +12,7 @@
 load_ref.apcd_provider_npi_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
+  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
     "
     ------------------
     --STEP 1: Prepare provider data from provider_master table
@@ -20,7 +20,7 @@ load_ref.apcd_provider_npi_f <- function() {
     if object_id('tempdb..#provider_master') is not null drop table #provider_master;
     select distinct internal_provider_id as provider_id_apcd, cast(npi as bigint) as npi, 1 as provider_master_flag
     into #provider_master
-    from claims.stage_apcd_provider_master_cci;
+    from stg_claims.apcd_provider_master;
     
     
     ------------------
@@ -32,7 +32,7 @@ load_ref.apcd_provider_npi_f <- function() {
     from (
     select internal_provider_id as provider_id_apcd,
     case when orig_npi like '[1-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' then orig_npi else null end as npi
-    from claims.stage_apcd_provider_cci
+    from stg_claims.apcd_provider
     ) as a
     where a.npi is not null;
     
@@ -76,37 +76,37 @@ load_ref.apcd_provider_npi_f <- function() {
     --Only allow rows from provider temp table where NPI is present
     --QA checks done - NPI is ten digits, no NPI has more than one row in table
     -------------------
-    insert into claims.ref_apcd_provider_npi with (tablock)
+    insert into stg_claims.ref_apcd_provider_npi
     select provider_id_apcd, npi, provider_master_flag
     from #provider_master
     union
     select provider_id_apcd, npi, provider_master_flag
     from #provider;",
-    .con = db_claims))
+    .con = dw_inthealth))
 }
 
 #### Table-level QA script ####
 qa_ref.apcd_provider_npi_f <- function() {
   
     #no provider ID should have more than one row
-    res1 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'claims.ref_apcd_provider_npi' as 'table', '# of provider IDs with >1 row, expect 0' as qa_type,
+    res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+      "select 'stg_claims.ref_apcd_provider_npi' as 'table', '# of provider IDs with >1 row, expect 0' as qa_type,
       count(*) as qa
         from (
         	select provider_id_apcd, count(*) as row_count
-        	from claims.ref_apcd_provider_npi
+        	from stg_claims.ref_apcd_provider_npi
         	group by provider_id_apcd
         ) as a
       where a.row_count >1;",
-      .con = db_claims))
+      .con = dw_inthealth))
     
     #no NPI should be any length other than 10 digits
-    res2 <- dbGetQuery(conn = db_claims, glue_sql(
-      "select 'claims.ref_apcd_provider_npi' as 'table', '# of NPIs with length != 10, expect 0' as qa_type,
+    res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+      "select 'stg_claims.ref_apcd_provider_npi' as 'table', '# of NPIs with length != 10, expect 0' as qa_type,
       count(*) as qa
-      from claims.ref_apcd_provider_npi
+      from stg_claims.ref_apcd_provider_npi
       where len(npi) != 10;",
-      .con = db_claims))
+      .con = dw_inthealth))
   
     res_final <- mget(ls(pattern="^res")) %>% bind_rows()
   
