@@ -29,31 +29,21 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_ccw.R")
 
-## Connect to HHSAW
+## Connect to Synapse
 interactive_auth <- FALSE
 prod <- TRUE
-db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 1: apcd_elig_demo ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-####
-##Before creating this table, run following QA script to check for new ethnicities to map to race categories
-#https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/phclaims/ref/tables/load_ref.apcd_ethnicity_race_map_update_check.sql
-#i.	Add any new ethnicity to race map rows to the CSV file. 
-#ii.	This CSV file is on SharePoint and thus not synced to GitHub. 
-      #a.	SHAREPOINT\King County Cross-Sector Data - General\References\APCD\apcd_ethnicity_race_mapping.csv
-#iii.	Recreate the ref.apcd_ethnicity_race_map table using the script on GitHub:
-      #a.	claims_data/claims_db/phclaims/ref/tables/load_ref.apcd_ethnicity_race_map.R
-####
-
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_demo.R")
 
 ### B) Create table
-create_table(conn = db_claims, 
+create_table(conn = dw_inthealth, 
                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_demo.yaml",
                overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
@@ -69,15 +59,7 @@ if((apcd_demo_qa1$qa[[1]] == apcd_demo_qa1$qa[[2]]) & (apcd_demo_qa1$qa[[1]] == 
   stop("apcd_elig_demo QA result: FAIL")
 }
 
-### E) Alter name on new table
-DBI::dbExecute(conn = db_claims,
-               glue::glue_sql("execute sp_rename 'claims.stage_apcd_elig_demo', 'final_apcd_elig_demo';",
-                              .con = db_claims))
-
-### F) Create clustered columnstore index
-system.time(DBI::dbExecute(conn = db_claims,
-               glue::glue_sql("create clustered columnstore index idx_ccs_final_apcd_elig_demo on claims.final_apcd_elig_demo;",
-                              .con = db_claims)))
+#### CONTINUE HERE! ####
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
