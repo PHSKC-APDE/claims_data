@@ -34,7 +34,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
   }
   
   ### Run SQL query
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
+  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
     "
     --------------------------
     --STEP 1: Calculate coverage days and gaps in date range
@@ -359,7 +359,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     from #merge1;
 
     if object_id('tempdb..#merge1') is not null drop table #merge1;",
-    .con = db_claims))
+    .con = dw_inthealth))
 }
 
 #### Table-level QA script ####
@@ -368,7 +368,7 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
   table_name <- glue::glue_sql(paste0("apcd_elig_plr_", year))
 
   #all members are distinct
-  res1 <- dbGetQuery(conn = db_claims, glue_sql(
+  res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_{`table_name`}' as 'table', '# members with >1 row, expect 0' as qa_type, count(a.id_apcd) as qa
       from (
         select id_apcd, count(id_apcd) as id_cnt
@@ -376,42 +376,42 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
         group by id_apcd
       ) as a
       where a.id_cnt > 1;",
-    .con = db_claims))
+    .con = dw_inthealth))
   
   #number of members in WA state with non-WA county
-  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_{`table_name`}' as 'table', 'non-WA county for WA resident, expect 0' as qa_type, count(id_apcd) as qa
         from stg_claims.stage_{`table_name`}
       where geo_wa = 1 and geo_county is null;",
-    .con = db_claims))
+    .con = dw_inthealth))
   
   #number of non-WA residents
-  res3 <- dbGetQuery(conn = db_claims, glue_sql(
+  res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_{`table_name`}' as 'table', 'non-WA residents, expect 0' as qa_type, count(id_apcd) as qa
         from stg_claims.stage_{`table_name`}
       where geo_wa = 0 and geo_county is not null;",
-    .con = db_claims))
+    .con = dw_inthealth))
   
   #number of overall Medicaid members
-  res4 <- dbGetQuery(conn = db_claims, glue_sql(
+  res4 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_{`table_name`}' as 'table', '# of overall Medicaid members' as qa_type, count(id_apcd) as qa
         from stg_claims.stage_{`table_name`}
       where overall_mcaid = 1;",
-    .con = db_claims))
+    .con = dw_inthealth))
   
   #number of members with medical but not pharmacy Medicaid coverage
-  res5 <- dbGetQuery(conn = db_claims, glue_sql(
+  res5 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_{`table_name`}' as 'table', '# of members with medical but not pharmacy Medicaid' as qa_type, count(id_apcd) as qa
         from stg_claims.stage_{`table_name`}
       where overall_mcaid_med = 1 and overall_mcaid_pharm = 0;",
-    .con = db_claims))
+    .con = dw_inthealth))
   
   #number of members with pharmacy but not medical Medicaid coverage
-  res6 <- dbGetQuery(conn = db_claims, glue_sql(
+  res6 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_{`table_name`}' as 'table', '# of members with pharmacy but not medical Medicaid, expect low' as qa_type, count(id_apcd) as qa
         from stg_claims.stage_{`table_name`}
       where overall_mcaid_med = 0 and overall_mcaid_pharm = 1;",
-    .con = db_claims))
+    .con = dw_inthealth))
   
   #number of members with day counts over 365 or 366
   
@@ -433,29 +433,29 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
         days <- 365}
   }
   
-  res7 <- dbGetQuery(conn = db_claims, glue_sql(
+  res7 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_{`table_name`}' as 'table', '# of members with day counts >{days}, expect 0' as qa_type, count(*) as qa
         from stg_claims.stage_{`table_name`}
       where med_total_covd > {days} or med_medicaid_covd > {days} or med_commercial_covd > {days} or
         med_medicare_covd > {days} or dual_covd > {days} or geo_ach_covd > {days} or pharm_total_covd > {days} or
         pharm_medicaid_covd > {days} or pharm_medicare_covd > {days} or pharm_commercial_covd > {days};",
-    .con = db_claims))
+    .con = dw_inthealth))
   
   #number of members with percents > 100
-  res8 <- dbGetQuery(conn = db_claims, glue_sql(
+  res8 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_{`table_name`}' as 'table', '# of members with percents >100, expect 0' as qa_type, count(*) as qa
         from stg_claims.stage_{`table_name`}
       where med_total_covper > 100 or med_medicaid_covper > 100 or med_commercial_covper > 100 or
         med_medicare_covper > 100 or dual_covper > 100 or geo_ach_covper > 100 or pharm_total_covper > 100 or
         pharm_medicaid_covper > 100 or pharm_medicare_covper > 100 or pharm_commercial_covper > 100;",
-    .con = db_claims))
+    .con = dw_inthealth))
   
   #number of overall Medicaid members who are out of state
-  res9 <- dbGetQuery(conn = db_claims, glue_sql(
+  res9 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_{`table_name`}' as 'table', '# of overall Medicaid members out of state, expect 0' as qa_type, count(id_apcd) as qa
         from stg_claims.stage_{`table_name`}
       where overall_mcaid = 1 and geo_county is null;",
-    .con = db_claims))
+    .con = dw_inthealth))
   
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }
