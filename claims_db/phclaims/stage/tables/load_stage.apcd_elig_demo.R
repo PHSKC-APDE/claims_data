@@ -10,7 +10,7 @@
 
 #### Load script ####
 load_stage.apcd_elig_demo_f <- function() {
-  odbc::dbGetQuery(db_claims, glue::glue_sql(
+  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
     "--Code to load data to stage.apcd_elig_demo table
     --A historical record of each person's non time-varying demographics (e.g. date of birth, gender, race/ethnicity)
     --Eli Kern (PHSKC-APDE)
@@ -261,20 +261,20 @@ load_stage.apcd_elig_demo_f <- function() {
     
     if object_id('tempdb..#mm_final') is not null drop table #mm_final;
     if object_id('tempdb..#elig_final') is not null drop table #elig_final;",
-    .con = db_claims))
+    .con = dw_inthealth))
 }
 
 #### Table-level QA script ####
 qa_stage.apcd_elig_demo_f <- function() {
   
-  res1 <- dbGetQuery(conn = db_claims, glue_sql(
+  res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_elig_demo' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct id_apcd) as qa from stg_claims.stage_apcd_elig_demo",
-    .con = db_claims))
-  res2 <- dbGetQuery(conn = db_claims, glue_sql(
+    .con = dw_inthealth))
+  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.apcd_member_month_detail' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct internal_member_id) as qa from stg_claims.apcd_member_month_detail",
-    .con = db_claims))
-  res3 <- dbGetQuery(conn = db_claims, glue_sql(
+    .con = dw_inthealth))
+  res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_elig_demo' as 'table', 'count, expect to equal other qa values' as qa_type, count(id_apcd) as qa from stg_claims.stage_apcd_elig_demo",
-    .con = db_claims))
+    .con = dw_inthealth))
   res_final <- bind_rows(res1, res2, res3)
 }
