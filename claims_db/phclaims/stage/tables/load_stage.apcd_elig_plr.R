@@ -172,7 +172,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
      end as dual_covd
     
     into #cov1
-    from claims.final_apcd_elig_timevar
+    from stg_claims.stage_apcd_elig_timevar
     where from_date <= {to_date} and to_date >= {from_date};
      
     
@@ -239,15 +239,15 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
         			when from_date > {from_date} and to_date < {to_date} then datediff(day, from_date, to_date) + 1
         			else null
         		end as covd
-          from claims.final_apcd_elig_timevar
+          from stg_claims.stage_apcd_elig_timevar
           where from_date <= {to_date} and to_date >= {from_date}
     			) as a
     			group by a.id, a.geo_zip
         ) as b
       ) as c
-    left join (select distinct zip_code, zip_group_desc as geo_county from claims.ref_apcd_zip_group where zip_group_type_desc = 'County') as d
+    left join (select distinct zip_code, zip_group_desc as geo_county from stg_claims.ref_apcd_zip_group where zip_group_type_desc = 'County') as d
     on c.geo_zip = d.zip_code
-    left join (select distinct zip_code, zip_group_desc as geo_ach from claims.ref_apcd_zip_group where left(zip_group_type_desc, 3) = 'Acc') as e
+    left join (select distinct zip_code, zip_group_desc as geo_ach from stg_claims.ref_apcd_zip_group where left(zip_group_type_desc, 3) = 'Acc') as e
     on c.geo_zip = e.zip_code
     where c.zipr = 1;
     
@@ -278,7 +278,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
         else null
       end as geo_ach_covd
     from (select id, geo_ach from #geo) as a
-    inner join (select id_apcd, geo_ach, from_date, to_date from claims.final_apcd_elig_timevar) as b
+    inner join (select id_apcd, geo_ach, from_date, to_date from stg_claims.stage_apcd_elig_timevar) as b
     on a.id = b.id_apcd
     where b.from_date <= {to_date} and b.to_date >= {from_date} and a.geo_ach = b.geo_ach
     ) as c
@@ -325,7 +325,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     	when floor((datediff(day, dob, {to_date}) + 1) / 365.25) >=0 then floor((datediff(day, dob, {to_date}) + 1) / 365.25)
     	when floor((datediff(day, dob, {to_date}) + 1) / 365.25) = -1 then 0
     end as age
-    from claims.final_apcd_elig_demo
+    from stg_claims.stage_apcd_elig_demo
     ) as d
     on a.id = d.id_apcd;
     
@@ -337,7 +337,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
     --------------------------
     --STEP 6: Create final coverage cohort variables and select into table shell
     --------------------------
-    insert into claims.stage_{`table_name_year`} with (tablock)
+    insert into stg_claims.stage_{`table_name_year`}
     select id_apcd, 
     
     --flags for various geographic and coverage cohorts (all coverage cohorts variables computed for WA residents only)
@@ -369,10 +369,10 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
 
   #all members are distinct
   res1 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_{`table_name`}' as 'table', '# members with >1 row, expect 0' as qa_type, count(a.id_apcd) as qa
+    "select 'stg_claims.stage_{`table_name`}' as 'table', '# members with >1 row, expect 0' as qa_type, count(a.id_apcd) as qa
       from (
         select id_apcd, count(id_apcd) as id_cnt
-        from claims.stage_{`table_name`}
+        from stg_claims.stage_{`table_name`}
         group by id_apcd
       ) as a
       where a.id_cnt > 1;",
@@ -380,36 +380,36 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
   
   #number of members in WA state with non-WA county
   res2 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_{`table_name`}' as 'table', 'non-WA county for WA resident, expect 0' as qa_type, count(id_apcd) as qa
-        from claims.stage_{`table_name`}
+    "select 'stg_claims.stage_{`table_name`}' as 'table', 'non-WA county for WA resident, expect 0' as qa_type, count(id_apcd) as qa
+        from stg_claims.stage_{`table_name`}
       where geo_wa = 1 and geo_county is null;",
     .con = db_claims))
   
   #number of non-WA residents
   res3 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_{`table_name`}' as 'table', 'non-WA residents, expect 0' as qa_type, count(id_apcd) as qa
-        from claims.stage_{`table_name`}
+    "select 'stg_claims.stage_{`table_name`}' as 'table', 'non-WA residents, expect 0' as qa_type, count(id_apcd) as qa
+        from stg_claims.stage_{`table_name`}
       where geo_wa = 0 and geo_county is not null;",
     .con = db_claims))
   
   #number of overall Medicaid members
   res4 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_{`table_name`}' as 'table', '# of overall Medicaid members' as qa_type, count(id_apcd) as qa
-        from claims.stage_{`table_name`}
+    "select 'stg_claims.stage_{`table_name`}' as 'table', '# of overall Medicaid members' as qa_type, count(id_apcd) as qa
+        from stg_claims.stage_{`table_name`}
       where overall_mcaid = 1;",
     .con = db_claims))
   
   #number of members with medical but not pharmacy Medicaid coverage
   res5 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_{`table_name`}' as 'table', '# of members with medical but not pharmacy Medicaid' as qa_type, count(id_apcd) as qa
-        from claims.stage_{`table_name`}
+    "select 'stg_claims.stage_{`table_name`}' as 'table', '# of members with medical but not pharmacy Medicaid' as qa_type, count(id_apcd) as qa
+        from stg_claims.stage_{`table_name`}
       where overall_mcaid_med = 1 and overall_mcaid_pharm = 0;",
     .con = db_claims))
   
   #number of members with pharmacy but not medical Medicaid coverage
   res6 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_{`table_name`}' as 'table', '# of members with pharmacy but not medical Medicaid, expect low' as qa_type, count(id_apcd) as qa
-        from claims.stage_{`table_name`}
+    "select 'stg_claims.stage_{`table_name`}' as 'table', '# of members with pharmacy but not medical Medicaid, expect low' as qa_type, count(id_apcd) as qa
+        from stg_claims.stage_{`table_name`}
       where overall_mcaid_med = 0 and overall_mcaid_pharm = 1;",
     .con = db_claims))
   
@@ -434,8 +434,8 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
   }
   
   res7 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_{`table_name`}' as 'table', '# of members with day counts >{days}, expect 0' as qa_type, count(*) as qa
-        from claims.stage_{`table_name`}
+    "select 'stg_claims.stage_{`table_name`}' as 'table', '# of members with day counts >{days}, expect 0' as qa_type, count(*) as qa
+        from stg_claims.stage_{`table_name`}
       where med_total_covd > {days} or med_medicaid_covd > {days} or med_commercial_covd > {days} or
         med_medicare_covd > {days} or dual_covd > {days} or geo_ach_covd > {days} or pharm_total_covd > {days} or
         pharm_medicaid_covd > {days} or pharm_medicare_covd > {days} or pharm_commercial_covd > {days};",
@@ -443,8 +443,8 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
   
   #number of members with percents > 100
   res8 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_{`table_name`}' as 'table', '# of members with percents >100, expect 0' as qa_type, count(*) as qa
-        from claims.stage_{`table_name`}
+    "select 'stg_claims.stage_{`table_name`}' as 'table', '# of members with percents >100, expect 0' as qa_type, count(*) as qa
+        from stg_claims.stage_{`table_name`}
       where med_total_covper > 100 or med_medicaid_covper > 100 or med_commercial_covper > 100 or
         med_medicare_covper > 100 or dual_covper > 100 or geo_ach_covper > 100 or pharm_total_covper > 100 or
         pharm_medicaid_covper > 100 or pharm_medicare_covper > 100 or pharm_commercial_covper > 100;",
@@ -452,8 +452,8 @@ qa_stage.apcd_elig_plr_f <- function(year = NULL) {
   
   #number of overall Medicaid members who are out of state
   res9 <- dbGetQuery(conn = db_claims, glue_sql(
-    "select 'claims.stage_{`table_name`}' as 'table', '# of overall Medicaid members out of state, expect 0' as qa_type, count(id_apcd) as qa
-        from claims.stage_{`table_name`}
+    "select 'stg_claims.stage_{`table_name`}' as 'table', '# of overall Medicaid members out of state, expect 0' as qa_type, count(id_apcd) as qa
+        from stg_claims.stage_{`table_name`}
       where overall_mcaid = 1 and geo_county is null;",
     .con = db_claims))
   
