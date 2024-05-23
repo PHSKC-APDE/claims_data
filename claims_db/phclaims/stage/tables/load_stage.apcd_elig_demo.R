@@ -234,7 +234,7 @@ load_stage.apcd_elig_demo_f <- function() {
     --Note that left join ensures that only people who have made it to member_month_detail table (per OnPoint processing) are in elig_demo
     --For extract 187, 658 people were in eligibility but not member_month_detail table
     -------------------
-    insert into claims.stage_apcd_elig_demo with (tablock)
+    insert into stg_claims.stage_apcd_elig_demo
     select
     	a.id_apcd,
     	a.dob,
