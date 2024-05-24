@@ -1,0 +1,18 @@
+to_schema: stg_claims
+to_table: stage_apcd_claim_preg_episode
+vars:
+    id_apcd: bigint
+    age_at_outcome: numeric(18,0)
+    preg_episode_id: bigint
+    preg_endpoint: varchar(255)
+    preg_hier: tinyint
+    preg_start_date: date
+    preg_end_date: date
+    ga_days: int
+    ga_weeks: numeric(4,1)
+    valid_start_date: tinyint
+    valid_ga: tinyint
+    valid_both: tinyint
+    lb_type: varchar(255)
+    ga_estimation_step: tinyint
+    last_run: datetime
