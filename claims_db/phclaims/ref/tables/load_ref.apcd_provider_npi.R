@@ -77,10 +77,10 @@ load_ref.apcd_provider_npi_f <- function() {
     --QA checks done - NPI is ten digits, no NPI has more than one row in table
     -------------------
     insert into stg_claims.ref_apcd_provider_npi
-    select provider_id_apcd, npi, provider_master_flag
+    select provider_id_apcd, npi, provider_master_flag, getdate() as last_run
     from #provider_master
     union
-    select provider_id_apcd, npi, provider_master_flag
+    select provider_id_apcd, npi, provider_master_flag, getdate() as last_run
     from #provider;",
     .con = dw_inthealth))
 }
