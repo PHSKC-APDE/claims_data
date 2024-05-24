@@ -254,9 +254,20 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 system.time(load_stage.apcd_claim_icdcm_header_f())
 
 ### D) Table-level QA
-system.time(apcd_icdcm_qa1 <- qa_stage.apcd_claim_icdcm_header_f())
+system.time(apcd_icdcm_qa <- qa_stage.apcd_claim_icdcm_header_f())
 
 #Process QA results
+if(all(c(apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="# members not in elig_demo, expect 0"] == 0
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="# members not in elig_timevar, expect 0"] == 0
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="# of null diagnoses, expect 0"] == 0
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="minimum length of ICD-9-CM, expect 5"] == 5
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="maximum length of ICD-9-CM, expect 5"] == 5
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="minimum length of ICD-10-CM, expect >=3"] >= 3
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="maximum length of ICD-10-CM, expect <=7"] >= 7))) {
+  message(paste0("apcd_claim_icdcm_header QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_icdcm_header QA result: FAIL - ", Sys.time()))
+}
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -276,14 +287,23 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 system.time(load_stage.apcd_claim_procedure_f())
 
 ### D) Table-level QA
-system.time(apcd_procedure_qa1 <- qa_stage.apcd_claim_procedure_f())
+system.time(apcd_procedure_qa <- qa_stage.apcd_claim_procedure_f())
 
 #Process QA results
+if(all(c(apcd_procedure_qa$qa[apcd_procedure_qa$qa_type=="# members not in elig_demo, expect 0"] == 0
+         & apcd_procedure_qa$qa[apcd_procedure_qa$qa_type=="# members not in elig_timevar, expect 0"] == 0
+         & apcd_procedure_qa$qa[apcd_procedure_qa$qa_type=="# of null procedure codes, expect 0"] == 0))) {
+  message(paste0("apcd_claim_procedure QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_procedure QA result: FAIL - ", Sys.time()))
+}
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 7: apcd_claim_provider ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+#### CONTINUE HERE ####
 
 message(paste0("Beginning creation process for apcd_claim_provider - ", Sys.time()))
 
@@ -298,7 +318,7 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 system.time(load_stage.apcd_claim_provider_f())
 
 ### D) Table-level QA
-#system.time(apcd_provider_qa1 <- qa_stage.apcd_claim_provider_f()) - no QA needed as no transformation is done at this stage
+#system.time(apcd_provider_qa <- qa_stage.apcd_claim_provider_f()) - no QA needed as no transformation is done at this stage
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -318,7 +338,7 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 system.time(load_ref.apcd_provider_npi_f())
 
 ### D) Table-level QA
-system.time(apcd_provider_npi_qa1 <- qa_ref.apcd_provider_npi_f())
+system.time(apcd_provider_npi_qa <- qa_ref.apcd_provider_npi_f())
 
 ##Process QA results
 
@@ -344,7 +364,7 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 system.time(load_ref.kc_provider_master_f())
 
 ### D) Table-level QA
-system.time(kc_provider_master_qa1 <- qa_ref.kc_provider_master_f())
+system.time(kc_provider_master_qa <- qa_ref.kc_provider_master_f())
 
 ##Process QA results
 
@@ -370,7 +390,7 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 system.time(load_stage.apcd_claim_header_f())
 
 ### D) Table-level QA (X minutes to run!)
-system.time(apcd_claim_header_qa1 <- qa_stage.apcd_claim_header_f())
+system.time(apcd_claim_header_qa <- qa_stage.apcd_claim_header_f())
 
 ##Process QA results
 
@@ -416,3 +436,10 @@ apcd_claim_ccw_qa2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_preg_episode - ", Sys.time()))
+
+### A) Call in functions
+devtools::source_url("BLANK")
+
+### B) Create table
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_preg_episode.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
