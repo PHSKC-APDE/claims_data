@@ -568,26 +568,21 @@ qa_stage.apcd_claim_header_f <- function() {
   
   #confirm that claim header is distinct
   res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of non-distinct headers, expect 0' as qa_type,
-    count(a.claim_header_id) as qa1, qa2 = null
-    from (
-      select claim_header_id, count(*) as header_cnt
-      from stg_claims.stage_apcd_claim_header
-      group by claim_header_id
-    ) as a
-    where a.header_cnt > 1;",
-    .con = dw_inthealth))
-  
-  #compare member and claim header counts wth raw data
-  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select 'stg_claims.stage_apcd_claim_header' as 'table', 'qa1 = distinct IDs, qa2 = distinct headers' as qa_type,
-    count(distinct id_apcd) as qa1, count(distinct claim_header_id) as qa2
+    "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of headers' as qa_type,
+    count(*) as qa
     from stg_claims.stage_apcd_claim_header;",
     .con = dw_inthealth))
   
+  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of distinct headers' as qa_type,
+    count(distinct claim_header_id) as qa
+    from stg_claims.stage_apcd_claim_header;",
+    .con = dw_inthealth))
+  
+  #compare claim header counts with raw data
   res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select 'stg_claims.apcd_medical_claim_header' as 'table', 'qa1 = distinct IDs, qa2 = distinct headers' as qa_type,
-    count(distinct internal_member_id) as qa1, count(distinct medical_claim_header_id) as qa2
+    "select 'stg_claims.apcd_medical_claim_header' as 'table', '# of headers in raw table' as qa_type,
+    count(*) as qa
     from stg_claims.apcd_medical_claim_header
     --exclude denined/orphaned claims
     where denied_header_flag = 'N' and orphaned_header_flag = 'N';",
@@ -596,7 +591,7 @@ qa_stage.apcd_claim_header_f <- function() {
   #all members should be in elig_demo table
   res4 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of members not in elig_demo, expect 0' as qa_type,
-    count(a.id_apcd) as qa1, qa2 = null
+    count(a.id_apcd) as qa
     from stg_claims.stage_apcd_claim_header as a
     left join stg_claims.stage_apcd_elig_demo as b
     on a.id_apcd = b.id_apcd
@@ -606,7 +601,7 @@ qa_stage.apcd_claim_header_f <- function() {
   #all members should be in elig_timevar table
   res5 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of members not in elig_timevar, expect 0' as qa_type,
-    count(a.id_apcd) as qa1, qa2 = null
+    count(a.id_apcd) as qa
     from stg_claims.stage_apcd_claim_header as a
     left join stg_claims.stage_apcd_elig_timevar as b
     on a.id_apcd = b.id_apcd
@@ -616,7 +611,7 @@ qa_stage.apcd_claim_header_f <- function() {
   #count unmatched claim types
   res6 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of claims with unmatched claim type, expect 0' as qa_type,
-    count(*) as qa1, qa2 = null
+    count(*) as qa
     from stg_claims.stage_apcd_claim_header
     where claim_type_id is null or claim_type_apcd_id is null;",
     .con = dw_inthealth))
@@ -624,7 +619,7 @@ qa_stage.apcd_claim_header_f <- function() {
   #verify that all inpatient stays have discharge date
   res7 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of ipt stays with no discharge date, expect 0' as qa_type,
-    count(*) as qa1, qa2 = null
+    count(*) as qa
     from stg_claims.stage_apcd_claim_header
     where inpatient_id is not null and discharge_date is null;",
     .con = dw_inthealth))
@@ -632,7 +627,7 @@ qa_stage.apcd_claim_header_f <- function() {
   #verify that no ed_pophealth_id value is used for more than one person
   res8 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of ed_pophealth_id values used for >1 person, expect 0' as qa_type,
-    count(a.ed_pophealth_id) as qa1, qa2 = null
+    count(a.ed_pophealth_id) as qa
     from (
       select ed_pophealth_id, count(distinct id_apcd) as id_dcount
       from stg_claims.stage_apcd_claim_header
@@ -642,16 +637,22 @@ qa_stage.apcd_claim_header_f <- function() {
     .con = dw_inthealth))
   
   #verify that ed_pophealth_id does not skip any values
-  res9 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select 'stg_claims.stage_apcd_claim_header' as 'table', 'qa1 = distinct ed_pophealth_id, qa2 = max - min + 1' as qa_type,
-    count(distinct ed_pophealth_id) as qa1, cast(max(ed_pophealth_id) - min(ed_pophealth_id) + 1 as int) as qa2
+  res9a <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of distinct ed_pophealth_id values' as qa_type,
+    count(distinct ed_pophealth_id) as qa
+    from stg_claims.stage_apcd_claim_header;",
+    .con = dw_inthealth))
+  
+  res9b <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_apcd_claim_header' as 'table', 'max ed_pophealth_id - min + 1' as qa_type,
+    cast(max(ed_pophealth_id) - min(ed_pophealth_id) + 1 as int) as qa
     from stg_claims.stage_apcd_claim_header;",
     .con = dw_inthealth))
   
   #verify that there are no rows with ed_perform_id without ed_pophealth_id
   res10 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of ed_perform rows with no ed_pophealth, expect 0' as qa_type,
-    count(*) as qa1, qa2 = null
+    count(*) as qa
     from stg_claims.stage_apcd_claim_header
     where ed_perform_id is not null and ed_pophealth_id is null;",
     .con = dw_inthealth))
@@ -667,7 +668,7 @@ qa_stage.apcd_claim_header_f <- function() {
     where [ed_pophealth_id] is not null
     )
     select 'stg_claims.stage_apcd_claim_header' as 'table', '# of ed_pophealth visits where the overlap date is greater than 1 day, expect 0' as 'qa_type',
-      count(*) as qa1, qa2 = null
+      count(*) as qa
     from stg_claims.stage_apcd_claim_header
     where [ed_pophealth_id] in (select ed_pophealth_id from cte where abs(datediff(day, lag_first_service_date, first_service_date)) > 1);",
     .con = dw_inthealth))
