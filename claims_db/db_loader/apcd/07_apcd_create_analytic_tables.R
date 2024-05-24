@@ -39,6 +39,8 @@ dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth
 #### Table 1: apcd_elig_demo ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
+message(paste0("Beginning creation process for apcd_elig_demo - ", Sys.time()))
+
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_demo.R")
 
@@ -51,18 +53,21 @@ create_table(conn = dw_inthealth,
 system.time(load_stage.apcd_elig_demo_f())
 
 ### D) Table-level QA
-system.time(apcd_demo_qa1 <- qa_stage.apcd_elig_demo_f())
+system.time(apcd_demo_qa <- qa_stage.apcd_elig_demo_f())
 
-if((apcd_demo_qa1$qa[[1]] == apcd_demo_qa1$qa[[2]]) & (apcd_demo_qa1$qa[[1]] == apcd_demo_qa1$qa[[3]])) {
-  message("apcd_elig_demo QA result: PASS")
+if((apcd_demo_qa$qa[[1]] == apcd_demo_qa$qa[[2]]) & (apcd_demo_qa$qa[[1]] == apcd_demo_qa$qa[[3]])) {
+  message(paste0("apcd_elig_demo QA result: PASS - ", Sys.time()))
 } else {
-  stop("apcd_elig_demo QA result: FAIL")
+  stop(paste0("apcd_elig_demo QA result: FAIL - ", Sys.time()))
 }
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 2: apcd_elig_timevar ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_elig_timevar - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_timevar.R")
@@ -76,27 +81,27 @@ create_table(conn = dw_inthealth,
 system.time(load_stage.apcd_elig_timevar_f())
 
 ### D) Table-level QA
-system.time(apcd_timevar_qa1 <- qa_stage.apcd_elig_timevar_f())
+system.time(apcd_timevar_qa <- qa_stage.apcd_elig_timevar_f())
 
 if(
-  (apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, expect match to raw tables"]==
-    apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, expect match to timevar" & apcd_timevar_qa1$table=="stg_claims.apcd_member_month_detail"])
+  (apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, expect match to raw tables"]==
+    apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, expect match to timevar" & apcd_timevar_qa$table=="stg_claims.apcd_member_month_detail"])
   
-  & (apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, expect match to raw tables"]==
-    apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, expect match to timevar" & apcd_timevar_qa1$table=="stg_claims.stage_apcd_elig_demo"])
+  & (apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, expect match to raw tables"]==
+    apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, expect match to timevar" & apcd_timevar_qa$table=="stg_claims.stage_apcd_elig_demo"])
   
-  & (apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, King 2016, expect match to member_month"]==
-     apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="member count, King 2016, expect match to timevar"])
+  & (apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, King 2016, expect match to member_month"]==
+     apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, King 2016, expect match to timevar"])
   
-  & apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="non-WA resident segments with non-null county name, expect 0"]==0
-  & apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="WA resident segments with null county name, expect 0"]==0
-  & apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="count of member elig segments with no coverage, expect 0"]==0
-  & apcd_timevar_qa1$qa[apcd_timevar_qa1$qa_type=="mcaid-mcare duals with dual flag = 0, expect 0"]==0
+  & apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="non-WA resident segments with non-null county name, expect 0"]==0
+  & apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="WA resident segments with null county name, expect 0"]==0
+  & apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="count of member elig segments with no coverage, expect 0"]==0
+  & apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="mcaid-mcare duals with dual flag = 0, expect 0"]==0
   
 ) {
-  message("apcd_elig_timevar QA result: PASS")
+  message(paste0("apcd_elig_timevar QA result: PASS - ", Sys.time()))
 } else {
-  stop("apcd_elig_timevar QA result: FAIL")
+  stop(paste0("apcd_elig_timevar QA result: FAIL - ", Sys.time()))
 }
 
 
@@ -105,37 +110,39 @@ if(
 # Note: Eventually use claim_elig function to generate these tables
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
+message(paste0("Beginning creation process for apcd_elig_plr tables - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr.R")
 
 ### B) Create table
 # 2014
-create_table(conn = db_claims, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2014.yaml",
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2014.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 # 2015
-create_table(conn = db_claims, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2015.yaml",
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2015.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 # 2016
-create_table(conn = db_claims, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2016.yaml",
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2016.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 # 2017
-create_table(conn = db_claims, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2017.yaml",
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2017.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 # 2018
-create_table(conn = db_claims, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2018.yaml",
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2018.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 # 2019
-create_table(conn = db_claims, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2019.yaml",
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2019.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 # 2020
-create_table(conn = db_claims, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2020.yaml",
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2020.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 # 2021
-create_table(conn = db_claims, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2021.yaml",
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2021.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
-
 # 2022
-create_table(conn = db_claims, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2022.yaml",
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2022.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
 ### PLACEHOLDER FOR ADDING THE NEXT COMPLETE CALENDAR YEAR TABLE ###
@@ -155,27 +162,27 @@ system.time(load_stage.apcd_elig_plr_f(from_date = "2022-01-01", to_date = "2022
 
 
 ### D) Table-level QA
-system.time(apcd_plr_2014_qa1 <- qa_stage.apcd_elig_plr_f(year = "2014"))
-system.time(apcd_plr_2015_qa1 <- qa_stage.apcd_elig_plr_f(year = "2015"))
-system.time(apcd_plr_2016_qa1 <- qa_stage.apcd_elig_plr_f(year = "2016"))
-system.time(apcd_plr_2017_qa1 <- qa_stage.apcd_elig_plr_f(year = "2017"))
-system.time(apcd_plr_2018_qa1 <- qa_stage.apcd_elig_plr_f(year = "2018"))
-system.time(apcd_plr_2019_qa1 <- qa_stage.apcd_elig_plr_f(year = "2019"))
-system.time(apcd_plr_2020_qa1 <- qa_stage.apcd_elig_plr_f(year = "2020"))
-system.time(apcd_plr_2021_qa1 <- qa_stage.apcd_elig_plr_f(year = "2021"))
-system.time(apcd_plr_2022_qa1 <- qa_stage.apcd_elig_plr_f(year = "2022"))
+system.time(apcd_plr_2014_qa <- qa_stage.apcd_elig_plr_f(year = "2014"))
+system.time(apcd_plr_2015_qa <- qa_stage.apcd_elig_plr_f(year = "2015"))
+system.time(apcd_plr_2016_qa <- qa_stage.apcd_elig_plr_f(year = "2016"))
+system.time(apcd_plr_2017_qa <- qa_stage.apcd_elig_plr_f(year = "2017"))
+system.time(apcd_plr_2018_qa <- qa_stage.apcd_elig_plr_f(year = "2018"))
+system.time(apcd_plr_2019_qa <- qa_stage.apcd_elig_plr_f(year = "2019"))
+system.time(apcd_plr_2020_qa <- qa_stage.apcd_elig_plr_f(year = "2020"))
+system.time(apcd_plr_2021_qa <- qa_stage.apcd_elig_plr_f(year = "2021"))
+system.time(apcd_plr_2022_qa <- qa_stage.apcd_elig_plr_f(year = "2022"))
 ##placeholder for adding the next complete calendar year table
 
 #Process QA results from across all tables
-df_list <- list(apcd_plr_2014_qa1,
-                apcd_plr_2015_qa1,
-                apcd_plr_2016_qa1,
-                apcd_plr_2017_qa1,
-                apcd_plr_2018_qa1,
-                apcd_plr_2019_qa1,
-                apcd_plr_2020_qa1,
-                apcd_plr_2021_qa1,
-                apcd_plr_2022_qa1)
+df_list <- list(apcd_plr_2014_qa,
+                apcd_plr_2015_qa,
+                apcd_plr_2016_qa,
+                apcd_plr_2017_qa,
+                apcd_plr_2018_qa,
+                apcd_plr_2019_qa,
+                apcd_plr_2020_qa,
+                apcd_plr_2021_qa,
+                apcd_plr_2022_qa)
 ##placeholder for adding the next complete calendar year table
 columns <- c("qa_result")
 elig_plr_qa_composite_result <- data.frame(matrix(nrow = 0, ncol = length(columns)))
@@ -194,254 +201,218 @@ for (i in df_list) {
 }
 
 if(all(elig_plr_qa_composite_result$qa_result) == TRUE) {
-  message("apcd_elig_plr QA result: PASS")
+  message(paste0("apcd_elig_plr QA result: PASS - ", Sys.time()))
 } else {
-  stop("apcd_elig_plr QA result: FAIL")
+  stop(paste0("apcd_elig_plr QA result: FAIL - ", Sys.time()))
 }
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 5: apcd_claim_line ####
+#### Table 4: apcd_claim_line ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_line - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_line.R")
 
 ### B) Create table
-create_table(conn = db_claims, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_line.yaml",
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_line.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_line_f())
 
 ### D) Table-level QA
-system.time(apcd_line_qa1 <- qa_stage.apcd_claim_line_f())
+system.time(apcd_line_qa <- qa_stage.apcd_claim_line_f())
 
-##Code to process QA results
-
-### E) Alter name on new table
-DBI::dbExecute(conn = db_claims,
-               glue::glue_sql("execute sp_rename 'claims.stage_apcd_claim_line', 'final_apcd_claim_line';",
-                              .con = db_claims))
-
-### F) Create clustered columnstore index
-system.time(DBI::dbExecute(conn = db_claims,
-                           glue::glue_sql("create clustered columnstore index idx_ccs_final_apcd_claim_line on claims.final_apcd_claim_line;",
-                                          .con = db_claims)))
+##Process QA results
+if(all(c(apcd_line_qa$qa[[1]] == 0
+         & apcd_line_qa$qa[[2]] == 0))) {
+  message(paste0("apcd_claim_line QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_line QA result: FAIL - ", Sys.time()))
+}
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 6: apcd_claim_icdcm_header ####
+#### Table 5: apcd_claim_icdcm_header ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_icdcm_header - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_icdcm_header.R")
 
 ### B) Create table
-create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_icdcm_header.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_icdcm_header.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_icdcm_header_f())
 
 ### D) Table-level QA
 system.time(apcd_icdcm_qa1 <- qa_stage.apcd_claim_icdcm_header_f())
-#rm(apcd_icdcm_qa1)
 
-### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_icdcm_header")
-
-### G) Alter schema on new table
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_icdcm_header")
-
-### H) Create clustered columnstore index
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_claim_icdcm_header on final.apcd_claim_icdcm_header")))
+#Process QA results
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 7: apcd_claim_procedure ####
+#### Table 6: apcd_claim_procedure ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_procedure - ", Sys.time()))
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_procedure.R")
 
 ### B) Create table
-create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_procedure.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_procedure.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_procedure_f())
 
 ### D) Table-level QA
 system.time(apcd_procedure_qa1 <- qa_stage.apcd_claim_procedure_f())
-#rm(apcd_procedure_qa1)
 
-### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_procedure")
-
-### G) Alter schema on new table
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_procedure")
-
-### H) Create clustered columnstore index
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_claim_procedure on final.apcd_claim_procedure")))
+#Process QA results
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 8: apcd_claim_provider ####
+#### Table 7: apcd_claim_provider ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_provider - ", Sys.time()))
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_provider.R")
 
 ### B) Create table
-create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_provider.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_provider.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_provider_f())
 
 ### D) Table-level QA
 #system.time(apcd_provider_qa1 <- qa_stage.apcd_claim_provider_f()) - no QA needed as no transformation is done at this stage
-#rm(apcd_provider_qa1)
-
-### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_provider")
-
-### G) Alter schema on new table
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_provider")
-
-### H) Create clustered columnstore index
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_claim_provider on final.apcd_claim_provider")))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 9: ref.apcd_provider_npi ####
+#### Table 8: ref.apcd_provider_npi ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for ref.apcd_provider_npi - ", Sys.time()))
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_provider_npi.R")
 
-### B) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "ref", to_schema = "archive", table_name = "apcd_provider_npi")
+### B) Create table
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_provider_npi.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
-### C) Create table
-create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_provider_npi.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
-
-### D) Load tables
+### C) Load tables
 system.time(load_ref.apcd_provider_npi_f())
 
-### E) Table-level QA
+### D) Table-level QA
 system.time(apcd_provider_npi_qa1 <- qa_ref.apcd_provider_npi_f())
-#rm(apcd_provider_npi_qa1)
 
-### F) Run line-level QA script at https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/phclaims/ref/tables/qa_ref.apcd_provider_npi.sql
+##Process QA results
 
-### G) Create clustered columnstore index
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_ref_apcd_provider_npi on ref.apcd_provider_npi")))
+### E) Copy table to HHSAW
+
+### F) Index table on HHSAW
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 10: ref.kc_provider_master ####
+#### Table 9: ref.kc_provider_master ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for ref.kc_provider_master - ", Sys.time()))
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.kc_provider_master.R")
 
-### B) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "ref", to_schema = "archive", table_name = "kc_provider_master")
+### B) Create table
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.kc_provider_master.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
-### C) Create table
-create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.kc_provider_master.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
-
-### D) Load tables
+### C) Load tables
 system.time(load_ref.kc_provider_master_f())
 
-### E) Table-level QA
+### D) Table-level QA
 system.time(kc_provider_master_qa1 <- qa_ref.kc_provider_master_f())
-#rm(kc_provider_master_qa1)
 
-### F) Create clustered columnstore index
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_ref_kc_provider_master on ref.kc_provider_master")))
+##Process QA results
+
+### E) Copy table to HHSAW
+
+### F) Index table on HHSAW
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 11: apcd_claim_header ####
+#### Table 10: apcd_claim_header ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_header - ", Sys.time()))
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.R")
 
 ### B) Create table
-create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_header_f())
 
-### D) Table-level QA (90 minutes to run!)
+### D) Table-level QA (X minutes to run!)
 system.time(apcd_claim_header_qa1 <- qa_stage.apcd_claim_header_f())
-#rm(apcd_claim_header_qa1)
 
-### E) Run line-level QA script at https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/phclaims/stage/tables/qa_stage.apcd_claim_header_10001.sql           
-
-### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_header")
-
-### G) Alter schema on new table
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_header")
-
-### H) Create clustered columnstore index
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_claim_header on final.apcd_claim_header")))
+##Process QA results
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 12: apcd_claim_ccw ####
+#### Table 11: apcd_claim_ccw ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_ccw - ", Sys.time()))
 
 ### A) Create table
-create_table(conn = db_claims, 
-               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "KCITSQLPRPENT40")
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
-### C) Load tables
-system.time(load_ccw(server = "phclaims", conn = db_claims, source = c("apcd"),
+### B) Load tables
+system.time(load_ccw(server = "phclaims", conn = dw_inthealth, source = c("apcd"),
                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"))
 
-### D) Table-level QA
+### C) Table-level QA
 
 #all members should be in elig_demo table
-apcd_claim_ccw_qa1 <- dbGetQuery(conn = db_claims, glue_sql(
+apcd_claim_ccw_qa1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
   "select 'stage.apcd_claim_ccw' as 'table', '# members not in elig_demo, expect 0' as qa_type,
     count(distinct a.id_apcd) as qa
     from stage.apcd_claim_ccw as a
     left join final.apcd_elig_demo as b
     on a.id_apcd = b.id_apcd
     where b.id_apcd is null;",
-  .con = db_claims))
+  .con = dw_inthealth))
 
 #count conditions run
-apcd_claim_ccw_qa2 <- dbGetQuery(conn = db_claims, glue_sql(
+apcd_claim_ccw_qa2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
   "select 'stage.apcd_claim_ccw' as 'table', '# conditions, expect 31' as qa_type,
   count(distinct ccw_code) as qa
   from PHClaims.stage.apcd_claim_ccw;",
-  .con = db_claims))
-#rm(apcd_claim_ccw_qa1, apcd_claim_ccw_qa2)
+  .con = dw_inthealth))
 
-### E) Run line-level QA script at https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/phclaims/stage/tables/qa_stage.apcd_claim_ccw_10009.sql            
+##Process QA results
 
-### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "apcd_claim_ccw")
 
-### G) Alter schema on new table
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "apcd_claim_ccw")
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 12: apcd_claim_preg_episode ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-### H) Create clustered columnstore index
-system.time(dbSendQuery(conn = db_claims, glue_sql("create clustered columnstore index idx_ccs_final_apcd_claim_ccw on final.apcd_claim_ccw")))
+message(paste0("Beginning creation process for apcd_claim_preg_episode - ", Sys.time()))
