@@ -63,7 +63,7 @@ claim_type_apcd_id varchar(100),
 ed_perform_temp tinyint,
 ed_pos_temp tinyint,
 ed_revenue_code_temp tinyint,
-ipt_flag tinyint
+ipt_flag tinyint,
 discharge_date date
 )
 with (heap);
