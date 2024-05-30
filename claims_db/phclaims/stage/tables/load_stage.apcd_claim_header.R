@@ -306,9 +306,9 @@ from (select distinct claim_header_id from stg_claims.tmp_apcd_claim_header_temp
 left join stg_claims.tmp_apcd_claim_header_icd1 as b
 on a.claim_header_id = b.claim_header_id
 left join stg_claims.tmp_apcd_claim_header_ed_procedure_code as c
-on a.claim_header_id = c.medical_claim_header_id
+on a.claim_header_id = c.claim_header_id
 left join stg_claims.tmp_apcd_claim_header_pc_visit as d
-on a.claim_header_id = d.medical_claim_header_id
+on a.claim_header_id = d.claim_header_id
 option (label = 'apcd_claim_header_temp1b');
 
 if object_id(N'stg_claims.tmp_apcd_claim_header_icd1',N'U') is not null drop table stg_claims.tmp_apcd_claim_header_icd1;
