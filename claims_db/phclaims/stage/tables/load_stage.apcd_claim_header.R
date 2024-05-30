@@ -272,7 +272,6 @@ insert into stg_claims.tmp_apcd_claim_header_icd1
 select claim_header_id,
 min(icdcm_norm) as primary_diagnosis,
 min(icdcm_version) as icdcm_version
-into stg_claims.tmp_apcd_claim_header_icd1
 from stg_claims.stage_apcd_claim_icdcm_header
 where icdcm_number = '01'
 group by claim_header_id
