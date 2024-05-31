@@ -162,11 +162,12 @@ load_ccw <- function(conn = NULL,
       conditions <- conditions_ref %>% 
         distinct(ccw_abbrev)%>%
         filter(str_detect(ccw_abbrev, "exclude", negate = T)) %>%
+        arrange(ccw_abbrev) %>%
         unlist()
     } else if (!is.null(ccw_list_name) & !"all" %in% ccw_list_name) {
       conditions <- conditions_ref %>%
         filter(ccw_abbrev %in% ccw_list_name) %>%
-        distinct(ccw_abbrev) %>% unlist()
+        distinct(ccw_abbrev) %>% arrange(ccw_abbrev) %>% unlist()
     }
     
     # Set up flag for how the CCW qualifications will be sources
