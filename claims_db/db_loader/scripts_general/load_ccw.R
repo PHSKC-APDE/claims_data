@@ -285,15 +285,16 @@ load_ccw <- function(conn = NULL,
         rename_with(~ str_replace(.x, "_type2", "_type_2"))
     } else if (ccw_source == "ref") {
       # Use str_detect to capture all rows, including exclusions
-      config <- conditions_ref %>% filter(str_detect(ccw_abbrev, cond)) %>%
+      config <- conditions_ref %>% filter(str_detect(ccw_abbrev, cond) & ccw_icd_version == icd) %>%
         # Reformat so exclusions are on the same line as main condition
-        mutate(dx_exclude1 = ifelse(str_detect(ccw_abbrev, "exclude1|exclude_1"), ccw_abbrev, NA_character_),
-               dx_exclude1_fields = ifelse(str_detect(ccw_abbrev, "exclude1|exclude_1"), dx_fields, NA_character_),
+        mutate(dx_exclude1 = ifelse(str_detect(ccw_abbrev, "exclude|exclude1|exclude_1"), ccw_abbrev, NA_character_),
+               dx_exclude1_fields = ifelse(str_detect(ccw_abbrev, "exclude|exclude1|exclude_1"), dx_fields, NA_character_),
                dx_exclude2 = ifelse(str_detect(ccw_abbrev, "exclude2|exclude_2"), ccw_abbrev, NA_character_),
                dx_exclude2_fields = ifelse(str_detect(ccw_abbrev, "exclude2|exclude_2"), dx_fields, NA_character_)) %>%
         # Get everything onto the top line and just keep that
         group_by(ccw_icd_version) %>%
         fill(contains("exclude"), .direction = "downup") %>%
+        arrange(ccw_desc) %>%
         slice(1) %>%
         ungroup()
     }
