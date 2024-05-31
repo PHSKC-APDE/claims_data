@@ -734,7 +734,7 @@ load_ccw <- function(conn = NULL,
     ccw_tbl <- DBI::SQL(paste0("##", config_cond$ccw_abbrev))
     
     sql4 <- glue::glue_sql(
-      "INSERT INTO {`to_schema`}.{`to_table`} with (tablock)
+      "INSERT INTO {`to_schema`}.{`to_table`} --with (tablock)
       SELECT
       {`id_source`}, from_date, to_date, ccw_code, ccw_desc, getdate() as last_run
       FROM {`ccw_tbl`};
