@@ -536,6 +536,13 @@ apcd_claim_ccw_qa3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
   .con = dw_inthealth))
 
 ##Process QA results
+if(all(c(apcd_claim_ccw_qa1$qa==0
+         & apcd_claim_ccw_qa2$qa==31
+         & apcd_claim_ccw_qa3$qa==0))) {
+  message(paste0("apcd_claim_ccw QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_ccw QA result: FAIL - ", Sys.time()))
+}
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
