@@ -457,7 +457,7 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 ### C) Load tables
 system.time(load_stage.apcd_claim_header_f())
 
-### D) Table-level QA (X minutes to run!)
+### D) Table-level QA
 system.time(apcd_claim_header_qa <- qa_stage.apcd_claim_header_f())
 
 ##Process QA results
