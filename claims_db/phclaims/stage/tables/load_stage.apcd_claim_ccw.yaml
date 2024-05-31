@@ -6,6 +6,8 @@ to_schema: stg_claims
 to_table: stage_apcd_claim_ccw
 icdcm_ref_schema: stg_claims
 icdcm_ref_table: ref_icdcm_codes
+ref_schema: stg_claims
+ref_table_pre: ref_
 vars:
     id_apcd: bigint
     from_date: date
