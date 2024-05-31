@@ -488,12 +488,19 @@ message(paste0("Beginning creation process for apcd_claim_ccw - ", Sys.time()))
 dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Create table
-create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+create_table(
+  conn = dw_inthealth,
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml",
+  overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
 
 ### B) Load tables
-system.time(load_ccw(server = "hhsaw", conn = dw_inthealth, source = c("apcd"),
-                     config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"))
+system.time(load_ccw(
+  server = "hhsaw",
+  conn = dw_inthealth,
+  source = c("apcd"),
+  print_query = FALSE,
+  ccw_list_name = "all",
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"))
 
 ### C) Table-level QA
 
@@ -512,6 +519,20 @@ apcd_claim_ccw_qa2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
   "select 'stg_claims.stage_apcd_claim_ccw' as 'table', '# conditions, expect 31' as qa_type,
   count(distinct ccw_code) as qa
   from stg_claims.stage_apcd_claim_ccw;",
+  .con = dw_inthealth))
+
+#count rows that overlap with prior row or following row, expect 0
+apcd_claim_ccw_qa3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "
+  with temp1 as (
+    select id_apcd,
+    datediff(day, lag(to_date, 1, null) over(partition by id_apcd, ccw_desc order by from_date), from_date) as prev_row_diff,
+    datediff(day, to_date, lead(from_date, 1, null) over(partition by id_apcd, ccw_desc order by from_date)) as next_row_diff
+    from stg_claims.stage_apcd_claim_ccw
+  )
+  select 'stg_claims.stage_apcd_claim_ccw' as 'table', 'overlapping rows, expect 0' as qa_type, count(*) as qa
+  from temp1
+  where prev_row_diff < 0 or next_row_diff < 0;",
   .con = dw_inthealth))
 
 ##Process QA results
