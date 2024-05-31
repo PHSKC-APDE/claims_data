@@ -598,7 +598,7 @@ load_ccw <- function(conn = NULL,
         ) as rolling
         
       on id.link = rolling.link
-      order by id.{`id_source`}, rolling.start_window",
+      --order by id.{`id_source`}, rolling.start_window",
       .con = conn)
     
     if (print_query == T) {
