@@ -492,7 +492,7 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
              overall = T, ind_yr = F, overwrite = T, server = "kcitazrhpasqlprp16.azds.kingcounty.gov")
 
 ### B) Load tables
-system.time(load_ccw(server = "phclaims", conn = dw_inthealth, source = c("apcd"),
+system.time(load_ccw(server = "hhsaw", conn = dw_inthealth, source = c("apcd"),
                      config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"))
 
 ### C) Table-level QA
