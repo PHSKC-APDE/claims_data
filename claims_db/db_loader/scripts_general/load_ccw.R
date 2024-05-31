@@ -717,7 +717,7 @@ load_ccw <- function(conn = NULL,
       {config_cond_9$claim_count_condition}) as c
     ) as d
     group by d.{`id_source`}, d.grp
-    order by d.{`id_source`}, from_date",
+    --order by d.{`id_source`}, from_date",
       .con = conn)
     
     if (print_query == T) {
