@@ -49,7 +49,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     from stg_claims.stage_apcd_claim_icdcm_header as a
     inner join #ref_dx as b
     on a.icdcm_norm = b.icdcm_norm
-    where a.last_service_date >= '2016-01-01';
+    where a.last_service_date >= '2016-01-01'
+	option (label = 'preg_dx');
     
     
     --------------------------
@@ -80,7 +81,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     from stg_claims.stage_apcd_claim_procedure as a
     inner join #ref_px as b
     on a.procedure_code = b.procedure_code
-    where a.last_service_date >= '2016-01-01';
+    where a.last_service_date >= '2016-01-01'
+	option (label = 'preg_px');
     
     
     --------------------------
@@ -102,7 +104,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     	cast(isnull(sa,0) as tinyint) as sa, cast(isnull(sb,0) as tinyint) as sb, cast(isnull(tro,0) as tinyint) as tro,
     	cast(isnull(deliv,0) as tinyint) as deliv
     into #preg_dx_px
-    from #temp1;
+    from #temp1
+	option (label = 'preg_dx_px');
     
     --------------------------
     --STEP 4: Group by ID-service date and count # of distinct endpoints (not including DELIV)
@@ -164,7 +167,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#preg_endpoint') IS NOT NULL drop table #preg_endpoint;
     select *, rank() over (partition by id_apcd, preg_endpoint order by last_service_date) as preg_endpoint_rank 
     into #preg_endpoint
-    from #temp5;
+    from #temp5
+	option (label = 'preg_endpoint');
     
     
     --------------------------
@@ -1153,7 +1157,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     if object_id(N'tempdb..#preg_endpoint_union') is not null drop table #preg_endpoint_union;
     select * into #preg_endpoint_union from #lb_sb_deliv_tro_ect_ab_final
     union
-    select * from #sa_final;
+    select * from #sa_final
+	option (label = 'preg_endpoint_union');
     
     --Clean up temp tables
     if object_id(N'tempdb..#sa_step1') is not null drop table #sa_step1;
@@ -1173,7 +1178,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     select id_apcd, last_service_date, preg_endpoint, preg_hier,
     	dense_rank() over (order by id_apcd, last_service_date) as preg_episode_id
     into #episode_0
-    from #preg_endpoint_union;
+    from #preg_endpoint_union
+	option (label = 'episode_0');
     
     
     --------------------------
@@ -1252,7 +1258,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     end as preg_start_date_min
     
     into #preg_episode_temp
-    from #episode_2;
+    from #episode_2
+	option (label = 'preg_episode_temp');
     
     
     --------------------------
@@ -1320,12 +1327,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     into #ga_1_final
     from #ga_1d;
     
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_1_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_1_final where valid_start_date = 0 or valid_ga = 0;
-    
-    
+	
     ------------
     --Step 8B: Z3A code on 1st trimester ultrasound
     ------------
@@ -1409,12 +1411,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     2 as ga_estimation_step
     into #ga_2_final
     from #ga_2f;
-    
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_2_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_2_final where valid_start_date = 0 or valid_ga = 0;
-    
+ 
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to2_final') IS NOT NULL drop table #ga_1to2_final;
     select * into #ga_1to2_final
@@ -1504,11 +1501,6 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     3 as ga_estimation_step
     into #ga_3_final
     from #ga_3f;
-    
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_3_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_3_final where valid_start_date = 0 or valid_ga = 0;
     
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to3_final') IS NOT NULL drop table #ga_1to3_final;
@@ -1603,11 +1595,6 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     4 as ga_estimation_step
     into #ga_4_final
     from #ga_4f;
-    
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_4_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_4_final where valid_start_date = 0 or valid_ga = 0;
     
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to4_final') IS NOT NULL drop table #ga_1to4_final;
@@ -1762,11 +1749,6 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     into #ga_5_final
     from #ga_5j;
     
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_5_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_5_final where valid_start_date = 0 or valid_ga = 0;
-    
     --Union assigned episodes thus far
     --Beginning with this step (5), propagate episodes with invalid start date to next step
     IF OBJECT_ID(N'tempdb..#ga_1to5_final') IS NOT NULL drop table #ga_1to5_final;
@@ -1843,11 +1825,6 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     into #ga_6_final
     from #ga_6d;
     
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_6_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_6_final where valid_start_date = 0 or valid_ga = 0;
-    
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to6_final') IS NOT NULL drop table #ga_1to6_final;
     select * into #ga_1to6_final from #ga_1to5_final
@@ -1923,11 +1900,6 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     into #ga_7_final
     from #ga_7d;
     
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_7_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_7_final where valid_start_date = 0 or valid_ga = 0;
-    
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to7_final') IS NOT NULL drop table #ga_1to7_final;
     select * into #ga_1to7_final from #ga_1to6_final
@@ -2002,12 +1974,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     8 as ga_estimation_step
     into #ga_8_final
     from #ga_8d;
-    
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_8_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_8_final where valid_start_date = 0 or valid_ga = 0;
-    
+
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to8_final') IS NOT NULL drop table #ga_1to8_final;
     select * into #ga_1to8_final from #ga_1to7_final
@@ -2113,11 +2080,6 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     9 as ga_estimation_step
     into #ga_9_final
     from #ga_9d;
-    
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_9_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_9_final where valid_start_date = 0 or valid_ga = 0;
     
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to9_final') IS NOT NULL drop table #ga_1to9_final;
@@ -2247,11 +2209,6 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     into #ga_10_final
     from #ga_10d;
     
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_10_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_10_final where valid_start_date = 0 or valid_ga = 0;
-    
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to10_final') IS NOT NULL drop table #ga_1to10_final;
     select * into #ga_1to10_final from #ga_1to9_final
@@ -2350,11 +2307,6 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     into #ga_11_final
     from #ga_11d;
     
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_11_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_11_final where valid_start_date = 0 or valid_ga = 0;
-    
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to11_final') IS NOT NULL drop table #ga_1to11_final;
     select * into #ga_1to11_final from #ga_1to10_final
@@ -2429,11 +2381,6 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     12 as ga_estimation_step
     into #ga_12_final
     from #ga_12d;
-    
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_12_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_12_final where valid_start_date = 0 or valid_ga = 0;
     
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to12_final') IS NOT NULL drop table #ga_1to12_final;
@@ -2517,11 +2464,6 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     into #ga_13_final
     from #ga_13d;
     
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #ga_13_final where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #ga_13_final where valid_start_date = 0 or valid_ga = 0;
-    
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to13_final') IS NOT NULL drop table #ga_1to13_final;
     select * into #ga_1to13_final from #ga_1to12_final
@@ -2549,12 +2491,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     from #preg_episode_temp as a
     left join #ga_1to13_final as b
     on a.preg_episode_id = b.preg_episode_id
-    where b.preg_episode_id is null;
-    
-    --Final tabulation
-    select 'valid' as valid_flag, count(*) as episode_count from #preg_episode where valid_start_date = 1 and valid_ga = 1
-    union
-    select 'invalid' as valid_flag, count(*) as episode_count from #preg_episode where valid_start_date = 0 or valid_ga = 0;
+    where b.preg_episode_id is null
+	option (label = 'preg_episode');
     
 
     --------------------------
@@ -2574,7 +2512,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     into #preg_episode_age_all
     from #preg_episode as a
     left join stg_claims.stage_apcd_elig_demo as b
-    on a.id_apcd = b.id_apcd;
+    on a.id_apcd = b.id_apcd
+	option (label = 'preg_episode_age_all');
     
     --Create final table subset to ages 12 to 55 per Moll et al. method
     --Also add an age group variable
@@ -2593,7 +2532,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     valid_start_date, valid_ga, valid_both, lb_type, ga_estimation_step, getdate() as last_run
     
     from #preg_episode_age_all
-    where age_at_outcome between 12 and 55;",
+    where age_at_outcome between 12 and 55
+	option (label = 'apcd_claim_preg_episode');",
     .con = dw_inthealth))
 }
 
