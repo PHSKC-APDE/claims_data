@@ -2007,8 +2007,13 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Create temp table holding full-term status ICD-10-CM codes in LIKE format
     IF OBJECT_ID(N'tempdb..#dx_fullterm') IS NOT NULL drop table #dx_fullterm;
     create table #dx_fullterm (code_like varchar(255));
-    insert into #dx_fullterm (code_like)
-    values ('O6020%'), ('O6022%'), ('O6023%'), ('O4202%'), ('O4292%'), ('O471%'), ('O80%');
+    insert into #dx_fullterm (code_like) values ('O6020%');
+    insert into #dx_fullterm (code_like) values ('O6022%');
+    insert into #dx_fullterm (code_like) values ('O6023%');
+    insert into #dx_fullterm (code_like) values ('O4202%');
+    insert into #dx_fullterm (code_like) values ('O4292%');
+    insert into #dx_fullterm (code_like) values ('O471%');
+    insert into #dx_fullterm (code_like) values ('O80%');
     
     --Join distinct ICD-10-CM codes to full-term ICD-10-CM reference table (<1 min)
     IF OBJECT_ID(N'tempdb..#ref_dx_fullterm') IS NOT NULL drop table #ref_dx_fullterm;
