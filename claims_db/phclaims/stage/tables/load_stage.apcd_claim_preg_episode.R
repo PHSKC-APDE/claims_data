@@ -2239,9 +2239,14 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Create temp table holding preterm status ICD-10-CM codes in LIKE format
     IF OBJECT_ID(N'tempdb..#dx_preterm') IS NOT NULL drop table #dx_preterm;
     create table #dx_preterm (code_like varchar(255));
-    insert into #dx_preterm (code_like)
-    values ('O6010%'), ('O6012%'), ('O6013%'), ('O6014%'), ('O4201%'), ('O4211%'), ('O4291%');
-    
+    insert into #dx_preterm (code_like) values ('O6010%');
+    insert into #dx_preterm (code_like) values ('O6012%');
+    insert into #dx_preterm (code_like) values ('O6013%');
+    insert into #dx_preterm (code_like) values ('O6014%');
+    insert into #dx_preterm (code_like) values ('O4201%');
+    insert into #dx_preterm (code_like) values ('O4211%');
+    insert into #dx_preterm (code_like) values ('O4291%');
+  
     --Join distinct ICD-10-CM codes to preterm ICD-10-CM reference table (<1 min)
     IF OBJECT_ID(N'tempdb..#ref_dx_preterm') IS NOT NULL drop table #ref_dx_preterm;
     select distinct a.icdcm_norm, b.code_like
