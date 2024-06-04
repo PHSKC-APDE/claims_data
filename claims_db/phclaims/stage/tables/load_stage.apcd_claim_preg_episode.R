@@ -523,7 +523,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     if object_id(N'tempdb..#lb_sb_deliv_final') is not null drop table #lb_sb_deliv_final;
     select * into #lb_sb_deliv_final from #lb_sb_final
     union
-    select * from #deliv_final;
+    select * from #deliv_final
     option (label = 'lb_sb_deliv_final');
         
     --Clean up temp tables
