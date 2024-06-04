@@ -31,7 +31,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     select distinct icdcm_norm
     into #dx_distinct
     from stg_claims.stage_apcd_claim_icdcm_header
-    where last_service_date >= '2016-01-01';
+    where last_service_date >= '2016-01-01'
+    option (label = 'dx_distinct');
         
     --Join distinct ICD-10-CM codes to pregnancy endpoint reference table using LIKE join
     IF OBJECT_ID(N'tempdb..#ref_dx') IS NOT NULL drop table #ref_dx;
@@ -39,7 +40,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     into #ref_dx
     from #dx_distinct as a
     inner join (select * from stg_claims.ref_moll_preg_endpoint where code_type = 'icd10cm') as b
-    on a.icdcm_norm like b.code_like;
+    on a.icdcm_norm like b.code_like
+    option (label = 'ref_dx');
         
     --Join new reference table to claims data using EXACT join
     IF OBJECT_ID(N'tempdb..#preg_dx') IS NOT NULL drop table #preg_dx;
@@ -63,7 +65,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     select distinct procedure_code
     into #px_distinct
     from stg_claims.stage_apcd_claim_procedure
-    where last_service_date >= '2016-01-01';
+    where last_service_date >= '2016-01-01'
+    option (label = 'px_distinct');
         
     --Join distinct procedure codes to pregnancy endpoint reference table using LIKE join
     IF OBJECT_ID(N'tempdb..#ref_px') IS NOT NULL drop table #ref_px;
@@ -71,7 +74,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     into #ref_px
     from #px_distinct as a
     inner join (select * from stg_claims.ref_moll_preg_endpoint where code_type in ('icd10pcs', 'hcpcs', 'cpt_hcpcs')) as b
-    on a.procedure_code like b.code_like;
+    on a.procedure_code like b.code_like
+    option (label = 'ref_px');
         
     --Join new reference table to claims data using EXACT join
     IF OBJECT_ID(N'tempdb..#preg_px') IS NOT NULL drop table #preg_px;
@@ -95,7 +99,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     from #preg_dx
     union
     select id_apcd, claim_header_id, last_service_date, lb, ect, ab, sa, sb, tro, deliv
-    from #preg_px;
+    from #preg_px
+    option (label = 'temp1');
         
     --Convert all NULLS to ZEROES and cast as TINYINT for later math
     IF OBJECT_ID(N'tempdb..#preg_dx_px') IS NOT NULL drop table #preg_dx_px;
@@ -117,22 +122,25 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         max(tro) as tro, max(deliv) as deliv
     into #temp2
     from #preg_dx_px
-    group by id_apcd, last_service_date;
+    group by id_apcd, last_service_date
+    option (label = 'temp2');
         
     --Count # of distinct endpoints, not including DELIV
     IF OBJECT_ID(N'tempdb..#temp3') IS NOT NULL drop table #temp3;
     select id_apcd, last_service_date, lb, ect, ab, sa, sb, tro, deliv,
         lb + ect + ab + sa + sb + tro as endpoint_dcount
     into #temp3
-    from #temp2;
-        
+    from #temp2
+    option (label = 'temp3');
+    
     --Recode DELIV to 0 when there's another valid endpoint
     IF OBJECT_ID(N'tempdb..#temp4') IS NOT NULL drop table #temp4;
     select id_apcd, last_service_date, lb, ect, ab, sa, sb, tro,
         case when endpoint_dcount = 0 then deliv else 0 end as deliv,
         endpoint_dcount
     into #temp4
-    from #temp3;
+    from #temp3
+    option (label = 'temp4');
         
     --Drop ID-service dates that contain >1 distinct endpoint (excluding DELIV)
     --Also restructure endpoint as a single variable, and add hierarchy variable
@@ -161,7 +169,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         
     into #temp5
     from #temp4
-    where endpoint_dcount <=1;
+    where endpoint_dcount <=1
+    option (label = 'temp5');
         
     --Add ranking variable within each pregnancy endpoint type
     IF OBJECT_ID(N'tempdb..#preg_endpoint') IS NOT NULL drop table #preg_endpoint;
@@ -189,7 +198,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         	lag(last_service_date, 1, last_service_date) over (partition by id_apcd order by last_service_date) as date_compare_lag1
         from #preg_endpoint
         where preg_endpoint = 'lb'
-    ) as a;
+    ) as a
+    option (label = 'lb_step1');
      
     --Group pregnancy endpoints into episodes based on minimum spacing
     
@@ -198,7 +208,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     select *, days_diff as days_diff_cum, 1 as timeline_include -- to keep 1st LB endpoint
     into #lb_step2
     from #lb_step1
-    where preg_endpoint_rank = 1;
+    where preg_endpoint_rank = 1
+    option (label = 'lb_step2');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --set counter initially at 1
@@ -221,7 +232,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     end as timeline_include
     from (select * from #lb_step2 where preg_endpoint_rank = @counter_lb) as a --refers to table receiving inserted rows
     inner join (select * from #lb_step1 where preg_endpoint_rank = @counter_lb + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank);
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'lb_step2_loop');
     --advance counter by 1
     set @counter_lb = @counter_lb + 1;
     -- break in case infinite loop (defined as counter greater than 100
@@ -235,7 +247,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         rank() over (partition by id_apcd order by last_service_date) as preg_episode_id
     into #lb_final
     from #lb_step2
-    where timeline_include = 1;
+    where timeline_include = 1
+    option (label = 'lb_final');
         
     --Clean up temp tables
     if object_id(N'tempdb..#lb_step1') is not null drop table #lb_step1;
@@ -252,7 +265,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_lb_date, null as next_lb_date
-    from #preg_endpoint where preg_endpoint = 'sb';
+    from #preg_endpoint where preg_endpoint = 'sb'
+    option (label = 'sb_step1');
         
     --Create column to hold dates of LB endpoints for comparison
     if object_id(N'tempdb..#sb_step2') is not null drop table #sb_step2;
@@ -270,7 +284,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     else null
     end as next_lb_date
     into #sb_step2
-    from #sb_step1 as t;
+    from #sb_step1 as t
+    option (label = 'sb_step2');
         
     --For each SB endpoint, count days between it and prior and next LB endpoint
     if object_id(N'tempdb..#sb_step3') is not null drop table #sb_step3;
@@ -278,7 +293,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         case when preg_endpoint = 'sb' then datediff(day, prior_lb_date, last_service_date) else null end as days_diff_back_lb,
         case when preg_endpoint = 'sb' then datediff(day, next_lb_date, last_service_date) else null end as days_diff_ahead_lb
     into #sb_step3
-    from #sb_step2;
+    from #sb_step2
+    option (label = 'sb_step3');
         
     --Pull out SB timepoints that potentially can be placed on timeline - COMPARE TO LB ENDPOINTS
     if object_id(N'tempdb..#sb_step4') is not null drop table #sb_step4;
@@ -287,7 +303,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     from #sb_step3
     where preg_endpoint = 'sb'
         and (days_diff_back_lb is null or days_diff_back_lb > 182)
-        and (days_diff_ahead_lb is null or days_diff_ahead_lb < -182);
+        and (days_diff_ahead_lb is null or days_diff_ahead_lb < -182)
+    option (label = 'sb_step4');
         
     --Count days between each SB endpoint and regenerate preg_endpoint_rank variable
     if object_id(N'tempdb..#sb_step5') is not null drop table #sb_step5;
@@ -299,7 +316,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank,
         lag(last_service_date, 1, last_service_date) over (partition by id_apcd order by last_service_date) as date_compare_lag1
         from #sb_step4
-    ) as a;
+    ) as a
+    option (label = 'sb_step5');
         
     --Group SB endpoints into episodes based on minimum spacing
     
@@ -308,7 +326,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     select *, days_diff as days_diff_cum, 1 as timeline_include -- to keep 1st LB endpoint
     into #sb_step6
     from #sb_step5
-    where preg_endpoint_rank = 1;
+    where preg_endpoint_rank = 1
+    option (label = 'sb_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --set counter initially at 1
@@ -331,7 +350,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     end as timeline_include
     from (select * from #sb_step6 where preg_endpoint_rank = @counter_sb) as a --refers to table receiving inserted rows
     inner join (select * from #sb_step5 where preg_endpoint_rank = @counter_sb + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank);
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'sb_step6_loop');
     --advance counter by 1
     set @counter_sb = @counter_sb + 1;
     -- break in case infinite loop (defined as counter greater than 100
@@ -345,14 +365,16 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         rank() over (partition by id_apcd order by last_service_date) as preg_episode_id
     into #sb_final
     from #sb_step6
-    where timeline_include = 1;
+    where timeline_include = 1
+    option (label = 'sb_final');
         
     --Union LB and SB endpoints placed on timeline
     if object_id(N'tempdb..#lb_sb_final') is not null drop table #lb_sb_final;
     select * into #lb_sb_final from #lb_final
     union
-    select * from #sb_final;
-        
+    select * from #sb_final
+    option (label = 'lb_sb_final');
+    
     --Clean up temp tables
     if object_id(N'tempdb..#sb_step1') is not null drop table #sb_step1;
     if object_id(N'tempdb..#sb_step2') is not null drop table #sb_step2;
@@ -374,7 +396,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_date, null as next_date
-    from #preg_endpoint where preg_endpoint = 'deliv';
+    from #preg_endpoint where preg_endpoint = 'deliv'
+    option (label = 'deliv_step1');
         
     --Create column to hold dates of LB and SB endpoints for comparison
     if object_id(N'tempdb..#deliv_step2') is not null drop table #deliv_step2;
@@ -408,7 +431,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     else null
     end as next_sb_date
     into #deliv_step2
-    from #deliv_step1 as t;
+    from #deliv_step1 as t
+    option (label = 'deliv_step2');
         
     --For each DELIV endpoint, count days between it and prior and next LB and SB endpoints
     if object_id(N'tempdb..#deliv_step3') is not null drop table #deliv_step3;
@@ -418,8 +442,9 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         case when preg_endpoint = 'deliv' then datediff(day, prior_sb_date, last_service_date) else null end as days_diff_back_sb,
         case when preg_endpoint = 'deliv' then datediff(day, next_sb_date, last_service_date) else null end as days_diff_ahead_sb
     into #deliv_step3
-    from #deliv_step2;
-        
+    from #deliv_step2
+    option (label = 'deliv_step3');
+    
     --Pull out DELIV timepoints that potentially can be placed on timeline - COMPARE TO LB and SB ENDPOINTS
     if object_id(N'tempdb..#deliv_step4') is not null drop table #deliv_step4;
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id
@@ -429,7 +454,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         and (days_diff_back_lb is null or days_diff_back_lb > 182)
         and (days_diff_ahead_lb is null or days_diff_ahead_lb < -182)
         and (days_diff_back_sb is null or days_diff_back_sb > 168)
-        and (days_diff_ahead_sb is null or days_diff_ahead_sb < -168);
+        and (days_diff_ahead_sb is null or days_diff_ahead_sb < -168)
+    option (label = 'deliv_step4');
         
     --Count days between each DELIV endpoint and regenerate preg_endpoint_rank variable
     if object_id(N'tempdb..#deliv_step5') is not null drop table #deliv_step5;
@@ -441,7 +467,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank,
         lag(last_service_date, 1, last_service_date) over (partition by id_apcd order by last_service_date) as date_compare_lag1
         from #deliv_step4
-    ) as a;
+    ) as a
+    option (label = 'deliv_step5');
         
     --Group DELIV endpoints into episodes based on minimum spacing
     
@@ -450,7 +477,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     select *, days_diff as days_diff_cum, 1 as timeline_include -- to keep 1st LB endpoint
     into #deliv_step6
     from #deliv_step5
-    where preg_endpoint_rank = 1;
+    where preg_endpoint_rank = 1
+    option (label = 'deliv_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --set counter initially at 1
@@ -473,7 +501,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     end as timeline_include
     from (select * from #deliv_step6 where preg_endpoint_rank = @counter_deliv) as a --refers to table receiving inserted rows
     inner join (select * from #deliv_step5 where preg_endpoint_rank = @counter_deliv + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank);
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'deliv_step6_loop');
     --advance counter by 1
     set @counter_deliv = @counter_deliv + 1;
     -- break in case infinite loop (defined as counter greater than 100
@@ -487,13 +516,15 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         rank() over (partition by id_apcd order by last_service_date) as preg_episode_id
     into #deliv_final
     from #deliv_step6
-    where timeline_include = 1;
+    where timeline_include = 1
+    option (label = 'deliv_final');
         
     --Union LB, SB and DELIV endpoints placed on timeline
     if object_id(N'tempdb..#lb_sb_deliv_final') is not null drop table #lb_sb_deliv_final;
     select * into #lb_sb_deliv_final from #lb_sb_final
     union
     select * from #deliv_final;
+    option (label = 'lb_sb_deliv_final');
         
     --Clean up temp tables
     if object_id(N'tempdb..#deliv_step1') is not null drop table #deliv_step1;
@@ -516,7 +547,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_date, null as next_date
-    from #preg_endpoint where preg_endpoint = 'tro';
+    from #preg_endpoint where preg_endpoint = 'tro'
+    option (label = 'tro_step1');
         
     --Create column to hold dates of LB and SB endpoints for comparison
     if object_id(N'tempdb..#tro_step2') is not null drop table #tro_step2;
@@ -564,7 +596,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     else null
     end as next_deliv_date
     into #tro_step2
-    from #tro_step1 as t;
+    from #tro_step1 as t
+    option (label = 'tro_step2');
         
     --For each TRO endpoint, count days between it and prior and next LB, SB and DELIV endpoints
     if object_id(N'tempdb..#tro_step3') is not null drop table #tro_step3;
@@ -576,7 +609,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         case when preg_endpoint = 'tro' then datediff(day, prior_deliv_date, last_service_date) else null end as days_diff_back_deliv,
         case when preg_endpoint = 'tro' then datediff(day, next_deliv_date, last_service_date) else null end as days_diff_ahead_deliv
     into #tro_step3
-    from #tro_step2;
+    from #tro_step2
+    option (label = 'tro_step3');
         
     --Pull out TRO timepoints that potentially can be placed on timeline - COMPARE TO LB, SB, and DELIV ENDPOINTS
     if object_id(N'tempdb..#tro_step4') is not null drop table #tro_step4;
@@ -589,7 +623,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         and (days_diff_back_sb is null or days_diff_back_sb > 154)
         and (days_diff_ahead_sb is null or days_diff_ahead_sb < -154)
         and (days_diff_back_deliv is null or days_diff_back_deliv > 154)
-        and (days_diff_ahead_deliv is null or days_diff_ahead_deliv < -154);
+        and (days_diff_ahead_deliv is null or days_diff_ahead_deliv < -154)
+    option (label = 'tro_step4');
         
     --Count days between each TRO endpoint and regenerate preg_endpoint_rank variable
     if object_id(N'tempdb..#tro_step5') is not null drop table #tro_step5;
@@ -601,7 +636,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank,
         lag(last_service_date, 1, last_service_date) over (partition by id_apcd order by last_service_date) as date_compare_lag1
         from #tro_step4
-    ) as a;
+    ) as a
+    option (label = 'tro_step5');
         
     --Group TRO endpoints into episodes based on minimum spacing
     
@@ -610,7 +646,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     select *, days_diff as days_diff_cum, 1 as timeline_include -- to keep 1st LB endpoint
     into #tro_step6
     from #tro_step5
-    where preg_endpoint_rank = 1;
+    where preg_endpoint_rank = 1
+    option (label = 'tro_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --set counter initially at 1
@@ -633,7 +670,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     end as timeline_include
     from (select * from #tro_step6 where preg_endpoint_rank = @counter_tro) as a --refers to table receiving inserted rows
     inner join (select * from #tro_step5 where preg_endpoint_rank = @counter_tro + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank);
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'tro_step6_loop');
     --advance counter by 1
     set @counter_tro = @counter_tro + 1;
     -- break in case infinite loop (defined as counter greater than 100
@@ -647,13 +685,15 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         rank() over (partition by id_apcd order by last_service_date) as preg_episode_id
     into #tro_final
     from #tro_step6
-    where timeline_include = 1;
+    where timeline_include = 1
+    option (label = 'tro_final');
         
     --Union LB, SB, DELIV and TRO endpoints placed on timeline
     if object_id(N'tempdb..#lb_sb_deliv_tro_final') is not null drop table #lb_sb_deliv_tro_final;
     select * into #lb_sb_deliv_tro_final from #lb_sb_deliv_final
     union
-    select * from #tro_final;
+    select * from #tro_final
+    option (label = 'lb_sb_deliv_tro_final');
         
     --Clean up temp tables
     if object_id(N'tempdb..#tro_step1') is not null drop table #tro_step1;
@@ -676,7 +716,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_date, null as next_date
-    from #preg_endpoint where preg_endpoint = 'ect';
+    from #preg_endpoint where preg_endpoint = 'ect'
+    option (label = 'ect_step1');
         
     --Create column to hold dates of LB, SB, DELIV and TRO endpoints for comparison
     if object_id(N'tempdb..#ect_step2') is not null drop table #ect_step2;
@@ -738,7 +779,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     else null
     end as next_tro_date
     into #ect_step2
-    from #ect_step1 as t;
+    from #ect_step1 as t
+    option (label = 'ect_step2');
         
     --For each ECT endpoint, count days between it and prior and next LB, SB, DELIV, and TRO endpoints
     if object_id(N'tempdb..#ect_step3') is not null drop table #ect_step3;
@@ -752,7 +794,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         case when preg_endpoint = 'ect' then datediff(day, prior_tro_date, last_service_date) else null end as days_diff_back_tro,
         case when preg_endpoint = 'ect' then datediff(day, next_tro_date, last_service_date) else null end as days_diff_ahead_tro
     into #ect_step3
-    from #ect_step2;
+    from #ect_step2
+    option (label = 'ect_step3');
         
     --Pull out ECT timepoints that potentially can be placed on timeline - COMPARE TO LB, SB, DELIV and TRO ENDPOINTS
     if object_id(N'tempdb..#ect_step4') is not null drop table #ect_step4;
@@ -767,7 +810,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         and (days_diff_back_deliv is null or days_diff_back_deliv > 154)
         and (days_diff_ahead_deliv is null or days_diff_ahead_deliv < -154)
         and (days_diff_back_tro is null or days_diff_back_tro > 56)
-        and (days_diff_ahead_tro is null or days_diff_ahead_tro < -56);
+        and (days_diff_ahead_tro is null or days_diff_ahead_tro < -56)
+    option (label = 'ect_step4');
         
     --Count days between each ECT endpoint and regenerate preg_endpoint_rank variable
     if object_id(N'tempdb..#ect_step5') is not null drop table #ect_step5;
@@ -779,7 +823,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank,
         lag(last_service_date, 1, last_service_date) over (partition by id_apcd order by last_service_date) as date_compare_lag1
         from #ect_step4
-    ) as a;
+    ) as a
+    option (label = 'ect_step5');
         
     --Group ECT endpoints into episodes based on minimum spacing
     
@@ -788,7 +833,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     select *, days_diff as days_diff_cum, 1 as timeline_include -- to keep 1st LB endpoint
     into #ect_step6
     from #ect_step5
-    where preg_endpoint_rank = 1;
+    where preg_endpoint_rank = 1
+    option (label = 'ect_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --set counter initially at 1
@@ -811,7 +857,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     end as timeline_include
     from (select * from #ect_step6 where preg_endpoint_rank = @counter_ect) as a --refers to table receiving inserted rows
     inner join (select * from #ect_step5 where preg_endpoint_rank = @counter_ect + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank);
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'ect_step6_loop');
     --advance counter by 1
     set @counter_ect = @counter_ect + 1;
     -- break in case infinite loop (defined as counter greater than 100
@@ -825,13 +872,15 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         rank() over (partition by id_apcd order by last_service_date) as preg_episode_id
     into #ect_final
     from #ect_step6
-    where timeline_include = 1;
+    where timeline_include = 1
+    option (label = 'ect_final');
         
     --Union LB, SB, DELIV, TRO, and ECT endpoints placed on timeline
     if object_id(N'tempdb..#lb_sb_deliv_tro_ect_final') is not null drop table #lb_sb_deliv_tro_ect_final;
     select * into #lb_sb_deliv_tro_ect_final from #lb_sb_deliv_tro_final
     union
-    select * from #ect_final;
+    select * from #ect_final
+    option (label = 'lb_sb_deliv_tro_ect_final');
         
     --Clean up temp tables
     if object_id(N'tempdb..#ect_step1') is not null drop table #ect_step1;
@@ -854,7 +903,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_date, null as next_date
-    from #preg_endpoint where preg_endpoint = 'ab';
+    from #preg_endpoint where preg_endpoint = 'ab'
+    option (label = 'ab_step1');
         
     --Create column to hold dates of LB, SB, DELIV, TRO, and ECT endpoints for comparison
     if object_id(N'tempdb..#ab_step2') is not null drop table #ab_step2;
@@ -930,7 +980,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     else null
     end as next_ect_date
     into #ab_step2
-    from #ab_step1 as t;
+    from #ab_step1 as t
+    option (label = 'ab_step2');
         
     --For each AB endpoint, count days between it and prior and next LB, SB, DELIV, TRO, and ECT endpoints
     if object_id(N'tempdb..#ab_step3') is not null drop table #ab_step3;
@@ -946,7 +997,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         case when preg_endpoint = 'ab' then datediff(day, prior_ect_date, last_service_date) else null end as days_diff_back_ect,
         case when preg_endpoint = 'ab' then datediff(day, next_ect_date, last_service_date) else null end as days_diff_ahead_ect
     into #ab_step3
-    from #ab_step2;
+    from #ab_step2
+    option (label = 'ab_step3');
         
     --Pull out AB timepoints that potentially can be placed on timeline - COMPARE TO LB, SB, DELIV, TRO, and ECT ENDPOINTS
     if object_id(N'tempdb..#ab_step4') is not null drop table #ab_step4;
@@ -963,7 +1015,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         and (days_diff_back_tro is null or days_diff_back_tro > 56)
         and (days_diff_ahead_tro is null or days_diff_ahead_tro < -56)
         and (days_diff_back_ect is null or days_diff_back_ect > 56)
-        and (days_diff_ahead_ect is null or days_diff_ahead_ect < -56);
+        and (days_diff_ahead_ect is null or days_diff_ahead_ect < -56)
+    option (label = 'ab_step4');
         
     --Count days between each AB endpoint and regenerate preg_endpoint_rank variable
     if object_id(N'tempdb..#ab_step5') is not null drop table #ab_step5;
@@ -975,7 +1028,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank,
         lag(last_service_date, 1, last_service_date) over (partition by id_apcd order by last_service_date) as date_compare_lag1
         from #ab_step4
-    ) as a;
+    ) as a
+    option (label = 'ab_step5');
         
     --Group AB endpoints into episodes based on minimum spacing
     
@@ -984,7 +1038,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     select *, days_diff as days_diff_cum, 1 as timeline_include -- to keep 1st LB endpoint
     into #ab_step6
     from #ab_step5
-    where preg_endpoint_rank = 1;
+    where preg_endpoint_rank = 1
+    option (label = 'ab_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --set counter initially at 1
@@ -1007,7 +1062,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     end as timeline_include
     from (select * from #ab_step6 where preg_endpoint_rank = @counter_ab) as a --refers to table receiving inserted rows
     inner join (select * from #ab_step5 where preg_endpoint_rank = @counter_ab + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank);
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'ab_step6_loop');
     --advance counter by 1
     set @counter_ab = @counter_ab + 1;
     -- break in case infinite loop (defined as counter greater than 100
@@ -1021,13 +1077,15 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         rank() over (partition by id_apcd order by last_service_date) as preg_episode_id
     into #ab_final
     from #ab_step6
-    where timeline_include = 1;
+    where timeline_include = 1
+    option (label = 'ab_final');
         
     --Union LB, SB, DELIV, TRO, ECT and AB endpoints placed on timeline
     if object_id(N'tempdb..#lb_sb_deliv_tro_ect_ab_final') is not null drop table #lb_sb_deliv_tro_ect_ab_final;
     select * into #lb_sb_deliv_tro_ect_ab_final from #lb_sb_deliv_tro_ect_final
     union
-    select * from #ab_final;
+    select * from #ab_final
+    option (label = 'lb_sb_deliv_tro_ect_ab_final');
         
     --Clean up temp tables
     if object_id(N'tempdb..#ab_step1') is not null drop table #ab_step1;
@@ -1050,7 +1108,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_date, null as next_date
-    from #preg_endpoint where preg_endpoint = 'sa';
+    from #preg_endpoint where preg_endpoint = 'sa'
+    option (label = 'sa_step1');
         
     --Create column to hold dates of LB, SB, DELIV, TRO, ECT, and AB endpoints for comparison
     if object_id(N'tempdb..#sa_step2') is not null drop table #sa_step2;
@@ -1140,7 +1199,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     else null
     end as next_ab_date
     into #sa_step2
-    from #sa_step1 as t;
+    from #sa_step1 as t
+    option (label = 'sa_step2');
         
     --For each SA endpoint, count days between it and prior and next LB, SB, DELIV, TRO, ECT, and AB endpoints
     if object_id(N'tempdb..#sa_step3') is not null drop table #sa_step3;
@@ -1158,7 +1218,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         case when preg_endpoint = 'sa' then datediff(day, prior_ab_date, last_service_date) else null end as days_diff_back_ab,
         case when preg_endpoint = 'sa' then datediff(day, next_ab_date, last_service_date) else null end as days_diff_ahead_ab
     into #sa_step3
-    from #sa_step2;
+    from #sa_step2
+    option (label = 'sa_step3');
         
     --Pull out SA timepoints that potentially can be placed on timeline - COMPARE TO LB, SB, DELIV, TRO, ECT, and AB ENDPOINTS
     if object_id(N'tempdb..#sa_step4') is not null drop table #sa_step4;
@@ -1177,7 +1238,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         and (days_diff_back_ect is null or days_diff_back_ect > 56)
         and (days_diff_ahead_ect is null or days_diff_ahead_ect < -56)
         and (days_diff_back_ab is null or days_diff_back_ab > 56)
-        and (days_diff_ahead_ab is null or days_diff_ahead_ab < -56);
+        and (days_diff_ahead_ab is null or days_diff_ahead_ab < -56)
+    option (label = 'sa_step4');
         
     --Count days between each SA endpoint and regenerate preg_endpoint_rank variable
     if object_id(N'tempdb..#sa_step5') is not null drop table #sa_step5;
@@ -1189,7 +1251,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank,
         lag(last_service_date, 1, last_service_date) over (partition by id_apcd order by last_service_date) as date_compare_lag1
         from #sa_step4
-    ) as a;
+    ) as a
+    option (label = 'sa_step5');
         
     --Group SA endpoints into episodes based on minimum spacing
     
@@ -1198,7 +1261,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     select *, days_diff as days_diff_cum, 1 as timeline_include -- to keep 1st LB endpoint
     into #sa_step6
     from #sa_step5
-    where preg_endpoint_rank = 1;
+    where preg_endpoint_rank = 1
+    option (label = 'sa_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --set counter initially at 1
@@ -1221,7 +1285,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     end as timeline_include
     from (select * from #sa_step6 where preg_endpoint_rank = @counter_sa) as a --refers to table receiving inserted rows
     inner join (select * from #sa_step5 where preg_endpoint_rank = @counter_sa + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank);
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'sa_step6_loop');
     --advance counter by 1
     set @counter_sa = @counter_sa + 1;
     -- break in case infinite loop (defined as counter greater than 100
@@ -1235,14 +1300,15 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         rank() over (partition by id_apcd order by last_service_date) as preg_episode_id
     into #sa_final
     from #sa_step6
-    where timeline_include = 1;
+    where timeline_include = 1
+    option (label = 'sa_final');
         
     --Union LB, SB, DELIV, TRO, ECT, AB, and SA endpoints placed on timeline
     if object_id(N'tempdb..#preg_endpoint_union') is not null drop table #preg_endpoint_union;
     select * into #preg_endpoint_union from #lb_sb_deliv_tro_ect_ab_final
     union
     select * from #sa_final
-    option (label = 'preg_endpoint_union');
+    option (label = 'preg_endpoint_union')
         
     --Clean up temp tables
     if object_id(N'tempdb..#sa_step1') is not null drop table #sa_step1;
@@ -1287,7 +1353,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     end as days_buffer
         
     into #episode_1
-    from #episode_0;
+    from #episode_0
+    option (label = 'episode_1');
         
     --Calculate start and end dates for each pregnancy episode
     IF OBJECT_ID(N'tempdb..#episode_2') IS NOT NULL drop table #episode_2;
@@ -1316,7 +1383,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     last_service_date as preg_end_date
         
     into #episode_2
-    from #episode_1;
+    from #episode_1
+    option (label = 'episode_2');
         
     --Confirm that there are no pregnancy episodes with a null start or end date
     --select count (*) as qa_count from #episode_2 where preg_start_date is null or preg_end_date is null;
@@ -1500,7 +1568,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to2_final') IS NOT NULL drop table #ga_1to2_final;
     select * into #ga_1to2_final
-    from #ga_1_final union select * from #ga_2_final;
+    from #ga_1_final union select * from #ga_2_final
+    option (label = 'ga_1to2_final');
         
         
     ------------
@@ -1590,7 +1659,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to3_final') IS NOT NULL drop table #ga_1to3_final;
     select * into #ga_1to3_final from #ga_1to2_final
-    union select * from #ga_3_final;
+    union select * from #ga_3_final
+    option (label = 'ga_1to3_final');
         
     --Drop prior union table
     IF OBJECT_ID(N'tempdb..#ga_1to2_final') IS NOT NULL drop table #ga_1to2_final;
@@ -1684,7 +1754,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to4_final') IS NOT NULL drop table #ga_1to4_final;
     select * into #ga_1to4_final from #ga_1to3_final
-    union select * from #ga_4_final;
+    union select * from #ga_4_final
+    option (label = 'ga_1to4_final');
         
     --Drop prior union table
     IF OBJECT_ID(N'tempdb..#ga_1to3_final') IS NOT NULL drop table #ga_1to3_final;
@@ -1838,7 +1909,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Beginning with this step (5), propagate episodes with invalid start date to next step
     IF OBJECT_ID(N'tempdb..#ga_1to5_final') IS NOT NULL drop table #ga_1to5_final;
     select * into #ga_1to5_final from #ga_1to4_final
-    union select * from #ga_5_final where valid_start_date = 1 and valid_ga = 1;
+    union select * from #ga_5_final where valid_start_date = 1 and valid_ga = 1
+    option (label = 'ga_1to5_final');
         
     --Drop prior union table
     IF OBJECT_ID(N'tempdb..#ga_1to4_final') IS NOT NULL drop table #ga_1to4_final;
@@ -1913,7 +1985,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to6_final') IS NOT NULL drop table #ga_1to6_final;
     select * into #ga_1to6_final from #ga_1to5_final
-    union select * from #ga_6_final where valid_start_date = 1 and valid_ga = 1;
+    union select * from #ga_6_final where valid_start_date = 1 and valid_ga = 1
+    option (label = 'ga_1to6_final');
         
     --Drop prior union table
     IF OBJECT_ID(N'tempdb..#ga_1to5_final') IS NOT NULL drop table #ga_1to5_final;
@@ -1988,7 +2061,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to7_final') IS NOT NULL drop table #ga_1to7_final;
     select * into #ga_1to7_final from #ga_1to6_final
-    union select * from #ga_7_final where valid_start_date = 1 and valid_ga = 1;
+    union select * from #ga_7_final where valid_start_date = 1 and valid_ga = 1
+    option (label = 'ga_1to7_final');
         
     --Drop prior union table
     IF OBJECT_ID(N'tempdb..#ga_1to6_final') IS NOT NULL drop table #ga_1to6_final;
@@ -2063,7 +2137,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to8_final') IS NOT NULL drop table #ga_1to8_final;
     select * into #ga_1to8_final from #ga_1to7_final
-    union select * from #ga_8_final where valid_start_date = 1 and valid_ga = 1;
+    union select * from #ga_8_final where valid_start_date = 1 and valid_ga = 1
+    option (label = 'ga_1to8_final');
         
     --Drop prior union table
     IF OBJECT_ID(N'tempdb..#ga_1to7_final') IS NOT NULL drop table #ga_1to7_final;
@@ -2174,7 +2249,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to9_final') IS NOT NULL drop table #ga_1to9_final;
     select * into #ga_1to9_final from #ga_1to8_final
-    union select * from #ga_9_final where valid_start_date = 1 and valid_ga = 1;
+    union select * from #ga_9_final where valid_start_date = 1 and valid_ga = 1
+    option (label = 'ga_1to9_final');
         
     --Drop prior union table
     IF OBJECT_ID(N'tempdb..#ga_1to8_final') IS NOT NULL drop table #ga_1to8_final;
@@ -2302,7 +2378,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to10_final') IS NOT NULL drop table #ga_1to10_final;
     select * into #ga_1to10_final from #ga_1to9_final
-    union select * from #ga_10_final where valid_start_date = 1 and valid_ga = 1;
+    union select * from #ga_10_final where valid_start_date = 1 and valid_ga = 1
+    option (label = 'ga_1to10_final');
         
     --Drop prior union table
     IF OBJECT_ID(N'tempdb..#ga_1to9_final') IS NOT NULL drop table #ga_1to9_final;
@@ -2405,7 +2482,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to11_final') IS NOT NULL drop table #ga_1to11_final;
     select * into #ga_1to11_final from #ga_1to10_final
-    union select * from #ga_11_final where valid_start_date = 1 and valid_ga = 1;
+    union select * from #ga_11_final where valid_start_date = 1 and valid_ga = 1
+    option (label = 'ga_1to11_final');
         
     --Drop prior union table
     IF OBJECT_ID(N'tempdb..#ga_1to10_final') IS NOT NULL drop table #ga_1to10_final;
@@ -2480,7 +2558,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to12_final') IS NOT NULL drop table #ga_1to12_final;
     select * into #ga_1to12_final from #ga_1to11_final
-    union select * from #ga_12_final where valid_start_date = 1 and valid_ga = 1;
+    union select * from #ga_12_final where valid_start_date = 1 and valid_ga = 1
+    option (label = 'ga_1to12_final');
         
     --Drop prior union table
     IF OBJECT_ID(N'tempdb..##ga_1to11_final') IS NOT NULL drop table #ga_1to11_final;
@@ -2562,7 +2641,8 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Union assigned episodes thus far
     IF OBJECT_ID(N'tempdb..#ga_1to13_final') IS NOT NULL drop table #ga_1to13_final;
     select * into #ga_1to13_final from #ga_1to12_final
-    union select * from #ga_13_final where valid_start_date = 1 and valid_ga = 1;
+    union select * from #ga_13_final where valid_start_date = 1 and valid_ga = 1
+    option (label = 'ga_1to13_final');
         
     --Drop prior union table
     IF OBJECT_ID(N'tempdb..#ga_1to12_final') IS NOT NULL drop table #ga_1to12_final;
