@@ -3,6 +3,7 @@ to_table: stage_apcd_claim_preg_episode
 vars:
     id_apcd: bigint
     age_at_outcome: numeric(18,0)
+    age_at_outcome_cat6: varchar(255)
     preg_episode_id: bigint
     preg_endpoint: varchar(255)
     preg_hier: tinyint
