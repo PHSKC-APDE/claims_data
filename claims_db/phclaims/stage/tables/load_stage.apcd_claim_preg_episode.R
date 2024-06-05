@@ -1078,8 +1078,6 @@ load_stage.apcd_claim_preg_episode_f <- function() {
   	option (label = 'ab_step6_loop');
   	--advance counter by 1
   	set @counter_ab = @counter_ab + 1;
-  	-- break in case infinite loop (defined as counter greater than 100
-  	if @counter_ab > 100 begin raiserror('Too many loops!', 16, 1) break end;
   	--end loop
   	end;
     
