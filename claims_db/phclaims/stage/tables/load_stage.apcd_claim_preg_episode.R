@@ -1055,31 +1055,31 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
   	--set counter initially at 1
-  	declare @counter_ab int = 1
+  	--declare @counter_ab int = 1
   	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-    while (@counter_ab + 1 <= (select max(preg_endpoint_rank) from #ab_step5))
+  	--while (@counter_ab + 1 <= (select max(preg_endpoint_rank) from #ab_step5))
   	--begin loop
-  	begin
-  	insert into #ab_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-  	select b.*,
+  	--begin
+  	--insert into #ab_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+  	--select b.*,
   	--generate cumulative days diff that resets when threshold is reached
-  	case
-  		when a.days_diff_cum + b.days_diff > 56 then 0
-  		else a.days_diff_cum + b.days_diff
-  	end as days_diff_cum,
+  	--case
+  		--when a.days_diff_cum + b.days_diff > 56 then 0
+  		--else a.days_diff_cum + b.days_diff
+  	--end as days_diff_cum,
   	--generate variable to flag inclusion on timeline
-  	case
-  		when a.days_diff_cum + b.days_diff > 56 then 1
-  		else 0
-  	end as timeline_include
-  	from (select * from #ab_step6 where preg_endpoint_rank = @counter_ab) as a --refers to table receiving inserted rows
-  	inner join (select * from #ab_step5 where preg_endpoint_rank = @counter_ab + 1) as b --refers to initial table
-  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-  	option (label = 'ab_step6_loop');
+  	--case
+  		--when a.days_diff_cum + b.days_diff > 56 then 1
+  		--else 0
+  	--end as timeline_include
+  	--from (select * from #ab_step6 where preg_endpoint_rank = @counter_ab) as a --refers to table receiving inserted rows
+  	--inner join (select * from #ab_step5 where preg_endpoint_rank = @counter_ab + 1) as b --refers to initial table
+  	--on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+  	--option (label = 'ab_step6_loop');
   	--advance counter by 1
-  	set @counter_ab = @counter_ab + 1;
+  	--set @counter_ab = @counter_ab + 1;
   	--end loop
-  	end;
+  	--end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#ab_final') is not null drop table #ab_final;
