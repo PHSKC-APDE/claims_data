@@ -213,7 +213,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --Wrap while loop in stored procedure to prevent mysterious loop endings when using R-ODBC-SQL
-    if (object_id('stg_claims.lb_loop') is not null) drop procedure stg_claims.lb_loop;
+    if (object_id('stg_claims.lb_loop') is not null) drop procedure stg_claims.lb_loop
     go
     create procedure stg_claims.lb_loop
     as
@@ -341,7 +341,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --Wrap while loop in stored procedure to prevent mysterious loop endings when using R-ODBC-SQL
-    if (object_id('stg_claims.sb_loop') is not null) drop procedure stg_claims.sb_loop;
+    if (object_id('stg_claims.sb_loop') is not null) drop procedure stg_claims.sb_loop
     go
     create procedure stg_claims.sb_loop
     as
@@ -502,7 +502,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --Wrap while loop in stored procedure to prevent mysterious loop endings when using R-ODBC-SQL
-    if (object_id('stg_claims.deliv_loop') is not null) drop procedure stg_claims.deliv_loop;
+    if (object_id('stg_claims.deliv_loop') is not null) drop procedure stg_claims.deliv_loop
     go
     create procedure stg_claims.deliv_loop
     as
@@ -681,7 +681,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --Wrap while loop in stored procedure to prevent mysterious loop endings when using R-ODBC-SQL
-    if (object_id('stg_claims.tro_loop') is not null) drop procedure stg_claims.tro_loop;
+    if (object_id('stg_claims.tro_loop') is not null) drop procedure stg_claims.tro_loop
     go
     create procedure stg_claims.tro_loop
     as
@@ -878,7 +878,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --Wrap while loop in stored procedure to prevent mysterious loop endings when using R-ODBC-SQL
-    if (object_id('stg_claims.ect_loop') is not null) drop procedure stg_claims.ect_loop;
+    if (object_id('stg_claims.ect_loop') is not null) drop procedure stg_claims.ect_loop
     go
     create procedure stg_claims.ect_loop
     as
@@ -1093,7 +1093,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --Wrap while loop in stored procedure to prevent mysterious loop endings when using R-ODBC-SQL
-    if (object_id('stg_claims.ab_loop') is not null) drop procedure stg_claims.ab_loop;
+    if (object_id('stg_claims.ab_loop') is not null) drop procedure stg_claims.ab_loop
     go
     create procedure stg_claims.ab_loop
     as
@@ -1327,7 +1327,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
     --Wrap while loop in stored procedure to prevent mysterious loop endings when using R-ODBC-SQL
-    if (object_id('stg_claims.sa_loop') is not null) drop procedure stg_claims.sa_loop;
+    if (object_id('stg_claims.sa_loop') is not null) drop procedure stg_claims.sa_loop
     go
     create procedure stg_claims.sa_loop
     as
