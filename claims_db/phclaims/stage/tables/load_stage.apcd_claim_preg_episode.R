@@ -1057,7 +1057,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
   	--set counter initially at 1
   	declare @counter_ab int = 1
   	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-  	while exists (select * from #ab_step5 where preg_endpoint_rank = @counter_ab + 1)
+    while (@counter_ab + 1 <= (select max(preg_endpoint_rank) from #ab_step5))
   	--begin loop
   	begin
   	insert into #ab_step6 --insert rows for next preg_endpoint_rank (looping over counter)
