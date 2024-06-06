@@ -2,6 +2,9 @@
 # Eli Kern, PHSKC (APDE)
 #
 # 2024-06
+#
+#Note this script actually creates a SQL stored procedure and then executes given learnings that running WHILE loops
+  #from R to SQL via ODBC lead to silent failures of the loop after a certain # of iterations
 
 ### Run from master_apcd_analytic script
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/07_apcd_create_analytic_tables.R
@@ -9,9 +12,18 @@
 #### Load script ####
 load_stage.apcd_claim_preg_episode_f <- function() {
   
-  ### Run SQL query
-  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
-    "
+  
+  ### Drop stored procedure if it exists
+  odbc::dbExecute(dw_inthealth,
+                  "if (object_id('stg_claims.apcd_claim_preg_episode') is not null) drop procedure stg_claims.apcd_claim_preg_episode;")
+  
+  
+  ### Create stored procedure
+  odbc::dbExecute(dw_inthealth,
+    "create procedure stg_claims.apcd_claim_preg_episode
+    as
+    begin
+  
     ---------------------------------
     --Eli Kern, APDE, PHSKC
     --January 2023
@@ -212,34 +224,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'lb_step2');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-    --set counter initially at 1
-    declare @counter_lb int = 1;
-    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-    while exists (select * from #lb_step1 where preg_endpoint_rank = @counter_lb + 1)
-    --begin loop
-    begin
-    insert into #lb_step2 --insert rows for next preg_endpoint_rank (looping over counter)
-    select b.*,
-    --generate cumulative days diff that resets when threshold is reached
-    case
-    	when a.days_diff_cum + b.days_diff > 182 then 0
-    	else a.days_diff_cum + b.days_diff
-    end as days_diff_cum,
-    --generate variable to flag inclusion on timeline
-    case
-    	when a.days_diff_cum + b.days_diff > 182 then 1
-    	else 0
-    end as timeline_include
-    from (select * from #lb_step2 where preg_endpoint_rank = @counter_lb) as a --refers to table receiving inserted rows
-    inner join (select * from #lb_step1 where preg_endpoint_rank = @counter_lb + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-    option (label = 'lb_step2_loop');
-    --advance counter by 1
-    set @counter_lb = @counter_lb + 1;
-    -- break in case infinite loop (defined as counter greater than 100
-    if @counter_lb > 100 begin raiserror('Too many loops!', 16, 1) break end;
-    --end loop
-    end;
+  	--set counter initially at 1
+  	declare @counter_lb int = 1;
+  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+  	while exists (select * from #lb_step1 where preg_endpoint_rank = @counter_lb + 1)
+  	--begin loop
+  	begin
+  	insert into #lb_step2 --insert rows for next preg_endpoint_rank (looping over counter)
+  	select b.*,
+  	--generate cumulative days diff that resets when threshold is reached
+  	case
+  		when a.days_diff_cum + b.days_diff > 182 then 0
+  		else a.days_diff_cum + b.days_diff
+  	end as days_diff_cum,
+  	--generate variable to flag inclusion on timeline
+  	case
+  		when a.days_diff_cum + b.days_diff > 182 then 1
+  		else 0
+  	end as timeline_include
+  	from (select * from #lb_step2 where preg_endpoint_rank = @counter_lb) as a --refers to table receiving inserted rows
+  	inner join (select * from #lb_step1 where preg_endpoint_rank = @counter_lb + 1) as b --refers to initial table
+  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+  	option (label = 'lb_step2_loop');
+  	--advance counter by 1
+  	set @counter_lb = @counter_lb + 1;
+  	-- break in case infinite loop (defined as counter greater than 100
+  	if @counter_lb > 100 begin raiserror('Too many loops!', 16, 1) break end;
+  	--end loop
+  	end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#lb_final') is not null drop table #lb_final;
@@ -330,34 +342,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'sb_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-    --set counter initially at 1
-    declare @counter_sb int = 1;
-    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-    while exists (select * from #sb_step5 where preg_endpoint_rank = @counter_sb + 1)
-    --begin loop
-    begin
-    insert into #sb_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-    select b.*,
-    --generate cumulative days diff that resets when threshold is reached
-    case
-    	when a.days_diff_cum + b.days_diff > 168 then 0
-    	else a.days_diff_cum + b.days_diff
-    end as days_diff_cum,
-    --generate variable to flag inclusion on timeline
-    case
-    	when a.days_diff_cum + b.days_diff > 168 then 1
-    	else 0
-    end as timeline_include
-    from (select * from #sb_step6 where preg_endpoint_rank = @counter_sb) as a --refers to table receiving inserted rows
-    inner join (select * from #sb_step5 where preg_endpoint_rank = @counter_sb + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-    option (label = 'sb_step6_loop');
-    --advance counter by 1
-    set @counter_sb = @counter_sb + 1;
-    -- break in case infinite loop (defined as counter greater than 100
-    if @counter_sb > 100 begin raiserror('Too many loops!', 16, 1) break end;
-    --end loop
-    end;
+  	--set counter initially at 1
+  	declare @counter_sb int = 1;
+  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+  	while exists (select * from #sb_step5 where preg_endpoint_rank = @counter_sb + 1)
+  	--begin loop
+  	begin
+  	insert into #sb_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+  	select b.*,
+  	--generate cumulative days diff that resets when threshold is reached
+  	case
+  		when a.days_diff_cum + b.days_diff > 168 then 0
+  		else a.days_diff_cum + b.days_diff
+  	end as days_diff_cum,
+  	--generate variable to flag inclusion on timeline
+  	case
+  		when a.days_diff_cum + b.days_diff > 168 then 1
+  		else 0
+  	end as timeline_include
+  	from (select * from #sb_step6 where preg_endpoint_rank = @counter_sb) as a --refers to table receiving inserted rows
+  	inner join (select * from #sb_step5 where preg_endpoint_rank = @counter_sb + 1) as b --refers to initial table
+  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+  	option (label = 'sb_step6_loop');
+  	--advance counter by 1
+  	set @counter_sb = @counter_sb + 1;
+  	-- break in case infinite loop (defined as counter greater than 100
+  	if @counter_sb > 100 begin raiserror('Too many loops!', 16, 1) break end;
+  	--end loop
+  	end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#sb_final') is not null drop table #sb_final;
@@ -481,34 +493,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'deliv_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-    --set counter initially at 1
-    declare @counter_deliv int = 1;
-    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-    while exists (select * from #deliv_step5 where preg_endpoint_rank = @counter_deliv + 1)
-    --begin loop
-    begin
-    insert into #deliv_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-    select b.*,
-    --generate cumulative days diff that resets when threshold is reached
-    case
-    	when a.days_diff_cum + b.days_diff > 168 then 0
-    	else a.days_diff_cum + b.days_diff
-    end as days_diff_cum,
-    --generate variable to flag inclusion on timeline
-    case
-    	when a.days_diff_cum + b.days_diff > 168 then 1
-    	else 0
-    end as timeline_include
-    from (select * from #deliv_step6 where preg_endpoint_rank = @counter_deliv) as a --refers to table receiving inserted rows
-    inner join (select * from #deliv_step5 where preg_endpoint_rank = @counter_deliv + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-    option (label = 'deliv_step6_loop');
-    --advance counter by 1
-    set @counter_deliv = @counter_deliv + 1;
-    -- break in case infinite loop (defined as counter greater than 100
-    if @counter_deliv > 100 begin raiserror('Too many loops!', 16, 1) break end;
-    --end loop
-    end;
+  	--set counter initially at 1
+  	declare @counter_deliv int = 1;
+  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+  	while exists (select * from #deliv_step5 where preg_endpoint_rank = @counter_deliv + 1)
+  	--begin loop
+  	begin
+  	insert into #deliv_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+  	select b.*,
+  	--generate cumulative days diff that resets when threshold is reached
+  	case
+  		when a.days_diff_cum + b.days_diff > 168 then 0
+  		else a.days_diff_cum + b.days_diff
+  	end as days_diff_cum,
+  	--generate variable to flag inclusion on timeline
+  	case
+  		when a.days_diff_cum + b.days_diff > 168 then 1
+  		else 0
+  	end as timeline_include
+  	from (select * from #deliv_step6 where preg_endpoint_rank = @counter_deliv) as a --refers to table receiving inserted rows
+  	inner join (select * from #deliv_step5 where preg_endpoint_rank = @counter_deliv + 1) as b --refers to initial table
+  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+  	option (label = 'deliv_step6_loop');
+  	--advance counter by 1
+  	set @counter_deliv = @counter_deliv + 1;
+  	-- break in case infinite loop (defined as counter greater than 100
+  	if @counter_deliv > 100 begin raiserror('Too many loops!', 16, 1) break end;
+  	--end loop
+  	end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#deliv_final') is not null drop table #deliv_final;
@@ -650,34 +662,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'tro_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-    --set counter initially at 1
-    declare @counter_tro int = 1;
-    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-    while exists (select * from #tro_step5 where preg_endpoint_rank = @counter_tro + 1)
-    --begin loop
-    begin
-    insert into #tro_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-    select b.*,
-    --generate cumulative days diff that resets when threshold is reached
-    case
-    	when a.days_diff_cum + b.days_diff > 56 then 0
-    	else a.days_diff_cum + b.days_diff
-    end as days_diff_cum,
-    --generate variable to flag inclusion on timeline
-    case
-    	when a.days_diff_cum + b.days_diff > 56 then 1
-    	else 0
-    end as timeline_include
-    from (select * from #tro_step6 where preg_endpoint_rank = @counter_tro) as a --refers to table receiving inserted rows
-    inner join (select * from #tro_step5 where preg_endpoint_rank = @counter_tro + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-    option (label = 'tro_step6_loop');
-    --advance counter by 1
-    set @counter_tro = @counter_tro + 1;
-    -- break in case infinite loop (defined as counter greater than 100
-    if @counter_tro > 100 begin raiserror('Too many loops!', 16, 1) break end;
-    --end loop
-    end;
+  	--set counter initially at 1
+  	declare @counter_tro int = 1;
+  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+  	while exists (select * from #tro_step5 where preg_endpoint_rank = @counter_tro + 1)
+  	--begin loop
+  	begin
+  	insert into #tro_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+  	select b.*,
+  	--generate cumulative days diff that resets when threshold is reached
+  	case
+  		when a.days_diff_cum + b.days_diff > 56 then 0
+  		else a.days_diff_cum + b.days_diff
+  	end as days_diff_cum,
+  	--generate variable to flag inclusion on timeline
+  	case
+  		when a.days_diff_cum + b.days_diff > 56 then 1
+  		else 0
+  	end as timeline_include
+  	from (select * from #tro_step6 where preg_endpoint_rank = @counter_tro) as a --refers to table receiving inserted rows
+  	inner join (select * from #tro_step5 where preg_endpoint_rank = @counter_tro + 1) as b --refers to initial table
+  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+  	option (label = 'tro_step6_loop');
+  	--advance counter by 1
+  	set @counter_tro = @counter_tro + 1;
+  	-- break in case infinite loop (defined as counter greater than 100
+  	if @counter_tro > 100 begin raiserror('Too many loops!', 16, 1) break end;
+  	--end loop
+  	end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#tro_final') is not null drop table #tro_final;
@@ -837,34 +849,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'ect_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-    --set counter initially at 1
-    declare @counter_ect int = 1;
-    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-    while exists (select * from #ect_step5 where preg_endpoint_rank = @counter_ect + 1)
-    --begin loop
-    begin
-    insert into #ect_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-    select b.*,
-    --generate cumulative days diff that resets when threshold is reached
-    case
-    	when a.days_diff_cum + b.days_diff > 56 then 0
-    	else a.days_diff_cum + b.days_diff
-    end as days_diff_cum,
-    --generate variable to flag inclusion on timeline
-    case
-    	when a.days_diff_cum + b.days_diff > 56 then 1
-    	else 0
-    end as timeline_include
-    from (select * from #ect_step6 where preg_endpoint_rank = @counter_ect) as a --refers to table receiving inserted rows
-    inner join (select * from #ect_step5 where preg_endpoint_rank = @counter_ect + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-    option (label = 'ect_step6_loop');
-    --advance counter by 1
-    set @counter_ect = @counter_ect + 1;
-    -- break in case infinite loop (defined as counter greater than 100
-    if @counter_ect > 100 begin raiserror('Too many loops!', 16, 1) break end;
-    --end loop
-    end;
+  	--set counter initially at 1
+  	declare @counter_ect int = 1;
+  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+  	while exists (select * from #ect_step5 where preg_endpoint_rank = @counter_ect + 1)
+  	--begin loop
+  	begin
+  	insert into #ect_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+  	select b.*,
+  	--generate cumulative days diff that resets when threshold is reached
+  	case
+  		when a.days_diff_cum + b.days_diff > 56 then 0
+  		else a.days_diff_cum + b.days_diff
+  	end as days_diff_cum,
+  	--generate variable to flag inclusion on timeline
+  	case
+  		when a.days_diff_cum + b.days_diff > 56 then 1
+  		else 0
+  	end as timeline_include
+  	from (select * from #ect_step6 where preg_endpoint_rank = @counter_ect) as a --refers to table receiving inserted rows
+  	inner join (select * from #ect_step5 where preg_endpoint_rank = @counter_ect + 1) as b --refers to initial table
+  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+  	option (label = 'ect_step6_loop');
+  	--advance counter by 1
+  	set @counter_ect = @counter_ect + 1;
+  	-- break in case infinite loop (defined as counter greater than 100
+  	if @counter_ect > 100 begin raiserror('Too many loops!', 16, 1) break end;
+  	--end loop
+  	end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#ect_final') is not null drop table #ect_final;
@@ -1030,7 +1042,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         from #ab_step4
     ) as a
     option (label = 'ab_step5');
-        
+      
     --Group AB endpoints into episodes based on minimum spacing
     
     --Seed table table with first-ranked preg endpoints
@@ -1042,37 +1054,32 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'ab_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-    --set counter initially at 1
-    declare @counter_ab int = 1;
-    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-    while exists (select * from #ab_step5 where preg_endpoint_rank = @counter_ab + 1)
-    --begin loop
-    begin
-    insert into #ab_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-    select b.*,
-    --generate cumulative days diff that resets when threshold is reached
-    case
-    	when a.days_diff_cum + b.days_diff > 56 then 0
-    	else a.days_diff_cum + b.days_diff
-    end as days_diff_cum,
-    --generate variable to flag inclusion on timeline
-    case
-    	when a.days_diff_cum + b.days_diff > 56 then 1
-    	else 0
-    end as timeline_include
-    from (select * from #ab_step6 where preg_endpoint_rank = @counter_ab) as a --refers to table receiving inserted rows
-    inner join (select * from #ab_step5 where preg_endpoint_rank = @counter_ab + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-    option (label = 'ab_step6_loop');
-    --advance counter by 1
-    set @counter_ab = @counter_ab + 1;
-    select 1 as col_test option (label = 'ab_counter_increase');
-    -- break in case infinite loop (defined as counter greater than 100
-    if @counter_ab > 100 begin raiserror('Too many loops!', 16, 1) break end;
-    --end loop
-    end;
-    
-    select 1 as col_test option (label = 'ab_loop_done');
+  	--set counter initially at 1
+  	declare @counter_ab int = 1
+  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+  	while (@counter_ab + 1 <= (select max(preg_endpoint_rank) from #ab_step5))
+  	--begin loop
+  	begin
+  	insert into #ab_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+  	select b.*,
+  	--generate cumulative days diff that resets when threshold is reached
+  	case
+  		when a.days_diff_cum + b.days_diff > 56 then 0
+  		else a.days_diff_cum + b.days_diff
+  	end as days_diff_cum,
+  	--generate variable to flag inclusion on timeline
+  	case
+  		when a.days_diff_cum + b.days_diff > 56 then 1
+  		else 0
+  	end as timeline_include
+  	from (select * from #ab_step6 where preg_endpoint_rank = @counter_ab) as a --refers to table receiving inserted rows
+  	inner join (select * from #ab_step5 where preg_endpoint_rank = @counter_ab + 1) as b --refers to initial table
+  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+  	option (label = 'ab_step6_loop');
+  	--advance counter by 1
+  	set @counter_ab = @counter_ab + 1;
+  	--end loop
+  	end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#ab_final') is not null drop table #ab_final;
@@ -1268,34 +1275,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'sa_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-    --set counter initially at 1
-    declare @counter_sa int = 1;
-    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-    while exists (select * from #sa_step5 where preg_endpoint_rank = @counter_sa + 1)
-    --begin loop
-    begin
-    insert into #sa_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-    select b.*,
-    --generate cumulative days diff that resets when threshold is reached
-    case
-    	when a.days_diff_cum + b.days_diff > 42 then 0
-    	else a.days_diff_cum + b.days_diff
-    end as days_diff_cum,
-    --generate variable to flag inclusion on timeline
-    case
-    	when a.days_diff_cum + b.days_diff > 42 then 1
-    	else 0
-    end as timeline_include
-    from (select * from #sa_step6 where preg_endpoint_rank = @counter_sa) as a --refers to table receiving inserted rows
-    inner join (select * from #sa_step5 where preg_endpoint_rank = @counter_sa + 1) as b --refers to initial table
-    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-    option (label = 'sa_step6_loop');
-    --advance counter by 1
-    set @counter_sa = @counter_sa + 1;
-    -- break in case infinite loop (defined as counter greater than 100
-    if @counter_sa > 100 begin raiserror('Too many loops!', 16, 1) break end;
-    --end loop
-    end;
+  	--set counter initially at 1
+  	declare @counter_sa int = 1;
+  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+  	while exists (select * from #sa_step5 where preg_endpoint_rank = @counter_sa + 1)
+  	--begin loop
+  	begin
+  	insert into #sa_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+  	select b.*,
+  	--generate cumulative days diff that resets when threshold is reached
+  	case
+  		when a.days_diff_cum + b.days_diff > 42 then 0
+  		else a.days_diff_cum + b.days_diff
+  	end as days_diff_cum,
+  	--generate variable to flag inclusion on timeline
+  	case
+  		when a.days_diff_cum + b.days_diff > 42 then 1
+  		else 0
+  	end as timeline_include
+  	from (select * from #sa_step6 where preg_endpoint_rank = @counter_sa) as a --refers to table receiving inserted rows
+  	inner join (select * from #sa_step5 where preg_endpoint_rank = @counter_sa + 1) as b --refers to initial table
+  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+  	option (label = 'sa_step6_loop');
+  	--advance counter by 1
+  	set @counter_sa = @counter_sa + 1;
+  	-- break in case infinite loop (defined as counter greater than 100
+  	if @counter_sa > 100 begin raiserror('Too many loops!', 16, 1) break end;
+  	--end loop
+  	end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#sa_final') is not null drop table #sa_final;
@@ -2711,9 +2718,21 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         
     from #preg_episode_age_all
     where age_at_outcome between 12 and 55
-    option (label = 'apcd_claim_preg_episode');",
-    .con = dw_inthealth))
+    option (label = 'apcd_claim_preg_episode');
+    
+    end")
+  
+  
+  ### Run stored procedure
+  odbc::dbExecute(dw_inthealth, "execute stg_claims.apcd_claim_preg_episode;")
+  
+  
+  ### Drop stored procedure
+  odbc::dbExecute(dw_inthealth,
+                  "if (object_id('stg_claims.apcd_claim_preg_episode') is not null) drop procedure stg_claims.apcd_claim_preg_episode;")
+  
 }
+
 
 #### Table-level QA script ####
 qa_stage.apcd_claim_preg_episode_f <- function() {
