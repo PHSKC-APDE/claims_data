@@ -3,8 +3,6 @@
 # Eli Kern, PHSKC-APDE
 #
 # Code developed with assistance from Philip Sylling (KCIT)
-# Table shells with CCI indexes were created in HHSAW by Philip
-# Stored procedures (agnostic to columns) were created in HHSAW by Philip
 #
 # 2024-04
 
@@ -33,9 +31,16 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 ## Beginning message (before loop begins)
 message(paste0("Beginning process to copy data from INTHEALTH_EDW to HHSAW - ", Sys.time()))
 
-#Establish list of Azure Blob Storage folders for which GZIP files will be copied to inthealth_edw
-table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility",
-                   "medical_claim_header", "member_month_detail", "pharmacy_claim", "provider", "provider_master")
+#Establish list of tables to be copied to inthealth_edw
+table_list <- list("final_apcd_elig_demo", "final_apcd_elig_timevar", "final_apcd_elig_plr", "final_apcd_claim_line",
+                   "final_apcd_claim_icdcm_header", "final_apcd_claim_procedure", "final_apcd_claim_provider", "final_apcd_claim_header",
+                   "final_apcd_claim_ccw", "final_apcd_claim_preg_episode")
+
+#Full table list to be used for next ETL process
+#table_list <- list("final_apcd_elig_demo", "final_apcd_elig_timevar", "final_apcd_elig_plr", "final_apcd_claim_line",
+#                   "final_apcd_claim_icdcm_header", "final_apcd_claim_procedure", "final_apcd_claim_provider", "final_apcd_claim_header",
+#                   "final_apcd_claim_ccw", "final_apcd_claim_preg_episode", "final_apcd_claim_dental", "final_apcd_claim_pharmacy",
+#                   "ref_apcd_provider", "ref_apcd_provider_master")
 
 #Begin loop
 lapply(table_list, function(table_list) {
@@ -43,14 +48,14 @@ lapply(table_list, function(table_list) {
   table_name <- glue::glue_sql(table_list)
   message(paste0("Working on table: ", table_name))
   DBI::dbExecute(conn = db_claims,
-                 glue::glue_sql("execute claims.usp_load_stage_apcd_{`table_name`}_cci;",
+                 glue::glue_sql("execute claims.usp_load_{`table_name`};",
                                 .con = db_claims))
   
   inthealth_row_count <- DBI::dbGetQuery(conn = db_claims,
-                                         glue::glue_sql("select count(*) as row_count from claims.stage_apcd_{`table_name`};",
+                                         glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",
                                                         .con = db_claims))
   hhsaw_row_count <- DBI::dbGetQuery(conn = db_claims,
-                                     glue::glue_sql("select count(*) as row_count from claims.stage_apcd_{`table_name`}_cci;",
+                                     glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",
                                                     .con = db_claims))
   
   if (inthealth_row_count$row_count != hhsaw_row_count$row_count) {
