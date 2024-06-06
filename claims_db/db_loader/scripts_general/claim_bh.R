@@ -230,7 +230,7 @@ load_bh <- function(conn = NULL,
     # Build SQL query
     sql4 <- glue_sql(
       "IF object_id('tempdb..##rolling_tmp_bh') IS NOT NULL drop table ##rolling_tmp_bh;
-      SELECT DISTINCT
+      SELECT --DISTINCT
         d.{`id_source`}
         ,bh_cond
         ,min(d.start_window) as 'from_date'
