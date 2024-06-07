@@ -124,19 +124,18 @@ load_bh <- function(conn = NULL,
   DBI::dbCreateTable(conn, tbl_name, fields = table_config$vars)
 
   #### STEP 3: CREATE TEMP TABLE TO HOLD CONDITION-SPECIFIC CLAIMS AND DATES ####
-  ptm01 <- proc.time()
+  conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+  message("STEP 1: CREATE TEMP TABLE TO HOLD CONDITION-SPECIFIC CLAIMS AND DATES")
+  time_start <- Sys.time()
   
     # Build SQL query
-    sql1 <- glue_sql(
-      "--#drop temp table if it exists
-    if object_id('tempdb..##header_bh') IS NOT NULL drop table ##header_bh;
-    
+    sql1 <- glue_sql("
      SELECT DISTINCT  
       {`id_source`}
    ,svc_date
    ,bh_cond
    ,link = 1 
-   INTO ##header_bh
+   INTO {`schema`}.tmp_header_bh
    --BASED ON DIAGNOSIS
    FROM (SELECT 
       {`id_source`}
@@ -172,20 +171,22 @@ load_bh <- function(conn = NULL,
       ",.con = conn)
     
     #Run SQL query
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_header_bh")), silent = T)
     dbGetQuery(conn = conn, sql1)
     
     #### STEP 4: JOIN WITH ROLLING 24MONTH  ####
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    message("STEP 2: JOIN WITH ROLLING 24MONTH")
     # Build SQL query
     sql2 <- glue_sql("
-    IF object_id('tempdb..##matrix') IS NOT NULL drop table ##matrix;
     SELECT
       {`id_source`}
       ,svc_date
       ,bh_cond
       ,start_window
       ,end_window
-    INTO ##matrix
-    FROM ##header_bh as header
+    INTO {`schema`}.tmp_matrix
+    FROM {`schema`}.tmp_header_bh as header
     LEFT JOIN
       (SELECT cast(start_window as date) as 'start_window'
 		          ,cast(end_window as date) as 'end_window'
@@ -197,12 +198,14 @@ load_bh <- function(conn = NULL,
     ",.con = conn)
     
     #Run SQL query
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_matrix")), silent = T)
     dbGetQuery(conn = conn, sql2)
     
     #### STEP 5: CREATE TEMP TABLE TO HOLD ID AND ROLLING TIME MATRIX ####
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    message("STEP 3: CREATE TEMP TABLE TO HOLD ID AND ROLLING TIME MATRIX")
     # Build SQL query
     sql3 <- glue_sql("
-    IF object_id('tempdb..##rolling_matrix') IS NOT NULL drop table ##rolling_matrix;
     SELECT  * 
       ,CASE
           WHEN datediff(month,
@@ -218,58 +221,62 @@ load_bh <- function(conn = NULL,
           END AS 'discont'
       ,row_number() over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window) as row_no
       --,lag(b.end_window) over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window) as lag_end
-    INTO ##rolling_matrix
-    FROM ##matrix b
+    INTO {`schema`}.tmp_rolling_matrix
+    FROM {`schema`}.tmp_matrix b
     --order by {`id_source`}, bh_cond, start_window
         ",.con = conn)
     
     #Run SQL query
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_matrix")), silent = T)
     dbGetQuery(conn = conn, sql3)  
     
     #### STEP 6: ID CONDITION STATUS OVER TIME AND COLLAPSE TO CONTIGUOUS PERIODS ####
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    message("STEP 4: ID CONDITION STATUS OVER TIME AND COLLAPSE TO CONTIGUOUS PERIODS")
     # Build SQL query
-    sql4 <- glue_sql(
-      "IF object_id('tempdb..##rolling_tmp_bh') IS NOT NULL drop table ##rolling_tmp_bh;
+    sql4 <- glue_sql("
       SELECT --DISTINCT
         d.{`id_source`}
         ,bh_cond
         ,min(d.start_window) as 'from_date'
         ,max(d.end_window) as 'to_date' 
-      INTO ##rolling_tmp_bh
+      INTO {`schema`}.tmp_rolling_tmp_bh
       FROM
         (SELECT c.{`id_source`}, c.start_window, c.end_window,bh_cond
               --, c.discont, c.row_no 
               ,sum(case when c.discont is null then 0 else 1 end) over
                   (order by c.{`id_source`}, bh_cond, c.row_no) as 'grp'
-        FROM ##rolling_matrix c) d
+        FROM {`schema`}.tmp_rolling_matrix c) d
       GROUP BY d.{`id_source`},d.grp,d.bh_cond
       ",.con = conn)
     
     #Run SQL query
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_tmp_bh")), silent = T)
     dbGetQuery(conn = conn, sql4)
     
-    #### STEP 6: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE #### 
+    #### STEP 7: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE #### 
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    message("STEP 5: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE")
     # Build SQL query
     sql5 <- glue_sql(
       "INSERT INTO {`schema`}.{`to_table`} with (tablock)
       SELECT
       {`id_source`}, from_date, to_date, bh_cond, 
       getdate() as last_run
-      FROM ##rolling_tmp_bh;
-      
-    if object_id('tempdb..##header_bh') IS NOT NULL drop table ##header_bh;
-    if object_id('tempdb..##matrix') IS NOT NULL drop table ##matrix;
-    IF object_id('tempdb..##rolling_matrix') IS NOT NULL drop table ##rolling_matrix;
-    IF object_id('tempdb..##rolling_tmp_bh') IS NOT NULL drop table ##rolling_tmp_bh;",
+      FROM {`schema`}.tmp_rolling_tmp_bh;",
       .con = conn)
     
     #Run SQL query
     dbGetQuery(conn = conn, sql5)
     
-
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_header_bh")), silent = T)
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_matrix")), silent = T)
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_matrix")), silent = T)
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_tmp_bh")), silent = T)
   
   #Run time of all steps
-  proc.time() - ptm01
+    message(glue::glue("Table creation took {round(difftime(time_end, time_start, units = 'secs'), 2)} ",
+                       " secs ({round(difftime(time_end, time_start, units = 'mins'), 2)} mins)"))
 }
 
 ### TEST RUN
