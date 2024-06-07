@@ -8,8 +8,7 @@
 # Adapted from Eli Kern's APCD analytic script
 #
 # 2024-05
-
-#Note: Currently only includes code for claims analytic tables, elig tables are run from separate script
+#
 
 #### SET UP ####
 
