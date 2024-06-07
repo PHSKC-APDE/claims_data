@@ -3,8 +3,9 @@
 #
 # 2024-06
 #
-#Note this script actually creates a SQL stored procedure and then executes given learnings that running WHILE loops
-  #from R to SQL via ODBC lead to silent failures of the loop after a certain # of iterations
+#Note this script runs in batches, each terminating in a persistent table
+#This is to prevent issues with silent failures of script when running the whole thing from R via ODBC using all local temp tables
+#Note that global temp tables cannot be used in Synapse Analytics
 
 ### Run from master_apcd_analytic script
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/07_apcd_create_analytic_tables.R
@@ -12,19 +13,10 @@
 #### Load script ####
 load_stage.apcd_claim_preg_episode_f <- function() {
   
-  
-  ### Drop stored procedure if it exists
-  odbc::dbExecute(dw_inthealth,
-                  "if (object_id('stg_claims.apcd_claim_preg_episode') is not null) drop procedure stg_claims.apcd_claim_preg_episode;")
-  
-  
-  ### Create stored procedure
-  odbc::dbExecute(dw_inthealth,
-    "create procedure stg_claims.apcd_claim_preg_episode
-    as
-    begin
-  
-    ---------------------------------
+  ## Steps 1-4: Identify all pregnancy endpoints
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "---------------------------------
     --Eli Kern, APDE, PHSKC
     --January 2023
     --Code to create a pregnancy endpoint analytic table, based on Moll et al. 2021 study
@@ -185,18 +177,35 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'temp5');
         
     --Add ranking variable within each pregnancy endpoint type
-    IF OBJECT_ID(N'tempdb..#preg_endpoint') IS NOT NULL drop table #preg_endpoint;
-    select *, rank() over (partition by id_apcd, preg_endpoint order by last_service_date) as preg_endpoint_rank 
-    into #preg_endpoint
+    --Save data thus far in persistent heap table
+    if object_id(N'stg_claims.tmp_apcd_claim_preg_endpoint',N'U') is not null drop table stg_claims.tmp_apcd_claim_preg_endpoint;
+    create table stg_claims.tmp_apcd_claim_preg_endpoint (
+    id_apcd bigint,
+    last_service_date date,
+    lb tinyint,
+    ect tinyint,
+    ab tinyint,
+    sa tinyint,
+    sb tinyint,
+    tro tinyint,
+    deliv tinyint,
+    preg_endpoint varchar(255),
+    preg_hier tinyint,
+    preg_endpoint_rank int
+    ) with (heap);
+    
+    insert into stg_claims.tmp_apcd_claim_preg_endpoint
+    select *, rank() over (partition by id_apcd, preg_endpoint order by last_service_date) as preg_endpoint_rank
     from #temp5
-    option (label = 'preg_endpoint');
-        
-        
-    --------------------------
-    --STEP 5: Hierarchical assessment of pregnancy outcomes to create pregnancy episodes for each woman
-    --------------------------
-        
-    -------
+    option (label = 'preg_endpoint');",
+    .con = dw_inthealth))
+  
+  ### Step 5: Hierarchical assessment of pregnancy outcomes to create pregnancy episodes for each woman, broken into batches
+  
+  ##Step 5A
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "-------
     --Step 5A: Group livebirth service days into distinct pregnancy episodes
     -------
         
@@ -208,7 +217,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     from(
         select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank,
         	lag(last_service_date, 1, last_service_date) over (partition by id_apcd order by last_service_date) as date_compare_lag1
-        from #preg_endpoint
+        from stg_claims.tmp_apcd_claim_preg_endpoint
         where preg_endpoint = 'lb'
     ) as a
     option (label = 'lb_step1');
@@ -224,60 +233,73 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'lb_step2');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-  	--set counter initially at 1
-  	declare @counter_lb int = 1;
-  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-  	while exists (select * from #lb_step1 where preg_endpoint_rank = @counter_lb + 1)
-  	--begin loop
-  	begin
-  	insert into #lb_step2 --insert rows for next preg_endpoint_rank (looping over counter)
-  	select b.*,
-  	--generate cumulative days diff that resets when threshold is reached
-  	case
-  		when a.days_diff_cum + b.days_diff > 182 then 0
-  		else a.days_diff_cum + b.days_diff
-  	end as days_diff_cum,
-  	--generate variable to flag inclusion on timeline
-  	case
-  		when a.days_diff_cum + b.days_diff > 182 then 1
-  		else 0
-  	end as timeline_include
-  	from (select * from #lb_step2 where preg_endpoint_rank = @counter_lb) as a --refers to table receiving inserted rows
-  	inner join (select * from #lb_step1 where preg_endpoint_rank = @counter_lb + 1) as b --refers to initial table
-  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-  	option (label = 'lb_step2_loop');
-  	--advance counter by 1
-  	set @counter_lb = @counter_lb + 1;
-  	-- break in case infinite loop (defined as counter greater than 100
-  	if @counter_lb > 100 begin raiserror('Too many loops!', 16, 1) break end;
-  	--end loop
-  	end;
+    --set counter initially at 1
+    declare @counter_lb int = 1;
+    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+    while exists (select * from #lb_step1 where preg_endpoint_rank = @counter_lb + 1)
+    --begin loop
+    begin
+    insert into #lb_step2 --insert rows for next preg_endpoint_rank (looping over counter)
+    select b.*,
+    --generate cumulative days diff that resets when threshold is reached
+    case
+    	when a.days_diff_cum + b.days_diff > 182 then 0
+    	else a.days_diff_cum + b.days_diff
+    end as days_diff_cum,
+    --generate variable to flag inclusion on timeline
+    case
+    	when a.days_diff_cum + b.days_diff > 182 then 1
+    	else 0
+    end as timeline_include
+    from (select * from #lb_step2 where preg_endpoint_rank = @counter_lb) as a --refers to table receiving inserted rows
+    inner join (select * from #lb_step1 where preg_endpoint_rank = @counter_lb + 1) as b --refers to initial table
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'lb_step2_loop');
+    --advance counter by 1
+    set @counter_lb = @counter_lb + 1;
+    -- break in case infinite loop (defined as counter greater than 100
+    if @counter_lb > 100 begin raiserror('Too many loops!', 16, 1) break end;
+    --end loop
+    end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
-    if object_id(N'tempdb..#lb_final') is not null drop table #lb_final;
+    --Save data thus far in persistent heap table
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_final;
+    create table stg_claims.tmp_apcd_claim_lb_final (
+    id_apcd bigint,
+    last_service_date date,
+    preg_endpoint varchar(255),
+    preg_hier tinyint,
+    preg_endpoint_rank int,
+    preg_episode_id bigint
+    ) with (heap);
+    
+    insert into stg_claims.tmp_apcd_claim_lb_final
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank,
         rank() over (partition by id_apcd order by last_service_date) as preg_episode_id
-    into #lb_final
     from #lb_step2
     where timeline_include = 1
     option (label = 'lb_final');
         
     --Clean up temp tables
     if object_id(N'tempdb..#lb_step1') is not null drop table #lb_step1;
-    if object_id(N'tempdb..#lb_step2') is not null drop table #lb_step2;    
-        
-    
-    -------
+    if object_id(N'tempdb..#lb_step2') is not null drop table #lb_step2;",
+      .con = dw_inthealth))
+  
+  ##Step 5B
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "-------
     --Step 5B: PROCESS STILLBIRTH EPISODES
     -------
         
     --Union LB and SB endpoints
     if object_id(N'tempdb..#sb_step1') is not null drop table #sb_step1;
-    select *, last_service_date as prior_lb_date, last_service_date as next_lb_date into #sb_step1 from #lb_final
+    select *, last_service_date as prior_lb_date, last_service_date as next_lb_date into #sb_step1 from stg_claims.tmp_apcd_claim_lb_final
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_lb_date, null as next_lb_date
-    from #preg_endpoint where preg_endpoint = 'sb'
+    from stg_claims.tmp_apcd_claim_preg_endpoint where preg_endpoint = 'sb'
     option (label = 'sb_step1');
         
     --Create column to hold dates of LB endpoints for comparison
@@ -342,34 +364,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'sb_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-  	--set counter initially at 1
-  	declare @counter_sb int = 1;
-  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-  	while exists (select * from #sb_step5 where preg_endpoint_rank = @counter_sb + 1)
-  	--begin loop
-  	begin
-  	insert into #sb_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-  	select b.*,
-  	--generate cumulative days diff that resets when threshold is reached
-  	case
-  		when a.days_diff_cum + b.days_diff > 168 then 0
-  		else a.days_diff_cum + b.days_diff
-  	end as days_diff_cum,
-  	--generate variable to flag inclusion on timeline
-  	case
-  		when a.days_diff_cum + b.days_diff > 168 then 1
-  		else 0
-  	end as timeline_include
-  	from (select * from #sb_step6 where preg_endpoint_rank = @counter_sb) as a --refers to table receiving inserted rows
-  	inner join (select * from #sb_step5 where preg_endpoint_rank = @counter_sb + 1) as b --refers to initial table
-  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-  	option (label = 'sb_step6_loop');
-  	--advance counter by 1
-  	set @counter_sb = @counter_sb + 1;
-  	-- break in case infinite loop (defined as counter greater than 100
-  	if @counter_sb > 100 begin raiserror('Too many loops!', 16, 1) break end;
-  	--end loop
-  	end;
+    --set counter initially at 1
+    declare @counter_sb int = 1;
+    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+    while exists (select * from #sb_step5 where preg_endpoint_rank = @counter_sb + 1)
+    --begin loop
+    begin
+    insert into #sb_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+    select b.*,
+    --generate cumulative days diff that resets when threshold is reached
+    case
+    	when a.days_diff_cum + b.days_diff > 168 then 0
+    	else a.days_diff_cum + b.days_diff
+    end as days_diff_cum,
+    --generate variable to flag inclusion on timeline
+    case
+    	when a.days_diff_cum + b.days_diff > 168 then 1
+    	else 0
+    end as timeline_include
+    from (select * from #sb_step6 where preg_endpoint_rank = @counter_sb) as a --refers to table receiving inserted rows
+    inner join (select * from #sb_step5 where preg_endpoint_rank = @counter_sb + 1) as b --refers to initial table
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'sb_step6_loop');
+    --advance counter by 1
+    set @counter_sb = @counter_sb + 1;
+    -- break in case infinite loop (defined as counter greater than 100
+    if @counter_sb > 100 begin raiserror('Too many loops!', 16, 1) break end;
+    --end loop
+    end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#sb_final') is not null drop table #sb_final;
@@ -381,8 +403,19 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'sb_final');
         
     --Union LB and SB endpoints placed on timeline
-    if object_id(N'tempdb..#lb_sb_final') is not null drop table #lb_sb_final;
-    select * into #lb_sb_final from #lb_final
+    --Save data thus far in persistent heap table
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_sb_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_sb_final;
+    create table stg_claims.tmp_apcd_claim_lb_sb_final (
+    id_apcd bigint,
+    last_service_date date,
+    preg_endpoint varchar(255),
+    preg_hier tinyint,
+    preg_endpoint_rank int,
+    preg_episode_id bigint
+    ) with (heap);
+    
+    insert into stg_claims.tmp_apcd_claim_lb_sb_final
+    select * from stg_claims.tmp_apcd_claim_lb_final
     union
     select * from #sb_final
     option (label = 'lb_sb_final');
@@ -394,21 +427,24 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     if object_id(N'tempdb..#sb_step4') is not null drop table #sb_step4;
     if object_id(N'tempdb..#sb_step5') is not null drop table #sb_step5;
     if object_id(N'tempdb..#sb_step6') is not null drop table #sb_step6;
-    if object_id(N'tempdb..#lb_final') is not null drop table #lb_final;
-    if object_id(N'tempdb..#sb_final') is not null drop table #sb_final;
-        
-        
-    -------
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_final;
+    if object_id(N'tempdb..#sb_final') is not null drop table #sb_final;",
+      .con = dw_inthealth))
+  
+  ##Step 5C
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "-------
     --Step 5C: PROCESS DELIV EPISODES
     -------
         
     --Union LB-SB and DELIV endpoints
     if object_id(N'tempdb..#deliv_step1') is not null drop table #deliv_step1;
-    select *, last_service_date as prior_date, last_service_date as next_date into #deliv_step1 from #lb_sb_final
+    select *, last_service_date as prior_date, last_service_date as next_date into #deliv_step1 from stg_claims.tmp_apcd_claim_lb_sb_final
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_date, null as next_date
-    from #preg_endpoint where preg_endpoint = 'deliv'
+    from stg_claims.tmp_apcd_claim_preg_endpoint where preg_endpoint = 'deliv'
     option (label = 'deliv_step1');
         
     --Create column to hold dates of LB and SB endpoints for comparison
@@ -493,34 +529,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'deliv_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-  	--set counter initially at 1
-  	declare @counter_deliv int = 1;
-  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-  	while exists (select * from #deliv_step5 where preg_endpoint_rank = @counter_deliv + 1)
-  	--begin loop
-  	begin
-  	insert into #deliv_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-  	select b.*,
-  	--generate cumulative days diff that resets when threshold is reached
-  	case
-  		when a.days_diff_cum + b.days_diff > 168 then 0
-  		else a.days_diff_cum + b.days_diff
-  	end as days_diff_cum,
-  	--generate variable to flag inclusion on timeline
-  	case
-  		when a.days_diff_cum + b.days_diff > 168 then 1
-  		else 0
-  	end as timeline_include
-  	from (select * from #deliv_step6 where preg_endpoint_rank = @counter_deliv) as a --refers to table receiving inserted rows
-  	inner join (select * from #deliv_step5 where preg_endpoint_rank = @counter_deliv + 1) as b --refers to initial table
-  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-  	option (label = 'deliv_step6_loop');
-  	--advance counter by 1
-  	set @counter_deliv = @counter_deliv + 1;
-  	-- break in case infinite loop (defined as counter greater than 100
-  	if @counter_deliv > 100 begin raiserror('Too many loops!', 16, 1) break end;
-  	--end loop
-  	end;
+    --set counter initially at 1
+    declare @counter_deliv int = 1;
+    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+    while exists (select * from #deliv_step5 where preg_endpoint_rank = @counter_deliv + 1)
+    --begin loop
+    begin
+    insert into #deliv_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+    select b.*,
+    --generate cumulative days diff that resets when threshold is reached
+    case
+    	when a.days_diff_cum + b.days_diff > 168 then 0
+    	else a.days_diff_cum + b.days_diff
+    end as days_diff_cum,
+    --generate variable to flag inclusion on timeline
+    case
+    	when a.days_diff_cum + b.days_diff > 168 then 1
+    	else 0
+    end as timeline_include
+    from (select * from #deliv_step6 where preg_endpoint_rank = @counter_deliv) as a --refers to table receiving inserted rows
+    inner join (select * from #deliv_step5 where preg_endpoint_rank = @counter_deliv + 1) as b --refers to initial table
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'deliv_step6_loop');
+    --advance counter by 1
+    set @counter_deliv = @counter_deliv + 1;
+    -- break in case infinite loop (defined as counter greater than 100
+    if @counter_deliv > 100 begin raiserror('Too many loops!', 16, 1) break end;
+    --end loop
+    end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#deliv_final') is not null drop table #deliv_final;
@@ -532,12 +568,23 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'deliv_final');
         
     --Union LB, SB and DELIV endpoints placed on timeline
-    if object_id(N'tempdb..#lb_sb_deliv_final') is not null drop table #lb_sb_deliv_final;
-    select * into #lb_sb_deliv_final from #lb_sb_final
+    --Save data thus far in persistent heap table
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_sb_deliv_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_sb_deliv_final;
+    create table stg_claims.tmp_apcd_claim_lb_sb_deliv_final (
+    id_apcd bigint,
+    last_service_date date,
+    preg_endpoint varchar(255),
+    preg_hier tinyint,
+    preg_endpoint_rank int,
+    preg_episode_id bigint
+    ) with (heap);
+    
+    insert into stg_claims.tmp_apcd_claim_lb_sb_deliv_final
+    select * from stg_claims.tmp_apcd_claim_lb_sb_final
     union
     select * from #deliv_final
     option (label = 'lb_sb_deliv_final');
-        
+    
     --Clean up temp tables
     if object_id(N'tempdb..#deliv_step1') is not null drop table #deliv_step1;
     if object_id(N'tempdb..#deliv_step2') is not null drop table #deliv_step2;
@@ -545,21 +592,24 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     if object_id(N'tempdb..#deliv_step4') is not null drop table #deliv_step4;
     if object_id(N'tempdb..#deliv_step5') is not null drop table #deliv_step5;
     if object_id(N'tempdb..#deliv_step6') is not null drop table #deliv_step6;
-    if object_id(N'tempdb..#lb_sb_final') is not null drop table #lb_sb_final;
-    if object_id(N'tempdb..#deliv_final') is not null drop table #deliv_final;
-        
-        
-    -------
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_sb_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_sb_final;
+    if object_id(N'tempdb..#deliv_final') is not null drop table #deliv_final;",
+      .con = dw_inthealth))
+  
+  ##Step 5D
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "-------
     --Step 5D: PROCESS TRO EPISODES
     -------
         
     --Union LB-SB-DELIV and TRO endpoints
     if object_id(N'tempdb..#tro_step1') is not null drop table #tro_step1;
-    select *, last_service_date as prior_date, last_service_date as next_date into #tro_step1 from #lb_sb_deliv_final
+    select *, last_service_date as prior_date, last_service_date as next_date into #tro_step1 from stg_claims.tmp_apcd_claim_lb_sb_deliv_final
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_date, null as next_date
-    from #preg_endpoint where preg_endpoint = 'tro'
+    from stg_claims.tmp_apcd_claim_preg_endpoint where preg_endpoint = 'tro'
     option (label = 'tro_step1');
         
     --Create column to hold dates of LB and SB endpoints for comparison
@@ -662,34 +712,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'tro_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-  	--set counter initially at 1
-  	declare @counter_tro int = 1;
-  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-  	while exists (select * from #tro_step5 where preg_endpoint_rank = @counter_tro + 1)
-  	--begin loop
-  	begin
-  	insert into #tro_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-  	select b.*,
-  	--generate cumulative days diff that resets when threshold is reached
-  	case
-  		when a.days_diff_cum + b.days_diff > 56 then 0
-  		else a.days_diff_cum + b.days_diff
-  	end as days_diff_cum,
-  	--generate variable to flag inclusion on timeline
-  	case
-  		when a.days_diff_cum + b.days_diff > 56 then 1
-  		else 0
-  	end as timeline_include
-  	from (select * from #tro_step6 where preg_endpoint_rank = @counter_tro) as a --refers to table receiving inserted rows
-  	inner join (select * from #tro_step5 where preg_endpoint_rank = @counter_tro + 1) as b --refers to initial table
-  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-  	option (label = 'tro_step6_loop');
-  	--advance counter by 1
-  	set @counter_tro = @counter_tro + 1;
-  	-- break in case infinite loop (defined as counter greater than 100
-  	if @counter_tro > 100 begin raiserror('Too many loops!', 16, 1) break end;
-  	--end loop
-  	end;
+    --set counter initially at 1
+    declare @counter_tro int = 1;
+    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+    while exists (select * from #tro_step5 where preg_endpoint_rank = @counter_tro + 1)
+    --begin loop
+    begin
+    insert into #tro_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+    select b.*,
+    --generate cumulative days diff that resets when threshold is reached
+    case
+    	when a.days_diff_cum + b.days_diff > 56 then 0
+    	else a.days_diff_cum + b.days_diff
+    end as days_diff_cum,
+    --generate variable to flag inclusion on timeline
+    case
+    	when a.days_diff_cum + b.days_diff > 56 then 1
+    	else 0
+    end as timeline_include
+    from (select * from #tro_step6 where preg_endpoint_rank = @counter_tro) as a --refers to table receiving inserted rows
+    inner join (select * from #tro_step5 where preg_endpoint_rank = @counter_tro + 1) as b --refers to initial table
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'tro_step6_loop');
+    --advance counter by 1
+    set @counter_tro = @counter_tro + 1;
+    -- break in case infinite loop (defined as counter greater than 100
+    if @counter_tro > 100 begin raiserror('Too many loops!', 16, 1) break end;
+    --end loop
+    end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#tro_final') is not null drop table #tro_final;
@@ -701,8 +751,19 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'tro_final');
         
     --Union LB, SB, DELIV and TRO endpoints placed on timeline
-    if object_id(N'tempdb..#lb_sb_deliv_tro_final') is not null drop table #lb_sb_deliv_tro_final;
-    select * into #lb_sb_deliv_tro_final from #lb_sb_deliv_final
+    --Save data thus far in persistent heap table
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_final;
+    create table stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_final (
+    id_apcd bigint,
+    last_service_date date,
+    preg_endpoint varchar(255),
+    preg_hier tinyint,
+    preg_endpoint_rank int,
+    preg_episode_id bigint
+    ) with (heap);
+    
+    insert into stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_final
+    select * from stg_claims.tmp_apcd_claim_lb_sb_deliv_final
     union
     select * from #tro_final
     option (label = 'lb_sb_deliv_tro_final');
@@ -714,21 +775,24 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     if object_id(N'tempdb..#tro_step4') is not null drop table #tro_step4;
     if object_id(N'tempdb..#tro_step5') is not null drop table #tro_step5;
     if object_id(N'tempdb..#tro_step6') is not null drop table #tro_step6;
-    if object_id(N'tempdb..#lb_sb_deliv_final') is not null drop table #lb_sb_deliv_final;
-    if object_id(N'tempdb..#tro_final') is not null drop table #tro_final;
-        
-        
-    -------
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_sb_deliv_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_sb_deliv_final;
+    if object_id(N'tempdb..#tro_final') is not null drop table #tro_final;",
+      .con = dw_inthealth))
+  
+  ##Step 5E
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "-------
     --Step 5E: PROCESS ECT EPISODES
     -------
         
     --Union LB-SB, DELIV, TRO and ECT endpoints
     if object_id(N'tempdb..#ect_step1') is not null drop table #ect_step1;
-    select *, last_service_date as prior_date, last_service_date as next_date into #ect_step1 from #lb_sb_deliv_tro_final
+    select *, last_service_date as prior_date, last_service_date as next_date into #ect_step1 from stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_final
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_date, null as next_date
-    from #preg_endpoint where preg_endpoint = 'ect'
+    from stg_claims.tmp_apcd_claim_preg_endpoint where preg_endpoint = 'ect'
     option (label = 'ect_step1');
         
     --Create column to hold dates of LB, SB, DELIV and TRO endpoints for comparison
@@ -849,34 +913,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'ect_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-  	--set counter initially at 1
-  	declare @counter_ect int = 1;
-  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-  	while exists (select * from #ect_step5 where preg_endpoint_rank = @counter_ect + 1)
-  	--begin loop
-  	begin
-  	insert into #ect_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-  	select b.*,
-  	--generate cumulative days diff that resets when threshold is reached
-  	case
-  		when a.days_diff_cum + b.days_diff > 56 then 0
-  		else a.days_diff_cum + b.days_diff
-  	end as days_diff_cum,
-  	--generate variable to flag inclusion on timeline
-  	case
-  		when a.days_diff_cum + b.days_diff > 56 then 1
-  		else 0
-  	end as timeline_include
-  	from (select * from #ect_step6 where preg_endpoint_rank = @counter_ect) as a --refers to table receiving inserted rows
-  	inner join (select * from #ect_step5 where preg_endpoint_rank = @counter_ect + 1) as b --refers to initial table
-  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-  	option (label = 'ect_step6_loop');
-  	--advance counter by 1
-  	set @counter_ect = @counter_ect + 1;
-  	-- break in case infinite loop (defined as counter greater than 100
-  	if @counter_ect > 100 begin raiserror('Too many loops!', 16, 1) break end;
-  	--end loop
-  	end;
+    --set counter initially at 1
+    declare @counter_ect int = 1;
+    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+    while exists (select * from #ect_step5 where preg_endpoint_rank = @counter_ect + 1)
+    --begin loop
+    begin
+    insert into #ect_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+    select b.*,
+    --generate cumulative days diff that resets when threshold is reached
+    case
+    	when a.days_diff_cum + b.days_diff > 56 then 0
+    	else a.days_diff_cum + b.days_diff
+    end as days_diff_cum,
+    --generate variable to flag inclusion on timeline
+    case
+    	when a.days_diff_cum + b.days_diff > 56 then 1
+    	else 0
+    end as timeline_include
+    from (select * from #ect_step6 where preg_endpoint_rank = @counter_ect) as a --refers to table receiving inserted rows
+    inner join (select * from #ect_step5 where preg_endpoint_rank = @counter_ect + 1) as b --refers to initial table
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'ect_step6_loop');
+    --advance counter by 1
+    set @counter_ect = @counter_ect + 1;
+    -- break in case infinite loop (defined as counter greater than 100
+    if @counter_ect > 100 begin raiserror('Too many loops!', 16, 1) break end;
+    --end loop
+    end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#ect_final') is not null drop table #ect_final;
@@ -888,8 +952,19 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'ect_final');
         
     --Union LB, SB, DELIV, TRO, and ECT endpoints placed on timeline
-    if object_id(N'tempdb..#lb_sb_deliv_tro_ect_final') is not null drop table #lb_sb_deliv_tro_ect_final;
-    select * into #lb_sb_deliv_tro_ect_final from #lb_sb_deliv_tro_final
+    --Save data thus far in persistent heap table
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_final;
+    create table stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_final (
+    id_apcd bigint,
+    last_service_date date,
+    preg_endpoint varchar(255),
+    preg_hier tinyint,
+    preg_endpoint_rank int,
+    preg_episode_id bigint
+    ) with (heap);
+    
+    insert into stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_final
+    select * from stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_final
     union
     select * from #ect_final
     option (label = 'lb_sb_deliv_tro_ect_final');
@@ -901,21 +976,24 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     if object_id(N'tempdb..#ect_step4') is not null drop table #ect_step4;
     if object_id(N'tempdb..#ect_step5') is not null drop table #ect_step5;
     if object_id(N'tempdb..#ect_step6') is not null drop table #ect_step6;
-    if object_id(N'tempdb..#lb_sb_deliv_tro_final') is not null drop table #lb_sb_deliv_tro_final;
-    if object_id(N'tempdb..#ect_final') is not null drop table #ect_final;
-        
-        
-    -------
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_final;
+    if object_id(N'tempdb..#ect_final') is not null drop table #ect_final;",
+      .con = dw_inthealth))
+  
+  ##Step 5F
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "-------
     --Step 5F: PROCESS AB EPISODES
     -------
         
     --Union LB-SB, DELIV, TRO, ECT, an AB endpoints
     if object_id(N'tempdb..#ab_step1') is not null drop table #ab_step1;
-    select *, last_service_date as prior_date, last_service_date as next_date into #ab_step1 from #lb_sb_deliv_tro_ect_final
+    select *, last_service_date as prior_date, last_service_date as next_date into #ab_step1 from stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_final
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_date, null as next_date
-    from #preg_endpoint where preg_endpoint = 'ab'
+    from stg_claims.tmp_apcd_claim_preg_endpoint where preg_endpoint = 'ab'
     option (label = 'ab_step1');
         
     --Create column to hold dates of LB, SB, DELIV, TRO, and ECT endpoints for comparison
@@ -1054,32 +1132,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'ab_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-  	--set counter initially at 1
-  	declare @counter_ab int = 1
-  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-  	while (@counter_ab + 1 <= (select max(preg_endpoint_rank) from #ab_step5))
-  	--begin loop
-  	begin
-  	insert into #ab_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-  	select b.*,
-  	--generate cumulative days diff that resets when threshold is reached
-  	case
-  		when a.days_diff_cum + b.days_diff > 56 then 0
-  		else a.days_diff_cum + b.days_diff
-  	end as days_diff_cum,
-  	--generate variable to flag inclusion on timeline
-  	case
-  		when a.days_diff_cum + b.days_diff > 56 then 1
-  		else 0
-  	end as timeline_include
-  	from (select * from #ab_step6 where preg_endpoint_rank = @counter_ab) as a --refers to table receiving inserted rows
-  	inner join (select * from #ab_step5 where preg_endpoint_rank = @counter_ab + 1) as b --refers to initial table
-  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-  	option (label = 'ab_step6_loop');
-  	--advance counter by 1
-  	set @counter_ab = @counter_ab + 1;
-  	--end loop
-  	end;
+    --set counter initially at 1
+    declare @counter_ab int = 1
+    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+    while (@counter_ab + 1 <= (select max(preg_endpoint_rank) from #ab_step5))
+    --begin loop
+    begin
+    insert into #ab_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+    select b.*,
+    --generate cumulative days diff that resets when threshold is reached
+    case
+    	when a.days_diff_cum + b.days_diff > 56 then 0
+    	else a.days_diff_cum + b.days_diff
+    end as days_diff_cum,
+    --generate variable to flag inclusion on timeline
+    case
+    	when a.days_diff_cum + b.days_diff > 56 then 1
+    	else 0
+    end as timeline_include
+    from (select * from #ab_step6 where preg_endpoint_rank = @counter_ab) as a --refers to table receiving inserted rows
+    inner join (select * from #ab_step5 where preg_endpoint_rank = @counter_ab + 1) as b --refers to initial table
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'ab_step6_loop');
+    --advance counter by 1
+    set @counter_ab = @counter_ab + 1;
+    -- break in case infinite loop (defined as counter greater than 100
+    if @counter_ab > 100 begin raiserror('Too many loops!', 16, 1) break end;
+    --end loop
+    end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#ab_final') is not null drop table #ab_final;
@@ -1091,12 +1171,23 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'ab_final');
         
     --Union LB, SB, DELIV, TRO, ECT and AB endpoints placed on timeline
-    if object_id(N'tempdb..#lb_sb_deliv_tro_ect_ab_final') is not null drop table #lb_sb_deliv_tro_ect_ab_final;
-    select * into #lb_sb_deliv_tro_ect_ab_final from #lb_sb_deliv_tro_ect_final
+    --Save data thus far in persistent heap table
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_ab_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_ab_final;
+    create table stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_ab_final (
+    id_apcd bigint,
+    last_service_date date,
+    preg_endpoint varchar(255),
+    preg_hier tinyint,
+    preg_endpoint_rank int,
+    preg_episode_id bigint
+    ) with (heap);
+    
+    insert into stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_ab_final
+    select * from stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_final
     union
     select * from #ab_final
     option (label = 'lb_sb_deliv_tro_ect_ab_final');
-        
+      
     --Clean up temp tables
     if object_id(N'tempdb..#ab_step1') is not null drop table #ab_step1;
     if object_id(N'tempdb..#ab_step2') is not null drop table #ab_step2;
@@ -1104,21 +1195,24 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     if object_id(N'tempdb..#ab_step4') is not null drop table #ab_step4;
     if object_id(N'tempdb..#ab_step5') is not null drop table #ab_step5;
     if object_id(N'tempdb..#ab_step6') is not null drop table #ab_step6;
-    if object_id(N'tempdb..#lb_sb_deliv_tro_ect_final') is not null drop table #lb_sb_deliv_tro_ect_final;
-    if object_id(N'tempdb..#ab_final') is not null drop table #ab_final;
-        
-        
-    -------
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_final;
+    if object_id(N'tempdb..#ab_final') is not null drop table #ab_final;",
+      .con = dw_inthealth))
+  
+  ##Step 5G
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "-------
     --Step 5G: PROCESS SA EPISODES
     -------
         
     --Union LB-SB, DELIV, TRO, ECT, AB, and SA endpoints
     if object_id(N'tempdb..#sa_step1') is not null drop table #sa_step1;
-    select *, last_service_date as prior_date, last_service_date as next_date into #sa_step1 from #lb_sb_deliv_tro_ect_ab_final
+    select *, last_service_date as prior_date, last_service_date as next_date into #sa_step1 from stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_ab_final
     union
     select id_apcd, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
         null as prior_date, null as next_date
-    from #preg_endpoint where preg_endpoint = 'sa'
+    from stg_claims.tmp_apcd_claim_preg_endpoint where preg_endpoint = 'sa'
     option (label = 'sa_step1');
         
     --Create column to hold dates of LB, SB, DELIV, TRO, ECT, and AB endpoints for comparison
@@ -1275,34 +1369,34 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'sa_step6');
     
     --Loop over all preg endpoints to identify endpoints to include on each woman's timeline
-  	--set counter initially at 1
-  	declare @counter_sa int = 1;
-  	--create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
-  	while exists (select * from #sa_step5 where preg_endpoint_rank = @counter_sa + 1)
-  	--begin loop
-  	begin
-  	insert into #sa_step6 --insert rows for next preg_endpoint_rank (looping over counter)
-  	select b.*,
-  	--generate cumulative days diff that resets when threshold is reached
-  	case
-  		when a.days_diff_cum + b.days_diff > 42 then 0
-  		else a.days_diff_cum + b.days_diff
-  	end as days_diff_cum,
-  	--generate variable to flag inclusion on timeline
-  	case
-  		when a.days_diff_cum + b.days_diff > 42 then 1
-  		else 0
-  	end as timeline_include
-  	from (select * from #sa_step6 where preg_endpoint_rank = @counter_sa) as a --refers to table receiving inserted rows
-  	inner join (select * from #sa_step5 where preg_endpoint_rank = @counter_sa + 1) as b --refers to initial table
-  	on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
-  	option (label = 'sa_step6_loop');
-  	--advance counter by 1
-  	set @counter_sa = @counter_sa + 1;
-  	-- break in case infinite loop (defined as counter greater than 100
-  	if @counter_sa > 100 begin raiserror('Too many loops!', 16, 1) break end;
-  	--end loop
-  	end;
+    --set counter initially at 1
+    declare @counter_sa int = 1;
+    --create while condition (rows exist with given preg_endpoint_rank + 1, as each endpoint is compared to subsequent)
+    while exists (select * from #sa_step5 where preg_endpoint_rank = @counter_sa + 1)
+    --begin loop
+    begin
+    insert into #sa_step6 --insert rows for next preg_endpoint_rank (looping over counter)
+    select b.*,
+    --generate cumulative days diff that resets when threshold is reached
+    case
+    	when a.days_diff_cum + b.days_diff > 42 then 0
+    	else a.days_diff_cum + b.days_diff
+    end as days_diff_cum,
+    --generate variable to flag inclusion on timeline
+    case
+    	when a.days_diff_cum + b.days_diff > 42 then 1
+    	else 0
+    end as timeline_include
+    from (select * from #sa_step6 where preg_endpoint_rank = @counter_sa) as a --refers to table receiving inserted rows
+    inner join (select * from #sa_step5 where preg_endpoint_rank = @counter_sa + 1) as b --refers to initial table
+    on (a.id_apcd = b.id_apcd) and (a.preg_endpoint_rank + 1 = b.preg_endpoint_rank)
+    option (label = 'sa_step6_loop');
+    --advance counter by 1
+    set @counter_sa = @counter_sa + 1;
+    -- break in case infinite loop (defined as counter greater than 100
+    if @counter_sa > 100 begin raiserror('Too many loops!', 16, 1) break end;
+    --end loop
+    end;
     
     --Create preg_episode_id variable and subset results to endpoints included on timeline
     if object_id(N'tempdb..#sa_final') is not null drop table #sa_final;
@@ -1314,11 +1408,22 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     option (label = 'sa_final');
         
     --Union LB, SB, DELIV, TRO, ECT, AB, and SA endpoints placed on timeline
-    if object_id(N'tempdb..#preg_endpoint_union') is not null drop table #preg_endpoint_union;
-    select * into #preg_endpoint_union from #lb_sb_deliv_tro_ect_ab_final
+    --Save data thus far in persistent heap table
+    if object_id(N'stg_claims.tmp_apcd_claim_preg_endpoint_union',N'U') is not null drop table stg_claims.tmp_apcd_claim_preg_endpoint_union;
+    create table stg_claims.tmp_apcd_claim_preg_endpoint_union (
+    id_apcd bigint,
+    last_service_date date,
+    preg_endpoint varchar(255),
+    preg_hier tinyint,
+    preg_endpoint_rank int,
+    preg_episode_id bigint
+    ) with (heap);
+    
+    insert into stg_claims.tmp_apcd_claim_preg_endpoint_union
+    select * from stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_ab_final
     union
     select * from #sa_final
-    option (label = 'preg_endpoint_union')
+    option (label = 'preg_endpoint_union');
         
     --Clean up temp tables
     if object_id(N'tempdb..#sa_step1') is not null drop table #sa_step1;
@@ -1327,26 +1432,41 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     if object_id(N'tempdb..#sa_step4') is not null drop table #sa_step4;
     if object_id(N'tempdb..#sa_step5') is not null drop table #sa_step5;
     if object_id(N'tempdb..#sa_step6') is not null drop table #sa_step6;
-    if object_id(N'tempdb..#lb_sb_deliv_tro_ect_ab_final') is not null drop table #lb_sb_deliv_tro_ect_ab_final;
-    if object_id(N'tempdb..#sa_final') is not null drop table #sa_final;
-        
-        
-    --------------------------
+    if object_id(N'stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_ab_final',N'U') is not null drop table stg_claims.tmp_apcd_claim_lb_sb_deliv_tro_ect_ab_final;
+    if object_id(N'tempdb..#sa_final') is not null drop table #sa_final;",
+      .con = dw_inthealth))
+  
+  ##Step 6: Regenerate pregnancy episode ID to be unique across dataset
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "--------------------------
     --STEP 6: Regenerate pregnancy episode ID to be unique across dataset
     --Drop preg_endpoint_rank variable as it is no longer needed
     --------------------------
-    if object_id(N'tempdb..#episode_0') is not null drop table #episode_0;
+    --Save data thus far in persistent heap table
+    if object_id(N'stg_claims.tmp_apcd_claim_preg_episode_0',N'U') is not null drop table stg_claims.tmp_apcd_claim_preg_episode_0;
+    create table stg_claims.tmp_apcd_claim_preg_episode_0 (
+    id_apcd bigint,
+    last_service_date date,
+    preg_endpoint varchar(255),
+    preg_hier tinyint,
+    preg_episode_id bigint
+    ) with (heap);
+    
+    insert into stg_claims.tmp_apcd_claim_preg_episode_0
     select id_apcd, last_service_date, preg_endpoint, preg_hier,
         dense_rank() over (order by id_apcd, last_service_date) as preg_episode_id
-    into #episode_0
-    from #preg_endpoint_union
-    option (label = 'episode_0');
-        
-        
+    from stg_claims.tmp_apcd_claim_preg_endpoint_union
+    option (label = 'episode_0');",
+      .con = dw_inthealth))
+  
+  ##Step 7: Define prenatal window for each pregnancy episode
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "--------------------------
+    --STEP 7: Define prenatal window for each pregnancy episode
     --------------------------
-    --STEP 7: Define prenatal window for each pregnancy episode (<1 min)
-    --------------------------
-        
+    
     --Create columns to hold information about prior pregnancy episode
     IF OBJECT_ID(N'tempdb..#episode_1') IS NOT NULL drop table #episode_1;
     select *,
@@ -1363,7 +1483,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     end as days_buffer
         
     into #episode_1
-    from #episode_0
+    from stg_claims.tmp_apcd_claim_preg_episode_0
     option (label = 'episode_1');
         
     --Calculate start and end dates for each pregnancy episode
@@ -1400,7 +1520,21 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --select count (*) as qa_count from #episode_2 where preg_start_date is null or preg_end_date is null;
         
     --Add columns to hold earliest and latest pregnancy start date for later processing
-    IF OBJECT_ID(N'tempdb..#preg_episode_temp') IS NOT NULL drop table #preg_episode_temp;
+    --Save data thus far in persistent heap table
+    if object_id(N'stg_claims.tmp_apcd_claim_preg_episode_temp',N'U') is not null drop table stg_claims.tmp_apcd_claim_preg_episode_temp;
+    create table stg_claims.tmp_apcd_claim_preg_episode_temp (
+    id_apcd bigint,
+    last_service_date date,
+    preg_endpoint varchar(255),
+    preg_hier tinyint,
+    preg_episode_id bigint,
+    preg_start_date date,
+    preg_end_date date,
+    preg_start_date_max date,
+    preg_start_date_min date
+    ) with (heap);
+    
+    insert into stg_claims.tmp_apcd_claim_preg_episode_temp
     select *,
         
     --earliest pregnancy start date
@@ -1420,12 +1554,15 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     else null
     end as preg_start_date_min
         
-    into #preg_episode_temp
     from #episode_2
-    option (label = 'preg_episode_temp');
-        
-        
-    --------------------------
+    option (label = 'preg_episode_temp');",
+      .con = dw_inthealth))
+  
+  ##Step 8: Use claims that provide information about gestational age to correct pregnancy outcome and start date
+  
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "--------------------------
     --STEP 8: Use claims that provide information about gestational age to correct pregnancy outcome and start date
     --Uses information in Supplemental Table 5
     --------------------------
@@ -1438,7 +1575,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_1a') IS NOT NULL drop table #ga_1a;
     select a.*, b.last_service_date as procedure_date, b.procedure_code
     into #ga_1a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     inner join stg_claims.stage_apcd_claim_procedure as b
     on a.id_apcd = b.id_apcd
     where b.procedure_code in ('58321', '58322', 'S4035', '58974', '58976', 'S4037')
@@ -1499,7 +1636,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_2a') IS NOT NULL drop table #ga_2a;
     select a.*
     into #ga_2a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -1590,7 +1727,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_3a') IS NOT NULL drop table #ga_3a;
     select a.*
     into #ga_3a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to2_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -1684,7 +1821,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_4a') IS NOT NULL drop table #ga_4a;
     select a.*
     into #ga_4a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to3_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -1779,7 +1916,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_5a') IS NOT NULL drop table #ga_5a;
     select a.*
     into #ga_5a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to4_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -1934,7 +2071,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_6a') IS NOT NULL drop table #ga_6a;
     select a.*
     into #ga_6a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to5_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -2010,7 +2147,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_7a') IS NOT NULL drop table #ga_7a;
     select a.*
     into #ga_7a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to6_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -2086,7 +2223,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_8a') IS NOT NULL drop table #ga_8a;
     select a.*
     into #ga_8a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to7_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -2162,7 +2299,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_9a') IS NOT NULL drop table #ga_9a;
     select a.*
     into #ga_9a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to8_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -2274,7 +2411,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_10a') IS NOT NULL drop table #ga_10a;
     select a.*
     into #ga_10a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to9_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -2403,7 +2540,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_11a') IS NOT NULL drop table #ga_11a;
     select a.*
     into #ga_11a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to10_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -2507,7 +2644,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_12a') IS NOT NULL drop table #ga_12a;
     select a.*
     into #ga_12a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to11_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -2583,7 +2720,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     IF OBJECT_ID(N'tempdb..#ga_13a') IS NOT NULL drop table #ga_13a;
     select a.*
     into #ga_13a
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to12_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null;
@@ -2661,10 +2798,26 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     ---------------
     --Union episodes that were not flagged by any of the 13 steps
     ---------------
-    IF OBJECT_ID(N'tempdb..#preg_episode') IS NOT NULL drop table #preg_episode;
+    --Save data thus far in persistent heap table
+    if object_id(N'stg_claims.tmp_apcd_claim_preg_episode',N'U') is not null drop table stg_claims.tmp_apcd_claim_preg_episode;
+    create table stg_claims.tmp_apcd_claim_preg_episode (
+    id_apcd bigint,
+    preg_episode_id bigint,
+    preg_endpoint varchar(255),
+    preg_hier tinyint,
+    preg_start_date date,
+    preg_end_date date,
+    ga_days int,
+    ga_weeks numeric(4,1),
+    valid_start_date tinyint,
+    valid_ga tinyint,
+    lb_type varchar(255),
+    ga_estimation_step tinyint
+    ) with (heap);
+    
+    insert into stg_claims.tmp_apcd_claim_preg_episode
     select id_apcd, preg_episode_id, preg_endpoint, preg_hier, preg_start_date_correct as preg_start_date,
         preg_end_date, ga_days, ga_weeks, valid_start_date, valid_ga, lb_type, ga_estimation_step
-    into #preg_episode
     from #ga_1to13_final
         
     union
@@ -2673,14 +2826,18 @@ load_stage.apcd_claim_preg_episode_f <- function() {
         a.preg_end_date, null as ga_days, null as ga_weeks, 0 as valid_start_date, 0 as valid_ga,
         null as lb_type, null as ga_estimation_step
         
-    from #preg_episode_temp as a
+    from stg_claims.tmp_apcd_claim_preg_episode_temp as a
     left join #ga_1to13_final as b
     on a.preg_episode_id = b.preg_episode_id
     where b.preg_episode_id is null
-    option (label = 'preg_episode');
-        
-    
-    --------------------------
+    option (label = 'preg_episode');",
+      .con = dw_inthealth))
+  
+  ##Step 9: Join to eligibility data to bring in age for subset
+  
+  odbc::dbExecute(
+    dw_inthealth, glue::glue_sql(
+    "--------------------------
     --STEP 9: Join to eligibility data to bring in age for subset
     --Also add a summary flag for valid start date and GA
     --------------------------
@@ -2695,7 +2852,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     a.valid_start_date, a.valid_ga, case when a.valid_start_date = 1 and a.valid_ga = 1 then 1 else 0 end as valid_both,
     a.lb_type, a.ga_estimation_step, getdate() as last_run
     into #preg_episode_age_all
-    from #preg_episode as a
+    from stg_claims.tmp_apcd_claim_preg_episode as a
     left join stg_claims.stage_apcd_elig_demo as b
     on a.id_apcd = b.id_apcd
     option (label = 'preg_episode_age_all');
@@ -2720,16 +2877,15 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     where age_at_outcome between 12 and 55
     option (label = 'apcd_claim_preg_episode');
     
-    end")
+    --Drop any remaining intermediate tables
+    if object_id(N'stg_claims.tmp_apcd_claim_preg_endpoint',N'U') is not null drop table stg_claims.tmp_apcd_claim_preg_endpoint;
+    if object_id(N'stg_claims.tmp_apcd_claim_preg_endpoint_union',N'U') is not null drop table stg_claims.tmp_apcd_claim_preg_endpoint_union;
+    if object_id(N'stg_claims.tmp_apcd_claim_preg_episode',N'U') is not null drop table stg_claims.tmp_apcd_claim_preg_episode;
+    if object_id(N'stg_claims.tmp_apcd_claim_preg_episode',N'U') is not null drop table stg_claims.tmp_apcd_claim_preg_episode;
+    if object_id(N'stg_claims.tmp_apcd_claim_preg_episode_0',N'U') is not null drop table stg_claims.tmp_apcd_claim_preg_episode_0;
+    if object_id(N'stg_claims.tmp_apcd_claim_preg_episode_temp',N'U') is not null drop table stg_claims.tmp_apcd_claim_preg_episode_temp;",
+      .con = dw_inthealth))
   
-  
-  ### Run stored procedure
-  odbc::dbExecute(dw_inthealth, "execute stg_claims.apcd_claim_preg_episode;")
-  
-  
-  ### Drop stored procedure
-  odbc::dbExecute(dw_inthealth,
-                  "if (object_id('stg_claims.apcd_claim_preg_episode') is not null) drop procedure stg_claims.apcd_claim_preg_episode;")
   
 }
 
