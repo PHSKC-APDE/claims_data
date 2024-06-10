@@ -9,7 +9,7 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/02_master_mcare_claims_analytic.R
 
 #### Load script ####
-load_stg_claims.stage_mcare_claim_header_f <- function() {
+load_stage.mcare_claim_header_f <- function() {
   
   ### Run SQL query
   odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
