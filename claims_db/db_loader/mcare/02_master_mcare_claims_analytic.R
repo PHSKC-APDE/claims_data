@@ -592,9 +592,6 @@ DBI::dbExecute(conn = dw_inthealth,
                               .con = dw_inthealth))
 
 
-
-#### continue here ####
-
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 9: mcare_claim_header ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -615,10 +612,14 @@ system.time(load_stage.mcare_claim_header_f())
 system.time(mcare_claim_header_qa <- qa_stage.mcare_claim_header_qa_f())
 rm(config_url)
 
-### E) Run line-level QA script
+##Process QA results
 
-### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcare_claim_header")
+### E) Archive current stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_header TO archive_mcare_claim_header;",
+                              .con = dw_inthealth))
 
-### G) Alter schema on new table
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcare_claim_header")
+### F) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_header TO final_mcare_claim_header;",
+                              .con = dw_inthealth))
