@@ -9,19 +9,28 @@ vars:
     icdcm_version: tinyint
     claim_type_mcare_id: varchar(255)
     claim_type_id: tinyint
-    facility_type_code: varchar(255)
-    service_type_code: varchar(255)
+    filetype_mcare: varchar(255)
+    facility_type_code: tinyint
+    service_type_code: tinyint
     patient_status: varchar(255)
     patient_status_code: varchar(255)
+    ed_perform: tinyint
     ed_perform_id: bigint
+    ed_pophealth: tinyint
     ed_pophealth_id: bigint
+    inpatient: tinyint
     inpatient_id: bigint
     admission_date: date
     discharge_date: date
-    ipt_admission_type: varchar(255)
+    ipt_admission_type: tinyint
     ipt_admission_source: varchar(255)
     drg_code: varchar(255)
     hospice_from_date: date
+    pc_visit: tinyint
     pc_visit_id: bigint
-    filetype_mcare: varchar(255)
+    submitted_charges: numeric(19,2)
+    total_paid_mcare: numeric(19,2)
+    total_paid_insurance: numeric(19,2)
+    total_paid_bene: numeric(19,2)
+    total_cost_of_care: numeric(19,2)
     last_run: datetime
