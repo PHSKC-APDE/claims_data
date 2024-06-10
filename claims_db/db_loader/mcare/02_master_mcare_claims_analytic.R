@@ -604,9 +604,9 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_header.yaml"
 
 ### B) Create table
-create_table_f(conn = db_claims, 
+create_table_f(conn = dw_inthealth, 
                config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+               overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
 system.time(load_stage.mcare_claim_header_f())
