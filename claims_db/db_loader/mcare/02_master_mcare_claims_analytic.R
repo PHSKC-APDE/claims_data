@@ -613,6 +613,22 @@ system.time(mcare_claim_header_qa <- qa_stage.mcare_claim_header_qa_f())
 rm(config_url)
 
 ##Process QA results
+if(all(c(mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of headers"] ==
+          mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of distinct headers"]
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of members not in elig_demo, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of members not in elig_timevar, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of claims with unmatched claim type, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of ipt stays with no discharge date, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of ed_pophealth_id values used for >1 person, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of distinct ed_pophealth_id values"] ==
+          mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="max ed_pophealth_id - min + 1"]
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of ed_perform rows with no ed_pophealth, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of ed_pophealth visits where the overlap date is greater than 1 day, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of rows where total cost of care does not sum as expected, expect 0"] == 0))) {
+  message(paste0("mcare_claim_header QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("mcare_claim_header QA result: FAIL - ", Sys.time()))
+}
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = dw_inthealth,
