@@ -648,3 +648,8 @@ DBI::dbExecute(conn = dw_inthealth,
 DBI::dbExecute(conn = dw_inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_header TO final_mcare_claim_header;",
                               .con = dw_inthealth))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 10: mcare_claim_ccw ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
