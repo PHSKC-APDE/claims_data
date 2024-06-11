@@ -895,7 +895,7 @@ load_stage.mcare_claim_header_f <- function() {
     }
 
 #### Table-level QA script ####
-qa_stages.mcare_claim_header_qa_f <- function() {
+qa_stage.mcare_claim_header_qa_f <- function() {
   
   #confirm that claim header is distinct
   res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
