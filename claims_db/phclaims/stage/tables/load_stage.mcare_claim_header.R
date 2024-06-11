@@ -796,7 +796,7 @@ load_stage.mcare_claim_header_f <- function() {
     --create table shell
     if object_id(N'stg_claims.tmp_mcare_claim_header_ed_pophealth',N'U') is not null drop table stg_claims.tmp_mcare_claim_header_ed_pophealth;
     create table stg_claims.tmp_mcare_claim_header_ed_pophealth (
-    	claim_header_id bigint,
+	    claim_header_id varchar(255) collate SQL_Latin1_General_Cp1_CS_AS,
     	ed_pophealth_id bigint
     )
     with (heap);
@@ -986,7 +986,7 @@ qa_stage.mcare_claim_header_qa_f <- function() {
     select * 
     ,lag(ed_pophealth_id) over(partition by id_mcare, ed_pophealth_id order by first_service_date) as lag_ed_pophealth_id
     ,lag(first_service_date) over(partition by id_mcare, ed_pophealth_id order by first_service_date) as lag_first_service_date
-    from stg_claims.stage_apcd_claim_header
+    from stg_claims.stage_mcare_claim_header
     where ed_pophealth_id is not null
     )
     select 'stg_claims.stage_mcare_claim_header' as 'table', '# of ed_pophealth visits where the overlap date is greater than 1 day, expect 0' as 'qa_type',
