@@ -32,12 +32,9 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 message(paste0("Beginning process to copy data from INTHEALTH_EDW to HHSAW - ", Sys.time()))
 
 #Establish list of tables to be copied to inthealth_edw
-table_list <- list("final_apcd_elig_demo", "final_apcd_elig_timevar", "final_apcd_elig_plr", "final_apcd_claim_line",
+table_list <- list("final_apcd_elig_demo", "final_apcd_elig_timevar", "final_apcd_elig_plr",
                    "final_apcd_claim_icdcm_header", "final_apcd_claim_procedure", "final_apcd_claim_provider", "final_apcd_claim_header",
                    "final_apcd_claim_ccw", "final_apcd_claim_preg_episode")
-
-#Testing for one table to compare copy performance on HHSAW
-table_list <- list("final_apcd_claim_line")
 
 #Full table list to be used for next ETL process
 #table_list <- list("final_apcd_elig_demo", "final_apcd_elig_timevar", "final_apcd_elig_plr", "final_apcd_claim_line",
@@ -50,6 +47,7 @@ lapply(table_list, function(table_list) {
 
   table_name <- glue::glue_sql(table_list)
   message(paste0("Working on table: ", table_name))
+  db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
   DBI::dbExecute(conn = db_claims,
                  glue::glue_sql("execute claims.usp_load_{`table_name`};",
                                 .con = db_claims))
