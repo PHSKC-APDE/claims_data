@@ -986,7 +986,7 @@ qa_stage.mcare_claim_header_qa_f <- function() {
     select * 
     ,lag(ed_pophealth_id) over(partition by id_mcare, ed_pophealth_id order by first_service_date) as lag_ed_pophealth_id
     ,lag(first_service_date) over(partition by id_mcare, ed_pophealth_id order by first_service_date) as lag_first_service_date
-    from stg_claims.stage_apcd_claim_header
+    from stg_claims.stage_mcare_claim_header
     where ed_pophealth_id is not null
     )
     select 'stg_claims.stage_mcare_claim_header' as 'table', '# of ed_pophealth visits where the overlap date is greater than 1 day, expect 0' as 'qa_type',
