@@ -36,6 +36,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.yaml"
+dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -77,6 +78,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
+dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -124,6 +126,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_line.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_line.yaml"
+dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -170,8 +173,13 @@ rm(i,x,y)
 #All members included in bene_enrollment table
 qa_line_3 <- mcare_claim_line_qa$qa[mcare_claim_line_qa$qa_type=="# members not in bene_enrollment, expect 0"]
 
+#Confirm codes are expected length 
+qa_line_4 <- mcare_claim_line_qa$qa[mcare_claim_line_qa$qa_type=="# of claims where length of revenue codes != 4, expect 0"]
+qa_line_5 <- mcare_claim_line_qa$qa[mcare_claim_line_qa$qa_type=="# of claims where length of pos codes != 2, expect 0"]
+qa_line_6 <- mcare_claim_line_qa$qa[mcare_claim_line_qa$qa_type=="# of claims where length of type of service codes != 1, expect 0"]
+
 #Final QA check
-if(all(c(qa_line_1:qa_line_2)) == TRUE & qa_line_3 == 0L) {
+if(all(c(qa_line_1:qa_line_2)) == TRUE & qa_line_3 == 0L & qa_line_4 == 0L & qa_line_5 == 0L & qa_line_6 == 0L) {
   message("mcare_claim_line QA result: PASS")
 } else {
   stop("mcare_claim_line QA result: FAIL")
@@ -195,6 +203,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_icdcm_header.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_icdcm_header.yaml"
+dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -280,6 +289,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_procedure.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_procedure.yaml"
+dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -365,6 +375,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_provider.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_provider.yaml"
+dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -503,6 +514,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm.yaml"
+dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -572,6 +584,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm_char.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm_char.yaml"
+dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -592,9 +605,6 @@ DBI::dbExecute(conn = dw_inthealth,
                               .con = dw_inthealth))
 
 
-
-#### continue here ####
-
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 9: mcare_claim_header ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -602,23 +612,49 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_header.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_header.yaml"
+dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
 
 ### B) Create table
-create_table_f(conn = db_claims, 
+create_table_f(conn = dw_inthealth, 
                config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T, test_mode = F)
+               overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
 system.time(load_stage.mcare_claim_header_f())
 
-### D) Table-level QA (x min)
+### D) Table-level QA
 system.time(mcare_claim_header_qa <- qa_stage.mcare_claim_header_qa_f())
 rm(config_url)
 
-### E) Run line-level QA script
+##Process QA results
+if(all(c(mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of headers"] ==
+          mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of distinct headers"]
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of members not in elig_demo, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of members not in elig_timevar, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of claims with unmatched claim type, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of ipt stays with no discharge date, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of ed_pophealth_id values used for >1 person, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of distinct ed_pophealth_id values"] ==
+          mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="max ed_pophealth_id - min + 1"]
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of ed_perform rows with no ed_pophealth, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of ed_pophealth visits where the overlap date is greater than 1 day, expect 0"] == 0
+         & mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of rows where total cost of care does not sum as expected, expect 0"] == 0))) {
+  message(paste0("mcare_claim_header QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("mcare_claim_header QA result: FAIL - ", Sys.time()))
+}
 
-### F) Archive current table
-alter_schema_f(conn = db_claims, from_schema = "final", to_schema = "archive", table_name = "mcare_claim_header")
+### E) Archive current stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_header TO archive_mcare_claim_header;",
+                              .con = dw_inthealth))
 
-### G) Alter schema on new table
-alter_schema_f(conn = db_claims, from_schema = "stage", to_schema = "final", table_name = "mcare_claim_header")
+### F) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_header TO final_mcare_claim_header;",
+                              .con = dw_inthealth))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 10: mcare_claim_ccw ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##

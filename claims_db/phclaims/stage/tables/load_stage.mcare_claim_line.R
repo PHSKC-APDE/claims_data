@@ -34,7 +34,10 @@ load_stage.mcare_claim_line_f <- function() {
     cast(b.clm_from_dt as date) as first_service_date,
     cast(b.clm_thru_dt as date) as last_service_date,
     revenue_code = null,
-    a.line_place_of_srvc_cd as place_of_service_code,
+    case
+	    when len(trim(a.line_place_of_srvc_cd)) < 2 then right('0' + trim(a.line_place_of_srvc_cd), 2)
+	    else a.line_place_of_srvc_cd
+    end as place_of_service_code,
     a.line_cms_type_srvc_cd as type_of_service,
     'carrier' as filetype_mcare,
     getdate() as last_run
@@ -58,7 +61,10 @@ load_stage.mcare_claim_line_f <- function() {
     cast(b.clm_from_dt as date) as first_service_date,
     cast(b.clm_thru_dt as date) as last_service_date,
     revenue_code = null,
-    a.line_place_of_srvc_cd as place_of_service_code,
+    case
+	    when len(trim(a.line_place_of_srvc_cd)) < 2 then right('0' + trim(a.line_place_of_srvc_cd), 2)
+	    else a.line_place_of_srvc_cd
+    end as place_of_service_code,
     a.line_cms_type_srvc_cd as type_of_service,
     'dme' as filetype_mcare,
     getdate() as last_run
@@ -81,7 +87,10 @@ load_stage.mcare_claim_line_f <- function() {
     trim(a.clm_line_num) as claim_line_id,
     cast(b.clm_from_dt as date) as first_service_date,
     cast(b.clm_thru_dt as date) as last_service_date,
-    a.rev_cntr as revenue_code,
+    case
+	    when len(trim(a.rev_cntr)) < 4 then right('000' + trim(a.rev_cntr), 4)
+	    else a.rev_cntr
+    end as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'hha' as filetype_mcare,
@@ -105,7 +114,10 @@ load_stage.mcare_claim_line_f <- function() {
     trim(a.clm_line_num) as claim_line_id,
     cast(b.clm_from_dt as date) as first_service_date,
     cast(b.clm_thru_dt as date) as last_service_date,
-    a.rev_cntr as revenue_code,
+    case
+	    when len(trim(a.rev_cntr)) < 4 then right('000' + trim(a.rev_cntr), 4)
+	    else a.rev_cntr
+    end as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'hospice' as filetype_mcare,
@@ -129,7 +141,10 @@ load_stage.mcare_claim_line_f <- function() {
     trim(a.clm_line_num) as claim_line_id,
     cast(b.clm_from_dt as date) as first_service_date,
     cast(b.clm_thru_dt as date) as last_service_date,
-    a.rev_cntr as revenue_code,
+    case
+	    when len(trim(a.rev_cntr)) < 4 then right('000' + trim(a.rev_cntr), 4)
+	    else a.rev_cntr
+    end as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'inpatient' as filetype_mcare,
@@ -153,7 +168,10 @@ load_stage.mcare_claim_line_f <- function() {
     trim(a.clm_line_num) as claim_line_id,
     cast(b.clm_from_dt as date) as first_service_date,
     cast(b.clm_thru_dt as date) as last_service_date,
-    a.rev_cntr as revenue_code,
+    case
+	    when len(trim(a.rev_cntr)) < 4 then right('000' + trim(a.rev_cntr), 4)
+	    else a.rev_cntr
+    end as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'inpatient' as filetype_mcare,
@@ -177,7 +195,10 @@ load_stage.mcare_claim_line_f <- function() {
     trim(a.clm_line_num) as claim_line_id,
     cast(b.clm_from_dt as date) as first_service_date,
     cast(b.clm_thru_dt as date) as last_service_date,
-    a.rev_cntr as revenue_code,
+    case
+	    when len(trim(a.rev_cntr)) < 4 then right('000' + trim(a.rev_cntr), 4)
+	    else a.rev_cntr
+    end as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'outpatient' as filetype_mcare,
@@ -201,7 +222,10 @@ load_stage.mcare_claim_line_f <- function() {
     trim(a.clm_line_num) as claim_line_id,
     cast(b.clm_from_dt as date) as first_service_date,
     cast(b.clm_thru_dt as date) as last_service_date,
-    a.rev_cntr as revenue_code,
+    case
+	    when len(trim(a.rev_cntr)) < 4 then right('000' + trim(a.rev_cntr), 4)
+	    else a.rev_cntr
+    end as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'outpatient' as filetype_mcare,
@@ -225,7 +249,10 @@ load_stage.mcare_claim_line_f <- function() {
     trim(a.clm_line_num) as claim_line_id,
     cast(b.clm_from_dt as date) as first_service_date,
     cast(b.clm_thru_dt as date) as last_service_date,
-    a.rev_cntr as revenue_code,
+    case
+	    when len(trim(a.rev_cntr)) < 4 then right('000' + trim(a.rev_cntr), 4)
+	    else a.rev_cntr
+    end as revenue_code,
     place_of_service_code = null,
     type_of_service = null,
     'snf' as filetype_mcare,
@@ -276,6 +303,30 @@ qa_stage.mcare_claim_line_qa_f <- function() {
     on a.id_mcare = b.bene_id
     where b.bene_id is null;",
   .con = dw_inthealth))
+  
+  #confirm all revenue codes are 4 digits
+  res4 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_mcare_claim_line' as 'table', '# of claims where length of revenue codes != 4, expect 0' as qa_type,
+    count(*) as qa
+    from stg_claims.stage_mcare_claim_line
+    where len(revenue_code) != 4;",
+    .con = dw_inthealth))
+  
+  #confirm all place of service codes are 2 digits
+  res5 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_mcare_claim_line' as 'table', '# of claims where length of pos codes != 2, expect 0' as qa_type,
+    count(*) as qa
+    from stg_claims.stage_mcare_claim_line
+    where len(place_of_service_code) != 2;",
+    .con = dw_inthealth))
+  
+  #confirm all type of service codes are 1 digit
+  res6 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_mcare_claim_line' as 'table', '# of claims where length of type of service codes != 1, expect 0' as qa_type,
+    count(*) as qa
+    from stg_claims.stage_mcare_claim_line
+    where len(type_of_service) != 1;",
+    .con = dw_inthealth))
 
 res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }
