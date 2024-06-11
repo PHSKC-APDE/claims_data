@@ -28,9 +28,9 @@ vars:
     hospice_from_date: date
     pc_visit: tinyint
     pc_visit_id: bigint
-    submitted_charges: numeric(19,2)
-    total_paid_mcare: numeric(19,2)
-    total_paid_insurance: numeric(19,2)
-    total_paid_bene: numeric(19,2)
-    total_cost_of_care: numeric(19,2)
+    submitted_charges: numeric(38,2)
+    total_paid_mcare: numeric(38,2)
+    total_paid_insurance: numeric(38,2)
+    total_paid_bene: numeric(38,2)
+    total_cost_of_care: numeric(38,2)
     last_run: datetime

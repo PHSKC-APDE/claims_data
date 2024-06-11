@@ -46,11 +46,11 @@ load_stage.mcare_claim_header_f <- function() {
     ipt_admission_source varchar(255),
     drg_code varchar(255),
     hospice_from_date date,
-    submitted_charges numeric(19,2),
-    total_paid_mcare numeric(19,2),
-    total_paid_insurance numeric(19,2),
-    total_paid_bene numeric(19,2),
-    total_cost_of_care numeric(19,2)
+    submitted_charges numeric(38,2),
+    total_paid_mcare numeric(38,2),
+    total_paid_insurance numeric(38,2),
+    total_paid_bene numeric(38,2),
+    total_cost_of_care numeric(38,2)
     )
     with (heap);
     
@@ -102,20 +102,20 @@ load_stage.mcare_claim_header_f <- function() {
     	ipt_admission_source = null,
     	drg_code = null,
     	hospice_from_date = null,
-    	cast(nch_carr_clm_sbmtd_chrg_amt as numeric(19,2)) as submitted_charges,
-    	cast(clm_pmt_amt as numeric(19,2)) as total_paid_mcare,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(carr_clm_prmry_pyr_pd_amt as numeric(19,2))
+    	cast(nch_carr_clm_sbmtd_chrg_amt as numeric(38,2)) as submitted_charges,
+    	cast(clm_pmt_amt as numeric(38,2)) as total_paid_mcare,
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(carr_clm_prmry_pyr_pd_amt as numeric(38,2))
     	as total_paid_insurance,
-    	cast(clm_bene_pd_amt as numeric(19,2))
-    		- cast(nch_clm_bene_pmt_amt as numeric(19,2))
-    		+ cast(carr_clm_cash_ddctbl_apld_amt as numeric(19,2))
+    	cast(clm_bene_pd_amt as numeric(38,2))
+    		- cast(nch_clm_bene_pmt_amt as numeric(38,2))
+    		+ cast(carr_clm_cash_ddctbl_apld_amt as numeric(38,2))
     	as total_paid_bene,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(carr_clm_prmry_pyr_pd_amt as numeric(19,2))
-    		+ cast(carr_clm_cash_ddctbl_apld_amt as numeric(19,2))
-    		+ cast(clm_bene_pd_amt as numeric(19,2))
-    		- cast(nch_clm_bene_pmt_amt as numeric(19,2))
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(carr_clm_prmry_pyr_pd_amt as numeric(38,2))
+    		+ cast(carr_clm_cash_ddctbl_apld_amt as numeric(38,2))
+    		+ cast(clm_bene_pd_amt as numeric(38,2))
+    		- cast(nch_clm_bene_pmt_amt as numeric(38,2))
     	as total_cost_of_care
     	from stg_claims.mcare_bcarrier_claims
     	where carr_clm_pmt_dnl_cd in ('1','2','3','4','5','6','7','8','9')
@@ -139,20 +139,20 @@ load_stage.mcare_claim_header_f <- function() {
     	ipt_admission_source = null,
     	drg_code = null,
     	hospice_from_date = null,
-    	cast(nch_carr_clm_sbmtd_chrg_amt as numeric(19,2)) as submitted_charges,
-    	cast(clm_pmt_amt as numeric(19,2)) as total_paid_mcare,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(carr_clm_prmry_pyr_pd_amt as numeric(19,2))
+    	cast(nch_carr_clm_sbmtd_chrg_amt as numeric(38,2)) as submitted_charges,
+    	cast(clm_pmt_amt as numeric(38,2)) as total_paid_mcare,
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(carr_clm_prmry_pyr_pd_amt as numeric(38,2))
     	as total_paid_insurance,
-    	cast(clm_bene_pd_amt as numeric(19,2))
-    		- cast(nch_clm_bene_pmt_amt as numeric(19,2))
-    		+ cast(carr_clm_cash_ddctbl_apld_amt as numeric(19,2))
+    	cast(clm_bene_pd_amt as numeric(38,2))
+    		- cast(nch_clm_bene_pmt_amt as numeric(38,2))
+    		+ cast(carr_clm_cash_ddctbl_apld_amt as numeric(38,2))
     	as total_paid_bene,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(carr_clm_prmry_pyr_pd_amt as numeric(19,2))
-    		+ cast(carr_clm_cash_ddctbl_apld_amt as numeric(19,2))
-    		+ cast(clm_bene_pd_amt as numeric(19,2))
-    		- cast(nch_clm_bene_pmt_amt as numeric(19,2))
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(carr_clm_prmry_pyr_pd_amt as numeric(38,2))
+    		+ cast(carr_clm_cash_ddctbl_apld_amt as numeric(38,2))
+    		+ cast(clm_bene_pd_amt as numeric(38,2))
+    		- cast(nch_clm_bene_pmt_amt as numeric(38,2))
     	as total_cost_of_care
     	from stg_claims.mcare_dme_claims
     	where carr_clm_pmt_dnl_cd in ('1','2','3','4','5','6','7','8','9')
@@ -176,14 +176,14 @@ load_stage.mcare_claim_header_f <- function() {
     	ipt_admission_source = null,
     	drg_code = null,
     	hospice_from_date = null,
-    	cast(clm_tot_chrg_amt as numeric(19,2)) as submitted_charges,
-    	cast(clm_pmt_amt as numeric(19,2)) as total_paid_mcare,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
+    	cast(clm_tot_chrg_amt as numeric(38,2)) as submitted_charges,
+    	cast(clm_pmt_amt as numeric(38,2)) as total_paid_mcare,
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
     	as total_paid_insurance,
-    	cast(0 as numeric(19,2)) as total_paid_bene,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
+    	cast(0 as numeric(38,2)) as total_paid_bene,
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
     	as total_cost_of_care
     	from stg_claims.mcare_hha_base_claims
     	where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
@@ -207,14 +207,14 @@ load_stage.mcare_claim_header_f <- function() {
     	ipt_admission_source = null,
     	drg_code = null,
     	clm_hospc_start_dt_id as hospice_from_date,
-    	cast(clm_tot_chrg_amt as numeric(19,2)) as submitted_charges,
-    	cast(clm_pmt_amt as numeric(19,2)) as total_paid_mcare,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
+    	cast(clm_tot_chrg_amt as numeric(38,2)) as submitted_charges,
+    	cast(clm_pmt_amt as numeric(38,2)) as total_paid_mcare,
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
     	as total_paid_insurance,
-    	cast(0 as numeric(19,2)) as total_paid_bene,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
+    	cast(0 as numeric(38,2)) as total_paid_bene,
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
     	as total_cost_of_care
     	from stg_claims.mcare_hospice_base_claims
     	where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
@@ -238,22 +238,22 @@ load_stage.mcare_claim_header_f <- function() {
     	clm_src_ip_admsn_cd as ipt_admission_source,
     	clm_drg_cd as drg_code,
     	hospice_from_date = null,
-    	cast(clm_tot_chrg_amt as numeric(19,2)) as submitted_charges,
-    	cast(cast(clm_pmt_amt as numeric(19,2))
-    		+ (cast(clm_pass_thru_per_diem_amt as numeric(19,2)) * cast(clm_utlztn_day_cnt as numeric(19,2)))
-    		as numeric(19,2))
+    	cast(clm_tot_chrg_amt as numeric(38,2)) as submitted_charges,
+    	cast(cast(clm_pmt_amt as numeric(38,2))
+    		+ (cast(clm_pass_thru_per_diem_amt as numeric(38,2)) * cast(clm_utlztn_day_cnt as numeric(38,2)))
+    		as numeric(38,2))
     	as total_paid_mcare,
-    	cast(cast(clm_pmt_amt as numeric(19,2))
-    		+ (cast(clm_pass_thru_per_diem_amt as numeric(19,2)) * cast(clm_utlztn_day_cnt as numeric(19,2)))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
-    		as numeric(19,2))
+    	cast(cast(clm_pmt_amt as numeric(38,2))
+    		+ (cast(clm_pass_thru_per_diem_amt as numeric(38,2)) * cast(clm_utlztn_day_cnt as numeric(38,2)))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
+    		as numeric(38,2))
     	as total_paid_insurance,
-    	cast(nch_ip_tot_ddctn_amt as numeric(19,2)) as total_paid_bene,
-    	cast(cast(clm_pmt_amt as numeric(19,2))
-    		+ (cast(clm_pass_thru_per_diem_amt as numeric(19,2)) * cast(clm_utlztn_day_cnt as numeric(19,2)))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
-    		+ cast(nch_ip_tot_ddctn_amt as numeric(19,2))
-    		as numeric(19,2))
+    	cast(nch_ip_tot_ddctn_amt as numeric(38,2)) as total_paid_bene,
+    	cast(cast(clm_pmt_amt as numeric(38,2))
+    		+ (cast(clm_pass_thru_per_diem_amt as numeric(38,2)) * cast(clm_utlztn_day_cnt as numeric(38,2)))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
+    		+ cast(nch_ip_tot_ddctn_amt as numeric(38,2))
+    		as numeric(38,2))
     	as total_cost_of_care
     	from stg_claims.mcare_inpatient_base_claims
     	where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
@@ -277,22 +277,22 @@ load_stage.mcare_claim_header_f <- function() {
     	clm_src_ip_admsn_cd as ipt_admission_source,
     	clm_drg_cd as drg_code,
     	hospice_from_date = null,
-    	cast(clm_tot_chrg_amt as numeric(19,2)) as submitted_charges,
-    	cast(cast(clm_pmt_amt as numeric(19,2))
-    		+ (cast(clm_pass_thru_per_diem_amt as numeric(19,2)) * cast(clm_utlztn_day_cnt as numeric(19,2)))
-    		as numeric(19,2))
+    	cast(clm_tot_chrg_amt as numeric(38,2)) as submitted_charges,
+    	cast(cast(clm_pmt_amt as numeric(38,2))
+    		+ (cast(clm_pass_thru_per_diem_amt as numeric(38,2)) * cast(clm_utlztn_day_cnt as numeric(38,2)))
+    		as numeric(38,2))
     	as total_paid_mcare,
-    	cast(cast(clm_pmt_amt as numeric(19,2))
-    		+ (cast(clm_pass_thru_per_diem_amt as numeric(19,2)) * cast(clm_utlztn_day_cnt as numeric(19,2)))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
-    		as numeric(19,2))
+    	cast(cast(clm_pmt_amt as numeric(38,2))
+    		+ (cast(clm_pass_thru_per_diem_amt as numeric(38,2)) * cast(clm_utlztn_day_cnt as numeric(38,2)))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
+    		as numeric(38,2))
     	as total_paid_insurance,
-    	cast(nch_ip_tot_ddctn_amt as numeric(19,2)) as total_paid_bene,
-    	cast(cast(clm_pmt_amt as numeric(19,2))
-    		+ (cast(clm_pass_thru_per_diem_amt as numeric(19,2)) * cast(clm_utlztn_day_cnt as numeric(19,2)))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
-    		+ cast(nch_ip_tot_ddctn_amt as numeric(19,2))
-    		as numeric(19,2))
+    	cast(nch_ip_tot_ddctn_amt as numeric(38,2)) as total_paid_bene,
+    	cast(cast(clm_pmt_amt as numeric(38,2))
+    		+ (cast(clm_pass_thru_per_diem_amt as numeric(38,2)) * cast(clm_utlztn_day_cnt as numeric(38,2)))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
+    		+ cast(nch_ip_tot_ddctn_amt as numeric(38,2))
+    		as numeric(38,2))
     	as total_cost_of_care
     	from stg_claims.mcare_inpatient_base_claims_j
     	where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
@@ -316,20 +316,20 @@ load_stage.mcare_claim_header_f <- function() {
     	ipt_admission_source = null,
     	drg_code = null,
     	hospice_from_date = null,
-    	cast(clm_tot_chrg_amt as numeric(19,2)) as submitted_charges,
-    	cast(clm_pmt_amt as numeric(19,2)) as total_paid_mcare,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
+    	cast(clm_tot_chrg_amt as numeric(38,2)) as submitted_charges,
+    	cast(clm_pmt_amt as numeric(38,2)) as total_paid_mcare,
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
     	as total_paid_insurance,
-    	cast(nch_bene_ptb_ddctbl_amt as numeric(19,2))
-    		+ cast(nch_bene_ptb_coinsrnc_amt as numeric(19,2))
-    		+ cast(nch_bene_blood_ddctbl_lblty_am as numeric(19,2))
+    	cast(nch_bene_ptb_ddctbl_amt as numeric(38,2))
+    		+ cast(nch_bene_ptb_coinsrnc_amt as numeric(38,2))
+    		+ cast(nch_bene_blood_ddctbl_lblty_am as numeric(38,2))
     	as total_paid_bene,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
-    		+ cast(nch_bene_ptb_ddctbl_amt as numeric(19,2))
-    		+ cast(nch_bene_ptb_coinsrnc_amt as numeric(19,2))
-    		+ cast(nch_bene_blood_ddctbl_lblty_am as numeric(19,2))
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
+    		+ cast(nch_bene_ptb_ddctbl_amt as numeric(38,2))
+    		+ cast(nch_bene_ptb_coinsrnc_amt as numeric(38,2))
+    		+ cast(nch_bene_blood_ddctbl_lblty_am as numeric(38,2))
     	as total_cost_of_care
     	from stg_claims.mcare_outpatient_base_claims
     	where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
@@ -353,20 +353,20 @@ load_stage.mcare_claim_header_f <- function() {
     	ipt_admission_source = null,
     	drg_code = null,
     	hospice_from_date = null,
-    	cast(clm_tot_chrg_amt as numeric(19,2)) as submitted_charges,
-    	cast(clm_pmt_amt as numeric(19,2)) as total_paid_mcare,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
+    	cast(clm_tot_chrg_amt as numeric(38,2)) as submitted_charges,
+    	cast(clm_pmt_amt as numeric(38,2)) as total_paid_mcare,
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
     	as total_paid_insurance,
-    	cast(nch_bene_ptb_ddctbl_amt as numeric(19,2))
-    		+ cast(nch_bene_ptb_coinsrnc_amt as numeric(19,2))
-    		+ cast(nch_bene_blood_ddctbl_lblty_am as numeric(19,2))
+    	cast(nch_bene_ptb_ddctbl_amt as numeric(38,2))
+    		+ cast(nch_bene_ptb_coinsrnc_amt as numeric(38,2))
+    		+ cast(nch_bene_blood_ddctbl_lblty_am as numeric(38,2))
     	as total_paid_bene,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
-    		+ cast(nch_bene_ptb_ddctbl_amt as numeric(19,2))
-    		+ cast(nch_bene_ptb_coinsrnc_amt as numeric(19,2))
-    		+ cast(nch_bene_blood_ddctbl_lblty_am as numeric(19,2))
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
+    		+ cast(nch_bene_ptb_ddctbl_amt as numeric(38,2))
+    		+ cast(nch_bene_ptb_coinsrnc_amt as numeric(38,2))
+    		+ cast(nch_bene_blood_ddctbl_lblty_am as numeric(38,2))
     	as total_cost_of_care
     	from stg_claims.mcare_outpatient_base_claims_j
     	where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
@@ -390,15 +390,15 @@ load_stage.mcare_claim_header_f <- function() {
     	clm_src_ip_admsn_cd as ipt_admission_source,
     	clm_drg_cd as drg_code,
     	hospice_from_date = null,
-    	cast(clm_tot_chrg_amt as numeric(19,2)) as submitted_charges,
-    	cast(clm_pmt_amt as numeric(19,2)) as total_paid_mcare,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
+    	cast(clm_tot_chrg_amt as numeric(38,2)) as submitted_charges,
+    	cast(clm_pmt_amt as numeric(38,2)) as total_paid_mcare,
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
     	as total_paid_insurance,
-    	cast(nch_ip_tot_ddctn_amt as numeric(19,2)) as total_paid_bene,
-    	cast(clm_pmt_amt as numeric(19,2))
-    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(19,2))
-    		+ cast(nch_ip_tot_ddctn_amt as numeric(19,2))
+    	cast(nch_ip_tot_ddctn_amt as numeric(38,2)) as total_paid_bene,
+    	cast(clm_pmt_amt as numeric(38,2))
+    		+ cast(nch_prmry_pyr_clm_pd_amt as numeric(38,2))
+    		+ cast(nch_ip_tot_ddctn_amt as numeric(38,2))
     	as total_cost_of_care
     	from stg_claims.mcare_snf_base_claims
     	where (clm_mdcr_non_pmt_rsn_cd = '' or clm_mdcr_non_pmt_rsn_cd is null)
@@ -601,11 +601,11 @@ load_stage.mcare_claim_header_f <- function() {
     ipt_admission_source varchar(255),
     drg_code varchar(255),
     hospice_from_date date,
-    submitted_charges numeric(19,2),
-    total_paid_mcare numeric(19,2),
-    total_paid_insurance numeric(19,2),
-    total_paid_bene numeric(19,2),
-    total_cost_of_care numeric(19,2),
+    submitted_charges numeric(38,2),
+    total_paid_mcare numeric(38,2),
+    total_paid_insurance numeric(38,2),
+    total_paid_bene numeric(38,2),
+    total_cost_of_care numeric(38,2),
     ed_perform tinyint,
     ed_yale_carrier tinyint,
     ed_yale_opt tinyint,
@@ -710,11 +710,11 @@ load_stage.mcare_claim_header_f <- function() {
     ipt_admission_source varchar(255),
     drg_code varchar(255),
     hospice_from_date date,
-    submitted_charges numeric(19,2),
-    total_paid_mcare numeric(19,2),
-    total_paid_insurance numeric(19,2),
-    total_paid_bene numeric(19,2),
-    total_cost_of_care numeric(19,2),
+    submitted_charges numeric(38,2),
+    total_paid_mcare numeric(38,2),
+    total_paid_insurance numeric(38,2),
+    total_paid_bene numeric(38,2),
+    total_cost_of_care numeric(38,2),
     ed_yale_carrier tinyint,
     ed_yale_opt tinyint,
     ed_yale_ipt tinyint,

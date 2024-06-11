@@ -173,8 +173,13 @@ rm(i,x,y)
 #All members included in bene_enrollment table
 qa_line_3 <- mcare_claim_line_qa$qa[mcare_claim_line_qa$qa_type=="# members not in bene_enrollment, expect 0"]
 
+#Confirm codes are expected length 
+qa_line_4 <- mcare_claim_line_qa$qa[mcare_claim_line_qa$qa_type=="# of claims where length of revenue codes != 4, expect 0"]
+qa_line_5 <- mcare_claim_line_qa$qa[mcare_claim_line_qa$qa_type=="# of claims where length of pos codes != 2, expect 0"]
+qa_line_6 <- mcare_claim_line_qa$qa[mcare_claim_line_qa$qa_type=="# of claims where length of type of service codes != 1, expect 0"]
+
 #Final QA check
-if(all(c(qa_line_1:qa_line_2)) == TRUE & qa_line_3 == 0L) {
+if(all(c(qa_line_1:qa_line_2)) == TRUE & qa_line_3 == 0L & qa_line_4 == 0L & qa_line_5 == 0L & qa_line_6 == 0L) {
   message("mcare_claim_line QA result: PASS")
 } else {
   stop("mcare_claim_line QA result: FAIL")
