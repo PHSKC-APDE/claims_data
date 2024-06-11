@@ -796,7 +796,7 @@ load_stage.mcare_claim_header_f <- function() {
     --create table shell
     if object_id(N'stg_claims.tmp_mcare_claim_header_ed_pophealth',N'U') is not null drop table stg_claims.tmp_mcare_claim_header_ed_pophealth;
     create table stg_claims.tmp_mcare_claim_header_ed_pophealth (
-    	claim_header_id bigint,
+	    claim_header_id varchar(255) collate SQL_Latin1_General_Cp1_CS_AS,
     	ed_pophealth_id bigint
     )
     with (heap);
