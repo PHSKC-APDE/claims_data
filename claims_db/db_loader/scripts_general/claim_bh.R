@@ -209,17 +209,17 @@ load_bh <- function(conn = NULL,
     SELECT  * 
       ,CASE
           WHEN datediff(month,
-				      lag(b.end_window) over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window),
+				      lag(b.end_window) over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window, b.svc_date),
 				      b.start_window) <= 1 
 			        then null
           WHEN b.start_window < 
-				      lag(b.end_window) over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`},  b.bh_cond, b.start_window) 
+				      lag(b.end_window) over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`},  b.bh_cond, b.start_window, b.svc_date) 
 			        then null
-          WHEN row_number() over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond,  b.start_window) = 1 
+          WHEN row_number() over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond,  b.start_window, b.svc_date) = 1 
 			        then null
-          ELSE row_number() over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window)
+          ELSE row_number() over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window, b.svc_date)
           END AS 'discont'
-      ,row_number() over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window) as row_no
+      ,row_number() over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window, b.svc_date) as row_no
       --,lag(b.end_window) over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window) as lag_end
     INTO {`schema`}.tmp_rolling_matrix
     FROM {`schema`}.tmp_matrix b
