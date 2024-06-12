@@ -32,9 +32,10 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 message(paste0("Beginning process to copy data from INTHEALTH_EDW to HHSAW - ", Sys.time()))
 
 #Establish list of tables to be copied to inthealth_edw
-table_list <- list("final_apcd_elig_demo", "final_apcd_elig_timevar", "final_apcd_elig_plr",
-                   "final_apcd_claim_icdcm_header", "final_apcd_claim_procedure", "final_apcd_claim_provider", "final_apcd_claim_header",
-                   "final_apcd_claim_ccw", "final_apcd_claim_preg_episode")
+table_list <- list("final_apcd_claim_header",
+                   "final_apcd_claim_ccw",
+                   "final_apcd_claim_preg_episode"
+                   )
 
 #Full table list to be used for next ETL process
 #table_list <- list("final_apcd_elig_demo", "final_apcd_elig_timevar", "final_apcd_elig_plr", "final_apcd_claim_line",
@@ -46,23 +47,27 @@ table_list <- list("final_apcd_elig_demo", "final_apcd_elig_timevar", "final_apc
 lapply(table_list, function(table_list) {
 
   table_name <- glue::glue_sql(table_list)
-  message(paste0("Working on table: ", table_name))
+  message(paste0("Working on table: ", table_name, " - ", Sys.time()))
   db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
   DBI::dbExecute(conn = db_claims,
                  glue::glue_sql("execute claims.usp_load_{`table_name`};",
                                 .con = db_claims))
   
-  inthealth_row_count <- DBI::dbGetQuery(conn = db_claims,
-                                         glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",
-                                                        .con = db_claims))
-  hhsaw_row_count <- DBI::dbGetQuery(conn = db_claims,
-                                     glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",
-                                                    .con = db_claims))
-  
-  if (inthealth_row_count$row_count != hhsaw_row_count$row_count) {
-    stop(glue::glue("Mismatching row count between inthealth_edw external table and HHSAW table."))
+  #Row count comparison for all tables except PLR tables
+  if(table_name != "final_apcd_elig_plr") {
+    inthealth_row_count <- DBI::dbGetQuery(conn = db_claims,
+                                           glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",
+                                                          .con = db_claims))
+    hhsaw_row_count <- DBI::dbGetQuery(conn = db_claims,
+                                       glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",
+                                                      .con = db_claims))
+    
+    if (inthealth_row_count$row_count != hhsaw_row_count$row_count) {
+      stop(glue::glue("Mismatching row count between inthealth_edw external table and HHSAW table."))
+    }
   }
   
+  message(paste0("Done working on table: ", table_name, " - ", Sys.time()))
 })
 
 ## Closing message
