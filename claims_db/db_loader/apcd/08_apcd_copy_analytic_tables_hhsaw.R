@@ -31,20 +31,26 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 ## Beginning message (before loop begins)
 message(paste0("Beginning process to copy data from INTHEALTH_EDW to HHSAW - ", Sys.time()))
 
-#Establish list of tables to be copied to inthealth_edw
-table_list <- list("final_apcd_claim_header",
-                   "final_apcd_claim_ccw",
-                   "final_apcd_claim_preg_episode"
+#Full table list
+table_list <- list(
+  "final_apcd_elig_demo",
+  "final_apcd_elig_timevar",
+  "final_apcd_elig_plr",
+  "final_apcd_claim_line",
+  "final_apcd_claim_icdcm_header",
+  "final_apcd_claim_procedure",
+  "final_apcd_claim_provider",
+  "final_apcd_claim_header",
+  "final_apcd_claim_ccw",
+  "final_apcd_claim_preg_episode",
+  "final_apcd_claim_dental",
+  "final_apcd_claim_pharmacy",
+  "ref_apcd_provider",
+  "ref_apcd_provider_master"
 )
 
-table_list <- list("final_apcd_claim_preg_episode"
-)
-
-#Full table list to be used for next ETL process
-#table_list <- list("final_apcd_elig_demo", "final_apcd_elig_timevar", "final_apcd_elig_plr", "final_apcd_claim_line",
-#                   "final_apcd_claim_icdcm_header", "final_apcd_claim_procedure", "final_apcd_claim_provider", "final_apcd_claim_header",
-#                   "final_apcd_claim_ccw", "final_apcd_claim_preg_episode", "final_apcd_claim_dental", "final_apcd_claim_pharmacy",
-#                   "ref_apcd_provider", "ref_apcd_provider_master")
+#Define modified table list if needed (e.g., when loop breaks after some tables have been copied)
+#table_list <- list()
 
 #Begin loop
 lapply(table_list, function(table_list) {
