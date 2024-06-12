@@ -35,7 +35,10 @@ message(paste0("Beginning process to copy data from INTHEALTH_EDW to HHSAW - ", 
 table_list <- list("final_apcd_claim_header",
                    "final_apcd_claim_ccw",
                    "final_apcd_claim_preg_episode"
-                   )
+)
+
+table_list <- list("final_apcd_claim_preg_episode"
+)
 
 #Full table list to be used for next ETL process
 #table_list <- list("final_apcd_elig_demo", "final_apcd_elig_timevar", "final_apcd_elig_plr", "final_apcd_claim_line",
