@@ -751,3 +751,55 @@ system.time(load_bh(
   conn = inthealth,
   source = "mcare",
   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_bh.yaml"))
+
+### C) Table-level QA
+
+#all members should be in elig_demo table
+mcare_claim_bh_qa1 <- dbGetQuery(conn = inthealth, glue_sql(
+  "select 'stg_claims.stage_mcare_claim_bh' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+    count(distinct a.id_mcare) as qa
+    from stg_claims.stage_mcare_claim_bh as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.id_mcare = b.id_mcare
+    where b.id_mcare is null;",
+  .con = inthealth))
+
+#count conditions run
+mcare_claim_bh_qa2 <- dbGetQuery(conn = inthealth, glue_sql(
+  "select 'stg_claims.stage_mcare_claim_bh' as 'table', '# conditions, expect 16' as qa_type,
+  count(distinct bh_cond) as qa
+  from stg_claims.stage_mcare_claim_bh;",
+  .con = inthealth))
+
+#count rows that overlap with prior row or following row, expect 0
+mcare_claim_bh_qa3 <- dbGetQuery(conn = inthealth, glue_sql(
+  "
+  with temp1 as (
+    select id_mcare,
+    datediff(day, lag(to_date, 1, null) over(partition by id_mcare, bh_cond order by from_date), from_date) as prev_row_diff,
+    datediff(day, to_date, lead(from_date, 1, null) over(partition by id_mcare, bh_cond order by from_date)) as next_row_diff
+    from stg_claims.stage_mcare_claim_bh
+  )
+  select 'stg_claims.stage_mcare_claim_bh' as 'table', 'overlapping rows, expect 0' as qa_type, count(*) as qa
+  from temp1
+  where prev_row_diff < 0 or next_row_diff < 0;",
+  .con = inthealth))
+
+##Process QA results
+if(all(c(mcare_claim_bh_qa1$qa==0
+         & mcare_claim_bh_qa2$qa==16
+         & mcare_claim_bh_qa3$qa==0))) {
+  message(paste0("mcare_claim_bh QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("mcare_claim_bh QA result: FAIL - ", Sys.time()))
+}
+
+### D) Archive current stg_claims.final table
+DBI::dbExecute(conn = inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_bh TO archive_mcare_claim_bh;",
+                              .con = inthealth))
+
+### E) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_bh TO final_mcare_claim_bh;",
+                              .con = inthealth))
