@@ -267,7 +267,7 @@ load_bh <- function(conn = NULL,
     message("STEP 5: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE")
     # Build SQL query
     sql5 <- glue_sql(
-      "INSERT INTO {`schema`}.{`to_table`} with (tablock)
+      "INSERT INTO {`schema`}.{`to_table`}
       SELECT
       {`id_source`}, from_date, to_date, bh_cond, 
       getdate() as last_run
