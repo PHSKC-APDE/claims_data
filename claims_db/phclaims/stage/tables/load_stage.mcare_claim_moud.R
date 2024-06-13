@@ -527,7 +527,7 @@ qa_stage.mcare_claim_moud_qa_f <- function() {
   res1 <- dbGetQuery(conn = inthealth, glue_sql(
   "select 'stg_claims.stage_mcare_claim_moud' as 'table', '# members not in bene_enrollment, expect 0' as qa_type,
     count(a.id_mcare) as qa
-    from stg_stg_claims.stage_mcare_claim_moud as a
+    from stg_claims.stage_mcare_claim_moud as a
     left join stg_claims.mcare_bene_enrollment as b
     on a.id_mcare = b.bene_id
     where b.bene_id is null;",
