@@ -5,6 +5,7 @@
 ## 2021-10
 ## Run time: ~3h (Medicaid/HHSAW_prod)
 ## Eli 9/15/24 update: Modify to use new RDA value sets reference table
+## Eli 6/13/24 update: Added dw_inthealth as server option
 
 ### Function elements
 # conn = database connection
@@ -16,7 +17,7 @@
 # test_rows = number of rows to load if testing function (integer)
 
 load_bh <- function(conn = NULL,
-                     server = c("phclaims", "hhsaw"),
+                     server = c("phclaims", "hhsaw", "dw_inthealth"),
                      source = c("apcd", "mcaid", "mcare", "mcaid_mcare"),
                      config = NULL,
                      config_url = NULL,
