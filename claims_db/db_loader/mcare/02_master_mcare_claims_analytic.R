@@ -27,7 +27,8 @@ dw_inthealth <- create_db_connection("inthealth", interactive = FALSE, prod = TR
 
 #Set up functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
-
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_ccw.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_bh.R")
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 1: mcare_elig_demo ####
@@ -658,3 +659,79 @@ DBI::dbExecute(conn = dw_inthealth,
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 10: mcare_claim_ccw ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+
+### A) Create table
+create_table_f(
+  conn = dw_inthealth,
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_ccw.yaml",
+  overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### B) Load tables
+system.time(load_ccw(
+  server = "hhsaw",
+  conn = dw_inthealth,
+  source = c("mcare"),
+  print_query = FALSE,
+  ccw_list_name = "all",
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_ccw.yaml"))
+
+### C) Table-level QA
+
+#all members should be in elig_demo table
+mcare_claim_ccw_qa1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "select 'stg_claims.stage_mcare_claim_ccw' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+    count(distinct a.id_mcare) as qa
+    from stg_claims.stage_mcare_claim_ccw as a
+    left join stg_claims.final_mcare_elig_demo as b
+    on a.id_mcare = b.id_mcare
+    where b.id_mcare is null;",
+  .con = dw_inthealth))
+
+#count conditions run
+mcare_claim_ccw_qa2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "select 'stg_claims.stage_mcare_claim_ccw' as 'table', '# conditions, expect 31' as qa_type,
+  count(distinct ccw_code) as qa
+  from stg_claims.stage_mcare_claim_ccw;",
+  .con = dw_inthealth))
+
+#count rows that overlap with prior row or following row, expect 0
+mcare_claim_ccw_qa3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "
+  with temp1 as (
+    select id_mcare,
+    datediff(day, lag(to_date, 1, null) over(partition by id_mcare, ccw_desc order by from_date), from_date) as prev_row_diff,
+    datediff(day, to_date, lead(from_date, 1, null) over(partition by id_mcare, ccw_desc order by from_date)) as next_row_diff
+    from stg_claims.stage_mcare_claim_ccw
+  )
+  select 'stg_claims.stage_mcare_claim_ccw' as 'table', 'overlapping rows, expect 0' as qa_type, count(*) as qa
+  from temp1
+  where prev_row_diff < 0 or next_row_diff < 0;",
+  .con = dw_inthealth))
+
+##Process QA results
+if(all(c(mcare_claim_ccw_qa1$qa==0
+         & mcare_claim_ccw_qa2$qa==31
+         & mcare_claim_ccw_qa3$qa==0))) {
+  message(paste0("mcare_claim_ccw QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("mcare_claim_ccw QA result: FAIL - ", Sys.time()))
+}
+
+### D) Archive current stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_ccw TO archive_mcare_claim_ccw;",
+                              .con = dw_inthealth))
+
+### E) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = dw_inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_ccw TO final_mcare_claim_ccw;",
+                              .con = dw_inthealth))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 11: mcare_claim_bh ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
