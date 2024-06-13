@@ -1,4 +1,4 @@
-hhsaw:
+inthealth:
     claim_header_from_schema: stg_claims
     claim_header_from_table: final_mcare_claim_header
     claim_pharm_from_schema: stg_claims

@@ -5,7 +5,8 @@
 ## 2021-10
 ## Run time: ~3h (Medicaid/HHSAW_prod)
 ## Eli 9/15/24 update: Modify to use new RDA value sets reference table
-## Eli 6/13/24 update: Added dw_inthealth as server option
+## Eli 6/13/24 update: Added inthealth as server option
+## Eli 6/13/24 update: Add branching logic for Rx fill date based on data source
 
 ### Function elements
 # conn = database connection
@@ -17,7 +18,7 @@
 # test_rows = number of rows to load if testing function (integer)
 
 load_bh <- function(conn = NULL,
-                     server = c("phclaims", "hhsaw", "dw_inthealth"),
+                     server = c("phclaims", "hhsaw", "inthealth"),
                      source = c("apcd", "mcaid", "mcare", "mcaid_mcare"),
                      config = NULL,
                      config_url = NULL,
@@ -47,13 +48,19 @@ load_bh <- function(conn = NULL,
   })
   
   
-  # Select config file for desired data source
+  # Specify id variable name based on data source
   if (source == "mcaid_mcare") {
     id_source <- "id_apde"
   } else {
     id_source <- paste0("id_", source)
   }
   
+  # Specify Rx filled date variable name based on data source
+  if (source %in% c("mcaid_mcare", "mcaid")) {
+    rx_fill_date <- "rx_fill_date"
+  } else {
+    rx_fill_date <- "last_service_date"
+  }
   
   # Set up test number of rows if needed
   if (is.null(test_rows)) {
@@ -161,7 +168,7 @@ load_bh <- function(conn = NULL,
    ,'link' = 1 
    -- BASED ON PRESCRIPTIONS
    FROM (SELECT DISTINCT a.{`id_source`}
-			,a.rx_fill_date as 'svc_date'
+			,a.{`rx_fill_date`} as 'svc_date'
 	    ,b.sub_group_condition as 'bh_cond'
     FROM {`claim_pharm_from_schema`}.{`claim_pharm_from_table`} a
     INNER JOIN (SELECT sub_group_condition, code_set, code

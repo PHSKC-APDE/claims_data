@@ -1,7 +1,8 @@
 #### FUNCTION TO CREATE TABLES IN SQL
 # Alastair Matheson
 # Created:        2019-04-04
-
+#
+#2024-6-13 Eli update: Added inthealth as server option
 
 ### Plans for future improvements:
 # Add warning when table is about to be overwritten
@@ -38,10 +39,10 @@ create_table_f <- function(
   #### SET UP SERVER ####
   if (is.null(server)) {
     server <- NA
-  } else if (server %in% c("phclaims", "hhsaw")) {
+  } else if (server %in% c("phclaims", "hhsaw", "inthealth")) {
     server <- server
-  } else if (!server %in% c("phclaims", "hhsaw")) {
-    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+  } else if (!server %in% c("phclaims", "hhsaw", "inthealth")) {
+    stop("Server must be NULL, 'phclaims', 'hhsaw', or 'inthealth'")
   }
   
   #### INITIAL ERROR CHECK ####
