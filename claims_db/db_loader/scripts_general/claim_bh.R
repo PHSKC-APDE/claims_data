@@ -17,7 +17,7 @@
 # test_rows = number of rows to load if testing function (integer)
 
 load_bh <- function(conn = NULL,
-                     server = c("phclaims", "hhsaw", "dw_inthealth"),
+                     server = c("phclaims", "hhsaw", "inthealth"),
                      source = c("apcd", "mcaid", "mcare", "mcaid_mcare"),
                      config = NULL,
                      config_url = NULL,

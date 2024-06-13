@@ -40,10 +40,10 @@ create_table_f <- function(
   #### SET UP SERVER ####
   if (is.null(server)) {
     server <- NA
-  } else if (server %in% c("phclaims", "hhsaw", "dw_inthealth")) {
+  } else if (server %in% c("phclaims", "hhsaw", "inthealth")) {
     server <- server
-  } else if (!server %in% c("phclaims", "hhsaw", "dw_inthealth")) {
-    stop("Server must be NULL, 'phclaims', 'hhsaw', or 'dw_health'")
+  } else if (!server %in% c("phclaims", "hhsaw", "inthealth")) {
+    stop("Server must be NULL, 'phclaims', 'hhsaw', or 'inthealth'")
   }
   
   #### INITIAL ERROR CHECK ####
