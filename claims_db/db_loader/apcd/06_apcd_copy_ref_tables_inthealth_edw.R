@@ -69,6 +69,7 @@ system.time(table_duplicate_f(
   delete_table = TRUE
 ))
 
+
 #### Step 3: Copy tables from HHSAW ref schema ####
 
 #Specify tables to be copied from ref schema of HHSAW

@@ -23,7 +23,9 @@ years_expected_from2015 <- 7 #number of years of data we expect (2015+)
 years_expected_from2017 <- 5 #number of years of data we expect (2017+)
 
 #Connect to inthealth_edw
-dw_inthealth <- create_db_connection("inthealth", interactive = FALSE, prod = TRUE)
+interactive_auth <- FALSE
+prod <- TRUE
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 #Set up functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
@@ -37,7 +39,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -79,7 +81,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -127,7 +129,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_line.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_line.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -204,7 +206,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_icdcm_header.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_icdcm_header.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -290,7 +292,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_procedure.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_procedure.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -376,7 +378,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_provider.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_provider.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -515,7 +517,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -585,7 +587,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm_char.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm_char.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -613,7 +615,7 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_header.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_header.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
 create_table_f(conn = dw_inthealth, 
@@ -660,7 +662,7 @@ DBI::dbExecute(conn = dw_inthealth,
 #### Table 10: mcare_claim_ccw ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Create table
 create_table_f(
@@ -734,4 +736,17 @@ DBI::dbExecute(conn = dw_inthealth,
 #### Table 11: mcare_claim_bh ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-dw_inthealth <- create_db_connection("inthealth", interactive = F, prod = T)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Create table
+create_table_f(
+  conn = dw_inthealth,
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_bh.yaml",
+  overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### B) Load tables
+system.time(load_bh(
+  server = "dw_inthealth",
+  conn = dw_inthealth,
+  source = "mcare",
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_bh.yaml"))
