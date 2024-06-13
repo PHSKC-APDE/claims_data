@@ -825,3 +825,24 @@ system.time(load_stage.mcare_claim_moud_f())
 ### D) Table-level QA
 system.time(mcare_claim_moud_qa <- qa_stage.mcare_claim_moud_qa_f())
 rm(config_url)
+
+##Process QA results
+if(all(c(mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="# members not in bene_enrollment, expect 0"] == 0
+         & mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="# of rows with unspec proc and non-zero supply, expect 0"] == 0
+         & mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="# of rows with more than 1 type of MOUD flag, expect 0"] == 0
+         & mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="total days supply of methadone, raw"] <
+         mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="total days supply of methadone, adjusted"]))) {
+  message(paste0("mcare_claim_moud QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("mcare_claim_moud QA result: FAIL - ", Sys.time()))
+}
+
+### E) Archive current stg_claims.final table
+DBI::dbExecute(conn = inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_moud TO archive_mcare_claim_moud;",
+                              .con = inthealth))
+
+### F) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_moud TO final_mcare_claim_moud;",
+                              .con = inthealth))
