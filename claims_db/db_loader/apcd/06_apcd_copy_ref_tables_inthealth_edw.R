@@ -77,7 +77,7 @@ table_df_ref <- as.data.frame(
     from_schema = c("ref"),
     from_table = c("icdcm_codes", "rda_value_sets_apde"),
     to_schema = c("stg_claims"),
-    to_table = c("ref_icdcm_codes", "rda_value_sets_apde")
+    to_table = c("ref_icdcm_codes", "ref_rda_value_sets_apde")
   )
 )
 
