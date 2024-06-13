@@ -2,8 +2,7 @@
 # Alastair Matheson
 # Created:        2019-04-04
 #
-#2024-6-13 Eli update: Added dw_health as server option
-
+#2024-6-13 Eli update: Added inthealth as server option
 
 ### Plans for future improvements:
 # Add warning when table is about to be overwritten
