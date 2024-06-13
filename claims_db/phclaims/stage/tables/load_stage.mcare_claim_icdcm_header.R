@@ -12,7 +12,7 @@
 load_stage.mcare_claim_icdcm_header_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
+  odbc::dbGetQuery(inthealth, glue::glue_sql(
     "--Code to load data to stage.mcare_claim_icdcm_header table
     --ICD-CM codes reshaped to long
     --Eli Kern (PHSKC-APDE)
@@ -597,14 +597,14 @@ load_stage.mcare_claim_icdcm_header_f <- function() {
     dxecode_12)
   ) as diagnoses
   where diagnoses is not null AND  diagnoses!=' ';",
-        .con = dw_inthealth))
+        .con = inthealth))
 }
 
 #### Table-level QA script ####
 qa_stage.mcare_claim_icdcm_header_qa_f <- function() {
   
   #confirm that claim types with dx01 have data for each year
-  res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res1 <- dbGetQuery(conn = inthealth, glue_sql(
   "select 'stg_claims.stage_mcare_claim_icdcm_header' as 'table',
   'rows with non-null dx01' as qa_type,
   filetype_mcare, year(last_service_date) as service_year, count(*) as qa
@@ -612,10 +612,10 @@ qa_stage.mcare_claim_icdcm_header_qa_f <- function() {
   where icdcm_norm is not null and icdcm_number = '01'
   group by filetype_mcare, year(last_service_date)
   order by filetype_mcare, year(last_service_date);",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #confirm that claim types with admit dx have data for each year
-  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res2 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_icdcm_header' as 'table',
   'rows with non-null dx_admit' as qa_type,
   filetype_mcare, year(last_service_date) as service_year, count(*) as qa
@@ -623,10 +623,10 @@ qa_stage.mcare_claim_icdcm_header_qa_f <- function() {
   where icdcm_norm is not null and icdcm_number = 'admit'
   group by filetype_mcare, year(last_service_date)
   order by filetype_mcare, year(last_service_date);",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #confirm that claim types with ecode dx01 have data for each year
-  res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res3 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_icdcm_header' as 'table',
   'rows with non-null dx ecode 1' as qa_type,
   filetype_mcare, year(last_service_date) as service_year, count(*) as qa
@@ -634,17 +634,17 @@ qa_stage.mcare_claim_icdcm_header_qa_f <- function() {
   where icdcm_norm is not null and icdcm_number = 'ecode_1'
   group by filetype_mcare, year(last_service_date)
   order by filetype_mcare, year(last_service_date);",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #make sure everyone is in bene_enrollment table
-  res4 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res4 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_icdcm_header' as 'table', '# members not in bene_enrollment, expect 0' as qa_type,
     count(a.id_mcare) as qa
     from stg_claims.stage_mcare_claim_icdcm_header as a
     left join stg_claims.mcare_bene_enrollment as b
     on a.id_mcare = b.bene_id
     where b.bene_id is null;",
-    .con = dw_inthealth))
+    .con = inthealth))
 
 res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }

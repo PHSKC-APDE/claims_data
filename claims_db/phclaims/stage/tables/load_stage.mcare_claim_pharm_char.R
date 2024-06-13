@@ -10,7 +10,7 @@
 load_stage.mcare_claim_pharm_char_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
+  odbc::dbGetQuery(inthealth, glue::glue_sql(
     "insert into stg_claims.stage_mcare_claim_pharm_char
     select
     ncpdp_id as pharmacy_id,
@@ -41,5 +41,5 @@ load_stage.mcare_claim_pharm_char_f <- function() {
     status_340b_cd,
     getdate() as last_run
     from stg_claims.mcare_pharm_char;",
-        .con = dw_inthealth))
+        .con = inthealth))
 }

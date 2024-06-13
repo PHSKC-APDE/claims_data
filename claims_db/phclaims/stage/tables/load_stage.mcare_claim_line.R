@@ -12,7 +12,7 @@
 load_stage.mcare_claim_line_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
+  odbc::dbGetQuery(inthealth, glue::glue_sql(
     "--Code to load data to stage.mcare_claim_line table
     --Distinct line-level claim variables that do not have a dedicated table (e.g. revenue code). In other words elements for which there is only one distinct 
     --value per claim line.
@@ -266,14 +266,14 @@ load_stage.mcare_claim_line_f <- function() {
     where (b.clm_mdcr_non_pmt_rsn_cd = '' or b.clm_mdcr_non_pmt_rsn_cd is null)
     --exclude claims among people who have no eligibility data
     and c.bene_id is not null;",
-        .con = dw_inthealth))
+        .con = inthealth))
     }
 
 #### Table-level QA script ####
 qa_stage.mcare_claim_line_qa_f <- function() {
   
   #confirm that claim types with expected revenue codes have data for each year
-  res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res1 <- dbGetQuery(conn = inthealth, glue_sql(
   "select 'stg_claims.stage_mcare_claim_line' as 'table',
   'rows with non-null revenue code' as qa_type,
   filetype_mcare, year(last_service_date) as service_year, count(*) as qa
@@ -281,10 +281,10 @@ qa_stage.mcare_claim_line_qa_f <- function() {
   where revenue_code is not null
   group by filetype_mcare, year(last_service_date)
   order by filetype_mcare, year(last_service_date);",
-  .con = dw_inthealth))
+  .con = inthealth))
   
   #confirm that claim types with expected revenue codes have data for each year
-  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res2 <- dbGetQuery(conn = inthealth, glue_sql(
   "select 'stg_claims.stage_mcare_claim_line' as 'table',
   'rows with non-null place of service and type of service code' as qa_type,
   filetype_mcare, year(last_service_date) as service_year, count(*) as qa
@@ -292,41 +292,41 @@ qa_stage.mcare_claim_line_qa_f <- function() {
   where place_of_service_code is not null and type_of_service is not null
   group by filetype_mcare, year(last_service_date)
   order by filetype_mcare, year(last_service_date);",
-  .con = dw_inthealth))
+  .con = inthealth))
 
   #make sure everyone is in bene_enrollment table
-  res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res3 <- dbGetQuery(conn = inthealth, glue_sql(
   "select 'stg_claims.stage_mcare_claim_line' as 'table', '# members not in bene_enrollment, expect 0' as qa_type,
     count(a.id_mcare) as qa
     from stg_claims.stage_mcare_claim_line as a
     left join stg_claims.mcare_bene_enrollment as b
     on a.id_mcare = b.bene_id
     where b.bene_id is null;",
-  .con = dw_inthealth))
+  .con = inthealth))
   
   #confirm all revenue codes are 4 digits
-  res4 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res4 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_line' as 'table', '# of claims where length of revenue codes != 4, expect 0' as qa_type,
     count(*) as qa
     from stg_claims.stage_mcare_claim_line
     where len(revenue_code) != 4;",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #confirm all place of service codes are 2 digits
-  res5 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res5 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_line' as 'table', '# of claims where length of pos codes != 2, expect 0' as qa_type,
     count(*) as qa
     from stg_claims.stage_mcare_claim_line
     where len(place_of_service_code) != 2;",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #confirm all type of service codes are 1 digit
-  res6 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res6 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_line' as 'table', '# of claims where length of type of service codes != 1, expect 0' as qa_type,
     count(*) as qa
     from stg_claims.stage_mcare_claim_line
     where len(type_of_service) != 1;",
-    .con = dw_inthealth))
+    .con = inthealth))
 
 res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }

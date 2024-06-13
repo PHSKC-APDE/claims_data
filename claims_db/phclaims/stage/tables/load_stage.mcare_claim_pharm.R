@@ -10,7 +10,7 @@
 load_stage.mcare_claim_pharm_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
+  odbc::dbGetQuery(inthealth, glue::glue_sql(
     "------------------
     --STEP 1: Select desired columns from multi-year claim tables on stage schema
     --Include both administered medications on facility claims and Part D pharmacy fills
@@ -344,14 +344,14 @@ load_stage.mcare_claim_pharm_f <- function() {
     on a.bene_id = c.bene_id
     --exclude claims among people who have no eligibility data
     where c.bene_id is not null;",
-        .con = dw_inthealth))
+        .con = inthealth))
     }
 
 #### Table-level QA script ####
 qa_stage.mcare_claim_pharm_qa_f <- function() {
   
   #confirm that claim types with facility-administered drugs have data for each year
-  res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res1 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_pharm' as 'table',
   'rows with facility drugs' as qa_type,
   filetype_mcare, year(last_service_date) as service_year, count(*) as qa
@@ -359,10 +359,10 @@ qa_stage.mcare_claim_pharm_qa_f <- function() {
   where facility_drug_quantity is not null
   group by filetype_mcare, year(last_service_date)
   order by filetype_mcare, year(last_service_date);",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #confirm pharmacy fills exist for each year
-  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res2 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_pharm' as 'table',
   'rows with pharmacy fills' as qa_type,
   filetype_mcare, year(last_service_date) as service_year, count(*) as qa
@@ -370,17 +370,17 @@ qa_stage.mcare_claim_pharm_qa_f <- function() {
   where filetype_mcare = 'pharmacy'
   group by filetype_mcare, year(last_service_date)
   order by filetype_mcare, year(last_service_date);",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #make sure everyone is in bene_enrollment table
-  res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res3 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_pharm' as 'table', '# members not in bene_enrollment, expect 0' as qa_type,
     count(a.id_mcare) as qa
     from stg_claims.stage_mcare_claim_pharm as a
     left join stg_claims.mcare_bene_enrollment as b
     on a.id_mcare = b.bene_id
     where b.bene_id is null;",
-    .con = dw_inthealth))
+    .con = inthealth))
 
 res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }

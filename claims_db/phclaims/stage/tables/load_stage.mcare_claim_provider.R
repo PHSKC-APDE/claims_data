@@ -12,7 +12,7 @@
 load_stage.mcare_claim_provider_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
+  odbc::dbGetQuery(inthealth, glue::glue_sql(
     "--Code to load data to stage.mcare_claim_provider table
     --Provider information as submitted reshaped to long
     --Eli Kern (PHSKC-APDE)
@@ -625,31 +625,31 @@ load_stage.mcare_claim_provider_f <- function() {
     left join stg_claims.mcare_bene_enrollment as w
     on z.id_mcare = w.bene_id
     where w.bene_id is not null;",
-        .con = dw_inthealth))
+        .con = inthealth))
     }
 
 #### Table-level QA script ####
 qa_stage.mcare_claim_provider_qa_f <- function() {
   
   #confirm that claim types have data for each year for expected provider types
-  res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res1 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_provider' as 'table',
   'row count for specified provider type' as qa_type,
   filetype_mcare, provider_type, year(last_service_date) as service_year, count(*) as qa
   from stg_claims.stage_mcare_claim_provider
   group by filetype_mcare, provider_type, year(last_service_date)
   order by filetype_mcare, provider_type, year(last_service_date);",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #make sure everyone is in bene_enrollment table
-  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res2 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_provider' as 'table', '# members not in bene_enrollment, expect 0' as qa_type,
     count(a.id_mcare) as qa
     from stg_claims.stage_mcare_claim_provider as a
     left join stg_claims.mcare_bene_enrollment as b
     on a.id_mcare = b.bene_id
     where b.bene_id is null;",
-    .con = dw_inthealth))
+    .con = inthealth))
 
 res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }
