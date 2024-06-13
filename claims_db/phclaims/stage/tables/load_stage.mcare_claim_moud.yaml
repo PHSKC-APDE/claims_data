@@ -15,7 +15,7 @@ vars:
     admin_method: varchar(255)
     moud_flag_count: int
     moud_days_supply: numeric(38,1)
-    next_meth_diff: tinyint
+    next_meth_diff: int
     next_meth_diff_median_year_quarter: numeric(38,1)
     meth_proc_sum_year_quarter: int
     moud_days_supply_new_year_quarter: numeric(38,1)
