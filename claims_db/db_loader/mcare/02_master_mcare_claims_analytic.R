@@ -25,12 +25,13 @@ years_expected_from2017 <- 5 #number of years of data we expect (2017+)
 #Connect to inthealth_edw
 interactive_auth <- FALSE
 prod <- TRUE
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 #Set up functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_ccw.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_bh.R")
+
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 1: mcare_elig_demo ####
@@ -39,10 +40,10 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = dw_inthealth, 
+create_table_f(conn = inthealth, 
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T)
 
@@ -64,14 +65,14 @@ if(all(c(mcare_elig_demo_qa$qa[[1]] == 0
 }
 
 ### E) Archive current stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_elig_demo TO archive_mcare_elig_demo;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_elig_demo TO final_mcare_elig_demo;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -81,10 +82,10 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = dw_inthealth, 
+create_table_f(conn = inthealth, 
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T)
 
@@ -112,14 +113,14 @@ if(all(c(mcare_elig_timevar_qa$qa[[1]] == 0
 }
 
 ### E) Archive current stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_elig_timevar TO archive_mcare_elig_timevar;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_elig_timevar TO final_mcare_elig_timevar;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -129,10 +130,10 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_line.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_line.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = dw_inthealth, 
+create_table_f(conn = inthealth, 
              config_url = config_url,
              overall = T, ind_yr = F, overwrite = T)
 
@@ -189,14 +190,14 @@ if(all(c(qa_line_1:qa_line_2)) == TRUE & qa_line_3 == 0L & qa_line_4 == 0L & qa_
 }
 
 ### E) Archive current stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_line TO archive_mcare_claim_line;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_line TO final_mcare_claim_line;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -206,10 +207,10 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_icdcm_header.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_icdcm_header.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = dw_inthealth, 
+create_table_f(conn = inthealth, 
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T)
 
@@ -275,14 +276,14 @@ if(all(c(qa_icdcm_1:qa_icdcm_3)) == TRUE & qa_icdcm_4 == 0L) {
 }
 
 ### E) Archive current stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_icdcm_header TO archive_mcare_claim_icdcm_header;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_icdcm_header TO final_mcare_claim_icdcm_header;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -292,10 +293,10 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_procedure.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_procedure.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = dw_inthealth, 
+create_table_f(conn = inthealth, 
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T)
 
@@ -361,14 +362,14 @@ if(all(c(qa_procedure_1:qa_procedure_3)) == TRUE & qa_procedure_4 == 0L) {
 }
 
 ### E) Archive current stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_procedure TO archive_mcare_claim_procedure;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_procedure TO final_mcare_claim_procedure;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -378,10 +379,10 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_provider.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_provider.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = dw_inthealth, 
+create_table_f(conn = inthealth, 
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T)
 
@@ -500,14 +501,14 @@ if(all(c(qa_provider_1:qa_provider_7)) == TRUE & qa_provider_8 == 0L) {
 }
 
 ### E) Archive current stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_provider TO archive_mcare_claim_provider;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_provider TO final_mcare_claim_provider;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -517,10 +518,10 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = dw_inthealth, 
+create_table_f(conn = inthealth, 
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T)
 
@@ -570,14 +571,14 @@ if(all(c(qa_pharm_1:qa_pharm_2)) == TRUE & qa_pharm_3 == 0L) {
 }
 
 ### E) Archive current stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_pharm TO archive_mcare_claim_pharm;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_pharm TO final_mcare_claim_pharm;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -587,10 +588,10 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm_char.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm_char.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = dw_inthealth, 
+create_table_f(conn = inthealth, 
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T)
 
@@ -598,14 +599,14 @@ create_table_f(conn = dw_inthealth,
 system.time(load_stage.mcare_claim_pharm_char_f())
 
 ### D) Archive current stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_pharm_char TO archive_mcare_claim_pharm_char;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 ### E) Rename current stg_claims.stage table as stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_pharm_char TO final_mcare_claim_pharm_char;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
@@ -615,10 +616,10 @@ DBI::dbExecute(conn = dw_inthealth,
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_header.R")
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_header.yaml"
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = dw_inthealth, 
+create_table_f(conn = inthealth, 
                config_url = config_url,
                overall = T, ind_yr = F, overwrite = T)
 
@@ -648,32 +649,32 @@ if(all(c(mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of headers"]
 }
 
 ### E) Archive current stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_header TO archive_mcare_claim_header;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_header TO final_mcare_claim_header;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 10: mcare_claim_ccw ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Create table
 create_table_f(
-  conn = dw_inthealth,
+  conn = inthealth,
   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_ccw.yaml",
   overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
 
 ### B) Load tables
 system.time(load_ccw(
   server = "hhsaw",
-  conn = dw_inthealth,
+  conn = inthealth,
   source = c("mcare"),
   print_query = FALSE,
   ccw_list_name = "all",
@@ -682,24 +683,24 @@ system.time(load_ccw(
 ### C) Table-level QA
 
 #all members should be in elig_demo table
-mcare_claim_ccw_qa1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+mcare_claim_ccw_qa1 <- dbGetQuery(conn = inthealth, glue_sql(
   "select 'stg_claims.stage_mcare_claim_ccw' as 'table', '# members not in elig_demo, expect 0' as qa_type,
     count(distinct a.id_mcare) as qa
     from stg_claims.stage_mcare_claim_ccw as a
     left join stg_claims.final_mcare_elig_demo as b
     on a.id_mcare = b.id_mcare
     where b.id_mcare is null;",
-  .con = dw_inthealth))
+  .con = inthealth))
 
 #count conditions run
-mcare_claim_ccw_qa2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+mcare_claim_ccw_qa2 <- dbGetQuery(conn = inthealth, glue_sql(
   "select 'stg_claims.stage_mcare_claim_ccw' as 'table', '# conditions, expect 31' as qa_type,
   count(distinct ccw_code) as qa
   from stg_claims.stage_mcare_claim_ccw;",
-  .con = dw_inthealth))
+  .con = inthealth))
 
 #count rows that overlap with prior row or following row, expect 0
-mcare_claim_ccw_qa3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+mcare_claim_ccw_qa3 <- dbGetQuery(conn = inthealth, glue_sql(
   "
   with temp1 as (
     select id_mcare,
@@ -710,7 +711,7 @@ mcare_claim_ccw_qa3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
   select 'stg_claims.stage_mcare_claim_ccw' as 'table', 'overlapping rows, expect 0' as qa_type, count(*) as qa
   from temp1
   where prev_row_diff < 0 or next_row_diff < 0;",
-  .con = dw_inthealth))
+  .con = inthealth))
 
 ##Process QA results
 if(all(c(mcare_claim_ccw_qa1$qa==0
@@ -722,31 +723,31 @@ if(all(c(mcare_claim_ccw_qa1$qa==0
 }
 
 ### D) Archive current stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_ccw TO archive_mcare_claim_ccw;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 ### E) Rename current stg_claims.stage table as stg_claims.final table
-DBI::dbExecute(conn = dw_inthealth,
+DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_ccw TO final_mcare_claim_ccw;",
-                              .con = dw_inthealth))
+                              .con = inthealth))
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 11: mcare_claim_bh ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Create table
 create_table_f(
-  conn = dw_inthealth,
+  conn = inthealth,
   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_bh.yaml",
-  overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+  overall = T, ind_yr = F, overwrite = T, server = "inthealth")
 
 ### B) Load tables
 system.time(load_bh(
-  server = "dw_inthealth",
-  conn = dw_inthealth,
+  server = "inthealth",
+  conn = inthealth,
   source = "mcare",
   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_bh.yaml"))
