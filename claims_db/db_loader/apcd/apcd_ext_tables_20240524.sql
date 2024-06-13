@@ -92,6 +92,7 @@ WITH (DATA_SOURCE = [datascr_WS_EDW], SCHEMA_NAME = N'stg_claims', OBJECT_NAME =
 CREATE EXTERNAL TABLE "claims"."stage_apcd_claim_preg_episode"
   ([id_apcd] BIGINT NULL, 
   [age_at_outcome] NUMERIC(18,0) NULL, 
+  [age_at_outcome_cat6] VARCHAR(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
   [preg_episode_id] BIGINT NULL, 
   [preg_endpoint] VARCHAR(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL, 
   [preg_hier] TINYINT NULL, 
