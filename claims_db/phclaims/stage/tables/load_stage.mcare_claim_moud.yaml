@@ -1,0 +1,22 @@
+schema: stg_claims
+table: stage_mcare_claim_moud
+vars:
+    id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
+    last_service_date: date
+    service_year: int
+    service_quarter: int
+    service_month: int
+    meth_proc_flag: tinyint
+    bup_proc_flag: tinyint
+    nal_proc_flag: tinyint
+    unspec_proc_flag: tinyint
+    bup_rx_flag: tinyint
+    nal_rx_flag: tinyint
+    admin_method: varchar(255)
+    moud_flag_count: int
+    moud_days_supply: numeric(38,1)
+    next_meth_diff: tinyint
+    next_meth_diff_median_year_quarter: numeric(38,1)
+    meth_proc_sum_year_quarter: int
+    moud_days_supply_new_year_quarter: numeric(38,1)
+    last_run: datetime
