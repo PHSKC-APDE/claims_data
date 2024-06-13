@@ -75,9 +75,9 @@ system.time(table_duplicate_f(
 table_df_ref <- as.data.frame(
   list(
     from_schema = c("ref"),
-    from_table = c("icdcm_codes", "rda_value_sets_apde"),
+    from_table = c("icdcm_codes", "rda_value_sets_apde", "ndc_codes"),
     to_schema = c("stg_claims"),
-    to_table = c("ref_icdcm_codes", "ref_rda_value_sets_apde")
+    to_table = c("ref_icdcm_codes", "ref_rda_value_sets_apde", "ref_ndc_codes")
   )
 )
 
