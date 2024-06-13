@@ -1,6 +1,8 @@
 #### FUNCTION TO CREATE TABLES IN SQL
 # Alastair Matheson
 # Created:        2019-04-04
+#
+#2024-6-13 Eli update: Added dw_health as server option
 
 
 ### Plans for future improvements:
@@ -38,10 +40,10 @@ create_table_f <- function(
   #### SET UP SERVER ####
   if (is.null(server)) {
     server <- NA
-  } else if (server %in% c("phclaims", "hhsaw")) {
+  } else if (server %in% c("phclaims", "hhsaw", "dw_inthealth")) {
     server <- server
-  } else if (!server %in% c("phclaims", "hhsaw")) {
-    stop("Server must be NULL, 'phclaims', or 'hhsaw'")
+  } else if (!server %in% c("phclaims", "hhsaw", "dw_inthealth")) {
+    stop("Server must be NULL, 'phclaims', 'hhsaw', or 'dw_health'")
   }
   
   #### INITIAL ERROR CHECK ####
