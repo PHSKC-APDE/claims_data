@@ -10,7 +10,7 @@
 load_stage.mcare_elig_demo_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
+  odbc::dbGetQuery(inthealth, glue::glue_sql(
     "---------------------
     --Create elig_demo table from bene_enrollment table
     --Eli Kern, adapted from Danny Colombara script
@@ -245,14 +245,14 @@ load_stage.mcare_elig_demo_f <- function() {
     on a.bene_id = e.bene_id
     left join #race as f
     on a.bene_id = f.bene_id;",
-        .con = dw_inthealth))
+        .con = inthealth))
     }
 
 #### Table-level QA script ####
 qa_stage.mcare_elig_demo_qa_f <- function() {
   
   #confirm that no one has more than one row
-  res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res1 <- dbGetQuery(conn = inthealth, glue_sql(
     "with test_1 as (
     select id_mcare, count(*) as row_count
     from stg_claims.stage_mcare_elig_demo
@@ -262,13 +262,13 @@ qa_stage.mcare_elig_demo_qa_f <- function() {
     'people with more than 1 row, expect 0' as qa_type, count(*) as qa
     from test_1
     where row_count >1;",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #confirm distinct person count matches with bene_enrollment table
-  qa2a_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select count(*) as row_count from stg_claims.stage_mcare_elig_demo;", .con = dw_inthealth))
-  qa2b_result <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select count(distinct bene_id) as row_count from stg_claims.mcare_bene_enrollment;", .con = dw_inthealth))
+  qa2a_result <- dbGetQuery(conn = inthealth, glue_sql(
+    "select count(*) as row_count from stg_claims.stage_mcare_elig_demo;", .con = inthealth))
+  qa2b_result <- dbGetQuery(conn = inthealth, glue_sql(
+    "select count(distinct bene_id) as row_count from stg_claims.mcare_bene_enrollment;", .con = inthealth))
   if(qa2a_result$row_count == qa2b_result$row_count) {
     qa2 <- 0L
   } else {
@@ -281,21 +281,21 @@ qa_stage.mcare_elig_demo_qa_f <- function() {
   ))
   
   #check multiple gender logic
-  res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res3 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_elig_demo' as 'table', '# rows where multiple gender logic is wrong, expect 0' as qa_type,
     count(*) as qa
     from stg_claims.stage_mcare_elig_demo
     where (gender_me = 'Multiple' and gender_female = 0 and gender_male = 0)
 	    or (gender_me != 'Multiple' and gender_female = 1 and gender_male = 1);",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #check race_eth vs race logic
-  res4 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res4 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_elig_demo' as 'table', '# rows where race_eth vs race logic is wrong, expect 0' as qa_type,
     count(*) as qa
     from stg_claims.stage_mcare_elig_demo
     where race_eth_me = 'Multiple' and race_me != 'Multiple' and race_latino = 0;",
-    .con = dw_inthealth))
+    .con = inthealth))
 
 res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }

@@ -12,7 +12,7 @@
 load_stage.mcare_claim_header_f <- function() {
   
   ### Run SQL query
-  odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
+  odbc::dbGetQuery(inthealth, glue::glue_sql(
     "--Code to create stg_claims.stage_mcare_claim_header table
     --Distinct header-level claim variables (e.g. claim type). In other words elements for which there is only one distinct value per claim header.
     --Eli Kern (PHSKC-APDE)
@@ -891,63 +891,63 @@ load_stage.mcare_claim_header_f <- function() {
     --drop final temp tables
     if object_id(N'stg_claims.tmp_mcare_claim_header_temp3',N'U') is not null drop table stg_claims.tmp_mcare_claim_header_temp3;
     if object_id(N'stg_claims.tmp_mcare_claim_header_ed_pophealth',N'U') is not null drop table stg_claims.tmp_mcare_claim_header_ed_pophealth;",
-        .con = dw_inthealth))
+        .con = inthealth))
     }
 
 #### Table-level QA script ####
 qa_stage.mcare_claim_header_qa_f <- function() {
   
   #confirm that claim header is distinct
-  res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res1 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_header' as 'table', '# of headers' as qa_type,
     count(*) as qa
     from stg_claims.stage_mcare_claim_header;",
-    .con = dw_inthealth))
+    .con = inthealth))
   
-  res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res2 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_header' as 'table', '# of distinct headers' as qa_type,
     count(distinct claim_header_id) as qa
     from stg_claims.stage_mcare_claim_header;",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #make sure everyone is in elig_demo
-  res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res3 <- dbGetQuery(conn = inthealth, glue_sql(
   "select 'stg_claims.stage_mcare_claim_header' as 'table', '# members not in elig_demo, expect 0' as qa_type,
     count(a.id_mcare) as qa
     from stg_claims.stage_mcare_claim_header as a
     left join stg_claims.final_mcare_elig_demo as b
     on a.id_mcare = b.id_mcare
     where b.id_mcare is null;",
-  .con = dw_inthealth))
+  .con = inthealth))
   
   #make sure everyone is in elig_timevar
-  res4 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res4 <- dbGetQuery(conn = inthealth, glue_sql(
   "select 'stg_claims.stage_mcare_claim_header' as 'table', '# members not in elig_timevar, expect 0' as qa_type,
     count(a.id_mcare) as qa
     from stg_claims.stage_mcare_claim_header as a
     left join stg_claims.final_mcare_elig_timevar as b
     on a.id_mcare = b.id_mcare
     where b.id_mcare is null;",
-  .con = dw_inthealth))
+  .con = inthealth))
   
   #count unmatched claim types
-  res5 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res5 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_header' as 'table', '# of claims with unmatched claim type, expect 0' as qa_type,
     count(*) as qa
     from stg_claims.stage_mcare_claim_header
     where claim_type_id is null or claim_type_mcare_id is null;",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #verify that all inpatient stays have discharge date
-  res6 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res6 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_header' as 'table', '# of ipt stays with no discharge date, expect 0' as qa_type,
     count(*) as qa
     from stg_claims.stage_mcare_claim_header
     where inpatient_id is not null and discharge_date is null;",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #verify that no ed_pophealth_id value is used for more than one person
-  res7 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res7 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_header' as 'table', '# of ed_pophealth_id values used for >1 person, expect 0' as qa_type,
     count(a.ed_pophealth_id) as qa
     from (
@@ -956,31 +956,31 @@ qa_stage.mcare_claim_header_qa_f <- function() {
       group by ed_pophealth_id
     ) as a
     where a.id_dcount > 1;",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #verify that ed_pophealth_id does not skip any values
-  res8a <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res8a <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_header' as 'table', '# of distinct ed_pophealth_id values' as qa_type,
     count(distinct ed_pophealth_id) as qa
     from stg_claims.stage_mcare_claim_header;",
-    .con = dw_inthealth))
+    .con = inthealth))
   
-  res8b <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res8b <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_header' as 'table', 'max ed_pophealth_id - min + 1' as qa_type,
     cast(max(ed_pophealth_id) - min(ed_pophealth_id) + 1 as int) as qa
     from stg_claims.stage_mcare_claim_header;",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #verify that there are no rows with ed_perform_id without ed_pophealth_id
-  res9 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res9 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_header' as 'table', '# of ed_perform rows with no ed_pophealth, expect 0' as qa_type,
     count(*) as qa
     from stg_claims.stage_mcare_claim_header
     where ed_perform_id is not null and ed_pophealth_id is null;",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #verify that 1-day overlap window was implemented correctly with ed_pophealth_id
-  res10 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res10 <- dbGetQuery(conn = inthealth, glue_sql(
     "with cte as
     (
     select * 
@@ -993,15 +993,15 @@ qa_stage.mcare_claim_header_qa_f <- function() {
       count(*) as qa
     from stg_claims.stage_mcare_claim_header
     where ed_pophealth_id in (select ed_pophealth_id from cte where abs(datediff(day, lag_first_service_date, first_service_date)) > 1);",
-    .con = dw_inthealth))
+    .con = inthealth))
   
   #verify that total cost of care is calculated correctly
-  res11 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res11 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_header' as 'table', '# of rows where total cost of care does not sum as expected, expect 0' as qa_type,
     count(*) as qa
     from stg_claims.stage_mcare_claim_header
     where total_cost_of_care != total_paid_insurance + total_paid_bene;",
-    .con = dw_inthealth))
+    .con = inthealth))
 
 res_final <- mget(ls(pattern="^res")) %>% bind_rows()
 }
