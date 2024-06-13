@@ -803,3 +803,25 @@ DBI::dbExecute(conn = inthealth,
 DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_bh TO final_mcare_claim_bh;",
                               .con = inthealth))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 12: mcare_claim_moud ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_moud.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_moud.yaml"
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### B) Create table
+create_table_f(conn = inthealth, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T)
+
+### C) Load tables
+system.time(load_stage.mcare_claim_moud_f())
+
+### D) Table-level QA
+system.time(mcare_claim_moud_qa <- qa_stage.mcare_claim_moud_qa_f())
+rm(config_url)
