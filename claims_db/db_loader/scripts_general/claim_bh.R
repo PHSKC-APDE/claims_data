@@ -277,10 +277,10 @@ load_bh <- function(conn = NULL,
     #Run SQL query
     dbGetQuery(conn = conn, sql5)
     
-    #try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_header_bh")), silent = T)
-    #try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_matrix")), silent = T)
-    #try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_matrix")), silent = T)
-    #try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_tmp_bh")), silent = T)
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_header_bh")), silent = T)
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_matrix")), silent = T)
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_matrix")), silent = T)
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_tmp_bh")), silent = T)
   
   #Run time of all steps
     time_end <- Sys.time()
