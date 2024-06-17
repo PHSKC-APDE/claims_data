@@ -158,7 +158,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 	  from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`} as a
 	  inner join (
   		select distinct code, sub_group_pharmacy
-		  from {`ref_schema`}.{`'rda_value_sets_apde'`}
+		  from [ref].[rda_value_sets_apde]
 		  where sub_group_pharmacy in ('pharm_buprenorphine', 'pharm_buprenorphine_naloxone', 'pharm_naltrexone_rx')
 		  ) as b
   			on a.ndc = b.code
