@@ -389,7 +389,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 				  when right(year_quarter,2) in (3,4) then left(year_quarter,4) + '_bottom'
 				  end as year_half,
 			  [year]
-		  from {`ref_schema`.}ref_date) as b
+		  from {`ref_schema`}.ref_date) as b
   			on a.last_service_date = b.[date];
   
   	select 
