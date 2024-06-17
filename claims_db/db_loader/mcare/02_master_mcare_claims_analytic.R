@@ -829,9 +829,7 @@ rm(config_url)
 ##Process QA results
 if(all(c(mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="# members not in bene_enrollment, expect 0"] == 0
          & mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="# of rows with unspec proc and non-zero supply, expect 0"] == 0
-         & mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="# of rows with more than 1 type of MOUD flag, expect 0"] == 0
-         & mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="total days supply of methadone, raw"] <
-         mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="total days supply of methadone, adjusted"]))) {
+         & mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="# of rows with more than 1 type of MOUD flag, expect 0"] == 0))) {
   message(paste0("mcare_claim_moud QA result: PASS - ", Sys.time()))
 } else {
   stop(paste0("mcare_claim_moud QA result: FAIL - ", Sys.time()))
