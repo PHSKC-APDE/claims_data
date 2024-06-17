@@ -145,7 +145,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                                              .con = conn))
   
   # Write findings to metadata
-  if (nrow(non_zero) == 0) {
+  if (non_zero[1,1] == 0) {
     qa_check_2 <- 0
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
@@ -177,7 +177,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                                                .con = conn))
   
   # Write findings to metadata
-  if (nrow(multi_moud) == 0) {
+  if (multi_moud[1,1] == 0) {
     qa_check_3 <- 0
     DBI::dbExecute(conn = conn,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
