@@ -1,0 +1,45 @@
+phclaims:
+    from_schema: stage
+    from_table: mcaid_claim_icdcm_header
+    to_schema: stage
+    to_table: mcaid_claim_preg_episode
+    stage_schema: stage
+    stage_table: 
+    final_schema: final
+    final_table: 
+    ref_schema: ref
+    ref_table: 
+    qa_schema: metadata
+    qa_table: 
+hhsaw:
+    from_schema: claims
+    from_table: stage_mcaid_claim_icdcm_header
+    to_schema: claims
+    to_table: stage_mcaid_claim_preg_episode
+    stage_schema: claims
+    stage_table: stage_
+    final_schema: claims
+    final_table: final_
+    ref_schema: claims
+    ref_table: ref_
+    qa_schema: claims
+    qa_table: metadata_
+index_type: ccs
+index_name: idx_ccs_mcaid_claim_preg_episode
+vars:
+    id_mcaid: varchar(255)
+    age_at_outcome: numeric(18,0)
+    age_at_outcome_cat6: varchar(5)
+    preg_episode_id: bigint
+    preg_endpoint: varchar(5)
+    preg_hier: int
+    preg_start_date: date
+    preg_end_date: date
+    ga_days: int
+    ga_weeks: numeric(4,1)
+    valid_start_date: int
+    valid_ga: int
+    valid_both: int
+    lb_type: varchar(3)
+    ga_estimation_step: int
+    last_run: datetime
