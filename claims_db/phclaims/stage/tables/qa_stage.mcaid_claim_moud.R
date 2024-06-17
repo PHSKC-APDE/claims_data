@@ -141,7 +141,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
   
   #### Check for no rows with unspec_proc_flag and non-zero MOUD supply ####
   non_zero <- DBI::dbGetQuery(conn, 
-                              glue::glue_sql("select count(*) from {`to_schema`}.{`to_table`} where unspec_proc_flag = 1 and moud_days_supply >0;",
+                              glue::glue_sql("select count(*) from {`to_schema`}.{`to_table`} where unspec_proc_flag = 1 and moud_days_supply > 0;",
                                              .con = conn))
   
   # Write findings to metadata
@@ -164,10 +164,10 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                   '{nrow(non_zero)} rows with unspec_proc_flag AND non-zero MOUD supply', 
+                   '{nrow(non_zero)} row(s) with unspec_proc_flag AND non-zero MOUD supply', 
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
-                   'ndc field had some rows with length != 11 or numeric')",
+                   'rows where ndc field not formatted properly')",
                                   .con = conn))
   }
   
@@ -199,7 +199,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    '{nrow(non_zero)} rows with more than one type of MOUD flag', 
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
-                   'ndc field had some rows with length != 11 or numeric')",
+                   'ndc field had some rows with more than one type of MOUD flag')",
                                   .con = conn))
   }
   
