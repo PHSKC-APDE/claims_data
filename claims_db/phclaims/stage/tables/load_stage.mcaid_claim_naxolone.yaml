@@ -1,0 +1,39 @@
+phclaims:
+    from_schema: stage
+    from_table: mcaid_claim_procedure
+    to_schema: stage
+    to_table: mcaid_claim_naxolone
+    stage_schema: stage
+    stage_table: 
+    final_schema: final
+    final_table: 
+    ref_schema: ref
+    ref_table: 
+    qa_schema: metadata
+    qa_table: 
+hhsaw:
+    from_schema: claims
+    from_table: stage_mcaid_claim_procedure
+    to_schema: claims
+    to_table: stage_mcaid_claim_naxolone
+    stage_schema: claims
+    stage_table: stage_
+    final_schema: claims
+    final_table: final_
+    ref_schema: claims
+    ref_table: ref_
+    qa_schema: claims
+    qa_table: metadata_
+index_type: ccs
+index_name: idx_ccs_mcaid_claim_naxolone
+vars:
+    id_mcaid: varchar(255)
+    claim_header_id: bigint
+    code: varchar(255)
+    description: varchar(600)
+    date: date
+    quantity: numeric(19,3)
+    form: varchar(9)
+    dosage_per_ml: numeric(16,6)
+    location: varchar(9)
+    last_run: datetime

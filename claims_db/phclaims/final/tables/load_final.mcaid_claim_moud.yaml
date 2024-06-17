@@ -1,0 +1,36 @@
+phclaims:
+    from_schema: stage
+    from_table: mcaid_claim_moud
+    to_schema: final
+    to_table: mcaid_claim_moud
+    qa_schema: metadata
+    qa_table: 
+hhsaw:
+    from_schema: claims
+    from_table: stage_mcaid_claim_moud
+    to_schema: claims
+    to_table: final_mcaid_claim_moud
+    qa_schema: claims
+    qa_table: metadata_
+index_type: ccs
+index_name: idx_ccs_mcaid_claim_moud
+vars:
+    id_mcaid: varchar(255)
+    last_service_date: date
+    service_year: int
+    service_quarter: int
+    service_month: int
+    meth_proc_flag: int
+    bup_proc_flag: int
+    nal_proc_flag: int
+    unspec_proc_flag: int
+    bup_rx_flag: int
+    nal_rx_flag: int
+    admin_method: varchar(17)
+    moud_flag_count: int
+    moud_days_supply: numeric(38,1)
+    next_meth_diff: int
+    next_meth_diff_median_year_quarter: float
+    meth_proc_sum_year_quarter: int
+    moud_days_supply_new_year_quarter: float
+    last_run: datetime
