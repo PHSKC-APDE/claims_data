@@ -3,6 +3,7 @@
 #
 # 2024-06
 #
+# 2024-06-17 Eli update: use supplied days supply column for all MOUD types, no estimation needed for methadone
 
 ### Run from 02_master_mcare_claims_analytic.R script
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/02_master_mcare_claims_analytic.R
@@ -446,22 +447,15 @@ load_stage.mcare_claim_moud_f <- function() {
         
         
     ---------------------------
-    --STEP 8: Estimate methadone days supply based on next-service-date methodology
-    --Method from Busch et al. paper
-    --Use calendar quarters for time horizon per sensitivity analysis comparing ever, half-year, quarter, and month
-    --Results of sensitivity analysis are in moud_quantify_exploration.xlsx file
-    --Updated 4/19/2024 JL: added admin method to the final dataset
+    --STEP 8: Add time period columns for easier tabulation
+    --Note there is no need to estimate methadone days supply because Medicare only allows G codes for MOUD, each of which have specific days
+    --supply, and ResDAC data files have a days supply column that is already good to use for summing days supply
+    --Note that Medicare only began covering MOUD in Jan 2020
     ---------------------------
         
-    --Calculate days difference between methadone service dates and sum of all methadone encounters by person
+    --Add year_half column using ref_date table
     if object_id('tempdb..#temp_meth_1') is not null drop table #temp_meth_1;
     select a.*, b.year_month, b.year_quarter, b.year_half, b.[year],
-    case
-        when meth_proc_flag = 1 and lead(meth_proc_flag, 1) over(partition by id_mcare order by last_service_date) = 1
-        	then datediff(day, last_service_date, lead(last_service_date, 1) over(partition by id_mcare order by last_service_date))
-        else null
-    end as next_meth_diff,
-    sum(meth_proc_flag) over(partition by id_mcare, b.year_quarter) as meth_proc_sum_year_quarter
     into #temp_meth_1
     from #mcare_moud_union_final as a
     left join (select [date], [year_month], [year_quarter],
@@ -473,16 +467,7 @@ load_stage.mcare_claim_moud_f <- function() {
         from stg_claims.ref_date) as b
     on a.last_service_date = b.[date];
         
-    --Calculate median days difference between methadone service dates
-    if object_id('tempdb..#temp_meth_2') is not null drop table #temp_meth_2;
-    select *,
-    percentile_cont(0.5) within group (order by next_meth_diff) over(partition by id_mcare, year_quarter) as next_meth_diff_median_year_quarter
-    into #temp_meth_2
-    from #temp_meth_1;
-        
-    --Assign/overwrite moud_days_supply for methadone encounters
-    --Method from Busch et al. paper (baseline method)
-    
+    --Insert into final table shell
     insert into stg_claims.stage_mcare_claim_moud
     select
     id_mcare,
@@ -502,21 +487,9 @@ load_stage.mcare_claim_moud_f <- function() {
     isnull(meth_proc_flag,0) + isnull(bup_proc_flag,0) + isnull(nal_proc_flag,0) + isnull(bup_rx_flag,0) + isnull(nal_rx_flag,0) as moud_flag_count ,
         
     moud_days_supply,
-    next_meth_diff,
-        
-    next_meth_diff_median_year_quarter,
-    meth_proc_sum_year_quarter,
-    case
-        when meth_proc_flag = 1 and meth_proc_sum_year_quarter <= 2 then moud_days_supply --low count of service dates exception
-        when meth_proc_flag = 1 and next_meth_diff > (1.5 * next_meth_diff_median_year_quarter) then next_meth_diff_median_year_quarter --skipped dose exception
-        when meth_proc_flag = 1 and next_meth_diff is null then next_meth_diff_median_year_quarter --no next service date
-        when meth_proc_flag = 1 then next_meth_diff --baseline rule
-        else moud_days_supply
-    end as moud_days_supply_new_year_quarter,
-        
     getdate() as last_run
         
-    from #temp_meth_2;",
+    from #temp_meth_1;",
             .con = inthealth))
         }
 
@@ -547,21 +520,6 @@ qa_stage.mcare_claim_moud_qa_f <- function() {
     count(*) as qa
     from stg_claims.stage_mcare_claim_moud
     where moud_flag_count > 1;",
-    .con = inthealth))
-  
-  #confirm that corrected methadone days supply is larger than raw
-  res4 <- dbGetQuery(conn = inthealth, glue_sql(
-    "select 'stg_claims.stage_mcare_claim_moud' as 'table', 'total days supply of methadone, raw' as qa_type,
-    sum(moud_days_supply) as qa
-    from stg_claims.stage_mcare_claim_moud
-    where meth_proc_flag = 1;",
-    .con = inthealth))
-  
-  res5 <- dbGetQuery(conn = inthealth, glue_sql(
-    "select 'stg_claims.stage_mcare_claim_moud' as 'table', 'total days supply of methadone, adjusted' as qa_type,
-    sum(moud_days_supply_new_year_quarter) as qa
-    from stg_claims.stage_mcare_claim_moud
-    where meth_proc_flag = 1;",
     .con = inthealth))
 
 res_final <- mget(ls(pattern="^res")) %>% bind_rows()
