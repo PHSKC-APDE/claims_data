@@ -158,7 +158,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 	  from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`} as a
 	  inner join (
   		select distinct code, sub_group_pharmacy
-		  from [ref].[rda_value_sets_apde]
+		  from ref.rda_value_sets_apde
 		  where sub_group_pharmacy in ('pharm_buprenorphine', 'pharm_buprenorphine_naloxone', 'pharm_naltrexone_rx')
 		  ) as b
   			on a.ndc = b.code
@@ -241,10 +241,10 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  sum(isnull(bup_rx_flag,0)) as bup_rx_month_sum,
 		  sum(isnull(nal_rx_flag,0)) as nal_rx_month_sum
 	  into ##mcaid_moud_temp_2
-	  from (select distinct id_mcaid from #temp1 where proc_h0033_flag = 1) as a
+	  from (select distinct id_mcaid from ##mcaid_moud_temp_1 where proc_h0033_flag = 1) as a
 	  inner join ##mcaid_moud_union_1 as b
   		on a.id_mcaid = b.id_mcaid
-  	left join (select distinct [date], year_month from {`ref_schema`}ref_date) as c
+  	left join (select distinct [date], year_month from {`ref_schema`}.ref_date) as c
 		  on b.last_service_date = c.[date]
 	  group by c.year_month, b.id_mcaid;
   
@@ -284,7 +284,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  c.nal_rx_month_sum
 	  into ##mcaid_moud_temp_3
 	  from ##mcaid_moud_union_1 as a
-	  left join {`ref_schema`}ref_date as b
+	  left join {`ref_schema`}.ref_date as b
   		on a.last_service_date = b.[date]
   	left join ##mcaid_moud_temp_2 as c
 		  on (a.id_mcaid = c.id_mcaid) and (b.year_month = c.year_month);
@@ -355,7 +355,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   		a.*, b.dupmoud_todelete
   	into ##mcaid_moud_union_4
   	from ##mcaid_moud_union_3 as a
-  	left join #tempcolumns3 as b
+  	left join ##mcaid_moud_temp_columns_3 as b
 		  on (a.id_mcaid = b.id_mcaid) and (a.last_service_date = b.last_service_date) and (a.moudtype = b.moudtype) and (a.admin_method = b.admin_method) and (a.codetype = b.codetype);
 
   	select 
@@ -389,7 +389,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 				  when right(year_quarter,2) in (3,4) then left(year_quarter,4) + '_bottom'
 				  end as year_half,
 			  [year]
-		  from {`ref_schema`}ref_date) as b
+		  from {`ref_schema`.}ref_date) as b
   			on a.last_service_date = b.[date];
   
   	select 
