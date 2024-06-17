@@ -511,7 +511,7 @@ qa_stage.mcare_claim_moud_qa_f <- function() {
     "select 'stg_claims.stage_mcare_claim_moud' as 'table', '# of rows with unspec proc and non-zero supply, expect 0' as qa_type,
     count(*) as qa
     from stg_claims.stage_mcare_claim_moud
-    where unspec_proc_flag = 1 and moud_days_supply_new_year_quarter > 0;",
+    where unspec_proc_flag = 1 and moud_days_supply > 0;",
     .con = inthealth))
   
   #confirm no rows with more than one type of MOUD flag
