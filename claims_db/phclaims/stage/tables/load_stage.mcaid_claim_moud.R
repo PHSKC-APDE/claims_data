@@ -34,6 +34,9 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   # VARIABLES ----
   to_schema <- config[[server]][["to_schema"]]
   to_table <- config[[server]][["to_table"]]
+  final_schema <- config[[server]][["final_schema"]]
+  final_table <- ifelse(is.null(config[[server]][["final_table"]]), '',
+                      config[[server]][["final_table"]])
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                       config[[server]][["ref_table"]])
