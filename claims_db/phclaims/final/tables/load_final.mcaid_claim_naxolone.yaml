@@ -24,3 +24,4 @@ vars:
     form: varchar(9)
     dosage_per_ml: numeric(16,6)
     location: varchar(9)
+    last_run: datetime
