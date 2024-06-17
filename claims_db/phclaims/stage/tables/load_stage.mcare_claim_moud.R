@@ -455,7 +455,7 @@ load_stage.mcare_claim_moud_f <- function() {
         
     --Add year_half column using ref_date table
     if object_id('tempdb..#temp_meth_1') is not null drop table #temp_meth_1;
-    select a.*, b.year_month, b.year_quarter, b.year_half, b.[year],
+    select a.*, b.year_month, b.year_quarter, b.year_half, b.[year]
     into #temp_meth_1
     from #mcare_moud_union_final as a
     left join (select [date], [year_month], [year_quarter],
