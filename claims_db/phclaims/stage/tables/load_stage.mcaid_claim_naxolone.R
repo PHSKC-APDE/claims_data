@@ -172,7 +172,8 @@ on a.ndc like b.ndc_like;",
 			WHEN  ACTIVE_INGRED_UNIT = 'mg/mL' THEN 1 ELSE NULL END) 
 			END
 			AS dosage_per_ml,
-	'PHARMACY' AS location
+	'PHARMACY' AS location,
+	getdate() as last_run
 
 INTO {`to_schema`}.{`to_table`}
 
@@ -214,7 +215,8 @@ SELECT
 		ELSE NULL
 		END
 		AS DOSAGE_IN_ML,
-		'PROCEDURE' AS location
+		'PROCEDURE' AS location,
+		getdate() as last_run
 
 FROM {`final_schema`}.{`paste0(final_table, 'mcaid_claim_procedure')`} AS A
 	LEFT JOIN {`ref_schema`}.{`paste0(ref_table, 'apcd_procedure_code')`} AS B
