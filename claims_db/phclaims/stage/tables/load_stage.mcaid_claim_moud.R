@@ -374,8 +374,8 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 	  select 
 		  a.*, b.year_month, b.year_quarter, b.year_half, b.[year],
 		  case
-  			when meth_proc_flag = 1 and lead(meth_proc_flag, 1) over(partition by id_mcaid order by last_service_date) = 1
-				  then datediff(day, last_service_date, lead(last_service_date, 1) over(partition by id_mcaid order by last_service_date))
+  			when meth_proc_flag = 1 and lead(meth_proc_flag, 1) over(partition by id_mcaid order by meth_proc_flag desc, last_service_date) = 1
+				  then datediff(day, last_service_date, lead(last_service_date, 1) over(partition by id_mcaid order by meth_proc_flag desc, last_service_date))
 			  else null
 			  end as next_meth_diff,
 		  sum(meth_proc_flag) over(partition by id_mcaid, b.year_quarter) as meth_proc_sum_year_quarter
