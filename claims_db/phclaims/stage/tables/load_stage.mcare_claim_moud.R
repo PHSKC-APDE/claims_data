@@ -139,6 +139,9 @@ load_stage.mcare_claim_moud_f <- function() {
     --STEP 4: Pull pharmacy fill data for bup and naltrexone prescriptions
     --Codes come from RDA value sets
     --Updated 4/2/2024 JL: linked to ref.ndc_codes to get method of administration info, using rx_days_supply
+    --Note that for Medicare data, facility claims with prescription fills will not have days supply available (and thus will be null)
+      --Eli looked into using NDC codes to manually assign days supply, but this is not possible because a given 30-tablet bup package
+      --can provide varying days of coverage depending on a patient's dosage
     ---------------------------
     if object_id('tempdb..#mcare_moud_pharm_1') is not null drop table #mcare_moud_pharm_1;
     select distinct a.id_mcare, a.claim_header_id, a.last_service_date as first_service_date, a.last_service_date as last_service_date, a.ndc,
