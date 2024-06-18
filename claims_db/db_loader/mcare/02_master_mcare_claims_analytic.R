@@ -849,3 +849,38 @@ DBI::dbExecute(conn = inthealth,
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 12: mcare_claim_naloxone ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_naloxone.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_naloxone.yaml"
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### B) Create table
+create_table_f(conn = inthealth, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T)
+
+### C) Load tables
+system.time(load_stage.mcare_claim_naloxone_f())
+
+### D) Table-level QA
+system.time(mcare_claim_naloxone_qa <- qa_stage.mcare_claim_naloxone_qa_f())
+rm(config_url)
+
+##Process QA results
+if(all(c(mcare_claim_naloxone_qa$qa[mcare_claim_naloxone_qa$qa_type=="# members not in bene_enrollment, expect 0"] == 0
+         & mcare_claim_naloxone_qa$qa[mcare_claim_naloxone_qa$qa_type=="# of rows with null supply, expect 0"] == 0))) {
+  message(paste0("mcare_claim_naloxone QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("mcare_claim_naloxone QA result: FAIL - ", Sys.time()))
+}
+
+### E) Archive current stg_claims.final table
+DBI::dbExecute(conn = inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_naloxone TO archive_mcare_claim_naloxone;",
+                              .con = inthealth))
+
+### F) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_naloxone TO final_mcare_claim_naloxone;",
+                              .con = inthealth))
