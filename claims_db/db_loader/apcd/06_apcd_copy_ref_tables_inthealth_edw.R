@@ -39,7 +39,8 @@ table_df_claims <- as.data.frame(
                    "ref_rolling_time_12mo_2012_2020",
                    "ref_rolling_time_24mo_2012_2020",
                    "ref_rolling_time_36mo_2012_2020",
-                   "ref_date"),
+                   "ref_date",
+                   "ref_apcd_procedure_code"),
     to_schema = c("stg_claims"),
     to_table = c("ref_apcd_claim_status",
                  "ref_apcd_ethnicity_race_map",
@@ -54,7 +55,8 @@ table_df_claims <- as.data.frame(
                  "ref_rolling_time_12mo_2012_2020",
                  "ref_rolling_time_24mo_2012_2020",
                  "ref_rolling_time_36mo_2012_2020",
-                 "ref_date")
+                 "ref_date",
+                 "ref_apcd_procedure_code")
     )
   )
 
