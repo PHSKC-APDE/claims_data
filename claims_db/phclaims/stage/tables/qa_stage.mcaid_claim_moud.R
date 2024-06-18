@@ -164,7 +164,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                   '{nrow(non_zero)} row(s) with unspec_proc_flag AND non-zero MOUD supply', 
+                   '{non_zero[1,1]} row(s) with unspec_proc_flag AND non-zero MOUD supply', 
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'rows where ndc field not formatted properly')",
@@ -196,15 +196,52 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
                    '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                   '{nrow(non_zero)} rows with more than one type of MOUD flag', 
+                   '{multi_moud[1,1]} rows with more than one type of MOUD flag', 
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'ndc field had some rows with more than one type of MOUD flag')",
                                   .con = conn))
   }
   
+  #### Check for no rows that have missing MOUD days if methadone/bupe/naltrexone ####
+  miss_moud <- DBI::dbGetQuery(conn, 
+                                glue::glue_sql("select count(*) from {`to_schema`}.{`to_table`}
+                                                  where (meth_proc_flag = 1 or 
+                                                    bup_proc_flag =1 or 
+                                                    nal_proc_flag = 1 or 
+                                                    bup_rx_flag = 1 or 
+                                                    nal_rx_flag = 1) and 
+                                                  moud_days_supply_new_year_quarter is null;",
+                                               .con = conn))
+  
+  # Write findings to metadata
+  if (miss_moud[1,1] == 0) {
+    qa_check_4 <- 0
+    DBI::dbExecute(conn = conn,
+                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
+                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
+                   'No rows that have missing MOUD days if methadone/bupe/naltrexone', 
+                   'PASS', 
+                   {format(Sys.time(), usetz = FALSE)}, 
+                   'All rows have MOUD days')",
+                                  .con = conn))
+  } else {
+    qa_check_4 <- 1
+    DBI::dbExecute(conn = conn,
+                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
+                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
+                   '{miss_moud[1,1]} rows that have missing MOUD days if methadone/bupe/naltrexone', 
+                   'FAIL', 
+                   {format(Sys.time(), usetz = FALSE)}, 
+                   'rows have missing MOUD days if methadone/bupe/naltrexone')",
+                                  .con = conn))
+  }
   
   #### SUM UP FAILURES ####
-  fail_tot <- sum(ids_fail, qa_check_1, qa_check_2, qa_check_3)
+  fail_tot <- sum(ids_fail, qa_check_1, qa_check_2, qa_check_3, qa_check_4)
   return(fail_tot)
 }
