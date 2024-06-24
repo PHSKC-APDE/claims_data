@@ -214,7 +214,8 @@ rm(qa_stage_mcaid_elig_timevar, stage_mcaid_elig_timevar_config, load_stage_mcai
 # now but might want to tighten that up at some point.
 
 claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line", 
-                                   "pharm", "procedure", "bh")) {
+                                   "pharm", "procedure", "bh", 
+								   "moud", "naloxone", "preg_episode")) {
   
   table <- match.arg(table)
   
@@ -239,6 +240,12 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
     load_stage_mcaid_claim_pharm_f(conn = db_claims, server = server, config = stage_config)
   } else if (table == "procedure") {
     load_stage_mcaid_claim_procedure_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "moud") {
+    load_stage_mcaid_claim_moud_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "naloxone") {
+    load_stage_mcaid_claim_naloxone_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "preg_episode") {
+    load_stage_mcaid_claim_preg_episode_f(conn = db_claims, server = server, config = stage_config)
   } else if (table == "bh") {
     load_bh(conn = db_claims, server = server, source = "mcaid", config = stage_config)
   }
@@ -271,9 +278,15 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
     qa_stage <- qa_stage_mcaid_claim_pharm_f(conn = db_claims, server = server, config = stage_config)
   } else if (table == "procedure") {
     qa_stage <- qa_stage_mcaid_claim_procedure_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "moud") {
+    qa_stage <- qa_stage_mcaid_claim_moud_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "naloxone") {
+    qa_stage <- qa_stage_mcaid_claim_naloxone_f(conn = db_claims, server = server, config = stage_config)
+  } else if (table == "preg_episode") {
+    qa_stage <- qa_stage_mcaid_claim_preg_episode_f(conn = db_claims, server = server, config = stage_config)
   }
   
-  
+  conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   if (qa_stage > 0) {
     message("One or more QA checks on ", stage_config[[server]][['to_schema']], ".", stage_config[[server]][['to_table']], " failed. See ", stage_config[[server]][['qa_schema']], ".", stage_config[[server]][['qa_table']], "qa_mcaid for details")
     table_fail <- 1
@@ -396,6 +409,18 @@ db_claims <- create_db_connection(server, interactive = interactive_auth, prod =
 claim_bh_fail <- claim_load_f(table = "bh")
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+#### MCAID_CLAIM_NALOXONE ####
+claim_naloxone_fail <- claim_load_f(table = "naloxone")
+
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+#### MCAID_CLAIM_MOUD ####
+claim_moud_fail <- claim_load_f(table = "moud")
+
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+#### MCAID_CLAIM_PREG_EPISODE ####
+claim_preg_episode_fail <- claim_load_f(table = "preg_episode")
 
 #### DROP TABLES NO LONGER NEEDED ####
 bak_check <- dlg_list(c("Yes", "No"), title = "CHECK BACKUP TABLES?")$res

@@ -2,7 +2,7 @@ phclaims:
     from_schema: stage
     from_table: mcaid_claim_procedure
     to_schema: stage
-    to_table: mcaid_claim_naxolone
+    to_table: mcaid_claim_naloxone
     stage_schema: stage
     stage_table: 
     final_schema: final
@@ -15,7 +15,7 @@ hhsaw:
     from_schema: claims
     from_table: stage_mcaid_claim_procedure
     to_schema: claims
-    to_table: stage_mcaid_claim_naxolone
+    to_table: stage_mcaid_claim_naloxone
     stage_schema: claims
     stage_table: stage_
     final_schema: claims
@@ -25,7 +25,7 @@ hhsaw:
     qa_schema: claims
     qa_table: metadata_
 index_type: ccs
-index_name: idx_ccs_mcaid_claim_naxolone
+index_name: idx_ccs_mcaid_claim_naloxone
 vars:
     id_mcaid: varchar(255)
     claim_header_id: bigint
