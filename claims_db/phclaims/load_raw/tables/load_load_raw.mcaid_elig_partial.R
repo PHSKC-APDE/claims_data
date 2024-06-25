@@ -198,8 +198,8 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   distinct_rows <- as.numeric(DBI::dbGetQuery(
     conn_dw,
     glue::glue_sql("SELECT COUNT (*) FROM 
-                   (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, 
-                     FROM_DATE, TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, END_REASON 
+                   (SELECT DISTINCT MBR_H_SID, CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, 
+                     RAC_FROM_DATE, RAC_TO_DATE, RAC_CODE, END_REASON_NAME
                      FROM {`to_schema`}.{`to_table`}) a",
                    .con = conn_dw)))
   
@@ -215,7 +215,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                     (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                     VALUES ({current_batch_id}, 
                                     '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                                    'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON)', 
+                                    'Distinct rows (MBR_H_SID, CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, RAC_FROM_DATE, RAC_TO_DATE, RAC_CODE, END_REASON_NAME)', 
                                     'FAIL',
                                     {format(Sys.time(), usetz = FALSE)},
                                     'Number distinct rows ({distinct_rows}) != total rows ({total_rows})')",
@@ -301,15 +301,12 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   
   #### QA CHECK: LENGTH OF RAC CODES = 4 CHARS ####
   rac_len <- dbGetQuery(conn_dw,
-                        glue::glue_sql("SELECT MIN(LEN(RPRTBL_RAC_CODE)) AS min_len, 
-                     MAX(LEN(RPRTBL_RAC_CODE)) AS max_len, 
-                     MIN(LEN(SECONDARY_RAC_CODE)) AS min_len2, 
-                     MAX(LEN(SECONDARY_RAC_CODE)) AS max_len2 
+                        glue::glue_sql("SELECT MIN(LEN(RAC_CODE)) AS min_len, 
+                     MAX(LEN(RAC_CODE)) AS max_len
                      FROM {`to_schema`}.{`to_table`}",
                                        .con = conn_dw))
   
-  if (rac_len$min_len != 4 | rac_len$max_len != 4 | 
-      rac_len$min_len2 != 4 | rac_len$max_len2 != 4) {
+  if (rac_len$min_len != 4 | rac_len$max_len != 4) {
     DBI::dbExecute(
       conn = conn,
       glue::glue_sql("INSERT INTO {`qa_schema`}.{`qa_table`}
@@ -319,8 +316,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                    'Length of RAC codes', 
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
-                   'Min RPRTBLE_RAC_CODE length was {rac_len$min_len}, max was {rac_len$max_len};
-                   Min SECONDARY_RAC_CODE length was {rac_len$min_len2}, max was {rac_len$max_len2}')",
+                   'Min RAC_CODE length was {rac_len$min_len}, max was {rac_len$max_len}')",
                      .con = conn))
     
     stop(glue::glue("Some RAC codes are not 4 characters long.  
@@ -335,7 +331,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                    'Length of RAC codes', 
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
-                   'All RAC codes (reportable and secondary) were 4 characters')",
+                   'All RAC codes were 4 characters')",
                      .con = conn))
   }
   
@@ -347,7 +343,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                       (SELECT 
                         COUNT (*) AS null_dates, ROW_NUMBER() OVER (ORDER BY NEWID()) AS seqnum
                         FROM {`to_schema`}.{`to_table`}
-                        WHERE FROM_DATE IS NULL) a
+                        WHERE RAC_FROM_DATE IS NULL) a
                       LEFT JOIN
                       (SELECT COUNT(*) AS total_rows, ROW_NUMBER() OVER (ORDER BY NEWID()) AS seqnum
                         FROM {`to_schema`}.{`to_table`}) b
