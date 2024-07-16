@@ -61,9 +61,10 @@ lapply(table_list, function(table_list) {
                  glue::glue_sql("execute claims.usp_load_{`table_name`};",
                                 .con = db_claims))
   
-  #Row count comparison for all tables except PLR tables
+  #Row count comparison for all tables
+  table_name_inthealth <- gsub("final_", "stage_", table_name)
   inthealth_row_count <- DBI::dbGetQuery(conn = db_claims,
-                                         glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",
+                                         glue::glue_sql("select count(*) as row_count from claims.{`table_name_inthealth`};",
                                                         .con = db_claims))
   hhsaw_row_count <- DBI::dbGetQuery(conn = db_claims,
                                      glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",
