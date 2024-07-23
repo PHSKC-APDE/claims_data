@@ -199,7 +199,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     conn_dw,
     glue::glue_sql("SELECT COUNT (*) FROM 
                    (SELECT DISTINCT MBR_H_SID, CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, 
-                     RAC_FROM_DATE, RAC_TO_DATE, RAC_CODE, END_REASON_NAME
+                     RAC_FROM_DATE, RAC_TO_DATE, RAC_CODE, END_REASON_NAME, DUALELIGIBLE_INDICATOR
                      FROM {`to_schema`}.{`to_table`}) a",
                    .con = conn_dw)))
   
@@ -215,7 +215,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                     (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                     VALUES ({current_batch_id}, 
                                     '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                                    'Distinct rows (MBR_H_SID, CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, RAC_FROM_DATE, RAC_TO_DATE, RAC_CODE, END_REASON_NAME)', 
+                                    'Distinct rows (MBR_H_SID, CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, RAC_FROM_DATE, RAC_TO_DATE, RAC_CODE, END_REASON_NAME, DUALELIGIBLE_INDICATOR)', 
                                     'FAIL',
                                     {format(Sys.time(), usetz = FALSE)},
                                     'Number distinct rows ({distinct_rows}) != total rows ({total_rows})')",
@@ -227,7 +227,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
                                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                                  'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON)', 
+                                  'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON, DUALELIGIBLE_INDICATOR)', 
                                   'PASS',
                                   {format(Sys.time(), usetz = FALSE)},
                                   'Number of distinct rows equals total # rows ({total_rows})')",
