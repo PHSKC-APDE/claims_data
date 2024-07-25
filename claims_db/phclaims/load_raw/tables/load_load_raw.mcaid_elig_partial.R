@@ -188,6 +188,27 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                   Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
   }
   
+  #### RENAMING OR ADDING COLUMNS TO ACCOMODATE NEW AND OLD FORMATS ####
+  message("Altering table for all formats")
+  df <- DBI::dbGetQuery(conn = conn_dw,
+                        glue::glue_sql("SELECT TOP (1) * FROM {`to_schema`}.{`to_table`}",
+                                       .con = conn_dw))
+  if("HEALTH_HOME_CLINICAL_INDICATOR" %in% colnames(df)) {
+    var_swap <- config$var_swap
+    for(v in 1:length(var_swap)) {
+      DBI::dbExecute(conn = conn_dw,
+                     glue::glue_sql("EXEC sp_rename 
+                                      {paste0(to_schema, '.', to_table, '.', names(var_swap)[v])},
+                                      {var_swap[v]}, 'COLUMN';",
+                                    .con = conn_dw))
+    }
+    
+  } else {
+    DBI::dbExecute(conn = conn_dw,
+                   glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`}
+                                  ADD HEALTH_HOME_CLINICAL_INDICATOR VARCHAR(255) NULL;",
+                                  .con = conn_dw))
+  }
   
   
   #### QA CHECK: COUNT OF DISTINCT ID, CLNDR_YEAR_MNTH, FROM DATE, TO DATE, SECONDARY RAC ####
@@ -199,7 +220,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     conn_dw,
     glue::glue_sql("SELECT COUNT (*) FROM 
                    (SELECT DISTINCT MBR_H_SID, CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, 
-                     RAC_FROM_DATE, RAC_TO_DATE, RAC_CODE, END_REASON_NAME, DUALELIGIBLE_INDICATOR
+                     FROM_DATE, TO_DATE, RPRTBL_RAC_CODE, END_REASON, DUAL_ELIG
                      FROM {`to_schema`}.{`to_table`}) a",
                    .con = conn_dw)))
   
@@ -215,7 +236,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                     (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                     VALUES ({current_batch_id}, 
                                     '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                                    'Distinct rows (MBR_H_SID, CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, RAC_FROM_DATE, RAC_TO_DATE, RAC_CODE, END_REASON_NAME, DUALELIGIBLE_INDICATOR)', 
+                                    'Distinct rows (MBR_H_SID, CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE, RPRTBL_RAC_CODE, END_REASON, DUAL_ELIG)', 
                                     'FAIL',
                                     {format(Sys.time(), usetz = FALSE)},
                                     'Number distinct rows ({distinct_rows}) != total rows ({total_rows})')",
@@ -227,7 +248,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
                                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                                  'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON, DUALELIGIBLE_INDICATOR)', 
+                                  'Distinct rows (ID, CLNDR_YEAR_MNTH, FROM/TO DATE, RPRTBL_RAC_CODE, SECONDARY RAC, END_REASON, DUAL_ELIG)', 
                                   'PASS',
                                   {format(Sys.time(), usetz = FALSE)},
                                   'Number of distinct rows equals total # rows ({total_rows})')",
@@ -301,8 +322,8 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   
   #### QA CHECK: LENGTH OF RAC CODES = 4 CHARS ####
   rac_len <- dbGetQuery(conn_dw,
-                        glue::glue_sql("SELECT MIN(LEN(RAC_CODE)) AS min_len, 
-                     MAX(LEN(RAC_CODE)) AS max_len
+                        glue::glue_sql("SELECT MIN(LEN(RPRTBL_RAC_CODE)) AS min_len, 
+                     MAX(LEN(RPRTBL_RAC_CODE)) AS max_len
                      FROM {`to_schema`}.{`to_table`}",
                                        .con = conn_dw))
   
@@ -343,7 +364,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                       (SELECT 
                         COUNT (*) AS null_dates, ROW_NUMBER() OVER (ORDER BY NEWID()) AS seqnum
                         FROM {`to_schema`}.{`to_table`}
-                        WHERE RAC_FROM_DATE IS NULL) a
+                        WHERE FROM_DATE IS NULL) a
                       LEFT JOIN
                       (SELECT COUNT(*) AS total_rows, ROW_NUMBER() OVER (ORDER BY NEWID()) AS seqnum
                         FROM {`to_schema`}.{`to_table`}) b
