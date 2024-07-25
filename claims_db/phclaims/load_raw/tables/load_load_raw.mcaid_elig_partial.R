@@ -202,6 +202,26 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
                                       {var_swap[v]}, 'COLUMN';",
                                     .con = conn_dw))
     }
+    DBI::dbExecute(conn = conn_dw,
+                   glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`}
+                                  ADD HOH_ID VARCHAR(255) NULL;",
+                                  .con = conn_dw))
+    DBI::dbExecute(conn = conn_dw,
+                   glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`}
+                                  ADD PRGNCY_DUE_DATE DATE NULL;",
+                                  .con = conn_dw))
+    DBI::dbExecute(conn = conn_dw,
+                   glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`}
+                                  ADD TPL_FULL_FLAG VARCHAR(255) NULL;",
+                                  .con = conn_dw))
+    DBI::dbExecute(conn = conn_dw,
+                   glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`}
+                                  ADD SECONDARY_RAC_CODE INTEGER NULL;",
+                                  .con = conn_dw))
+    DBI::dbExecute(conn = conn_dw,
+                   glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`}
+                                  ADD SECONDARY_RAC_NAME VARCHAR(255) NULL;",
+                                  .con = conn_dw))
     
   } else {
     DBI::dbExecute(conn = conn_dw,
