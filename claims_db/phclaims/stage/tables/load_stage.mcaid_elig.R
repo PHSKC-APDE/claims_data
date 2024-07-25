@@ -65,11 +65,12 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   
   # Need to keep only the vars that come before the named ones below
   # This is so we can recreate the address hash field
-  vars_prefix <- vars[!vars %in% c("geo_hash_raw", "MBR_ACES_IDNTFR", "MBR_H_SID", 
+  vars_prefix <- vars[!vars %in% c("geo_hash_raw", "MBR_ACES_IDNTFR",  
                                       "SECONDARY_RAC_CODE", "SECONDARY_RAC_NAME", 
-                                      "etl_batch_id")]
-  vars_suffix <- c("MBR_ACES_IDNTFR", "MBR_H_SID", 
-                   "SECONDARY_RAC_CODE", "SECONDARY_RAC_NAME", "etl_batch_id")
+                                      "HEALTH_HOME_CLINICAL_INDICATOR", "etl_batch_id")]
+  vars_suffix <- c("MBR_ACES_IDNTFR", 
+                   "SECONDARY_RAC_CODE", "SECONDARY_RAC_NAME", 
+                   "HEALTH_HOME_CLINICAL_INDICATOR", "etl_batch_id")
   
   
   if (full_refresh == F) {
@@ -146,7 +147,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   distinct_rows_load_raw <- as.numeric(dbGetQuery(
     conn_dw,
     glue::glue_sql("SELECT COUNT (*) FROM
-  (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE,
+  (SELECT DISTINCT CLNDR_YEAR_MNTH, MBR_H_SID, MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE,
   RPRTBL_RAC_CODE, SECONDARY_RAC_CODE 
   FROM {`from_schema`}.{`from_table`}) a", .con = conn_dw)))
   
@@ -160,7 +161,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     duplicate_check_reason <- as.numeric(dbGetQuery(
       conn_dw,
       glue::glue_sql("SELECT COUNT (*) FROM
-           (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
+           (SELECT DISTINCT CLNDR_YEAR_MNTH, MBR_H_SID, MEDICAID_RECIPIENT_ID, FROM_DATE, 
              TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, HOH_ID, RPRTBL_RAC_NAME,
              SECONDARY_RAC_NAME 
                  FROM {`from_schema`}.{`from_table`}) a",
@@ -170,7 +171,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     duplicate_check_hoh <- as.numeric(dbGetQuery(
       conn_dw,
       glue::glue_sql("SELECT COUNT (*) FROM
-           (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
+           (SELECT DISTINCT CLNDR_YEAR_MNTH, MBR_H_SID, MEDICAID_RECIPIENT_ID, FROM_DATE, 
              TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, END_REASON, RPRTBL_RAC_NAME,
              SECONDARY_RAC_NAME 
                  FROM {`from_schema`}.{`from_table`}) a",
@@ -180,7 +181,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     duplicate_check_rac <- as.numeric(dbGetQuery(
       conn_dw,
       glue::glue_sql("SELECT COUNT (*) FROM
-           (SELECT DISTINCT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, 
+           (SELECT DISTINCT CLNDR_YEAR_MNTH, MBR_H_SID, MEDICAID_RECIPIENT_ID, FROM_DATE, 
              TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, HOH_ID, END_REASON
                  FROM {`from_schema`}.{`from_table`}) a",
                      .con = conn_dw)))
@@ -280,13 +281,14 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
         FROM
       (SELECT {`vars_dedup`*}, reason_score FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig ) a
         LEFT JOIN
-        (SELECT CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE,
+        (SELECT CLNDR_YEAR_MNTH, MBR_H_SID, MEDICAID_RECIPIENT_ID, FROM_DATE,
           TO_DATE, RPRTBL_RAC_CODE, SECONDARY_RAC_CODE, 
           MAX(reason_score) AS max_score, MAX(HOH_ID) AS max_hoh
           FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig 
-          GROUP BY CLNDR_YEAR_MNTH, MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE, 
+          GROUP BY CLNDR_YEAR_MNTH, MBR_H_SID, MEDICAID_RECIPIENT_ID, FROM_DATE, TO_DATE, 
           RPRTBL_RAC_CODE, SECONDARY_RAC_CODE) b
         ON a.CLNDR_YEAR_MNTH = b.CLNDR_YEAR_MNTH AND
+        a.MBR_H_SID = b.MBR_H_SID AND 
         a.MEDICAID_RECIPIENT_ID = b.MEDICAID_RECIPIENT_ID AND
         (a.FROM_DATE = b.FROM_DATE OR (a.FROM_DATE IS NULL AND b.FROM_DATE IS NULL)) AND
         (a.TO_DATE = b.TO_DATE OR (a.TO_DATE IS NULL AND b.TO_DATE IS NULL)) AND
@@ -487,7 +489,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   #### QA CHECK: NULL IDs ####
   null_ids <- as.numeric(dbGetQuery(conn_dw, glue::glue_sql(
                                     "SELECT COUNT (*) FROM {`to_schema`}.{`to_table`} 
-                                    WHERE MEDICAID_RECIPIENT_ID IS NULL",
+                                    WHERE MEDICAID_RECIPIENT_ID IS NULL OR MBR_H_SID IS NULL",
                                     .con = conn_dw)))
   
   if (null_ids != 0) {
@@ -497,7 +499,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
                                   (etl_batch_id, table_name, qa_item, qa_result, qa_date, note) 
                                   VALUES ({current_batch_id}, 
                                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                                  'Null Medicaid IDs', 
+                                  'Null Medicaid IDs or MBR_H_SID', 
                                   'FAIL',
                                   {format(Sys.time(), usetz = FALSE)},
                                   'Null IDs found. Investigate further.')",
