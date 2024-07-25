@@ -13,15 +13,15 @@ hhsaw:
     from_schema: stg_claims
     from_table: mcaid_elig_incr
     to_schema: stg_claims
-    to_table: stage_mcaid_eligz
+    to_table: stage_mcaid_elig
     archive_schema: stg_claims
-    archive_table: archive_mcaid_eligz
+    archive_table: archive_mcaid_elig
     tmp_schema: stg_claims
     tmp_table: tmp_
     qa_schema: claims
     qa_table: metadata_
 index_type: ccs
-index_name: idx_ccs_stage_mcaid_eligz
+index_name: idx_ccs_stage_mcaid_elig
 date_var: CLNDR_YEAR_MNTH
 vars:
     CLNDR_YEAR_MNTH: INTEGER
