@@ -196,6 +196,11 @@ db_claims <- create_db_connection(server, interactive = interactive_auth, prod =
 logid <- load_stage.address_clean_geocode(server = server,
                                         config = stage_address_clean_config,
                                         interactive_auth = interactive_auth)
+
+# Copy Elig Stage table to HHSAW while addresses are cleaned
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+DBI::dbExecute(conn = db_claims, "execute claims.usp_load_stage_mcaid_elig_hhsaw;")
+
 # Checks status of kcgeocode process
 load_stage.address_clean_geocode_check(upid = logid)
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
