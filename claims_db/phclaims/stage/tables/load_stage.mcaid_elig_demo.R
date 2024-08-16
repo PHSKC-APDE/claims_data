@@ -73,7 +73,7 @@ load_stage_mcaid_elig_demo_f <- function(conn = NULL,
     glue::glue_sql("SELECT id.id_mcaid, dob.dob
                    
                    FROM (
-                     SELECT DISTINCT MEDICAID_RECIPIENT_ID as 'id_mcaid'
+                     SELECT DISTINCT MBR_H_SID as 'id_mcaid'
                      FROM {`from_schema`}.{`from_table`}
                    ) id
                    
@@ -83,10 +83,10 @@ load_stage_mcaid_elig_demo_f <- function(conn = NULL,
                        SELECT a.id_mcaid, a.dob, row_number() OVER 
                        (PARTITION BY a.id_mcaid order by a.id_mcaid, a.dob_cnt desc, a.dob) AS 'dob_rank'
                        FROM (
-                         SELECT MEDICAID_RECIPIENT_ID as 'id_mcaid', BIRTH_DATE as 'dob', count(BIRTH_DATE) as 'dob_cnt'
+                         SELECT MBR_H_SID as 'id_mcaid', BIRTH_DATE as 'dob', count(BIRTH_DATE) as 'dob_cnt'
                          FROM {`from_schema`}.{`from_table`}
                          WHERE BIRTH_DATE is not null
-                         GROUP BY MEDICAID_RECIPIENT_ID, BIRTH_DATE
+                         GROUP BY MBR_H_SID, BIRTH_DATE
                        ) a
                      ) b
                      WHERE b.dob_rank = 1
@@ -104,7 +104,7 @@ load_stage_mcaid_elig_demo_f <- function(conn = NULL,
   system.time( # Times how long this query takes (~320s)
     elig_demoever <- dbGetQuery(
       conn,
-      glue::glue_sql("SELECT DISTINCT CLNDR_YEAR_MNTH as calmo, MEDICAID_RECIPIENT_ID as id_mcaid, 
+      glue::glue_sql("SELECT DISTINCT CLNDR_YEAR_MNTH as calmo, MBR_H_SID as id_mcaid, 
       GENDER as gender, RACE1_NAME as race1, RACE2_NAME as race2, 
       RACE3_NAME as race3, RACE4_NAME as race4, HISPANIC_ORIGIN_NAME as hispanic, 
       SPOKEN_LNG_NAME as 'slang', WRTN_LNG_NAME as 'wlang'
