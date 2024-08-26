@@ -12,12 +12,12 @@ phclaims:
     qa_table: 
 hhsaw:
     from_schema: stg_claims
-    from_table: stage_mcaid_elig_new
+    from_table: stage_mcaid_elig
     to_schema: stg_claims
     to_table: stage_mcaid_elig_timevar
     ref_schema: stg_claims
     ref_table: ref_
-    address_schema: ref
+    address_schema: stg_reference
     address_table: address_clean
     geocode_table: address_geocode
     geokc_table: ref_geo_kc_zip
