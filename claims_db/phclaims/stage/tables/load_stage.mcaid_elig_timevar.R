@@ -86,17 +86,16 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   step1a_sql <- glue::glue_sql(paste0(
     "SELECT DISTINCT a.id_mcaid, 
     CONVERT(DATE, CAST(a.CLNDR_YEAR_MNTH as varchar(200)) + '01', 112) AS calmonth, 
-    a.fromdate, a.todate, a.dual, a.tpl, a.bsp_group_cid, 
-    b.full_benefit_1, c.full_benefit_2, a.cov_type, a.mco_id, 
+    a.fromdate, a.todate, a.dual, a.bsp_group_cid, 
+    b.full_benefit, a.cov_type, a.mco_id, 
     d.geo_add1, d.geo_add2, d.geo_city, d.geo_state, d.geo_zip, 
     d.geo_hash_clean, d.geo_hash_geocode
     INTO ##timevar_01a 
     FROM
-    (SELECT MEDICAID_RECIPIENT_ID AS 'id_mcaid', 
-      CLNDR_YEAR_MNTH, FROM_DATE AS 'fromdate', TO_DATE AS 'todate',
-      DUAL_ELIG AS 'dual', 
-      ISNULL([TPL_FULL_FLAG], '') AS 'tpl',
-      RPRTBL_RAC_CODE AS 'rac_code_1', SECONDARY_RAC_CODE AS 'rac_code_2', 
+    (SELECT MBR_H_SID AS 'id_mcaid', 
+      CLNDR_YEAR_MNTH, RAC_FROM_DATE AS 'fromdate', RAC_TO_DATE AS 'todate',
+      DUALELIGIBLE_INDICATOR AS 'dual', 
+      RAC_CODE AS 'rac_code', 
       RPRTBL_BSP_GROUP_CID AS 'bsp_group_cid', 
       COVERAGE_TYPE_IND AS 'cov_type', 
       MC_PRVDR_ID AS 'mco_id',
@@ -107,17 +106,9 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
         CASE 
           WHEN full_benefit = 'Y' THEN 1
           WHEN full_benefit = 'N' THEN 0
-          ELSE NULL END AS full_benefit_1
+          ELSE NULL END AS full_benefit
         FROM {`ref_schema`}.{DBI::SQL(ref_table)}mcaid_rac_code) b
-      ON a.rac_code_1 = b.rac_code
-      LEFT JOIN
-      (SELECT rac_code, 
-        CASE 
-          WHEN full_benefit = 'Y' THEN 1
-          WHEN full_benefit = 'N' THEN 0
-          ELSE NULL END AS full_benefit_2
-        FROM {`ref_schema`}.{DBI::SQL(ref_table)}mcaid_rac_code) c
-      ON a.rac_code_2 = c.rac_code
+      ON a.rac_code = b.rac_code
       LEFT HASH JOIN
       (SELECT geo_hash_raw,
         geo_add1_clean AS geo_add1, geo_add2_clean AS geo_add2, 
@@ -150,7 +141,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   step1b_sql <- glue::glue_sql(
     "SELECT a.id_mcaid, a.calmonth, a.fromdate, a.todate, a.dual, 
-  a.tpl, a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id, 
+  a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id, 
   a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip,
   a.geo_hash_clean, a.geo_hash_geocode
   INTO ##timevar_01b
@@ -515,4 +506,5 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
                  " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
                  " mins)"))
 }
+
 
