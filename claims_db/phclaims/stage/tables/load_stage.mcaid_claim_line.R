@@ -64,7 +64,7 @@ load_stage_mcaid_claim_line_f <- function(conn = NULL,
                                INTO {`to_schema`}.{`to_table`}
                                FROM (
                                  SELECT DISTINCT
-                                 MEDICAID_RECIPIENT_ID as id_mcaid
+                                 MBR_H_SID as id_mcaid
                                  ,TCN as claim_header_id
                                  ,CLM_LINE_TCN as claim_line_id
                                  ,FROM_SRVC_DATE as first_service_date
@@ -85,5 +85,5 @@ load_stage_mcaid_claim_line_f <- function(conn = NULL,
   
   
   #### ADD INDEX ####
-  add_index_f(conn, server = server, table_config = config)
+  #add_index_f(conn, server = server, table_config = config)
 }

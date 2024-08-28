@@ -130,7 +130,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   # Could turn this code into a function and add test options if desired
   DBI::dbExecute(conn,
                  glue::glue_sql("SELECT DISTINCT 
-           cast([MEDICAID_RECIPIENT_ID] as varchar(255)) as id_mcaid
+           cast([MBR_H_SID] as varchar(255)) as id_mcaid
            ,cast([TCN] as bigint) as claim_header_id
            ,cast([CLM_TYPE_CID] as varchar(20)) as clm_type_mcaid_id
            ,cast(ref.[kc_clm_type_id] as tinyint) as claim_type_id
@@ -196,7 +196,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                                 .con = conn))
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index idx_cl_##header on ##header(claim_header_id)")
+  #DBI::dbExecute(conn, "create clustered index idx_cl_##header on ##header(claim_header_id)")
   
   
   #### STEP 2: SELECT LINE-LEVEL INFORMATION NEEDED FOR EVENT FLAGS ####
@@ -214,7 +214,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
       .con = conn))
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index idx_cl_##line on ##line(claim_header_id)")
+  #DBI::dbExecute(conn, "create clustered index idx_cl_##line on ##line(claim_header_id)")
   
   
   #### STEP 3: SELECT DX CODE INFORMATION NEEDED FOR EVENT FLAGS ####
@@ -239,7 +239,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                                 .con = conn))
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index idx_cl_##diag on ##diag(claim_header_id)")
+  #DBI::dbExecute(conn, "create clustered index idx_cl_##diag on ##diag(claim_header_id)")
   
   
   #### STEP 4: SELECT PROCEDURE CODE INFORMATION NEEDED FOR EVENT FLAGS ####
@@ -260,7 +260,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                                 .con = conn))
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index idx_cl_#procedure_code on ##procedure_code(claim_header_id)")
+  #DBI::dbExecute(conn, "create clustered index idx_cl_#procedure_code on ##procedure_code(claim_header_id)")
   
   
   #### STEP 5: HEDIS INPATIENT DEFINITION ####
@@ -302,7 +302,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                   );", .con = conn))
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index idx_cl_##hedis_inpatient_definition on ##hedis_inpatient_definition([claim_header_id])")
+  #DBI::dbExecute(conn, "create clustered index idx_cl_##hedis_inpatient_definition on ##hedis_inpatient_definition([claim_header_id])")
   
   
   #### STEP 6: PRIMARY CARE PROVIDERS ####
@@ -401,7 +401,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                                 .con = conn))
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index [idx_cl_##ccs] on ##ccs(claim_header_id)")
+  #DBI::dbExecute(conn, "create clustered index [idx_cl_##ccs] on ##ccs(claim_header_id)")
   
   
   #### STEP 9: RDA BEHAVIORAL HEALTH DIAGNOSIS FLAGS ####
@@ -422,7 +422,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                                 .con = conn))
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index [idx_cl_##rda] on ##rda(claim_header_id)")
+  #DBI::dbExecute(conn, "create clustered index [idx_cl_##rda] on ##rda(claim_header_id)")
   
   
   #### STEP 10: INJURY CAUSE AND NATURE PER CDC GUIDANCE ####
@@ -644,7 +644,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   try(DBI::dbRemoveTable(conn, "##distinct_injury_nature_icdcm_final", temporary = T), silent = T)
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index [idx_cl_##injury] on ##injury(claim_header_id)")
+  #DBI::dbExecute(conn, "create clustered index [idx_cl_##injury] on ##injury(claim_header_id)")
   
   
   #### STEP 11: CREATE ID COLUMNS FOR EVENTS THAT ARE ONLY COUNTED ONCE PER DAY OR EPISODE ####
@@ -807,7 +807,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
       .con = conn))
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index [idx_cl_##ed_yale_final] on ##ed_yale_final(claim_header_id)")
+  #DBI::dbExecute(conn, "create clustered index [idx_cl_##ed_yale_final] on ##ed_yale_final(claim_header_id)")
  
   
   # Set up ED IDs
@@ -821,7 +821,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
             FROM ##temp1;")
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index [idx_cl_##ed_perform_id] on ##ed_perform_id(claim_header_id)")
+  #DBI::dbExecute(conn, "create clustered index [idx_cl_##ed_perform_id] on ##ed_perform_id(claim_header_id)")
   
   
   # Create [inpatient_id] column
@@ -836,7 +836,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                  FROM ##hedis_inpatient_definition;")
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index [idx_cl_##inpatient_id] on ##inpatient_id([claim_header_id])") 
+  #DBI::dbExecute(conn, "create clustered index [idx_cl_##inpatient_id] on ##inpatient_id([claim_header_id])") 
   
   
   # Create [pc_visit_id] column
@@ -852,7 +852,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                WHERE pc_visit = 1;")
   
   # Add index
-  DBI::dbExecute(conn, "create clustered index [idx_cl_##pc_visit_id] on ##pc_visit_id([claim_header_id])")
+  #DBI::dbExecute(conn, "create clustered index [idx_cl_##pc_visit_id] on ##pc_visit_id([claim_header_id])")
   
   
   #### STEP 14: CREATE FINAL TABLE STRUCTURE ####
@@ -944,7 +944,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   message("STEP 14: ADD INDEX")
   message("Creating index on final table")
   time_start <- Sys.time()
-  add_index_f(conn, server = server, table_config = config)
+  #add_index_f(conn, server = server, table_config = config)
   time_end <- Sys.time()
   message(glue::glue("Index creation took {round(difftime(time_end, time_start, units = 'secs'), 2)} ",
                      " secs ({round(difftime(time_end, time_start, units = 'mins'), 2)} mins)"))

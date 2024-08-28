@@ -239,5 +239,5 @@ WHERE year(last_service_date) >= 2016
   
   
   #### ADD INDEX ####
-  add_index_f(conn, server = server, table_config = config)
+  #add_index_f(conn, server = server, table_config = config)
 }

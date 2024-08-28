@@ -12,15 +12,15 @@ phclaims:
     qa_schema: metadata
     qa_table: 
 hhsaw:
-    from_schema: claims
+    from_schema: stg_claims
     from_table: stage_mcaid_claim_procedure
-    to_schema: claims
+    to_schema: stg_claims
     to_table: stage_mcaid_claim_naloxone
-    stage_schema: claims
+    stage_schema: stg_claims
     stage_table: stage_
     final_schema: claims
     final_table: final_
-    ref_schema: claims
+    ref_schema: stg_claims
     ref_table: ref_
     qa_schema: claims
     qa_table: metadata_

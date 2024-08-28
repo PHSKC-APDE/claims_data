@@ -1,4 +1,4 @@
-to_schema: claims
+to_schema: stg_claims
 to_table: stage_mcaid_claim_value_set
 index_type: ccs
 index_name: idx_ccs_mcaid_claim_value_set

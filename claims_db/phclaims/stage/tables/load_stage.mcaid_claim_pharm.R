@@ -52,7 +52,7 @@ load_stage_mcaid_claim_pharm_f <- function(conn = NULL,
   # Takes ~6 minutes
   # NB: Changes in table structure need to altered here and the YAML file
   insert_sql <- glue::glue_sql("SELECT DISTINCT
-                             cast(MEDICAID_RECIPIENT_ID as varchar(255)) as id_mcaid
+                             cast(MBR_H_SID as varchar(255)) as id_mcaid
                              ,cast(TCN as bigint) as claim_header_id
                              ,cast(NDC as varchar(255)) as ndc
                              ,cast(DAYS_SUPPLY as smallint) as rx_days_supply
@@ -86,5 +86,5 @@ load_stage_mcaid_claim_pharm_f <- function(conn = NULL,
   
   
   #### ADD INDEX ####
-  add_index_f(conn, server = server, table_config = config)
+  #add_index_f(conn, server = server, table_config = config)
 }
