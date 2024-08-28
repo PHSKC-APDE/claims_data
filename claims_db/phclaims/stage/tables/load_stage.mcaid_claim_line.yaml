@@ -11,7 +11,7 @@ phclaims:
     qa_table: 
 hhsaw:
     from_schema: stg_claims
-    from_table: stage_mcaid_claim
+    from_table: stage_mcaid_claims
     to_schema: stg_claims
     to_table: stage_mcaid_claim_line
     final_schema: stg_claims
