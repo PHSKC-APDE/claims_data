@@ -125,6 +125,22 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   try(DBI::dbRemoveTable(conn, name = DBI::Id(schema = temp_schema, 
                                               table = paste0(temp_table, "mcaid_claim_header"))),
       silent = T)
+  try(DBI::dbRemoveTable(conn, "##header", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##line", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##diag", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##procedure_code", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##pc_provider", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##temp1", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##ccs", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##rda", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury9cm", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury10cm", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##injury", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##temp_final", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##ed_yale_step_1", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##ed_yale_final", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##ed_perform_id", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "##inpatient_id", temporary = T), silent = T)
   
   ### Set up temp table
   # Could turn this code into a function and add test options if desired
