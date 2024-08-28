@@ -9,7 +9,8 @@
 
 # No overlaps
 
-qa_mcaid_elig_timevar_f <- function(conn = db_claims,
+qa_mcaid_elig_timevar_f <- function(conn = NULL,
+                                    conn_qa = NULL,
                                     server = c("hhsaw", "phclaims"),
                                     config = NULL,
                                     get_config = F,
@@ -75,7 +76,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
     
     if (row_diff < 0) {
       row_qa_fail <- 1
-      DBI::dbExecute(conn,
+      DBI::dbExecute(conn_qa,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -84,13 +85,13 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were {row_diff} fewer rows in the most recent table ({row_count} vs. {previous_rows})')",
-                       .con = conn))
+                       .con = conn_qa))
       
       warning(glue::glue("Fewer rows than found last time.  
                   Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
     } else {
       row_qa_fail <- 0
-      DBI::dbExecute(conn,
+      DBI::dbExecute(conn_qa,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -99,7 +100,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were {row_diff} more rows in the most recent table ({row_count} vs. {previous_rows})')",
-                       .con = conn))
+                       .con = conn_qa))
       
     }
   }
@@ -117,7 +118,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   if (id_count_timevar != id_count_elig) {
     id_distinct_qa_fail <- 1
     DBI::dbExecute(
-      conn = conn,
+      conn = conn_qa,
       glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({format(last_run, usetz = FALSE)}, 
@@ -126,14 +127,14 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        'FAIL', 
                        {format(Sys.time(), usetz = FALSE)}, 
                        'There were {id_count_timevar} distinct IDs but {id_count_elig} in the raw data (should be the same)')",
-                     .con = conn))
+                     .con = conn_qa))
     
     warning(glue::glue("Number of distinct IDs doesn't match the number of rows. 
                       Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
   } else {
     id_distinct_qa_fail <- 0
     DBI::dbExecute(
-      conn = conn,
+      conn = conn_qa,
       glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({format(last_run, usetz = FALSE)}, 
@@ -142,7 +143,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        'PASS', 
                        {format(Sys.time(), usetz = FALSE)}, 
                        'The number of distinct IDs matched number in raw data ({id_count_timevar})')",
-                     .con = conn))
+                     .con = conn_qa))
   }
   
   
@@ -161,7 +162,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
   
   if (dup_row_count != row_count) {
     dup_row_qa_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
       glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({format(last_run, usetz = FALSE)}, 
@@ -171,14 +172,14 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        {format(Sys.time(), usetz = FALSE)}, 
                        'There were {dup_row_count} distinct rows (excl. ref_geo vars) \\
                     but {row_count} rows overall (should be the same)')",
-                     .con = conn))
+                     .con = conn_qa))
     
     warning(glue::glue("There appear to be duplicate rows. 
                       Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
   } else {
     dup_row_qa_fail <- 0
     DBI::dbExecute(
-      conn = conn,
+      conn = conn_qa,
       glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({format(last_run, usetz = FALSE)}, 
@@ -188,7 +189,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                        {format(Sys.time(), usetz = FALSE)}, 
                        'The number of distinct rows (excl. ref_geo vars) \\
                      matched number total rows ({row_count})')",
-                     .con = conn))
+                     .con = conn_qa))
   }
   
   
@@ -209,7 +210,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
       date_range_timevar$to_date > date_range_elig$to_date) {
     date_qa_fail <- 1
     DBI::dbExecute(
-      conn = conn,
+      conn = conn_qa,
       glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid 
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES ({format(last_run, usetz = FALSE)}, 
@@ -219,14 +220,14 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              {format(Sys.time(), usetz = FALSE)}, 
                              'Some from/to dates fell outside the CLNDR_YEAR_MNTH range \\
                              (min: {`date_range_timevar$from_date`}, max: {`date_range_timevar$to_date`})')",
-                     .con = conn))
+                     .con = conn_qa))
     
     warning(glue::glue("Some from/to dates fell outside the CLNDR_YEAR_MNTH range. 
                     Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
   } else {
     date_qa_fail <- 0
     DBI::dbExecute(
-      conn = conn,
+      conn = conn_qa,
       glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid 
                      (last_run, table_name, qa_item, qa_result, qa_date, note) 
                      VALUES ({format(last_run, usetz = FALSE)}, 
@@ -236,7 +237,7 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                              {format(Sys.time(), usetz = FALSE)}, 
                              'All from/to dates fell within the CLNDR_YEAR_MNTH range \\
                              (min: {`date_range_elig$from_date`}, max: {`date_range_elig$to_date`})')",
-                     .con = conn))
+                     .con = conn_qa))
   }
   
   
@@ -295,9 +296,9 @@ qa_mcaid_elig_timevar_f <- function(conn = db_claims,
                                      {row_count}, 
                                      {format(Sys.time(), usetz = FALSE)}, 
                                      '')",
-                             .con = conn)
+                             .con = conn_qa)
   
-  DBI::dbExecute(conn = conn, load_sql)
+  DBI::dbExecute(conn = conn_qa, load_sql)
   
   
   if (load_only == F) {

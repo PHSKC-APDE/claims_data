@@ -23,6 +23,7 @@
 
 
 qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
+                                             conn_qa = NULL,
                                         server = c("hhsaw", "phclaims"),
                                         config = NULL,
                                         get_config = F) {
@@ -82,7 +83,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   # Write findings to metadata
   if (ids_demo_chk == 0 & ids_timevar_chk == 0) {
     ids_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -92,10 +93,10 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were the same number of IDs as in the final mcaid_elig_demo ", 
                                   "and mcaid_elig_timevar tables')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     ids_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -107,7 +108,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                                   "IDs than in the final mcaid_elig_demo table and ", 
                                   "{ids_timevar_chk} {DBI::SQL(ifelse(ids_timevar_chk >= 0, 'more', 'fewer'))} ", 
                                   "IDs than in the final mcaid_elig_timevar table')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   
@@ -146,7 +147,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   # Write findings to metadata
   if (procedure_format_chk < 50) {
     procedure_format_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -155,10 +156,10 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were {procedure_format_chk} distinct procedure codes with an unknown format (<50 ok)')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     procedure_format_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -167,7 +168,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were {procedure_format_chk} distinct procedure codes with an unknown format')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   
@@ -183,7 +184,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   # Write findings to metadata
   if (procedure_num_chk == 0) {
     procedure_num_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -192,10 +193,10 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'All procedure_code_number values were 01:12 or line')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     procedure_num_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -204,7 +205,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were {procedure_num_chk} procedure_code_number values not 01 through 12 or line')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   
@@ -232,7 +233,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
     if (max(num_procedure_overall$pct_change, na.rm = T) > 0 & 
         min(num_procedure_overall$pct_change, na.rm = T) >= 0) {
       num_procedure_fail <- 0
-      DBI::dbExecute(conn = conn, 
+      DBI::dbExecute(conn = conn_qa, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -245,10 +246,10 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                  glue::glue_data(data.frame(year = num_procedure_overall$claim_year[num_procedure_overall$pct_change > 0], 
                                             pct = round(abs(num_procedure_overall$pct_change[num_procedure_overall$pct_change > 0]), 2)),
                                  '{year} ({pct}% more)'), sep = ', ', last = ' and '))}')",
-                                    .con = conn))
+                                    .con = conn_qa))
     } else if (min(num_procedure_overall$pct_change, na.rm = T) + max(num_procedure_overall$pct_change, na.rm = T) == 0) {
       num_procedure_fail <- 1
-      DBI::dbExecute(conn = conn, 
+      DBI::dbExecute(conn = conn_qa, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -257,10 +258,10 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'No change in the number of procedures compared to final schema table')",
-                                    .con = conn))
+                                    .con = conn_qa))
     } else if (min(num_procedure_overall$pct_change, na.rm = T) < 0) {
       num_procedure_fail <- 1
-      DBI::dbExecute(conn = conn, 
+      DBI::dbExecute(conn = conn_qa, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -273,7 +274,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                  glue::glue_data(data.frame(year = num_procedure_overall$claim_year[num_procedure_overall$pct_change < 0], 
                                             pct = round(abs(num_procedure_overall$pct_change[num_procedure_overall$pct_change < 0]), 2)),
                                  '{year} ({pct}% fewer)'), sep = ', ', last = ' and '))}')",
-                                    .con = conn))
+                                    .con = conn_qa))
     }
   } else {
     num_procedure_fail <- 0

@@ -21,6 +21,7 @@
 
 
 qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
+                                        conn_qa = NULL,
                                         server = c("hhsaw", "phclaims"),
                                         config = NULL,
                                         get_config = F) {
@@ -80,7 +81,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
   # Write findings to metadata
   if (ids_demo_chk == 0 & ids_timevar_chk == 0) {
     ids_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -90,10 +91,10 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were the same number of IDs as in the final mcaid_elig_demo ", 
                                   "and mcaid_elig_timevar tables')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     ids_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -105,7 +106,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                                   "IDs than in the final mcaid_elig_demo table and ", 
                                   "{ids_timevar_chk} {DBI::SQL(ifelse(ids_timevar_chk >= 0, 'more', 'fewer'))} ", 
                                   "IDs than in the final mcaid_elig_timevar table')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   
@@ -114,7 +115,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
   
   if (nrow(ndc_cnt) == 0) {
     qa_check_1 <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -123,10 +124,10 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'All rows of ndc formatted properly')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     qa_check_1 <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -135,7 +136,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'ndc field had some rows with length != 11 or numeric')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   
@@ -147,7 +148,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
   # Write findings to metadata
   if (non_zero[1,1] == 0) {
     qa_check_2 <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -156,10 +157,10 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'All rows of ndc formatted properly')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     qa_check_2 <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -168,7 +169,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'rows where ndc field not formatted properly')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   #### Check for no rows with more than one type of MOUD flag ####
@@ -179,7 +180,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
   # Write findings to metadata
   if (multi_moud[1,1] == 0) {
     qa_check_3 <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -188,10 +189,10 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'All rows of ndc formatted properly')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     qa_check_3 <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -200,7 +201,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'ndc field had some rows with more than one type of MOUD flag')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   #### Check for no rows that have missing MOUD days if methadone/bupe/naltrexone ####
@@ -217,7 +218,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
   # Write findings to metadata
   if (miss_moud[1,1] == 0) {
     qa_check_4 <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -226,10 +227,10 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'All rows have MOUD days')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     qa_check_4 <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -238,7 +239,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'rows have missing MOUD days if methadone/bupe/naltrexone')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   #### SUM UP FAILURES ####
