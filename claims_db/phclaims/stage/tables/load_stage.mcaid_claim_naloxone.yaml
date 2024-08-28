@@ -18,8 +18,8 @@ hhsaw:
     to_table: stage_mcaid_claim_naloxone
     stage_schema: stg_claims
     stage_table: stage_
-    final_schema: claims
-    final_table: final_
+    final_schema: stg_claims
+    final_table: stage_
     ref_schema: stg_claims
     ref_table: ref_
     qa_schema: claims

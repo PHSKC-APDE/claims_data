@@ -1,15 +1,15 @@
 hhsaw:
-    from_schema: claims
+    from_schema: stg_claims
     from_table: stage_mcaid_claim
-    to_schema: claims
+    to_schema: stg_claims
     to_table: stage_mcaid_claim_header
-    final_schema: claims
-    final_table: final_
-    ref_schema: claims
+    final_schema: stg_claims
+    final_table: stage_
+    ref_schema: stg_claims
     ref_table: ref_
-    icdcm_ref_schema: ref
+    icdcm_ref_schema: stg_reference
     icdcm_ref_table: icdcm_codes
-    temp_schema: claims
+    temp_schema: stg_claims
     temp_table: tmp_
     qa_schema: claims
     qa_table: metadata_
