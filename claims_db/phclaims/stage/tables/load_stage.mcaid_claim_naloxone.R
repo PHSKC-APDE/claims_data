@@ -1,5 +1,5 @@
-# This code creates the the mcaid claim naxolone table
-# Create a reference table for naxolone distributed in mcaid claims
+# This code creates the the mcaid claim naloxone table
+# Create a reference table for naloxone distributed in mcaid claims
 #
 # It is designed to be run as part of the master Medicaid script:
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_analytic.R
@@ -12,7 +12,7 @@
 # conn = database connection
 # server = whether we are working in HHSAW or PHClaims
 
-load_stage_mcaid_claim_naxolone_f <- function(conn = NULL,
+load_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
                                           server = c("hhsaw", "phclaims"),
 										                      config = NULL,
                                           get_config = F) {
@@ -48,15 +48,15 @@ load_stage_mcaid_claim_naxolone_f <- function(conn = NULL,
   try(DBI::dbRemoveTable(conn, DBI::Id(schema = to_schema, table = to_table)))
   
   #### LOAD TABLE ####
-  message("STEP 1: CREATE TABLE TO HOLD NDC CODES IDENTIFYING naxolone FOR LIKE JOIN")
-  try(odbc::dbRemoveTable(conn, "##naxolone_ndc_list_prep", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##naxolone_ndc_list", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##naxolone_ndc_ref_table", temporary = T), silent = T)
+  message("STEP 1: CREATE TABLE TO HOLD NDC CODES IDENTIFYING naloxone FOR LIKE JOIN")
+  try(odbc::dbRemoveTable(conn, "##naloxone_ndc_list_prep", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "##naloxone_ndc_list", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "##naloxone_ndc_ref_table", temporary = T), silent = T)
   step1_sql <- glue::glue_sql("
-  --First, create a table holding all NDC codes identifying naxolone
-	create table ##naxolone_ndc_list_prep (ndc varchar(255));
+  --First, create a table holding all NDC codes identifying naloxone
+	create table ##naloxone_ndc_list_prep (ndc varchar(255));
 
-	insert into ##naxolone_ndc_list_prep
+	insert into ##naloxone_ndc_list_prep
 	values 
 ('00932165'),
 ('04049921'),
@@ -135,22 +135,22 @@ load_stage_mcaid_claim_naxolone_f <- function(conn = NULL,
 
 --Second, add a column with % that can be used for a LIKE join
 select *, '%' + ndc + '%' as ndc_like
-into ##naxolone_ndc_list
-from ##naxolone_ndc_list_prep;
+into ##naloxone_ndc_list
+from ##naloxone_ndc_list_prep;
 
---Third, LIKE join all distinct NDC codes to the list of naxolone NDC codes to create a data source-specific reference table
+--Third, LIKE join all distinct NDC codes to the list of naloxone NDC codes to create a data source-specific reference table
 --Then, use this custom reference table down below for an exact join
-select a.ndc, 1 as naxolone_flag
-into ##naxolone_ndc_ref_table
+select a.ndc, 1 as naloxone_flag
+into ##naloxone_ndc_ref_table
 from (
 	select distinct ndc from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`}
 ) as a
-inner join ##naxolone_ndc_list as b
+inner join ##naloxone_ndc_list as b
 on a.ndc like b.ndc_like;", 
 	  .con = conn)
   DBI::dbExecute(conn = conn, step1_sql)
     
-  message("STEP 2: CREATE TABLE OF naxolone EVENTS")
+  message("STEP 2: CREATE TABLE OF naloxone EVENTS")
   try(odbc::dbRemoveTable(conn, "##mcaid_moud_proc_2", temporary = T), silent = T)
   step2_sql <- glue::glue_sql("
 	 SELECT 
@@ -181,14 +181,14 @@ FROM {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`} as a
 	left join ref.ndc_codes as b
 	on a.ndc = b.ndc
 
-	inner join ##naxolone_ndc_ref_table as c
+	inner join ##naloxone_ndc_ref_table as c
 	on a.ndc = c.ndc
 
 WHERE year(a.rx_fill_date) >= 2016
 	AND rx_quantity >= 1.00
 
 
--- Next get naxolone distributed as part of procedure codes
+-- Next get naloxone distributed as part of procedure codes
 
 UNION
 
