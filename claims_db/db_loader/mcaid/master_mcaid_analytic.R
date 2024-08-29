@@ -502,10 +502,10 @@ if (bak_check == "Yes") {
   if (bak_del == "Yes") {
     try(DBI::dbSendQuery(conn,
                          glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_elig`}",
-                                        .con = conn)))
+                                        .con = conn)), silent = T)
     try(DBI::dbSendQuery(conn,      
                          glue::glue_sql("DROP TABLE {`bak_schema`}.{`bak_claim`}",  
-                                        .con = conn)))
+                                        .con = conn)), silent = T)
   }
   rm(conn, table_config_stage_elig, table_config_stage_claim, 
      bak_schema, bak_elig, bak_claim, bak_del,
