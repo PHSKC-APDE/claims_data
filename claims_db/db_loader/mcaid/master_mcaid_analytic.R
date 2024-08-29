@@ -7,7 +7,7 @@
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
-        scipen = 999)
+        scipen = 999, digits.secs = 3)
 
 library(tidyverse) # Manipulate data
 library(data.table) # Manipulate data
@@ -22,56 +22,77 @@ library(R.utils)
 
 
 #### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_ccw.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_bh.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/db_loader/scripts_general/add_index.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/db_loader/scripts_general/alter_schema.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/db_loader/scripts_general/load_ccw.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/db_loader/scripts_general/claim_bh.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/db_loader/scripts_general/create_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/db_loader/scripts_general/etl_log.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/db_loader/scripts_general/load_table.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/db_loader/scripts_general/qa_load_sql.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/db_loader/mcaid/create_db_connection.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/notify.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/table_duplicate.R")
 #memory.limit(size = 56000) # Only necessary for R version < 4.2
 
-server <- dlg_list(c("hhsaw", "phclaims"), title = "Select Server.")$res
-if(server == "hhsaw") {
-  interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
-  prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
-} else {
-  interactive_auth <- T  
-  prod <- T
-}
+server <- "hhsaw"
+interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
+prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
+
+#### COPY NECESSARY REF TABLES ####
+from_conn <- create_db_connection("hhsaw", interactive = F, prod = T)
+table_copy_df <- data.frame(
+  from_schema = c("claims", "claims", "claims", 
+                  "claims", "claims", "claims", 
+                  "ref", "ref", "ref"),
+  from_table = c("ref_mcaid_rac_code", "ref_geo_kc_zip", "ref_kc_claim_type_crosswalk", 
+                 "ref_pc_visit_oregon", "ref_hedis_value_sets_apde", "ref_kc_provider_master", 
+                 "icdcm_codes", "address_clean", "address_geo_code"),
+  to_schema = c("stg_claims", "stg_claims", "stg_claims", 
+                "stg_claims", "stg_claims", "stg_claims", 
+                "stg_reference", "stg_reference", "stg_reference"),
+  to_table = c("ref_mcaid_rac_code", "ref_geo_kc_zip", "ref_kc_claim_type_crosswalk", 
+               "ref_pc_visit_oregon", "ref_hedis_value_sets_apde", "ref_kc_provider_master", 
+               "icdcm_codes", "address_clean", "address_geocode"))
+table_duplicate_f(conn_from = from_conn, 
+                  conn_to = dw_inthealth, 
+                  server_to = "inthealth_dev", 
+                  db_to = "inthealth_edw",
+                  table_df = table_copy_df,
+                  confirm_tables = F,
+                  delete_table = T)
 
 #### CREATE ELIG TABLES --------------------------------------------------------
 #### MCAID_ELIG_DEMO ####
 ### Bring in function and config file
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.R")
-stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.yaml")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.R")
+stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.yaml")
 
 # Run function
-load_stage_mcaid_elig_demo_f(conn = db_claims, server = server, config = stage_mcaid_elig_demo_config)
+load_stage_mcaid_elig_demo_f(conn = dw_inthealth, server = server, config = stage_mcaid_elig_demo_config)
 
 # Pull out run date
 last_run_elig_demo <- as.POSIXct(odbc::dbGetQuery(
-  db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_demo_config[[server]][['to_schema']]`}.{`stage_mcaid_elig_demo_config[[server]][['to_table']]`}",
-                            .con = db_claims))[[1]])
+  dw_inthealth, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_demo_config[[server]][['to_schema']]`}.{`stage_mcaid_elig_demo_config[[server]][['to_table']]`}",
+                            .con = dw_inthealth))[[1]])
 
 ### QA stage version
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
 # Re-establish connection because it drops out faster in Azure VM
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-qa_stage_mcaid_elig_demo <- qa_mcaid_elig_demo_f(conn = db_claims, server = server, 
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+qa_stage_mcaid_elig_demo <- qa_mcaid_elig_demo_f(conn = dw_inthealth, conn_qa = db_claims, server = server, 
                                                  config = stage_mcaid_elig_demo_config, load_only = F)
 
 
 # Check that things passed QA before loading final table
 if (qa_stage_mcaid_elig_demo == 0) {
   # Check if the table exists and, if not, create it
-  final_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
+  final_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
   
   to_schema <- final_mcaid_elig_demo_config[[server]][["to_schema"]]
   to_table <- final_mcaid_elig_demo_config[[server]][["to_table"]]
@@ -80,20 +101,20 @@ if (qa_stage_mcaid_elig_demo == 0) {
                      final_mcaid_elig_demo_config[[server]][["qa_table"]])
   
   if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {
-    create_table_f(db_claims, server = server, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
+    create_table_f(db_claims, server = server, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
   }
   
   #### Load final table (assumes no changes to table structure)
   load_table_from_sql_f(conn = db_claims,
                         server = server,
-                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml", 
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml", 
                         truncate = T, truncate_date = F)
   
   # QA final table
   message("QA final table")
   qa_rows_final_elig_demo <- qa_sql_row_count_f(conn = db_claims, 
                                                 server = server,
-                                                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
+                                                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
   
   DBI::dbExecute(
     conn = db_claims,
@@ -123,12 +144,13 @@ rm(qa_stage_mcaid_elig_demo, stage_mcaid_elig_demo_config, load_stage_mcaid_elig
 
 #### MCAID_ELIG_TIMEVAR ####
 ### Bring in function and config file
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R")
-stage_mcaid_elig_timevar_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.yaml")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.R")
+stage_mcaid_elig_timevar_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_timevar.yaml")
 
 # Run function
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-load_stage_mcaid_elig_timevar_f(conn = db_claims, server = server, config = stage_mcaid_elig_timevar_config)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+load_stage_mcaid_elig_timevar_f(conn = dw_inthealth, server = server, config = stage_mcaid_elig_timevar_config)
 
 # Re-establish connection because it drops out faster in Azure VM
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
@@ -139,7 +161,7 @@ last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(
                             .con = db_claims))[[1]])
 
 ### QA stage version
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
 qa_stage_mcaid_elig_timevar <- qa_mcaid_elig_timevar_f(conn = db_claims, server = server, 
                                                        config = stage_mcaid_elig_timevar_config, load_only = F)
 # Re-establish connection because it drops out faster in Azure VM
@@ -148,7 +170,7 @@ db_claims <- create_db_connection(server, interactive = interactive_auth, prod =
 # Check that things passed QA before loading final table
 if (qa_stage_mcaid_elig_timevar == 0) {
   # Check if the table exists and, if not, create it
-  final_mcaid_elig_timevar_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
+  final_mcaid_elig_timevar_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
   
   to_schema <- final_mcaid_elig_timevar_config[[server]][["to_schema"]]
   to_table <- final_mcaid_elig_timevar_config[[server]][["to_table"]]
@@ -157,19 +179,19 @@ if (qa_stage_mcaid_elig_timevar == 0) {
                      final_mcaid_elig_timevar_config[[server]][["qa_table"]])
   
   if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {
-    create_table_f(db_claims, server = server, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
+    create_table_f(db_claims, server = server, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
   }
   
   #### Load final table (assumes no changes to table structure)
   load_table_from_sql_f(conn = db_claims,
                         server = server,
-                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml", 
+                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml", 
                         truncate = T, truncate_date = F)
   
   # QA final table
   qa_rows_final_elig_timevar <- qa_sql_row_count_f(conn = db_claims, 
                                                    server = server,
-                                                   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
+                                                   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
   
   DBI::dbExecute(
     conn = db_claims,
@@ -219,71 +241,75 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
   
   table <- match.arg(table)
   
+  db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+  dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+  
   ### Bring in function and config file
   # ccw script already called in above
   if (table != "ccw" & table != "bh") {
-    devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".R"))
+    devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".R"))
   }
-  stage_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".yaml"))
+  stage_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".yaml"))
   
   
   # Run function, which also adds index
   if (table == "ccw") {
-    load_ccw(conn = db_claims, server = server, source = "mcaid", config = stage_config)
+    load_ccw(conn = dw_inthealth, server = server, source = "mcaid", config = stage_config)
   } else if (table == "icdcm_header") {
-    load_stage_mcaid_claim_icdcm_header_f(conn = db_claims, server = server, config = stage_config)
+    load_stage_mcaid_claim_icdcm_header_f(conn = dw_inthealth, server = server, config = stage_config)
   } else if (table == "header") {
-    load_stage_mcaid_claim_header_f(conn = db_claims, server = server, config = stage_config)
+    load_stage_mcaid_claim_header_f(conn = dw_inthealth, server = server, config = stage_config)
   } else if (table == "line") {
-    load_stage_mcaid_claim_line_f(conn = db_claims, server = server, config = stage_config)
+    load_stage_mcaid_claim_line_f(conn = dw_inthealth, server = server, config = stage_config)
   } else if (table == "pharm") {
-    load_stage_mcaid_claim_pharm_f(conn = db_claims, server = server, config = stage_config)
+    load_stage_mcaid_claim_pharm_f(conn = dw_inthealth, server = server, config = stage_config)
   } else if (table == "procedure") {
-    load_stage_mcaid_claim_procedure_f(conn = db_claims, server = server, config = stage_config)
+    load_stage_mcaid_claim_procedure_f(conn = dw_inthealth, server = server, config = stage_config)
   } else if (table == "moud") {
-    load_stage_mcaid_claim_moud_f(conn = db_claims, server = server, config = stage_config)
+    load_stage_mcaid_claim_moud_f(conn = dw_inthealth, server = server, config = stage_config)
   } else if (table == "naloxone") {
-    load_stage_mcaid_claim_naloxone_f(conn = db_claims, server = server, config = stage_config)
+    load_stage_mcaid_claim_naloxone_f(conn = dw_inthealth, server = server, config = stage_config)
   } else if (table == "preg_episode") {
-    load_stage_mcaid_claim_preg_episode_f(conn = db_claims, server = server, config = stage_config)
+    load_stage_mcaid_claim_preg_episode_f(conn = dw_inthealth, server = server, config = stage_config)
   } else if (table == "bh") {
-    load_bh(conn = db_claims, server = server, source = "mcaid", config = stage_config)
+    load_bh(conn = dw_inthealth, server = server, source = "mcaid", config = stage_config)
   }
   
   # Re-establish connection because it drops out faster in Azure VM
   db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+  dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
   
   # Pull out run date
   last_run_claim <- as.POSIXct(odbc::dbGetQuery(
-    db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_config[[server]][['to_schema']]`}.{`stage_config[[server]][['to_table']]`}",
-                              .con = db_claims))[[1]])
+    dw_inthealth, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_config[[server]][['to_schema']]`}.{`stage_config[[server]][['to_table']]`}",
+                              .con = dw_inthealth))[[1]])
   
   
   ### QA table and load to final
   if (table != "bh") {
-    devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_", table, ".R"))
+    devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_", table, ".R"))
   }
   
   qa_stage <- 0
   
   if (table == "ccw") {
-    qa_stage <- qa_stage_mcaid_claim_ccw_f(conn = db_claims, server = server, config = stage_config, skip_review = T)
+    qa_stage <- qa_stage_mcaid_claim_ccw_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config, skip_review = T)
   } else if (table == "icdcm_header") {
-    qa_stage <- qa_stage_mcaid_claim_icdcm_header_f(conn = db_claims, server = server, config = stage_config)
+    qa_stage <- qa_stage_mcaid_claim_icdcm_header_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config)
   } else if (table == "header") {
-    qa_stage <- qa_stage_mcaid_claim_header_f(conn = db_claims, server = server, config = stage_config)
+    qa_stage <- qa_stage_mcaid_claim_header_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config)
   } else if (table == "line") {
-    qa_stage <- qa_stage_mcaid_claim_line_f(conn = db_claims, server = server, config = stage_config)
+    qa_stage <- qa_stage_mcaid_claim_line_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config)
   } else if (table == "pharm") {
-    qa_stage <- qa_stage_mcaid_claim_pharm_f(conn = db_claims, server = server, config = stage_config)
+    qa_stage <- qa_stage_mcaid_claim_pharm_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config)
   } else if (table == "procedure") {
-    qa_stage <- qa_stage_mcaid_claim_procedure_f(conn = db_claims, server = server, config = stage_config)
+    qa_stage <- qa_stage_mcaid_claim_procedure_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config)
   } else if (table == "moud") {
-    qa_stage <- qa_stage_mcaid_claim_moud_f(conn = db_claims, server = server, config = stage_config)
+    qa_stage <- qa_stage_mcaid_claim_moud_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config)
   } else if (table == "naloxone") {
-    qa_stage <- qa_stage_mcaid_claim_naloxone_f(conn = db_claims, server = server, config = stage_config)
+    qa_stage <- qa_stage_mcaid_claim_naloxone_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config)
   } else if (table == "preg_episode") {
-    qa_stage <- qa_stage_mcaid_claim_preg_episode_f(conn = db_claims, server = server, config = stage_config)
+    qa_stage <- qa_stage_mcaid_claim_preg_episode_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config)
   }
   
   conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
@@ -297,7 +323,8 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
   }  
   ## END SKIP ##  
   # Bring in config file
-  final_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/final/tables/load_final.mcaid_claim_", table, ".yaml"))
+  if(1 == 0) {
+  final_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_claim_", table, ".yaml"))
   
   from_schema <- final_config[[server]][["from_schema"]]
   from_table <- final_config[[server]][["from_table"]]
@@ -368,67 +395,46 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
     table_fail <- 1
   }
   ## SKIP QA ##
-  #}
+  }
   ## END SKIP ##  
   # Export out results of load
   return(table_fail)
 }
 
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+
+
 #### MCAID_CLAIM_LINE ####
 claim_line_fail <- claim_load_f(table = "line")
-
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 #### MCAID_CLAIM_ICDCM_HEADER ####
 claim_icdcm_header_fail <- claim_load_f(table = "icdcm_header")
-
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 #### MCAID_CLAIM_PROCEDURE ####
 claim_procedure_fail <- claim_load_f(table = "procedure")
-
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 #### MCAID_CLAIM_PHARM ####
 claim_pharm_fail <- claim_load_f(table = "pharm")
-
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 #### MCAID_CLAIM_HEADER ####
 if (sum(claim_line_fail, claim_icdcm_header_fail, claim_procedure_fail, claim_pharm_fail) > 0) {
   stop("One or more claims analytic tables failed, mcaid_claim_header not created. See metadata.mcaid_qa for details")
 } else {
   claim_load_f(table = "header")
 }
-
-
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-#### MCAID_CLAIM_CCW ####
-claim_ccw_fail <- claim_load_f(table = "ccw")
-
-
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-#### MCAID_CLAIM_BH ####
-claim_bh_fail <- claim_load_f(table = "bh")
-
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 #### MCAID_CLAIM_NALOXONE ####
 claim_naloxone_fail <- claim_load_f(table = "naloxone")
-
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 #### MCAID_CLAIM_MOUD ####
 claim_moud_fail <- claim_load_f(table = "moud")
-
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 #### MCAID_CLAIM_PREG_EPISODE ####
 claim_preg_episode_fail <- claim_load_f(table = "preg_episode")
+#### MCAID_CLAIM_CCW ####
+claim_ccw_fail <- claim_load_f(table = "ccw")
+#### MCAID_CLAIM_BH ####
+claim_bh_fail <- claim_load_f(table = "bh")
 
 #### DROP TABLES NO LONGER NEEDED ####
 bak_check <- dlg_list(c("Yes", "No"), title = "CHECK BACKUP TABLES?")$res
 if (bak_check == "Yes") {
   db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   #### QA STAGE TABLE COUNTS AND CHOOSE WHETHER TO DROP BACK UP ARCHIVE TABLES OR NOT ####
-  table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml")) 
-  table_config_stage_claim <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
+  table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml")) 
+  table_config_stage_claim <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_claim.yaml"))
   stage_schema <- table_config_stage_elig[[server]][["to_schema"]]
   stage_elig <- ifelse(is.null(table_config_stage_elig[[server]][["to_table"]]), '',
                       table_config_stage_elig[[server]][["to_table"]])
