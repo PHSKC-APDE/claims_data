@@ -420,6 +420,11 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     }
   }
   
+  sql_combine <- glue::glue_sql("{DBI::SQL(sql_combine)};
+                                UPDATE {`to_schema`}.{`to_table`}
+                                SET MEDICAID_RECIPIENT_ID = UPPER(MEDICAID_RECIPIENT_ID)",
+                                .con = conn_dw)
+  
   ### Load table
   system.time(DBI::dbExecute(conn_dw, sql_combine))
   
