@@ -109,7 +109,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
           ELSE NULL END AS full_benefit
         FROM {`ref_schema`}.{DBI::SQL(ref_table)}mcaid_rac_code) b
       ON a.rac_code = b.rac_code
-      LEFT HASH JOIN
+      LEFT JOIN
       (SELECT geo_hash_raw,
         geo_add1_clean AS geo_add1, geo_add2_clean AS geo_add2, 
         geo_city_clean AS geo_city, geo_state_clean AS geo_state, 
@@ -123,11 +123,10 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   time_start <- Sys.time()
   odbc::dbGetQuery(conn = conn, step1a_sql)
   
-  
   # Add an index to the temp table to make ordering much faster
-  odbc::dbGetQuery(conn = conn,
-                   "CREATE CLUSTERED INDEX [timevar_01_idx] ON ##timevar_01a 
-           (id_mcaid, calmonth, fromdate)")
+  #odbc::dbGetQuery(conn = conn,
+  #                 "CREATE CLUSTERED INDEX [timevar_01_idx] ON ##timevar_01a 
+  #         (id_mcaid, calmonth, fromdate)")
   
   time_end <- Sys.time()
   message(paste0("Step 1a took ", round(difftime(time_end, time_start, units = "secs"), 2), 
@@ -147,17 +146,17 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   INTO ##timevar_01b
   FROM
   (SELECT id_mcaid, calmonth, fromdate, todate, dual, 
-  tpl, bsp_group_cid, cov_type, mco_id,
+  bsp_group_cid, cov_type, mco_id,
   CASE 
-    WHEN COALESCE(MAX(full_benefit_1), 0) + COALESCE(MAX(full_benefit_2), 0) >= 1 THEN 1
-    WHEN COALESCE(MAX(full_benefit_1), 0) + COALESCE(MAX(full_benefit_2), 0) = 0 THEN 0
+    WHEN COALESCE(MAX(full_benefit), 0) >= 1 THEN 1
+    WHEN COALESCE(MAX(full_benefit), 0) = 0 THEN 0
     END AS full_benefit,
   geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
   ROW_NUMBER() OVER(PARTITION BY id_mcaid, calmonth, fromdate  
                     ORDER BY id_mcaid, calmonth, fromdate) AS group_row 
   FROM ##timevar_01a
   GROUP BY id_mcaid, calmonth, fromdate, todate, dual, 
-  tpl, bsp_group_cid, cov_type, mco_id,
+  bsp_group_cid, cov_type, mco_id,
   geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode) a
   WHERE a.group_row = 1",
     .con = conn)
@@ -179,13 +178,13 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "##timevar_02a", temporary = T), silent = T)
   
   step2a_sql <- glue::glue_sql(
-    "SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+    "SELECT id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
     calmonth AS startdate, dateadd(day, - 1, dateadd(month, 1, calmonth)) AS enddate,
     fromdate, todate
     INTO ##timevar_02a
     FROM ##timevar_01b
-    GROUP BY id_mcaid, calmonth, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+    GROUP BY id_mcaid, calmonth, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, fromdate, todate",
     .con = conn)
   
@@ -205,13 +204,13 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "##timevar_02b", temporary = T), silent = T)
   
   step2b_sql <- glue::glue_sql(
-    "SELECT DISTINCT a.id_mcaid, a.from_date, a.to_date, a.dual, a.tpl, 
+    "SELECT DISTINCT a.id_mcaid, a.from_date, a.to_date, a.dual, 
   a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id, 
   a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip, 
   a.geo_hash_clean, a.geo_hash_geocode
   INTO ##timevar_02b
   FROM
-  (SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+  (SELECT id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
     CASE 
       WHEN fromdate IS NULL THEN startdate 
@@ -232,9 +231,9 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   odbc::dbGetQuery(conn = conn, step2b_sql)
   
   # Add an index to the temp table to make the next step much faster
-  odbc::dbGetQuery(conn = conn,
-                   "CREATE CLUSTERED INDEX [timevar_02b_idx] ON ##timevar_02b 
-                 (id_mcaid, from_date, to_date)")
+  #odbc::dbGetQuery(conn = conn,
+  #                 "CREATE CLUSTERED INDEX [timevar_02b_idx] ON ##timevar_02b 
+  #               (id_mcaid, from_date, to_date)")
   
   time_end <- Sys.time()
   message(paste0("Step 2b took ", round(difftime(time_end, time_start, units = "secs"), 2),
@@ -250,11 +249,11 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   step3a_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date, 
-  dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+  dual, bsp_group_cid, full_benefit, cov_type, mco_id,
   geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
   DATEDIFF(day, lag(to_date) OVER (
     PARTITION BY id_mcaid, 
-      dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+      dual, bsp_group_cid, full_benefit, cov_type, mco_id,
       geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
       ORDER BY id_mcaid, from_date), from_date) AS group_num
   INTO ##timevar_03a
@@ -277,7 +276,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   step3b_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date,
-    dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+    dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
     CASE 
       WHEN group_num > 1  OR group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY id_mcaid ORDER BY from_date) + 1
@@ -292,10 +291,10 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   odbc::dbGetQuery(conn = conn, step3b_sql)
   
   # Add an index to the temp table to make the next step faster (not sure it's actually helping)
-  odbc::dbGetQuery(conn = conn,
-                   "CREATE CLUSTERED INDEX [timevar_03b_idx] ON ##timevar_03b 
-                 (id_mcaid, from_date, to_date)")
-  
+  #odbc::dbGetQuery(conn = conn,
+  #                 "CREATE CLUSTERED INDEX [timevar_03b_idx] ON ##timevar_03b 
+  #               (id_mcaid, from_date, to_date)")
+#  
   time_end <- Sys.time()
   message(paste0("Step 3b took ", round(difftime(time_end, time_start, units = "secs"), 2),
                  " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
@@ -309,11 +308,11 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   step3c_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date,
-    dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+    dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip,
     geo_hash_clean, geo_hash_geocode, 
     group_num = max(group_num) OVER 
-      (PARTITION BY id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+      (PARTITION BY id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
         geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode 
         ORDER BY from_date)
     INTO ##timevar_03c
@@ -336,13 +335,13 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "##timevar_04a", temporary = T), silent = T)
   
   step4a_sql <- glue::glue_sql(
-    "SELECT id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+    "SELECT id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode,
     MIN(from_date) AS from_date,
     MAX(to_date) AS to_date
     INTO ##timevar_04a
     FROM ##timevar_03c
-    GROUP BY id_mcaid, dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+    GROUP BY id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode,
     group_num",
     .con = conn)
@@ -361,7 +360,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "##timevar_04b", temporary = T), silent = T)
   
   step4b_sql <- glue::glue_sql(
-    "SELECT id_mcaid, from_date, to_date, dual, tpl, 
+    "SELECT id_mcaid, from_date, to_date, dual, 
     bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, 
     geo_hash_clean, geo_hash_geocode,
@@ -424,10 +423,9 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     CASE WHEN DATEDIFF(day, lag(a.to_date, 1) OVER 
       (PARTITION BY a.id_mcaid order by a.id_mcaid, a.from_date), a.from_date) = 1
       THEN 1 ELSE 0 END AS contiguous, 
-    CASE WHEN a.dual = 'Y' THEN 1 ELSE 0 END AS dual,
-    CASE WHEN a.tpl = 'Y' THEN 1 ELSE 0 END AS tpl,
+    CASE WHEN a.dual IN ('DualEligible', 'PartialDual', 'Y') THEN 1 ELSE 0 END AS dual,
     a.bsp_group_cid, a.full_benefit, 
-    CASE WHEN a.dual <> 'Y' AND a.tpl <> 'Y' AND a.full_benefit = 1 THEN 1 ELSE 0
+    CASE WHEN a.dual NOT IN ('DualEligible', 'PartialDual', 'Y') AND a.full_benefit = 1 THEN 1 ELSE 0
       END AS full_criteria, 
     a.cov_type, a.mco_id,
     a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip, 
@@ -439,7 +437,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     INTO {`to_schema`}.{`to_table`}
     FROM
     (SELECT id_mcaid, from_date, to_date, 
-      dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+      dual, bsp_group_cid, full_benefit, cov_type, mco_id,
       geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
       cov_time_day
       FROM ##timevar_04b) a
@@ -469,12 +467,14 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   # Step 5c ~ XX minutes
   step5c_sql <- glue::glue_sql(paste0(
     "ALTER TABLE {`to_schema`}.{`to_table`}
-       ADD geo_kc AS
+       ADD geo_kc BIT;
+       UPDATE {`to_schema`}.{`to_table`}
+       SET geo_kc =
          CASE
            WHEN (geo_county_code IS NOT NULL) AND (geo_county_code IN (033, 53033)) THEN 1
            WHEN (geo_county_code IS NULL) AND (geo_kc_new = 1) THEN 1
            ELSE 0
-         END
+         END;
     "),
     .con = conn)
   
