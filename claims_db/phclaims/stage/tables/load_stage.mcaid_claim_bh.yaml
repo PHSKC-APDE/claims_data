@@ -1,18 +1,18 @@
 hhsaw:
-  claim_header_from_schema: claims
-  claim_header_from_table: final_mcaid_claim_header
-  claim_pharm_from_schema: claims
-  claim_pharm_from_table: final_mcaid_claim_pharm
-  icdcm_from_schema: claims
-  icdcm_from_table: final_mcaid_claim_icdcm_header
-  to_schema: claims
+  claim_header_from_schema: stg_claims
+  claim_header_from_table: stage_mcaid_claim_header
+  claim_pharm_from_schema: stg_claims
+  claim_pharm_from_table: stage_mcaid_claim_pharm
+  icdcm_from_schema: stg_claims
+  icdcm_from_table: stage_mcaid_claim_icdcm_header
+  to_schema: stg_claims
   to_table: stage_mcaid_claim_bh
   final_schema: claims
   final_table: final_mcaid_claim_bh
   final_table_pre: final_
-  ref_schema: ref
+  ref_schema: stg_reference
   ref_table: rda_value_sets_apde
-  rolling_schema: claims
+  rolling_schema: stg_claims
   rolling_table: ref_rolling_time_24mo_2012_2020
   qa_schema: claims
   qa_table_pre: metadata_
