@@ -12,7 +12,7 @@ phclaims:
     qa_table: 
 hhsaw:
     from_schema: stg_claims
-    from_table: stage_mcaid_elig
+    from_table: stage_mcaid_elig_new
     to_schema: stg_claims
     to_table: stage_mcaid_elig_timevar
     ref_schema: stg_claims
