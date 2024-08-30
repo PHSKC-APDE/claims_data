@@ -22,13 +22,14 @@ qa_mcaid_elig_timevar_f <- function(conn = NULL,
   # Set up variables specific to the server
   server <- match.arg(server)
   
-  if (get_config == T){
+  if (get_config == T) {
     if (stringr::str_detect(config, "^http")) {
       config <- yaml::yaml.load(getURL(config))
     } else{
       stop("A URL must be specified in config if using get_config = T")
     }
-  }
+  } 
+  
   
   from_schema <- config[[server]][["from_schema"]]
   from_table <- config[[server]][["from_table"]]
@@ -50,16 +51,16 @@ qa_mcaid_elig_timevar_f <- function(conn = NULL,
   
   ### Pull out run date of claims.stage_mcaid_elig_timevar
   last_run <- as.POSIXct(odbc::dbGetQuery(
-    db_claims, 
+    conn, 
     glue::glue_sql("SELECT MAX (last_run) FROM {`to_schema`}.{`to_table`}",
                    .con = conn))[[1]])
   
-  
-  if (load_only == F) {
-    #### COUNT NUMBER OF ROWS ####
+  if(load_only == F) {
+    ### COUNT NUMBER OF ROWS ###
     # Pull in the reference value
+    
     previous_rows <- as.numeric(
-      odbc::dbGetQuery(conn, 
+      odbc::dbGetQuery(conn_qa, 
                        glue::glue_sql("SELECT a.qa_value FROM
                        (SELECT * FROM {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid_values
                          WHERE table_name = '{DBI::SQL(`to_schema`)}.{DBI::SQL(`to_table`)}' AND
@@ -70,41 +71,11 @@ qa_mcaid_elig_timevar_f <- function(conn = NULL,
                          WHERE table_name = '{DBI::SQL(`to_schema`)}.{DBI::SQL(`to_table`)}' AND
                           qa_item = 'row_count') b
                        ON a.qa_date = b.max_date",
-                                      .con = conn)))
+                                      .con = conn_qa)))
     
     row_diff <- row_count - previous_rows
-    
-    if (row_diff < 0) {
-      row_qa_fail <- 1
-      DBI::dbExecute(conn_qa,
-        glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
-                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({format(last_run, usetz = FALSE)}, 
-                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                   'Number new rows compared to most recent run', 
-                   'FAIL', 
-                   {format(Sys.time(), usetz = FALSE)}, 
-                   'There were {row_diff} fewer rows in the most recent table ({row_count} vs. {previous_rows})')",
-                       .con = conn_qa))
       
-      warning(glue::glue("Fewer rows than found last time.  
-                  Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
-    } else {
-      row_qa_fail <- 0
-      DBI::dbExecute(conn_qa,
-        glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
-                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({format(last_run, usetz = FALSE)}, 
-                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                   'Number new rows compared to most recent run', 
-                   'PASS', 
-                   {format(Sys.time(), usetz = FALSE)}, 
-                   'There were {row_diff} more rows in the most recent table ({row_count} vs. {previous_rows})')",
-                       .con = conn_qa))
-      
-    }
   }
-  
   
   #### CHECK DISTINCT IDS = DISTINCT IN stage_mcaid_elig ####
   id_count_timevar <- as.numeric(odbc::dbGetQuery(
@@ -153,7 +124,7 @@ qa_mcaid_elig_timevar_f <- function(conn = NULL,
     conn, 
     glue::glue_sql("SELECT COUNT (*) AS count FROM 
     (SELECT DISTINCT id_mcaid, from_date, to_date, 
-    dual, tpl, bsp_group_cid, full_benefit, cov_type, mco_id,
+    dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip,
     cov_time_day 
     FROM {`to_schema`}.{`to_table`}) a",
@@ -163,7 +134,7 @@ qa_mcaid_elig_timevar_f <- function(conn = NULL,
   if (dup_row_count != row_count) {
     dup_row_qa_fail <- 1
     DBI::dbExecute(conn = conn_qa,
-      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({format(last_run, usetz = FALSE)}, 
                        '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
@@ -172,7 +143,7 @@ qa_mcaid_elig_timevar_f <- function(conn = NULL,
                        {format(Sys.time(), usetz = FALSE)}, 
                        'There were {dup_row_count} distinct rows (excl. ref_geo vars) \\
                     but {row_count} rows overall (should be the same)')",
-                     .con = conn_qa))
+                                  .con = conn_qa))
     
     warning(glue::glue("There appear to be duplicate rows. 
                       Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
@@ -310,5 +281,3 @@ qa_mcaid_elig_timevar_f <- function(conn = NULL,
   return(qa_total)
   
 }
-
-
