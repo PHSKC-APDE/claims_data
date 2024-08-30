@@ -6,9 +6,9 @@
 #
 # R script developed by Jeremy Whitehurst using SQL scripts from Eli Kern, Jennifer Liu and Spencer Hensley
 #
-### 
+## 
 
-### Function elements
+## Function elements
 # conn = database connection
 # server = whether we are working in HHSAW or PHClaims
 
@@ -49,14 +49,14 @@ load_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
   
   #### LOAD TABLE ####
   message("STEP 1: CREATE TABLE TO HOLD NDC CODES IDENTIFYING naloxone FOR LIKE JOIN")
-  try(odbc::dbRemoveTable(conn, "##naloxone_ndc_list_prep", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##naloxone_ndc_list", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##naloxone_ndc_ref_table", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#naloxone_ndc_list_prep", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#naloxone_ndc_list", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#naloxone_ndc_ref_table", temporary = T), silent = T)
   step1_sql <- glue::glue_sql("
   --First, create a table holding all NDC codes identifying naloxone
-	create table ##naloxone_ndc_list_prep (ndc varchar(255));
+	create table #naloxone_ndc_list_prep (ndc varchar(255));
 
-	insert into ##naloxone_ndc_list_prep
+	insert into #naloxone_ndc_list_prep
 	values 
 ('00932165'),
 ('04049921'),
@@ -135,23 +135,23 @@ load_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
 
 --Second, add a column with % that can be used for a LIKE join
 select *, '%' + ndc + '%' as ndc_like
-into ##naloxone_ndc_list
-from ##naloxone_ndc_list_prep;
+into #naloxone_ndc_list
+from #naloxone_ndc_list_prep;
 
 --Third, LIKE join all distinct NDC codes to the list of naloxone NDC codes to create a data source-specific reference table
 --Then, use this custom reference table down below for an exact join
 select a.ndc, 1 as naloxone_flag
-into ##naloxone_ndc_ref_table
+into #naloxone_ndc_ref_table
 from (
 	select distinct ndc from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`}
 ) as a
-inner join ##naloxone_ndc_list as b
+inner join #naloxone_ndc_list as b
 on a.ndc like b.ndc_like;", 
 	  .con = conn)
   DBI::dbExecute(conn = conn, step1_sql)
     
   message("STEP 2: CREATE TABLE OF naloxone EVENTS")
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_proc_2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_proc_2", temporary = T), silent = T)
   step2_sql <- glue::glue_sql("
 	 SELECT 
 	 a.id_mcaid
@@ -181,7 +181,7 @@ FROM {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`} as a
 	left join ref.ndc_codes as b
 	on a.ndc = b.ndc
 
-	inner join ##naloxone_ndc_ref_table as c
+	inner join #naloxone_ndc_ref_table as c
 	on a.ndc = c.ndc
 
 WHERE year(a.rx_fill_date) >= 2016

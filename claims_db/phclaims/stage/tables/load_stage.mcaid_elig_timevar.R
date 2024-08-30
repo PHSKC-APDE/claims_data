@@ -9,7 +9,7 @@
 
 
 
-### Function elements
+## Function elements
 # conn = database connection
 # server = whether we are working in HHSAW or PHClaims
 # config = the YAML config file. Can be either an object already loaded into 
@@ -53,7 +53,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   # Need to create third RAC code field and collapse to a single row.
   # First pull in relevant columns and set an index to speed later sorting
   # Step 1a = ~10 mins (latest was 35 mins)
-  try(odbc::dbRemoveTable(conn, "##timevar_01a", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_01a", temporary = T), silent = T)
   if (server == "hhsaw") {
     address_clean_table <- glue::glue_sql("{`address_schema`}.{`address_table`}", 
                                           .con = conn)
@@ -76,11 +76,11 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
                                          FROM {`from_schema`}.{`from_table`}",                                         
                                            .con = conn))
     df_address_clean <- inner_join(df, df2)
-    try(odbc::dbRemoveTable(conn, "##address_clean_01a", temporary = T), silent = T)
+    try(odbc::dbRemoveTable(conn, "#address_clean_01a", temporary = T), silent = T)
     DBI::dbWriteTable(conn, 
-                      name = "##address_clean_01a", 
+                      name = "#address_clean_01a", 
                       value = df_address_clean)
-    address_clean_table <- "##address_clean_01a"
+    address_clean_table <- "#address_clean_01a"
   }
   
   step1a_sql <- glue::glue_sql(paste0(
@@ -90,7 +90,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     b.full_benefit, a.cov_type, a.mco_id, 
     d.geo_add1, d.geo_add2, d.geo_city, d.geo_state, d.geo_zip, 
     d.geo_hash_clean, d.geo_hash_geocode
-    INTO ##timevar_01a 
+    INTO #timevar_01a 
     FROM
     (SELECT MBR_H_SID AS 'id_mcaid', 
       CLNDR_YEAR_MNTH, RAC_FROM_DATE AS 'fromdate', RAC_TO_DATE AS 'todate',
@@ -125,7 +125,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   # Add an index to the temp table to make ordering much faster
   #odbc::dbGetQuery(conn = conn,
-  #                 "CREATE CLUSTERED INDEX [timevar_01_idx] ON ##timevar_01a 
+  #                 "CREATE CLUSTERED INDEX [timevar_01_idx] ON #timevar_01a 
   #         (id_mcaid, calmonth, fromdate)")
   
   time_end <- Sys.time()
@@ -136,14 +136,14 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   # Setup full_benefit flag and drop secondary RAC rows
   # Step 1b = ~5 mins
-  try(odbc::dbRemoveTable(conn, "##timevar_01b", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_01b", temporary = T), silent = T)
   
   step1b_sql <- glue::glue_sql(
     "SELECT a.id_mcaid, a.calmonth, a.fromdate, a.todate, a.dual, 
   a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id, 
   a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip,
   a.geo_hash_clean, a.geo_hash_geocode
-  INTO ##timevar_01b
+  INTO #timevar_01b
   FROM
   (SELECT id_mcaid, calmonth, fromdate, todate, dual, 
   bsp_group_cid, cov_type, mco_id,
@@ -154,7 +154,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
   ROW_NUMBER() OVER(PARTITION BY id_mcaid, calmonth, fromdate  
                     ORDER BY id_mcaid, calmonth, fromdate) AS group_row 
-  FROM ##timevar_01a
+  FROM #timevar_01a
   GROUP BY id_mcaid, calmonth, fromdate, todate, dual, 
   bsp_group_cid, cov_type, mco_id,
   geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode) a
@@ -175,15 +175,15 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   #### STEP 2: MAKE START AND END DATES (~13 MINS) ####
   # Make a start and end date for each month
   # Step 2a = ~4.5 mins
-  try(odbc::dbRemoveTable(conn, "##timevar_02a", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_02a", temporary = T), silent = T)
   
   step2a_sql <- glue::glue_sql(
     "SELECT id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
     calmonth AS startdate, dateadd(day, - 1, dateadd(month, 1, calmonth)) AS enddate,
     fromdate, todate
-    INTO ##timevar_02a
-    FROM ##timevar_01b
+    INTO #timevar_02a
+    FROM #timevar_01b
     GROUP BY id_mcaid, calmonth, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, fromdate, todate",
     .con = conn)
@@ -201,14 +201,14 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   # Note that the step above leads to duplicate rows so use distinct here to clear
   #  them out once submonth coverage is accounted for
   # Step 2b = ~8.5 mins
-  try(odbc::dbRemoveTable(conn, "##timevar_02b", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_02b", temporary = T), silent = T)
   
   step2b_sql <- glue::glue_sql(
     "SELECT DISTINCT a.id_mcaid, a.from_date, a.to_date, a.dual, 
   a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id, 
   a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip, 
   a.geo_hash_clean, a.geo_hash_geocode
-  INTO ##timevar_02b
+  INTO #timevar_02b
   FROM
   (SELECT id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
@@ -222,7 +222,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       WHEN enddate <= todate THEN enddate
       WHEN enddate > todate THEN todate
       ELSE null END AS to_date
-    FROM ##timevar_02a) a",
+    FROM #timevar_02a) a",
     .con = conn)
   
   
@@ -232,7 +232,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   # Add an index to the temp table to make the next step much faster
   #odbc::dbGetQuery(conn = conn,
-  #                 "CREATE CLUSTERED INDEX [timevar_02b_idx] ON ##timevar_02b 
+  #                 "CREATE CLUSTERED INDEX [timevar_02b_idx] ON #timevar_02b 
   #               (id_mcaid, from_date, to_date)")
   
   time_end <- Sys.time()
@@ -245,7 +245,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   #### STEP 3: IDENTIFY CONTIGUOUS PERIODS (~45 MINS↑) ####
   # Calculate the number of days between each from_date and the previous to_date
   # Step 3a = ~8 mins
-  try(odbc::dbRemoveTable(conn, "##timevar_03a", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_03a", temporary = T), silent = T)
   
   step3a_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date, 
@@ -256,8 +256,8 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       dual, bsp_group_cid, full_benefit, cov_type, mco_id,
       geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
       ORDER BY id_mcaid, from_date), from_date) AS group_num
-  INTO ##timevar_03a
-  FROM ##timevar_02b"
+  INTO #timevar_03a
+  FROM #timevar_02b"
   )
   
   message("Running step 3a: calculate # days between each from_date and previous to_date")
@@ -272,7 +272,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   # Give a unique identifier (row number) to the first date in a continguous series of dates 
   # (meaning 0 or 1 days between each from_date and the previous to_date)
   # Step 3b = ~25 mins
-  try(odbc::dbRemoveTable(conn, "##timevar_03b", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_03b", temporary = T), silent = T)
   
   step3b_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date,
@@ -282,8 +282,8 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       WHEN group_num > 1  OR group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY id_mcaid ORDER BY from_date) + 1
       WHEN group_num <= 1 THEN NULL
       END AS group_num
-    INTO ##timevar_03b
-    FROM ##timevar_03a",
+    INTO #timevar_03b
+    FROM #timevar_03a",
     .con = conn)
   
   message("Running step 3b: Generate unique ID for first date in contiguous series of dates")
@@ -292,7 +292,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   # Add an index to the temp table to make the next step faster (not sure it's actually helping)
   #odbc::dbGetQuery(conn = conn,
-  #                 "CREATE CLUSTERED INDEX [timevar_03b_idx] ON ##timevar_03b 
+  #                 "CREATE CLUSTERED INDEX [timevar_03b_idx] ON #timevar_03b 
   #               (id_mcaid, from_date, to_date)")
 #  
   time_end <- Sys.time()
@@ -304,7 +304,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   # Use the row number for the first in the series of contiguous dates as an 
   # identifier for that set of contiguous dates
   # Step 3c = ~11 mins
-  try(odbc::dbRemoveTable(conn, "##timevar_03c", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_03c", temporary = T), silent = T)
   
   step3c_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date,
@@ -315,8 +315,8 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       (PARTITION BY id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
         geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode 
         ORDER BY from_date)
-    INTO ##timevar_03c
-    FROM ##timevar_03b",
+    INTO #timevar_03c
+    FROM #timevar_03b",
     .con = conn)
   
   message("Running step 3c: Replicate unique ID across contiguous dates")
@@ -332,15 +332,15 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   #### STEP 4: FIND MIN/MAX DATES AND CONTIGUOUS PERIODS (~6 MINS) ####
   # Find the min/max dates
   # Step 4a = ~6 mins
-  try(odbc::dbRemoveTable(conn, "##timevar_04a", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_04a", temporary = T), silent = T)
   
   step4a_sql <- glue::glue_sql(
     "SELECT id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode,
     MIN(from_date) AS from_date,
     MAX(to_date) AS to_date
-    INTO ##timevar_04a
-    FROM ##timevar_03c
+    INTO #timevar_04a
+    FROM #timevar_03c
     GROUP BY id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode,
     group_num",
@@ -357,7 +357,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   # Calculate coverage time
   # Step 4b = ~<1 min
-  try(odbc::dbRemoveTable(conn, "##timevar_04b", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_04b", temporary = T), silent = T)
   
   step4b_sql <- glue::glue_sql(
     "SELECT id_mcaid, from_date, to_date, dual, 
@@ -365,8 +365,8 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, 
     geo_hash_clean, geo_hash_geocode,
     DATEDIFF(dd, from_date, to_date) + 1 as cov_time_day
-    INTO ##timevar_04b
-    FROM ##timevar_04a",
+    INTO #timevar_04b
+    FROM #timevar_04a",
     .con = conn)
   
   message("Running step 4b: Find the min/max dates for contiguous periods")
@@ -411,11 +411,11 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
                                           FROM {`address_schema`}.{`geocode_table`}",                                         
                                           .con = conn_hhsaw))
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-    try(odbc::dbRemoveTable(conn, "##address_geocode_05b", temporary = T), silent = T)
+    try(odbc::dbRemoveTable(conn, "#address_geocode_05b", temporary = T), silent = T)
     DBI::dbWriteTable(conn, 
-                      name = "##address_geocode_05b", 
+                      name = "#address_geocode_05b", 
                       value = df_address_geocode)
-    address_geocode_table <- "##address_geocode_05b"
+    address_geocode_table <- "#address_geocode_05b"
   }
   step5b_sql <- glue::glue_sql(paste0(
     "SELECT
@@ -440,7 +440,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       dual, bsp_group_cid, full_benefit, cov_type, mco_id,
       geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
       cov_time_day
-      FROM ##timevar_04b) a
+      FROM #timevar_04b) a
       LEFT JOIN
       (SELECT DISTINCT geo_hash_geocode,
         geo_id10_county AS geo_county_code, 
@@ -489,17 +489,17 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   #### STEP 6: REMOVE TEMPORARY TABLES ####
   message("Running step 6: Remove temporary tables")
   time_start <- Sys.time()
-  try(odbc::dbRemoveTable(conn, "##timevar_01a", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##timevar_01b", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##timevar_02a", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##timevar_02b", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##timevar_03a", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##timevar_03b", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##timevar_03c", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##timevar_04a", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##timevar_04b", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##address_clean_01a", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##address_geocode_05b", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_01a", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_01b", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_02a", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_02b", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_03a", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_03b", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_03c", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_04a", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#timevar_04b", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#address_clean_01a", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#address_geocode_05b", temporary = T), silent = T)
   rm(list = ls(pattern = "step(.){1,2}_sql"))
   time_end <- Sys.time()
   message(paste0("Step 6 took ", round(difftime(time_end, time_start, units = "secs"), 2), 

@@ -6,9 +6,9 @@
 #
 # R script developed by Jeremy Whitehurst using SQL scripts from Eli Kern, Jennifer Liu and Spencer Hensley
 #
-### 
+## 
 
-### Function elements
+## Function elements
 # conn = database connection
 # server = whether we are working in HHSAW or PHClaims
 
@@ -49,7 +49,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   
   #### LOAD TABLE ####
   message("STEP 1: Flag methadone episodes using HCPCS codes from 1/1/2016 onward")
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_proc_1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_proc_1", temporary = T), silent = T)
   step1_sql <- glue::glue_sql("
 	  select distinct 
 	    id_mcaid, claim_header_id, first_service_date, last_service_date, procedure_code,		
@@ -72,7 +72,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 			  when procedure_code in ('Q9991', 'Q9992', 'G2069', 'G2070', 'G2072', 'J0570', '11981', '11983', 'G0516', 'G0518', 'J2315') then 'injection/implant'
 			  else null
 			  end as admin_method
-	  into ##mcaid_moud_proc_1
+	  into #mcaid_moud_proc_1
 	  from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_procedure')`}
 	  where last_service_date >= '2016-01-01'
   		and procedure_code in (
@@ -86,13 +86,13 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step1_sql)
     
   message("STEP 2: Bring in primary diagnosis information")
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_proc_2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_proc_2", temporary = T), silent = T)
   step2_sql <- glue::glue_sql("
 	  select distinct 
 	    a.*,
 		  max(case when c.sub_group_condition = 'sud_opioid' then 1 else 0 end) over(partition by a.claim_header_id) as oud_dx1_flag
-	  into ##mcaid_moud_proc_2
-	  from ##mcaid_moud_proc_1 as a
+	  into #mcaid_moud_proc_2
+	  from #mcaid_moud_proc_1 as a
 	  left join {`final_schema`}.{`paste0(final_table, 'mcaid_claim_header')`} as b
   		on a.claim_header_id = b.claim_header_id
   	left join (
@@ -104,7 +104,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step2_sql)
   
   message("STEP 3: Subset methadone HCPCS codes by considering primary diagnosis")
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_proc_3", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_proc_3", temporary = T), silent = T)
   step3_sql <- glue::glue_sql("
 	  select distinct
 		  id_mcaid,
@@ -124,8 +124,8 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  admin_method,
 		  moud_days_supply,
 		  oud_dx1_flag
-	  into ##mcaid_moud_proc_3
-	  from ##mcaid_moud_proc_2
+	  into #mcaid_moud_proc_3
+	  from #mcaid_moud_proc_2
 	  where 
   		--codes not requiring primary diagnosis of OUD
 		  procedure_code in (
@@ -141,8 +141,8 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step3_sql)
   
   message("STEP 4: Pull pharmacy fill data for bup and naltrexone prescriptions")
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_pharm_1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_pharm_2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_pharm_1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_pharm_2", temporary = T), silent = T)
   step4_sql <- glue::glue_sql("
 	  select distinct 
 	    a.id_mcaid, a.claim_header_id, a.rx_fill_date as first_service_date, a.rx_fill_date as last_service_date, a.ndc,
@@ -154,7 +154,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 			  else null
 			  end as admin_method,
 		  a.rx_days_supply as moud_days_supply
-	  into ##mcaid_moud_pharm_1
+	  into #mcaid_moud_pharm_1
 	  from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`} as a
 	  inner join (
   		select distinct code, sub_group_pharmacy
@@ -173,13 +173,13 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  case when ndc = '00093572156' or ndc = '00093572056' or ndc = '49452483501'  or ndc = '00378876616' then 'oral' 
   			else admin_method 
 			  end as admin_method, moud_days_supply
-	  into ##mcaid_moud_pharm_2
-	  from ##mcaid_moud_pharm_1;",
+	  into #mcaid_moud_pharm_2
+	  from #mcaid_moud_pharm_1;",
 	  .con = conn)
   DBI::dbExecute(conn = conn, step4_sql)
   
   message("STEP 5: Union procedure code and pharmacy fill data")
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_union_1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_union_1", temporary = T), silent = T)
   step5_sql <- glue::glue_sql("
 	  select 
   		id_mcaid,
@@ -198,8 +198,8 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  null as nal_rx_flag,
 		  cast(moud_days_supply as numeric(8,1)) as moud_days_supply,
 		  oud_dx1_flag
-	  into ##mcaid_moud_union_1
-	  from ##mcaid_moud_proc_3
+	  into #mcaid_moud_union_1
+	  from #mcaid_moud_proc_3
 	  union 
 	  select
   		id_mcaid,
@@ -218,21 +218,21 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  nal_rx_flag,
 		  moud_days_supply,
 		  null as oud_dx1_flag
-	  from ##mcaid_moud_pharm_2;",
+	  from #mcaid_moud_pharm_2;",
 	  .con = conn)
   DBI::dbExecute(conn = conn, step5_sql)
   
   message("STEP 6: Assign MOUD type to procedure code H0033 (could be methadone or bup) depending on monthly sums of either med")
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_temp_1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_temp_2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_temp_3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_union_2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_3", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_union_2", temporary = T), silent = T)
   step6_sql <- glue::glue_sql("
 	  select distinct 
 	    id_mcaid,
 		  max(case when procedure_code = 'H0033' then 1 else 0 end) over(partition by id_mcaid) as proc_h0033_flag
-	  into ##mcaid_moud_temp_1
-	  from ##mcaid_moud_union_1;
+	  into #mcaid_moud_temp_1
+	  from #mcaid_moud_union_1;
 
   	select c.year_month, b.id_mcaid,
 	  	sum(isnull(meth_proc_flag,0)) as meth_proc_month_sum,
@@ -240,9 +240,9 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  sum(isnull(nal_proc_flag,0)) as nal_proc_month_sum,
 		  sum(isnull(bup_rx_flag,0)) as bup_rx_month_sum,
 		  sum(isnull(nal_rx_flag,0)) as nal_rx_month_sum
-	  into ##mcaid_moud_temp_2
-	  from (select distinct id_mcaid from ##mcaid_moud_temp_1 where proc_h0033_flag = 1) as a
-	  inner join ##mcaid_moud_union_1 as b
+	  into #mcaid_moud_temp_2
+	  from (select distinct id_mcaid from #mcaid_moud_temp_1 where proc_h0033_flag = 1) as a
+	  inner join #mcaid_moud_union_1 as b
   		on a.id_mcaid = b.id_mcaid
   	left join (select distinct [date], year_month from {`ref_schema`}.ref_date) as c
 		  on b.last_service_date = c.[date]
@@ -282,11 +282,11 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  c.nal_proc_month_sum,
 		  c.bup_rx_month_sum,
 		  c.nal_rx_month_sum
-	  into ##mcaid_moud_temp_3
-	  from ##mcaid_moud_union_1 as a
+	  into #mcaid_moud_temp_3
+	  from #mcaid_moud_union_1 as a
 	  left join {`ref_schema`}.ref_date as b
   		on a.last_service_date = b.[date]
-  	left join ##mcaid_moud_temp_2 as c
+  	left join #mcaid_moud_temp_2 as c
 		  on (a.id_mcaid = c.id_mcaid) and (b.year_month = c.year_month);
   
   	select 
@@ -300,19 +300,19 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  nal_rx_flag,
 		  sum(moud_days_supply) as moud_days_supply,
 		  admin_method
-	  into ##mcaid_moud_union_2
-	  from ##mcaid_moud_temp_3
+	  into #mcaid_moud_union_2
+	  from #mcaid_moud_temp_3
 	  group by id_mcaid, last_service_date, meth_proc_flag, bup_proc_flag, nal_proc_flag, unspec_proc_flag, bup_rx_flag, nal_rx_flag, admin_method;",
 	  .con = conn)
   DBI::dbExecute(conn = conn, step6_sql)
   
   message("STEP 7: Identify same MOUDs with same method of administration occurring on the same day")
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_union_3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_union_4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_union_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_temp_columns_1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_temp_columns_2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_temp_columns_3", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_union_3", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_union_4", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_union_final", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_columns_1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_columns_2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_columns_3", temporary = T), silent = T)
   step7_sql <- glue::glue_sql("
 	  select 
 		  *, 
@@ -324,21 +324,21 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   			when bup_rx_flag = 1 or nal_rx_flag = 1 then 'ndc'
 			  else null 
 			  end as codetype --only doing bupe and naltrexone
-	  into ##mcaid_moud_union_3
-	  from ##mcaid_moud_union_2;
+	  into #mcaid_moud_union_3
+	  from #mcaid_moud_union_2;
   
 	  select 
   		count(*) as dupdate, id_mcaid, last_service_date, moudtype, admin_method
-  	into ##mcaid_moud_temp_columns_1
-  	from ##mcaid_moud_union_3
+  	into #mcaid_moud_temp_columns_1
+  	from #mcaid_moud_union_3
   	group by id_mcaid, last_service_date, moudtype, admin_method
   	having count(*) > 1;
   
   	select 
 		  a.dupdate, b.*
-	  into ##mcaid_moud_temp_columns_2
-	  from ##mcaid_moud_temp_columns_1 as a 
-	  right join ##mcaid_moud_union_3 as b
+	  into #mcaid_moud_temp_columns_2
+	  from #mcaid_moud_temp_columns_1 as a 
+	  right join #mcaid_moud_union_3 as b
   		on (a.id_mcaid = b.id_mcaid) and (a.last_service_date = b.last_service_date) and (a.moudtype = b.moudtype)
   	where dupdate is not null;
   
@@ -347,29 +347,29 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  case when codetype = 'hcpcs' then 1
   			else 0
 			  end as dupmoud_todelete
-	  into ##mcaid_moud_temp_columns_3
-	  from ##mcaid_moud_temp_columns_2
+	  into #mcaid_moud_temp_columns_3
+	  from #mcaid_moud_temp_columns_2
 	  where case when codetype = 'hcpcs' then 1 else 0 end = 1;
 
 	  select 
   		a.*, b.dupmoud_todelete
-  	into ##mcaid_moud_union_4
-  	from ##mcaid_moud_union_3 as a
-  	left join ##mcaid_moud_temp_columns_3 as b
+  	into #mcaid_moud_union_4
+  	from #mcaid_moud_union_3 as a
+  	left join #mcaid_moud_temp_columns_3 as b
 		  on (a.id_mcaid = b.id_mcaid) and (a.last_service_date = b.last_service_date) and (a.moudtype = b.moudtype) and (a.admin_method = b.admin_method) and (a.codetype = b.codetype);
 
   	select 
 		  id_mcaid, last_service_date, meth_proc_flag, bup_proc_flag, nal_proc_flag, 
 		  unspec_proc_flag, bup_rx_flag, nal_rx_flag, moud_days_supply, admin_method
-	  into ##mcaid_moud_union_final
-	  from ##mcaid_moud_union_4
+	  into #mcaid_moud_union_final
+	  from #mcaid_moud_union_4
 	  where dupmoud_todelete is null;",
 	  .con = conn)
   DBI::dbExecute(conn = conn, step7_sql)
   
   message("STEP 8: Estimate methadone days supply based on next-service-date methodology")
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_temp_meth_1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_temp_meth_2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_meth_1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_meth_2", temporary = T), silent = T)
   step8_sql <- glue::glue_sql("
 	  select 
 		  a.*, b.year_month, b.year_quarter, b.year_half, b.[year],
@@ -379,8 +379,8 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 			  else null
 			  end as next_meth_diff,
 		  sum(meth_proc_flag) over(partition by id_mcaid, b.year_quarter) as meth_proc_sum_year_quarter
-	  into ##mcaid_moud_temp_meth_1
-	  from ##mcaid_moud_union_final as a
+	  into #mcaid_moud_temp_meth_1
+	  from #mcaid_moud_union_final as a
 	  left join 
   		(select 
 			  [date], [year_month], [year_quarter],
@@ -395,8 +395,8 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   	select 
 		  *,
 		  percentile_cont(0.5) within group (order by next_meth_diff) over(partition by id_mcaid, year_quarter) as next_meth_diff_median_year_quarter
-	  into ##mcaid_moud_temp_meth_2
-	  from ##mcaid_moud_temp_meth_1;
+	  into #mcaid_moud_temp_meth_2
+	  from #mcaid_moud_temp_meth_1;
   
   	select
 		  id_mcaid,
@@ -425,7 +425,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 			  end as moud_days_supply_new_year_quarter,
 		  getdate() as last_run
 	  into {`to_schema`}.{`to_table`}
-	  from ##mcaid_moud_temp_meth_2;",
+	  from #mcaid_moud_temp_meth_2;",
 	  .con = conn)
   DBI::dbExecute(conn = conn, step8_sql)
   

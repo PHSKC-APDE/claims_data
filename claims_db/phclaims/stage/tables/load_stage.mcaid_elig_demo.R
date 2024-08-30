@@ -65,46 +65,26 @@ load_stage_mcaid_elig_demo_f <- function(conn = NULL,
   message("Clear out temp tables")
   time_start <- Sys.time()
   try(DBI::dbExecute(conn,
-"IF OBJECT_ID('tempdb..##elig_dob') IS NOT NULL
-	DROP TABLE ##elig_dob;
-IF OBJECT_ID('tempdb..##elig_demoever') IS NOT NULL
-	DROP TABLE ##elig_demoever;
-IF OBJECT_ID('tempdb..##elig_gender') IS NOT NULL
-	DROP TABLE ##elig_gender;
-IF OBJECT_ID('tempdb..##elig_gender_t') IS NOT NULL
-	DROP TABLE ##elig_gender_t;
-IF OBJECT_ID('tempdb..##elig_gender_recent') IS NOT NULL
-	DROP TABLE ##elig_gender_recent;
-IF OBJECT_ID('tempdb..##elig_gender_sum') IS NOT NULL
-	DROP TABLE ##elig_gender_sum;
-IF OBJECT_ID('tempdb..##elig_gender_final') IS NOT NULL
-	DROP TABLE ##elig_gender_final;
-IF OBJECT_ID('tempdb..##elig_race') IS NOT NULL
-	DROP TABLE ##elig_race;
-IF OBJECT_ID('tempdb..##elig_race_t') IS NOT NULL
-	DROP TABLE ##elig_race_t;
-IF OBJECT_ID('tempdb..##elig_race_recent') IS NOT NULL
-	DROP TABLE ##elig_race_recent;
-IF OBJECT_ID('tempdb..##elig_race_sum') IS NOT NULL
-	DROP TABLE ##elig_race_sum;
-IF OBJECT_ID('tempdb..##elig_race_final') IS NOT NULL
-	DROP TABLE ##elig_race_final;
-IF OBJECT_ID('tempdb..##elig_lang') IS NOT NULL
-	DROP TABLE ##elig_lang;
-IF OBJECT_ID('tempdb..##elig_lang_t') IS NOT NULL
-	DROP TABLE ##elig_lang_t;
-IF OBJECT_ID('tempdb..##elig_lang_sum') IS NOT NULL
-	DROP TABLE ##elig_lang_sum;
-IF OBJECT_ID('tempdb..##elig_lang_all') IS NOT NULL
-	DROP TABLE ##elig_lang_all;
-IF OBJECT_ID('tempdb..##elig_lang_cnt') IS NOT NULL
-	DROP TABLE ##elig_lang_cnt;
-IF OBJECT_ID('tempdb..##elig_lang_cnt_max') IS NOT NULL
-	DROP TABLE ##elig_lang_cnt_max;
-IF OBJECT_ID('tempdb..##elig_lang_max') IS NOT NULL
-	DROP TABLE ##elig_lang_max;
-IF OBJECT_ID('tempdb..##elig_lang_final') IS NOT NULL
-	DROP TABLE ##elig_lang_final;"), silent = T)
+"IF OBJECT_ID(N'tempdb..#elig_dob') IS NOT NULL DROP TABLE #elig_dob;
+IF OBJECT_ID(N'tempdb..#elig_demoever') IS NOT NULL DROP TABLE #elig_demoever;
+IF OBJECT_ID(N'tempdb..#elig_gender') IS NOT NULL DROP TABLE #elig_gender;
+IF OBJECT_ID(N'tempdb..#elig_gender_t') IS NOT NULL DROP TABLE #elig_gender_t;
+IF OBJECT_ID(N'tempdb..#elig_gender_recent') IS NOT NULL DROP TABLE #elig_gender_recent;
+IF OBJECT_ID(N'tempdb..#elig_gender_sum') IS NOT NULL DROP TABLE #elig_gender_sum;
+IF OBJECT_ID(N'tempdb..#elig_gender_final') IS NOT NULL DROP TABLE #elig_gender_final;
+IF OBJECT_ID(N'tempdb..#elig_race') IS NOT NULL DROP TABLE #elig_race;
+IF OBJECT_ID(N'tempdb..#elig_race_t') IS NOT NULL DROP TABLE #elig_race_t;
+IF OBJECT_ID(N'tempdb..#elig_race_recent') IS NOT NULL DROP TABLE #elig_race_recent;
+IF OBJECT_ID(N'tempdb..#elig_race_sum') IS NOT NULL DROP TABLE #elig_race_sum;
+IF OBJECT_ID(N'tempdb..#elig_race_final') IS NOT NULL DROP TABLE #elig_race_final;
+IF OBJECT_ID(N'tempdb..#elig_lang') IS NOT NULL DROP TABLE #elig_lang;
+IF OBJECT_ID(N'tempdb..#elig_lang_t') IS NOT NULL DROP TABLE #elig_lang_t;
+IF OBJECT_ID(N'tempdb..#elig_lang_sum') IS NOT NULL DROP TABLE #elig_lang_sum;
+IF OBJECT_ID(N'tempdb..#elig_lang_all') IS NOT NULL DROP TABLE #elig_lang_all;
+IF OBJECT_ID(N'tempdb..#elig_lang_cnt') IS NOT NULL DROP TABLE #elig_lang_cnt;
+IF OBJECT_ID(N'tempdb..#elig_lang_cnt_max') IS NOT NULL DROP TABLE #elig_lang_cnt_max;
+IF OBJECT_ID(N'tempdb..#elig_lang_max') IS NOT NULL DROP TABLE #elig_lang_max;
+IF OBJECT_ID(N'tempdb..#elig_lang_final') IS NOT NULL DROP TABLE #elig_lang_final;"), silent = T)
   
   
   #### BRING IN MEDICAID ELIG DATA FOR DOB PROCESSING ####
@@ -112,7 +92,7 @@ IF OBJECT_ID('tempdb..##elig_lang_final') IS NOT NULL
   # select most frequently reported SSN and DOB per Medicaid ID
   DBI::dbExecute(conn, glue::glue_sql("
 SELECT id.id_mcaid, dob.dob
-INTO ##elig_dob
+INTO #elig_dob
 FROM (
   SELECT DISTINCT MBR_H_SID AS 'id_mcaid'
   FROM {`from_schema`}.{`from_table`}
@@ -156,7 +136,7 @@ CASE WHEN SPOKEN_LNG_NAME = 'UNDETERMINED' OR SPOKEN_LNG_NAME = 'OTHER LANGUAGE'
 CASE WHEN WRTN_LNG_NAME = 'UNDETERMINED' OR WRTN_LNG_NAME = 'OTHER LANGUAGE' THEN NULL ELSE UPPER(WRTN_LNG_NAME) END AS 'wlang',
 CONCAT(CASE WHEN SPOKEN_LNG_NAME = 'UNDETERMINED' OR SPOKEN_LNG_NAME = 'OTHER LANGUAGE' THEN NULL ELSE UPPER(SPOKEN_LNG_NAME) END,
 	CASE WHEN WRTN_LNG_NAME = 'UNDETERMINED' OR WRTN_LNG_NAME = 'OTHER LANGUAGE' THEN NULL ELSE UPPER(WRTN_LNG_NAME) END) AS lang_all
-INTO ##elig_demoever
+INTO #elig_demoever
 FROM {`from_schema`}.{`from_table`};                                      
                                       ", .con = conn))
   
@@ -169,8 +149,8 @@ SELECT id_mcaid, calmo, gender,
 CASE WHEN gender = 'FEMALE' THEN 1 ELSE 0 END AS gender_female,
 CASE WHEN gender = 'MALE' THEN 1 ELSE 0 END AS gender_male,
 CASE WHEN gender IS NULL THEN 1 ELSE 0 END AS gender_na
-INTO ##elig_gender
-FROM ##elig_demoever;                                      
+INTO #elig_gender
+FROM #elig_demoever;                                      
                                       ", .con = conn))
 
   ### For each gender variable, count number of rows where variable = 1.
@@ -180,8 +160,8 @@ FROM ##elig_demoever;
 SELECT id_mcaid,
 ROUND(CAST(SUM(gender_female) AS FLOAT)/CAST(COUNT(gender_female) AS FLOAT) * 100, 1) AS gender_female_t,
 ROUND(CAST(SUM(gender_male) AS FLOAT)/CAST(COUNT(gender_male) AS FLOAT) * 100, 1) AS gender_male_t
-INTO ##elig_gender_t
-FROM ##elig_gender
+INTO #elig_gender_t
+FROM #elig_gender
 GROUP BY id_mcaid;                                      
                                       ", .con = conn))
 
@@ -192,9 +172,9 @@ CASE WHEN a.gender_female = 1 AND a.gender_male = 1 THEN 'Multiple'
 	WHEN a.gender_female = 1 THEN 'Female' 
 	WHEN a.gender_male = 1 THEN 'Male'
 	ELSE 'Unknown' END AS gender_recent
-INTO ##elig_gender_recent
-FROM ##elig_gender a
-INNER JOIN (SELECT id_mcaid, MAX(calmo) AS calmo FROM ##elig_gender GROUP BY id_mcaid) b ON a.id_mcaid = b.id_mcaid AND a.calmo = b.calmo;                                      
+INTO #elig_gender_recent
+FROM #elig_gender a
+INNER JOIN (SELECT id_mcaid, MAX(calmo) AS calmo FROM #elig_gender GROUP BY id_mcaid) b ON a.id_mcaid = b.id_mcaid AND a.calmo = b.calmo;                                      
                                       ", .con = conn))
   
  
@@ -206,8 +186,8 @@ INNER JOIN (SELECT id_mcaid, MAX(calmo) AS calmo FROM ##elig_gender GROUP BY id_
 SELECT id_mcaid, 
 MAX(gender_female) AS gender_female,
 MAX(gender_male) AS gender_male
-INTO ##elig_gender_sum
-FROM ##elig_gender
+INTO #elig_gender_sum
+FROM #elig_gender
 GROUP BY id_mcaid;                                      
                                       ", .con = conn))
   
@@ -228,16 +208,16 @@ a.gender_female,
 a.gender_male,
 b.gender_female_t,
 b.gender_male_t
-INTO ##elig_gender_final
-FROM ##elig_gender_sum a
-INNER JOIN ##elig_gender_t b ON a.id_mcaid = b.id_mcaid
-INNER JOIN ##elig_gender_recent c ON a.id_mcaid = c.id_mcaid                                      
+INTO #elig_gender_final
+FROM #elig_gender_sum a
+INNER JOIN #elig_gender_t b ON a.id_mcaid = b.id_mcaid
+INNER JOIN #elig_gender_recent c ON a.id_mcaid = c.id_mcaid                                      
                                       ", .con = conn))
   try(DBI::dbExecute(conn, glue::glue_sql("
-DROP TABLE ##elig_gender;
-DROP TABLE ##elig_gender_t;
-DROP TABLE ##elig_gender_recent;
-DROP TABLE ##elig_gender_sum;                                      
+DROP TABLE #elig_gender;
+DROP TABLE #elig_gender_t;
+DROP TABLE #elig_gender_recent;
+DROP TABLE #elig_gender_sum;                                      
                                       ", .con = conn)), silent = T)
   
   #### PROCESS RACE DATA ####
@@ -258,8 +238,8 @@ CASE WHEN race_all LIKE '%ALASKAN_NATIVE%' OR race_all LIKE '%AMERICAN INDIAN%'
 	OR race_all LIKE '%BLACK%' OR race_all LIKE '%ASIAN%' 
 	OR race_all LIKE '%HAWAIIAN%' OR race_all LIKE '%PACIFIC ISLANDER%'  
 	OR race_all LIKE '%WHITE%' OR race_all LIKE '%HISPANIC%' THEN 0 ELSE 1 END AS race_na
-INTO ##elig_race
-FROM ##elig_demoever                                      
+INTO #elig_race
+FROM #elig_demoever                                      
                                       ", .con = conn))
   
   
@@ -280,8 +260,8 @@ ROUND(CAST(SUM(race_asian) AS FLOAT)/CAST(COUNT(race_asian) AS FLOAT) * 100, 1) 
 ROUND(CAST(SUM(race_nhpi) AS FLOAT)/CAST(COUNT(race_nhpi) AS FLOAT) * 100, 1) AS race_nhpi_t,
 ROUND(CAST(SUM(race_white) AS FLOAT)/CAST(COUNT(race_white) AS FLOAT) * 100, 1) AS race_white_t,
 ROUND(CAST(SUM(race_latino) AS FLOAT)/CAST(COUNT(race_latino) AS FLOAT) * 100, 1) AS race_latino_t
-INTO ##elig_race_t
-FROM ##elig_race
+INTO #elig_race_t
+FROM #elig_race
 GROUP BY id_mcaid;                                      
                                       ", .con = conn))
   
@@ -304,9 +284,9 @@ CASE WHEN a.race_aian + a.race_black + a.race_asian + a.race_nhpi + a.race_white
 	WHEN a.race_white = 1 THEN 'White'
 	WHEN a.race_latino = 1 THEN 'Latino'
 	ELSE 'Unknown' END AS race_eth_recent 
-INTO ##elig_race_recent
-FROM ##elig_race a
-INNER JOIN (SELECT id_mcaid, MAX(calmo) AS calmo FROM ##elig_race GROUP BY id_mcaid) b ON a.id_mcaid = b.id_mcaid AND a.calmo = b.calmo;                                      
+INTO #elig_race_recent
+FROM #elig_race a
+INNER JOIN (SELECT id_mcaid, MAX(calmo) AS calmo FROM #elig_race GROUP BY id_mcaid) b ON a.id_mcaid = b.id_mcaid AND a.calmo = b.calmo;                                      
                                       ", .con = conn))
   
   
@@ -324,8 +304,8 @@ MAX(race_black) AS race_black,
 MAX(race_nhpi) AS race_nhpi,
 MAX(race_white) AS race_white,
 MAX(race_latino) AS race_latino
-INTO ##elig_race_sum
-FROM ##elig_race
+INTO #elig_race_sum
+FROM #elig_race
 GROUP BY id_mcaid;                                      
                                       ", .con = conn))
   
@@ -362,17 +342,17 @@ b.race_black_t,
 b.race_latino_t,
 b.race_nhpi_t,
 b.race_white_t
-INTO ##elig_race_final
-FROM ##elig_race_sum a
-INNER JOIN ##elig_race_t b ON a.id_mcaid = b.id_mcaid
-INNER JOIN ##elig_race_recent c ON a.id_mcaid = c.id_mcaid;                                      
+INTO #elig_race_final
+FROM #elig_race_sum a
+INNER JOIN #elig_race_t b ON a.id_mcaid = b.id_mcaid
+INNER JOIN #elig_race_recent c ON a.id_mcaid = c.id_mcaid;                                      
                                       ", .con = conn))
   
   try(DBI::dbExecute(conn, glue::glue_sql("
-DROP TABLE ##elig_race;
-DROP TABLE ##elig_race_t;
-DROP TABLE ##elig_race_recent;
-DROP TABLE ##elig_race_sum;                                      
+DROP TABLE #elig_race;
+DROP TABLE #elig_race_t;
+DROP TABLE #elig_race_recent;
+DROP TABLE #elig_race_sum;                                      
                                       ", .con = conn)), silent = T)
   
   #### PROCESS LANGUAGE DATA ####
@@ -403,8 +383,8 @@ CASE WHEN lang_all LIKE '%ENGLISH%' OR lang_all LIKE '%SPANISH%'
 	OR lang_all LIKE '%SOMALI%' OR lang_all LIKE '%RUSSIAN%' 
 	OR lang_all LIKE '%ARABIC%' OR lang_all LIKE '%KOREAN%' 
 	OR lang_all LIKE '%UKRAINIAN%' OR lang_all LIKE '%AMHARIC%' THEN 0 ELSE 1 END AS lang_na
-INTO ##elig_lang
-FROM ##elig_demoever;                                      
+INTO #elig_lang
+FROM #elig_demoever;                                      
                                       ", .con = conn)) 
   
   
@@ -428,8 +408,8 @@ ROUND(CAST(SUM(lang_arabic) AS FLOAT)/CAST(COUNT(lang_arabic) AS FLOAT) * 100, 1
 ROUND(CAST(SUM(lang_korean) AS FLOAT)/CAST(COUNT(lang_korean) AS FLOAT) * 100, 1) AS lang_korean_t,
 ROUND(CAST(SUM(lang_ukrainian) AS FLOAT)/CAST(COUNT(lang_ukrainian) AS FLOAT) * 100, 1) AS lang_ukrainian_t,
 ROUND(CAST(SUM(lang_amharic) AS FLOAT)/CAST(COUNT(lang_amharic) AS FLOAT) * 100, 1) AS lang_amharic_t
-INTO ##elig_lang_t
-FROM ##elig_lang
+INTO #elig_lang_t
+FROM #elig_lang
 GROUP BY id_mcaid;                                      
                                       ", .con = conn))
   
@@ -448,8 +428,8 @@ MAX(lang_arabic) AS lang_arabic,
 MAX(lang_korean) AS lang_korean, 
 MAX(lang_ukrainian) AS lang_ukrainian, 
 MAX(lang_amharic) AS lang_amharic 
-INTO ##elig_lang_sum
-FROM ##elig_lang
+INTO #elig_lang_sum
+FROM #elig_lang
 GROUP BY id_mcaid;                                      
                                       ", .con = conn))
   
@@ -458,10 +438,10 @@ GROUP BY id_mcaid;
   # Count spoken language rows by ID and language
   #Count written language rows by ID and language
   DBI::dbExecute(conn, glue::glue_sql("
-SELECT * INTO ##elig_lang_all FROM (
-SELECT id_mcaid, ISNULL(slang, 'Unknown') AS lang FROM ##elig_demoever
+SELECT * INTO #elig_lang_all FROM (
+SELECT id_mcaid, ISNULL(slang, 'Unknown') AS lang FROM #elig_demoever
 	UNION ALL
-SELECT id_mcaid, ISNULL(wlang, 'Unknown') FROM ##elig_demoever) a;                                      
+SELECT id_mcaid, ISNULL(wlang, 'Unknown') FROM #elig_demoever) a;                                      
                                       ", .con = conn))
   
   DBI::dbExecute(conn, glue::glue_sql("
@@ -469,8 +449,8 @@ SELECT id_mcaid,
 lang,
 COUNT(*) AS lang_cnt,
 NEWID() AS id
-INTO ##elig_lang_cnt
-FROM ##elig_lang_all
+INTO #elig_lang_cnt
+FROM #elig_lang_all
 GROUP BY id_mcaid, lang;                                      
                                       ", .con = conn))
 
@@ -480,18 +460,18 @@ GROUP BY id_mcaid, lang;
 SELECT a.id_mcaid,
 a.lang,
 a.id
-INTO ##elig_lang_cnt_max
-FROM ##elig_lang_cnt a
-INNER JOIN (SELECT id_mcaid, MAX(lang_cnt) AS max_cnt FROM ##elig_lang_cnt GROUP BY id_mcaid) b ON a.id_mcaid = b.id_mcaid AND a.lang_cnt = b.max_cnt;                                      
+INTO #elig_lang_cnt_max
+FROM #elig_lang_cnt a
+INNER JOIN (SELECT id_mcaid, MAX(lang_cnt) AS max_cnt FROM #elig_lang_cnt GROUP BY id_mcaid) b ON a.id_mcaid = b.id_mcaid AND a.lang_cnt = b.max_cnt;                                      
                                       ", .con = conn))
   
   # Slice data to one language per ID (most frequently reported)
   DBI::dbExecute(conn, glue::glue_sql("
 SELECT a.id_mcaid,
 a.lang AS lang_max
-INTO ##elig_lang_max
-FROM ##elig_lang_cnt a
-INNER JOIN (SELECT id_mcaid, MAX(id) AS max_id FROM ##elig_lang_cnt_max GROUP BY id_mcaid) b ON a.id_mcaid = b.id_mcaid AND a.id = b.max_id;                                      
+INTO #elig_lang_max
+FROM #elig_lang_cnt a
+INNER JOIN (SELECT id_mcaid, MAX(id) AS max_id FROM #elig_lang_cnt_max GROUP BY id_mcaid) b ON a.id_mcaid = b.id_mcaid AND a.id = b.max_id;                                      
                                       ", .con = conn))
   
   
@@ -520,21 +500,21 @@ b.lang_somali_T,
 b.lang_spanish_t,
 b.lang_ukrainian_t,
 b.lang_vietnamese_t
-INTO ##elig_lang_final
-FROM ##elig_lang_sum a
-INNER JOIN ##elig_lang_t b ON a.id_mcaid = b.id_mcaid
-INNER JOIN ##elig_lang_max c ON a.id_mcaid = c.id_mcaid;                                      
+INTO #elig_lang_final
+FROM #elig_lang_sum a
+INNER JOIN #elig_lang_t b ON a.id_mcaid = b.id_mcaid
+INNER JOIN #elig_lang_max c ON a.id_mcaid = c.id_mcaid;                                      
                                       ", .con = conn))
   
   
   try(DBI::dbExecute(conn, glue::glue_sql("
-DROP TABLE ##elig_lang;
-DROP TABLE ##elig_lang_t;
-DROP TABLE ##elig_lang_sum;
-DROP TABLE ##elig_lang_all;
-DROP TABLE ##elig_lang_cnt;
-DROP TABLE ##elig_lang_cnt_max;
-DROP TABLE ##elig_lang_max;                                      
+DROP TABLE #elig_lang;
+DROP TABLE #elig_lang_t;
+DROP TABLE #elig_lang_sum;
+DROP TABLE #elig_lang_all;
+DROP TABLE #elig_lang_cnt;
+DROP TABLE #elig_lang_cnt_max;
+DROP TABLE #elig_lang_max;                                      
                                       ", .con = conn)), silent = T)
   
   
@@ -642,17 +622,17 @@ d.lang_spanish_t,
 d.lang_ukrainian_t, 
 d.lang_vietnamese_t, 
 GETDATE()
-FROM ##elig_dob a
-INNER JOIN ##elig_gender_final b ON a.id_mcaid = b.id_mcaid
-INNER JOIN ##elig_race_final c ON a.id_mcaid = c.id_mcaid
-INNER JOIN ##elig_lang_final d ON a.id_mcaid = d.id_mcaid;                                      
+FROM #elig_dob a
+INNER JOIN #elig_gender_final b ON a.id_mcaid = b.id_mcaid
+INNER JOIN #elig_race_final c ON a.id_mcaid = c.id_mcaid
+INNER JOIN #elig_lang_final d ON a.id_mcaid = d.id_mcaid;                                      
                                       ", .con = conn))
   
   try(DBI::dbExecute(conn, glue::glue_sql("
-DROP TABLE ##elig_dob;
-DROP TABLE ##elig_gender_final;
-DROP TABLE ##elig_race_final;
-DROP TABLE ##elig_lang_final;                                      
+DROP TABLE #elig_dob;
+DROP TABLE #elig_gender_final;
+DROP TABLE #elig_race_final;
+DROP TABLE #elig_lang_final;                                      
                                       ", .con = conn)), silent = T)
   
   
