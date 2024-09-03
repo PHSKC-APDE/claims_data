@@ -526,6 +526,10 @@ DROP TABLE #elig_lang_max;
   ### Add in date for last run
   #### LOAD TO SQL SERVER ####
   message("Loading to SQL")
+  create_table_f(conn = conn, 
+                 server = server,
+                 config = config,
+                 overwrite = T)
   
   DBI::dbExecute(conn, glue::glue_sql("
 INSERT INTO {`to_schema`}.{`to_table`}
