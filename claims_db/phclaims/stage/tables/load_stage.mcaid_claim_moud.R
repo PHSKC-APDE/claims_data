@@ -40,7 +40,8 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                       config[[server]][["ref_table"]])
-
+  stage_schema <- config[[server]][["ref_schema"]]
+  
   message("Creating ", to_schema, ".", to_table, ".")
   time_start <- Sys.time()
   
