@@ -7,9 +7,9 @@ phclaims:
     qa_table: 
 hhsaw:
     from_schema: stg_claims
-    from_table: stage_mcaid_elig_new
+    from_table: stage_mcaid_elig
     to_schema: stg_claims
-    to_table: stage_mcaid_elig_demo_new
+    to_table: stage_mcaid_elig_demo
     qa_schema: claims
     qa_table: metadata_
 vars:
