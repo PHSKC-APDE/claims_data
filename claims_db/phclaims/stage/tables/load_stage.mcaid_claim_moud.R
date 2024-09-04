@@ -97,7 +97,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   		on a.claim_header_id = b.claim_header_id
   	left join (
 		  select distinct code, icdcm_version, sub_group_condition
-  			from ref.rda_value_sets_apde where sub_group_condition = 'sud_opioid' and data_source_type = 'diagnosis'
+  			from {`ref_schema`}.{`paste0(ref_table, 'rda_value_sets_apde'`} where sub_group_condition = 'sud_opioid' and data_source_type = 'diagnosis'
 		  ) as c
 		  on (b.primary_diagnosis = c.code) and (b.icdcm_version = c.icdcm_version);",
 	  .con = conn)
@@ -158,13 +158,13 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 	  from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`} as a
 	  inner join (
   		select distinct code, sub_group_pharmacy
-		  from ref.rda_value_sets_apde
+		  from {`ref_schema`}.{`paste0(ref_table, 'rda_value_sets_apde')`}
 		  where sub_group_pharmacy in ('pharm_buprenorphine', 'pharm_buprenorphine_naloxone', 'pharm_naltrexone_rx')
 		  ) as b
   			on a.ndc = b.code
   	left join (
 		  select ndc, DOSAGEFORMNAME
-		  from ref.ndc_codes) as c
+		  from {`ref_schema`}.{`paste0(ref_table, 'ndc_codes')`}) as c
   			on b.code = c.ndc
   	where a.rx_fill_date >= '2016-01-01';
   
@@ -244,7 +244,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 	  from (select distinct id_mcaid from #mcaid_moud_temp_1 where proc_h0033_flag = 1) as a
 	  inner join #mcaid_moud_union_1 as b
   		on a.id_mcaid = b.id_mcaid
-  	left join (select distinct [date], year_month from {`ref_schema`}.ref_date) as c
+  	left join (select distinct [date], year_month from {`ref_schema`}.{`paste0(ref_table, 'date')`}) as c
 		  on b.last_service_date = c.[date]
 	  group by c.year_month, b.id_mcaid;
   
@@ -284,7 +284,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  c.nal_rx_month_sum
 	  into #mcaid_moud_temp_3
 	  from #mcaid_moud_union_1 as a
-	  left join {`ref_schema`}.ref_date as b
+	  left join {`ref_schema`}.{`paste0(ref_table, 'date')`}date as b
   		on a.last_service_date = b.[date]
   	left join #mcaid_moud_temp_2 as c
 		  on (a.id_mcaid = c.id_mcaid) and (b.year_month = c.year_month);
@@ -389,7 +389,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 				  when right(year_quarter,2) in (3,4) then left(year_quarter,4) + '_bottom'
 				  end as year_half,
 			  [year]
-		  from {`ref_schema`}.ref_date) as b
+		  from {`ref_schema`}.{`paste0(ref_table, 'date')`}) as b
   			on a.last_service_date = b.[date];
   
   	select 

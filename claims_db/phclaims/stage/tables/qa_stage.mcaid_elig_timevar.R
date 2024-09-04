@@ -74,7 +74,36 @@ qa_mcaid_elig_timevar_f <- function(conn = NULL,
                                       .con = conn_qa)))
     
     row_diff <- row_count - previous_rows
+    
+    if (row_diff < 0) {
+      row_qa_fail <- 1
+      DBI::dbExecute(conn_qa,
+                     glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
+                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
+                   'Number new rows compared to most recent run', 
+                   'FAIL', 
+                   {format(Sys.time(), usetz = FALSE)}, 
+                   'There were {row_diff} fewer rows in the most recent table ({row_count} vs. {previous_rows})')",
+                                    .con = conn_qa))
       
+      warning(glue::glue("Fewer rows than found last time.  
+                  Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
+    } else {
+      row_qa_fail <- 0
+      DBI::dbExecute(conn_qa,
+                     glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                   VALUES ({format(last_run, usetz = FALSE)}, 
+                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
+                   'Number new rows compared to most recent run', 
+                   'PASS', 
+                   {format(Sys.time(), usetz = FALSE)}, 
+                   'There were {row_diff} more rows in the most recent table ({row_count} vs. {previous_rows})')",
+                                    .con = conn_qa))
+      
+    }
   }
   
   #### CHECK DISTINCT IDS = DISTINCT IN stage_mcaid_elig ####

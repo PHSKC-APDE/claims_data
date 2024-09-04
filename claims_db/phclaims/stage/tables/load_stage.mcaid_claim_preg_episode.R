@@ -57,7 +57,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     --Pull out distinct ICD-10-CM codes from claims >= 2016-01-01 (<1 min)
     select distinct icdcm_norm
     into #pe_dx_distinct
-    from claims.final_mcaid_claim_icdcm_header
+    from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_icdcm_header')`}
     where last_service_date >= '2016-01-01';
 
     --Join distinct ICD-10-CM codes to pregnancy endpoint reference table using LIKE join (<1 min)
@@ -100,7 +100,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     select a.id_mcaid, a.claim_header_id, a.last_service_date, a.procedure_code, 
 	    a.procedure_code_number, b.lb, b.ect, b.ab, b.sa, b.sb, b.tro, b.deliv
     into #pe_preg_px
-    from claims.final_mcaid_claim_procedure as a
+    from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_procedure')`} as a
     inner join #pe_ref_px as b
       on a.procedure_code = b.procedure_code
     where a.last_service_date >= '2016-01-01';",
