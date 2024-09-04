@@ -20,7 +20,7 @@ hhsaw:
     stage_table: stage_
     final_schema: stg_claims
     final_table: stage_
-    ref_schema: ref
+    ref_schema: stg_reference
     ref_table: ref_
     qa_schema: claims
     qa_table: metadata_
