@@ -50,8 +50,8 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   
   #### LOAD TABLE ####
   message("STEP 1: Flag methadone episodes using HCPCS codes from 1/1/2016 onward")
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_proc_1", temporary = T), silent = T)
   step1_sql <- glue::glue_sql("
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_proc_1') IS NOT NULL DROP TABLE #mcaid_moud_proc_1;
 	  select distinct 
 	    id_mcaid, claim_header_id, first_service_date, last_service_date, procedure_code,		
 		  case when procedure_code in ('H0033') then 1 else 0 end as moud_proc_flag_tbd,
@@ -87,8 +87,8 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step1_sql)
     
   message("STEP 2: Bring in primary diagnosis information")
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_proc_2", temporary = T), silent = T)
   step2_sql <- glue::glue_sql("
+	  IF OBJECT_ID(N'tempdb..#mcaid_moud_proc_2') IS NOT NULL DROP TABLE #mcaid_moud_proc_2;
 	  select distinct 
 	    a.*,
 		  max(case when c.sub_group_condition = 'sud_opioid' then 1 else 0 end) over(partition by a.claim_header_id) as oud_dx1_flag
@@ -105,8 +105,9 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step2_sql)
   
   message("STEP 3: Subset methadone HCPCS codes by considering primary diagnosis")
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_proc_3", temporary = T), silent = T)
+
   step3_sql <- glue::glue_sql("
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_proc_3') IS NOT NULL DROP TABLE #mcaid_moud_proc_3;
 	  select distinct
 		  id_mcaid,
 		  claim_header_id,
@@ -142,9 +143,9 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step3_sql)
   
   message("STEP 4: Pull pharmacy fill data for bup and naltrexone prescriptions")
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_pharm_1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_pharm_2", temporary = T), silent = T)
+
   step4_sql <- glue::glue_sql("
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_pharm_1') IS NOT NULL DROP TABLE #mcaid_moud_pharm_1;
 	  select distinct 
 	    a.id_mcaid, a.claim_header_id, a.rx_fill_date as first_service_date, a.rx_fill_date as last_service_date, a.ndc,
 		  case when b.sub_group_pharmacy in ('pharm_buprenorphine', 'pharm_buprenorphine_naloxone') then 1 else 0 end as bup_rx_flag,
@@ -169,6 +170,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   			on b.code = c.ndc
   	where a.rx_fill_date >= '2016-01-01';
   
+  	IF OBJECT_ID(N'tempdb..#mcaid_moud_pharm_2') IS NOT NULL DROP TABLE #mcaid_moud_pharm_2;
   	select 
   	  id_mcaid, claim_header_id, first_service_date, last_service_date, ndc, bup_rx_flag, nal_rx_flag, 
 		  case when ndc = '00093572156' or ndc = '00093572056' or ndc = '49452483501'  or ndc = '00378876616' then 'oral' 
@@ -180,8 +182,9 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step4_sql)
   
   message("STEP 5: Union procedure code and pharmacy fill data")
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_union_1", temporary = T), silent = T)
+  
   step5_sql <- glue::glue_sql("
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_union_1') IS NOT NULL DROP TABLE #mcaid_moud_union_1;
 	  select 
   		id_mcaid,
 		  claim_header_id,
@@ -224,17 +227,16 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step5_sql)
   
   message("STEP 6: Assign MOUD type to procedure code H0033 (could be methadone or bup) depending on monthly sums of either med")
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_union_2", temporary = T), silent = T)
+ 
   step6_sql <- glue::glue_sql("
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_1') IS NOT NULL DROP TABLE #mcaid_moud_temp_1;
 	  select distinct 
 	    id_mcaid,
 		  max(case when procedure_code = 'H0033' then 1 else 0 end) over(partition by id_mcaid) as proc_h0033_flag
 	  into #mcaid_moud_temp_1
 	  from #mcaid_moud_union_1;
 
+IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_2') IS NOT NULL DROP TABLE #mcaid_moud_temp_2;
   	select c.year_month, b.id_mcaid,
 	  	sum(isnull(meth_proc_flag,0)) as meth_proc_month_sum,
   		sum(isnull(bup_proc_flag,0)) as bup_proc_month_sum,
@@ -249,6 +251,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  on b.last_service_date = c.[date]
 	  group by c.year_month, b.id_mcaid;
   
+ IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_3') IS NOT NULL DROP TABLE #mcaid_moud_temp_3; 
 	  select 
 	    a.id_mcaid,
   		a.claim_header_id,
@@ -290,6 +293,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   	left join #mcaid_moud_temp_2 as c
 		  on (a.id_mcaid = c.id_mcaid) and (b.year_month = c.year_month);
   
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_union_2') IS NOT NULL DROP TABLE #mcaid_moud_union_2;
   	select 
 		  id_mcaid,
 		  last_service_date,
@@ -308,13 +312,9 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step6_sql)
   
   message("STEP 7: Identify same MOUDs with same method of administration occurring on the same day")
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_union_3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_union_4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_union_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_columns_1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_columns_2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_columns_3", temporary = T), silent = T)
+
   step7_sql <- glue::glue_sql("
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_union_3') IS NOT NULL DROP TABLE #mcaid_moud_union_3;
 	  select 
 		  *, 
 		  case when bup_proc_flag = 1 or bup_rx_flag = 1 then 'buprenorphine'
@@ -328,6 +328,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 	  into #mcaid_moud_union_3
 	  from #mcaid_moud_union_2;
   
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_columns_1') IS NOT NULL DROP TABLE #mcaid_moud_temp_columns_1;
 	  select 
   		count(*) as dupdate, id_mcaid, last_service_date, moudtype, admin_method
   	into #mcaid_moud_temp_columns_1
@@ -335,6 +336,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   	group by id_mcaid, last_service_date, moudtype, admin_method
   	having count(*) > 1;
   
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_columns_2') IS NOT NULL DROP TABLE #mcaid_moud_temp_columns_2;
   	select 
 		  a.dupdate, b.*
 	  into #mcaid_moud_temp_columns_2
@@ -343,6 +345,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   		on (a.id_mcaid = b.id_mcaid) and (a.last_service_date = b.last_service_date) and (a.moudtype = b.moudtype)
   	where dupdate is not null;
   
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_columns_3') IS NOT NULL DROP TABLE #mcaid_moud_temp_columns_3;
   	select 
 		  *, 
 		  case when codetype = 'hcpcs' then 1
@@ -352,6 +355,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 	  from #mcaid_moud_temp_columns_2
 	  where case when codetype = 'hcpcs' then 1 else 0 end = 1;
 
+IF OBJECT_ID(N'tempdb..#mcaid_moud_union_4') IS NOT NULL DROP TABLE #mcaid_moud_union_4;
 	  select 
   		a.*, b.dupmoud_todelete
   	into #mcaid_moud_union_4
@@ -359,6 +363,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   	left join #mcaid_moud_temp_columns_3 as b
 		  on (a.id_mcaid = b.id_mcaid) and (a.last_service_date = b.last_service_date) and (a.moudtype = b.moudtype) and (a.admin_method = b.admin_method) and (a.codetype = b.codetype);
 
+IF OBJECT_ID(N'tempdb..#mcaid_moud_union_final') IS NOT NULL DROP TABLE #mcaid_moud_union_final;
   	select 
 		  id_mcaid, last_service_date, meth_proc_flag, bup_proc_flag, nal_proc_flag, 
 		  unspec_proc_flag, bup_rx_flag, nal_rx_flag, moud_days_supply, admin_method
@@ -372,6 +377,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_meth_1", temporary = T), silent = T)
   try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_meth_2", temporary = T), silent = T)
   step8_sql <- glue::glue_sql("
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_meth_1') IS NOT NULL DROP TABLE #mcaid_moud_temp_meth_1;
 	  select 
 		  a.*, b.year_month, b.year_quarter, b.year_half, b.[year],
 		  case
@@ -393,6 +399,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  from {`stage_schema`}.{`paste0(ref_table, 'date')`}) as b
   			on a.last_service_date = b.[date];
   
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_meth_2') IS NOT NULL DROP TABLE #mcaid_moud_temp_meth_2;
   	select 
 		  *,
 		  percentile_cont(0.5) within group (order by next_meth_diff) over(partition by id_mcaid, year_quarter) as next_meth_diff_median_year_quarter
