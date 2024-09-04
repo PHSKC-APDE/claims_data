@@ -101,14 +101,13 @@ LEFT JOIN (
   SELECT b.id_mcaid, cast(b.dob AS date) AS 'dob'
   FROM (
     SELECT a.id_mcaid, a.dob, row_number() OVER 
-    (PARTITION BY a.id_mcaid order by a.id_mcaid, a.dob_cnt desc, a.dob) AS 'dob_rank'
+    (PARTITION BY a.id_mcaid order by a.id_mcaid, a.dob_cnt desc, a.max_mnth desc, a.dob) AS 'dob_rank'
     FROM (
-      SELECT z.id_mcaid, z.dob, count(z.dob) AS 'dob_cnt'
+      SELECT z.id_mcaid, z.dob, count(z.dob) AS 'dob_cnt', max(CLNDR_YEAR_MNTH) AS 'max_mnth'
       FROM (
         SELECT DISTINCT CLNDR_YEAR_MNTH, MBR_H_SID AS 'id_mcaid', BIRTH_DATE AS 'dob'
         FROM {`from_schema`}.{`from_table`}
         WHERE BIRTH_DATE is not null
-        GROUP BY CLNDR_YEAR_MNTH, MBR_H_SID, BIRTH_DATE
       ) z
       GROUP BY z.id_mcaid, z.dob
     ) a
