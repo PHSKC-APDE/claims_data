@@ -52,6 +52,46 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "#pe_dx_distinct", temporary = T), silent = T)
   try(odbc::dbRemoveTable(conn, "#pe_ref_dx", temporary = T), silent = T)
   try(odbc::dbRemoveTable(conn, "#pe_preg_dx", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_px_distinct", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_ref_px", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_preg_px", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_temp_1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_preg_dx_px", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_temp_2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_temp_3", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_temp_4", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_temp_5", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_preg_endpoint", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_lb_step1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_lb_final", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_step1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_step2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_step3", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_step4", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_step5", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_final", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_final", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_step1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_step2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_step3", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_step4", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_step5", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_sb_final", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_lb_final", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_deliv_step1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_deliv_step2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_deliv_step3", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_deliv_step4", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_deliv_step5", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_deliv_final", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_final", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_tro_step1", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_tro_step2", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_tro_step3", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_tro_step4", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_tro_step5", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_tro_final", temporary = T), silent = T)
+  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_deliv_tro_final", temporary = T), silent = T)
   
   step1_sql <- glue::glue_sql("
     --Pull out distinct ICD-10-CM codes from claims >= 2016-01-01 (<1 min)
@@ -79,9 +119,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step1_sql)
     
   message("STEP 2: Find claims with a procedure code relevant to pregnancy endpoints")
-  try(odbc::dbRemoveTable(conn, "#pe_px_distinct", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ref_px", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_preg_px", temporary = T), silent = T)
+
   step2_sql <- glue::glue_sql("
 	  --Pull out distinct procedure codes from claims >= 2016-01-01 (<1 min)
     select distinct procedure_code
@@ -108,8 +146,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step2_sql)
   
   message("STEP 3: Union dx and px-based datasets, subsetting to common columns to collapse to distinct claim headers")
-  try(odbc::dbRemoveTable(conn, "#pe_temp_1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_preg_dx_px", temporary = T), silent = T)
+
   step3_sql <- glue::glue_sql("
 	  select id_mcaid, claim_header_id, last_service_date, lb, ect, ab, sa, sb, tro, deliv
     into #pe_temp_1
@@ -129,11 +166,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step3_sql)
   
   message("STEP 4: Group by ID-service date and count # of distinct endpoints (not including DELIV)")
-  try(odbc::dbRemoveTable(conn, "#pe_temp_2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_temp_3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_temp_4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_temp_5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_preg_endpoint", temporary = T), silent = T)
+  
   step4_sql <- glue::glue_sql("
 	  --Group by ID-service date and take max of each endpoint column
     select id_mcaid, last_service_date, max(lb) as lb, max(ect) as ect, max(ab) as ab, max(sa) as sa, max(sb) as sb,
@@ -190,8 +223,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   
   message("STEP 5: Hierarchical assessment of pregnancy outcomes to create pregnancy episodes for each woman")
   message("--STEP 5A: Group livebirth service days into distinct pregnancy episodes")
-  try(odbc::dbRemoveTable(conn, "#pe_lb_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_final", temporary = T), silent = T)
+  
   step5a_sql <- glue::glue_sql("
 	  --Count days between each service day (<1 min)
     select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_endpoint_rank, a.date_compare_lag1,
@@ -241,13 +273,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "#pe_lb_step1", temporary = T), silent = T)
   
   message("--STEP 5B: PROCESS STILLBIRTH EPISODES")
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_final", temporary = T), silent = T)
+  
   step5b_sql <- glue::glue_sql("
     --Union LB and SB endpoints
     select *, last_service_date as prior_lb_date, last_service_date as next_lb_date into #pe_sb_step1 from #pe_lb_final
@@ -341,21 +367,10 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     select * from #pe_sb_final;",
     .con = conn)
   DBI::dbExecute(conn = conn, step5b_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_final", temporary = T), silent = T)
+  
   
   message("--STEP 5C: PROCESS DELIV EPISODES")
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_final", temporary = T), silent = T)
+  
   step5c_sql <- glue::glue_sql("
 	  --Union LB-SB and DELIV endpoints
     select *, last_service_date as prior_date, last_service_date as next_date into #pe_deliv_step1 from #pe_lb_sb_final
@@ -467,22 +482,10 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     select * from #pe_deliv_final;",
     .con = conn)
   DBI::dbExecute(conn = conn, step5c_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_final", temporary = T), silent = T)
+  
   
   message("--STEP 5D: PROCESS TRO EPISODES")
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_deliv_tro_final", temporary = T), silent = T)
+  
   step5d_sql <- glue::glue_sql("
     --Union LB-SB-DELIV and TRO endpoints
     select *, last_service_date as prior_date, last_service_date as next_date into #pe_tro_step1 from #pe_lb_sb_deliv_final
