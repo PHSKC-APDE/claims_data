@@ -181,11 +181,11 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     "SELECT id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
     calmonth AS startdate, dateadd(day, - 1, dateadd(month, 1, calmonth)) AS enddate,
-    fromdate, todate
+    fromdate, MAX(todate) as todate
     INTO #timevar_02a
     FROM #timevar_01b
     GROUP BY id_mcaid, calmonth, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
-    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, fromdate, todate",
+    geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, fromdate",
     .con = conn)
   
   message("Running step 2a: Make a start and end date for each month")
