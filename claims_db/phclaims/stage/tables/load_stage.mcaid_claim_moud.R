@@ -97,7 +97,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   		on a.claim_header_id = b.claim_header_id
   	left join (
 		  select distinct code, icdcm_version, sub_group_condition
-  			from {`ref_schema`}.{`paste0(ref_table, 'rda_value_sets_apde'`} where sub_group_condition = 'sud_opioid' and data_source_type = 'diagnosis'
+  			from {`ref_schema`}.{`paste0(ref_table, 'rda_value_sets_apde')`} where sub_group_condition = 'sud_opioid' and data_source_type = 'diagnosis'
 		  ) as c
 		  on (b.primary_diagnosis = c.code) and (b.icdcm_version = c.icdcm_version);",
 	  .con = conn)
