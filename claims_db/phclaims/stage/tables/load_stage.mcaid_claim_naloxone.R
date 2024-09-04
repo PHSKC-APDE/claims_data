@@ -178,7 +178,7 @@ on a.ndc like b.ndc_like;",
 INTO {`to_schema`}.{`to_table`}
 
 FROM {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`} as a
-	left join ref.ndc_codes as b
+	left join {`ref_schema`}.{`paste0(ref_table, 'ndc_codes')`} as b
 	on a.ndc = b.ndc
 
 	inner join #naloxone_ndc_ref_table as c
