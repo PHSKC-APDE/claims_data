@@ -95,7 +95,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     (SELECT MBR_H_SID AS 'id_mcaid', 
       CLNDR_YEAR_MNTH, RAC_FROM_DATE AS 'fromdate', RAC_TO_DATE AS 'todate',
       DUALELIGIBLE_INDICATOR AS 'dual', 
-      HEALTH_HOME_CLINICAL_INDICATOR AS 'health_home_flag'
+      HEALTH_HOME_CLINICAL_INDICATOR AS 'health_home_flag',
       RAC_CODE AS 'rac_code', 
       RPRTBL_BSP_GROUP_CID AS 'bsp_group_cid', 
       COVERAGE_TYPE_IND AS 'cov_type', 
@@ -146,7 +146,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   a.geo_hash_clean, a.geo_hash_geocode
   INTO #timevar_01b
   FROM
-  (SELECT id_mcaid, calmonth, fromdate, todate, dual, 
+  (SELECT id_mcaid, calmonth, fromdate, todate, dual, health_home_flag, 
   bsp_group_cid, cov_type, mco_id,
   CASE 
     WHEN COALESCE(MAX(full_benefit), 0) >= 1 THEN 1
@@ -211,7 +211,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   a.geo_hash_clean, a.geo_hash_geocode
   INTO #timevar_02b
   FROM
-  (SELECT id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
+  (SELECT id_mcaid, dual, health_home_flag, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
     CASE 
       WHEN fromdate IS NULL THEN startdate 
@@ -254,7 +254,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
   DATEDIFF(day, lag(to_date) OVER (
     PARTITION BY id_mcaid, 
-      dual, bsp_group_cid, full_benefit, cov_type, mco_id,
+      dual, health_home_flag, bsp_group_cid, full_benefit, cov_type, mco_id,
       geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
       ORDER BY id_mcaid, from_date), from_date) AS group_num
   INTO #timevar_03a
@@ -313,7 +313,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip,
     geo_hash_clean, geo_hash_geocode, 
     group_num = max(group_num) OVER 
-      (PARTITION BY id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
+      (PARTITION BY id_mcaid, dual, health_home_flag, bsp_group_cid, full_benefit, cov_type, mco_id,
         geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode 
         ORDER BY from_date)
     INTO #timevar_03c
@@ -342,7 +342,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     MAX(to_date) AS to_date
     INTO #timevar_04a
     FROM #timevar_03c
-    GROUP BY id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
+    GROUP BY id_mcaid, dual, health_home_flag, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode,
     group_num",
     .con = conn)
