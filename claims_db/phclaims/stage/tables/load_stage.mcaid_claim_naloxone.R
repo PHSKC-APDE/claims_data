@@ -49,11 +49,9 @@ load_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
   
   #### LOAD TABLE ####
   message("STEP 1: CREATE TABLE TO HOLD NDC CODES IDENTIFYING naloxone FOR LIKE JOIN")
-  try(odbc::dbRemoveTable(conn, "#naloxone_ndc_list_prep", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#naloxone_ndc_list", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#naloxone_ndc_ref_table", temporary = T), silent = T)
   step1_sql <- glue::glue_sql("
   --First, create a table holding all NDC codes identifying naloxone
+	IF OBJECT_ID(N'tempdb..#naloxone_ndc_list_prep') IS NOT NULL DROP TABLE #naloxone_ndc_list_prep;
 	create table #naloxone_ndc_list_prep (ndc varchar(255));
 
 	insert into #naloxone_ndc_list_prep
@@ -134,12 +132,14 @@ load_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
 ('830080007');
 
 --Second, add a column with % that can be used for a LIKE join
+IF OBJECT_ID(N'tempdb..#naloxone_ndc_list') IS NOT NULL DROP TABLE #naloxone_ndc_list;
 select *, '%' + ndc + '%' as ndc_like
 into #naloxone_ndc_list
 from #naloxone_ndc_list_prep;
 
 --Third, LIKE join all distinct NDC codes to the list of naloxone NDC codes to create a data source-specific reference table
 --Then, use this custom reference table down below for an exact join
+IF OBJECT_ID(N'tempdb..#naloxone_ndc_ref_table') IS NOT NULL DROP TABLE #naloxone_ndc_ref_table;
 select a.ndc, 1 as naloxone_flag
 into #naloxone_ndc_ref_table
 from (

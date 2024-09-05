@@ -374,8 +374,6 @@ IF OBJECT_ID(N'tempdb..#mcaid_moud_union_final') IS NOT NULL DROP TABLE #mcaid_m
   DBI::dbExecute(conn = conn, step7_sql)
   
   message("STEP 8: Estimate methadone days supply based on next-service-date methodology")
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_meth_1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#mcaid_moud_temp_meth_2", temporary = T), silent = T)
   step8_sql <- glue::glue_sql("
   IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_meth_1') IS NOT NULL DROP TABLE #mcaid_moud_temp_meth_1;
 	  select 

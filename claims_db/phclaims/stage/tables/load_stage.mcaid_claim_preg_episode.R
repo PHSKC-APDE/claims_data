@@ -49,58 +49,17 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   
   #### LOAD TABLE ####
   message("STEP 1: Find claims with a ICD-10-CM code relevant to pregnancy endpoints")
-  try(odbc::dbRemoveTable(conn, "#pe_dx_distinct", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ref_dx", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_preg_dx", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_px_distinct", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ref_px", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_preg_px", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_temp_1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_preg_dx_px", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_temp_2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_temp_3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_temp_4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_temp_5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_preg_endpoint", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sb_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_deliv_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_deliv_tro_final", temporary = T), silent = T)
-  
+ 
   step1_sql <- glue::glue_sql("
     --Pull out distinct ICD-10-CM codes from claims >= 2016-01-01 (<1 min)
+    IF OBJECT_ID(N'tempdb..#pe_dx_distinct') IS NOT NULL drop table #pe_dx_distinct;
     select distinct icdcm_norm
     into #pe_dx_distinct
     from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_icdcm_header')`}
     where last_service_date >= '2016-01-01';
 
     --Join distinct ICD-10-CM codes to pregnancy endpoint reference table using LIKE join (<1 min)
+    IF OBJECT_ID(N'tempdb..#pe_ref_dx') IS NOT NULL drop table #pe_ref_dx;
     select distinct a.icdcm_norm, b.lb, b.ect, b.ab, b.sa, b.sb, b.tro, b.deliv
     into #pe_ref_dx
     from #pe_dx_distinct as a
@@ -108,6 +67,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     on a.icdcm_norm like b.code_like;
 
     --Join new reference table to claims data using EXACT join (1 min)
+    IF OBJECT_ID(N'tempdb..#pe_preg_dx') IS NOT NULL drop table #pe_preg_dx;
     select a.id_mcaid, a.claim_header_id, a.last_service_date, a.icdcm_norm, a.icdcm_version, 
 	    a.icdcm_number, b.lb, b.ect, b.ab, b.sa, b.sb, b.tro, b.deliv
     into #pe_preg_dx
@@ -122,12 +82,14 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 
   step2_sql <- glue::glue_sql("
 	  --Pull out distinct procedure codes from claims >= 2016-01-01 (<1 min)
+	  IF OBJECT_ID(N'tempdb..#pe_px_distinct') IS NOT NULL drop table #pe_px_distinct;
     select distinct procedure_code
     into #pe_px_distinct
     from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_procedure')`}
     where last_service_date >= '2016-01-01';
 
     --Join distinct procedure codes to pregnancy endpoint reference table using LIKE join (<1 min)
+    IF OBJECT_ID(N'tempdb..#pe_ref_px') IS NOT NULL drop table #pe_ref_px;
     select distinct a.procedure_code, b.lb, b.ect, b.ab, b.sa, b.sb, b.tro, b.deliv
     into #pe_ref_px
     from #pe_px_distinct as a
@@ -135,6 +97,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
       on a.procedure_code like b.code_like;
 
     --Join new reference table to claims data using EXACT join (1 min)
+    IF OBJECT_ID(N'tempdb..#pe_preg_px') IS NOT NULL drop table #pe_preg_px;
     select a.id_mcaid, a.claim_header_id, a.last_service_date, a.procedure_code, 
 	    a.procedure_code_number, b.lb, b.ect, b.ab, b.sa, b.sb, b.tro, b.deliv
     into #pe_preg_px
@@ -148,6 +111,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   message("STEP 3: Union dx and px-based datasets, subsetting to common columns to collapse to distinct claim headers")
 
   step3_sql <- glue::glue_sql("
+	  IF OBJECT_ID(N'tempdb..#pe_temp1') IS NOT NULL drop table #pe_temp1;
 	  select id_mcaid, claim_header_id, last_service_date, lb, ect, ab, sa, sb, tro, deliv
     into #pe_temp_1
     from #pe_preg_dx
@@ -155,6 +119,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     select id_mcaid, claim_header_id, last_service_date, lb, ect, ab, sa, sb, tro, deliv
     from #pe_preg_px;
 
+    IF OBJECT_ID(N'tempdb..#pe_preg_dx_px') IS NOT NULL DROP TABLE #pe_preg_dx_px;
     --Convert all NULLS to ZEROES and cast as TINYINT for later math
     select id_mcaid, claim_header_id, last_service_date,
 	    cast(isnull(lb,0) as tinyint) as lb, cast(isnull(ect,0) as tinyint) as ect, cast(isnull(ab,0) as tinyint) as ab,
@@ -169,6 +134,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   
   step4_sql <- glue::glue_sql("
 	  --Group by ID-service date and take max of each endpoint column
+    IF OBJECT_ID(N'tempdb..#pe_temp_2') IS NOT NULL DROP TABLE #pe_temp_2;
     select id_mcaid, last_service_date, max(lb) as lb, max(ect) as ect, max(ab) as ab, max(sa) as sa, max(sb) as sb,
 	    max(tro) as tro, max(deliv) as deliv
     into #pe_temp_2
@@ -176,12 +142,14 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     group by id_mcaid, last_service_date;
 
     --Count # of distinct endpoints, not including DELIV
+    IF OBJECT_ID(N'tempdb..#pe_temp_3') IS NOT NULL DROP TABLE #pe_temp_3;
     select id_mcaid, last_service_date, lb, ect, ab, sa, sb, tro, deliv,
 	    lb + ect + ab + sa + sb + tro as endpoint_dcount
     into #pe_temp_3
     from #pe_temp_2;
 
     --Recode DELIV to 0 when there's another valid endpoint
+    IF OBJECT_ID(N'tempdb..#pe_temp_4') IS NOT NULL DROP TABLE #pe_temp_4;
     select id_mcaid, last_service_date, lb, ect, ab, sa, sb, tro,
 	    case when endpoint_dcount = 0 then deliv else 0 end as deliv,
 	    endpoint_dcount
@@ -191,6 +159,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     --Drop ID-service dates that contain >1 distinct endpoint (excluding DELIV)
     --NOTE - THIS REMOVES PREGNANCIES THAT HAD MULTIPLE GESTATIONS WITH TWO OR MORE DIFFERENT ENDPOINTS (e.g. liveborn and still birth)
     --Also restructure endpoint as a single variable, and add hierarchy variable
+    IF OBJECT_ID(N'tempdb..#pe_temp_5') IS NOT NULL DROP TABLE #pe_temp_5;
     select id_mcaid, last_service_date, lb, ect, ab, sa, sb, tro, deliv,
       --mutually exclusive pregnancy endpoint variable
       case when lb = 1 then 'lb'
@@ -215,6 +184,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     where endpoint_dcount <= 1;
 
     --Add ranking variable within each pregnancy endpoint type
+    IF OBJECT_ID(N'tempdb..#pe_preg_endpoint') IS NOT NULL DROP TABLE #pe_preg_endpoint;
     select *, rank() over (partition by id_mcaid, preg_endpoint order by last_service_date) as preg_endpoint_rank 
     into #pe_preg_endpoint
     from #pe_temp_5;",
@@ -226,6 +196,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   
   step5a_sql <- glue::glue_sql("
 	  --Count days between each service day (<1 min)
+    IF OBJECT_ID(N'tempdb..#pe_lb_step1') IS NOT NULL DROP TABLE #pe_lb_step1;
     select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_endpoint_rank, a.date_compare_lag1,
 	    datediff(day, a.date_compare_lag1, a.last_service_date) as days_diff
     into #pe_lb_step1
@@ -237,6 +208,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
       ) as a;
 
     --Group pregnancy endpoints into episodes based on minimum spacing (<1 min)
+    IF OBJECT_ID(N'tempdb..#pe_lb_final') IS NOT NULL DROP TABLE #pe_lb_final;
     with
       t as (
         select t.id_mcaid, t.last_service_date, t.preg_endpoint, t.preg_hier, t.preg_endpoint_rank, t.days_diff
@@ -276,6 +248,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   
   step5b_sql <- glue::glue_sql("
     --Union LB and SB endpoints
+    IF OBJECT_ID(N'tempdb..#pe_sb_step1') IS NOT NULL DROP TABLE #pe_sb_step1;
     select *, last_service_date as prior_lb_date, last_service_date as next_lb_date into #pe_sb_step1 from #pe_lb_final
     union
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
@@ -284,6 +257,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     order by last_service_date;
 
     --Create column to hold dates of LB endpoints for comparison
+    IF OBJECT_ID(N'tempdb..#pe_sb_step2') IS NOT NULL DROP TABLE #pe_sb_step2;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id,
       --create column to hold date of prior LB
       case when preg_endpoint = 'sb' then
@@ -301,6 +275,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_sb_step1 as t;
 
     --For each SB endpoint, count days between it and prior and next LB endpoint
+    IF OBJECT_ID(N'tempdb..#pe_sb_step3') IS NOT NULL DROP TABLE #pe_sb_step3;
     select *,	
 	    case when preg_endpoint = 'sb' then datediff(day, prior_lb_date, last_service_date) else null end as days_diff_back_lb,
 	    case when preg_endpoint = 'sb' then datediff(day, next_lb_date, last_service_date) else null end as days_diff_ahead_lb
@@ -316,6 +291,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 	    and (days_diff_ahead_lb is null or days_diff_ahead_lb < -182);
 
     --Count days between each SB endpoint and regenerate preg_endpoint_rank variable
+    IF OBJECT_ID(N'tempdb..#pe_sb_step4') IS NOT NULL DROP TABLE #pe_sb_step4;
     select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier,
 	    rank() over (partition by a.id_mcaid, a.preg_endpoint order by a.last_service_date) as preg_endpoint_rank,
 	    datediff(day, a.date_compare_lag1, a.last_service_date) as days_diff
@@ -327,6 +303,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
       ) as a;
 
     --Group SB endpoints into episodes based on minimum spacing
+    IF OBJECT_ID(N'tempdb..#pe_sb_step5') IS NOT NULL DROP TABLE #pe_sb_step5;
     with
     t as (
       select t.id_mcaid, t.last_service_date, t.preg_endpoint, t.preg_hier, t.preg_endpoint_rank, t.days_diff
@@ -353,6 +330,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
         on (t.id_mcaid = cte.id_mcaid) and (t.preg_endpoint_rank = cte.preg_endpoint_rank + 1)
       )
     --Clean up group column, keep only endpoints added to the timeline, and select columns to keep
+    IF OBJECT_ID(N'tempdb..#pe_sb_final') IS NOT NULL DROP TABLE #pe_sb_final;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank,
 	    rank() over (partition by id_mcaid order by last_service_date) as preg_episode_id
     into #pe_sb_final
@@ -360,6 +338,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     where timeline_include = 1;
 
     --Union LB and SB endpoints placed on timeline
+    IF OBJECT_ID(N'tempdb..#pe_lb_sb_final') IS NOT NULL DROP TABLE #pe_lb_sb_final;
     select * 
     into #pe_lb_sb_final 
     from #pe_lb_final
@@ -372,6 +351,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   message("--STEP 5C: PROCESS DELIV EPISODES")
   
   step5c_sql <- glue::glue_sql("
+	  IF OBJECT_ID(N'tempdb..#pe_deliv_step1') IS NOT NULL DROP TABLE #pe_deliv_step1;
 	  --Union LB-SB and DELIV endpoints
     select *, last_service_date as prior_date, last_service_date as next_date into #pe_deliv_step1 from #pe_lb_sb_final
     union
@@ -381,6 +361,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     order by last_service_date;
 
     --Create column to hold dates of LB and SB endpoints for comparison
+    IF OBJECT_ID(N'tempdb..#pe_deliv_step2') IS NOT NULL DROP TABLE #pe_deliv_step2;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id,
       --create column to hold date of prior LB
       case when preg_endpoint = 'deliv' then
@@ -414,6 +395,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_deliv_step1 as t;
 
     --For each DELIV endpoint, count days between it and prior and next LB and SB endpoints
+    IF OBJECT_ID(N'tempdb..#pe_deliv_step3') IS NOT NULL DROP TABLE #pe_deliv_step3;
     select *,	
 	    case when preg_endpoint = 'deliv' then datediff(day, prior_lb_date, last_service_date) else null end as days_diff_back_lb,
 	    case when preg_endpoint = 'deliv' then datediff(day, next_lb_date, last_service_date) else null end as days_diff_ahead_lb,
@@ -423,6 +405,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_deliv_step2;
 
     --Pull out DELIV timepoints that potentially can be placed on timeline - COMPARE TO LB and SB ENDPOINTS
+    IF OBJECT_ID(N'tempdb..#pe_deliv_step4') IS NOT NULL DROP TABLE #pe_deliv_step4;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id
     into #pe_deliv_step4
     from #pe_deliv_step3
@@ -433,6 +416,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 	    and (days_diff_ahead_sb is null or days_diff_ahead_sb < -168);
 
     --Count days between each DELIV endpoint and regenerate preg_endpoint_rank variable
+    IF OBJECT_ID(N'tempdb..#pe_deliv_step5') IS NOT NULL DROP TABLE #pe_deliv_step5;
     select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier,
 	    rank() over (partition by a.id_mcaid, a.preg_endpoint order by a.last_service_date) as preg_endpoint_rank,
 	    datediff(day, a.date_compare_lag1, a.last_service_date) as days_diff
@@ -444,6 +428,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
       ) as a;
 
     --Group DELIV endpoints into episodes based on minimum spacing
+    IF OBJECT_ID(N'tempdb..#pe_deliv_final') IS NOT NULL DROP TABLE #pe_deliv_final;
     with
       t as (
         select t.id_mcaid, t.last_service_date, t.preg_endpoint, t.preg_hier, t.preg_endpoint_rank, t.days_diff
@@ -477,6 +462,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     where timeline_include = 1;
 
     --Union LB, SB and DELIV endpoints placed on timeline
+    IF OBJECT_ID(N'tempdb..#pe_lb_sb_deliv_final') IS NOT NULL DROP TABLE #pe_lb_sb_deliv_final;
     select * into #pe_lb_sb_deliv_final from #pe_lb_sb_final
     union
     select * from #pe_deliv_final;",
@@ -488,6 +474,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   
   step5d_sql <- glue::glue_sql("
     --Union LB-SB-DELIV and TRO endpoints
+    IF OBJECT_ID(N'tempdb..#pe_tro_step1') IS NOT NULL DROP TABLE #pe_tro_step1;
     select *, last_service_date as prior_date, last_service_date as next_date into #pe_tro_step1 from #pe_lb_sb_deliv_final
     union
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
@@ -496,6 +483,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     order by last_service_date;
 
     --Create column to hold dates of LB and SB endpoints for comparison
+    IF OBJECT_ID(N'tempdb..#pe_tro_step2') IS NOT NULL DROP TABLE #pe_tro_step2;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id,
       --create column to hold date of prior LB
       case when preg_endpoint = 'tro' then
@@ -543,6 +531,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_tro_step1 as t;
 
     --For each TRO endpoint, count days between it and prior and next LB, SB and DELIV endpoints
+    IF OBJECT_ID(N'tempdb..#pe_tro_step3') IS NOT NULL DROP TABLE #pe_tro_step3;
     select *,	
 	    case when preg_endpoint = 'tro' then datediff(day, prior_lb_date, last_service_date) else null end as days_diff_back_lb,
 	    case when preg_endpoint = 'tro' then datediff(day, next_lb_date, last_service_date) else null end as days_diff_ahead_lb,
@@ -554,6 +543,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_tro_step2;
   
     --Pull out TRO timepoints that potentially can be placed on timeline - COMPARE TO LB, SB, and DELIV ENDPOINTS
+    IF OBJECT_ID(N'tempdb..#pe_tro_step4') IS NOT NULL DROP TABLE #pe_tro_step4;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id
     into #pe_tro_step4
     from #pe_tro_step3
@@ -566,6 +556,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 	    and (days_diff_ahead_deliv is null or days_diff_ahead_deliv < -154);
   
     --Count days between each TRO endpoint and regenerate preg_endpoint_rank variable
+    IF OBJECT_ID(N'tempdb..#pe_tro_step5') IS NOT NULL DROP TABLE #pe_tro_step5;
     select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier,
 	    rank() over (partition by a.id_mcaid, a.preg_endpoint order by a.last_service_date) as preg_endpoint_rank,
 	    datediff(day, a.date_compare_lag1, a.last_service_date) as days_diff
@@ -577,6 +568,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
       ) as a;
 
     --Group TRO endpoints into episodes based on minimum spacing
+    IF OBJECT_ID(N'tempdb..#pe_tro_final') IS NOT NULL DROP TABLE #pe_tro_final;
     with
       t as (
         select t.id_mcaid, t.last_service_date, t.preg_endpoint, t.preg_hier, t.preg_endpoint_rank, t.days_diff
@@ -611,29 +603,17 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     where timeline_include = 1;
 
     --Union LB, SB, DELIV and TRO endpoints placed on timeline
+    IF OBJECT_ID(N'tempdb..#pe_lb_sb_deliv_tro_final') IS NOT NULL DROP TABLE #pe_lb_sb_deliv_tro_final;
     select * into #pe_lb_sb_deliv_tro_final from #pe_lb_sb_deliv_final
     union
     select * from #pe_tro_final;",
     .con = conn)
   DBI::dbExecute(conn = conn, step5d_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_tro_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_deliv_final", temporary = T), silent = T)
   
   message("--STEP 5E: PROCESS ECT EPISODES")
-  try(odbc::dbRemoveTable(conn, "#pe_ect_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ect_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ect_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ect_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ect_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ect_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_deliv_tro_ect_final", temporary = T), silent = T)
   step5e_sql <- glue::glue_sql("
     --Union LB-SB, DELIV, TRO and ECT endpoints
+    IF OBJECT_ID(N'tempdb..#pe_ect_step1') IS NOT NULL DROP TABLE #pe_ect_step1;
     select *, last_service_date as prior_date, last_service_date as next_date into #pe_ect_step1 from #pe_lb_sb_deliv_tro_final
     union
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
@@ -642,6 +622,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     order by last_service_date;
 
     --Create column to hold dates of LB, SB, DELIV and TRO endpoints for comparison
+    IF OBJECT_ID(N'tempdb..#pe_ect_step2') IS NOT NULL DROP TABLE #pe_ect_step2;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id,
       --create column to hold date of prior LB
       case when preg_endpoint = 'ect' then
@@ -703,6 +684,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_ect_step1 as t;
   
     --For each ECT endpoint, count days between it and prior and next LB, SB, DELIV, and TRO endpoints
+    IF OBJECT_ID(N'tempdb..#pe_ect_step3') IS NOT NULL DROP TABLE #pe_ect_step3;
     select *,	
 	    case when preg_endpoint = 'ect' then datediff(day, prior_lb_date, last_service_date) else null end as days_diff_back_lb,
 	    case when preg_endpoint = 'ect' then datediff(day, next_lb_date, last_service_date) else null end as days_diff_ahead_lb,
@@ -716,6 +698,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_ect_step2;
   
     --Pull out ECT timepoints that potentially can be placed on timeline - COMPARE TO LB, SB, DELIV and TRO ENDPOINTS
+    IF OBJECT_ID(N'tempdb..#pe_ect_step4') IS NOT NULL DROP TABLE #pe_ect_step4;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id
     into #pe_ect_step4
     from #pe_ect_step3
@@ -730,6 +713,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 	    and (days_diff_ahead_tro is null or days_diff_ahead_tro < -56);
   
     --Count days between each ECT endpoint and regenerate preg_endpoint_rank variable
+    IF OBJECT_ID(N'tempdb..#pe_ect_step5') IS NOT NULL DROP TABLE #pe_ect_step5;
     select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier,
 	    rank() over (partition by a.id_mcaid, a.preg_endpoint order by a.last_service_date) as preg_endpoint_rank,
 	    datediff(day, a.date_compare_lag1, a.last_service_date) as days_diff
@@ -741,6 +725,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
         ) as a;
 
     --Group ECT endpoints into episodes based on minimum spacing
+    IF OBJECT_ID(N'tempdb..#pe_ect_final') IS NOT NULL DROP TABLE #pe_ect_final;
     with
       t as (
         select t.id_mcaid, t.last_service_date, t.preg_endpoint, t.preg_hier, t.preg_endpoint_rank, t.days_diff
@@ -775,29 +760,17 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     where timeline_include = 1;
 
     --Union LB, SB, DELIV, TRO, and ECT endpoints placed on timeline
+    IF OBJECT_ID(N'tempdb..#pe_lb_sb_deliv_tro_ect_final') IS NOT NULL DROP TABLE #pe_lb_sb_deliv_tro_ect_final;
     select * into #pe_lb_sb_deliv_tro_ect_final from #pe_lb_sb_deliv_tro_final
     union
     select * from #pe_ect_final;",
     .con = conn)
   DBI::dbExecute(conn = conn, step5e_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ect_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ect_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ect_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ect_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ect_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ect_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_deliv_tro_final", temporary = T), silent = T)
-  
+
   message("--STEP 5F: PROCESS AB EPISODES")
-  try(odbc::dbRemoveTable(conn, "#pe_ab_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ab_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ab_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ab_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ab_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ab_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_deliv_tro_ect_ab_final", temporary = T), silent = T)
   step5f_sql <- glue::glue_sql("
 	  --Union LB-SB, DELIV, TRO, ECT, an AB endpoints
+	  IF OBJECT_ID(N'tempdb..#pe_ab_step1') IS NOT NULL DROP TABLE #pe_ab_step1;
     select *, last_service_date as prior_date, last_service_date as next_date into #pe_ab_step1 from #pe_lb_sb_deliv_tro_ect_final
     union
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
@@ -806,6 +779,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     order by last_service_date;
 
     --Create column to hold dates of LB, SB, DELIV, TRO, and ECT endpoints for comparison
+    IF OBJECT_ID(N'tempdb..#pe_ab_step2') IS NOT NULL DROP TABLE #pe_ab_step2;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id,
       --create column to hold date of prior LB
       case when preg_endpoint = 'ab' then
@@ -881,6 +855,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_ab_step1 as t;
 
     --For each AB endpoint, count days between it and prior and next LB, SB, DELIV, TRO, and ECT endpoints
+    IF OBJECT_ID(N'tempdb..#pe_ab_step3') IS NOT NULL DROP TABLE #pe_ab_step3;
     select *,	
 	    case when preg_endpoint = 'ab' then datediff(day, prior_lb_date, last_service_date) else null end as days_diff_back_lb,
 	    case when preg_endpoint = 'ab' then datediff(day, next_lb_date, last_service_date) else null end as days_diff_ahead_lb,
@@ -896,6 +871,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_ab_step2;
 
     --Pull out AB timepoints that potentially can be placed on timeline - COMPARE TO LB, SB, DELIV, TRO, and ECT ENDPOINTS
+    IF OBJECT_ID(N'tempdb..#pe_ab_step4') IS NOT NULL DROP TABLE #pe_ab_step4;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id
     into #pe_ab_step4
     from #pe_ab_step3
@@ -912,6 +888,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 	    and (days_diff_ahead_ect is null or days_diff_ahead_ect < -56);
   
     --Count days between each AB endpoint and regenerate preg_endpoint_rank variable
+    IF OBJECT_ID(N'tempdb..#pe_ab_step5') IS NOT NULL DROP TABLE #pe_ab_step5;
     select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier,
 	    rank() over (partition by a.id_mcaid, a.preg_endpoint order by a.last_service_date) as preg_endpoint_rank,
 	    datediff(day, a.date_compare_lag1, a.last_service_date) as days_diff
@@ -923,6 +900,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
         ) as a;
   
     --Group AB endpoints into episodes based on minimum spacing
+    IF OBJECT_ID(N'tempdb..#pe_ab_final') IS NOT NULL DROP TABLE #pe_ab_final;
     with
       t as (
         select t.id_mcaid, t.last_service_date, t.preg_endpoint, t.preg_hier, t.preg_endpoint_rank, t.days_diff
@@ -956,29 +934,18 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     where timeline_include = 1;
 
     --Union LB, SB, DELIV, TRO, ECT and AB endpoints placed on timeline
+    IF OBJECT_ID(N'tempdb..#pe_lb_sb_deliv_tro_ect_ab_final') IS NOT NULL DROP TABLE #pe_lb_sb_deliv_tro_ect_ab_final;
     select * into #pe_lb_sb_deliv_tro_ect_ab_final from #pe_lb_sb_deliv_tro_ect_final
     union
     select * from #pe_ab_final;",
     .con = conn)
   DBI::dbExecute(conn = conn, step5f_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ab_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ab_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ab_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ab_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ab_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ab_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_deliv_tro_ect_final", temporary = T), silent = T)
-  
+
   message("--STEP 5G: PROCESS SA EPISODES")
-  try(odbc::dbRemoveTable(conn, "#pe_sa_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sa_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sa_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sa_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sa_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sa_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_deliv_tro_ect_ab_sa_final", temporary = T), silent = T)
+
   step5g_sql <- glue::glue_sql("
 	  --Union LB-SB, DELIV, TRO, ECT, AB, and SA endpoints
+	  IF OBJECT_ID(N'tempdb..#pe_sa_step1') IS NOT NULL DROP TABLE #pe_sa_step1;
     select *, last_service_date as prior_date, last_service_date as next_date into #pe_sa_step1 from #pe_lb_sb_deliv_tro_ect_ab_final
     union
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, null as preg_episode_id,
@@ -987,6 +954,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     order by last_service_date;
 
     --Create column to hold dates of LB, SB, DELIV, TRO, ECT, and AB endpoints for comparison
+    IF OBJECT_ID(N'tempdb..#pe_sa_step2') IS NOT NULL DROP TABLE #pe_sa_step2;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id,
       --create column to hold date of prior LB
       case when preg_endpoint = 'sa' then
@@ -1076,6 +1044,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_sa_step1 as t;
 
     --For each SA endpoint, count days between it and prior and next LB, SB, DELIV, TRO, ECT, and AB endpoints
+    IF OBJECT_ID(N'tempdb..#pe_sa_step3') IS NOT NULL DROP TABLE #pe_sa_step3;
     select *,	
 	    case when preg_endpoint = 'sa' then datediff(day, prior_lb_date, last_service_date) else null end as days_diff_back_lb,
 	    case when preg_endpoint = 'sa' then datediff(day, next_lb_date, last_service_date) else null end as days_diff_ahead_lb,
@@ -1093,6 +1062,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_sa_step2;
 
     --Pull out SA timepoints that potentially can be placed on timeline - COMPARE TO LB, SB, DELIV, TRO, ECT, and AB ENDPOINTS
+    IF OBJECT_ID(N'tempdb..#pe_sa_step4') IS NOT NULL DROP TABLE #pe_sa_step4;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_endpoint_rank, preg_episode_id
     into #pe_sa_step4
     from #pe_sa_step3
@@ -1111,6 +1081,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 	    and (days_diff_ahead_ab is null or days_diff_ahead_ab < -56);
   
     --Count days between each SA endpoint and regenerate preg_endpoint_rank variable
+    IF OBJECT_ID(N'tempdb..#pe_sa_step5') IS NOT NULL DROP TABLE #pe_sa_step5;
     select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier,
 	    rank() over (partition by a.id_mcaid, a.preg_endpoint order by a.last_service_date) as preg_endpoint_rank,
 	    datediff(day, a.date_compare_lag1, a.last_service_date) as days_diff
@@ -1122,6 +1093,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
         ) as a;
   
     --Group SA endpoints into episodes based on minimum spacing
+    IF OBJECT_ID(N'tempdb..#pe_sa_final') IS NOT NULL DROP TABLE #pe_sa_final;
     with
       t as (
         select t.id_mcaid, t.last_service_date, t.preg_endpoint, t.preg_hier, t.preg_endpoint_rank, t.days_diff
@@ -1156,23 +1128,16 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     where timeline_include = 1;
 
     --Union LB, SB, DELIV, TRO, ECT, AB, and SA endpoints placed on timeline
+    IF OBJECT_ID(N'tempdb..#pe_preg_endpoint_union') IS NOT NULL DROP TABLE #pe_preg_endpoint_union;
     select * into #pe_preg_endpoint_union from #pe_lb_sb_deliv_tro_ect_ab_final
     union
     select * from #pe_sa_final;",
      .con = conn)
   DBI::dbExecute(conn = conn, step5g_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_sa_step1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sa_step2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sa_step3", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sa_step4", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sa_step5", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_sa_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_lb_sb_deliv_tro_ect_ab_final", temporary = T), silent = T)
-  
-  
+
   message("STEP 6: Regenerate pregnancy episode ID to be unique across dataset")
-  try(odbc::dbRemoveTable(conn, "#pe_episode_0", temporary = T), silent = T)
   step6_sql <- glue::glue_sql("
+	  IF OBJECT_ID(N'tempdb..#pe_episode_0') IS NOT NULL DROP TABLE #pe_episode_0;
 	  select id_mcaid, last_service_date, preg_endpoint, preg_hier,
 	    dense_rank() over (order by id_mcaid, last_service_date) as preg_episode_id
     into #pe_episode_0
@@ -1181,11 +1146,9 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step6_sql)
   
   message("STEP 7: Define prenatal window for each pregnancy episode (<1 min)")
-  try(odbc::dbRemoveTable(conn, "#pe_episode_1", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_episode_2", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_episode_temp", temporary = T), silent = T)
   step7_sql <- glue::glue_sql("
 	  --Create columns to hold information about prior pregnancy episode
+	  IF OBJECT_ID(N'tempdb..#pe_episode_1') IS NOT NULL DROP TABLE #pe_episode_1;
     select *,
       --calculate days difference from prior pregnancy outcome
       datediff(day,
@@ -1200,6 +1163,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_episode_0;
 
     --Calculate start and end dates for each pregnancy episode
+    IF OBJECT_ID(N'tempdb..#pe_episode_2') IS NOT NULL DROP TABLE #pe_episode_2;
     select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_episode_id,
       --start date of each pregnancy episode, adjusted as needed by prior pregnancies
       case when preg_endpoint in ('lb','sb','deliv') and (days_diff_prior is null or days_diff_prior >= 301) then dateadd(day, -301, last_service_date)
@@ -1220,6 +1184,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
     from #pe_episode_1 order by last_service_date;
 
     --Add columns to hold earliest and latest pregnancy start date for later processing
+    IF OBJECT_ID(N'tempdb..#pe_episode_temp') IS NOT NULL DROP TABLE #pe_episode_temp;
     select *,
       --earliest pregnancy start date
       case when preg_endpoint in ('lb','sb','deliv') then dateadd(day, -301, preg_end_date)
@@ -1243,13 +1208,9 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
   
   message("STEP 8: Use claims that provide information about gestational age to correct pregnancy outcome and start date")
   message("--STEP 8A: Intrauterine insemination/embryo transfer")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1a", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1b", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1c", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1d", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1_final", temporary = T), silent = T)  
   step8a_sql <- glue::glue_sql("
 	  --Pull out pregnany episodes that have relevant procedure codes during prenatal window
+	  IF OBJECT_ID(N'tempdb..#pe_ga_1a') IS NOT NULL DROP TABLE #pe_ga_1a;
 		select a.*, b.last_service_date as procedure_date, b.procedure_code
 		into #pe_ga_1a
 		from #pe_preg_episode_temp as a
@@ -1259,12 +1220,14 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			and b.last_service_date between a.preg_start_date and a.preg_end_date;
 		
 		--Create column to hold corrected start date
+		IF OBJECT_ID(N'tempdb..#pe_ga_1b') IS NOT NULL DROP TABLE #pe_ga_1b;
 		select distinct id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_episode_id,
 			dateadd(day, -13, procedure_date) as preg_start_date_correct, preg_end_date, preg_start_date_max, preg_start_date_min
 		into #pe_ga_1b
 		from #pe_ga_1a;
 		
 		--For episodes with more than corrected start, select record that is closet to pregnancy end date
+		IF OBJECT_ID(N'tempdb..#pe_ga_1c') IS NOT NULL DROP TABLE #pe_ga_1c;
 		select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date_correct, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min
 		into #pe_ga_1c
@@ -1272,6 +1235,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Calculate gestational age in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_1d') IS NOT NULL DROP TABLE #pe_ga_1d;
 		select *,
 			datediff(day, preg_start_date_correct, preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, preg_start_date_correct, preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -1279,6 +1243,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_1c;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_1_final') IS NOT NULL DROP TABLE #pe_ga_1_final;
 		select *,
 			--valid pregnancy start date flag
 			case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -1301,22 +1266,11 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_1d;",
                              .con = conn)
   DBI::dbExecute(conn = conn, step8a_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1a", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1b", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1c", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1d", temporary = T), silent = T) 
   
   message("--STEP 8B: Z3A code on 1st trimester ultrasound")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2a", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2b", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2c", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2d", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2e", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2f", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2_final", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to2_final", temporary = T), silent = T) 
   step8b_sql <- glue::glue_sql("
 	 --Pull forward episodes not assigned in prior steps	
+		IF OBJECT_ID(N'tempdb..#pe_ga_2a') IS NOT NULL DROP TABLE #pe_ga_2a;
 		select a.*
 		into #pe_ga_2a
 		from #pe_preg_episode_temp as a
@@ -1325,6 +1279,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Pull out pregnany episodes that have a procedure code for a 1st trimester ultrasound during the prenatal window
+		IF OBJECT_ID(N'tempdb..#pe_ga_2b') IS NOT NULL DROP TABLE #pe_ga_2b;
 		select a.*, b.last_service_date as procedure_date, b.claim_header_id 
 		into #pe_ga_2b
 		from #pe_ga_2a as a
@@ -1334,6 +1289,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			and b.last_service_date between a.preg_start_date and a.preg_end_date;
 		
 		--Further subset to pregnancy episodes that have a Z3A code
+		IF OBJECT_ID(N'tempdb..#pe_ga_2c') IS NOT NULL DROP TABLE #pe_ga_2c;
 		select a.*, right(icdcm_norm, 2) as ga_weeks_int
 		into #pe_ga_2c
 		from #pe_ga_2b as a
@@ -1344,12 +1300,14 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			'Z3A37', 'Z3A38', 'Z3A39', 'Z3A40', 'Z3A41', 'Z3A42');
 		
 		--Convert extracted gestational age to integer and collapse to distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_2d') IS NOT NULL DROP TABLE #pe_ga_2d;
 		select distinct id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_episode_id, preg_start_date,
 			preg_end_date, preg_start_date_max, preg_start_date_min, procedure_date, cast(ga_weeks_int as tinyint) as ga_weeks_int
 		into #pe_ga_2d
 		from #pe_ga_2c;
 		
 		--For episodes with multiple first trimester ultrasounds, select first (ranked by procedure date and GA)
+		IF OBJECT_ID(N'tempdb..#pe_ga_2e') IS NOT NULL DROP TABLE #pe_ga_2e;
 		select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min, a.procedure_date, a.ga_weeks_int
 		into #pe_ga_2e
@@ -1357,6 +1315,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_2f') IS NOT NULL DROP TABLE #pe_ga_2f;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -1368,6 +1327,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			) as a;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_2_final') IS NOT NULL DROP TABLE #pe_ga_2_final;
 		select *,
 			--valid pregnancy start date flag
 			case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -1390,30 +1350,17 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_2f;	
 	
 		--Union assigned episodes thus far
+		IF OBJECT_ID(N'tempdb..#pe_ga_1to2_final') IS NOT NULL DROP TABLE #pe_ga_1to2_final;
 		select * into #pe_ga_1to2_final
 		from #pe_ga_1_final union select * from #pe_ga_2_final;",
                               .con = conn)
   DBI::dbExecute(conn = conn, step8b_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2a", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2b", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2c", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2d", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2e", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2f", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_2_final", temporary = T), silent = T)
-  
+
   message("--STEP 8C: Z3A code on NT scan")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3a", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3b", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3c", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3d", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3e", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3f", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to3_final", temporary = T), silent = T) 
-  
+
   step8c_sql <- glue::glue_sql("
 	 --Pull forward episodes not assigned in prior steps
+		IF OBJECT_ID(N'tempdb..#pe_ga_3a') IS NOT NULL DROP TABLE #pe_ga_3a;
 		select a.*
 		into #pe_ga_3a
 		from #pe_preg_episode_temp as a
@@ -1422,6 +1369,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Pull out pregnany episodes that have a procedure code for an NT scan during the prenatal window
+		IF OBJECT_ID(N'tempdb..#pe_ga_3b') IS NOT NULL DROP TABLE #pe_ga_3b;
 		select a.*, b.last_service_date as procedure_date, b.claim_header_id 
 		into #pe_ga_3b
 		from #pe_ga_3a as a
@@ -1431,6 +1379,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			and b.last_service_date between a.preg_start_date and a.preg_end_date;
 		
 		--Further subset to pregnancy episodes that have a Z3A code
+		IF OBJECT_ID(N'tempdb..#pe_ga_3c') IS NOT NULL DROP TABLE #pe_ga_3c;
 		select a.*, right(icdcm_norm, 2) as ga_weeks_int
 		into #pe_ga_3c
 		from #pe_ga_3b as a
@@ -1441,12 +1390,14 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			'Z3A37', 'Z3A38', 'Z3A39', 'Z3A40', 'Z3A41', 'Z3A42');
 		
 		--Convert extracted gestational age to integer and collapse to distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_3d') IS NOT NULL DROP TABLE #pe_ga_3d;
 		select distinct id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_episode_id, preg_start_date,
 			preg_end_date, preg_start_date_max, preg_start_date_min, procedure_date, cast(ga_weeks_int as tinyint) as ga_weeks_int
 		into #pe_ga_3d
 		from #pe_ga_3c;
 		
 		--For episodes with multiple NT scans, select first (ranked by procedure date and GA)
+		IF OBJECT_ID(N'tempdb..#pe_ga_3e') IS NOT NULL DROP TABLE #pe_ga_3e;
 		select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min, a.procedure_date, a.ga_weeks_int
 		into #pe_ga_3e
@@ -1454,6 +1405,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_3f') IS NOT NULL DROP TABLE #pe_ga_3f;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -1465,6 +1417,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as a;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_3_final') IS NOT NULL DROP TABLE #pe_ga_3_final;
 		select *,
 			--valid pregnancy start date flag
 			case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -1487,29 +1440,15 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_3f;
 		
 		--Union assigned episodes thus far
+		IF OBJECT_ID(N'tempdb..#pe_ga_1to3_final') IS NOT NULL DROP TABLE #pe_ga_1to3_final;
 		select * into #pe_ga_1to3_final from #pe_ga_1to2_final
 		union select * from #pe_ga_3_final;",
                               .con = conn)
   DBI::dbExecute(conn = conn, step8c_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3a", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3b", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3c", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3d", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3e", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3f", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_3_final", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to2_final", temporary = T), silent = T)
-  
+
   message("--STEP 8D: Z3A code on anatomic ultrasound")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4a", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4b", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4c", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4d", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4e", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4f", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4_final", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to4_final", temporary = T), silent = T)  
   step8d_sql <- glue::glue_sql("
+	 IF OBJECT_ID(N'tempdb..#pe_ga_4a') IS NOT NULL DROP TABLE #pe_ga_4a;
 	 select a.*
 		into #pe_ga_4a
 		from #pe_preg_episode_temp as a
@@ -1518,6 +1457,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Pull out pregnany episodes that have a procedure code for an anatomic ultrasound during the prenatal window
+		IF OBJECT_ID(N'tempdb..#pe_ga_4b') IS NOT NULL DROP TABLE #pe_ga_4b;
 		select a.*, b.last_service_date as procedure_date, b.claim_header_id 
 		into #pe_ga_4b
 		from #pe_ga_4a as a
@@ -1527,6 +1467,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			and b.last_service_date between a.preg_start_date and a.preg_end_date;
 		
 		--Further subset to pregnancy episodes that have a Z3A code
+		IF OBJECT_ID(N'tempdb..#pe_ga_4c') IS NOT NULL DROP TABLE #pe_ga_4c;
 		select a.*, right(icdcm_norm, 2) as ga_weeks_int
 		into #pe_ga_4c
 		from #pe_ga_4b as a
@@ -1537,12 +1478,14 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			'Z3A37', 'Z3A38', 'Z3A39', 'Z3A40', 'Z3A41', 'Z3A42');
 		
 		--Convert extracted gestational age to integer and collapse to distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_4d') IS NOT NULL DROP TABLE #pe_ga_4d;
 		select distinct id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_episode_id, preg_start_date,
 			preg_end_date, preg_start_date_max, preg_start_date_min, procedure_date, cast(ga_weeks_int as tinyint) as ga_weeks_int
 		into #pe_ga_4d
 		from #pe_ga_4c;
 		
 		--For episodes with multiple anatomic ultrasounds, select first (ranked by procedure date and GA)
+		IF OBJECT_ID(N'tempdb..#pe_ga_4e') IS NOT NULL DROP TABLE #pe_ga_4e;
 		select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min, a.procedure_date, a.ga_weeks_int
 		into #pe_ga_4e
@@ -1550,6 +1493,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_4f') IS NOT NULL DROP TABLE #pe_ga_4f;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -1561,7 +1505,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as a;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
-		
+		IF OBJECT_ID(N'tempdb..#pe_ga_4_final') IS NOT NULL DROP TABLE #pe_ga_4_final;
 		select *,
 			--valid pregnancy start date flag
 			case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -1584,34 +1528,16 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_4f;
 		
 		--Union assigned episodes thus far
+		IF OBJECT_ID(N'tempdb..#pe_ga_1to4_final') IS NOT NULL DROP TABLE #pe_ga_1to4_final;
 		select * into #pe_ga_1to4_final from #pe_ga_1to3_final
 		union select * from #pe_ga_4_final;",
                               .con = conn)
   DBI::dbExecute(conn = conn, step8d_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4a", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4b", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4c", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4d", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4e", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4f", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_4_final", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to3_final", temporary = T), silent = T)
   
   message("--STEP 8E: Z3A code on another type of prenatal service")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5a", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5b", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5c", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5d", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5e", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5f", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5g", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5h", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5i", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5j", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to5_final", temporary = T), silent = T)  
-  step8e_sql <- glue::glue_sql("
+    step8e_sql <- glue::glue_sql("
 	 --Pull forward episodes not assigned in prior steps
+		IF OBJECT_ID(N'tempdb..#pe_ga_5a') IS NOT NULL DROP TABLE #pe_ga_5a;
 		select a.*
 		into #pe_ga_5a
 		from #pe_preg_episode_temp as a
@@ -1620,6 +1546,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Pull out pregnany episodes that have a Z3A code during the prenatal window
+		IF OBJECT_ID(N'tempdb..#pe_ga_5b') IS NOT NULL DROP TABLE #pe_ga_5b;
 		select a.*, b.last_service_date as procedure_date, right(b.icdcm_norm, 2) as ga_weeks_int
 		into #pe_ga_5b
 		from #pe_ga_5a as a
@@ -1630,18 +1557,21 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			'Z3A37', 'Z3A38', 'Z3A39', 'Z3A40', 'Z3A41', 'Z3A42') and (b.last_service_date between a.preg_start_date and a.preg_end_date);
 		
 		--Convert ZA3 codes to integer (needed to be a separate step to avoid a cast error)
+		IF OBJECT_ID(N'tempdb..#pe_ga_5c') IS NOT NULL DROP TABLE #pe_ga_5c;
 		select id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_episode_id, preg_start_date, preg_end_date,
 			preg_start_date_max, preg_start_date_min, procedure_date, cast(ga_weeks_int as tinyint) as ga_weeks_int
 		into #pe_ga_5c
 		from #pe_ga_5b;
 		
 		--Collapse to distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_5d') IS NOT NULL DROP TABLE #pe_ga_5d;
 		select distinct id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_episode_id, preg_start_date,
 			preg_end_date, preg_start_date_max, preg_start_date_min, procedure_date, ga_weeks_int
 		into #pe_ga_5d
 		from #pe_ga_5c;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_5e') IS NOT NULL DROP TABLE #pe_ga_5e;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -1653,6 +1583,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as a;
 		
 		--Count distinct preg start dates for each episode and calculate mode and median for those with >1 start date
+		IF OBJECT_ID(N'tempdb..#pe_ga_5f') IS NOT NULL DROP TABLE #pe_ga_5f;
 		select c.*,
 		--Descending rank of pregnany start date count
 			rank() over (partition by preg_episode_id order by preg_start_row_count desc) as preg_start_mode_rank
@@ -1678,6 +1609,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as c;
 		
 		--Count number of distinct start dates by preg episode and rank
+		IF OBJECT_ID(N'tempdb..#pe_ga_5g') IS NOT NULL DROP TABLE #pe_ga_5g;
 		select a.*, b.preg_start_rank_dcount
 		into #pe_ga_5g
 		from #pe_ga_5f as a
@@ -1689,6 +1621,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		on (a.preg_episode_id = b.preg_episode_id) and (a.preg_start_mode_rank) = (b.preg_start_mode_rank);
 		
 		--Create flag to indicate whether mode exists for episodes with >1 start date
+		IF OBJECT_ID(N'tempdb..#pe_ga_5h') IS NOT NULL DROP TABLE #pe_ga_5h;
 		select *,
 		max(case when preg_start_mode_rank = 1 and preg_start_rank_dcount = 1 then 1 else 0 end)
 			over (partition by preg_episode_id) as preg_start_mode_present
@@ -1696,6 +1629,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_5g;
 		
 		--Create flag to indicate pregnancy start date to keep
+		IF OBJECT_ID(N'tempdb..#pe_ga_5i') IS NOT NULL DROP TABLE #pe_ga_5i;
 		select *,
 			case
 				when preg_start_dcount = 1 then 1
@@ -1707,6 +1641,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_5h;
 		
 		--Keep one pregnancy start date per episode
+		IF OBJECT_ID(N'tempdb..#pe_ga_5j') IS NOT NULL DROP TABLE #pe_ga_5j;
 		select distinct id_mcaid, last_service_date, preg_endpoint, preg_hier, preg_episode_id, preg_start_date_correct,
 			preg_end_date, preg_start_date_max, preg_start_date_min,
 			ga_days,
@@ -1716,6 +1651,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where preg_start_date_keep = 1;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_5_final') IS NOT NULL DROP TABLE #pe_ga_5_final;
 		select *,
 			--valid pregnancy start date flag
 			case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -1739,32 +1675,16 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		
 		--Union assigned episodes thus far
 		--Beginning with this step (5), propagate episodes with invalid start date to next step
+		IF OBJECT_ID(N'tempdb..#pe_ga_1to5_final') IS NOT NULL DROP TABLE #pe_ga_1to5_final;
 		select * into #pe_ga_1to5_final from #pe_ga_1to4_final
 		union select * from #pe_ga_5_final where valid_start_date = 1 and valid_ga = 1;",
                               .con = conn)
   DBI::dbExecute(conn = conn, step8e_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5a", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5b", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5c", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5d", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5e", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5f", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5g", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5h", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5i", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5j", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_5_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to4_final", temporary = T), silent = T)  
-  
+
   message("--STEP 8F: Nuchal translucency (NT) scan without Z3A code")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_6a", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_6b", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_6c", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_6d", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_6_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to6_final", temporary = T), silent = T) 
   step8f_sql <- glue::glue_sql("
 	 --Pull forward episodes not assigned in prior steps
+		IF OBJECT_ID(N'tempdb..#pe_ga_6a') IS NOT NULL DROP TABLE #pe_ga_6a;
 		select a.*
 		into #pe_ga_6a
 		from #pe_preg_episode_temp as a
@@ -1773,6 +1693,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Pull out pregnany episodes that have a procedure code for an NT scan during the prenatal window, collapse to distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_6b') IS NOT NULL DROP TABLE #pe_ga_6b;
 		select distinct a.*, b.last_service_date as procedure_date
 		into #pe_ga_6b
 		from #pe_ga_6a as a
@@ -1782,6 +1703,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			and b.last_service_date between a.preg_start_date and a.preg_end_date;
 		
 		--For episodes with multiple NT scans, select first (ranked by procedure date) and take distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_6c') IS NOT NULL DROP TABLE #pe_ga_6c;
 		select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min, a.procedure_date
 		into #pe_ga_6c
@@ -1789,6 +1711,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_6d') IS NOT NULL DROP TABLE #pe_ga_6d;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -1800,6 +1723,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as a;
 
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_6_final') IS NOT NULL DROP TABLE #pe_ga_6_final;
 		select *,
 		--valid pregnancy start date flag
 		case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -1822,26 +1746,16 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_6d;
 
 		--Union assigned episodes thus far
+		IF OBJECT_ID(N'tempdb..#pe_ga_1to6_final') IS NOT NULL DROP TABLE #pe_ga_1to6_final;
 		select * into #pe_ga_1to6_final from #pe_ga_1to5_final
 		union select * from #pe_ga_6_final where valid_start_date = 1 and valid_ga = 1;",
                               .con = conn)
   DBI::dbExecute(conn = conn, step8f_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_6a", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_6b", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_6c", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_6d", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_6_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to5_final", temporary = T), silent = T) 
-  
+
   message("--STEP 8G: Chorionic Villus Sampling (CVS)")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_7a", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_7b", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_7c", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_7d", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_7_final", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to7_final", temporary = T), silent = T)
   step8g_sql <- glue::glue_sql("
 	 --Pull forward episodes not assigned in prior steps
+		IF OBJECT_ID(N'tempdb..#pe_ga_7a') IS NOT NULL DROP TABLE #pe_ga_7a;
 		select a.*
 		into #pe_ga_7a
 		from #pe_preg_episode_temp as a
@@ -1850,6 +1764,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Pull out pregnany episodes that have a procedure code for CVS during the prenatal window, collapse to distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_7b') IS NOT NULL DROP TABLE #pe_ga_7b;
 		select distinct a.*, b.last_service_date as procedure_date
 		into #pe_ga_7b
 		from #pe_ga_7a as a
@@ -1859,6 +1774,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			and b.last_service_date between a.preg_start_date and a.preg_end_date;
 		
 		--For episodes with multiple CVS services, select first (ranked by procedure date)
+		IF OBJECT_ID(N'tempdb..#pe_ga_7c') IS NOT NULL DROP TABLE #pe_ga_7c;
 		select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min, a.procedure_date
 		into #pe_ga_7c
@@ -1866,6 +1782,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_7d') IS NOT NULL DROP TABLE #pe_ga_7d;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -1877,6 +1794,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as a;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_7_final') IS NOT NULL DROP TABLE #pe_ga_7_final;
 		select *,
 		--valid pregnancy start date flag
 		case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -1899,26 +1817,16 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_7d;
 
 		--Union assigned episodes thus far
+		IF OBJECT_ID(N'tempdb..#pe_ga_1to7_final') IS NOT NULL DROP TABLE #pe_ga_1to7_final;
 		select * into #pe_ga_1to7_final from #pe_ga_1to6_final
 		union select * from #pe_ga_7_final where valid_start_date = 1 and valid_ga = 1;",
                               .con = conn)
   DBI::dbExecute(conn = conn, step8g_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_7a", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_7b", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_7c", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_7d", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_7_final", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to6_final", temporary = T), silent = T)
   
   message("--STEP 8H: Cell free fetal DNA screening")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_8a", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_8b", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_8c", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_8d", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_8_final", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to8_final", temporary = T), silent = T)   
   step8h_sql <- glue::glue_sql("
 	 --Pull forward episodes not assigned in prior steps
+		IF OBJECT_ID(N'tempdb..#pe_ga_8a') IS NOT NULL DROP TABLE #pe_ga_8a;
 		select a.*
 		into #pe_ga_8a
 		from #pe_preg_episode_temp as a
@@ -1927,6 +1835,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Pull out pregnany episodes that have a procedure code for cell-free DNA sampling during the prenatal window, collapse to distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_8b') IS NOT NULL DROP TABLE #pe_ga_8b;
 		select distinct a.*, b.last_service_date as procedure_date
 		into #pe_ga_8b
 		from #pe_ga_8a as a
@@ -1936,6 +1845,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			and b.last_service_date between a.preg_start_date and a.preg_end_date;
 		
 		--For episodes with multiple cell-free DNA sampling services, select first (ranked by procedure date)
+		IF OBJECT_ID(N'tempdb..#pe_ga_8c') IS NOT NULL DROP TABLE #pe_ga_8c;
 		select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min, a.procedure_date
 		into #pe_ga_8c
@@ -1943,6 +1853,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_8d') IS NOT NULL DROP TABLE #pe_ga_8d;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -1954,6 +1865,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as a;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_8_final') IS NOT NULL DROP TABLE #pe_ga_8_final;
 		select *,
 		--valid pregnancy start date flag
 		case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -1976,30 +1888,16 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_8d;
 		
 		--Union assigned episodes thus far
+		IF OBJECT_ID(N'tempdb..#pe_ga_1to8_final') IS NOT NULL DROP TABLE #pe_ga_1to8_final;
 		select * into #pe_ga_1to8_final from #pe_ga_1to7_final
 		union select * from #pe_ga_8_final where valid_start_date = 1 and valid_ga = 1;",
                               .con = conn)
   DBI::dbExecute(conn = conn, step8h_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_8a", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_8b", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_8c", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_8d", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_8_final", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to7_final", temporary = T), silent = T)   
-  
+
   message("--STEP 8I: Full-term code for live birth or stillbirth within 7 days of outcome date")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_9a", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_dx_distinct_step8", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_dx_fullterm", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ref_dx_fullterm", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_fullterm_dx", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_9b", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_9c", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_9d", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_9_final", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to9_final", temporary = T), silent = T)  
   step8i_sql <- glue::glue_sql("
 	 --Pull forward episodes not assigned in prior steps
+	  IF OBJECT_ID(N'tempdb..#pe_ga_9a') IS NOT NULL DROP TABLE #pe_ga_9a;
 		select a.*
 		into #pe_ga_9a
 		from #pe_preg_episode_temp as a
@@ -2008,17 +1906,20 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Pull out distinct ICD-10-CM codes from claims >= 2016-01-01 (<1 min)
+		IF OBJECT_ID(N'tempdb..#pe_dx_distinct_step8') IS NOT NULL DROP TABLE #pe_dx_distinct_step8;
 		select distinct icdcm_norm
 		into #pe_dx_distinct_step8
 		from {`final_schema`}.{`paste0(final_table,'mcaid_claim_icdcm_header')`}
 		where last_service_date >= '2016-01-01';
 		
 		--Create temp table holding full-term status ICD-10-CM codes in LIKE format
+		IF OBJECT_ID(N'tempdb..#pe_dx_fullterm') IS NOT NULL DROP TABLE #pe_dx_fullterm;
 		create table #pe_dx_fullterm (code_like varchar(255));
 		insert into #pe_dx_fullterm (code_like)
 		values ('O6020%'), ('O6022%'), ('O6023%'), ('O4202%'), ('O4292%'), ('O471%'), ('O80%');
 		
 		--Join distinct ICD-10-CM codes to full-term ICD-10-CM reference table (<1 min)
+		IF OBJECT_ID(N'tempdb..#pe_ref_dx_fullterm') IS NOT NULL DROP TABLE #pe_ref_dx_fullterm;
 		select distinct a.icdcm_norm, b.code_like
 		into #pe_ref_dx_fullterm
 		from #pe_dx_distinct_step8 as a
@@ -2026,6 +1927,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		on a.icdcm_norm like b.code_like;
 		
 		--Join new reference table to claims data using EXACT join (1 min)
+		IF OBJECT_ID(N'tempdb..#pe_fullterm_dx') IS NOT NULL DROP TABLE #pe_fullterm_dx;
 		select a.id_mcaid, a.last_service_date, a.icdcm_norm
 		into #pe_fullterm_dx
 		from {`final_schema`}.{`paste0(final_table,'mcaid_claim_icdcm_header')`} as a
@@ -2035,6 +1937,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		
 		--Pull out pregnancy episodes that have a full-term status ICD-10-CM code within 7 days of the outcome
 		--Only include livebirth and stillbirth outcomes
+		IF OBJECT_ID(N'tempdb..#pe_ga_9b') IS NOT NULL DROP TABLE #pe_ga_9b;
 		select a.*, b.last_service_date as procedure_date
 		into #pe_ga_9b
 		from #pe_ga_9a as a
@@ -2044,6 +1947,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			and a.preg_endpoint in ('lb', 'sb');
 		
 		--For episodes with multiple relevant services, select first (ranked by procedure date) and take distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_9c') IS NOT NULL DROP TABLE #pe_ga_9c;
 		select distinct a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min, a.procedure_date
 		into #pe_ga_9c
@@ -2051,6 +1955,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_9d') IS NOT NULL DROP TABLE #pe_ga_9d;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -2062,6 +1967,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as a;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_9_final') IS NOT NULL DROP TABLE #pe_ga_9_final;
 		select *,
 		--valid pregnancy start date flag
 		case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -2084,35 +1990,16 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_9d;
 		
 		--Union assigned episodes thus far
+		IF OBJECT_ID(N'tempdb..#pe_ga_9_final') IS NOT NULL DROP TABLE #pe_ga_9_final;
 		select * into #pe_ga_1to9_final from #pe_ga_1to8_final
 		union select * from #pe_ga_9_final where valid_start_date = 1 and valid_ga = 1;",
                               .con = conn)
   DBI::dbExecute(conn = conn, step8i_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_9a", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_dx_fullterm", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ref_dx_fullterm", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_fullterm_dx", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_9b", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_9c", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_9d", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_9_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to8_final", temporary = T), silent = T)  
   
   message("--STEP 8J: Trimester codes within 7 days of outcome date")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_10a", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ref_dx_trimester", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_trimester_dx", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_px_distinct_step10", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ref_px_trimester", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_trimester_px", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_trimester_dx_px", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_10b", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_10c", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_10d", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_10_final", temporary = T), silent = T)   
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to10_final", temporary = T), silent = T) 
   step8j_sql <- glue::glue_sql("
 	 --Pull forward episodes not assigned in prior steps
+		IF OBJECT_ID(N'tempdb..#pe_ga_10a') IS NOT NULL DROP TABLE #pe_ga_10a;
 		select a.*
 		into #pe_ga_10a
 		from #pe_preg_episode_temp as a
@@ -2121,6 +2008,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Join distinct ICD-10-CM codes to ICD-10-CM codes in trimester codes reference table (<1 min)
+		IF OBJECT_ID(N'tempdb..#pe_ref_dx_trimester') IS NOT NULL DROP TABLE #pe_ref_dx_trimester;
 		select distinct a.icdcm_norm, b.code_like, b.trimester
 		into #pe_ref_dx_trimester
 		from #pe_dx_distinct_step8 as a
@@ -2128,6 +2016,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		on a.icdcm_norm like b.code_like;
 		
 		--Join new reference table to claims data using EXACT join (1 min)
+		IF OBJECT_ID(N'tempdb..#pe_trimester_dx') IS NOT NULL DROP TABLE #pe_trimester_dx;
 		select a.id_mcaid, a.last_service_date, b.trimester
 		into #pe_trimester_dx
 		from {`final_schema`}.{`paste0(final_table,'mcaid_claim_icdcm_header')`} as a
@@ -2136,12 +2025,14 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.last_service_date >= '2016-01-01';
 		
 		--Pull out distinct procedure codes from claims >= 2016-01-01 (<1 min)
+		IF OBJECT_ID(N'tempdb..#pe_px_distinct_step10') IS NOT NULL DROP TABLE #pe_px_distinct_step10;
 		select distinct procedure_code
 		into #pe_px_distinct_step10
 		from {`final_schema`}.{`paste0(final_table,'mcaid_claim_procedure')`}
 		where last_service_date >= '2016-01-01';
 		
 		--Join distinct procedure codes to procedure codes in trimester codes reference table using LIKE join (<1 min)
+		IF OBJECT_ID(N'tempdb..#pe_ref_px_trimester') IS NOT NULL DROP TABLE #pe_ref_px_trimester;
 		select distinct a.procedure_code, b.code_like, b.trimester
 		into #pe_ref_px_trimester
 		from #pe_px_distinct_step10 as a
@@ -2149,6 +2040,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		on a.procedure_code like b.code_like;
 		
 		--Join new reference table to claims data using EXACT join (1 min)
+		IF OBJECT_ID(N'tempdb..#pe_trimester_px') IS NOT NULL DROP TABLE #pe_trimester_px;
 		select a.id_mcaid, a.last_service_date, b.trimester
 		into #pe_trimester_px
 		from {`final_schema`}.{`paste0(final_table,'mcaid_claim_procedure')`} as a
@@ -2157,10 +2049,12 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.last_service_date >= '2016-01-01';
 		
 		--Union diagnosis and procedure code tables
+		IF OBJECT_ID(N'tempdb..#pe_trimester_dx_px') IS NOT NULL DROP TABLE #pe_trimester_dx_px;
 		select * into #pe_trimester_dx_px from #pe_trimester_dx
 		union select * from #pe_trimester_px;
 		
 		--Pull out pregnany episodes that have a trimester code within 7 days of the outcome
+		IF OBJECT_ID(N'tempdb..#pe_ga_10b') IS NOT NULL DROP TABLE #pe_ga_10b;
 		select a.*, b.last_service_date as procedure_date, b.trimester
 		into #pe_ga_10b
 		from #pe_ga_10a as a
@@ -2169,6 +2063,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where (b.last_service_date between dateadd(day, -7, a.preg_end_date) and dateadd(day, 7, a.preg_end_date));
 		
 		--For episodes with multiple relevant services, select first (ranked by procedure date DESC, trimester) and take distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_10c') IS NOT NULL DROP TABLE #pe_ga_10c;
 		select distinct a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min, a.procedure_date, a.trimester
 		into #pe_ga_10c
@@ -2176,6 +2071,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_10d') IS NOT NULL DROP TABLE #pe_ga_10d;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -2195,6 +2091,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as a;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_10_final') IS NOT NULL DROP TABLE #pe_ga_10_final;
 		select *,
 		--valid pregnancy start date flag
 		case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -2217,35 +2114,17 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_10d;
 
 		--Union assigned episodes thus far
+		IF OBJECT_ID(N'tempdb..#pe_ga_1to10_final') IS NOT NULL DROP TABLE #pe_ga_1to10_final;
 		select * into #pe_ga_1to10_final from #pe_ga_1to9_final
 		union select * from #pe_ga_10_final where valid_start_date = 1 and valid_ga = 1;",
     .con = conn)
   
   DBI::dbExecute(conn = conn, step8j_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_10a", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ref_dx_trimester", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_trimester_dx", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_px_distinct_step10", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ref_px_trimester", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_trimester_px", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_10b", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_10c", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_10d", temporary = T), silent = T)    
-  try(odbc::dbRemoveTable(conn, "#pe_ga_10_final", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to9_final", temporary = T), silent = T)
-  
+
   message("--STEP 8K: Preterm code within 7 days of outcome date")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_11a", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_dx_preterm", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ref_dx_preterm", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_preterm_dx", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_11b", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_11c", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_11d", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_11_final", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to11_final", temporary = T), silent = T) 
   step8k_sql <- glue::glue_sql("
 	 --Pull forward episodes not assigned in prior steps
+		IF OBJECT_ID(N'tempdb..#pe_ga_11a') IS NOT NULL DROP TABLE #pe_ga_11a;
 		select a.*
 		into #pe_ga_11a
 		from #pe_preg_episode_temp as a
@@ -2254,11 +2133,13 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Create temp table holding preterm status ICD-10-CM codes in LIKE format
+		IF OBJECT_ID(N'tempdb..#pe_dx_preterm') IS NOT NULL DROP TABLE #pe_dx_preterm;
 		create table #pe_dx_preterm (code_like varchar(255));
 		insert into #pe_dx_preterm (code_like)
 		values ('O6010%'), ('O6012%'), ('O6013%'), ('O6014%'), ('O4201%'), ('O4211%'), ('O4291%');
 		
 		--Join distinct ICD-10-CM codes to preterm ICD-10-CM reference table (<1 min)
+		IF OBJECT_ID(N'tempdb..#pe_ref_dx_preterm') IS NOT NULL DROP TABLE #pe_ref_dx_preterm;
 		select distinct a.icdcm_norm, b.code_like
 		into #pe_ref_dx_preterm
 		from #pe_dx_distinct_step8 as a
@@ -2266,6 +2147,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		on a.icdcm_norm like b.code_like;
 		
 		--Join new reference table to claims data using EXACT join (1 min)
+		IF OBJECT_ID(N'tempdb..#pe_preterm_dx') IS NOT NULL DROP TABLE #pe_preterm_dx;
 		select a.id_mcaid, a.last_service_date, a.icdcm_norm
 		into #pe_preterm_dx
 		from {`final_schema`}.{`paste0(final_table,'mcaid_claim_icdcm_header')`} as a
@@ -2275,6 +2157,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		
 		--Pull out pregnancy episodes that have a preterm status ICD-10-CM code within 7 days of the outcome
 		--Only include livebirth and stillbirth outcomes
+		IF OBJECT_ID(N'tempdb..#pe_ga_11b') IS NOT NULL DROP TABLE #pe_ga_11b;
 		select a.*, b.last_service_date as procedure_date
 		into #pe_ga_11b
 		from #pe_ga_11a as a
@@ -2283,6 +2166,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where (b.last_service_date between dateadd(day, -7, a.preg_end_date) and dateadd(day, 7, a.preg_end_date));
 		
 		--For episodes with multiple relevant services, select first (ranked by procedure date) and take distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_11c') IS NOT NULL DROP TABLE #pe_ga_11c;
 		select distinct a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min, a.procedure_date
 		into #pe_ga_11c
@@ -2290,6 +2174,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_11d') IS NOT NULL DROP TABLE #pe_ga_11d;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -2301,6 +2186,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as a;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_11_final') IS NOT NULL DROP TABLE #pe_ga_11_final;
 		select *,
 		--valid pregnancy start date flag
 		case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -2323,29 +2209,16 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_11d;
 		
 		--Union assigned episodes thus far
+		IF OBJECT_ID(N'tempdb..#pe_ga_1to11_final') IS NOT NULL DROP TABLE #pe_ga_1to11_final;
 		select * into #pe_ga_1to11_final from #pe_ga_1to10_final
 		union select * from #pe_ga_11_final where valid_start_date = 1 and valid_ga = 1;",
                               .con = conn)
   DBI::dbExecute(conn = conn, step8k_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_11a", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_dx_preterm", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ref_dx_preterm", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_preterm_dx", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_11b", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_11c", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_11d", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_11_final", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to10_final", temporary = T), silent = T)  
   
   message("--STEP 8L: First glucose screening or tolerance test")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_12a", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_12b", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_12c", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_12d", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_12_final", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to12_final", temporary = T), silent = T)   
   step8l_sql <- glue::glue_sql("
 	 --Pull forward episodes not assigned in prior steps	
+		IF OBJECT_ID(N'tempdb..#pe_ga_12a') IS NOT NULL DROP TABLE #pe_ga_12a;
 		select a.*
 		into #pe_ga_12a
 		from #pe_preg_episode_temp as a
@@ -2354,6 +2227,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Pull out pregnany episodes that have a procedure code for glucose screening/tolerance test during the prenatal window, collapse to distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_12b') IS NOT NULL DROP TABLE #pe_ga_12b;
 		select distinct a.*, b.last_service_date as procedure_date
 		into #pe_ga_12b
 		from #pe_ga_12a as a
@@ -2363,6 +2237,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 			and b.last_service_date between a.preg_start_date and a.preg_end_date;
 		
 		--For episodes with multiple glucose screenings, select first (ranked by procedure date)
+		IF OBJECT_ID(N'tempdb..#pe_ga_12c') IS NOT NULL DROP TABLE #pe_ga_12c;
 		select a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min, a.procedure_date
 		into #pe_ga_12c
@@ -2370,6 +2245,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_12d') IS NOT NULL DROP TABLE #pe_ga_12d;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -2381,6 +2257,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as a;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_12_final') IS NOT NULL DROP TABLE #pe_ga_12_final;
 		select *,
 		--valid pregnancy start date flag
 		case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -2403,27 +2280,16 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_12d;
 		
 		--Union assigned episodes thus far
+		IF OBJECT_ID(N'tempdb..#pe_ga_1to12_final') IS NOT NULL DROP TABLE #pe_ga_1to12_final;
 		select * into #pe_ga_1to12_final from #pe_ga_1to11_final
 		union select * from #pe_ga_12_final where valid_start_date = 1 and valid_ga = 1;",
                               .con = conn)
   DBI::dbExecute(conn = conn, step8l_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_12a", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_12b", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_12c", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_12d", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_12_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_#pe_ga_1to11_final", temporary = T), silent = T)
-  
+
   message("--STEP 8M: Prenatal service > 7 days before outcome date with a trimester code")
-  try(odbc::dbRemoveTable(conn, "#pe_ga_13a", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_13b", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_13c", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_13d", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_13_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to13_final", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_preg_episode", temporary = T), silent = T)   
   step8m_sql <- glue::glue_sql("
 	 --Pull forward episodes not assigned in prior steps
+		IF OBJECT_ID(N'tempdb..#pe_ga_13a') IS NOT NULL DROP TABLE #pe_ga_13a;
 		select a.*
 		into #pe_ga_13a
 		from #pe_preg_episode_temp as a
@@ -2432,6 +2298,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;
 		
 		--Pull out pregnany episodes that have a trimester code > 7 days before outcome
+		IF OBJECT_ID(N'tempdb..#pe_ga_13b') IS NOT NULL DROP TABLE #pe_ga_13b;
 		select a.*, b.last_service_date as procedure_date, b.trimester
 		into #pe_ga_13b
 		from #pe_ga_13a as a
@@ -2440,6 +2307,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where (b.last_service_date < dateadd(day, -7, a.preg_end_date));
 		
 		--For episodes with multiple relevant services, select first (ranked by procedure date DESC, trimester) and take distinct rows
+		IF OBJECT_ID(N'tempdb..#pe_ga_13c') IS NOT NULL DROP TABLE #pe_ga_13c;
 		select distinct a.id_mcaid, a.last_service_date, a.preg_endpoint, a.preg_hier, a.preg_episode_id, a.preg_start_date, a.preg_end_date,
 			a.preg_start_date_max, a.preg_start_date_min, a.procedure_date, a.trimester
 		into #pe_ga_13c
@@ -2447,6 +2315,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where a.rank_col = 1;
 		
 		--Create column to hold corrected start date and calculate GA in days and weeks
+		IF OBJECT_ID(N'tempdb..#pe_ga_13d') IS NOT NULL DROP TABLE #pe_ga_13d;
 		select a.*,
 			datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1 as ga_days,
 			cast(round((datediff(day, a.preg_start_date_correct, a.preg_end_date) + 1)*1.0/7, 1) as numeric(4,1)) as ga_weeks
@@ -2466,6 +2335,7 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		) as a;
 		
 		--Create final dataset with flags for plausible pregnancy start date and GA
+		IF OBJECT_ID(N'tempdb..#pe_ga_13_final') IS NOT NULL DROP TABLE #pe_ga_13_final;
 		select *,
 		--valid pregnancy start date flag
 		case when preg_start_date_correct between preg_start_date_max and preg_start_date_min then 1 else 0 end as valid_start_date,
@@ -2488,12 +2358,14 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		from #pe_ga_13d;
 		
 		--Union assigned episodes thus far
+		IF OBJECT_ID(N'tempdb..#pe_ga_1to13_final') IS NOT NULL DROP TABLE #pe_ga_1to13_final;
 		select * into #pe_ga_1to13_final from #pe_ga_1to12_final
 		union select * from #pe_ga_13_final where valid_start_date = 1 and valid_ga = 1;
 				
 		---------------
 		--Union episodes that were not flagged by any of the 13 steps
 		---------------
+		IF OBJECT_ID(N'tempdb..#pe_preg_episode') IS NOT NULL DROP TABLE #pe_preg_episode;
 		select id_mcaid, preg_episode_id, preg_endpoint, preg_hier, preg_start_date_correct as preg_start_date,
 			preg_end_date, ga_days, ga_weeks, valid_start_date, valid_ga, lb_type, ga_estimation_step
 		into #pe_preg_episode
@@ -2508,17 +2380,10 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where b.preg_episode_id is null;",
                               .con = conn)
   DBI::dbExecute(conn = conn, step8m_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_13a", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_13b", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_13c", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_13d", temporary = T), silent = T)  
-  try(odbc::dbRemoveTable(conn, "#pe_ga_13_final", temporary = T), silent = T) 
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to12_final", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_ga_1to13_final", temporary = T), silent = T)
-  
+
   message("STEP 9: Join to eligibility data to bring in age for subset")
-  try(odbc::dbRemoveTable(conn, "#pe_preg_episode_age_all", temporary = T), silent = T)
   step9_sql <- glue::glue_sql("
+    IF OBJECT_ID(N'tempdb..#pe_preg_episode_age_all') IS NOT NULL DROP TABLE #pe_preg_episode_age_all;
     select a.id_mcaid,  
 			case
 				when floor((datediff(day, b.dob, a.preg_end_date) + 1) / 365.25) >=0 then floor((datediff(day, b.dob, a.preg_end_date) + 1) / 365.25)
@@ -2549,9 +2414,174 @@ load_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
 		where age_at_outcome between 12 and 55;",
     .con = conn)
   DBI::dbExecute(conn = conn, step9_sql)
-  try(odbc::dbRemoveTable(conn, "#pe_preg_episode", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_preg_episode_age_all", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "#pe_trimester_dx_px", temporary = T), silent = T)
+
+  DBI::dbExecute(conn = conn, "
+IF OBJECT_ID(N'tempdb..#pe_dx_distinct') IS NOT NULL drop table #pe_dx_distinct;
+IF OBJECT_ID(N'tempdb..#pe_ref_dx') IS NOT NULL drop table #pe_ref_dx;
+IF OBJECT_ID(N'tempdb..#pe_preg_dx') IS NOT NULL drop table #pe_preg_dx;
+IF OBJECT_ID(N'tempdb..#pe_px_distinct') IS NOT NULL drop table #pe_px_distinct;
+IF OBJECT_ID(N'tempdb..#pe_ref_px') IS NOT NULL drop table #pe_ref_px;
+IF OBJECT_ID(N'tempdb..#pe_preg_px') IS NOT NULL drop table #pe_preg_px;
+IF OBJECT_ID(N'tempdb..#pe_temp1') IS NOT NULL drop table #pe_temp1;
+IF OBJECT_ID(N'tempdb..#pe_preg_dx_px') IS NOT NULL DROP TABLE #pe_preg_dx_px;
+IF OBJECT_ID(N'tempdb..#pe_temp_2') IS NOT NULL DROP TABLE #pe_temp_2;
+IF OBJECT_ID(N'tempdb..#pe_temp_3') IS NOT NULL DROP TABLE #pe_temp_3;
+IF OBJECT_ID(N'tempdb..#pe_temp_4') IS NOT NULL DROP TABLE #pe_temp_4;
+IF OBJECT_ID(N'tempdb..#pe_temp_5') IS NOT NULL DROP TABLE #pe_temp_5;
+IF OBJECT_ID(N'tempdb..#pe_preg_endpoint') IS NOT NULL DROP TABLE #pe_preg_endpoint;
+IF OBJECT_ID(N'tempdb..#pe_lb_step1') IS NOT NULL DROP TABLE #pe_lb_step1;
+IF OBJECT_ID(N'tempdb..#pe_lb_final') IS NOT NULL DROP TABLE #pe_lb_final;
+IF OBJECT_ID(N'tempdb..#pe_sb_step1') IS NOT NULL DROP TABLE #pe_sb_step1;
+IF OBJECT_ID(N'tempdb..#pe_sb_step2') IS NOT NULL DROP TABLE #pe_sb_step2;
+IF OBJECT_ID(N'tempdb..#pe_sb_step3') IS NOT NULL DROP TABLE #pe_sb_step3;
+IF OBJECT_ID(N'tempdb..#pe_sb_step4') IS NOT NULL DROP TABLE #pe_sb_step4;
+IF OBJECT_ID(N'tempdb..#pe_sb_step5') IS NOT NULL DROP TABLE #pe_sb_step5;
+IF OBJECT_ID(N'tempdb..#pe_sb_final') IS NOT NULL DROP TABLE #pe_sb_final;
+IF OBJECT_ID(N'tempdb..#pe_lb_sb_final') IS NOT NULL DROP TABLE #pe_lb_sb_final;
+IF OBJECT_ID(N'tempdb..#pe_deliv_step1') IS NOT NULL DROP TABLE #pe_deliv_step1;
+IF OBJECT_ID(N'tempdb..#pe_deliv_step2') IS NOT NULL DROP TABLE #pe_deliv_step2;
+IF OBJECT_ID(N'tempdb..#pe_deliv_step3') IS NOT NULL DROP TABLE #pe_deliv_step3;
+IF OBJECT_ID(N'tempdb..#pe_deliv_step4') IS NOT NULL DROP TABLE #pe_deliv_step4;
+IF OBJECT_ID(N'tempdb..#pe_deliv_step5') IS NOT NULL DROP TABLE #pe_deliv_step5;
+IF OBJECT_ID(N'tempdb..#pe_deliv_final') IS NOT NULL DROP TABLE #pe_deliv_final;
+IF OBJECT_ID(N'tempdb..#pe_lb_sb_deliv_final') IS NOT NULL DROP TABLE #pe_lb_sb_deliv_final;
+IF OBJECT_ID(N'tempdb..#pe_tro_step1') IS NOT NULL DROP TABLE #pe_tro_step1;
+IF OBJECT_ID(N'tempdb..#pe_tro_step2') IS NOT NULL DROP TABLE #pe_tro_step2;
+IF OBJECT_ID(N'tempdb..#pe_tro_step3') IS NOT NULL DROP TABLE #pe_tro_step3;
+IF OBJECT_ID(N'tempdb..#pe_tro_step4') IS NOT NULL DROP TABLE #pe_tro_step4;
+IF OBJECT_ID(N'tempdb..#pe_tro_step5') IS NOT NULL DROP TABLE #pe_tro_step5;
+IF OBJECT_ID(N'tempdb..#pe_tro_final') IS NOT NULL DROP TABLE #pe_tro_final;
+IF OBJECT_ID(N'tempdb..#pe_lb_sb_deliv_tro_final') IS NOT NULL DROP TABLE #pe_lb_sb_deliv_tro_final;
+IF OBJECT_ID(N'tempdb..#pe_ect_step1') IS NOT NULL DROP TABLE #pe_ect_step1;
+IF OBJECT_ID(N'tempdb..#pe_ect_step2') IS NOT NULL DROP TABLE #pe_ect_step2;
+IF OBJECT_ID(N'tempdb..#pe_ect_step3') IS NOT NULL DROP TABLE #pe_ect_step3;
+IF OBJECT_ID(N'tempdb..#pe_ect_step4') IS NOT NULL DROP TABLE #pe_ect_step4;
+IF OBJECT_ID(N'tempdb..#pe_ect_step5') IS NOT NULL DROP TABLE #pe_ect_step5;
+IF OBJECT_ID(N'tempdb..#pe_ect_final') IS NOT NULL DROP TABLE #pe_ect_final;
+IF OBJECT_ID(N'tempdb..#pe_lb_sb_deliv_tro_ect_final') IS NOT NULL DROP TABLE #pe_lb_sb_deliv_tro_ect_final;
+IF OBJECT_ID(N'tempdb..#pe_ab_step1') IS NOT NULL DROP TABLE #pe_ab_step1;
+IF OBJECT_ID(N'tempdb..#pe_ab_step2') IS NOT NULL DROP TABLE #pe_ab_step2;
+IF OBJECT_ID(N'tempdb..#pe_ab_step3') IS NOT NULL DROP TABLE #pe_ab_step3;
+IF OBJECT_ID(N'tempdb..#pe_ab_step4') IS NOT NULL DROP TABLE #pe_ab_step4;
+IF OBJECT_ID(N'tempdb..#pe_ab_step5') IS NOT NULL DROP TABLE #pe_ab_step5;
+IF OBJECT_ID(N'tempdb..#pe_ab_final') IS NOT NULL DROP TABLE #pe_ab_final;
+IF OBJECT_ID(N'tempdb..#pe_lb_sb_deliv_tro_ect_ab_final') IS NOT NULL DROP TABLE #pe_lb_sb_deliv_tro_ect_ab_final;
+IF OBJECT_ID(N'tempdb..#pe_sa_step1') IS NOT NULL DROP TABLE #pe_sa_step1;
+IF OBJECT_ID(N'tempdb..#pe_sa_step2') IS NOT NULL DROP TABLE #pe_sa_step2;
+IF OBJECT_ID(N'tempdb..#pe_sa_step3') IS NOT NULL DROP TABLE #pe_sa_step3;
+IF OBJECT_ID(N'tempdb..#pe_sa_step4') IS NOT NULL DROP TABLE #pe_sa_step4;
+IF OBJECT_ID(N'tempdb..#pe_sa_step5') IS NOT NULL DROP TABLE #pe_sa_step5;
+IF OBJECT_ID(N'tempdb..#pe_sa_final') IS NOT NULL DROP TABLE #pe_sa_final;
+IF OBJECT_ID(N'tempdb..#pe_preg_endpoint_union') IS NOT NULL DROP TABLE #pe_preg_endpoint_union;
+IF OBJECT_ID(N'tempdb..#pe_episode_0') IS NOT NULL DROP TABLE #pe_episode_0;
+IF OBJECT_ID(N'tempdb..#pe_episode_1') IS NOT NULL DROP TABLE #pe_episode_1;
+IF OBJECT_ID(N'tempdb..#pe_episode_2') IS NOT NULL DROP TABLE #pe_episode_2;
+IF OBJECT_ID(N'tempdb..#pe_episode_temp') IS NOT NULL DROP TABLE #pe_episode_temp;
+IF OBJECT_ID(N'tempdb..#pe_ga_1a') IS NOT NULL DROP TABLE #pe_ga_1a;
+IF OBJECT_ID(N'tempdb..#pe_ga_1b') IS NOT NULL DROP TABLE #pe_ga_1b;
+IF OBJECT_ID(N'tempdb..#pe_ga_1c') IS NOT NULL DROP TABLE #pe_ga_1c;
+IF OBJECT_ID(N'tempdb..#pe_ga_1d') IS NOT NULL DROP TABLE #pe_ga_1d;
+IF OBJECT_ID(N'tempdb..#pe_ga_1_final') IS NOT NULL DROP TABLE #pe_ga_1_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_2a') IS NOT NULL DROP TABLE #pe_ga_2a;
+IF OBJECT_ID(N'tempdb..#pe_ga_2b') IS NOT NULL DROP TABLE #pe_ga_2b;
+IF OBJECT_ID(N'tempdb..#pe_ga_2c') IS NOT NULL DROP TABLE #pe_ga_2c;
+IF OBJECT_ID(N'tempdb..#pe_ga_2d') IS NOT NULL DROP TABLE #pe_ga_2d;
+IF OBJECT_ID(N'tempdb..#pe_ga_2e') IS NOT NULL DROP TABLE #pe_ga_2e;
+IF OBJECT_ID(N'tempdb..#pe_ga_2f') IS NOT NULL DROP TABLE #pe_ga_2f;
+IF OBJECT_ID(N'tempdb..#pe_ga_2_final') IS NOT NULL DROP TABLE #pe_ga_2_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_1to2_final') IS NOT NULL DROP TABLE #pe_ga_1to2_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_3a') IS NOT NULL DROP TABLE #pe_ga_3a;
+IF OBJECT_ID(N'tempdb..#pe_ga_3b') IS NOT NULL DROP TABLE #pe_ga_3b;
+IF OBJECT_ID(N'tempdb..#pe_ga_3c') IS NOT NULL DROP TABLE #pe_ga_3c;
+IF OBJECT_ID(N'tempdb..#pe_ga_3d') IS NOT NULL DROP TABLE #pe_ga_3d;
+IF OBJECT_ID(N'tempdb..#pe_ga_3e') IS NOT NULL DROP TABLE #pe_ga_3e;
+IF OBJECT_ID(N'tempdb..#pe_ga_3f') IS NOT NULL DROP TABLE #pe_ga_3f;
+IF OBJECT_ID(N'tempdb..#pe_ga_3_final') IS NOT NULL DROP TABLE #pe_ga_3_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_1to3_final') IS NOT NULL DROP TABLE #pe_ga_1to3_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_4a') IS NOT NULL DROP TABLE #pe_ga_4a;
+IF OBJECT_ID(N'tempdb..#pe_ga_4b') IS NOT NULL DROP TABLE #pe_ga_4b;
+IF OBJECT_ID(N'tempdb..#pe_ga_4c') IS NOT NULL DROP TABLE #pe_ga_4c;
+IF OBJECT_ID(N'tempdb..#pe_ga_4d') IS NOT NULL DROP TABLE #pe_ga_4d;
+IF OBJECT_ID(N'tempdb..#pe_ga_4e') IS NOT NULL DROP TABLE #pe_ga_4e;
+IF OBJECT_ID(N'tempdb..#pe_ga_4f') IS NOT NULL DROP TABLE #pe_ga_4f;
+IF OBJECT_ID(N'tempdb..#pe_ga_4_final') IS NOT NULL DROP TABLE #pe_ga_4_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_1to4_final') IS NOT NULL DROP TABLE #pe_ga_1to4_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_5a') IS NOT NULL DROP TABLE #pe_ga_5a;
+IF OBJECT_ID(N'tempdb..#pe_ga_5b') IS NOT NULL DROP TABLE #pe_ga_5b;
+IF OBJECT_ID(N'tempdb..#pe_ga_5c') IS NOT NULL DROP TABLE #pe_ga_5c;
+IF OBJECT_ID(N'tempdb..#pe_ga_5d') IS NOT NULL DROP TABLE #pe_ga_5d;
+IF OBJECT_ID(N'tempdb..#pe_ga_5e') IS NOT NULL DROP TABLE #pe_ga_5e;
+IF OBJECT_ID(N'tempdb..#pe_ga_5f') IS NOT NULL DROP TABLE #pe_ga_5f;
+IF OBJECT_ID(N'tempdb..#pe_ga_5g') IS NOT NULL DROP TABLE #pe_ga_5g;
+IF OBJECT_ID(N'tempdb..#pe_ga_5h') IS NOT NULL DROP TABLE #pe_ga_5h;
+IF OBJECT_ID(N'tempdb..#pe_ga_5i') IS NOT NULL DROP TABLE #pe_ga_5i;
+IF OBJECT_ID(N'tempdb..#pe_ga_5j') IS NOT NULL DROP TABLE #pe_ga_5j;
+IF OBJECT_ID(N'tempdb..#pe_ga_5_final') IS NOT NULL DROP TABLE #pe_ga_5_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_1to5_final') IS NOT NULL DROP TABLE #pe_ga_1to5_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_6a') IS NOT NULL DROP TABLE #pe_ga_6a;
+IF OBJECT_ID(N'tempdb..#pe_ga_6b') IS NOT NULL DROP TABLE #pe_ga_6b;
+IF OBJECT_ID(N'tempdb..#pe_ga_6c') IS NOT NULL DROP TABLE #pe_ga_6c;
+IF OBJECT_ID(N'tempdb..#pe_ga_6d') IS NOT NULL DROP TABLE #pe_ga_6d;
+IF OBJECT_ID(N'tempdb..#pe_ga_6_final') IS NOT NULL DROP TABLE #pe_ga_6_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_1to6_final') IS NOT NULL DROP TABLE #pe_ga_1to6_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_7a') IS NOT NULL DROP TABLE #pe_ga_7a;
+IF OBJECT_ID(N'tempdb..#pe_ga_7b') IS NOT NULL DROP TABLE #pe_ga_7b;
+IF OBJECT_ID(N'tempdb..#pe_ga_7c') IS NOT NULL DROP TABLE #pe_ga_7c;
+IF OBJECT_ID(N'tempdb..#pe_ga_7d') IS NOT NULL DROP TABLE #pe_ga_7d;
+IF OBJECT_ID(N'tempdb..#pe_ga_7_final') IS NOT NULL DROP TABLE #pe_ga_7_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_1to7_final') IS NOT NULL DROP TABLE #pe_ga_1to7_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_8a') IS NOT NULL DROP TABLE #pe_ga_8a;
+IF OBJECT_ID(N'tempdb..#pe_ga_8b') IS NOT NULL DROP TABLE #pe_ga_8b;
+IF OBJECT_ID(N'tempdb..#pe_ga_8c') IS NOT NULL DROP TABLE #pe_ga_8c;
+IF OBJECT_ID(N'tempdb..#pe_ga_8d') IS NOT NULL DROP TABLE #pe_ga_8d;
+IF OBJECT_ID(N'tempdb..#pe_ga_8_final') IS NOT NULL DROP TABLE #pe_ga_8_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_1to8_final') IS NOT NULL DROP TABLE #pe_ga_1to8_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_9a') IS NOT NULL DROP TABLE #pe_ga_9a;
+IF OBJECT_ID(N'tempdb..#pe_dx_distinct_step8') IS NOT NULL DROP TABLE #pe_dx_distinct_step8;
+IF OBJECT_ID(N'tempdb..#pe_dx_fullterm') IS NOT NULL DROP TABLE #pe_dx_fullterm;
+IF OBJECT_ID(N'tempdb..#pe_ref_dx_fullterm') IS NOT NULL DROP TABLE #pe_ref_dx_fullterm;
+IF OBJECT_ID(N'tempdb..#pe_fullterm_dx') IS NOT NULL DROP TABLE #pe_fullterm_dx;
+IF OBJECT_ID(N'tempdb..#pe_ga_9b') IS NOT NULL DROP TABLE #pe_ga_9b;
+IF OBJECT_ID(N'tempdb..#pe_ga_9c') IS NOT NULL DROP TABLE #pe_ga_9c;
+IF OBJECT_ID(N'tempdb..#pe_ga_9d') IS NOT NULL DROP TABLE #pe_ga_9d;
+IF OBJECT_ID(N'tempdb..#pe_ga_9_final') IS NOT NULL DROP TABLE #pe_ga_9_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_9_final') IS NOT NULL DROP TABLE #pe_ga_9_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_10a') IS NOT NULL DROP TABLE #pe_ga_10a;
+IF OBJECT_ID(N'tempdb..#pe_ref_dx_trimester') IS NOT NULL DROP TABLE #pe_ref_dx_trimester;
+IF OBJECT_ID(N'tempdb..#pe_trimester_dx') IS NOT NULL DROP TABLE #pe_trimester_dx;
+IF OBJECT_ID(N'tempdb..#pe_px_distinct_step10') IS NOT NULL DROP TABLE #pe_px_distinct_step10;
+IF OBJECT_ID(N'tempdb..#pe_ref_px_trimester') IS NOT NULL DROP TABLE #pe_ref_px_trimester;
+IF OBJECT_ID(N'tempdb..#pe_trimester_px') IS NOT NULL DROP TABLE #pe_trimester_px;
+IF OBJECT_ID(N'tempdb..#pe_trimester_dx_px') IS NOT NULL DROP TABLE #pe_trimester_dx_px;
+IF OBJECT_ID(N'tempdb..#pe_ga_10b') IS NOT NULL DROP TABLE #pe_ga_10b;
+IF OBJECT_ID(N'tempdb..#pe_ga_10c') IS NOT NULL DROP TABLE #pe_ga_10c;
+IF OBJECT_ID(N'tempdb..#pe_ga_10d') IS NOT NULL DROP TABLE #pe_ga_10d;
+IF OBJECT_ID(N'tempdb..#pe_ga_10_final') IS NOT NULL DROP TABLE #pe_ga_10_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_10_final') IS NOT NULL DROP TABLE #pe_ga_10_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_11a') IS NOT NULL DROP TABLE #pe_ga_11a;
+IF OBJECT_ID(N'tempdb..#pe_dx_preterm') IS NOT NULL DROP TABLE #pe_dx_preterm;
+IF OBJECT_ID(N'tempdb..#pe_ref_dx_preterm') IS NOT NULL DROP TABLE #pe_ref_dx_preterm;
+IF OBJECT_ID(N'tempdb..#pe_preterm_dx') IS NOT NULL DROP TABLE #pe_preterm_dx;
+IF OBJECT_ID(N'tempdb..#pe_ga_11b') IS NOT NULL DROP TABLE #pe_ga_11b;
+IF OBJECT_ID(N'tempdb..#pe_ga_11c') IS NOT NULL DROP TABLE #pe_ga_11c;
+IF OBJECT_ID(N'tempdb..#pe_ga_11d') IS NOT NULL DROP TABLE #pe_ga_11d;
+IF OBJECT_ID(N'tempdb..#pe_ga_11_final') IS NOT NULL DROP TABLE #pe_ga_11_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_1to11_final') IS NOT NULL DROP TABLE #pe_ga_1to11_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_1to11_final') IS NOT NULL DROP TABLE #pe_ga_1to11_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_12a') IS NOT NULL DROP TABLE #pe_ga_12a;
+IF OBJECT_ID(N'tempdb..#pe_ga_12b') IS NOT NULL DROP TABLE #pe_ga_12b;
+IF OBJECT_ID(N'tempdb..#pe_ga_12c') IS NOT NULL DROP TABLE #pe_ga_12c;
+IF OBJECT_ID(N'tempdb..#pe_ga_12d') IS NOT NULL DROP TABLE #pe_ga_12d;
+IF OBJECT_ID(N'tempdb..#pe_ga_12_final') IS NOT NULL DROP TABLE #pe_ga_12_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_1to12_final') IS NOT NULL DROP TABLE #pe_ga_1to12_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_13a') IS NOT NULL DROP TABLE #pe_ga_13a;
+IF OBJECT_ID(N'tempdb..#pe_ga_13b') IS NOT NULL DROP TABLE #pe_ga_13b;
+IF OBJECT_ID(N'tempdb..#pe_ga_13c') IS NOT NULL DROP TABLE #pe_ga_13c;
+IF OBJECT_ID(N'tempdb..#pe_ga_13d') IS NOT NULL DROP TABLE #pe_ga_13d;
+IF OBJECT_ID(N'tempdb..#pe_ga_13_final') IS NOT NULL DROP TABLE #pe_ga_13_final;
+IF OBJECT_ID(N'tempdb..#pe_ga_1to13_final') IS NOT NULL DROP TABLE #pe_ga_1to13_final;
+IF OBJECT_ID(N'tempdb..#pe_preg_episode') IS NOT NULL DROP TABLE #pe_preg_episode;
+IF OBJECT_ID(N'tempdb..#pe_preg_episode_age_all') IS NOT NULL DROP TABLE #pe_preg_episode_age_all;")
   
   time_end <- Sys.time()
   message("Loading took ", round(difftime(time_end, time_start, units = "secs"), 2), 
