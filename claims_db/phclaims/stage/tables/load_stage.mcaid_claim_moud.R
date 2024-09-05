@@ -46,7 +46,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   time_start <- Sys.time()
   
   #### DROP EXISTING TABLE TO USE SELECT INTO ####
-  try(DBI::dbRemoveTable(conn, DBI::Id(schema = to_schema, table = to_table)))
+  try(DBI::dbRemoveTable(conn, DBI::Id(schema = to_schema, table = to_table)), silent = T)
   
   #### LOAD TABLE ####
   message("STEP 1: Flag methadone episodes using HCPCS codes from 1/1/2016 onward")
@@ -105,7 +105,6 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step2_sql)
   
   message("STEP 3: Subset methadone HCPCS codes by considering primary diagnosis")
-
   step3_sql <- glue::glue_sql("
   IF OBJECT_ID(N'tempdb..#mcaid_moud_proc_3') IS NOT NULL DROP TABLE #mcaid_moud_proc_3;
 	  select distinct
@@ -143,7 +142,6 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step3_sql)
   
   message("STEP 4: Pull pharmacy fill data for bup and naltrexone prescriptions")
-
   step4_sql <- glue::glue_sql("
   IF OBJECT_ID(N'tempdb..#mcaid_moud_pharm_1') IS NOT NULL DROP TABLE #mcaid_moud_pharm_1;
 	  select distinct 
@@ -182,7 +180,6 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step4_sql)
   
   message("STEP 5: Union procedure code and pharmacy fill data")
-  
   step5_sql <- glue::glue_sql("
   IF OBJECT_ID(N'tempdb..#mcaid_moud_union_1') IS NOT NULL DROP TABLE #mcaid_moud_union_1;
 	  select 
@@ -227,16 +224,15 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   DBI::dbExecute(conn = conn, step5_sql)
   
   message("STEP 6: Assign MOUD type to procedure code H0033 (could be methadone or bup) depending on monthly sums of either med")
- 
-  step6_sql <- glue::glue_sql("
-  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_1') IS NOT NULL DROP TABLE #mcaid_moud_temp_1;
+  DBI::dbExecute(conn = conn, glue::glue_sql("
+    IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_1') IS NOT NULL DROP TABLE #mcaid_moud_temp_1;
 	  select distinct 
 	    id_mcaid,
 		  max(case when procedure_code = 'H0033' then 1 else 0 end) over(partition by id_mcaid) as proc_h0033_flag
 	  into #mcaid_moud_temp_1
-	  from #mcaid_moud_union_1;
-
-IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_2') IS NOT NULL DROP TABLE #mcaid_moud_temp_2;
+	  from #mcaid_moud_union_1;", .con = conn))
+  DBI::dbExecute(conn = conn, glue::glue_sql("
+    IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_2') IS NOT NULL DROP TABLE #mcaid_moud_temp_2;
   	select c.year_month, b.id_mcaid,
 	  	sum(isnull(meth_proc_flag,0)) as meth_proc_month_sum,
   		sum(isnull(bup_proc_flag,0)) as bup_proc_month_sum,
@@ -249,9 +245,9 @@ IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_2') IS NOT NULL DROP TABLE #mcaid_moud_t
   		on a.id_mcaid = b.id_mcaid
   	left join (select distinct [date], year_month from {`stage_schema`}.{`paste0(ref_table, 'date')`}) as c
 		  on b.last_service_date = c.[date]
-	  group by c.year_month, b.id_mcaid;
-  
- IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_3') IS NOT NULL DROP TABLE #mcaid_moud_temp_3; 
+	  group by c.year_month, b.id_mcaid;", .con = conn))
+  DBI::dbExecute(conn = conn, glue::glue_sql(" 
+  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_3') IS NOT NULL DROP TABLE #mcaid_moud_temp_3; 
 	  select 
 	    a.id_mcaid,
   		a.claim_header_id,
@@ -288,12 +284,12 @@ IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_2') IS NOT NULL DROP TABLE #mcaid_moud_t
 		  c.nal_rx_month_sum
 	  into #mcaid_moud_temp_3
 	  from #mcaid_moud_union_1 as a
-	  left join {`stage_schema`}.{`paste0(ref_table, 'date')`}date as b
+	  left join {`stage_schema`}.{`paste0(ref_table, 'date')`} as b
   		on a.last_service_date = b.[date]
   	left join #mcaid_moud_temp_2 as c
-		  on (a.id_mcaid = c.id_mcaid) and (b.year_month = c.year_month);
-  
-  IF OBJECT_ID(N'tempdb..#mcaid_moud_union_2') IS NOT NULL DROP TABLE #mcaid_moud_union_2;
+		  on (a.id_mcaid = c.id_mcaid) and (b.year_month = c.year_month);", .con = conn))
+  DBI::dbExecute(conn = conn, glue::glue_sql("
+    IF OBJECT_ID(N'tempdb..#mcaid_moud_union_2') IS NOT NULL DROP TABLE #mcaid_moud_union_2;
   	select 
 		  id_mcaid,
 		  last_service_date,
@@ -307,14 +303,11 @@ IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_2') IS NOT NULL DROP TABLE #mcaid_moud_t
 		  admin_method
 	  into #mcaid_moud_union_2
 	  from #mcaid_moud_temp_3
-	  group by id_mcaid, last_service_date, meth_proc_flag, bup_proc_flag, nal_proc_flag, unspec_proc_flag, bup_rx_flag, nal_rx_flag, admin_method;",
-	  .con = conn)
-  DBI::dbExecute(conn = conn, step6_sql)
+	  group by id_mcaid, last_service_date, meth_proc_flag, bup_proc_flag, nal_proc_flag, unspec_proc_flag, bup_rx_flag, nal_rx_flag, admin_method;", .con = conn))
   
   message("STEP 7: Identify same MOUDs with same method of administration occurring on the same day")
-
-  step7_sql <- glue::glue_sql("
-  IF OBJECT_ID(N'tempdb..#mcaid_moud_union_3') IS NOT NULL DROP TABLE #mcaid_moud_union_3;
+  DBI::dbExecute(conn = conn, glue::glue_sql(" 
+    IF OBJECT_ID(N'tempdb..#mcaid_moud_union_3') IS NOT NULL DROP TABLE #mcaid_moud_union_3;
 	  select 
 		  *, 
 		  case when bup_proc_flag = 1 or bup_rx_flag = 1 then 'buprenorphine'
@@ -326,26 +319,26 @@ IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_2') IS NOT NULL DROP TABLE #mcaid_moud_t
 			  else null 
 			  end as codetype --only doing bupe and naltrexone
 	  into #mcaid_moud_union_3
-	  from #mcaid_moud_union_2;
-  
-  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_columns_1') IS NOT NULL DROP TABLE #mcaid_moud_temp_columns_1;
+	  from #mcaid_moud_union_2;", .con = conn))
+  DBI::dbExecute(conn = conn, glue::glue_sql(" 
+    IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_columns_1') IS NOT NULL DROP TABLE #mcaid_moud_temp_columns_1;
 	  select 
   		count(*) as dupdate, id_mcaid, last_service_date, moudtype, admin_method
   	into #mcaid_moud_temp_columns_1
   	from #mcaid_moud_union_3
   	group by id_mcaid, last_service_date, moudtype, admin_method
-  	having count(*) > 1;
-  
-  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_columns_2') IS NOT NULL DROP TABLE #mcaid_moud_temp_columns_2;
+  	having count(*) > 1;", .con = conn))
+  DBI::dbExecute(conn = conn, glue::glue_sql(" 
+    IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_columns_2') IS NOT NULL DROP TABLE #mcaid_moud_temp_columns_2;
   	select 
 		  a.dupdate, b.*
 	  into #mcaid_moud_temp_columns_2
 	  from #mcaid_moud_temp_columns_1 as a 
 	  right join #mcaid_moud_union_3 as b
   		on (a.id_mcaid = b.id_mcaid) and (a.last_service_date = b.last_service_date) and (a.moudtype = b.moudtype)
-  	where dupdate is not null;
-  
-  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_columns_3') IS NOT NULL DROP TABLE #mcaid_moud_temp_columns_3;
+  	where dupdate is not null;", .con = conn))
+  DBI::dbExecute(conn = conn, glue::glue_sql(" 
+    IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_columns_3') IS NOT NULL DROP TABLE #mcaid_moud_temp_columns_3;
   	select 
 		  *, 
 		  case when codetype = 'hcpcs' then 1
@@ -353,29 +346,27 @@ IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_2') IS NOT NULL DROP TABLE #mcaid_moud_t
 			  end as dupmoud_todelete
 	  into #mcaid_moud_temp_columns_3
 	  from #mcaid_moud_temp_columns_2
-	  where case when codetype = 'hcpcs' then 1 else 0 end = 1;
-
-IF OBJECT_ID(N'tempdb..#mcaid_moud_union_4') IS NOT NULL DROP TABLE #mcaid_moud_union_4;
+	  where case when codetype = 'hcpcs' then 1 else 0 end = 1;", .con = conn))
+  DBI::dbExecute(conn = conn, glue::glue_sql(" 
+    IF OBJECT_ID(N'tempdb..#mcaid_moud_union_4') IS NOT NULL DROP TABLE #mcaid_moud_union_4;
 	  select 
   		a.*, b.dupmoud_todelete
   	into #mcaid_moud_union_4
   	from #mcaid_moud_union_3 as a
   	left join #mcaid_moud_temp_columns_3 as b
-		  on (a.id_mcaid = b.id_mcaid) and (a.last_service_date = b.last_service_date) and (a.moudtype = b.moudtype) and (a.admin_method = b.admin_method) and (a.codetype = b.codetype);
-
-IF OBJECT_ID(N'tempdb..#mcaid_moud_union_final') IS NOT NULL DROP TABLE #mcaid_moud_union_final;
+		  on (a.id_mcaid = b.id_mcaid) and (a.last_service_date = b.last_service_date) and (a.moudtype = b.moudtype) and (a.admin_method = b.admin_method) and (a.codetype = b.codetype);", .con = conn))
+  DBI::dbExecute(conn = conn, glue::glue_sql(" 
+    IF OBJECT_ID(N'tempdb..#mcaid_moud_union_final') IS NOT NULL DROP TABLE #mcaid_moud_union_final;
   	select 
 		  id_mcaid, last_service_date, meth_proc_flag, bup_proc_flag, nal_proc_flag, 
 		  unspec_proc_flag, bup_rx_flag, nal_rx_flag, moud_days_supply, admin_method
 	  into #mcaid_moud_union_final
 	  from #mcaid_moud_union_4
-	  where dupmoud_todelete is null;",
-	  .con = conn)
-  DBI::dbExecute(conn = conn, step7_sql)
-  
+	  where dupmoud_todelete is null;", .con = conn))
+
   message("STEP 8: Estimate methadone days supply based on next-service-date methodology")
-  step8_sql <- glue::glue_sql("
-  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_meth_1') IS NOT NULL DROP TABLE #mcaid_moud_temp_meth_1;
+  DBI::dbExecute(conn = conn, glue::glue_sql(" 
+    IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_meth_1') IS NOT NULL DROP TABLE #mcaid_moud_temp_meth_1;
 	  select 
 		  a.*, b.year_month, b.year_quarter, b.year_half, b.[year],
 		  case
@@ -395,15 +386,15 @@ IF OBJECT_ID(N'tempdb..#mcaid_moud_union_final') IS NOT NULL DROP TABLE #mcaid_m
 				  end as year_half,
 			  [year]
 		  from {`stage_schema`}.{`paste0(ref_table, 'date')`}) as b
-  			on a.last_service_date = b.[date];
-  
-  IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_meth_2') IS NOT NULL DROP TABLE #mcaid_moud_temp_meth_2;
+  			on a.last_service_date = b.[date];", .con = conn))
+  DBI::dbExecute(conn = conn, glue::glue_sql(" 
+    IF OBJECT_ID(N'tempdb..#mcaid_moud_temp_meth_2') IS NOT NULL DROP TABLE #mcaid_moud_temp_meth_2;
   	select 
 		  *,
 		  percentile_cont(0.5) within group (order by next_meth_diff) over(partition by id_mcaid, year_quarter) as next_meth_diff_median_year_quarter
 	  into #mcaid_moud_temp_meth_2
-	  from #mcaid_moud_temp_meth_1;
-  
+	  from #mcaid_moud_temp_meth_1;", .con = conn))
+  DBI::dbExecute(conn = conn, glue::glue_sql(" 
   	select
 		  id_mcaid,
 		  last_service_date,
@@ -431,9 +422,7 @@ IF OBJECT_ID(N'tempdb..#mcaid_moud_union_final') IS NOT NULL DROP TABLE #mcaid_m
 			  end as moud_days_supply_new_year_quarter,
 		  getdate() as last_run
 	  into {`to_schema`}.{`to_table`}
-	  from #mcaid_moud_temp_meth_2;",
-	  .con = conn)
-  DBI::dbExecute(conn = conn, step8_sql)
+	  from #mcaid_moud_temp_meth_2;", .con = conn))
   
   time_end <- Sys.time()
   message("Loading took ", round(difftime(time_end, time_start, units = "secs"), 2), 
