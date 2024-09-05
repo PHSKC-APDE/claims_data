@@ -40,12 +40,13 @@ load_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                       config[[server]][["ref_table"]])
-
+  stage_schema <- config[[server]][["stage_schema"]]
+  
   message("Creating ", to_schema, ".", to_table, ".")
   time_start <- Sys.time()
   
   #### DROP EXISTING TABLE TO USE SELECT INTO ####
-  try(DBI::dbRemoveTable(conn, DBI::Id(schema = to_schema, table = to_table)))
+  try(DBI::dbRemoveTable(conn, DBI::Id(schema = to_schema, table = to_table)), silent = T)
   
   #### LOAD TABLE ####
   message("STEP 1: CREATE TABLE TO HOLD NDC CODES IDENTIFYING naloxone FOR LIKE JOIN")
