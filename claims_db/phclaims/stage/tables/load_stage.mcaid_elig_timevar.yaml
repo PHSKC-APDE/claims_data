@@ -29,6 +29,7 @@ vars:
     to_date: DATE
     contiguous: TINYINT
     dual: TINYINT
+    health_home_flag: TINYINT
     bsp_group_cid: INTEGER
     full_benefit: TINYINT
     full_criteria: TINYINT

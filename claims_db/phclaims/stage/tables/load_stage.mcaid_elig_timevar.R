@@ -86,7 +86,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   step1a_sql <- glue::glue_sql(paste0(
     "SELECT DISTINCT a.id_mcaid, 
     CONVERT(DATE, CAST(a.CLNDR_YEAR_MNTH as varchar(200)) + '01', 112) AS calmonth, 
-    a.fromdate, a.todate, a.dual, a.bsp_group_cid, 
+    a.fromdate, a.todate, a.dual, a.health_home_flag, a.bsp_group_cid, 
     b.full_benefit, a.cov_type, a.mco_id, 
     d.geo_add1, d.geo_add2, d.geo_city, d.geo_state, d.geo_zip, 
     d.geo_hash_clean, d.geo_hash_geocode
@@ -95,6 +95,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     (SELECT MBR_H_SID AS 'id_mcaid', 
       CLNDR_YEAR_MNTH, RAC_FROM_DATE AS 'fromdate', RAC_TO_DATE AS 'todate',
       DUALELIGIBLE_INDICATOR AS 'dual', 
+      HEALTH_HOME_CLINICAL_INDICATOR AS 'health_home_flag'
       RAC_CODE AS 'rac_code', 
       RPRTBL_BSP_GROUP_CID AS 'bsp_group_cid', 
       COVERAGE_TYPE_IND AS 'cov_type', 
@@ -139,7 +140,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "#timevar_01b", temporary = T), silent = T)
   
   step1b_sql <- glue::glue_sql(
-    "SELECT a.id_mcaid, a.calmonth, a.fromdate, a.todate, a.dual, 
+    "SELECT a.id_mcaid, a.calmonth, a.fromdate, a.todate, a.dual, a.health_home_flag, 
   a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id, 
   a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip,
   a.geo_hash_clean, a.geo_hash_geocode
@@ -155,7 +156,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   ROW_NUMBER() OVER(PARTITION BY id_mcaid, calmonth, fromdate  
                     ORDER BY id_mcaid, calmonth, fromdate) AS group_row 
   FROM #timevar_01a
-  GROUP BY id_mcaid, calmonth, fromdate, todate, dual, 
+  GROUP BY id_mcaid, calmonth, fromdate, todate, dual, health_home_flag, 
   bsp_group_cid, cov_type, mco_id,
   geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode) a
   WHERE a.group_row = 1",
@@ -178,13 +179,13 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "#timevar_02a", temporary = T), silent = T)
   
   step2a_sql <- glue::glue_sql(
-    "SELECT id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
+    "SELECT id_mcaid, dual, health_home_flag, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
     calmonth AS startdate, dateadd(day, - 1, dateadd(month, 1, calmonth)) AS enddate,
     fromdate, MAX(todate) as todate
     INTO #timevar_02a
     FROM #timevar_01b
-    GROUP BY id_mcaid, calmonth, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
+    GROUP BY id_mcaid, calmonth, dual, health_home_flag, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, fromdate",
     .con = conn)
   
@@ -204,7 +205,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "#timevar_02b", temporary = T), silent = T)
   
   step2b_sql <- glue::glue_sql(
-    "SELECT DISTINCT a.id_mcaid, a.from_date, a.to_date, a.dual, 
+    "SELECT DISTINCT a.id_mcaid, a.from_date, a.to_date, a.dual, a.health_home_flag, 
   a.bsp_group_cid, a.full_benefit, a.cov_type, a.mco_id, 
   a.geo_add1, a.geo_add2, a.geo_city, a.geo_state, a.geo_zip, 
   a.geo_hash_clean, a.geo_hash_geocode
@@ -249,7 +250,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   step3a_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date, 
-  dual, bsp_group_cid, full_benefit, cov_type, mco_id,
+  dual, health_home_flag, bsp_group_cid, full_benefit, cov_type, mco_id,
   geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
   DATEDIFF(day, lag(to_date) OVER (
     PARTITION BY id_mcaid, 
@@ -276,7 +277,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   step3b_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date,
-    dual, bsp_group_cid, full_benefit, cov_type, mco_id,
+    dual, health_home_flag, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
     CASE 
       WHEN group_num > 1  OR group_num IS NULL THEN ROW_NUMBER() OVER (PARTITION BY id_mcaid ORDER BY from_date) + 1
@@ -308,7 +309,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   
   step3c_sql <- glue::glue_sql(
     "SELECT DISTINCT id_mcaid, from_date, to_date,
-    dual, bsp_group_cid, full_benefit, cov_type, mco_id,
+    dual, health_home_flag, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip,
     geo_hash_clean, geo_hash_geocode, 
     group_num = max(group_num) OVER 
@@ -335,7 +336,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "#timevar_04a", temporary = T), silent = T)
   
   step4a_sql <- glue::glue_sql(
-    "SELECT id_mcaid, dual, bsp_group_cid, full_benefit, cov_type, mco_id,
+    "SELECT id_mcaid, dual, health_home_flag, bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode,
     MIN(from_date) AS from_date,
     MAX(to_date) AS to_date
@@ -360,7 +361,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "#timevar_04b", temporary = T), silent = T)
   
   step4b_sql <- glue::glue_sql(
-    "SELECT id_mcaid, from_date, to_date, dual, 
+    "SELECT id_mcaid, from_date, to_date, dual, health_home_flag, 
     bsp_group_cid, full_benefit, cov_type, mco_id,
     geo_add1, geo_add2, geo_city, geo_state, geo_zip, 
     geo_hash_clean, geo_hash_geocode,
@@ -424,6 +425,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       (PARTITION BY a.id_mcaid order by a.id_mcaid, a.from_date), a.from_date) = 1
       THEN 1 ELSE 0 END AS contiguous, 
     CASE WHEN a.dual IN ('DualEligible', 'PartialDual', 'Y') THEN 1 ELSE 0 END AS dual,
+    CASE WHEN a.health_home_flag IN ('Y', 'YES') THEN 1 ELSE 0 END AS health_home_flag, 
     a.bsp_group_cid, a.full_benefit, 
     CASE WHEN a.dual NOT IN ('DualEligible', 'PartialDual', 'Y') AND a.full_benefit = 1 THEN 1 ELSE 0
       END AS full_criteria, 
@@ -437,7 +439,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     INTO {`to_schema`}.{`to_table`}
     FROM
     (SELECT id_mcaid, from_date, to_date, 
-      dual, bsp_group_cid, full_benefit, cov_type, mco_id,
+      dual, health_home_flag, bsp_group_cid, full_benefit, cov_type, mco_id,
       geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode, 
       cov_time_day
       FROM #timevar_04b) a
