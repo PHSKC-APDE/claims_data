@@ -18,6 +18,7 @@
 
 
 qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
+                                      conn_qa = NULL,
                                        server = c("hhsaw", "phclaims"),
                                        config = NULL,
                                        get_config = F,
@@ -75,9 +76,9 @@ qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
   
   # See how many are in the final table
   distinct_cond_final <- as.integer(dbGetQuery(
-    conn,
+    conn_qa,
     glue::glue_sql("SELECT count(distinct bh_cond) as cond_count FROM {`final_schema`}.{`final_table`}",
-                   .con = conn)))
+                   .con = conn_qa)))
   
   if (distinct_cond >= distinct_cond_final) {
     bh_qa <- rbind(bh_qa,
@@ -112,11 +113,11 @@ qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
                    .con = conn))
   
   distinct_id_pop <- as.integer(dbGetQuery(
-    conn,
+    conn_qa,
     glue::glue_sql("SELECT count(distinct id_mcaid) as id_dcount
                  FROM {`final_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_timevar
                  WHERE year(from_date) <= 2017 and year(to_date) >= 2017",
-                   .con = conn)))
+                   .con = conn_qa)))
   
   
   distinct_id_chk <- distinct_id_bh %>%
@@ -130,7 +131,7 @@ qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
   
   #### STEP 3: LOAD QA RESULTS TO SQL AND RETURN RESULT ####
   DBI::dbExecute(
-    conn, 
+    conn_qa, 
     glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table_pre)}qa_mcaid 
                    (etl_batch_id, last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES 
@@ -141,7 +142,7 @@ qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
                                    .con = conn), 
                      sep = ', ')
                    )};",
-                   .con = conn))
+                   .con = conn_qa))
   
   
   
