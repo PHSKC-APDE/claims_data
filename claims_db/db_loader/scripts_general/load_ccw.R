@@ -497,7 +497,7 @@ load_ccw <- function(conn = NULL,
       return()
     }
     
-    header_tbl <- DBI::SQL(paste0("##header_dx", icd))
+    header_tbl <- DBI::SQL(paste0("#header_dx", icd))
     
     # Build SQL query
     # Split out table drop from table creation so it works in Synapse Analytics
@@ -562,8 +562,8 @@ load_ccw <- function(conn = NULL,
       return()
     }
     
-    header_tbl <- DBI::SQL(paste0("##header_dx", icd))
-    rolling_tbl <- DBI::SQL(paste0("##rolling_tmp_", icd))
+    header_tbl <- DBI::SQL(paste0("#header_dx", icd))
+    rolling_tbl <- DBI::SQL(paste0("#rolling_tmp_", icd))
     
     if (icd == 9) {
       rolling_break <- glue::glue_sql(" WHERE start_window < 
@@ -614,7 +614,7 @@ load_ccw <- function(conn = NULL,
   
   ## Collapse dates across both ICD versions ----
   ccw_load <- function(conn = conn, config_cond_9, config_cond_10, print_query = F) {
-    ccw_tbl <- DBI::SQL(paste0("##", config_cond_10$ccw_abbrev))
+    ccw_tbl <- DBI::SQL(paste0("#", config_cond_10$ccw_abbrev))
     
     ### Determine code based on if both ICD version headers were made ----
     if (config_cond_9$icd_run == T) {
@@ -622,11 +622,11 @@ load_ccw <- function(conn = NULL,
         "SELECT * FROM
             (SELECT matrix.{`id_source`}, matrix.start_window, matrix.end_window, cond.first_service_date, 
               cond.condition1, cond.condition2, condition_2_from_date  
-              FROM (SELECT {`id_source`}, start_window, end_window FROM ##rolling_tmp_9) as matrix
+              FROM (SELECT {`id_source`}, start_window, end_window FROM #rolling_tmp_9) as matrix
             --join to condition temp table
             LEFT JOIN
             (SELECT {`id_source`}, first_service_date, condition1, condition2, condition_2_from_date
-              FROM ##header_dx9) as cond
+              FROM #header_dx9) as cond
             ON matrix.{`id_source`} = cond.{`id_source`}
             WHERE cond.first_service_date between matrix.start_window and matrix.end_window) as a9",
             .con = conn)
@@ -639,11 +639,11 @@ load_ccw <- function(conn = NULL,
         "SELECT * FROM
             (SELECT matrix.{`id_source`}, matrix.start_window, matrix.end_window, cond.first_service_date, 
               cond.condition1, cond.condition2, condition_2_from_date  
-              FROM (SELECT {`id_source`}, start_window, end_window FROM ##rolling_tmp_10) as matrix
+              FROM (SELECT {`id_source`}, start_window, end_window FROM #rolling_tmp_10) as matrix
             --join to condition temp table
             LEFT JOIN
             (SELECT {`id_source`}, first_service_date, condition1, condition2, condition_2_from_date
-              FROM ##header_dx10) as cond
+              FROM #header_dx10) as cond
             ON matrix.{`id_source`} = cond.{`id_source`}
             WHERE cond.first_service_date between matrix.start_window and matrix.end_window) as a10",
         .con = conn)
@@ -733,7 +733,7 @@ load_ccw <- function(conn = NULL,
   
   ## Insert condition table into stage combined CCW table ----
   stage_load <- function(conn = conn, config_cond, print_query = F) {
-    ccw_tbl <- DBI::SQL(paste0("##", config_cond$ccw_abbrev))
+    ccw_tbl <- DBI::SQL(paste0("#", config_cond$ccw_abbrev))
     
     sql4 <- glue::glue_sql(
       "INSERT INTO {`to_schema`}.{`to_table`} --with (tablock)
@@ -742,9 +742,9 @@ load_ccw <- function(conn = NULL,
       FROM {`ccw_tbl`};
 
       -- drop temp tables to free up space on tempdb
-      if object_id('tempdb..##header_10') IS NOT NULL drop table ##header_10;
-      if object_id('tempdb..##rolling_tmp_9') IS NOT NULL drop table ##rolling_tmp_9;
-      if object_id('tempdb..##rolling_tmp_10') IS NOT NULL drop table ##rolling_tmp_10;
+      if object_id('tempdb..#header_10') IS NOT NULL drop table #header_10;
+      if object_id('tempdb..#rolling_tmp_9') IS NOT NULL drop table #rolling_tmp_9;
+      if object_id('tempdb..#rolling_tmp_10') IS NOT NULL drop table #rolling_tmp_10;
       if object_id('tempdb..{`ccw_tbl`}') IS NOT NULL drop table {`ccw_tbl`};",
       .con = conn)
     
