@@ -18,6 +18,7 @@
 
 
 qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
+                                       conn_qa = NULL,
                                        server = c("hhsaw", "phclaims"),
                                        config = NULL,
                                        get_config = F,
@@ -75,9 +76,9 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   
   # See how many are in the final table
   distinct_cond_final <- as.integer(dbGetQuery(
-    conn,
+    conn_qa,
     glue::glue_sql("SELECT count(distinct ccw_code) as cond_count FROM {`final_schema`}.{`final_table`}",
-                   .con = conn)))
+                   .con = conn_qa)))
   
   if (distinct_cond >= distinct_cond_final) {
     ccw_qa <- rbind(ccw_qa,
@@ -114,7 +115,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   distinct_id_pop <- as.integer(dbGetQuery(
     conn,
     glue::glue_sql("SELECT count(distinct id_mcaid) as id_dcount
-                 FROM {`final_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_timevar
+                 FROM {`to_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_timevar
                  WHERE year(from_date) <= 2017 and year(to_date) >= 2017",
                    .con = conn)))
   
@@ -204,7 +205,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
           when datediff(day, dob, '{year}-12-31') >= 0 then floor((datediff(day, dob, '{year}-12-31') + 1) / {pt})
           when datediff(day, dob, '{year}-12-31') < 0 then NULL
         end as age
-        FROM {`final_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_demo
+        FROM {`to_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_demo
       ) as b
       on a.id_mcaid = b.id_mcaid
     ) as c
@@ -241,7 +242,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
       end as age_grp7
       FROM (
 	      SELECT id_mcaid
-	      FROM {`final_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_timevar
+	      FROM {`to_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_timevar
 	      where year(from_date) <= {year} and year(to_date) >= {year}
 	      ) as a
 	    left join (
@@ -250,7 +251,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
             when datediff(day, dob, '{year}-12-31') >= 0 then floor((datediff(day, dob, '{year}-12-31') + 1) / {pt})
             when datediff(day, dob, '{year}-12-31') < 0 then NULL
           end as age
-        FROM {`final_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_demo
+        FROM {`to_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_demo
       ) as b
       on a.id_mcaid = b.id_mcaid
     ) as c
@@ -400,7 +401,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   
   #### STEP 3: LOAD QA RESULTS TO SQL AND RETURN RESULT ####
   DBI::dbExecute(
-    conn, 
+    conn_qa, 
     glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table_pre)}qa_mcaid 
                    (etl_batch_id, last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES 
@@ -411,7 +412,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
                                    .con = conn), 
                      sep = ', ')
                    )};",
-                   .con = conn))
+                   .con = conn_qa))
   
   
   if (max(str_detect(ccw_qa$qa_result, "FAIL")) == 0) {
