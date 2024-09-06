@@ -7,7 +7,7 @@ hhsaw:
     to_table: stage_mcaid_claim_ccw
     final_schema: claims
     final_table: final_mcaid_claim_ccw
-    final_table_pre: final_
+    final_table_pre: stage_
     ref_schema: stg_claims
     ref_table_pre: ref_
     icdcm_ref_schema: stg_reference
