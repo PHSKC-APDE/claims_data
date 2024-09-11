@@ -151,7 +151,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
     
     #### CHECK DISTINCT IDS = DISTINCT IDS IN STAGE.MCAID_ELIG ####
     id_count_raw <- as.numeric(odbc::dbGetQuery(
-      conn, glue::glue_sql("SELECT COUNT (DISTINCT MEDICAID_RECIPIENT_ID) 
+      conn, glue::glue_sql("SELECT COUNT (DISTINCT MBR_H_SID) 
                          FROM {`from_schema`}.{`from_table`}", .con = conn)))
     
     if (id_count != id_count_raw) {
