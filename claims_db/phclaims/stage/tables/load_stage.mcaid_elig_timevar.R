@@ -434,7 +434,6 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     a.geo_hash_clean, a.geo_hash_geocode, 
     b.geo_county_code, b.geo_tract_code, 
     b.geo_hra_code, b.geo_school_code, a.cov_time_day,
-    --c.geo_kc_new, 
     CASE
            WHEN (b.geo_county_code IS NOT NULL) AND (b.geo_county_code IN (033, 53033)) THEN 1
            WHEN (b.geo_county_code IS NULL) AND (c.geo_kc_new = 1) THEN 1
@@ -467,29 +466,6 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
   odbc::dbGetQuery(conn = conn, step5b_sql)
   time_end <- Sys.time()
   message(paste0("Step 5b took ", round(difftime(time_end, time_start, units = "secs"), 2), 
-                 " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
-                 " mins)"))
-  
-  # Use APDE method for King County residence flag
-  # Step 5c ~ XX minutes
-  step5c_sql <- glue::glue_sql(paste0(
-    "ALTER TABLE {`to_schema`}.{`to_table`}
-       ADD geo_kc BIT;
-       UPDATE {`to_schema`}.{`to_table`}
-       SET geo_kc =
-         CASE
-           WHEN (geo_county_code IS NOT NULL) AND (geo_county_code IN (033, 53033)) THEN 1
-           WHEN (geo_county_code IS NULL) AND (geo_kc_new = 1) THEN 1
-           ELSE 0
-         END;
-    "),
-    .con = conn)
-  
-  message("Running step 5c: Creating geo_kc column")
-  time_start <- Sys.time()
-  #odbc::dbGetQuery(conn = conn, step5c_sql)
-  time_end <- Sys.time()
-  message(paste0("Step 5c took ", round(difftime(time_end, time_start, units = "secs"), 2), 
                  " secs (", round(difftime(time_end, time_start, units = "mins"), 2), 
                  " mins)"))
   
