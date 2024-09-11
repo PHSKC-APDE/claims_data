@@ -132,7 +132,7 @@ load_bh <- function(conn = NULL,
   DBI::dbCreateTable(conn, tbl_name, fields = table_config$vars)
 
   #### STEP 3: CREATE TEMP TABLE TO HOLD CONDITION-SPECIFIC CLAIMS AND DATES ####
-  conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+  #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   message("STEP 1: CREATE TEMP TABLE TO HOLD CONDITION-SPECIFIC CLAIMS AND DATES")
   time_start <- Sys.time()
   
@@ -180,10 +180,10 @@ load_bh <- function(conn = NULL,
     
     #Run SQL query
     try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_header_bh")), silent = T)
-    dbGetQuery(conn = conn, sql1)
+    DBI::dbExecute(conn = conn, sql1)
     
     #### STEP 4: JOIN WITH ROLLING 24MONTH  ####
-    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     message("STEP 2: JOIN WITH ROLLING 24MONTH")
     # Build SQL query
     sql2 <- glue_sql("
@@ -210,7 +210,7 @@ load_bh <- function(conn = NULL,
     dbGetQuery(conn = conn, sql2)
     
     #### STEP 5: CREATE TEMP TABLE TO HOLD ID AND ROLLING TIME MATRIX ####
-    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     message("STEP 3: CREATE TEMP TABLE TO HOLD ID AND ROLLING TIME MATRIX")
     # Build SQL query
     sql3 <- glue_sql("
@@ -239,7 +239,7 @@ load_bh <- function(conn = NULL,
     dbGetQuery(conn = conn, sql3)  
     
     #### STEP 6: ID CONDITION STATUS OVER TIME AND COLLAPSE TO CONTIGUOUS PERIODS ####
-    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     message("STEP 4: ID CONDITION STATUS OVER TIME AND COLLAPSE TO CONTIGUOUS PERIODS")
     # Build SQL query
     sql4 <- glue_sql("
@@ -263,7 +263,7 @@ load_bh <- function(conn = NULL,
     dbGetQuery(conn = conn, sql4)
     
     #### STEP 7: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE #### 
-    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     message("STEP 5: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE")
     # Build SQL query
     sql5 <- glue_sql(
