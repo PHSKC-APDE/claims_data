@@ -6,13 +6,15 @@
 #' to CSVs. These are saved in Medicaid CIFS folder. We then upload these as
 #' reference tables with version-date info.
 #' 
+#' 2024-06-19 Eli update: Revamped script to include unfinished, compound, and additional missing drugs for tobacco cessation
+#' 
 #' TODO:
 #' - Add automatic pulling of data from website on regular basis
 #' 
 
 ## Clear memory and load packages ----
 rm(list=ls())
-pacman::p_load(data.table, lubridate, stringr, readxl, readr, iotools, odbc, sqldf)
+pacman::p_load(data.table, lubridate, stringr, readxl, readr, iotools, odbc, sqldf, tidyverse)
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
 
 ## Prevent scientific notation except for huge numbers ----
@@ -21,21 +23,69 @@ options("scipen"=999) # turn off scientific notation
 ## Connect to the servers ----
 db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
 
-## Read data ----
-product <- fread("X:/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/20240403/product.csv", encoding="Latin-1")
-package <- fread("X:/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/20240403/package.csv", encoding="Latin-1")
+## Set date for NDC folder name ----
+ndc_download_date <- "20240619"
 
+## Read data ----
+product <- fread(file.path("//dphcifs/apde-cdip/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/", ndc_download_date,
+                           "/product.csv"), encoding="Latin-1")
+package <- fread(file.path("//dphcifs/apde-cdip/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/", ndc_download_date,
+                           "/package.csv"), encoding="Latin-1")
+unfinished_product <- fread(file.path("//dphcifs/apde-cdip/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/", ndc_download_date,
+                                      "/unfinished_product.csv"), encoding="Latin-1")
+unfinished_package <- fread(file.path("//dphcifs/apde-cdip/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/", ndc_download_date,
+                                      "/unfinished_package.csv"), encoding="Latin-1")
+# excluded_product <- fread(file.path("//dphcifs/apde-cdip/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/", ndc_download_date,
+#                                       "/Products_excluded.csv"), encoding="Latin-1")
+# excluded_package <- fread(file.path("//dphcifs/apde-cdip/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/", ndc_download_date,
+#                                       "/Packages_excluded.csv"), encoding="Latin-1")
+compounders <- fread(file.path("//dphcifs/apde-cdip/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/", ndc_download_date,
+                           "/compounders_ndc_directory.csv"), encoding="Latin-1")
+
+
+## Select desired columns ----
 package <- package[,c("PRODUCTID", "PRODUCTNDC", "NDCPACKAGECODE",
                       "STARTMARKETINGDATE", "ENDMARKETINGDATE")]
 product <- product[,c("PRODUCTID", "PRODUCTNDC", "PROPRIETARYNAME",
                       "PROPRIETARYNAMESUFFIX", "NONPROPRIETARYNAME",
                       "DOSAGEFORMNAME", "ACTIVE_NUMERATOR_STRENGTH",
                       "ACTIVE_INGRED_UNIT")]
+unfinished_package <- unfinished_package[,c("PRODUCTID", "PRODUCTNDC", "NDCPACKAGECODE",
+                      "STARTMARKETINGDATE", "ENDMARKETINGDATE")]
+unfinished_product <- unfinished_product[,c("PRODUCTID", "PRODUCTNDC", "NONPROPRIETARYNAME",
+                      "DOSAGEFORMNAME", "ACTIVE_NUMERATOR_STRENGTH",
+                      "ACTIVE_INGRED_UNIT")]
+compounders <- compounders[,c("PRODUCTNDC", "NDCPACKAGECODE", "PROPRIETARYNAME",
+                              "PROPRIETARYNAMESUFFIX", "NONPROPRIETARYNAME",
+                          "DOSAGEFORMNAME", "ACTIVEINGREDIENTSINFO")]
+
+# excluded_package <- excluded_package[,c("PRODUCTID", "PRODUCTNDC", "NDCPACKAGECODE",
+#                                             "STARTMARKETINGDATE", "ENDMARKETINGDATE")]
+# excluded_product <- excluded_product[,c("PRODUCTID", "PRODUCTNDC", "PROPRIETARYNAME",
+#                                             "PROPRIETARYNAMESUFFIX", "NONPROPRIETARYNAME",
+#                                             "DOSAGEFORMNAME", "ACTIVE_NUMERATOR_STRENGTH",
+#                                             "ACTIVE_INGRED_UNIT")]
 
 ## Wrangle ----
 # Join on product ndc
-allcodes <- merge(package, product, by=c("PRODUCTID", "PRODUCTNDC"), all.x=T, all.y=F)
-rm(product, package)
+ndcs <- merge(package, product, by=c("PRODUCTID", "PRODUCTNDC"), all.x=T, all.y=F)
+unfinished <- merge(unfinished_package, unfinished_product, by=c("PRODUCTID", "PRODUCTNDC"), all.x=T, all.y=F) %>%
+  mutate(PROPRIETARYNAME = NA_character_,
+         PROPRIETARYNAMESUFFIX = NA_character_,
+         STARTMARKETINGDATE = as.integer(gsub("-", "", as.character(as.Date(STARTMARKETINGDATE, format = "%d-%b-%y")))),
+         ENDMARKETINGDATE = as.integer(gsub("-", "", as.character(as.Date(ENDMARKETINGDATE, format = "%d-%b-%y"))))) %>%
+  relocate(PROPRIETARYNAME:PROPRIETARYNAMESUFFIX, .after = ENDMARKETINGDATE)
+compounders <- compounders %>%
+  mutate(PRODUCTID = NA_character_, STARTMARKETINGDATE = NA_integer_, ENDMARKETINGDATE = NA_integer_,
+         ACTIVE_INGRED_UNIT = NA_character_) %>%
+  rename(ACTIVE_NUMERATOR_STRENGTH = ACTIVEINGREDIENTSINFO) %>%
+  relocate(PRODUCTID, .before = everything()) %>%
+  relocate(STARTMARKETINGDATE:ENDMARKETINGDATE, .after = NDCPACKAGECODE)
+
+rm(product, package, unfinished_package, unfinished_product)
+
+## Bind all files ----
+allcodes <- bind_rows(ndcs, unfinished, compounders)
 
 # Split according to rules for converting NDCs from 10 to 11 digits
 allcodes$is442 <- grepl("[[:alnum:]]{4}-[[:alnum:]]{4}-[[:alnum:]]{2}", allcodes$NDCPACKAGECODE)
@@ -56,9 +106,10 @@ setcolorder(allcodes, c("PRODUCTID", "ndc", "PRODUCTNDC", "NDCPACKAGECODE",
                         "PROPRIETARYNAME", "PROPRIETARYNAMESUFFIX", "DOSAGEFORMNAME",
                         "ACTIVE_NUMERATOR_STRENGTH", "ACTIVE_INGRED_UNIT"))
 
-# TODO: Investigate these ones
-missing <- fread("X:/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/missingndc.csv", encoding="Latin-1")
-missing$ndc <- as.character(missing$ndc)
+# TODO: Investigate these ones, read file as Excel file to preserve leading zeroes on NDC codes
+missing <- read_excel("//dphcifs/apde-cdip/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/missingndc.xlsx") %>%
+  mutate(PRODUCTID = NA_character_) %>%
+  relocate(PRODUCTID, .before = everything())
 allcodes <- rbindlist(list(allcodes, missing), use.names=T, fill=T)
 
 ## Upload ----

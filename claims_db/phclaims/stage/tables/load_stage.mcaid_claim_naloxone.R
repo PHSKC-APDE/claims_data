@@ -1,5 +1,5 @@
-# This code creates the the mcaid claim naxolone table
-# Create a reference table for naxolone distributed in mcaid claims
+# This code creates the the mcaid claim NALOXONE table
+# Create a reference table for NALOXONE distributed in mcaid claims
 #
 # It is designed to be run as part of the master Medicaid script:
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_analytic.R
@@ -12,7 +12,7 @@
 # conn = database connection
 # server = whether we are working in HHSAW or PHClaims
 
-load_stage_mcaid_claim_naxolone_f <- function(conn = NULL,
+load_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
                                           server = c("hhsaw", "phclaims"),
 										                      config = NULL,
                                           get_config = F) {
@@ -53,7 +53,7 @@ load_stage_mcaid_claim_naxolone_f <- function(conn = NULL,
   try(odbc::dbRemoveTable(conn, "##naloxone_ndc_list", temporary = T), silent = T)
   try(odbc::dbRemoveTable(conn, "##naloxone_ndc_ref_table", temporary = T), silent = T)
   step1_sql <- glue::glue_sql("
-  --First, create a table holding all NDC codes identifying naloxone
+  --First, create a table holding all NDC codes identifying NALOXONE
 	create table ##naloxone_ndc_list_prep (ndc varchar(255));
 
 	insert into ##naloxone_ndc_list_prep
@@ -138,9 +138,9 @@ select *, '%' + ndc + '%' as ndc_like
 into ##naloxone_ndc_list
 from ##naloxone_ndc_list_prep;
 
---Third, LIKE join all distinct NDC codes to the list of naloxone NDC codes to create a data source-specific reference table
+--Third, LIKE join all distinct NDC codes to the list of NALOXONE NDC codes to create a data source-specific reference table
 --Then, use this custom reference table down below for an exact join
-select a.ndc, 1 as naloxone_flag
+select a.ndc, 1 as NALOXONE_flag
 into ##naloxone_ndc_ref_table
 from (
 	select distinct ndc from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`}
@@ -188,7 +188,7 @@ WHERE year(a.rx_fill_date) >= 2016
 	AND rx_quantity >= 1.00
 
 
--- Next get Naloxone distributed as part of procedure codes
+-- Next get NALOXONE distributed as part of procedure codes
 
 UNION
 

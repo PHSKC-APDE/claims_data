@@ -1,4 +1,4 @@
-# This code QAs table claims.stage_mcaid_claim_naxolone
+# This code QAs table claims.stage_mcaid_claim_naloxone
 #
 # It is designed to be run as part of the master Medicaid script:
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_analytic.R
@@ -18,7 +18,7 @@
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
 
-qa_stage_mcaid_claim_naxolone_f <- function(conn = NULL,
+qa_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
                                          server = c("hhsaw", "phclaims"),
                                          config = NULL,
                                          get_config = F) {

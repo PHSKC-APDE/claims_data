@@ -13,6 +13,7 @@ options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
 
 pacman::p_load(tidyverse, odbc, configr, glue, keyring, AzureStor, AzureAuth, svDialogs, R.utils, zip) # Load list of packages
 
+#Needs to be run once unmodifed and needs secret password for user names 
 #keyring::key_set('adl_tenant', username = 'dev')
 #keyring::key_set('adl_app', username = 'dev')
 keyring::key_list()

@@ -202,4 +202,5 @@ db_claims <- create_db_connection(server, interactive = interactive_auth, prod =
 check_status(logid,
             type = 'upid', con = db_claims,
               DBI::Id(schema = 'ref', table = 'address_status'))
-rm(list = ls())             
+rm(list = ls())    
+
