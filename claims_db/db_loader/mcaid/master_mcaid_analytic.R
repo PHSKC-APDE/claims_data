@@ -48,16 +48,28 @@ from_conn <- create_db_connection("hhsaw", interactive = F, prod = T)
 table_copy_df <- data.frame(
   from_schema = c("claims", "claims", "claims", 
                   "claims", "claims", "claims", 
-                  "ref", "ref", "ref"),
+                  "ref", "ref", "ref", 
+                  "ref", "ref", "claims",
+                  "claims", "claims", "claims",
+                  "claims", "claims", "claims"),
   from_table = c("ref_mcaid_rac_code", "ref_geo_kc_zip", "ref_kc_claim_type_crosswalk", 
                  "ref_pc_visit_oregon", "ref_hedis_value_sets_apde", "ref_kc_provider_master", 
-                 "icdcm_codes", "address_clean", "address_geo_code"),
+                 "icdcm_codes", "address_clean", "address_geocode", 
+                 "ndc_codes", "rda_value_sets_apde", "ref_rolling_time_24mo_2012_2020",
+                 "ref_naxolone_ndc", "ref_apcd_procedure_code", "ref_moll_preg_endpoint",
+                 "ref_date", "ref_moll_trimester", "ref_ccw_lookup"),
   to_schema = c("stg_claims", "stg_claims", "stg_claims", 
                 "stg_claims", "stg_claims", "stg_claims", 
-                "stg_reference", "stg_reference", "stg_reference"),
+                "stg_reference", "stg_reference", "stg_reference", 
+                "stg_reference", "stg_reference", "stg_claims",
+                "stg_claims", "stg_claims", "stg_claims",
+                "stg_claims", "stg_claims", "stg_claims"),
   to_table = c("ref_mcaid_rac_code", "ref_geo_kc_zip", "ref_kc_claim_type_crosswalk", 
                "ref_pc_visit_oregon", "ref_hedis_value_sets_apde", "ref_kc_provider_master", 
-               "icdcm_codes", "address_clean", "address_geocode"))
+               "icdcm_codes", "address_clean", "address_geocode", 
+               "ref_ndc_codes", "ref_rda_value_sets_apde", "ref_rolling_time_24mo_2012_2020",
+               "ref_naxolone_ndc", "ref_apcd_procedure_code", "ref_moll_preg_endpoint",
+               "ref_date", "ref_moll_trimester", "ref_ccw_lookup"))
 table_duplicate_f(conn_from = from_conn, 
                   conn_to = dw_inthealth, 
                   server_to = "inthealth_dev", 
@@ -157,12 +169,12 @@ db_claims <- create_db_connection(server, interactive = interactive_auth, prod =
 
 # Pull out run date
 last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(
-  db_claims, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_timevar_config[[server]][['to_schema']]`}.{`stage_mcaid_elig_timevar_config[[server]][['to_table']]`}",
-                            .con = db_claims))[[1]])
+  dw_inthealth, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_timevar_config[[server]][['to_schema']]`}.{`stage_mcaid_elig_timevar_config[[server]][['to_table']]`}",
+                            .con = dw_inthealth))[[1]])
 
 ### QA stage version
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
-qa_stage_mcaid_elig_timevar <- qa_mcaid_elig_timevar_f(conn = db_claims, server = server, 
+qa_stage_mcaid_elig_timevar <- qa_mcaid_elig_timevar_f(conn = dw_inthealth, conn_qa = db_claims, server = server, 
                                                        config = stage_mcaid_elig_timevar_config, load_only = F)
 # Re-establish connection because it drops out faster in Azure VM
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
@@ -238,7 +250,7 @@ rm(qa_stage_mcaid_elig_timevar, stage_mcaid_elig_timevar_config, load_stage_mcai
 claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line", 
                                    "pharm", "procedure", "bh", 
 								   "moud", "naloxone", "preg_episode")) {
-  
+  time_start <- Sys.time()
   table <- match.arg(table)
   
   db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
@@ -397,7 +409,11 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
   ## SKIP QA ##
   }
   ## END SKIP ##  
+  time_end <- Sys.time()
+  message(glue::glue("Table creation took {round(difftime(time_end, time_start, units = 'secs'), 2)} ",
+                     " secs ({round(difftime(time_end, time_start, units = 'mins'), 2)} mins)"))
   # Export out results of load
+  table_fail <- 0
   return(table_fail)
 }
 
