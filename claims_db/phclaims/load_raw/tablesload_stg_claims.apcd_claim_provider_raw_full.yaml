@@ -1,0 +1,24 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_claim_provider_raw
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_claim_provider_raw
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/claim_provider_raw_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: 1478317771
+col_count: 7
+date_min: '2014-01-01'
+date_max: '2023-03-31'
+date_delivery: '2024-06-28'
+note_delivery: apcd_claim_provider_raw, extract 10023
+vars:
+    internal_member_id: bigint
+    medical_claim_header_id: bigint
+    first_service_dt: date
+    last_service_dt: date
+    provider_id_apcd: bigint
+    provider_id_raw_apcd: bigint
+    provider_type: varchar(9)

@@ -1,0 +1,41 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_member_month_detail
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_member_month_detail
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/member_month_detail_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: 677426246
+col_count: 24
+date_min: '2014-01-01'
+date_max: '2023-03-31'
+date_delivery: '2024-06-28'
+note_delivery: apcd_member_month_detail, extract 10023
+vars:
+    internal_member_id: bigint
+    year_month: varchar(6)
+    medical_product_code_id: bigint
+    medical_submitter_id: bigint
+    medical_eligibility_id: bigint
+    med_commercial_eligibility_id: bigint
+    med_medicare_eligibility_id: bigint
+    med_medicaid_eligibility_id: bigint
+    pharmacy_product_code_id: bigint
+    pharmacy_submitter_id: bigint
+    pharmacy_eligibility_id: bigint
+    rx_commercial_eligibility_id: bigint
+    rx_medicare_eligibility_id: bigint
+    rx_medicaid_eligibility_id: bigint
+    dental_product_code_id: bigint
+    dental_submitter_id: bigint
+    dental_eligibility_id: bigint
+    dental_commercial_eligibility_id: bigint
+    dental_medicare_eligibility_id: bigint
+    dental_medicaid_eligibility_id: bigint
+    age: integer
+    age_in_months: integer
+    gender_code: varchar(10)
+    zip_code: varchar(15)

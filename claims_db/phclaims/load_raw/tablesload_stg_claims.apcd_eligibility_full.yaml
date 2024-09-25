@@ -1,0 +1,53 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_eligibility
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_eligibility
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/eligibility_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: 331469378
+col_count: 36
+date_min: '2014-01-01'
+date_max: '2023-03-31'
+date_delivery: '2024-06-28'
+note_delivery: apcd_eligibility, extract 10023
+vars:
+    eligibility_id: bigint
+    submitter_id: bigint
+    internal_member_id: bigint
+    coverage_class: varchar(10)
+    eligibility_start_dt: date
+    eligibility_end_dt: date
+    product_code_id: bigint
+    primary_insurance_indicator_id: bigint
+    subscriber_relationship_id: bigint
+    gender_code: varchar(10)
+    coverage_level_id: bigint
+    coverage_type_id: bigint
+    market_category_id: bigint
+    entitlement_code_id: bigint
+    entitlement_code_id_orig: bigint
+    medicare_status_id: bigint
+    dual_eligibility_code_id: bigint
+    aid_category_id: bigint
+    managed_care_flag: varchar(2)
+    purchased_through_exchange: varchar(10)
+    exchange_market_type: varchar(10)
+    exchange_metallic_tier_id: bigint
+    city: varchar(100)
+    state: varchar(2)
+    zip: varchar(15)
+    medicaid_ffs_flag: varchar(2)
+    race_id1: bigint
+    race_id2: bigint
+    ethnicity_id1: bigint
+    ethnicity_id2: bigint
+    hispanic_id: bigint
+    behavioral_health_ind_code: varchar(10)
+    out_of_state_flag: varchar(1)
+    dup_flag_pbm_tpa: varchar(1)
+    dup_flag_managed_care: varchar(1)
+    dup_flag_part_d: varchar(1)

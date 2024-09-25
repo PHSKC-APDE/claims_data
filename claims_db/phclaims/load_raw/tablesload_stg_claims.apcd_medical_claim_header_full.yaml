@@ -1,0 +1,63 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_medical_claim_header
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_medical_claim_header
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/medical_claim_header_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: 663272873
+col_count: 46
+date_min: '2014-01-01'
+date_max: '2023-03-31'
+date_delivery: '2024-06-28'
+note_delivery: apcd_medical_claim_header, extract 10023
+vars:
+    medical_claim_header_id: bigint
+    submitter_id: bigint
+    internal_member_id: bigint
+    billing_internal_provider_id: bigint
+    product_code_id: bigint
+    first_service_dt: date
+    last_service_dt: date
+    first_paid_dt: date
+    last_paid_dt: date
+    charge_amt: numeric(38,2)
+    diagnosis_code: varchar(10)
+    icd_version_ind: varchar(10)
+    header_status: varchar(20)
+    denied_header_flag: varchar(1)
+    orphaned_header_flag: varchar(1)
+    claim_type_id: bigint
+    type_of_setting_id: bigint
+    place_of_setting_id: bigint
+    type_of_bill_code: varchar(4)
+    emergency_room_flag: varchar(1)
+    operating_room_flag: varchar(1)
+    claim_header_id: bigint
+    cardiac_imaging_and_tests_flag: integer
+    chiropractic_flag: integer
+    consultations_flag: integer
+    covid19_flag: integer
+    dialysis_flag: integer
+    durable_medical_equip_flag: integer
+    echography_flag: integer
+    endoscopic_procedure_flag: integer
+    evaluation_and_management_flag: integer
+    health_home_utilization_flag: integer
+    hospice_utilization_flag: integer
+    imaging_advanced_flag: integer
+    imaging_standard_flag: integer
+    inpatient_acute_flag: integer
+    inpatient_nonacute_flag: integer
+    lab_and_pathology_flag: integer
+    oncology_and_chemotherapy_flag: integer
+    physical_therapy_rehab_flag: integer
+    preventive_screenings_flag: integer
+    preventive_vaccinations_flag: integer
+    preventive_visits_flag: integer
+    psychiatric_visits_flag: integer
+    surgery_and_anesthesia_flag: integer
+    telehealth_flag: integer

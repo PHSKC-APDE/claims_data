@@ -1,0 +1,53 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_pharmacy_claim
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_pharmacy_claim
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/pharmacy_claim_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: 809906796
+col_count: 36
+date_min: '2014-01-01'
+date_max: '2023-03-31'
+date_delivery: '2024-06-28'
+note_delivery: apcd_pharmacy_claim, extract 10023
+vars:
+    pharmacy_claim_service_line_id: bigint
+    submitter_id: bigint
+    internal_member_id: bigint
+    submitter_clm_control_num: varchar(272)
+    product_code_id: bigint
+    subscriber_relationship_id: bigint
+    line_counter: integer
+    prescription_filled_dt: date
+    first_paid_dt: date
+    last_paid_dt: date
+    national_drug_code: varchar(13)
+    drug_name: varchar(80)
+    claim_status_id: bigint
+    quantity: numeric(38,2)
+    days_supply: integer
+    thirty_day_equivalent: numeric(38,0)
+    charge_amt: numeric(38,2)
+    refill_number: varchar(10)
+    generic_drug_ind_id: bigint
+    compound_drug_code_id: bigint
+    dispense_as_written_id: bigint
+    pharmacy_mail_order_code: varchar(10)
+    pharmacy_provider_id: bigint
+    pharmacy_internal_provider_id: bigint
+    prscrbing_provider_id: bigint
+    prscrbing_internal_provider_id: bigint
+    network_indicator_id: bigint
+    out_of_state_flag: varchar(1)
+    orphaned_adjustment_flag: varchar(1)
+    denied_claim_flag: varchar(1)
+    dup_flag_pbm_tpa: varchar(1)
+    dup_flag_managed_care: varchar(1)
+    dup_flag_part_d: varchar(1)
+    medicaid_ffs_flag: varchar(2)
+    injury_dt: date
+    benefits_exhausted_dt: date
