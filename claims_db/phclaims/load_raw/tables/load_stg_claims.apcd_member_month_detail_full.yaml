@@ -8,12 +8,12 @@ hhsaw:
     ext_table: apcd_member_month_detail
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/member_month_detail_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: 640442118
+row_count: 677426246
 col_count: 24
 date_min: '2014-01-01'
-date_max: '2023-09-30'
-date_delivery: '2024-03-04'
-note_delivery: apcd_member_month_detail, extract 10019
+date_max: '2023-03-31'
+date_delivery: '2024-06-28'
+note_delivery: apcd_member_month_detail, extract 10023
 vars:
     internal_member_id: bigint
     year_month: varchar(6)
