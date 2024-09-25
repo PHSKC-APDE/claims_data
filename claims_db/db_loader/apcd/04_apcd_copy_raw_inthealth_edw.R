@@ -28,6 +28,11 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 #### STEP 1: CREATE CONNECTIONS ####
 
 ##Establish connection to inthealth_edw prod
+#Enter credentials for HHSAW
+#key_set("hhsaw", username = "shernandez@kingcounty.gov") #Only run this each time password is changed
+keyring::key_list() #Run this to list all the stored usernames
+
+
 interactive_auth <- FALSE
 prod <- TRUE
 server <- "hhsaw"
