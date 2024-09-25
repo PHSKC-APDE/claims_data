@@ -187,7 +187,7 @@ if(T) {
       rpm_diff <- (curr_rpm - prev_rpm) / prev_rpm
     } else {
       dates <- read.delim(file_path, 
-                          colClasses = c(rep("NULL", 8), rep("character", 1), rep("NULL", 110)), 
+                          colClasses = c(rep("NULL", 7), rep("character", 1), rep("NULL", 108)), 
                           sep = "\t",
                           header = T)
       dates <- as.Date(dates$FROM_SRVC_DATE)
