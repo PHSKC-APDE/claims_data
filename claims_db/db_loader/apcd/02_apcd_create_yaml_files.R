@@ -8,6 +8,7 @@
 #9/20/23 update: Read path changed to CIFS folder
 #3/11/24 update: Added smart selection for write path
 #3/11/24 update: Modified YAML creation code to align with COPY_INTO function in Azure environment
+#9/25/24 update:YAML file path
 
 #### Create YAML files from CSV format files for all non-reference files ####
 
@@ -22,8 +23,8 @@ pacman::p_load(tidyverse, glue)
 read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" #Folder containing exported format files
 
 ##Smart selection for write path for YAML files
-if(file.exists("C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables")){ #Susan on DPHXPHAAPR5EBYK
-  write_path <- "C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables"
+if(file.exists("C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/")){ #Susan on DPHXPHAAPR5EBYK
+  write_path <- "C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/"
 } else if(file.exists("C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/")){ #Susan on KCITENGPRRSTUD00
   write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/"
 } else if(file.exists("C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/")){ #Eli on KCITENGPRRSTUD00
