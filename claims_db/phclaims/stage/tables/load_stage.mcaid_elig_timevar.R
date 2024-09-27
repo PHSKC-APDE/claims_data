@@ -83,6 +83,15 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     address_clean_table <- "#address_clean_01a"
   }
   
+  step0_sql <- glue::glue_sql(
+    "SELECT MBR_H_SID, CLNDR_YEAR_MNTH, RAC_FROM_DATE, RAC_TO_DATE, RAC_CODE, RAC_CODE_NAME,
+    CASE WHEN MIN(DUALELIGIBLE_INDICATOR) = 'N/A' THEN MAX(DUALELIGIBLE_INDICATOR) ELSE MIN(DUALELIGIBLE_INDICATOR) END AS DUALELIGIBLE_INDICATOR
+    INTO #timevar_00
+    FROM {`from_schema`}.{`from_table`}
+    GROUP BY MBR_H_SID, CLNDR_YEAR_MNTH, RAC_FROM_DATE, RAC_TO_DATE, RAC_CODE, RAC_CODE_NAME", .conn)
+  
+  odbc::dbGetQuery(conn = conn, step0_sql)
+  
   step1a_sql <- glue::glue_sql(paste0(
     "SELECT DISTINCT a.id_mcaid, 
     CONVERT(DATE, CAST(a.CLNDR_YEAR_MNTH as varchar(200)) + '01', 112) AS calmonth, 
@@ -94,7 +103,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     FROM
     (SELECT MBR_H_SID AS 'id_mcaid', 
       CLNDR_YEAR_MNTH, RAC_FROM_DATE AS 'fromdate', RAC_TO_DATE AS 'todate',
-      DUALELIGIBLE_INDICATOR AS 'dual', 
+      z.DUALELIGIBLE_INDICATOR AS 'dual', 
       HEALTH_HOME_CLINICAL_INDICATOR AS 'health_home_flag',
       RAC_CODE AS 'rac_code', 
       RPRTBL_BSP_GROUP_CID AS 'bsp_group_cid', 
@@ -102,6 +111,13 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       MC_PRVDR_ID AS 'mco_id',
       geo_hash_raw
       FROM {`from_schema`}.{`from_table`}) a
+      INNER JOIN #timevar_0 z 
+      ON a.MBR_H_SID = z.MBR_H_SID AND
+        a.CLNDR_YEAR_MNTH = z.CLNDR_YEAR_MNTH AND
+        a.RAC_FROM_DATE = z.RAC_FROM_DATE AND
+        a.RAC_TO_DATE = z.RAC_TO_DATE AND
+        a.RAC_CODE = z.RAC_CODE AND 
+        a.RAC_CODE_NAME = z.RAC_CODE_NAME
       LEFT JOIN
       (SELECT rac_code, 
         CASE 
