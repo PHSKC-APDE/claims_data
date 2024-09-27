@@ -156,7 +156,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     message("Processing duplicate rows")
     
     # Need three different approaches to fix these. Check for each type of error.
-    message("Duplicates found, checking for multiple END_REASON rows per id/month/RAC combo")
+    message("Duplicates found, checking for multiple END_REASON_NAME rows per id/month/RAC combo")
     duplicate_check_reason <- as.numeric(dbGetQuery(
       conn_dw,
       glue::glue_sql("SELECT COUNT (*) FROM
@@ -170,7 +170,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
       conn_dw,
       glue::glue_sql("SELECT COUNT (*) FROM
            (SELECT DISTINCT CLNDR_YEAR_MNTH, MBR_H_SID, MEDICAID_RECIPIENT_ID, RAC_FROM_DATE, 
-             RAC_TO_DATE, RAC_CODE, END_REASON, RAC_NAME, DUALELIGIBLE_INDICATOR
+             RAC_TO_DATE, RAC_CODE, END_REASON_NAME, RAC_NAME, DUALELIGIBLE_INDICATOR
                  FROM {`from_schema`}.{`from_table`}) a",
                      .con = conn_dw)))
     
@@ -179,7 +179,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
       conn_dw,
       glue::glue_sql("SELECT COUNT (*) FROM
            (SELECT DISTINCT CLNDR_YEAR_MNTH, MBR_H_SID, MEDICAID_RECIPIENT_ID, RAC_FROM_DATE, 
-             RAC_TO_DATE, RAC_CODE, END_REASON, DUALELIGIBLE_INDICATOR
+             RAC_TO_DATE, RAC_CODE, END_REASON_NAME, DUALELIGIBLE_INDICATOR
                  FROM {`from_schema`}.{`from_table`}) a",
                      .con = conn_dw)))
     
@@ -187,13 +187,13 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
       duplicate_check_reason != rows_load_raw & duplicate_check_hoh != rows_load_raw & 
         duplicate_check_rac != rows_load_raw ~ "All three types of duplicates present",
       duplicate_check_reason != rows_load_raw & duplicate_check_hoh != rows_load_raw & 
-        duplicate_check_rac == rows_load_raw ~ "Duplicate END_REASON AND HOH_ID rows present",
+        duplicate_check_rac == rows_load_raw ~ "Duplicate END_REASON_NAME AND HOH_ID rows present",
       duplicate_check_reason != rows_load_raw & duplicate_check_hoh == rows_load_raw & 
-        duplicate_check_rac != rows_load_raw ~ "Duplicate END_REASON AND RAC_NAME rows present",
+        duplicate_check_rac != rows_load_raw ~ "Duplicate END_REASON_NAME AND RAC_NAME rows present",
       duplicate_check_reason == rows_load_raw & duplicate_check_hoh != rows_load_raw & 
         duplicate_check_rac != rows_load_raw ~ "Duplicate HOH_ID AND RAC_NAME rows present",
       duplicate_check_reason != rows_load_raw & duplicate_check_hoh == rows_load_raw & 
-        duplicate_check_rac == rows_load_raw ~ "Only END_REASON duplicates present",
+        duplicate_check_rac == rows_load_raw ~ "Only END_REASON_NAME duplicates present",
       duplicate_check_reason == rows_load_raw & duplicate_check_hoh != rows_load_raw & 
         duplicate_check_rac == rows_load_raw ~ "Only HOH_ID duplicates present",
       duplicate_check_reason == rows_load_raw & duplicate_check_hoh == rows_load_raw & 
@@ -227,12 +227,12 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
       system.time(DBI::dbExecute(conn_dw,
                                  glue::glue_sql(
                                    "SELECT {`vars_dedup`*},
-      CASE WHEN END_REASON IS NULL THEN 1
-        WHEN END_REASON = 'Other' THEN 2
-        WHEN END_REASON = 'Other - For User Generation Only' THEN 3
-        WHEN END_REASON = 'Review Not Complete' THEN 4
-        WHEN END_REASON = 'No Eligible Household Members' THEN 5
-        WHEN END_REASON = 'Already Eligible for Program in Different AU' THEN 6
+      CASE WHEN END_REASON_NAME IS NULL THEN 1
+        WHEN END_REASON_NAME = 'Other' THEN 2
+        WHEN END_REASON_NAME = 'Other - For User Generation Only' THEN 3
+        WHEN END_REASON_NAME = 'Review Not Complete' THEN 4
+        WHEN END_REASON_NAME = 'No Eligible Household Members' THEN 5
+        WHEN END_REASON_NAME = 'Already Eligible for Program in Different AU' THEN 6
         ELSE 7 END AS reason_score 
       INTO {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig 
       FROM {`from_schema`}.{`from_table`}",
