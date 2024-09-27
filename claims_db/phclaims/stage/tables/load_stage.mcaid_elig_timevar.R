@@ -83,6 +83,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     address_clean_table <- "#address_clean_01a"
   }
   
+  ## This temp table consolodates duplicated rows with different DUALELIGIBLE_INDICATOR columns to take either DualEligible or PartialDual
   step0_sql <- glue::glue_sql(
     "SELECT MBR_H_SID, CLNDR_YEAR_MNTH, RAC_FROM_DATE, RAC_TO_DATE, RAC_CODE, RAC_CODE_NAME,
     CASE WHEN MIN(DUALELIGIBLE_INDICATOR) = 'N/A' THEN MAX(DUALELIGIBLE_INDICATOR) ELSE MIN(DUALELIGIBLE_INDICATOR) END AS DUALELIGIBLE_INDICATOR
