@@ -65,12 +65,8 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   
   # Need to keep only the vars that come before the named ones below
   # This is so we can recreate the address hash field
-  vars_prefix <- vars[!vars %in% c("geo_hash_raw", "MBR_ACES_IDNTFR",  
-                                   "SECONDARY_RAC_CODE", "SECONDARY_RAC_NAME", 
-                                   "HEALTH_HOME_CLINICAL_INDICATOR", "etl_batch_id")]
-  vars_suffix <- c("MBR_ACES_IDNTFR", 
-                   "SECONDARY_RAC_CODE", "SECONDARY_RAC_NAME", 
-                   "HEALTH_HOME_CLINICAL_INDICATOR", "etl_batch_id")
+  vars_prefix <- vars[!vars %in% c("geo_hash_raw", "MBR_ACES_IDNTFR", "etl_batch_id")]
+  vars_suffix <- c("MBR_ACES_IDNTFR", "etl_batch_id")
   
   
   if (full_refresh == F) {
@@ -275,7 +271,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
         LEFT JOIN
         (SELECT CLNDR_YEAR_MNTH, MBR_H_SID, MEDICAID_RECIPIENT_ID, RAC_FROM_DATE,
           RAC_TO_DATE, RAC_CODE, 
-          MAX(reason_score) AS max_score, 
+          MAX(reason_score) AS max_score 
           FROM {`tmp_schema`}.{DBI::SQL(tmp_table)}mcaid_elig 
           GROUP BY CLNDR_YEAR_MNTH, MBR_H_SID, MEDICAID_RECIPIENT_ID, RAC_FROM_DATE, RAC_TO_DATE, 
           RAC_CODE) b
@@ -284,8 +280,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
         a.MEDICAID_RECIPIENT_ID = b.MEDICAID_RECIPIENT_ID AND
         (a.RAC_FROM_DATE = b.RAC_FROM_DATE OR (a.RAC_FROM_DATE IS NULL AND b.RAC_FROM_DATE IS NULL)) AND
         (a.RAC_TO_DATE = b.RAC_TO_DATE OR (a.RAC_TO_DATE IS NULL AND b.RAC_TO_DATE IS NULL)) AND
-        (a.RAC_CODE = b.RAC_CODE OR
-          (a.RAC_CODE IS NULL AND b.RAC_CODE IS NULL)) AND
+        (a.RAC_CODE = b.RAC_CODE OR (a.RAC_CODE IS NULL AND b.RAC_CODE IS NULL))
         WHERE a.reason_score = b.max_score",
         .con = conn_dw)
       
