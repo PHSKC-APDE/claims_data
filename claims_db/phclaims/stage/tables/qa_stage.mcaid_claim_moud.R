@@ -111,7 +111,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
   
   
   #### Check for new NDCs ####
-  ndc_cnt <- DBI::dbGetQuery(conn, glue::glue_sql("select * from #mcaid_moud_pharm_2 where admin_method is null ", .con = conn))
+  ndc_cnt <- DBI::dbGetQuery(conn, glue::glue_sql("select * from {`stage_schema`}.tmp_mcaid_moud_pharm_2 where admin_method is null ", .con = conn))
   
   if (nrow(ndc_cnt) == 0) {
     qa_check_1 <- 0
@@ -243,6 +243,9 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
   }
   
   #### SUM UP FAILURES ####
+  DBI::dbExecute(conn,
+                 glue::glue_sql("DROP TABLE {`stage_schema`}.tmp_mcaid_moud_pharm_2",
+                                .con = conn))
   fail_tot <- sum(ids_fail, qa_check_1, qa_check_2, qa_check_3, qa_check_4)
   return(fail_tot)
 }

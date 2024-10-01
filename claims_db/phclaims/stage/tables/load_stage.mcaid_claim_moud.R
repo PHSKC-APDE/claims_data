@@ -168,13 +168,13 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   			on b.code = c.ndc
   	where a.rx_fill_date >= '2016-01-01';
   
-  	IF OBJECT_ID(N'tempdb..#mcaid_moud_pharm_2') IS NOT NULL DROP TABLE #mcaid_moud_pharm_2;
+  	IF OBJECT_ID({paste0(stage_schema, '.tmp_mcaid_moud_pharm_2')}) IS NOT NULL DROP TABLE {`stage_schema`}.tmp_mcaid_moud_pharm_2;
   	select 
   	  id_mcaid, claim_header_id, first_service_date, last_service_date, ndc, bup_rx_flag, nal_rx_flag, 
 		  case when ndc = '00093572156' or ndc = '00093572056' or ndc = '49452483501'  or ndc = '00378876616' then 'oral' 
   			else admin_method 
 			  end as admin_method, moud_days_supply
-	  into #mcaid_moud_pharm_2
+	  into {`stage_schema`}.tmp_mcaid_moud_pharm_2
 	  from #mcaid_moud_pharm_1;",
 	  .con = conn)
   DBI::dbExecute(conn = conn, step4_sql)
@@ -219,7 +219,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  nal_rx_flag,
 		  moud_days_supply,
 		  null as oud_dx1_flag
-	  from #mcaid_moud_pharm_2;",
+	  from {`stage_schema`}.tmp_mcaid_moud_pharm_2;",
 	  .con = conn)
   DBI::dbExecute(conn = conn, step5_sql)
   
