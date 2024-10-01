@@ -41,6 +41,7 @@ qa_stage_mcaid_claim_moud_f <- function(conn = NULL,
   from_table <- config[[server]][["from_table"]]
   to_schema <- config[[server]][["to_schema"]]
   to_table <- config[[server]][["to_table"]]
+  stage_schema <- config[[server]][["stage_schema"]]
   final_schema <- config[[server]][["final_schema"]]
   final_table <- ifelse(is.null(config[[server]][["final_table"]]), '',
                         config[[server]][["final_table"]])
