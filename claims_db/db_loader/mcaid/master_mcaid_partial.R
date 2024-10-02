@@ -200,6 +200,14 @@ logid <- load_stage.address_clean_geocode(server = server,
 # Copy Elig Stage table to HHSAW while addresses are cleaned
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 DBI::dbExecute(conn = db_claims, "execute claims.usp_load_stage_mcaid_elig_hhsaw;")
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+DBI::dbExecute(conn = db_claims, 
+               glue::glue_sql("IF OBJECT_ID('claims.mcaid_id_crosswalk', 'U') IS NOT NULL 
+                                DROP TABLE claims.mcaid_id_crosswalk;
+                              SELECT DISTINCT MBR_H_SID, MEDICAID_RECIPIENT_ID
+                              INTO claims.mcaid_id_crosswalk
+                              FROM claims.stage_mcaid_elig_hhsaw;",                 
+                              .con = db_claims))
 
 # Checks status of kcgeocode process
 load_stage.address_clean_geocode_check(upid = logid)
