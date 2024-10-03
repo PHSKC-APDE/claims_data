@@ -144,8 +144,8 @@ external_table_row_counts <- lapply(folder_list, function(folder_list) {
   
   table_selected <- folder_list
   message(paste0("Querying row count for HHSAW external table: ", table_selected))
-  sql_query <- dbGetQuery(conn = dw_inthealth, glue_sql("SELECT count(*) as row_count FROM [stg_claims].[apcd_{DBI::SQL(`table_selected`)}];",
-                                                     .con = dw_inthealth))
+  sql_query <- dbGetQuery(conn = db_claims, glue_sql("SELECT count(*) as row_count FROM [claims].[stage_apcd_{DBI::SQL(`table_selected`)}];",
+                                                     .con = db_claims))
   da_inner <- data.frame(table_name = table_selected, row_count = sql_query$row_count)
   return(da_inner)
 }) %>%
