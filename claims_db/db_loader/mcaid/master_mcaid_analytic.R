@@ -45,31 +45,7 @@ dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth
 
 #### COPY NECESSARY REF TABLES ####
 from_conn <- create_db_connection("hhsaw", interactive = F, prod = T)
-table_copy_df <- data.frame(
-  from_schema = c("claims", "claims", "claims", 
-                  "claims", "claims", "claims", 
-                  "ref", "ref", "ref", 
-                  "ref", "ref", "claims",
-                  "claims", "claims", "claims",
-                  "claims", "claims", "claims"),
-  from_table = c("ref_mcaid_rac_code", "ref_geo_kc_zip", "ref_kc_claim_type_crosswalk", 
-                 "ref_pc_visit_oregon", "ref_hedis_value_sets_apde", "ref_kc_provider_master", 
-                 "icdcm_codes", "address_clean", "address_geocode", 
-                 "ndc_codes", "rda_value_sets_apde", "ref_rolling_time_24mo_2012_2020",
-                 "ref_naxolone_ndc", "ref_apcd_procedure_code", "ref_moll_preg_endpoint",
-                 "ref_date", "ref_moll_trimester", "ref_ccw_lookup"),
-  to_schema = c("stg_claims", "stg_claims", "stg_claims", 
-                "stg_claims", "stg_claims", "stg_claims", 
-                "stg_reference", "stg_reference", "stg_reference", 
-                "stg_reference", "stg_reference", "stg_claims",
-                "stg_claims", "stg_claims", "stg_claims",
-                "stg_claims", "stg_claims", "stg_claims"),
-  to_table = c("ref_mcaid_rac_code", "ref_geo_kc_zip", "ref_kc_claim_type_crosswalk", 
-               "ref_pc_visit_oregon", "ref_hedis_value_sets_apde", "ref_kc_provider_master", 
-               "icdcm_codes", "address_clean", "address_geocode", 
-               "ref_ndc_codes", "ref_rda_value_sets_apde", "ref_rolling_time_24mo_2012_2020",
-               "ref_naxolone_ndc", "ref_apcd_procedure_code", "ref_moll_preg_endpoint",
-               "ref_date", "ref_moll_trimester", "ref_ccw_lookup"))
+table_copy_df <- read.csv("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/mcaid_synapse/claims_db/db_loader/mcaid/McaidTableCopyList.csv")
 table_duplicate_f(conn_from = from_conn, 
                   conn_to = dw_inthealth, 
                   server_to = "inthealth_dev", 
@@ -444,6 +420,12 @@ claim_ccw_fail <- claim_load_f(table = "ccw")
 #### MCAID_CLAIM_BH ####
 claim_bh_fail <- claim_load_f(table = "bh")
 
+
+
+
+
+
+
 #### DROP TABLES NO LONGER NEEDED ####
 bak_check <- dlg_list(c("Yes", "No"), title = "CHECK BACKUP TABLES?")$res
 if (bak_check == "Yes") {
@@ -553,6 +535,3 @@ if(send_email == "Yes") {
 }
 
 
-
-
-glue::glue("Something went wrong with the mcaid_elig_demo run. See {DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_schema']])}.{DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid")
