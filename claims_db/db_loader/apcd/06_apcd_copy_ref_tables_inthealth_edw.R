@@ -11,7 +11,7 @@ pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils)
 
 #### STEP 1: Connect to SQL DATABASES ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
-key_set("inthealth_edw_prod", username = "shernandez@kingcounty.gov") #Only run this each time password is changed
+#key_set("inthealth_edw_prod", username = "shernandez@kingcounty.gov") #Only run this each time password is changed
 interactive_auth <- FALSE
 prod <- TRUE
 db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
