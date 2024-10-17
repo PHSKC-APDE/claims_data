@@ -146,6 +146,10 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2022.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
 
+# 2023
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2023.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
 ### PLACEHOLDER FOR ADDING THE NEXT COMPLETE CALENDAR YEAR TABLE ###
 
 
@@ -159,6 +163,7 @@ system.time(load_stage.apcd_elig_plr_f(from_date = "2019-01-01", to_date = "2019
 system.time(load_stage.apcd_elig_plr_f(from_date = "2020-01-01", to_date = "2020-12-31")) #2020
 system.time(load_stage.apcd_elig_plr_f(from_date = "2021-01-01", to_date = "2021-12-31")) #2021
 system.time(load_stage.apcd_elig_plr_f(from_date = "2022-01-01", to_date = "2022-12-31")) #2022
+system.time(load_stage.apcd_elig_plr_f(from_date = "2023-01-01", to_date = "2023-12-31")) #2023
 ##placeholder for adding the next complete calendar year table
 
 
@@ -172,6 +177,7 @@ system.time(apcd_plr_2019_qa <- qa_stage.apcd_elig_plr_f(year = "2019"))
 system.time(apcd_plr_2020_qa <- qa_stage.apcd_elig_plr_f(year = "2020"))
 system.time(apcd_plr_2021_qa <- qa_stage.apcd_elig_plr_f(year = "2021"))
 system.time(apcd_plr_2022_qa <- qa_stage.apcd_elig_plr_f(year = "2022"))
+system.time(apcd_plr_2023_qa <- qa_stage.apcd_elig_plr_f(year = "2023"))
 ##placeholder for adding the next complete calendar year table
 
 #Process QA results from across all tables
@@ -183,7 +189,8 @@ df_list <- list(apcd_plr_2014_qa,
                 apcd_plr_2019_qa,
                 apcd_plr_2020_qa,
                 apcd_plr_2021_qa,
-                apcd_plr_2022_qa)
+                apcd_plr_2022_qa,
+                apcd_plr_2023_qa)
 ##placeholder for adding the next complete calendar year table
 columns <- c("qa_result")
 elig_plr_qa_composite_result <- data.frame(matrix(nrow = 0, ncol = length(columns)))
