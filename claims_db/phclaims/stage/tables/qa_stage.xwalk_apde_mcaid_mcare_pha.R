@@ -263,25 +263,23 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
       }
   } 
   
-  #### CHECK DISTINCT MCAID IDS == DISTINCT IN MCAID ELIG DEMO ####
+  #### CHECK DISTINCT MCAID IDS == DISTINCT IN IDH ####
+  # 10/21/2024 informed by Kai that the number unique id_mcaid in the IDH can be
+  # slightly less than the number in [claims].[final_mcaid_elig_demo] due to 
+  # whatever linkage process they use.
+  # For THIS QA, We are only interested in confirming that I have all id_mcaid 
+  # that were available to us in the IDH. So, the number distinct id_mcaid in 
+  # the IDH will be our 'truth'. Will trust that who ever maintains the IDH 
+  # is conducting their own QA vs the number of ids in mcaid_elig_demo
+    
   id_count_mcaid <- uniqueN(xwalk[!is.na(id_mcaid)]$id_mcaid)
 
-  id_count_mcaid_elig_demo <- as.integer(odbc::dbGetQuery(
-    conn,
-    "SELECT TEMP.qa_value
-    FROM [claims].[metadata_qa_mcaid_values] TEMP
-    INNER JOIN (
-        SELECT MAX(qa_date) AS max_date
-        FROM [claims].[metadata_qa_mcaid_values]
-        WHERE table_name = 'claims.stage_mcaid_elig_demo' 
-        AND qa_item = 'row_count'
-    ) max_dates ON TEMP.qa_date = max_dates.max_date
-    WHERE TEMP.table_name = 'claims.stage_mcaid_elig_demo'
-    AND TEMP.qa_item = 'row_count'"
-  ))
+  idh_count_mcaid <- odbc::dbGetQuery(db_idh, 
+                                            "SELECT COUNT(DISTINCT MEDICAID_ID) AS freq
+                                      FROM [IDMatch].[IM_HISTORY_TABLE]
+                                      WHERE IS_HISTORICAL = 'N' AND SOURCE_SYSTEM = 'MEDICAID' AND KCMASTER_ID IS NOT NULL")[]$freq
   
-  
-  if (id_count_mcaid != id_count_mcaid_elig_demo) {
+  if (id_count_mcaid != idh_count_mcaid) {
     odbc::dbGetQuery(
       conn = conn,
       glue::glue_sql("INSERT INTO [claims].[metadata_qa_xwalk]
@@ -292,12 +290,12 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
                      'Number distinct IDs - Medicaid', 
                      'FAIL', 
                       {format(Sys.time(), '%Y-%m-%d %H:%M:%S')}, 
-                     'There were {id_count_mcaid} distinct MCAID IDs but {id_count_mcaid_elig_demo} in the most recent [claims].[stage_mcaid_elig_demo] (they should be equal)'
+                     'There were {id_count_mcaid} distinct MCAID IDs but {idh_count_mcaid} in the most recent IDH table ([IDMatch].[IM_HISTORY_TABLE]) (they should be equal)'
                      )
                      ",
                      .con = conn))
     
-    problem.mcaid_id  <- glue::glue("Number of distinct MCAID IDs is different from the number in [claims].[stage_mcaid_elig_demo] data. 
+    problem.mcaid_id  <- glue::glue("Number of distinct MCAID IDs is different from the number in the IDH ([IDMatch].[IM_HISTORY_TABLE]) data. 
                     Check [claims].[metadata_qa_xwalk] for details (last_run = {format(last_run, '%Y-%m-%d %H:%M:%S')})
                    \n")
   } else {
@@ -310,8 +308,8 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
                      'Number distinct IDs - Medicaid', 
                      'PASS', 
                       {format(Sys.time(), '%Y-%m-%d %H:%M:%S')}, 
-                     'The number of distinct MCAID IDs ({id_count_mcaid}) is equal to the number in [claims].[stage_mcaid_elig_demo] 
-                     ({id_count_mcaid_elig_demo})')",
+                     'The number of distinct MCAID IDs ({id_count_mcaid}) is equal to the number in the IDH ([IDMatch].[IM_HISTORY_TABLE]) 
+                     ({idh_count_mcaid})')",
                      .con = conn))
     
     problem.mcaid_id  <- glue::glue(" ") # no problem
