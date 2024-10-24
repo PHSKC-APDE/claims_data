@@ -377,7 +377,7 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 system.time(table_duplicate_f(
   conn_from = dw_inthealth,
   conn_to = db_claims,
-  server_to = "hhsaw", #must match ODBC data source name AND keyring service name
+  server_to = "HHSAW_prod", #must match ODBC data source name AND keyring service name
   db_to = "hhs_analytics_workspace",
   from_schema = "stg_claims",
   from_table = "ref_apcd_provider_npi",
