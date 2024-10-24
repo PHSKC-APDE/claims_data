@@ -16,7 +16,7 @@
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
 
 library(pacman)
-pacman::p_load(tidyverse, lubridate, odbc, glue)
+pacman::p_load(tidyverse, lubridate, odbc, glue, keyring)
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
@@ -35,6 +35,9 @@ interactive_auth <- FALSE
 prod <- TRUE
 dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
+keyring::key_list() #Confirm you have a key set for hhsaw and inthealth_edw_prod on this machine
+
+#key_set("HHSAW_prod", username = "shernandez@kingcounty.gov") #Only run this each time password is changed
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 1: apcd_elig_demo ####
