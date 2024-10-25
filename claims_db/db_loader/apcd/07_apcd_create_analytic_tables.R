@@ -432,7 +432,7 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 system.time(table_duplicate_f(
   conn_from = dw_inthealth,
   conn_to = db_claims,
-  server_to = "hhsaw", #must match ODBC data source name AND keyring service name
+  server_to = "HHSAW_prod", #must match ODBC data source name AND keyring service name
   db_to = "hhs_analytics_workspace",
   from_schema = "stg_claims",
   from_table = "ref_kc_provider_master",
@@ -451,7 +451,7 @@ message(paste0("Completed copying ref.kc_provider_master to HHSAW - ", Sys.time(
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 10: apcd_claim_header ####
+#### Table 10: apcd_claim_header #### (~3hr)
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_header - ", Sys.time()))
@@ -462,7 +462,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 ### B) Create table
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+             overall = T, ind_yr = F, overwrite = T, server = "HHSAW_prod")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_header_f())
