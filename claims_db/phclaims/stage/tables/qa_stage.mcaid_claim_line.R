@@ -46,6 +46,9 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   final_schema <- config[[server]][["final_schema"]]
   final_table <- ifelse(is.null(config[[server]][["final_table"]]), '',
                       config[[server]][["final_table"]])
+  stage_schema <- config[[server]][["stage_schema"]]
+  stage_table <- ifelse(is.null(config[[server]][["stage_table"]]), '',
+                        config[[server]][["stage_table"]])
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                      config[[server]][["ref_table"]])
@@ -67,7 +70,7 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   ids_demo_chk <- as.integer(DBI::dbGetQuery(
     conn, glue::glue_sql("SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
                          FROM {`to_schema`}.{`to_table`} AS a
-                         LEFT JOIN {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_demo AS b
+                         LEFT JOIN {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_elig_demo AS b
                          ON a.id_mcaid = b.id_mcaid
                          WHERE b.id_mcaid IS NULL",
                          .con = conn)))
@@ -75,7 +78,7 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   ids_timevar_chk <- as.integer(DBI::dbGetQuery(
     conn, glue::glue_sql("SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
                          FROM {`to_schema`}.{`to_table`} AS a
-                         LEFT JOIN {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_timevar AS b
+                         LEFT JOIN {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_elig_timevar AS b
                          ON a.id_mcaid = b.id_mcaid
                          WHERE b.id_mcaid IS NULL",
                          .con = conn)))
@@ -188,10 +191,10 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   if (DBI::dbExistsTable(conn, DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_line")))) {
     
     num_claim_current <- DBI::dbGetQuery(
-      conn, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS current_claim_line
+      conn_qa, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS current_claim_line
                            FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line
                            GROUP BY YEAR(first_service_date) ORDER BY YEAR(first_service_date)",
-                           .con = conn))
+                           .con = conn_qa))
     
     num_claim_new <- DBI::dbGetQuery(
       conn, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS new_claim_line
