@@ -145,7 +145,7 @@ qa_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   
   
-  if (DBI::dbExistsTable(conn, DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_header")))) {
+  if (DBI::dbExistsTable(conn_qa, DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_header")))) {
     #### Compare number of claim headers in current vs. prior analytic tables ####
     
     num_header_current <- DBI::dbGetQuery(

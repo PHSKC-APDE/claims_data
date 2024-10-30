@@ -188,7 +188,7 @@ qa_stage_mcaid_claim_line_f <- function(conn = NULL,
   
   
   #### Compare number of claim lines in current vs. prior analytic tables ####
-  if (DBI::dbExistsTable(conn, DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_line")))) {
+  if (DBI::dbExistsTable(conn_qa, DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_line")))) {
     
     num_claim_current <- DBI::dbGetQuery(
       conn_qa, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS current_claim_line

@@ -213,7 +213,7 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   
   
   #### Compare number of procedure codes in current vs. prior analytic tables ####
-  if (DBI::dbExistsTable(conn,
+  if (DBI::dbExistsTable(conn_qa,
                          DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_procedure")))) {
     
     

@@ -149,7 +149,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
   
   
   #### Compare number of claim lines in current vs. prior analytic tables ####
-  if (DBI::dbExistsTable(conn,
+  if (DBI::dbExistsTable(conn_qa,
                          DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_pharm")))) {
     
     num_rx_current <- DBI::dbGetQuery(
