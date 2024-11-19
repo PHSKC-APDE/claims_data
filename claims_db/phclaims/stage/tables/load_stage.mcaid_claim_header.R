@@ -231,7 +231,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            --ed visits sub-flags for HCA-ARM/DHSH-RDA Definition
            ,max(case when rev_code like '045[01269]' then 1 else 0 end) as 'ed_rev_code'
            into #stage_mcaid_line
-           FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line
+           FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_line
            group by claim_header_id",
       .con = conn))
   
@@ -253,7 +253,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
             pc_ref.pc_dxcode = 1 THEN 1 ELSE 0 END) AS 'pc_zcode' 
            INTO #stage_mcaid_diag FROM
            (select claim_header_id, icdcm_number, icdcm_norm, icdcm_version
-           FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header) AS dx
+           FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_icdcm_header) AS dx
            LEFT JOIN
            (SELECT code, 1 AS pc_dxcode FROM {`ref_schema`}.{DBI::SQL(ref_table)}pc_visit_oregon 
            WHERE code_system IN ('icd10cm')) pc_ref
@@ -275,7 +275,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            ,max(case when px.procedure_code like '9928[123458]' then 1 else 0 end) as 'ed_pcode1'
            ,MAX(ISNULL(pc_ref.pc_pcode, 0)) AS pc_pcode 
            INTO #stage_mcaid_procedure_code FROM
-           (SELECT claim_header_id, procedure_code FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_procedure) AS px
+           (SELECT claim_header_id, procedure_code FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_procedure) AS px
            LEFT JOIN
            (SELECT code, 1 AS pc_pcode FROM {`ref_schema`}.{DBI::SQL(ref_table)}pc_visit_oregon 
            WHERE code_system IN ('cpt', 'hcpcs')) pc_ref
@@ -298,7 +298,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                  ,[first_service_date]
                  ,1 AS [inpatient]
                  INTO #stage_mcaid_hedis_inpatient_definition
-                 FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line AS a
+                 FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_line AS a
                  INNER JOIN 
                  (SELECT distinct code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde
                   WHERE [value_set_name] IN ('Inpatient Stay') AND [code_system] = 'UBREV') AS b
@@ -309,7 +309,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                     ,[claim_header_id]
                     ,[first_service_date]
                     ,1 AS [inpatient]
-                    FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line AS a
+                    FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_line AS a
                     INNER JOIN 
                     (SELECT distinct code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde 
                     WHERE [value_set_name] IN ('Nonacute Inpatient Stay') AND [code_system] = 'UBREV') AS b
@@ -319,7 +319,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                     ,[claim_header_id]
                     ,[first_service_date]
                     ,1 AS [inpatient]
-                    FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_header AS a
+                    FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_header AS a
                     INNER JOIN 
                     (SELECT distinct code from {`ref_schema`}.{DBI::SQL(ref_table)}hedis_value_sets_apde 
                     WHERE [value_set_name] IN ('Nonacute Inpatient Stay') AND [code_system] = 'UBTOB') AS b
@@ -423,7 +423,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            INTO #stage_mcaid_ccs
            FROM {`icdcm_ref_schema`}.{DBI::SQL(icdcm_ref_table)} as a
            inner join (select claim_header_id, icdcm_norm, icdcm_version 
-           FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header where icdcm_number = '01') as b
+           FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_icdcm_header where icdcm_number = '01') as b
            on (a.icdcm_version = b.icdcm_version) and (a.icdcm = b.icdcm_norm)",
                                 .con = conn))
   
@@ -444,7 +444,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            ,max(case when a.sud_any = 1 then 1 else 0 end) as sud_any
            INTO #stage_mcaid_rda
            FROM {`icdcm_ref_schema`}.{DBI::SQL(icdcm_ref_table)} as a
-           inner join {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header as b
+           inner join {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_icdcm_header as b
            on (a.icdcm_version = b.icdcm_version) and (a.icdcm = b.icdcm_norm)
            group by b.claim_header_id",
                                 .con = conn))
@@ -464,7 +464,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   if object_id('tempdb..#stage_mcaid_icdcm_distinct') is not null drop table #stage_mcaid_icdcm_distinct;
   select distinct icdcm_norm, icdcm_version
   into #stage_mcaid_icdcm_distinct
-  from {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header;
+  from {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_icdcm_header;
   ", .con = conn))
   
   DBI::dbExecute(conn, glue::glue_sql("
@@ -512,7 +512,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   case when b.icdcm_norm is not null and a.icdcm_number = '01' then 1 else 0 end as injury_narrow,
   case when b.icdcm_norm is not null then 1 else 0 end as injury_broad
   into #stage_mcaid_injury_nature
-  from {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header as a
+  from {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_icdcm_header as a
   left join #stage_mcaid_injury_nature_ref as b
   on (a.icdcm_norm = b.icdcm_norm) and (a.icdcm_version = b.icdcm_version);", .con = conn))
   
@@ -713,7 +713,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                         ,[last_service_date]
                         ,'Carrier' as [ed_type]
                       INTO #stage_mcaid_ed_yale_step_1
-                      FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_procedure
+                      FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_procedure
                       WHERE [procedure_code] in ('99281','99282','99283','99284','99285','99291')
                         AND [claim_header_id] in 
                           (SELECT [claim_header_id]
@@ -727,7 +727,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                         ,[first_service_date]
                         ,[last_service_date]
                         ,'Carrier' as [ed_type]
-                      FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line
+                      FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_line
                       WHERE [rev_code] in ('0450','0451','0452','0456','0459','0981')
                         AND [claim_header_id] in
                           (SELECT [claim_header_id]
@@ -740,7 +740,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                         ,[first_service_date]
                         ,[last_service_date]
                         ,'Facility' as [ed_type]
-                      FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_procedure
+                      FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_procedure
                       WHERE [procedure_code] in ('99281','99282','99283','99284','99285','99291')
                         AND [claim_header_id] in 
                           (SELECT [claim_header_id]
@@ -763,7 +763,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                         ,[first_service_date]
                         ,[last_service_date]
                         ,'Facility' as [ed_type]
-                      FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_line
+                      FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_line
                       WHERE [rev_code] in ('0450','0451','0452','0456','0459','0981')
                         AND [claim_header_id] in 
                           (SELECT [claim_header_id]
