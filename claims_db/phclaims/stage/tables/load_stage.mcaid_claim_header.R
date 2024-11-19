@@ -460,6 +460,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   message("STEP 10: INJURY CAUSE AND NATURE PER CDC GUIDANCE")
   try(DBI::dbRemoveTable(conn, "#stage_mcaid_injury", temporary = T), silent = T)
   try(DBI::dbExecute(conn, "DROP TABLE #stage_mcaid_injury;"), silent = T)
+  message("--step 1")
   DBI::dbExecute(conn, glue::glue_sql("
   ----------------------------------
   --STEP 1: Create table of distinct ICD-CM codes
@@ -469,7 +470,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   into #stage_mcaid_icdcm_distinct
   from {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_icdcm_header;
   ", .con = conn))
-  
+  message("--step 2")
   DBI::dbExecute(conn, glue::glue_sql("
   ----------------------------------
   --STEP 2: Flag nature-of-injury codes per CDC injury hospitalization surveillance definition for ICD-9-CM and ICD-10-CM
@@ -505,7 +506,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   	or (icdcm_norm like 'M97%' and substring(icdcm_norm,7,1) in ('A', 'B', 'C', '')) -- inclusion
   	)
   );", .con = conn))
-  
+  message("--step 3")
   DBI::dbExecute(conn, glue::glue_sql("
   ----------------------------------
   --STEP 3: Create flags for broad and narrrow injury surveillance definitions
@@ -518,7 +519,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   from {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_icdcm_header as a
   left join #stage_mcaid_injury_nature_ref as b
   on (a.icdcm_norm = b.icdcm_norm) and (a.icdcm_version = b.icdcm_version);", .con = conn))
-  
+  message("--step 4a")
   DBI::dbExecute(conn, glue::glue_sql("
   ----------------------------------
   --STEP 4: Identify external cause-of-injury codes for intent and mechanism
@@ -535,7 +536,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   	where icdcm_version = 10 and intent is not null
   ) as b
   on (a.icdcm_norm like b.icdcm_like) and (a.icdcm_version = b.icdcm_version);", .con = conn))
-  
+  message("--step 4b")
   DBI::dbExecute(conn, glue::glue_sql("
   --LIKE join distinct ICD-9-CM codes to ICD-9-CM external cause-of-injury code reference table
   IF object_id(N'tempdb..#stage_mcaid_injury_cause_icd9cm_ref') is not null drop table #stage_mcaid_injury_cause_icd9cm_ref;
@@ -548,7 +549,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   	where icdcm_version = 9 and intent is not null
   ) as b
   on (a.icdcm_norm like b.icdcm_like) and (a.icdcm_version = b.icdcm_version);", .con = conn))
-  
+  message("--step 4c")
   DBI::dbExecute(conn, glue::glue_sql("
   --UNION ICD-10-CM and ICD-9-CM CHARS reference table
   IF object_id(N'tempdb..#stage_mcaid_injury_cause_ref') is not null drop table #stage_mcaid_injury_cause_ref;
@@ -558,7 +559,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   union
   select *
   from #stage_mcaid_injury_cause_icd10cm_ref;", .con = conn))
-  
+  message("--step 4d")
   DBI::dbExecute(conn, glue::glue_sql("
   --EXACT join of above table to claims data with injury flags
   IF object_id(N'tempdb..#stage_mcaid_injury_nature_cause') is not null drop table #stage_mcaid_injury_nature_cause;
@@ -568,7 +569,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   from #stage_mcaid_injury_nature as a
   left join #stage_mcaid_injury_cause_ref as b
   on (a.icdcm_norm = b.icdcm_norm) and (a.icdcm_version = b.icdcm_version);", .con = conn))
-  
+  message("--step 4e")
   DBI::dbExecute(conn, glue::glue_sql("
   --Create rank variables for valid external cause-of-injury codes and for nature-of-injury codes
   IF object_id(N'tempdb..#stage_mcaid_injury_nature_cause_ranks') is not null drop table #stage_mcaid_injury_nature_cause_ranks;
@@ -583,7 +584,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   end as injury_nature_rank
   into #stage_mcaid_injury_nature_cause_ranks
   from #stage_mcaid_injury_nature_cause;", .con = conn))
-  
+  message("--step 5a")
   DBI::dbExecute(conn, glue::glue_sql("
   ----------------------------------
   --STEP 5: Aggregate to claim header level
@@ -600,7 +601,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   	ecode_rank
   into #stage_mcaid_injury_cause_header_level_tmp
   from #stage_mcaid_injury_nature_cause_ranks;", .con = conn))
-  
+  message("--step 5b")
   DBI::dbExecute(conn, glue::glue_sql("
   --Collapse to claim header level
   IF object_id(N'tempdb..#stage_mcaid_injury_cause_header_level_tmp2') is not null drop table #stage_mcaid_injury_cause_header_level_tmp2;
@@ -610,7 +611,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   into #stage_mcaid_injury_cause_header_level_tmp2
   from #stage_mcaid_injury_cause_header_level_tmp
   where (ecode_flag_max = 0) or (ecode_flag_max = 1 and ecode_rank = 1); -- subset to claim header level by selecting 1st-ranked ecode or stays having no ecodes at all", .con = conn))
-  
+  message("--step 5c")
   DBI::dbExecute(conn, glue::glue_sql("
   --Add back first-ranked diagnosis with a nature-of-injury code
   IF object_id(N'tempdb..#stage_mcaid_injury_cause_header_level_tmp3') is not null drop table #stage_mcaid_injury_cause_header_level_tmp3;
@@ -619,7 +620,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   from #stage_mcaid_injury_cause_header_level_tmp2 as a
   left join (select * from #stage_mcaid_injury_nature_cause_ranks where injury_nature_rank = 1) as b
   on a.claim_header_id = b.claim_header_id;", .con = conn))
-  
+  message("--step 6a")
   DBI::dbExecute(conn, glue::glue_sql("
   ----------------------------------
   --STEP 6: Create reference table to categorize type of nature of injury
@@ -638,7 +639,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   left join {`icdcm_ref_schema`}.{DBI::SQL(icdcm_ref_table)} as b
   on (a.icdcm_injury_nature = b.icdcm) and (a.icdcm_injury_nature_version = b.icdcm_version)
   where a.icdcm_injury_nature is not null;", .con = conn))
-  
+  message("--step 6b")
   DBI::dbExecute(conn, glue::glue_sql("
   --Normalize type of injury categories
   IF object_id(N'tempdb..#stage_mcaid_distinct_injury_nature_icdcm_final') is not null drop table #stage_mcaid_distinct_injury_nature_icdcm_final;
@@ -657,7 +658,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   end as ccs_detail_desc
   into #stage_mcaid_distinct_injury_nature_icdcm_final
   from #stage_mcaid_distinct_injury_nature_icdcm_tmp1;", .con = conn))
-  
+  message("--step 7")
   DBI::dbExecute(conn, glue::glue_sql("
   ----------------------------------
   --STEP 7: Add broad type categories to nature of injury ICD-CM codes
