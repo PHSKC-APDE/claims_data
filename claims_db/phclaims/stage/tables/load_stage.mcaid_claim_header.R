@@ -112,6 +112,9 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   temp_schema <- config[[server]][["temp_schema"]]
   temp_table <- ifelse(is.null(config[[server]][["temp_table"]]), '',
                       config[[server]][["temp_table"]])
+  stage_schema <- config[[server]][["stage_schema"]]
+  stage_table <- ifelse(is.null(config[[server]][["stage_table"]]), '',
+                        config[[server]][["stage_table"]])
   final_schema <- config[[server]][["final_schema"]]
   final_table <- ifelse(is.null(config[[server]][["final_table"]]), '',
                        config[[server]][["final_table"]])
