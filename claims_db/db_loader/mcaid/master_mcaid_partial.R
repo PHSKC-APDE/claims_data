@@ -205,7 +205,9 @@ check_status(logid,
 
 # Copy Elig Stage table to HHSAW while addresses are cleaned
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-DBI::dbExecute(conn = db_claims, "execute claims.usp_load_stage_mcaid_elig_hhsaw;")
+DBI::dbExecute(conn = db_claims,
+               glue::glue_sql("execute claims.usp_external_table_load @fromtable = N'stage_mcaid_elig', @totable = N'stage_mcaid_elig_hhsaw';",
+                              .con = db_claims))
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 DBI::dbExecute(conn = db_claims, 
                glue::glue_sql("IF OBJECT_ID('claims.mcaid_id_crosswalk', 'U') IS NOT NULL 

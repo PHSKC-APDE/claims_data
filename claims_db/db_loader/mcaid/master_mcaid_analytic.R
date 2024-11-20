@@ -48,7 +48,7 @@ from_conn <- create_db_connection("hhsaw", interactive = F, prod = T)
 table_copy_df <- read.csv("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/mcaid_synapse/claims_db/db_loader/mcaid/McaidTableCopyList.csv")
 table_duplicate_f(conn_from = from_conn, 
                   conn_to = dw_inthealth, 
-                  server_to = "inthealth_dev", 
+                  server_to = "inthealth", 
                   db_to = "inthealth_edw",
                   table_df = table_copy_df,
                   confirm_tables = F,
@@ -76,52 +76,10 @@ dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth
 qa_stage_mcaid_elig_demo <- qa_mcaid_elig_demo_f(conn = dw_inthealth, conn_qa = db_claims, server = server, 
                                                  config = stage_mcaid_elig_demo_config, load_only = F)
 
-
+### DISPLAY QA RESULTS
 # Check that things passed QA before loading final table
-if (qa_stage_mcaid_elig_demo == 0) {
-  # Check if the table exists and, if not, create it
-  final_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
-  
-  to_schema <- final_mcaid_elig_demo_config[[server]][["to_schema"]]
-  to_table <- final_mcaid_elig_demo_config[[server]][["to_table"]]
-  qa_schema <- final_mcaid_elig_demo_config[[server]][["qa_schema"]]
-  qa_table <- ifelse(is.null(final_mcaid_elig_demo_config[[server]][["qa_table"]]), '',
-                     final_mcaid_elig_demo_config[[server]][["qa_table"]])
-  
-  if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {
-    create_table_f(db_claims, server = server, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
-  }
-  
-  #### Load final table (assumes no changes to table structure)
-  load_table_from_sql_f(conn = db_claims,
-                        server = server,
-                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml", 
-                        truncate = T, truncate_date = F)
-  
-  # QA final table
-  message("QA final table")
-  qa_rows_final_elig_demo <- qa_sql_row_count_f(conn = db_claims, 
-                                                server = server,
-                                                config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml")
-  
-  DBI::dbExecute(
-    conn = db_claims,
-    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({format({last_run_elig_demo}, usetz = FALSE)}, 
-                 '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                 'Number final rows compared to stage', 
-                 {qa_rows_final_elig_demo$qa_result}, 
-                 {format(Sys.time(), usetz = FALSE)}, 
-                 {qa_rows_final_elig_demo$note})",
-                   .con = db_claims))
-  
-  
-  rm(final_mcaid_elig_demo_config, qa_rows_final_elig_demo, to_schema, to_table, qa_schema, qa_table)
-} else {
-  stop(paste0(glue::glue("Something went wrong with the mcaid_elig_demo run. See {DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_schema']])}."),
-    glue::glue("{DBI::SQL(stage_mcaid_elig_demo_config[[server]][['qa_table']])}qa_mcaid")))
-}
+
+ 
 
 
 ### Clean up
@@ -273,10 +231,10 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
                               .con = dw_inthealth))[[1]])
   
   
-  ### QA table and load to final
-  if (table != "bh") {
+  ### QA table 
+ # if (table != "bh") {
     devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_", table, ".R"))
-  }
+  #}
   
   qa_stage <- 0
   
@@ -422,6 +380,103 @@ claim_bh_fail <- claim_load_f(table = "bh")
 
 
 
+#### STAGE TABLE TO FINAL TABLE ####
+table_list <- c("elig_demo", "elig_timevar",
+                "claim_line", "claim_icdcm_header",
+                "claim_procedure", "claim_pharm",
+                "claim_header", "claim_naloxone",
+                "claim_moud", "claim_preg_episode",
+                "claim_ccw", "claim_bh")
+
+message(paste0("Beginning process to copy data from INTHEALTH_EDW to HHSAW - ", Sys.time()))
+
+#Begin loop
+for(table in table_list) {
+  
+  
+  from_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_", table, ".yaml"))
+  from_schema <- from_config[[server]][["to_schema"]]
+  from_table <- from_config[[server]][["to_table"]]
+  qa_schema <- from_config[[server]][["qa_schema"]]
+  if(is.null(from_config[[server]][["qa_table_pre"]])) { qa_table <- from_config[[server]][["qa_table"]] }
+  else { qa_table <- from_config[[server]][["qa_table_pre"]] }
+  to_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_", table, ".yaml"))
+  to_schema <- to_config[[server]][["to_schema"]]
+  to_table <- to_config[[server]][["to_table"]]
+  ext_schema <- to_config[[server]][["from_schema"]]
+  ext_table <- to_config[[server]][["from_table"]]
+  
+  message(paste0("Working on table: ", to_table, " - ", Sys.time()))
+  db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+  dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+  if(prod == T) {
+    server_to <- "hhsaw"
+  } else {
+    server_to <- "hhsaw_dev"
+  }
+  suppressMessages(table_duplicate_f(conn_from = dw_inthealth, 
+                    conn_to = db_claims, 
+                    server_to = server_to, 
+                    db_to = "hhs_analytics_workspace",
+                    from_schema = from_schema,
+                    from_table = from_table,
+                    to_schema = to_schema,
+                    to_table = to_table,
+                    confirm_tables = F,
+                    delete_table = T,
+                    table_structure_only = T))
+  last_run <- DBI::dbGetQuery(conn = dw_inthealth,
+                              glue::glue_sql("SELECT MAX(last_run) FROM {`from_schema`}.{`from_table`}",
+                                             .con = dw_inthealth))[[1]]
+  DBI::dbExecute(conn = db_claims,
+                 glue::glue_sql("execute claims.usp_external_table_load @fromtable = N{ext_table}, @totable = N{to_table};",
+                                .con = db_claims))
+  
+  #Row count comparison for all tables except PLR tables
+    inthealth_row_count <- DBI::dbGetQuery(conn = db_claims,
+                                           glue::glue_sql("select count(*) as row_count from {`ext_schema`}.{`ext_table`};",
+                                                          .con = db_claims))
+    hhsaw_row_count <- DBI::dbGetQuery(conn = db_claims,
+                                       glue::glue_sql("select count(*) as row_count from {`to_schema`}.{`to_table`};",
+                                                      .con = db_claims))
+    
+  if (inthealth_row_count$row_count == hhsaw_row_count$row_count) {
+      DBI::dbExecute(
+        conn = db_claims,
+        glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                 VALUES ({format(last_run, usetz = FALSE)}, 
+                 '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
+                 'Number final rows compared to stage', 
+                 'PASS', 
+                 {format(Sys.time(), usetz = FALSE)}, 
+                 'All rows transferred to final table ({inthealth_row_count$row_count})')",
+                       .con = db_claims))
+      
+      # Track success
+      table_fail <- 0
+    } else {
+      DBI::dbExecute(
+        conn = db_claims,
+        glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
+                 VALUES ({format(last_run, usetz = FALSE)}, 
+                 '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
+                 'Number final rows compared to stage', 
+                 'FAIL', 
+                 {format(Sys.time(), usetz = FALSE)}, 
+                 '{hhsaw_row_count$row_count} rows in final table (expecting {inthealth_row_count$row_count})')",
+                       .con = db_claims))
+      
+      # Note failure
+      stop(glue::glue("Mismatching row count between inthealth_edw external table and HHSAW table."))
+    }
+  
+  message(paste0("Done working on table: ", to_table, " - ", Sys.time()))
+}
+
+## Closing message
+message(paste0("All tables have been successfully copied to inthealth_edw - ", Sys.time()))
 
 
 
