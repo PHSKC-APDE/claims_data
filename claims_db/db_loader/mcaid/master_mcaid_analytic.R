@@ -110,53 +110,10 @@ last_run_elig_timevar <- as.POSIXct(odbc::dbGetQuery(
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_timevar.R")
 qa_stage_mcaid_elig_timevar <- qa_mcaid_elig_timevar_f(conn = dw_inthealth, conn_qa = db_claims, server = server, 
                                                        config = stage_mcaid_elig_timevar_config, load_only = F)
-# Re-establish connection because it drops out faster in Azure VM
-db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
+### DISPLAY QA RESULTS
 # Check that things passed QA before loading final table
-if (qa_stage_mcaid_elig_timevar == 0) {
-  # Check if the table exists and, if not, create it
-  final_mcaid_elig_timevar_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
-  
-  to_schema <- final_mcaid_elig_timevar_config[[server]][["to_schema"]]
-  to_table <- final_mcaid_elig_timevar_config[[server]][["to_table"]]
-  qa_schema <- final_mcaid_elig_timevar_config[[server]][["qa_schema"]]
-  qa_table <- ifelse(is.null(final_mcaid_elig_timevar_config[[server]][["qa_table"]]), '',
-                     final_mcaid_elig_timevar_config[[server]][["qa_table"]])
-  
-  if (DBI::dbExistsTable(db_claims, DBI::Id(schema = to_schema, table = to_table)) == F) {
-    create_table_f(db_claims, server = server, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
-  }
-  
-  #### Load final table (assumes no changes to table structure)
-  load_table_from_sql_f(conn = db_claims,
-                        server = server,
-                        config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml", 
-                        truncate = T, truncate_date = F)
-  
-  # QA final table
-  qa_rows_final_elig_timevar <- qa_sql_row_count_f(conn = db_claims, 
-                                                   server = server,
-                                                   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/final/tables/load_final.mcaid_elig_timevar.yaml")
-  
-  DBI::dbExecute(
-    conn = db_claims,
-    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
-                 (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                 VALUES ({format(last_run_elig_timevar, usetz = FALSE)}, 
-                 '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                 'Number final rows compared to stage', 
-                 {qa_rows_final_elig_timevar$qa_result}, 
-                 {format(Sys.time(), usetz = FALSE)}, 
-                 {qa_rows_final_elig_timevar$note})",
-                   .con = db_claims))
-  
-  rm(final_mcaid_elig_timevar_config, qa_rows_final_elig_timevar, to_schema, to_table, qa_schema, qa_table)
-} else {
-  stop(paste0(glue::glue("Something went wrong with the mcaid_elig_timevar run. See {DBI::SQL(stage_mcaid_elig_timevar_config[[server]][['qa_schema']])}."),
-              glue::glue("{DBI::SQL(ifelse(is.null(stage_mcaid_elig_timevar_config[[server]][['qa_table']]), 
-               '', stage_mcaid_elig_timevar_config[[server]][['qa_table']]))}qa_mcaid")))
-}
+
 
 ### Clean up
 rm(qa_stage_mcaid_elig_timevar, stage_mcaid_elig_timevar_config, load_stage_mcaid_elig_timevar_f, 
