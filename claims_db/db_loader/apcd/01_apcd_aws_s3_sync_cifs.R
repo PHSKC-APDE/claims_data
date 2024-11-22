@@ -18,7 +18,8 @@ s3_folder <- "\"s3://waae-kc-ext/apcd_export/\"" ##Name of S3 folder containing 
 #Import credentials from C:\Users\[USERNAME]\.aws
 #credentials <- read.csv("C:/Users/kerneli/.aws/credentials") #Eli's KC laptop
 #credentials <- read.csv("C:/Users/kerneli.PH/.aws/credentials") #Eli's account on KCITENGPRRSTUD00.kc.kingcounty.lcl
-credentials <- read.csv("C:/Users/shernandez/.aws/credentials") #Susan's account on KCITENGPRRSTUD00.kc.kingcounty.lcl
+#credentials <- read.csv("C:/Users/shernandez/.aws/credentials") #Susan's account on KCITENGPRRSTUD00.kc.kingcounty.lcl
+credentials <- read.csv("C:/Users/SHERNANDEZ.KC/.aws/credentials") #Susan's account on KCITENGPRRSTUD00.kc.kingcounty.lcl
 credentials <- separate(credentials, col = X.default., sep = " = ", into = c("var_name", "value"))
 
 Sys.setenv("AWS_ACCESS_KEY_ID" =  credentials$value[1],
