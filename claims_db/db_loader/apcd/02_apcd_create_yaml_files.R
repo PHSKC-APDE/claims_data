@@ -44,9 +44,9 @@ base_url <- "https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/"
 
 #Set extract-specific parameters for YAML file
 date_min <- as.Date("2014-01-01")
-date_max <- as.Date("2023-03-31")
-date_delivery <- as.Date("2024-06-28")
-apcd_extract_number <- "10023"
+date_max <- as.Date("2024-06-30")
+date_delivery <- as.Date("2024-09-15")
+apcd_extract_number <- "10025"
 
 #Establish list of tables for which YAML format files will be created
 table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",

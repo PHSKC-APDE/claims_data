@@ -8,12 +8,12 @@ hhsaw:
     ext_table: apcd_medical_claim_header
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/medical_claim_header_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: 663272873
+row_count: 679362039
 col_count: 46
 date_min: '2014-01-01'
-date_max: '2023-03-31'
-date_delivery: '2024-06-28'
-note_delivery: apcd_medical_claim_header, extract 10023
+date_max: '2024-06-30'
+date_delivery: '2024-09-15'
+note_delivery: apcd_medical_claim_header, extract 10025
 vars:
     medical_claim_header_id: bigint
     submitter_id: bigint
