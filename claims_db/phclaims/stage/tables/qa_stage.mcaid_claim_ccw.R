@@ -107,7 +107,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
     conn,
     glue::glue_sql("SELECT ccw_code, ccw_desc, count(distinct id_mcaid) as id_dcount
                  FROM {`to_schema`}.{`to_table`}
-                 WHERE year(from_date) <= 2017 and year(to_date) >= 2017 
+                 WHERE year(first_encounter_date) <= 2017 and year(last_encounter_date) >= 2017 
                  GROUP BY ccw_code, ccw_desc
                  ORDER BY ccw_code",
                    .con = conn))
@@ -116,7 +116,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
     conn,
     glue::glue_sql("SELECT count(distinct id_mcaid) as id_dcount
                  FROM {`to_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_timevar
-                 WHERE year(from_date) <= 2017 and year(to_date) >= 2017",
+                 WHERE year(first_encounter_date) <= 2017 and year(last_encounter_date) >= 2017",
                    .con = conn)))
   
   
@@ -197,7 +197,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
       FROM (
         SELECT distinct id_mcaid, ccw_code, ccw_desc
         FROM {`to_schema`}.{`to_table`}
-        where year(from_date) <= {year} and year(to_date) >= {year}
+        where year(first_encounter_date) <= {year} and year(last_encounter_date) >= {year}
       ) as a
       left join (
         SELECT id_mcaid,
@@ -243,7 +243,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
       FROM (
 	      SELECT id_mcaid
 	      FROM {`to_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_timevar
-	      where year(from_date) <= {year} and year(to_date) >= {year}
+	      where year(first_encounter_date) <= {year} and year(last_encounter_date) >= {year}
 	      ) as a
 	    left join (
 	      SELECT id_mcaid,
@@ -327,7 +327,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
       FROM (
         SELECT distinct id_mcaid, ccw_code, ccw_desc
         FROM {`to_schema`}.{`to_table`}
-        WHERE from_date <= {yr_end} and to_date >= {yr_start}
+        WHERE first_encounter_date <= {yr_end} and last_encounter_date >= {yr_start}
       ) as a
     group by a.ccw_code, a.ccw_desc
     order by a.ccw_code",
@@ -359,14 +359,14 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   # 
   # 
   # # Restrict to relevant columns
-  # ids_csv <- ids_csv %>% select(id_mcaid, ccw_desc, from_date, to_date) %>%
-  #   arrange(id_mcaid, from_date)
+  # ids_csv <- ids_csv %>% select(id_mcaid, ccw_desc, first_encounter_date, last_encounter_date) %>%
+  #   arrange(id_mcaid, first_encounter_date)
   # 
   # # Pull relevant people from ccw table
   # # Note, need to use glue instead of glue_sql to get quotes to work in collapse
   # ids_ccw <- dbGetQuery(
   #   conn,
-  #   glue_sql("SELECT id_mcaid, ccw_desc, from_date, to_date 
+  #   glue_sql("SELECT id_mcaid, ccw_desc, first_encounter_date, last_encounter_date 
   #          FROM {`to_schema`}.{`to_table`}
   #          WHERE {DBI::SQL(
   #             glue_collapse(
@@ -374,7 +374,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   #                 ids_csv, 
   #                 '(id_mcaid = {id_mcaid} and ccw_desc = {ccw_desc})', .con = conn), 
   #               sep = ' OR '))} 
-  #          ORDER BY id_mcaid, from_date",
+  #          ORDER BY id_mcaid, first_encounter_date",
   #            .con = conn))
   # 
   # 
