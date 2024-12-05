@@ -116,7 +116,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
     conn,
     glue::glue_sql("SELECT count(distinct id_mcaid) as id_dcount
                  FROM {`to_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_timevar
-                 WHERE year(first_encounter_date) <= 2017 and year(last_encounter_date) >= 2017",
+                 WHERE year(from_date) <= 2017 and year(to_date) >= 2017",
                    .con = conn)))
   
   
@@ -243,7 +243,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
       FROM (
 	      SELECT id_mcaid
 	      FROM {`to_schema`}.{DBI::SQL(final_table_pre)}mcaid_elig_timevar
-	      where year(first_encounter_date) <= {year} and year(last_encounter_date) >= {year}
+	      where year(from_date) <= {year} and year(to_date) >= {year}
 	      ) as a
 	    left join (
 	      SELECT id_mcaid,
