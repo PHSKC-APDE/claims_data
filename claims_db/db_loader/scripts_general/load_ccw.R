@@ -597,10 +597,10 @@ load_ccw <- function(conn = NULL,
 	try(DBI::dbRemoveTable(conn, "#claim_collapse", temporary = T), silent = T)
     sql2 <- glue::glue_sql(
       "--combine both ICD-CM versions
-      SELECT * 
+      SELECT a.* 
 	  INTO #claim_union 
 	  FROM 
-	  ({union_code})
+	  ({union_code}) as a
       
       --perform date calculations for condition type 2 definition
       SELECT *,
