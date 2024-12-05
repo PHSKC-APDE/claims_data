@@ -715,8 +715,7 @@ load_ccw <- function(conn = NULL,
     
     # Make header and rolling time tables
     header_load(conn = conn, config = config_9, icd = 9, print_query = print_query)
-    rolling_load(conn = conn, config = config_9, icd = 9, print_query = print_query)
-    
+   
     
     ## ICD-10 ----
     # Set up config
@@ -728,8 +727,7 @@ load_ccw <- function(conn = NULL,
     
     # Make header and rolling time tables
     header_load(conn = conn, config = config_10, icd = 10, print_query = print_query)
-    rolling_load(conn = conn, config = config_10, icd = 10, print_query = print_query)
-    
+        
     
     ## Combine ----
     ccw_load(conn = conn, config_cond_9 = config_9, config_cond_10 = config_10, print_query = F)
