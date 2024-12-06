@@ -132,7 +132,7 @@ load_bh <- function(conn = NULL,
   DBI::dbCreateTable(conn, tbl_name, fields = table_config$vars)
 
   #### STEP 3: CREATE TEMP TABLE TO HOLD CONDITION-SPECIFIC CLAIMS AND DATES ####
-  conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+  #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   message("STEP 1: CREATE TEMP TABLE TO HOLD CONDITION-SPECIFIC CLAIMS AND DATES")
   time_start <- Sys.time()
   
@@ -181,7 +181,7 @@ load_bh <- function(conn = NULL,
     DBI::dbGetQuery(conn = conn, sql1)
     
     #### STEP 4: COLLAPSE TO FIRST AND LAST ENCOUNTER DATE FOR EACH PERSON-CONDITION ####
-    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     message("STEP 2: COLLAPSE TO FIRST AND LAST ENCOUNTER DATE FOR EACH PERSON-CONDITION")
     # Build SQL query
     sql2 <- glue_sql("
@@ -200,7 +200,7 @@ load_bh <- function(conn = NULL,
     DBI::dbGetQuery(conn = conn, sql2)
     
     #### STEP 5: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE #### 
-    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
     message("STEP 3: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE")
     # Build SQL query
     sql3 <- glue_sql(
