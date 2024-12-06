@@ -16,7 +16,7 @@ index_name: idx_ccs_mcaid_claim_bh
 index_type: ccs
 vars:
     id_mcaid: varchar(255)
-    from_date: date
-    to_date: date
+    first_encounter_date: date
+    last_encounter_date: date
     bh_cond: varchar(200)
     last_run: date

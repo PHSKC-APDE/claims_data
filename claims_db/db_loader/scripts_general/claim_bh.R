@@ -7,7 +7,9 @@
 ## Eli 9/15/24 update: Modify to use new RDA value sets reference table
 ## Eli 6/13/24 update: Added inthealth as server option
 ## Eli 6/13/24 update: Add branching logic for Rx fill date based on data source
-
+## Eli 11/6/24 update: Simplify and revise logic such that from_date (now first_encounter_date) is earliest condition-defining encounter
+  ## and to_date (now last_encounter_date) is last condition-defining encounter, removing need for rolling time window
+  
 ### Function elements
 # conn = database connection
 # server = whether we are working in HHSAW or PHClaims
@@ -101,8 +103,6 @@ load_bh <- function(conn = NULL,
     ref_table <- table_config[[server]][["ref_table"]][[1]]
     icdcm_ref_schema <- table_config[[server]][["icdcm_ref_schema"]][[1]]
     icdcm_ref_table <- table_config[[server]][["icdcm_ref_table"]][[1]]
-    rolling_schema <- table_config[[server]][["rolling_schema"]][[1]] 
-    rolling_table <- table_config[[server]][["rolling_table"]][[1]] 
   } else {
     schema <- table_config[["schema"]][[1]]
     to_table <- table_config[["to_table"]][[1]]
@@ -132,7 +132,7 @@ load_bh <- function(conn = NULL,
   DBI::dbCreateTable(conn, tbl_name, fields = table_config$vars)
 
   #### STEP 3: CREATE TEMP TABLE TO HOLD CONDITION-SPECIFIC CLAIMS AND DATES ####
-  #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+  conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   message("STEP 1: CREATE TEMP TABLE TO HOLD CONDITION-SPECIFIC CLAIMS AND DATES")
   time_start <- Sys.time()
   
@@ -142,7 +142,6 @@ load_bh <- function(conn = NULL,
       {`id_source`}
    ,svc_date
    ,bh_cond
-   ,link = 1 
    INTO {`schema`}.tmp_header_bh
    --BASED ON DIAGNOSIS
    FROM (SELECT 
@@ -165,7 +164,6 @@ load_bh <- function(conn = NULL,
     {`id_source`}
    ,svc_date
    ,bh_cond
-   ,'link' = 1 
    -- BASED ON PRESCRIPTIONS
    FROM (SELECT DISTINCT a.{`id_source`}
 			,a.{`rx_fill_date`} as 'svc_date'
@@ -179,108 +177,45 @@ load_bh <- function(conn = NULL,
       ",.con = conn)
     
     #Run SQL query
-    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_header_bh")), silent = T)
-    DBI::dbExecute(conn = conn, sql1)
+    try(DBI::dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_header_bh")), silent = T)
+    DBI::dbGetQuery(conn = conn, sql1)
     
-    #### STEP 4: JOIN WITH ROLLING 24MONTH  ####
-    #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-    message("STEP 2: JOIN WITH ROLLING 24MONTH")
+    #### STEP 4: COLLAPSE TO FIRST AND LAST ENCOUNTER DATE FOR EACH PERSON-CONDITION ####
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    message("STEP 2: COLLAPSE TO FIRST AND LAST ENCOUNTER DATE FOR EACH PERSON-CONDITION")
     # Build SQL query
     sql2 <- glue_sql("
-    SELECT
-      {`id_source`}
-      ,svc_date
-      ,bh_cond
-      ,start_window
-      ,end_window
-    INTO {`schema`}.tmp_matrix
-    FROM {`schema`}.tmp_header_bh as header
-    LEFT JOIN
-      (SELECT cast(start_window as date) as 'start_window'
-		          ,cast(end_window as date) as 'end_window'
-		          ,1 as link 
-		    FROM {`rolling_schema`}.{`rolling_table`} 
-		  ) as rolling
-    ON header.link=rolling.link
-    WHERE header.svc_date between rolling.[start_window] and rolling.[end_window]
-    ",.con = conn)
-    
-    #Run SQL query
-    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_matrix")), silent = T)
-    dbGetQuery(conn = conn, sql2)
-    
-    #### STEP 5: CREATE TEMP TABLE TO HOLD ID AND ROLLING TIME MATRIX ####
-    #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-    message("STEP 3: CREATE TEMP TABLE TO HOLD ID AND ROLLING TIME MATRIX")
-    # Build SQL query
-    sql3 <- glue_sql("
-    SELECT  * 
-      ,CASE
-          WHEN datediff(month,
-				      lag(b.end_window) over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window, b.svc_date),
-				      b.start_window) <= 1 
-			        then null
-          WHEN b.start_window < 
-				      lag(b.end_window) over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`},  b.bh_cond, b.start_window, b.svc_date) 
-			        then null
-          WHEN row_number() over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond,  b.start_window, b.svc_date) = 1 
-			        then null
-          ELSE row_number() over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window, b.svc_date)
-          END AS 'discont'
-      ,row_number() over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window, b.svc_date) as row_no
-      --,lag(b.end_window) over (partition by b.{`id_source`}, b.bh_cond order by b.{`id_source`}, b.bh_cond, b.start_window) as lag_end
-    INTO {`schema`}.tmp_rolling_matrix
-    FROM {`schema`}.tmp_matrix b
-    --order by {`id_source`}, bh_cond, start_window
-        ",.con = conn)
-    
-    #Run SQL query
-    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_matrix")), silent = T)
-    dbGetQuery(conn = conn, sql3)  
-    
-    #### STEP 6: ID CONDITION STATUS OVER TIME AND COLLAPSE TO CONTIGUOUS PERIODS ####
-    #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-    message("STEP 4: ID CONDITION STATUS OVER TIME AND COLLAPSE TO CONTIGUOUS PERIODS")
-    # Build SQL query
-    sql4 <- glue_sql("
-      SELECT --DISTINCT
-        d.{`id_source`}
+      SELECT
+        {`id_source`}
+        ,min(svc_date) as 'first_encounter_date'
+        ,max(svc_date) as 'last_encounter_date'
         ,bh_cond
-        ,min(d.start_window) as 'from_date'
-        ,max(d.end_window) as 'to_date' 
-      INTO {`schema`}.tmp_rolling_tmp_bh
-      FROM
-        (SELECT c.{`id_source`}, c.start_window, c.end_window,bh_cond
-              --, c.discont, c.row_no 
-              ,sum(case when c.discont is null then 0 else 1 end) over
-                  (order by c.{`id_source`}, bh_cond, c.row_no) as 'grp'
-        FROM {`schema`}.tmp_rolling_matrix c) d
-      GROUP BY d.{`id_source`},d.grp,d.bh_cond
+      INTO {`schema`}.tmp_collapse_bh
+      FROM {`schema`}.tmp_header_bh
+      GROUP BY {`id_source`}, bh_cond
       ",.con = conn)
     
     #Run SQL query
-    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_tmp_bh")), silent = T)
-    dbGetQuery(conn = conn, sql4)
+    try(DBI::dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_collapse_bh")), silent = T)
+    DBI::dbGetQuery(conn = conn, sql2)
     
-    #### STEP 7: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE #### 
-    #conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
-    message("STEP 5: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE")
+    #### STEP 5: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE #### 
+    conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+    message("STEP 3: INSERT ALL CONDITION TABLES INTO FINAL STAGE TABLE")
     # Build SQL query
-    sql5 <- glue_sql(
+    sql3 <- glue_sql(
       "INSERT INTO {`schema`}.{`to_table`}
       SELECT
-      {`id_source`}, from_date, to_date, bh_cond, 
+      {`id_source`}, first_encounter_date, last_encounter_date, bh_cond, 
       getdate() as last_run
-      FROM {`schema`}.tmp_rolling_tmp_bh;",
+      FROM {`schema`}.tmp_collapse_bh;",
       .con = conn)
     
     #Run SQL query
-    dbGetQuery(conn = conn, sql5)
+    dbGetQuery(conn = conn, sql3)  
     
     try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_header_bh")), silent = T)
-    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_matrix")), silent = T)
-    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_matrix")), silent = T)
-    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_rolling_tmp_bh")), silent = T)
+    try(dbRemoveTable(conn, tbl_name <- DBI::Id(schema = schema, table = "tmp_collapse_bh")), silent = T)
   
   #Run time of all steps
     time_end <- Sys.time()

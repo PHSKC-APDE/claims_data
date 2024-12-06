@@ -107,7 +107,7 @@ qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
     conn,
     glue::glue_sql("SELECT bh_cond, count(distinct id_mcaid) as id_dcount
                  FROM {`to_schema`}.{`to_table`}
-                 WHERE year(from_date) <= 2017 and year(to_date) >= 2017 
+                 WHERE year(first_encounter_date) <= 2017 and year(last_encounter_date) >= 2017 
                  GROUP BY bh_cond
                  ORDER BY bh_cond",
                    .con = conn))
