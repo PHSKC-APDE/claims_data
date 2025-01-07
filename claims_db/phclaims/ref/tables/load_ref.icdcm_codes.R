@@ -40,10 +40,9 @@
 #'     - Check there are no new detail codes to add to the catch-all
 #' 	   - Check that all rows have CCS information filled in after 4 passes
 #' 	   (add more passes or adjust as necessary)
-#' Step 5 RDA-defined mental health and substance use disorder (updated each May-June):
-#'   - Check to see if there's an updated table on HHSAW (claims.ref_rda_value_set_20xx)
-#'   - If not could look into running/updating load_ref.rda_value_sets_apde.R
-#'   - Check for new drug categories or mental health categories
+#' Step 5 RDA-defined mental health and substance use disorder (updated by Jennifer Liu each summer):
+#'   - Check HHSAW ref.rda_value_sets_apde for any sub_group_condition values NOT in ref.icdcm_codes
+#'   - If so, modify code to incorporate new values/categories
 #'   
 #'   
 #' Update history:
@@ -58,6 +57,7 @@
 #' 9/14/2023 update: Updated code for RDA-based BH flags, condensed CCS ICD-10-CM imputation code into while loop, added last_run col.
 #' 1/9/2024 update: 1) Improve alignment of ccs between ICD-9/10-CM, 2) create ccs_super_category (5 levels)
 #' 4/23/2024 update: Bring in Step 0 function to add new data
+#' 1/7/2025 update: Add new mh_other category from RDA value sets reference table
 
 
 # SET OPTIONS AND BRING IN PACKAGES ----
@@ -711,13 +711,13 @@ rda_icd9cm <- pivot_wider(rda_icd9cm, names_from = sub_group_condition, values_f
 ## ICD-9-CM Create summary flags
 rda_icd9cm <- rda_icd9cm %>%
   mutate(
-    mh_any = coalesce(mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic),
+    mh_any = coalesce(mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic, mh_other),
     sud_any = coalesce(sud_alcohol, sud_cannabis, sud_cocaine, sud_hallucinogen, sud_opioid, sud_sedative,
                        sud_other_stimulant, sud_other_substance),
     bh_any = coalesce(mh_any, sud_any)
   ) %>%
   relocate(code, bh_any, mh_any, sud_any,
-           mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic,
+           mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic, mh_other,
            sud_alcohol, sud_cannabis, sud_cocaine, sud_hallucinogen, sud_opioid, sud_sedative,
            sud_other_stimulant, sud_other_substance)
 
@@ -728,13 +728,13 @@ rda_icd10cm <- pivot_wider(rda_icd10cm, names_from = sub_group_condition, values
 ## ICD-10-CM Create summary flags
 rda_icd10cm <- rda_icd10cm %>%
   mutate(
-    mh_any = coalesce(mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic),
+    mh_any = coalesce(mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic, mh_other),
     sud_any = coalesce(sud_alcohol, sud_cannabis, sud_cocaine, sud_hallucinogen, sud_inhalant, sud_opioid, sud_sedative,
                        sud_other_stimulant, sud_other_substance),
     bh_any = coalesce(mh_any, sud_any)
   ) %>%
   relocate(code, bh_any, mh_any, sud_any,
-           mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic,
+           mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic, mh_other,
            sud_alcohol, sud_cannabis, sud_cocaine, sud_hallucinogen, sud_inhalant, sud_opioid, sud_sedative,
            sud_other_stimulant, sud_other_substance)
 
