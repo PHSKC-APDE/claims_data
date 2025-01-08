@@ -65,7 +65,7 @@ options(scipen = 6, digits = 4, warning.length = 8170)
 origin <- "1970-01-01"
 
 if (!require("pacman")) {install.packages("pacman")}
-pacman::p_load(data.table, DBI, dplyr, glue, lubridate, odbc, openxlsx, readxl, reshape2, stringr, svDialogs, tidyverse, xlsx)
+pacman::p_load(data.table, DBI, dplyr, glue, lubridate, odbc, openxlsx, readxl, reshape2, stringr, svDialogs, tidyverse)
 
 ## Constants ----
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
@@ -99,7 +99,7 @@ if (new_year) {
 
 # Step 1: CMS ICD-9-CM and ICD-10-CM codes ----
 url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ICD_9_10_CM_Complete.xlsx?raw=true"
-icd910cm <- read.xlsx(url, colNames = T)
+icd910cm <- openxlsx::read.xlsx(url, colNames = T)
 
 icd9cm <- filter(icd910cm, ver == 9)
 icd10cm <- filter(icd910cm, ver == 10)
@@ -112,7 +112,7 @@ rm(icd910cm)
 
 ## Step 2A: Add in CDC ICD-CM 9 and 10 (proposed) external cause of injury information --
 url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/cdc_external_injury_matrix_icd_9_19_cm.xlsx?raw=true"
-ext_cause_910cm <- read.xlsx(url, sheet = "crosswalk_injurymatrix", colNames = T)
+ext_cause_910cm <- openxlsx::read.xlsx(url, sheet = "crosswalk_injurymatrix", colNames = T)
 ext_cause_910cm <- ext_cause_910cm %>% mutate(version = as.integer(version))
 
 
@@ -237,9 +237,9 @@ rm(list = ls(pattern = "^ext_cause_"))
 
 # Step 3: CMS Chronic Condition Warehouse definitions ----
 # Bring in CCW lookup
-ccw_99_16 <- read.xlsx("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ccw_lookup.xlsx?raw=true", 
+ccw_99_16 <- openxlsx::read.xlsx("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ccw_lookup.xlsx?raw=true", 
                        sheet = "ccw99_16")
-ccw_17_xx <- read.xlsx("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ccw_lookup.xlsx?raw=true", 
+ccw_17_xx <- openxlsx::read.xlsx("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ccw_lookup.xlsx?raw=true", 
                        sheet = "ccw17_xx")
 
 ccw <- bind_rows(ccw_99_16, ccw_17_xx) %>% mutate(link = 1)
@@ -278,7 +278,7 @@ rm(ccw, ccw_17_xx, ccw_99_16)
 
 ## Step 4A: Read in CCS reference table for ICD-9-CM
 
-ccs_9_raw <- read.xlsx("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ccs_icd9cm.xlsx?raw=true", 
+ccs_9_raw <- openxlsx::read.xlsx("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ccs_icd9cm.xlsx?raw=true", 
                        sheet = "ccs_icdcm")
 
 
@@ -667,7 +667,7 @@ rm(ccs_10_raw, ccs_10_simple, ccs_9_raw, ccs_9_simple, icd10cm_na_ccs_count, loo
 #This is to add flexibility for reporting leading causes of health care utilization (e.g. hospitalizations)
 
 ccs_mid_super_level_xwalk <- 
-  read.xlsx("https://github.com/PHSKC-APDE/reference-data/raw/main/claims_data/ccs_midlevel_superlevel_xwalk.xlsx", 
+  openxlsx::read.xlsx("https://github.com/PHSKC-APDE/reference-data/raw/main/claims_data/ccs_midlevel_superlevel_xwalk.xlsx", 
             sheet = "ccs_midlevel_superlevel_xwalk") %>%
   select(ccs_detail_desc, ccs_midlevel_desc, ccs_superlevel_desc)
 
@@ -679,15 +679,9 @@ icd10cm <- left_join(icd10cm, ccs_mid_super_level_xwalk, by = "ccs_detail_desc")
 # Step 5: RDA-defined Mental Health and Substance User Disorder-related diagnoses ----
 
 ## Connect to HHSAW using ODBC driver
-db_hhsaw <- DBI::dbConnect(odbc::odbc(),
-                           driver = "ODBC Driver 17 for SQL Server",
-                           server = "tcp:kcitazrhpasqlprp16.azds.kingcounty.gov,1433",
-                           database = "hhs_analytics_workspace",
-                           uid = keyring::key_list("hhsaw")[["username"]],
-                           pwd = keyring::key_get("hhsaw", keyring::key_list("hhsaw")[["username"]]),
-                           Encrypt = "yes",
-                           TrustServerCertificate = "yes",
-                           Authentication = "ActiveDirectoryPassword")
+db_hhsaw <- create_db_connection("hhsaw",
+                                  interactive = F,
+                                  prod = T)
 
 ## Pull in RDA measure value set from HHSAW
 ref.rda_value_set <- dbGetQuery(conn = db_hhsaw,
@@ -837,13 +831,12 @@ to_table <- "icdcm_codes"
 
 # If wanting to load table to both servers, do HHSAW first
 # Make connection
-db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 # Load data
-dbWriteTable(db_claims, name = DBI::Id(schema = to_schema, table = to_table), 
+dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table), 
              value = as.data.frame(icd910cm), 
              overwrite = T)
 # Add index
-DBI::dbExecute(db_claims, 
+DBI::dbExecute(db_hhsaw, 
                glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON {`to_schema`}.{`to_table`} (icdcm, icdcm_version)",
-                              .con = db_claims))
+                              .con = db_hhsaw))
 
