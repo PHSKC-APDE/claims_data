@@ -412,6 +412,8 @@ for(table in table_list) {
       
       # Track success
       table_fail <- 0
+      add_index_f(conn = db_claims, server = server, table_config = to_config)
+      
     } else {
       DBI::dbExecute(
         conn = db_claims,
