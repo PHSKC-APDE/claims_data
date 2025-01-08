@@ -23,6 +23,7 @@ library(svDialogs)
 library(R.utils)
 library(zip)
 library(sftp)
+library(readr)
 
 
 #### SET UP FUNCTIONS ####
@@ -65,7 +66,7 @@ if(T) {
                            password = key_get("hca_mft", key_list("hca_mft")[["username"]]))
   sftp_changedir(tofolder = "Claims", current_connection_name = "sftp_con")
   sftp_claims <- sftp_listfiles(sftp_con, recurse = F)
-  sftp_changedir(tofolder = "../Eligibility", current_connection_name = "sftp_con")
+  sftp_changedir(tofolder = "../Revised%20DSA%20Eligibility/", current_connection_name = "sftp_con")
   sftp_elig <- sftp_listfiles(sftp_con, recurse = F)
   sftp_file_cnt <- nrow(sftp_claims) + nrow(sftp_elig)
   ## CHECK FOR EXISTING - TO DO!
@@ -80,7 +81,7 @@ if(T) {
     message(paste0("Downloading Files - ", Sys.time()))
     sftp_changedir(tofolder = "../Claims", current_connection_name = "sftp_con")
     sftp_download(file = sftp_claims$name, tofolder = paste0(dldir, "Claims"))
-    sftp_changedir(tofolder = "../Eligibility", current_connection_name = "sftp_con")
+    sftp_changedir(tofolder = "../Revised%20DSA%20Eligibility/", current_connection_name = "sftp_con")
     sftp_download(file = sftp_elig$name, tofolder = paste0(dldir, "Eligibility"))
     message(paste0("Download Completed - ", Sys.time()))
     
@@ -133,6 +134,7 @@ if(T) {
   message("------------------------------")
   defaultW <- getOption("warn") 
   options(warn = -1)
+  month_count <- data.frame()
   for (x in 1:nrow(tfiles)) {
     file_name <- tfiles[x, "fileName"]
     message(paste0("Begin QA Checks for ", file_name, " - ", Sys.time()))
@@ -142,7 +144,7 @@ if(T) {
       tfiles[x, "type"] <- "claims"
     }
     if(tfiles[x, "type"] == "elig") {
-      config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
+      config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
       tfiles[x, "server_loc"] <- "//kcitsqlutpdbh51/importdata/Data/KC_Elig/"
     } else {
       config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml"))
@@ -163,13 +165,12 @@ if(T) {
     ddate <- substr(file_name, nchar(file_name) - 11, nchar(file_name) - 4)
     ddate <- paste0(substr(ddate,1,4), "-", substr(ddate, 5, 6), "-", substr(ddate, 7, 8))
     del_date <- as.Date(ddate)
-    memory.size(max = F)
+    memory.size(max = T)
     memory.limit(size = 128000)
     if(tfiles[x, "type"] == "elig") {
-      dates <- read.delim(file_path, 
-                          colClasses = c(rep("integer", 1), rep("NULL", 39)), 
-                          sep = "\t",
-                          header = T)
+      df <- readr::read_delim(file_path, lazy = T, delim = "\t")
+      dates <- as.data.frame(df$CLNDR_YEAR_MNTH)
+      names(dates) <- c("CLNDR_YEAR_MNTH")
       min_date <- as.character(min(as.vector(dates$CLNDR_YEAR_MNTH)))
       max_date <- as.character(max(as.vector(dates$CLNDR_YEAR_MNTH)))
       min_date <- as.Date(paste0(substr(min_date, 1, 4), "-", substr(min_date, 5, 6), "-01"))
@@ -185,12 +186,16 @@ if(T) {
                         ORDER BY delivery_date DESC", .con = db_claims))[1,1]
       curr_rpm <- row_cnt / (interval(min_date, max_date) %/% months(1) + 1)
       rpm_diff <- (curr_rpm - prev_rpm) / prev_rpm
+      mcnt <- dates %>% count(CLNDR_YEAR_MNTH)
+      mcnt$perc <- mcnt$n/row_cnt
+      mcnt$x <- x
+      month_count <- rbind(month_count, mcnt)
+      rm(dates)
+      rm(df)
     } else {
-      dates <- read.delim(file_path, 
-                          colClasses = c(rep("NULL", 7), rep("character", 1), rep("NULL", 108)), 
-                          sep = "\t",
-                          header = T)
-      dates <- as.Date(dates$FROM_SRVC_DATE)
+      
+      df <- readr::read_delim(file_path, lazy = T, delim = "\t")
+      dates <- as.Date(df$FROM_SRVC_DATE)
       min_date <- min(dates)
       max_date <- max(dates)
       min_date <- as.Date(paste0(format(min_date, "%Y"), "-", format(min_date, "%m"), "-01"))
@@ -206,6 +211,14 @@ if(T) {
                         ORDER BY delivery_date DESC", .con = db_claims))[1,1]
       curr_rpm <- row_cnt / (interval(min_date, max_date) %/% months(1) + 1)
       rpm_diff <- (curr_rpm - prev_rpm) / prev_rpm
+      dates <- as.data.frame(dates)
+      dates$CLNDR_YEAR_MNTH <- as.integer(format(dates$dates, "%Y%m"))
+      mcnt <- dates %>% count(CLNDR_YEAR_MNTH)
+      mcnt$perc <- mcnt$n/row_cnt
+      mcnt$x <- x
+      month_count <- rbind(month_count, mcnt)
+      rm(dates)
+      rm(df)
     }  
     tfiles[x,"del_date"] <- del_date
     tfiles[x,"min_date"] <- min_date
@@ -229,9 +242,14 @@ if(T) {
              Column QA: {tfiles[x, 'col_qa']}
              Row Count: {tfiles[x, 'row_cnt']}
              Rows vs Prev: {round(tfiles[x, 'rpm_diff'] * 100, 2)}%
-             ------------------------------"))
+             CLNDR_YEAR_MNTH Percentages:"))
+    mc <- month_count[month_count$x == x,]
+    mc <- mc[order(mc$CLNDR_YEAR_MNTH),]
+    for (i in 1:nrow(mc)) {
+      message(glue("{mc[i, 'CLNDR_YEAR_MNTH']} - {mc[i, 'n']} - {round(mc[i, 'perc'] * 100, 2)}%"))
+    }
+    message("------------------------------")
   }
-  
   
   if (nrow(tfiles) > 0) {
     proceed <- NA
@@ -284,7 +302,7 @@ if(T) {
     proceed_msg <- glue("Would you like to create ETL Log Entries on HHSAW Dev?")
     proceed <- askYesNo(msg = proceed_msg)
     if (proceed == T) {
-      db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = F)
+      db_claims <- create_db_connection(server = "hhsaw", interactive = T, prod = F)
       for (x in 1:nrow(tfiles)) {
         tfiles[x, "batch_id_dev"] <- load_metadata_etl_log_file_f(conn = db_claims, 
                                                               server = "hhsaw",
@@ -321,5 +339,6 @@ if(T) {
     }
   }
 }
+
 
 rm(list=ls())

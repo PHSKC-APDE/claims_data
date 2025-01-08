@@ -164,6 +164,12 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
       .con = conn_dw)
   }
   
+  load_sql <- glue::glue_sql("{DBI::SQL(load_sql)};
+                                UPDATE {`to_schema`}.{`to_table`}
+                                SET MEDICAID_RECIPIENT_ID = UPPER(MEDICAID_RECIPIENT_ID)",
+                                .con = conn_dw)
+  
+  
   message("Loading to stage table")
   system.time(DBI::dbExecute(conn_dw, load_sql))
   

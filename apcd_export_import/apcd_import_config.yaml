@@ -1,10 +1,10 @@
-table_file_path: APCD_tables_20220609.xlsx
+table_file_path: APCD_Tables_20240801.xlsx
 ftp_url: https://mft.kingcounty.gov/api/v2.0/files/APDEDE-WA-APCD/WA-APCD/
 ftp_keyring: apcd_sftp
-db_name: PHClaims
-server_path: KCITSQLPRPENT40
-odbc_name: PHClaims
-base_dir: //dphcifs/apde-cdip/apcd/apcd_data_import/
+db_name: APCD
+server_path: DPHXPHA51AE0ECO
+odbc_name: apcd
+base_dir: C:/temp/apcd
 ref_dir: ref_schema
 stage_dir: stage_schema
 final_dir: final_schema

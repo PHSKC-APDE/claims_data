@@ -3,6 +3,8 @@
 ## Eli Kern and Alastair Matheson (PHSKC-APDE)
 ## 2019-08-13
 ## Run time: 20 mins (Medicaid) to 2h 30min (APCD) 
+## Eli update 11/7/24 - Simplify and revise logic such that from_date (now first_encounter_date) is earliest condition-defining encounter
+  ## and to_date (now last_encounter_date) is last condition-defining encounter, removing need for rolling time window
 
 ### Function elements
 # conn = database connection
@@ -330,16 +332,13 @@ load_ccw <- function(conn = NULL,
     ### Set up claim count requirements code ----
     condition_type <- config %>% filter(ccw_icd_version == icd) %>% select(condition_type) %>% pull()
     
+    #Shift creation of code to ccw_load function, given that lookback_months will then be available to include in code
     if (purrr::is_empty(condition_type)) {
       claim_count_condition <- DBI::SQL('')
     } else if (condition_type == 1) {
-      claim_count_condition <- glue::glue_sql("where (b.condition_1_cnt >= 1)", 
-                                        .con = conn)
+      claim_count_condition <- 1
     } else if (condition_type == 2) {
-      claim_count_condition <- 
-        glue::glue_sql("where (b.condition_1_cnt >= 1) or (b.condition_2_cnt >=2 and ",
-                 "abs(datediff(day, b.condition_2_min_date, b.condition_2_max_date)) >=1)",
-                 .con = conn)
+      claim_count_condition <- 2
     }
     
     
@@ -497,7 +496,7 @@ load_ccw <- function(conn = NULL,
       return()
     }
     
-    header_tbl <- DBI::SQL(paste0("##header_dx", icd))
+    header_tbl <- DBI::SQL(paste0("#header_dx", icd))
     
     # Build SQL query
     # Split out table drop from table creation so it works in Synapse Analytics
@@ -556,51 +555,82 @@ load_ccw <- function(conn = NULL,
   }
   
   
-  ## Temp table to hold ID and rolling time matrix ----
-  rolling_load <- function(conn = conn, config_cond, icd = c(9, 10), print_query = F) {
-    if (config_cond$icd_run == F) {
-      return()
+  ## Collapse dates across both ICD versions, applying condition type definitions to identify valid encounters 
+  ccw_load <- function(conn = conn, config_cond_9, config_cond_10, print_query = F) {
+    ccw_tbl <- DBI::SQL(paste0("#", config_cond_10$ccw_abbrev))
+    
+    ### Determine code based on if both ICD version headers were made ----
+    if (config_cond_9$icd_run == T & config_cond_10$icd_run == T) {
+      union_code <- glue::glue_sql(
+      "SELECT {`id_source`}, first_service_date, condition1, condition2, condition_1_from_date, condition_2_from_date FROM #header_dx9
+      UNION
+      SELECT {`id_source`}, first_service_date, condition1, condition2, condition_1_from_date, condition_2_from_date FROM #header_dx10",
+      .con = conn)
+    } else if (config_cond_9$icd_run == T) {
+      union_code <- glue::glue_sql(
+      "SELECT {`id_source`}, first_service_date, condition1, condition2, condition_1_from_date, condition_2_from_date FROM #header_dx9",
+      .con = conn)
+    } else if (config_cond_10$icd_run == T) {
+      union_code <- glue::glue_sql(
+      "SELECT {`id_source`}, first_service_date, condition1, condition2, condition_1_from_date, condition_2_from_date FROM #header_dx10",
+      .con = conn)
     }
     
-    header_tbl <- DBI::SQL(paste0("##header_dx", icd))
-    rolling_tbl <- DBI::SQL(paste0("##rolling_tmp_", icd))
+    ### Set up claim count requirements code
+    if (config_cond_10$claim_count_condition == 1) {
+      claim_count_condition <- glue::glue_sql("where (condition_1_from_date is not null)", 
+                                              .con = conn)
+    } else if (config_cond_10$claim_count_condition == 2) {
+      claim_count_condition <- 
+        glue::glue_sql("where (condition_1_from_date is not null) ",
+         "or (condition_2_from_date is not null and months_forward_diff <={DBI::SQL(config_cond_10$lookback_months)} and days_forward_diff >= 1) ",
+         "or (condition_2_from_date is not null and months_back_diff <={DBI::SQL(config_cond_10$lookback_months)} and days_back_diff >= 1)",
+         .con = conn)
+    }    
     
-    if (icd == 9) {
-      rolling_break <- glue::glue_sql(" WHERE start_window < 
-                                      {format(as.Date('2015-09-01') + 
-                                      lubridate::dmonths(as.numeric(config_cond$lookback_months)) + 
-                                      lubridate::ddays(1), usetz = FALSE)} ",
-                                      .con = conn)
-    } else if (icd == 10) {
-      rolling_break <- glue::glue_sql(" WHERE start_window >= 
-                                      {format(as.Date('2015-10-01') - 
-                                      lubridate::dmonths(as.numeric(config_cond$lookback_months)) + 
-                                      lubridate::ddays(1), usetz = FALSE)} ",
-                                      .con = conn)
-    }
-    
-    
-    # Again, split table drop from creation
-    try(DBI::dbRemoveTable(conn, rolling_tbl, temporary = T), silent = T)
-    
+    ### Set up code ----
+    # Split out table drop from creation
+    try(DBI::dbRemoveTable(conn, ccw_tbl, temporary = T), silent = T)
+    try(DBI::dbRemoveTable(conn, "#claim_union", temporary = T), silent = T)
+	try(DBI::dbRemoveTable(conn, "#condition_2_date_calculations", temporary = T), silent = T)
+	try(DBI::dbRemoveTable(conn, "#condition_definition_subset", temporary = T), silent = T)
+	try(DBI::dbRemoveTable(conn, "#claim_collapse", temporary = T), silent = T)
     sql2 <- glue::glue_sql(
-      "--join rolling time table to person ids
-      SELECT id.{`id_source`}, rolling.start_window, rolling.end_window
-      INTO {rolling_tbl}
+      "--combine both ICD-CM versions
+      SELECT a.* 
+	  INTO #claim_union 
+	  FROM 
+	  ({union_code}) as a
       
-      FROM 
-        (SELECT distinct {`id_source`}, 'link' = 1 from {header_tbl}) as id
-        
-      RIGHT JOIN 
-        (SELECT cast(start_window as date) as 'start_window', 
-                cast(end_window as date) as 'end_window',
-                'link' = 1
-            FROM {`ref_schema`}.{DBI::SQL(ref_table_pre)}rolling_time_{DBI::SQL(config_cond$lookback_months)}mo_2012_2020
-            {rolling_break}
-        ) as rolling
-        
-      on id.link = rolling.link
-      --order by id.{`id_source`}, rolling.start_window",
+      --perform date calculations for condition type 2 definition
+      SELECT *,
+      datediff(day, condition_2_from_date, lead(condition_2_from_date, 1, null) over (partition by {`id_source`} order by condition_2_from_date)) as days_forward_diff,
+      datediff(month, condition_2_from_date, lead(condition_2_from_date, 1, null) over (partition by {`id_source`} order by condition_2_from_date)) as months_forward_diff,
+      datediff(day, lag(condition_2_from_date, 1, null) over (partition by {`id_source`} order by condition_2_from_date), condition_2_from_date) as days_back_diff,
+      datediff(month, lag(condition_2_from_date, 1, null) over (partition by {`id_source`} order by condition_2_from_date), condition_2_from_date) as months_back_diff
+      INTO #condition_2_date_calculations
+	  FROM #claim_union
+            
+      --apply condition type definition
+      SELECT *
+      INTO #condition_definition_subset
+	  FROM #condition_2_date_calculations
+      {claim_count_condition}
+            
+      SELECT {`id_source`},
+      	min(condition_1_from_date) as condition_1_min_date, max(condition_1_from_date) as condition_1_max_date,
+      	min(condition_2_from_date) as condition_2_min_date, max(condition_2_from_date) as condition_2_max_date
+      INTO #claim_collapse
+	  FROM #condition_definition_subset
+      GROUP BY {`id_source`}
+            
+      SELECT {`id_source`},
+      LEAST(condition_1_min_date, condition_2_min_date) as first_encounter_date,
+      GREATEST(condition_1_max_date, condition_2_max_date) as last_encounter_date,
+      {config_cond_10$ccw_code} as 'ccw_code',
+      {config_cond_10$ccw_abbrev} as 'ccw_desc'
+      INTO {ccw_tbl}
+      FROM #claim_collapse;",
       .con = conn)
     
     if (print_query == T) {
@@ -612,114 +642,21 @@ load_ccw <- function(conn = NULL,
   }
   
   
-  ## Collapse dates across both ICD versions ----
-  ccw_load <- function(conn = conn, config_cond_9, config_cond_10, print_query = F) {
-    ccw_tbl <- DBI::SQL(paste0("##", config_cond_10$ccw_abbrev))
-    
-    ### Determine code based on if both ICD version headers were made ----
-    if (config_cond_9$icd_run == T) {
-      icd9_code <- glue::glue_sql(
-        "SELECT * FROM
-            (SELECT matrix.{`id_source`}, matrix.start_window, matrix.end_window, cond.first_service_date, 
-              cond.condition1, cond.condition2, condition_2_from_date  
-              FROM (SELECT {`id_source`}, start_window, end_window FROM ##rolling_tmp_9) as matrix
-            --join to condition temp table
-            LEFT JOIN
-            (SELECT {`id_source`}, first_service_date, condition1, condition2, condition_2_from_date
-              FROM ##header_dx9) as cond
-            ON matrix.{`id_source`} = cond.{`id_source`}
-            WHERE cond.first_service_date between matrix.start_window and matrix.end_window) as a9",
-            .con = conn)
-    } else {
-      icd9_code <- DBI::SQL('')
-    }
-    
-    if (config_cond_10$icd_run == T) {
-      icd10_code <- glue::glue_sql(
-        "SELECT * FROM
-            (SELECT matrix.{`id_source`}, matrix.start_window, matrix.end_window, cond.first_service_date, 
-              cond.condition1, cond.condition2, condition_2_from_date  
-              FROM (SELECT {`id_source`}, start_window, end_window FROM ##rolling_tmp_10) as matrix
-            --join to condition temp table
-            LEFT JOIN
-            (SELECT {`id_source`}, first_service_date, condition1, condition2, condition_2_from_date
-              FROM ##header_dx10) as cond
-            ON matrix.{`id_source`} = cond.{`id_source`}
-            WHERE cond.first_service_date between matrix.start_window and matrix.end_window) as a10",
-        .con = conn)
-    } else {
-      icd10_code <- DBI::SQL('')
-    }
-    
-    if (config_cond_9$icd_run == T & config_cond_10$icd_run == T) {
-      union_code <- DBI::SQL(' UNION ')
-    } else {
-      union_code <- DBI::SQL('')
-    }
-    
-    
-    ### Set up code ----
-    # Split out table drop from creation
-    try(DBI::dbRemoveTable(conn, ccw_tbl, temporary = T), silent = T)
+  ## Insert condition table into stage combined CCW table ----
+  stage_load <- function(conn = conn, config_cond, print_query = F) {
+    ccw_tbl <- DBI::SQL(paste0("#", config_cond$ccw_abbrev))
     
     sql3 <- glue::glue_sql(
-      "--collapse to single row per ID and contiguous time period
-        SELECT distinct d.{`id_source`}, min(d.start_window) as 'from_date', 
-          max(d.end_window) as 'to_date', {config_cond_10$ccw_code} as 'ccw_code',
-          {config_cond_10$ccw_abbrev} as 'ccw_desc'
-      
-      INTO {ccw_tbl}
-      
-      FROM (
-      --set up groups where there is contiguous time
-      SELECT c.{`id_source`}, c.start_window, c.end_window, c.discont, c.temp_row,
-      
-      sum(case when c.discont is null then 0 else 1 end) over
-      (order by c.{`id_source`}, c.temp_row rows between unbounded preceding and current row) as 'grp'
-  
-    FROM (
-      --pull out ID and time periods that contain appropriate claim counts
-      SELECT b.{`id_source`}, b.start_window, b.end_window, b.condition_1_cnt, 
-        b.condition_2_min_date, b.condition_2_max_date,
-    
-      --create a flag for a discontinuity in a person's disease status
-      case
-        when datediff(month, lag(b.end_window) over 
-          (partition by b.{`id_source`} order by b.{`id_source`}, b.start_window), b.start_window) <= 1 then null
-        when b.start_window < lag(b.end_window) over 
-          (partition by b.{`id_source`} order by b.{`id_source`}, b.start_window) then null
-        when row_number() over (partition by b.{`id_source`} 
-          order by b.{`id_source`}, b.start_window) = 1 then null
-        else row_number() over (partition by b.{`id_source`} 
-          order by b.{`id_source`}, b.start_window)
-      end as 'discont',
-  
-    row_number() over (partition by b.{`id_source`} order by b.{`id_source`}, b.start_window) as 'temp_row'
-  
-    FROM (
-    --sum condition1 and condition2 claims by ID and period, take min and max service date for each condition2 claim by ID and period
-      SELECT a.{`id_source`}, a.start_window, a.end_window, sum(a.condition1) as 'condition_1_cnt', 
-      sum(a.condition2) as 'condition_2_cnt', min(a.condition_2_from_date) as 'condition_2_min_date', 
-      max(a.condition_2_from_date) as 'condition_2_max_date'
-    
-        FROM 
-        --pull ID, time period and claim information, subset to ID x time period rows containing a relevant claim
-          (
-          -- ICD-9
-          {icd9_code}
-          
-          {union_code}
-          
-          -- ICD-10
-          {icd10_code}
-        ) a
-        group by a.{`id_source`}, a.start_window, a.end_window
-    
-      ) as b 
-      {config_cond_9$claim_count_condition}) as c
-    ) as d
-    group by d.{`id_source`}, d.grp
-    --order by d.{`id_source`}, from_date",
+      "INSERT INTO {`to_schema`}.{`to_table`} --with (tablock)
+      SELECT
+      {`id_source`}, first_encounter_date, last_encounter_date, ccw_code, ccw_desc, getdate() as last_run
+      FROM {`ccw_tbl`};
+
+      -- drop temp tables to free up space on tempdb
+      if object_id('tempdb..#header_10') IS NOT NULL drop table #header_10;
+      if object_id('tempdb..#rolling_tmp_9') IS NOT NULL drop table #rolling_tmp_9;
+      if object_id('tempdb..#rolling_tmp_10') IS NOT NULL drop table #rolling_tmp_10;
+      if object_id('tempdb..{`ccw_tbl`}') IS NOT NULL drop table {`ccw_tbl`};",
       .con = conn)
     
     if (print_query == T) {
@@ -728,32 +665,6 @@ load_ccw <- function(conn = NULL,
     
     #Run SQL query
     dbGetQuery(conn = conn, sql3)
-  }
-  
-  
-  ## Insert condition table into stage combined CCW table ----
-  stage_load <- function(conn = conn, config_cond, print_query = F) {
-    ccw_tbl <- DBI::SQL(paste0("##", config_cond$ccw_abbrev))
-    
-    sql4 <- glue::glue_sql(
-      "INSERT INTO {`to_schema`}.{`to_table`} --with (tablock)
-      SELECT
-      {`id_source`}, from_date, to_date, ccw_code, ccw_desc, getdate() as last_run
-      FROM {`ccw_tbl`};
-
-      -- drop temp tables to free up space on tempdb
-      if object_id('tempdb..##header_10') IS NOT NULL drop table ##header_10;
-      if object_id('tempdb..##rolling_tmp_9') IS NOT NULL drop table ##rolling_tmp_9;
-      if object_id('tempdb..##rolling_tmp_10') IS NOT NULL drop table ##rolling_tmp_10;
-      if object_id('tempdb..{`ccw_tbl`}') IS NOT NULL drop table {`ccw_tbl`};",
-      .con = conn)
-    
-    if (print_query == T) {
-      print(sql4)
-    }
-    
-    #Run SQL query
-    dbGetQuery(conn = conn, sql4)
   }
   
   
@@ -807,8 +718,7 @@ load_ccw <- function(conn = NULL,
     
     # Make header and rolling time tables
     header_load(conn = conn, config = config_9, icd = 9, print_query = print_query)
-    rolling_load(conn = conn, config = config_9, icd = 9, print_query = print_query)
-    
+   
     
     ## ICD-10 ----
     # Set up config
@@ -820,8 +730,7 @@ load_ccw <- function(conn = NULL,
     
     # Make header and rolling time tables
     header_load(conn = conn, config = config_10, icd = 10, print_query = print_query)
-    rolling_load(conn = conn, config = config_10, icd = 10, print_query = print_query)
-    
+        
     
     ## Combine ----
     ccw_load(conn = conn, config_cond_9 = config_9, config_cond_10 = config_10, print_query = F)

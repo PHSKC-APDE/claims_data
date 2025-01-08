@@ -60,8 +60,8 @@ if (server == "hhsaw") {
 
 #### RAW ELIG ####
 ### Bring in yaml file and function
-load_mcaid_elig_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R")
+load_mcaid_elig_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R")
 
 
 ### Select File
@@ -137,10 +137,10 @@ rm(load_mcaid_claim_config)
 
 #### STAGE ELIG ####
 # Call in config file to get vars (and check for errors)
-table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml"))
+table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml"))
 #if (table_config_stage_elig[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 if (server == "hhsaw") {
@@ -215,5 +215,20 @@ db_claims <- create_db_connection(server, interactive = interactive_auth, prod =
 check_status(logid,
             type = 'upid', con = db_claims,
               DBI::Id(schema = 'ref', table = 'address_status'))
+
+# Copy Elig Stage table to HHSAW while addresses are cleaned
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+DBI::dbExecute(conn = db_claims,
+               glue::glue_sql("execute claims.usp_external_table_load @fromtable = N'stage_mcaid_elig', @totable = N'stage_mcaid_elig_hhsaw';",
+                              .con = db_claims))
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+DBI::dbExecute(conn = db_claims, 
+               glue::glue_sql("IF OBJECT_ID('claims.mcaid_id_crosswalk', 'U') IS NOT NULL 
+                                DROP TABLE claims.mcaid_id_crosswalk;
+                              SELECT DISTINCT MBR_H_SID, MEDICAID_RECIPIENT_ID
+                              INTO claims.mcaid_id_crosswalk
+                              FROM claims.stage_mcaid_elig_hhsaw;",                 
+                              .con = db_claims))
+
 rm(list = ls())    
 

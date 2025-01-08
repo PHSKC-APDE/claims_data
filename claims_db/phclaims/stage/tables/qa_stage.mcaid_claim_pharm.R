@@ -21,6 +21,7 @@
 
 
 qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
+                                         conn_qa = NULL,
                                          server = c("hhsaw", "phclaims"),
                                          config = NULL,
                                          get_config = F) {
@@ -43,6 +44,9 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
   final_schema <- config[[server]][["final_schema"]]
   final_table <- ifelse(is.null(config[[server]][["final_table"]]), '',
                         config[[server]][["final_table"]])
+  stage_schema <- config[[server]][["stage_schema"]]
+  stage_table <- ifelse(is.null(config[[server]][["stage_table"]]), '',
+                        config[[server]][["stage_table"]])
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                       config[[server]][["ref_table"]])
@@ -64,7 +68,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
   ids_demo_chk <- as.integer(DBI::dbGetQuery(
     conn, glue::glue_sql("SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
                          FROM {`to_schema`}.{`to_table`} AS a
-                         LEFT JOIN {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_demo AS b
+                         LEFT JOIN {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_elig_demo AS b
                          ON a.id_mcaid = b.id_mcaid
                          WHERE b.id_mcaid IS NULL",
                          .con = conn)))
@@ -72,7 +76,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
   ids_timevar_chk <- as.integer(DBI::dbGetQuery(
     conn, glue::glue_sql("SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
                          FROM {`to_schema`}.{`to_table`} AS a
-                         LEFT JOIN {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_timevar AS b
+                         LEFT JOIN {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_elig_timevar AS b
                          ON a.id_mcaid = b.id_mcaid
                          WHERE b.id_mcaid IS NULL",
                          .con = conn)))
@@ -80,7 +84,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
   # Write findings to metadata
   if (ids_demo_chk == 0 & ids_timevar_chk == 0) {
     ids_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -90,10 +94,10 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were the same number of IDs as in the final mcaid_elig_demo ", 
                                   "and mcaid_elig_timevar tables')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     ids_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -105,7 +109,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                                   "IDs than in the final mcaid_elig_demo table and ", 
                                   "{ids_timevar_chk} {DBI::SQL(ifelse(ids_timevar_chk >= 0, 'more', 'fewer'))} ", 
                                   "IDs than in the final mcaid_elig_timevar table')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   
@@ -119,7 +123,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
   
   if (ndc_format == 0) {
     ndc_format_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -128,10 +132,10 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'All rows of ndc formatted properly')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     ndc_format_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -140,19 +144,19 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'ndc field had some rows with length != 11 or numeric')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   
   #### Compare number of claim lines in current vs. prior analytic tables ####
-  if (DBI::dbExistsTable(conn,
+  if (DBI::dbExistsTable(conn_qa,
                          DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_pharm")))) {
     
     num_rx_current <- DBI::dbGetQuery(
-      conn, glue::glue_sql("SELECT YEAR(rx_fill_date) AS claim_year, COUNT(*) AS current_num_rx
+      conn_qa, glue::glue_sql("SELECT YEAR(rx_fill_date) AS claim_year, COUNT(*) AS current_num_rx
                            FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_pharm
                            GROUP BY YEAR(rx_fill_date) ORDER BY YEAR(rx_fill_date)",
-                           .con = conn))
+                           .con = conn_qa))
     
     num_rx_new <- DBI::dbGetQuery(
       conn, glue::glue_sql("SELECT YEAR(rx_fill_date) AS claim_year, COUNT(*) AS new_num_rx
@@ -167,7 +171,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
     if (max(num_rx_overall$pct_change, na.rm = T) > 0 & 
         min(num_rx_overall$pct_change, na.rm = T) >= 0) {
       num_rx_fail <- 0
-      DBI::dbExecute(conn = conn, 
+      DBI::dbExecute(conn = conn_qa, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -180,10 +184,10 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                  glue::glue_data(data.frame(year = num_rx_overall$claim_year[num_rx_overall$pct_change > 0], 
                                             pct = round(abs(num_rx_overall$pct_change[num_rx_overall$pct_change > 0]), 2)),
                                  '{year} ({pct}% more)'), sep = ', ', last = ' and '))}')",
-                                    .con = conn))
+                                    .con = conn_qa))
     } else if (min(num_rx_overall$pct_change, na.rm = T) + max(num_rx_overall$pct_change, na.rm = T) == 0) {
       num_rx_fail <- 1
-      DBI::dbExecute(conn = conn, 
+      DBI::dbExecute(conn = conn_qa, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -192,10 +196,10 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'No change in the number of pharmacy claim lines compared to final schema table')",
-                                    .con = conn))
+                                    .con = conn_qa))
     } else if (min(num_rx_overall$pct_change, na.rm = T) < 0) {
       num_rx_fail <- 1
-      DBI::dbExecute(conn = conn, 
+      DBI::dbExecute(conn = conn_qa, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -208,7 +212,7 @@ qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                  glue::glue_data(data.frame(year = num_rx_overall$claim_year[num_rx_overall$pct_change < 0], 
                                             pct = round(abs(num_rx_overall$pct_change[num_rx_overall$pct_change < 0]), 2)),
                                  '{year} ({pct}% fewer)'), sep = ', ', last = ' and '))}')",
-                                    .con = conn))
+                                    .con = conn_qa))
     }
   } else {
     num_rx_fail <- 0

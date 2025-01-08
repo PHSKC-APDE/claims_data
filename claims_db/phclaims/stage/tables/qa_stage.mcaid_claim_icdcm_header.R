@@ -25,6 +25,7 @@
 
 
 qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
+                                                conn_qa = NULL,
                                         server = c("hhsaw", "phclaims"),
                                         config = NULL,
                                         get_config = F) {
@@ -47,6 +48,9 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
   final_schema <- config[[server]][["final_schema"]]
   final_table <- ifelse(is.null(config[[server]][["final_table"]]), '',
                         config[[server]][["final_table"]])
+  stage_schema <- config[[server]][["stage_schema"]]
+  stage_table <- ifelse(is.null(config[[server]][["stage_table"]]), '',
+                        config[[server]][["stage_table"]])
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                       config[[server]][["ref_table"]])
@@ -71,7 +75,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
   ids_demo_chk <- as.integer(DBI::dbGetQuery(
     conn, glue::glue_sql("SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
                          FROM {`to_schema`}.{`to_table`} AS a
-                         LEFT JOIN {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_demo AS b
+                         LEFT JOIN {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_elig_demo AS b
                          ON a.id_mcaid = b.id_mcaid
                          WHERE b.id_mcaid IS NULL",
                          .con = conn)))
@@ -79,7 +83,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
   ids_timevar_chk <- as.integer(DBI::dbGetQuery(
     conn, glue::glue_sql("SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
                          FROM {`to_schema`}.{`to_table`} AS a
-                         LEFT JOIN {`final_schema`}.{DBI::SQL(final_table)}mcaid_elig_timevar AS b
+                         LEFT JOIN {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_elig_timevar AS b
                          ON a.id_mcaid = b.id_mcaid
                          WHERE b.id_mcaid IS NULL",
                          .con = conn)))
@@ -87,7 +91,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
   # Write findings to metadata
   if (ids_demo_chk == 0 & ids_timevar_chk == 0) {
     ids_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -97,10 +101,10 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were the same number of IDs as in the final mcaid_elig_demo ", 
                                   "and mcaid_elig_timevar tables')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     ids_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -112,7 +116,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                                   "IDs than in the final mcaid_elig_demo table and ", 
                                   "{ids_timevar_chk} {DBI::SQL(ifelse(ids_timevar_chk >= 0, 'more', 'fewer'))} ", 
                                   "IDs than in the final mcaid_elig_timevar table')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   
@@ -129,7 +133,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
   # Write findings to metadata
   if (icd9_len_chk$min_len == 5 & icd9_len_chk$max_len == 5) {
     icd9_len_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -138,10 +142,10 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'The ICD-9-CM codes were all 5 characters in length')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     icd9_len_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -151,7 +155,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    {format(Sys.time(), usetz = FALSE)}, 
                    'The ICD-9-CM codes ranged from {icd9_len_chk$min_len} to ",
                                   "{icd9_len_chk$max_len} characters in length (should be all 5)')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   ### ICD-10-CM
@@ -163,7 +167,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
   # Write findings to metadata
   if (icd10_len_chk$min_len == 3 & icd10_len_chk$max_len == 7) {
     icd10_len_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -173,10 +177,10 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    {format(Sys.time(), usetz = FALSE)}, 
                    'The ICD-10-CM codes ranged from {icd10_len_chk$min_len} to ",
                                   "{icd10_len_chk$max_len} characters in length, as expected')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     icd10_len_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                  (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -186,7 +190,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    {format(Sys.time(), usetz = FALSE)}, 
                    'The ICD-10-CM codes ranged from {icd10_len_chk$min_len} to ",
                                   "{icd10_len_chk$max_len} characters in length (should be 3-7)')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   
@@ -201,7 +205,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
   # Write findings to metadata
   if (icdcm_num_chk == 0) {
     icdcm_num_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -210,10 +214,10 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'All icdcm_number values were 01:12 or admit')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     icdcm_num_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -222,7 +226,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were {icdcm_num_chk} icdcm_number values not 01 through 12 or admit')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   
@@ -238,7 +242,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
   # Write findings to metadata
   if (dx_chk < 350) {
     dx_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -247,10 +251,10 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    'PASS', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were {dx_chk} dx values not in {DBI::SQL(icdcm_ref_schema)}.{DBI::SQL(icdcm_ref_table)} (acceptable is < 350)')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     dx_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -259,19 +263,19 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were {dx_chk} dx values not in {DBI::SQL(icdcm_ref_schema)}.{DBI::SQL(icdcm_ref_table)} table (acceptable is < 350)')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }
   
   
   #### Compare number of dx codes in current vs. prior analytic tables ####
-  if (DBI::dbExistsTable(conn,
+  if (DBI::dbExistsTable(conn_qa,
                          DBI::Id(schema = final_schema, table = paste0(final_table, "mcaid_claim_icdcm_header")))) {
     
     num_dx_current <- DBI::dbGetQuery(
-      conn, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS current_num_dx
+      conn_qa, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS current_num_dx
                            FROM {`final_schema`}.{DBI::SQL(final_table)}mcaid_claim_icdcm_header
                            GROUP BY YEAR(first_service_date) ORDER BY YEAR(first_service_date)",
-                           .con = conn))
+                           .con = conn_qa))
     
     num_dx_new <- DBI::dbGetQuery(
       conn, glue::glue_sql("SELECT YEAR(first_service_date) AS claim_year, COUNT(*) AS new_num_dx
@@ -286,7 +290,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
     if (max(num_dx_overall$pct_change, na.rm = T) > 0 & 
         min(num_dx_overall$pct_change, na.rm = T) >= 0) {
       num_dx_fail <- 0
-      DBI::dbExecute(conn = conn, 
+      DBI::dbExecute(conn = conn_qa, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -299,10 +303,10 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                  glue::glue_data(data.frame(year = num_dx_overall$claim_year[num_dx_overall$pct_change > 0], 
                                             pct = round(abs(num_dx_overall$pct_change[num_dx_overall$pct_change > 0]), 2)),
                                  '{year} ({pct}% more)'), sep = ', ', last = ' and '))}')",
-                                    .con = conn))
+                                    .con = conn_qa))
     } else if (min(num_dx_overall$pct_change, na.rm = T) + max(num_dx_overall$pct_change, na.rm = T) == 0) {
       num_dx_fail <- 1
-      DBI::dbExecute(conn = conn, 
+      DBI::dbExecute(conn = conn_qa, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -311,10 +315,10 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
                    'No change in the number of diagnoses compared to final schema table')",
-                                    .con = conn))
+                                    .con = conn_qa))
     } else if (min(num_dx_overall$pct_change, na.rm = T) < 0) {
       num_dx_fail <- 1
-      DBI::dbExecute(conn = conn, 
+      DBI::dbExecute(conn = conn_qa, 
                      glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -327,7 +331,7 @@ qa_stage_mcaid_claim_icdcm_header_f <- function(conn = NULL,
                  glue::glue_data(data.frame(year = num_dx_overall$claim_year[num_dx_overall$pct_change < 0], 
                                             pct = round(abs(num_dx_overall$pct_change[num_dx_overall$pct_change < 0]), 2)),
                                  '{year} ({pct}% fewer)'), sep = ', ', last = ' and '))}')",
-                                    .con = conn))
+                                    .con = conn_qa))
     }
   } else {
     num_dx_fail <- 0

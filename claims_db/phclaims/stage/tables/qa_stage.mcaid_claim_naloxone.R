@@ -19,6 +19,7 @@
 
 
 qa_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
+                                            conn_qa = NULL,
                                          server = c("hhsaw", "phclaims"),
                                          config = NULL,
                                          get_config = F) {
@@ -78,7 +79,7 @@ qa_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
   # Write findings to metadata
   if (ids_demo_chk == 0 & ids_timevar_chk == 0) {
     ids_fail <- 0
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -88,10 +89,10 @@ qa_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were the same number of IDs as in the final mcaid_elig_demo ", 
                                   "and mcaid_elig_timevar tables')",
-                                  .con = conn))
+                                  .con = conn_qa))
   } else {
     ids_fail <- 1
-    DBI::dbExecute(conn = conn,
+    DBI::dbExecute(conn = conn_qa,
                    glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -103,7 +104,7 @@ qa_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
                                   "IDs than in the final mcaid_elig_demo table and ", 
                                   "{ids_timevar_chk} {DBI::SQL(ifelse(ids_timevar_chk >= 0, 'more', 'fewer'))} ", 
                                   "IDs than in the final mcaid_elig_timevar table')",
-                                  .con = conn))
+                                  .con = conn_qa))
   }  
   
   #### SUM UP FAILURES ####

@@ -1,7 +1,7 @@
 ### STEP 1: LOAD FUNCTIONS, CONFIG FILE, DEFINE DIRECTORY VARIABLES, AND CHECK CREDENTIALS
 if(T) {
   message("STEP 1: Loading Functions, Config File, Defining Variables, and Check SFTP Credentials...")
-  source("apcd_import_functions.R")
+  suppressWarnings(source("apcd_import_functions.R"))
   config <- yaml::read_yaml("apcd_import_config.yaml")
   #Define directories for downloaded files and extracted files.
   base_dir <- config$base_dir
@@ -92,7 +92,9 @@ if(T) {
 if(T) {
   # Select which schemas and tables to import
   etl_list <- apcd_etl_get_list_f(config)
-  files <- etl_list %>% filter(is.na(datetime_load)) %>% filter(!is.na(datetime_download))
+  if(nrow(files) > 0) {
+    files <- etl_list %>% filter(is.na(datetime_load)) %>% filter(!is.na(datetime_download))
+  }
   files$schema_table <- paste0(files$file_schema, ".", files$file_table)
   files <- files[order(files$schema_table), ]
   schemas <- dlg_list(unique(files$file_schema), 
@@ -124,4 +126,3 @@ if(T) {
     }
   }
 }
-

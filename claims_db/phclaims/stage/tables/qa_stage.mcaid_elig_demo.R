@@ -14,6 +14,7 @@
 # load_only = only enter new values to that table, no other QA
 
 qa_mcaid_elig_demo_f <- function(conn = NULL,
+                                 conn_qa = NULL,
                                  server = c("hhsaw", "phclaims"),
                                  config = NULL,
                                  get_config = F,
@@ -62,7 +63,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
     #### COUNT NUMBER OF ROWS ####
     # Pull in the reference value
     previous_rows <- as.numeric(
-      odbc::dbGetQuery(conn, 
+      odbc::dbGetQuery(conn_qa, 
                        glue::glue_sql("SELECT a.qa_value FROM
                        (SELECT * FROM {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid_values
                          WHERE table_name = '{DBI::SQL(`to_schema`)}.{DBI::SQL(`to_table`)}' AND
@@ -73,14 +74,14 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                          WHERE table_name = '{DBI::SQL(`to_schema`)}.{DBI::SQL(`to_table`)}' AND
                           qa_item = 'row_count') b
                        ON a.qa_date = b.max_date",
-                                      .con = conn)))
+                                      .con = conn_qa)))
     
     row_diff <- row_count - previous_rows
     
     if (row_diff < 0) {
       row_qa_fail <- 1
       DBI::dbExecute(
-        conn = conn,
+        conn = conn_qa,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -90,14 +91,14 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were {row_diff} fewer rows in the most recent table 
                        ({row_count} vs. {previous_rows})')",
-                       .con = conn))
+                       .con = conn_qa))
       
       message(glue::glue("Fewer rows than found last time.  
                   Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
     } else {
       row_qa_fail <- 0
       DBI::dbExecute(
-        conn = conn,
+        conn = conn_qa,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                    (last_run, table_name, qa_item, qa_result, qa_date, note) 
                    VALUES ({format(last_run, usetz = FALSE)}, 
@@ -107,7 +108,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                    {format(Sys.time(), usetz = FALSE)}, 
                    'There were {row_diff} more rows in the most recent table 
                        ({row_count} vs. {previous_rows})')",
-                       .con = conn))
+                       .con = conn_qa))
     }
     
     
@@ -119,7 +120,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
     if (id_count != row_count) {
       id_distinct_qa_fail <- 1
       DBI::dbExecute(
-        conn = conn,
+        conn = conn_qa,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({format(last_run, usetz = FALSE)}, 
@@ -128,14 +129,14 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        'FAIL', 
                        {format(Sys.time(), usetz = FALSE)}, 
                        'There were {id_count} distinct IDs but {row_count} rows (should be the same)')",
-                       .con = conn))
+                       .con = conn_qa))
       
       message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
                       Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
     } else {
       id_distinct_qa_fail <- 0
       DBI::dbExecute(
-        conn = conn,
+        conn = conn_qa,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({format(last_run, usetz = FALSE)}, 
@@ -144,19 +145,19 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        'PASS', 
                        {format(Sys.time(), usetz = FALSE)}, 
                        'The number of distinct IDs matched the number of rows ({id_count})')",
-                       .con = conn))
+                       .con = conn_qa))
     }
     
     
     #### CHECK DISTINCT IDS = DISTINCT IDS IN STAGE.MCAID_ELIG ####
     id_count_raw <- as.numeric(odbc::dbGetQuery(
-      conn, glue::glue_sql("SELECT COUNT (DISTINCT MEDICAID_RECIPIENT_ID) 
+      conn, glue::glue_sql("SELECT COUNT (DISTINCT MBR_H_SID) 
                          FROM {`from_schema`}.{`from_table`}", .con = conn)))
     
     if (id_count != id_count_raw) {
       id_stage_qa_fail <- 1
       DBI::dbExecute(
-        conn = conn,
+        conn = conn_qa,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({format(last_run, usetz = FALSE)}, 
@@ -165,14 +166,14 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        'FAIL', 
                        {format(Sys.time(), usetz = FALSE)}, 
                        'There were {id_count} distinct IDs but {id_count_raw} IDs in the raw data (should be the same)')",
-                       .con = conn))
+                       .con = conn_qa))
       
       message(glue::glue("Number of distinct IDs doesn't match the number of rows. 
                       Check {qa_schema}.{qa_table}qa_mcaid for details (last_run = {format(last_run, usetz = FALSE)}"))
     } else {
       id_stage_qa_fail <- 0
       DBI::dbExecute(
-        conn = conn,
+        conn = conn_qa,
         glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
                        (last_run, table_name, qa_item, qa_result, qa_date, note) 
                        VALUES ({format(last_run, usetz = FALSE)}, 
@@ -181,7 +182,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                        'PASS', 
                        {format(Sys.time(), usetz = FALSE)}, 
                        'The number of distinct IDs matched the number in the raw data ({id_count})')",
-                       .con = conn))
+                       .con = conn_qa))
     }
   }
   
@@ -196,9 +197,9 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
                                      {row_count}, 
                                      {format(Sys.time(), usetz = FALSE)}, 
                                      'Count after refresh')",
-                             .con = conn)
+                             .con = conn_qa)
   
-  DBI::dbExecute(conn = conn, load_sql)
+  DBI::dbExecute(conn = conn_qa, load_sql)
   
   message("QA complete, see above for any error messages")
   

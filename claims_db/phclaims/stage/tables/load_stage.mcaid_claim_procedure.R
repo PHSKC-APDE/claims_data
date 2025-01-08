@@ -68,7 +68,7 @@ load_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                                FROM 
                                (
                                  select
-                                 MEDICAID_RECIPIENT_ID as id_mcaid
+                                 MBR_H_SID as id_mcaid
                                  ,TCN as claim_header_id
                                  ,FROM_SRVC_DATE as first_service_date
                                  ,TO_SRVC_DATE as last_service_date
@@ -107,5 +107,5 @@ load_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   
   #### STEP 3: ADD INDEX ####
   # Takes ~6 minutes in Azure
-  add_index_f(conn, server = server, table_config = config)
+  #add_index_f(conn, server = server, table_config = config)
 }

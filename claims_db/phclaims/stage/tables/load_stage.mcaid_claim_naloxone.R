@@ -1,14 +1,14 @@
-# This code creates the the mcaid claim NALOXONE table
-# Create a reference table for NALOXONE distributed in mcaid claims
+# This code creates the the mcaid claim naloxone table
+# Create a reference table for naloxone distributed in mcaid claims
 #
 # It is designed to be run as part of the master Medicaid script:
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_analytic.R
 #
 # R script developed by Jeremy Whitehurst using SQL scripts from Eli Kern, Jennifer Liu and Spencer Hensley
 #
-### 
+## 
 
-### Function elements
+## Function elements
 # conn = database connection
 # server = whether we are working in HHSAW or PHClaims
 
@@ -40,118 +40,41 @@ load_stage_mcaid_claim_naloxone_f <- function(conn = NULL,
   ref_schema <- config[[server]][["ref_schema"]]
   ref_table <- ifelse(is.null(config[[server]][["ref_table"]]), '',
                       config[[server]][["ref_table"]])
-
+  stage_schema <- config[[server]][["stage_schema"]]
+  
   message("Creating ", to_schema, ".", to_table, ".")
   time_start <- Sys.time()
   
   #### DROP EXISTING TABLE TO USE SELECT INTO ####
-  try(DBI::dbRemoveTable(conn, DBI::Id(schema = to_schema, table = to_table)))
+  try(DBI::dbRemoveTable(conn, DBI::Id(schema = to_schema, table = to_table)), silent = T)
   
   #### LOAD TABLE ####
-  message("STEP 1: CREATE TABLE TO HOLD NDC CODES IDENTIFYING NALOXONE FOR LIKE JOIN")
-  try(odbc::dbRemoveTable(conn, "##naloxone_ndc_list_prep", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##naloxone_ndc_list", temporary = T), silent = T)
-  try(odbc::dbRemoveTable(conn, "##naloxone_ndc_ref_table", temporary = T), silent = T)
+  message("STEP 1: CREATE TABLE TO HOLD NDC CODES IDENTIFYING naloxone FOR LIKE JOIN")
   step1_sql <- glue::glue_sql("
-  --First, create a table holding all NDC codes identifying NALOXONE
-	create table ##naloxone_ndc_list_prep (ndc varchar(255));
-
-	insert into ##naloxone_ndc_list_prep
-	values 
-('00932165'),
-('04049921'),
-('04049923'),
-('04091782'),
-('06416132'),
-('06416260'),
-('360000310'),
-('435980750'),
-('458020811'),
-('500903294'),
-('500905908'),
-('500906710'),
-('516621238'),
-('516621240'),
-('516621385'),
-('516621495'),
-('516621544'),
-('516621620'),
-('525840120'),
-('551500327'),
-('551500345'),
-('594670679'),
-('636299321'),
-('674570299'),
-('674570645'),
-('674570992'),
-('695470353'),
-('700690071'),
-('712050528'),
-('718727009'),
-('718727198'),
-('718727219'),
-('718727297'),
-('725720450'),
-('763293369'),
-('786700140'),
-('829540100'),
-('04049920'),
-('04049922'),
-('04091215'),
-('05912971'),
-('06416205'),
-('360000308'),
-('420230224'),
-('458020578'),
-('500902422'),
-('500905427'),
-('500906491'),
-('500906963'),
-('516621239'),
-('516621242'),
-('516621426'),
-('516621529'),
-('516621586'),
-('516621642'),
-('542880124'),
-('551500328'),
-('557000985'),
-('608420002'),
-('674570292'),
-('674570599'),
-('674570987'),
-('695470212'),
-('695470627'),
-('700690072'),
-('712050707'),
-('718727177'),
-('718727215'),
-('718727294'),
-('718727299'),
-('763291469'),
-('763293469'),
-('804250259'),
-('830080007');
-
+  --First, create a table holding all NDC codes identifying naloxone
+    --created actual reference table
+    
 --Second, add a column with % that can be used for a LIKE join
+IF OBJECT_ID(N'tempdb..#naloxone_ndc_list') IS NOT NULL DROP TABLE #naloxone_ndc_list;
 select *, '%' + ndc + '%' as ndc_like
-into ##naloxone_ndc_list
-from ##naloxone_ndc_list_prep;
+into #naloxone_ndc_list
+from {`stage_schema`}.{`paste0(ref_table, 'naxolone_ndc')`};
 
---Third, LIKE join all distinct NDC codes to the list of NALOXONE NDC codes to create a data source-specific reference table
+--Third, LIKE join all distinct NDC codes to the list of naloxone NDC codes to create a data source-specific reference table
 --Then, use this custom reference table down below for an exact join
-select a.ndc, 1 as NALOXONE_flag
-into ##naloxone_ndc_ref_table
+IF OBJECT_ID(N'tempdb..#naloxone_ndc_ref_table') IS NOT NULL DROP TABLE #naloxone_ndc_ref_table;
+select a.ndc, 1 as naloxone_flag
+into #naloxone_ndc_ref_table
 from (
 	select distinct ndc from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`}
 ) as a
-inner join ##naloxone_ndc_list as b
+inner join #naloxone_ndc_list as b
 on a.ndc like b.ndc_like;", 
 	  .con = conn)
   DBI::dbExecute(conn = conn, step1_sql)
     
-  message("STEP 2: CREATE TABLE OF NALOXONE EVENTS")
-  try(odbc::dbRemoveTable(conn, "##mcaid_moud_proc_2", temporary = T), silent = T)
+  message("STEP 2: CREATE TABLE OF naloxone EVENTS")
+  try(odbc::dbRemoveTable(conn, "#mcaid_moud_proc_2", temporary = T), silent = T)
   step2_sql <- glue::glue_sql("
 	 SELECT 
 	 a.id_mcaid
@@ -178,17 +101,17 @@ on a.ndc like b.ndc_like;",
 INTO {`to_schema`}.{`to_table`}
 
 FROM {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`} as a
-	left join ref.ndc_codes as b
+	left join {`ref_schema`}.{`paste0(ref_table, 'ndc_codes')`} as b
 	on a.ndc = b.ndc
 
-	inner join ##naloxone_ndc_ref_table as c
+	inner join #naloxone_ndc_ref_table as c
 	on a.ndc = c.ndc
 
 WHERE year(a.rx_fill_date) >= 2016
 	AND rx_quantity >= 1.00
 
 
--- Next get NALOXONE distributed as part of procedure codes
+-- Next get naloxone distributed as part of procedure codes
 
 UNION
 
@@ -239,5 +162,5 @@ WHERE year(last_service_date) >= 2016
   
   
   #### ADD INDEX ####
-  add_index_f(conn, server = server, table_config = config)
+  #add_index_f(conn, server = server, table_config = config)
 }

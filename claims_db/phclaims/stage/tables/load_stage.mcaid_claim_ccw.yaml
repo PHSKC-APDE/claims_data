@@ -1,23 +1,23 @@
 hhsaw:
-    claim_header_from_schema: claims
-    claim_header_from_table: final_mcaid_claim_header
-    icdcm_from_schema: claims
-    icdcm_from_table: final_mcaid_claim_icdcm_header
-    to_schema: claims
+    claim_header_from_schema: stg_claims
+    claim_header_from_table: stage_mcaid_claim_header
+    icdcm_from_schema: stg_claims
+    icdcm_from_table: stage_mcaid_claim_icdcm_header
+    to_schema: stg_claims
     to_table: stage_mcaid_claim_ccw
     final_schema: claims
     final_table: final_mcaid_claim_ccw
-    final_table_pre: final_
-    ref_schema: claims
+    final_table_pre: stage_
+    ref_schema: stg_claims
     ref_table_pre: ref_
-    icdcm_ref_schema: ref
+    icdcm_ref_schema: stg_reference
     icdcm_ref_table: icdcm_codes
     qa_schema: claims
     qa_table_pre: metadata_
 vars:
     id_mcaid: varchar(255)
-    from_date: date
-    to_date: date
+    first_encounter_date: date
+    last_encounter_date: date
     ccw_code: tinyint
     ccw_desc: varchar(200)
     last_run: datetime

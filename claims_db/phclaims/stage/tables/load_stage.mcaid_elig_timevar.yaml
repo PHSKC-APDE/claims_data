@@ -11,13 +11,13 @@ phclaims:
     qa_schema: metadata
     qa_table: 
 hhsaw:
-    from_schema: claims
+    from_schema: stg_claims
     from_table: stage_mcaid_elig
-    to_schema: claims
+    to_schema: stg_claims
     to_table: stage_mcaid_elig_timevar
-    ref_schema: claims
+    ref_schema: stg_claims
     ref_table: ref_
-    address_schema: ref
+    address_schema: stg_reference
     address_table: address_clean
     geocode_table: address_geocode
     geokc_table: ref_geo_kc_zip
@@ -29,7 +29,7 @@ vars:
     to_date: DATE
     contiguous: TINYINT
     dual: TINYINT
-    tpl: TINYINT
+    health_home_flag: TINYINT
     bsp_group_cid: INTEGER
     full_benefit: TINYINT
     full_criteria: TINYINT
