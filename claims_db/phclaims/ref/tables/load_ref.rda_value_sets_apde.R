@@ -2,6 +2,14 @@
 ## Eli Kern, September 2023
 ## Use "APDE protocol for updating DSHS Research and Data Analysis"
 
+##2025-1-7 updates JL:
+#Updated SharePoint folders to reflect current organization
+#In step 1 when loading existing RDA value set, updated the name of the dataset
+#Added code to remove row that's just the date range and not ICD codes for "mi-diagnosis" and "sud-diagnosis"
+#Created new sub_group_condition category of "mh_other" for new ICD codes and moved ccs detail code 5.9 to mh_other
+#Updated coding in step 6 when collapsing to distinct rows to not account for desc variable b/c many ICD-CM codes had different descriptions between this update and previous update
+#Removed uploading table to PHClaims as it's no longer needed
+
 #### Setup ####
 
 ##Load packages and set defaults
@@ -29,8 +37,8 @@ db_hhsaw <- DBI::dbConnect(odbc::odbc(),
 
 #### Step 1: Load existing reference table and new value sets ####
 
-mh_value_set_new_version <- "2023-05-12" ##UPDATE EACH TIME THIS SCRIPT IS RUN
-sud_value_set_new_version <- "2023-06-07" ##UPDATE EACH TIME THIS SCRIPT IS R
+mh_value_set_new_version <- "2024-07-31" ##UPDATE EACH TIME THIS SCRIPT IS RUN
+sud_value_set_new_version <- "2024-07-31" ##UPDATE EACH TIME THIS SCRIPT IS R
 
 ##Connect to SharePoint/TEAMS site
 myteam <- get_team(team_name = "DPH-KCCross-SectorData",
@@ -42,8 +50,8 @@ myteam <- get_team(team_name = "DPH-KCCross-SectorData",
 ##Connect to drive (i.e., Documents-General document library) and navigate to desired subfolder
 myteam$list_drives() #lists all available document libraries
 myteamdrive = myteam$get_drive("Documents") #connect to document library named "Documents"
-myteamfolder = myteamdrive$get_item("General")
-myteamfolder = myteamfolder$get_item("References")
+#myteamfolder = myteamdrive$get_item("General")
+myteamfolder = myteamdrive$get_item("References")
 myteamfolder = myteamfolder$get_item("RDA_measures")
 myteamfolder_rda_value_set_existing = myteamfolder$get_item("rda_value_sets_for_sql_load")
 myteamfolder_rda_value_set_existing$list_items()
@@ -67,8 +75,8 @@ sub_group_pharmacy <- read_xlsx(
 
 ## Load existing RDA value set, dropping last_run variable
 myteamfolder_rda_value_set_existing$get_item("rda_value_sets_current.rdata")$load_rdata()
-rda_value_sets_existing <- rda_value_sets_final %>% select(-last_run)
-rm(rda_value_sets_final)
+rda_value_sets_existing <- rda_value_sets_updated %>% select(-last_run)
+rm(rda_value_sets_updated)
 
 ## Load new value sets for MH and SUD measures
 temp_mh_vs_new <- tempfile(fileext = ".xlsx")
@@ -207,7 +215,7 @@ mh_vs_new_taxonomy <- read_xlsx(
 #mi-diagnosis
 mh_vs_new_diagnosis <- read_xlsx(
   file = temp_mh_vs_new,
-  sheet = "MI-Diagnosis-7MCGs",
+  sheet = "MI-Diagnosis",
   start_row = 1,
   colNames = TRUE,
   detectDates = TRUE,
@@ -219,11 +227,12 @@ mh_vs_new_diagnosis <- read_xlsx(
     value_set_name = "mi-diagnosis",
     data_source_type = "diagnosis",
     code_set = "ICDCM",
-    code = `ICD-9 or ICD-10 Diagnosis Code`,
+    code = DxCode,
     desc = CodeDescription,
     mcg_code = "7MCGs") %>%
   
-  select(value_set_group:mcg_code)
+  select(value_set_group:mcg_code) %>% 
+  filter(toupper(desc) != 'DATE RANGE CODE')
 
 #psychotropic-ndc
 mh_vs_new_ndc <- read_xlsx(
@@ -268,7 +277,8 @@ sud_vs_new_diagnosis <- read_xlsx(
     desc = CodeDescription,
     mcg_code = NA_character_) %>%
   
-  select(value_set_group:mcg_code)
+  select(value_set_group:mcg_code) %>% 
+  filter(toupper(desc) != 'DATE RANGE CODE')
 
 #sbirt-proc
 sud_vs_new_sbirt <- read_xlsx(
@@ -576,7 +586,8 @@ rda_value_sets_new <- rda_value_sets_new_raw %>%
     #Create ICDCM version
     code_set = case_when(
       code_set == "ICDCM" & str_detect(code,"^[:digit:]") ~ "ICD9CM",
-      code_set == "ICDCM" & str_detect(code, "^E") & str_detect(desc, "POISON|INJURY|INJURIES") ~ "ICD9CM",
+      code_set == "ICDCM" & str_detect(code, "^E") & str_detect(desc, "POISON|INJURY|INJURIES|
+                                                                INJ|INJU|POIS|SELF") ~ "ICD9CM",
       code_set == "ICDCM" & str_detect(code, "^V") ~ "ICD9CM",
       code_set == "ICDCM" & str_detect(code, "^[:alpha:]") ~ "ICD10CM",
       TRUE ~ code_set),
@@ -739,9 +750,8 @@ rda_value_sets_new <- rda_value_sets_new %>%
     ccs_detail_code %in% c("FAC012") & code %in% c("Z714", "Z7141") ~ "sud_alcohol",
     ccs_detail_code %in% c("FAC012") & code %in% c("Z715", "Z7151") ~ "sud_other_substance",
     
-    ccs_detail_code %in% c("5.9") & code %in% c("30113") ~ "mh_mania_bipolar",
-    ccs_detail_code %in% c("5.9") & code %in% c("30122") ~ "mh_psychotic",
-    
+    ccs_detail_code %in% c("5.9") ~ "mh_other",
+
     ccs_detail_code %in% c("MBD021") & str_detect(desc, "COCAINE") ~ "sud_cocaine",
     ccs_detail_code %in% c("MBD021") ~ "sud_other_stimulant",
     
@@ -769,14 +779,34 @@ rda_value_sets_new <- rda_value_sets_new %>%
     ccs_detail_code %in% c("MBD007") & str_detect(code, "^F439") ~ "mh_anxiety",
     ccs_detail_code %in% c("MBD007") & str_detect(code, "^F432") ~ "mh_adjustment",
     
+    
     TRUE ~ NA_character_
-  )) %>%
+  ))
   
-  select(-ccs_broad_desc:-ccs_catch_all) #remove variables from ref.icdcm_codes table
-  
+
 #Make sure there are no diagnosis code rows with a null sub_group_apde value, expect 0
 count(filter(rda_value_sets_new, code_set %in% c("ICD9CM", "ICD10CM") & is.na(sub_group_condition)) %>%
         select(code_set, code, desc, sub_group_condition))
+
+#Identify missing and fill in blanks
+blanks <- rda_value_sets_new %>%
+  filter(code_set %in% c("ICD9CM", "ICD10CM") & is.na(sub_group_condition)) %>%
+  distinct(code_set, code, desc, sub_group_condition)
+#there were 109 missing in 1/7/2025 update
+
+#Manual recoding
+rda_value_sets_new <- rda_value_sets_new %>% 
+  mutate(sub_group_condition = case_when(ccs_detail_code %in% c("MBD010", "5.15", 
+                                                                "MBD011", "MBD009", 
+                                                                "NVS011", "SYM008",
+                                                                "SYM016", "5.4",
+                                                                "5.5", "15.7", "5.14") ~ "mh_other",
+                                         ccs_detail_code == "MBD007" & str_detect(code, "^F48|^F44") ~ "mh_other",
+                                         ccs_detail_code == "MBD014" & code == "F988" ~ "mh_other",
+                                         ccs_detail_code == "MBD006" & code == "F4522" ~ "mh_other",
+                                         TRUE ~ sub_group_condition)) %>% 
+  select(-ccs_broad_desc:-ccs_catch_all) #remove variables from ref.icdcm_codes table  
+
 
 
 #### Step 5: Populate sub_group variable based on NDC/pharmacy codes ####
@@ -815,15 +845,19 @@ rda_value_sets_new_rx <- rda_value_sets_new %>%
 rda_value_sets_new_rx <- rda_value_sets_new_rx %>%
   mutate(sub_group_pharmacy = case_when(
     data_source_type == "pharmacy" & is.na(sub_group_pharmacy) &
-      desc %in% c("METHYLPHENIDATE", "DICLOFENAC SODIUM DR") ~ "pharm_adhd",
+      desc %in% c("METHYLPHENIDATE", "DICLOFENAC SODIUM DR", "LISDEXAMFETAMINE DIMESYLATE", 
+                  "GUANFACINE HYDROCHLORIDE ER", "RELEXXII", "AMPHETAMINE/DEXTROAMPHETAMINE ER") ~ "pharm_adhd",
     data_source_type == "pharmacy" & is.na(sub_group_pharmacy) &
       desc %in% c("VILAZODONE HYDROCHLORIDE", "VENLAFAXINE BESYLATE ER", "ABILIFY MYCITE STARTER KIT",
-                  "ABILIFY MYCITE MAINTENANCE KIT", "AUVELITY") ~ "pharm_antidepressant",
+                  "ABILIFY MYCITE MAINTENANCE KIT", "AUVELITY", "ZURZUVAE") ~ "pharm_antidepressant",
     data_source_type == "pharmacy" & is.na(sub_group_pharmacy) & 
-      desc %in% c("INVEGA HAFYERA", "LURASIDONE HYDROCHLORIDE") ~ "pharm_antipsychotic",
+      desc %in% c("INVEGA HAFYERA", "LURASIDONE HYDROCHLORIDE", "RYKINDO", "RISPERIDONE ER", 
+                  "UZEDY", "ABILIFY ASIMTUFII") ~ "pharm_antipsychotic",
     data_source_type == "pharmacy" & is.na(sub_group_pharmacy) & desc %in% c("LOREEV XR") ~ "pharm_antianxiety",
     data_source_type == "pharmacy" & is.na(sub_group_pharmacy) & str_detect(desc, "NALTREXONE") ~ "pharm_naltrexone_rx",
     data_source_type == "pharmacy" & is.na(sub_group_pharmacy) & str_detect(desc, "DISULFIRAM") ~ "pharm_disulfiram",
+    data_source_type == "pharmacy" & is.na(sub_group_pharmacy) & desc %in% c("BRIXADI") ~ "pharm_buprenorphine",
+    
     TRUE ~ sub_group_pharmacy
   ))
 
@@ -858,11 +892,18 @@ rda_value_sets_new_rx %>% filter(data_source_type == "pharmacy" & is.na(sub_grou
 
 #### Step 6: Bind to existing RDA value set and collapse to distinct rows ####
 
-rda_value_sets_updated <- bind_rows(rda_value_sets_existing, rda_value_sets_new_rx) %>% distinct()
+rda_value_sets_updated <- bind_rows(rda_value_sets_existing, rda_value_sets_new_rx) %>% 
+  distinct(across(-desc), .keep_all = TRUE)
 
 #Confirm that no ICD-CM codes have more than 1 row
 rda_value_sets_updated %>% filter(code_set %in% c("ICD9CM", "ICD10CM")) %>% group_by(code) %>%
   mutate(row_count = n()) %>% ungroup() %>% count(row_count)
+
+#no need to run the below if there are no ICD-CM codes with >1 row (most likely not needed after Jan 2025 update)
+rda_value_sets_updated <- subset(rda_value_sets_updated, !(code %in% c("30113", "30122") & 
+                                                             sub_group_condition %in% c("mh_mania_bipolar", 
+                                                                                        "mh_psychotic")))
+#these were previously classified as mh_mania_polar and mh_psychotic but are now mh_other
 
 #Confirm that no NDC codes have more than 1 row
 rda_value_sets_updated %>% filter(code_set %in% c("NDC")) %>% group_by(code) %>%
@@ -873,7 +914,7 @@ rda_value_sets_updated %>% filter(code_set %in% c("NDC")) %>% group_by(code) %>%
 rda_value_sets_updated %>%
   group_by(code_set, code) %>%
   summarise(row_count = n()) %>%
-  filter(row_count >1)
+  filter(row_count >1) 
 
 
 #### Step 7: Export initial version of reference table ####
@@ -889,7 +930,7 @@ myteamfolder_rda_value_set_existing$
   save_rdata(rda_value_sets_updated,file = paste0("rda_value_sets_current_backup_", Sys.Date(), ".rdata"))
 
 
-#### Step 8: Upload updated reference table to HHSAW and PHClaims ####
+#### Step 8: Upload updated reference table to HHSAW ####
 
 to_schema <- "ref"
 to_table <- "rda_value_sets_apde"
@@ -905,14 +946,3 @@ DBI::dbExecute(db_hhsaw,
                               .con = db_hhsaw))
 
 
-db_phclaims <- DBI::dbConnect(odbc::odbc(), "PHClaims")
-
-# Load data
-dbWriteTable(db_phclaims, name = DBI::Id(schema = to_schema, table = to_table), 
-             value = as.data.frame(rda_value_sets_updated), 
-             overwrite = T)
-
-# Add index
-DBI::dbExecute(db_phclaims, 
-               glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_codeset_code] ON {`to_schema`}.{`to_table`} (code_set, code)",
-                              .con = db_phclaims))

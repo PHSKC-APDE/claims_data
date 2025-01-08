@@ -8,12 +8,12 @@ hhsaw:
     ext_table: apcd_provider_master
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/provider_master_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: 2593297
+row_count: 2677019
 col_count: 23
 date_min: '2014-01-01'
-date_max: '2023-09-30'
-date_delivery: '2024-03-04'
-note_delivery: apcd_provider_master, extract 10019
+date_max: '2024-06-30'
+date_delivery: '2024-09-15'
+note_delivery: apcd_provider_master, extract 10025
 vars:
     internal_provider_id: bigint
     extract_id: bigint

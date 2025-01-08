@@ -40,10 +40,9 @@
 #'     - Check there are no new detail codes to add to the catch-all
 #' 	   - Check that all rows have CCS information filled in after 4 passes
 #' 	   (add more passes or adjust as necessary)
-#' Step 5 RDA-defined mental health and substance use disorder (updated each May-June):
-#'   - Check to see if there's an updated table on HHSAW (claims.ref_rda_value_set_20xx)
-#'   - If not could look into running/updating load_ref.rda_value_sets_apde.R
-#'   - Check for new drug categories or mental health categories
+#' Step 5 RDA-defined mental health and substance use disorder (updated by Jennifer Liu each summer):
+#'   - Check HHSAW ref.rda_value_sets_apde for any sub_group_condition values NOT in ref.icdcm_codes
+#'   - If so, modify code to incorporate new values/categories
 #'   
 #'   
 #' Update history:
@@ -58,6 +57,7 @@
 #' 9/14/2023 update: Updated code for RDA-based BH flags, condensed CCS ICD-10-CM imputation code into while loop, added last_run col.
 #' 1/9/2024 update: 1) Improve alignment of ccs between ICD-9/10-CM, 2) create ccs_super_category (5 levels)
 #' 4/23/2024 update: Bring in Step 0 function to add new data
+#' 1/7/2025 update: Add new mh_other category from RDA value sets reference table
 
 
 # SET OPTIONS AND BRING IN PACKAGES ----
@@ -67,15 +67,16 @@ origin <- "1970-01-01"
 if (!require("pacman")) {install.packages("pacman")}
 pacman::p_load(data.table, DBI, dplyr, glue, lubridate, odbc, openxlsx, readxl, reshape2, stringr, svDialogs, tidyverse, xlsx)
 
-## Bring in relevant functions ----
+## Constants ----
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
-new_year <- F
+new_year <- F  # Toggle if there's a new year of ICD10CM files
+root_dir <- "C:/Users/kfukutaki.KC/King County/DPH-KCCross-SectorData - Documents/References/ICD-CM/ICD-10-CM_CMS"
+new_directory_file <- "2025 Code Descriptions/icd10cm_codes_2025.txt"
+old_file <- "C:/Users/kfukutaki.kc/OneDrive - King County/Documents/Code/reference-data/claims_data/ICD_9_10_CM_Complete.xlsx"
 
-# Step 0 (optional): Add new year of ICD-CM codes
+## Step 0 (optional): Add new year of ICD-CM codes ----
 if (new_year) {
-  root_dir <- "C:/Users/kfukutaki/King County/DPH-KCCross-SectorData - ICD-CM/ICD-10-CM_CMS"
-  
-  new_data <- fread(file = glue::glue("{root_dir}/2024_code_descriptions/icd10cm_codes_2024.txt"),
+  new_data <- fread(file = glue::glue("{root_dir}/{new_directory_file}"),
                     sep = "",
                     header = F,
   )
@@ -83,15 +84,15 @@ if (new_year) {
   new_data <- new_data[!duplicated(new_data), ]
   new_data['ver'] <- 10
   
-  # bring in existing table from <2019
-  old_data <- read_excel("C:/Users/kfukutaki/OneDrive - King County/Documents/Code/reference-data/claims_data/ICD_9_10_CM_Complete.xlsx")
+  # bring in existing table
+  old_data <- read_excel(old_file)
   old_data <- as.data.table(old_data)
   
   all_data <- bind_rows(old_data, new_data)
   all_data <- distinct(all_data, icdcode, ver, .keep_all = TRUE)
   
   write.xlsx(all_data,
-             file="C:/Users/kfukutaki/OneDrive - King County/Documents/Code/reference-data/claims_data/ICD_9_10_CM_Complete.xlsx",
+             file="C:/Users/kfukutaki.KC/OneDrive - King County/Documents/Code/reference-data/claims_data/ICD_9_10_CM_Complete.xlsx",
              rowNames = F)
   }
 
@@ -710,13 +711,13 @@ rda_icd9cm <- pivot_wider(rda_icd9cm, names_from = sub_group_condition, values_f
 ## ICD-9-CM Create summary flags
 rda_icd9cm <- rda_icd9cm %>%
   mutate(
-    mh_any = coalesce(mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic),
+    mh_any = coalesce(mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic, mh_other),
     sud_any = coalesce(sud_alcohol, sud_cannabis, sud_cocaine, sud_hallucinogen, sud_opioid, sud_sedative,
                        sud_other_stimulant, sud_other_substance),
     bh_any = coalesce(mh_any, sud_any)
   ) %>%
   relocate(code, bh_any, mh_any, sud_any,
-           mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic,
+           mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic, mh_other,
            sud_alcohol, sud_cannabis, sud_cocaine, sud_hallucinogen, sud_opioid, sud_sedative,
            sud_other_stimulant, sud_other_substance)
 
@@ -727,13 +728,13 @@ rda_icd10cm <- pivot_wider(rda_icd10cm, names_from = sub_group_condition, values
 ## ICD-10-CM Create summary flags
 rda_icd10cm <- rda_icd10cm %>%
   mutate(
-    mh_any = coalesce(mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic),
+    mh_any = coalesce(mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic, mh_other),
     sud_any = coalesce(sud_alcohol, sud_cannabis, sud_cocaine, sud_hallucinogen, sud_inhalant, sud_opioid, sud_sedative,
                        sud_other_stimulant, sud_other_substance),
     bh_any = coalesce(mh_any, sud_any)
   ) %>%
   relocate(code, bh_any, mh_any, sud_any,
-           mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic,
+           mh_adhd, mh_adjustment, mh_anxiety, mh_depression, mh_disrupt, mh_mania_bipolar, mh_psychotic, mh_other,
            sud_alcohol, sud_cannabis, sud_cocaine, sud_hallucinogen, sud_inhalant, sud_opioid, sud_sedative,
            sud_other_stimulant, sud_other_substance)
 
@@ -786,13 +787,11 @@ icd910cm <- icd910cm %>%
 # to see if there are any that do not join
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
 db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
-db_phclaims <- create_db_connection("phclaims", interactive = F, prod = T)
-db_apde <- create_db_connection("APDEStore", interactive = F, prod = T)
 
 mcaid_schema <- "claims"
 mcaid_tbl <- "final_mcaid_claim_icdcm_header"
-apcd_schema <- "final"
-apcd_tbl <- "apcd_claim_icdcm_header"
+apcd_schema <- "claims"
+apcd_tbl <- "final_apcd_claim_icdcm_header"
 chars_schema <- "chars"
 chars_tbl1 <- "stage_diag"
 chars_tbl2 <- "stage_ecode"
@@ -801,18 +800,18 @@ mcaid <- DBI::dbGetQuery(db_hhsaw, glue::glue_sql(
   "SELECT DISTINCT icdcm_norm, icdcm_version
    FROM {`mcaid_schema`}.{`mcaid_tbl`}",
   .con = db_hhsaw))
-apcd <- DBI::dbGetQuery(db_phclaims, glue::glue_sql(
+apcd <- DBI::dbGetQuery(db_hhsaw, glue::glue_sql(
   "SELECT DISTINCT icdcm_norm, icdcm_version
    FROM {`apcd_schema`}.{`apcd_tbl`}",
-  .con = db_phclaims))
-chars1 <- DBI::dbGetQuery(db_apde, glue::glue_sql(
+  .con = db_hhsaw))
+chars1 <- DBI::dbGetQuery(db_hhsaw, glue::glue_sql(
   "SELECT DISTINCT DIAG, code_ver
    FROM {`chars_schema`}.{`chars_tbl1`}",
-  .con = db_apde))
-chars2 <- DBI::dbGetQuery(db_apde, glue::glue_sql(
+  .con = db_hhsaw))
+chars2 <- DBI::dbGetQuery(db_hhsaw, glue::glue_sql(
   "SELECT DISTINCT ECODE, code_ver
    FROM {`chars_schema`}.{`chars_tbl2`}",
-  .con = db_apde))
+  .con = db_hhsaw))
 
 # standardize variable names
 chars1 <- rename(chars1, icdcm_norm = DIAG, icdcm_version = code_ver)
@@ -833,45 +832,18 @@ length(setdiff(chars[chars$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 35
 
 # Step 7: Upload reference table to SQL Server ----
 ## Set up server connection ----
-server <- dlg_list(c("phclaims", "hhsaw", "both"), title = "Select Server.")$res
-if(server == "hhsaw" | server == "both") {
-  interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication for HHSAW?")$res
-  prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server for HHSAW?")$res
-} else {
-  interactive_auth <- T  
-  prod <- T
-}
 to_schema <- "ref"
 to_table <- "icdcm_codes"
 
 # If wanting to load table to both servers, do HHSAW first
 # Make connection
-if (server == "hhsaw" | server == "both"){
-  db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
-  
-  # Load data
-  dbWriteTable(db_claims, name = DBI::Id(schema = to_schema, table = to_table), 
-               value = as.data.frame(icd910cm), 
-               overwrite = T)
-  
-  # Add index
-  DBI::dbExecute(db_claims, 
-                 glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON {`to_schema`}.{`to_table`} (icdcm, icdcm_version)",
-                                .con = db_claims))
-}
+db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+# Load data
+dbWriteTable(db_claims, name = DBI::Id(schema = to_schema, table = to_table), 
+             value = as.data.frame(icd910cm), 
+             overwrite = T)
+# Add index
+DBI::dbExecute(db_claims, 
+               glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON {`to_schema`}.{`to_table`} (icdcm, icdcm_version)",
+                              .con = db_claims))
 
-
-# Repeat to PHClaims if loading to both servers
-if (server == "phclaims" | server == "both") {
-  db_claims <- create_db_connection("phclaims", interactive = T, prod = T)
-  
-  # Load data
-  dbWriteTable(db_claims, name = DBI::Id(schema = to_schema, table = to_table), 
-               value = as.data.frame(icd910cm), 
-               overwrite = T)
-  
-  # Add index
-  DBI::dbExecute(db_claims, 
-                 glue::glue_sql("CREATE CLUSTERED INDEX [idx_cl_dx_ver_dx] ON {`to_schema`}.{`to_table`} (icdcm, icdcm_version)",
-                                .con = db_claims))
-}

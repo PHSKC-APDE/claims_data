@@ -64,8 +64,9 @@ lapply(table_list, function(table_list) {
   
   #Row count comparison for all tables except PLR tables
   if(table_name != "final_apcd_elig_plr") {
+    table_name_inthealth <- gsub("final_", "stage_", table_name)
     inthealth_row_count <- DBI::dbGetQuery(conn = db_claims,
-                                           glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",
+                                           glue::glue_sql("select count(*) as row_count from claims.{`table_name_inthealth`};",
                                                           .con = db_claims))
     hhsaw_row_count <- DBI::dbGetQuery(conn = db_claims,
                                        glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",

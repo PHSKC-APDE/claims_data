@@ -8,6 +8,7 @@
 #9/20/23 update: Read path changed to CIFS folder
 #3/11/24 update: Added smart selection for write path
 #3/11/24 update: Modified YAML creation code to align with COPY_INTO function in Azure environment
+#9/25/24 update:YAML file path
 
 #### Create YAML files from CSV format files for all non-reference files ####
 
@@ -22,8 +23,8 @@ pacman::p_load(tidyverse, glue)
 read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" #Folder containing exported format files
 
 ##Smart selection for write path for YAML files
-if(file.exists("C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/")){ #Susan on DPHXPHAAPR5EBYK
-  write_path <- "C:/Users/shernandez/OneDrive - King County/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/"
+if(file.exists("C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/")){ #Susan on DPHXPHAAPR5EBYK
+  write_path <- "C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/"
 } else if(file.exists("C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/")){ #Susan on KCITENGPRRSTUD00
   write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/"
 } else if(file.exists("C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/")){ #Eli on KCITENGPRRSTUD00
@@ -43,9 +44,9 @@ base_url <- "https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/"
 
 #Set extract-specific parameters for YAML file
 date_min <- as.Date("2014-01-01")
-date_max <- as.Date("2023-09-30")
-date_delivery <- as.Date("2024-03-04")
-apcd_extract_number <- "10019"
+date_max <- as.Date("2024-06-30")
+date_delivery <- as.Date("2024-09-15")
+apcd_extract_number <- "10025"
 
 #Establish list of tables for which YAML format files will be created
 table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",

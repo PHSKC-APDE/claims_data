@@ -1,4 +1,4 @@
-''
+
 CREATE EXTERNAL TABLE "claims"."stage_apcd_claim_ccw"
   ([id_apcd] BIGINT NULL, 
   [from_date] DATE NULL, 

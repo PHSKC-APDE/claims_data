@@ -22,8 +22,7 @@
 #' 
 #' @param conn SQL server connection created using \code{odbc} package
 #' @param source Which claims data source do you want to pull from?
-#' @param server Which server do you want to run the query against? NB. Currently only
-#' Medicaid data is available on HHSAW.
+#' @param server Which server do you want to run the query against? Currently all data on HHSAW.
 #' @param from_date Begin date for coverage period, "YYYY-MM-DD", 
 #' defaults to 18 months prior to today's date (A)
 #' @param to_date End date for coverage period, "YYYY-MM-DD", 
@@ -48,8 +47,6 @@
 #' during requested date range (percent scale) (PHA) 
 #' @param med_covgrp Medical coverage group type in APCD data (AP)
 #' @param pharm_covgrp Pharmacy coverage group type in APCD data (AP)
-#' @param tpl_max Maximum time with third-party liability during the requested
-#' time period (percent scale) (MD)
 #' @param bsp_group_cid Most frequently reported BSP group during requested date
 #' range, case insensitive, can take multiple values (MD)
 #' @param full_benefit_min Minimum time with full benefits during the requested
@@ -115,8 +112,9 @@
 #' @param lang_spanish Alone or in combination Spanish written or spoken language over entire member history (MD)
 #' @param lang_ukrainian Alone or in combination Ukrainian written or spoken language over entire member history (MD)
 #' @param lang_vietnamese Alone or in combination Vietnamese written or spoken language over entire member history (MD)
-#' @param lang_me Most frequently recorded spoken/written language over entire member history, 
-#' case insensitive, can take multiple values (e.g., c("chinese", "english")) (MD)
+#' @param lang_max Most frequently recorded spoken/written language over entire member history, 
+#' case insensitive, can take multiple values (e.g., c("CHINESE", "ENGLISH")). Ties will
+#' go to a random winner between tied languages. (MD)
 #' @param geo_zip Most frequently reported ZIP code during requested date range,
 #' can take multiple values (e.g., c("98104", "98105")) (A)
 #' @param geo_hra_code Most frequently reported health reporting area code during 
@@ -142,11 +140,11 @@
 #'
 #' @examples
 #' \dontrun{
-#' claims_elig(conn = db_claims, source = "apcd", server = "phclaims",
+#' test <- claims_elig(conn = db_hhsaw, source = "apcd", server = "hhsaw",
 #'   from_date = "2017-01-01", to_date = "2017-06-30")
-#' claims_elig(conn = db_claims, source = "mcaid", server = "phclaims",
+#' test2 <- claims_elig(conn = db_hhsaw, source = "mcaid", server = "hhsaw",
 #'   from_date = "2017-01-01", to_date = "2017-06-30", age_min = 18, 
-#'   age_max = 64, lang_me = c("ARABIC", "SOMALI"), zip = c("98103", "98105"))
+#'   age_max = 64, lang_max = c("ARABIC", "SOMALI"), geo_zip = c("98103", "98105"))
 #' }
 #' 
 #' @export
@@ -158,7 +156,7 @@
 #### Create function ####
 claims_elig <- function(conn,
                         source = c("apcd", "mcaid", "mcaid_mcare", "mcare", "mcaid_mcare_pha"),
-                        server = c("phclaims", "hhsaw"),
+                        server = c("hhsaw"),
                         # Coverage time and type
                         from_date = Sys.Date() - months(18),
                         to_date = Sys.Date() - months(6),
@@ -174,7 +172,6 @@ claims_elig <- function(conn,
                         pha_max = NULL,
                         med_covgrp = NULL,
                         pharm_covgrp = NULL,
-                        tpl_max = NULL,
                         bsp_group_cid = NULL,
                         full_benefit_min = NULL,
                         cov_type = NULL,
@@ -222,7 +219,7 @@ claims_elig <- function(conn,
                         lang_spanish = NULL,
                         lang_ukrainian = NULL,
                         lang_vietnamese = NULL,
-                        lang_me = NULL,
+                        lang_max = NULL,
                         # Geography
                         geo_zip = NULL,
                         geo_hra_code = NULL,
@@ -244,10 +241,6 @@ claims_elig <- function(conn,
   # Source and server check
   source <- match.arg(source)
   server <- match.arg(server)
-  
-  if (server == "hhsaw" & source != "mcaid") {
-    stop("Currently only Medicaid data is available on HHSAW")
-  }
   
   # Date checks
   if(from_date > to_date & !missing(from_date) & !missing(to_date)) {
@@ -417,29 +410,11 @@ claims_elig <- function(conn,
   
   
   #### SQL DATABASE SETUP ####
-  # Currently not using this first part
-  # Need to rework it depending on where future PHA/Mcaid/Mcare data go
-  if(source == "mcaid_mcare_pha"){
-    sql_db_name <- "PH_APDEStore"
-    claim_db_name <- "PHClaims"
-  } else {
-    sql_db_name <- DBI::SQL("")
-    claim_db_name <- DBI::SQL("")
-  }
-  
-  if (server == "phclaims") {
-    schema <- "final"
-    schema_rac <- "ref"
-    tbl_timevar <- glue::glue("{source}_elig_timevar")
-    tbl_demo <- glue::glue("{source}_elig_demo")
-    tbl_rac <- "mcaid_rac_code"
-  } else {
-    schema <- "claims"
-    schema_rac <- "claims"
-    tbl_timevar <- glue::glue("final_{source}_elig_timevar")
-    tbl_demo <- glue::glue("final_{source}_elig_demo")
-    tbl_rac <- "ref_mcaid_rac_code"
-  }
+  schema <- "claims"
+  schema_rac <- "claims"
+  tbl_timevar <- glue::glue("final_{source}_elig_timevar")
+  tbl_demo <- glue::glue("final_{source}_elig_demo")
+  tbl_rac <- "ref_mcaid_rac_code"
   
   
   #### ID SETUP ####
@@ -578,9 +553,9 @@ claims_elig <- function(conn,
     ifelse(!is.null(lang_vietnamese), 
            lang_vietnamese_sql <- glue::glue_sql(" AND lang_vietnamese = {lang_vietnamese} ", .con = conn),
            lang_vietnamese_sql <- DBI::SQL(''))
-    ifelse(!is.null(lang_me), 
-           lang_me_sql <- glue::glue_sql(" AND lang_me IN ({lang_me*}) ", .con = conn),
-           lang_me_sql <- DBI::SQL(''))
+    ifelse(!is.null(lang_max), 
+           lang_max_sql <- glue::glue_sql(" AND lang_max IN ({lang_max*}) ", .con = conn),
+           lang_max_sql <- DBI::SQL(''))
   } else {
     lang_amharic_sql <- DBI::SQL('')
     lang_arabic_sql <- DBI::SQL('')
@@ -592,7 +567,7 @@ claims_elig <- function(conn,
     lang_spanish_sql <- DBI::SQL('')
     lang_ukrainian_sql <- DBI::SQL('')
     lang_vietnamese_sql <- DBI::SQL('')
-    lang_me_sql <- DBI::SQL('')
+    lang_max_sql <- DBI::SQL('')
   }
   
   
@@ -1075,17 +1050,6 @@ claims_elig <- function(conn,
   
   #### SET UP MEDICAID COVERAGE TYPES AND MCO ID CODE (MCAID) ####
   if (source %in% c("mcaid", "mcaid_mcare", "mcaid_mcare_pha")) {
-    # TPL
-    tpl_sql <- timevar_gen_sql(var = "tpl", pct = T)
-    
-    if (!is.null(tpl_max)) {
-      tpl_where_sql <- glue::glue_sql(
-        " AND tpl_final.tpl_pct <= {tpl_max} ",
-        .con = conn)
-    } else {
-      tpl_where_sql <- DBI::SQL('')
-    }
-    
     # BSP group ID
     bsp_group_cid_sql <- timevar_gen_sql(var = "bsp_group_cid", pct = F)
     
@@ -1131,8 +1095,6 @@ claims_elig <- function(conn,
     }
     
   } else {
-    tpl_sql <- DBI::SQL('')
-    tpl_where_sql <- DBI::SQL('')
     bsp_group_cid_sql <- DBI::SQL('')
     bsp_group_cid_where_sql <- DBI::SQL('')
     full_benefit_sql <- DBI::SQL('')
@@ -1327,7 +1289,6 @@ claims_elig <- function(conn,
   } else if (source == "mcaid") {
     timevar_vars <- glue::glue_sql(
       " dual_final.dual, dual_final.dual_pct, 
-      tpl_final.tpl, tpl_final.tpl_pct, 
       bsp_group_cid_final.bsp_group_cid, bsp_group_cid_final.bsp_group_cid_days, 
       full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
       cov_type_final.cov_type, cov_type_final.cov_type_days, 
@@ -1343,7 +1304,6 @@ claims_elig <- function(conn,
       mcare_final.mcare, mcare_final.mcare_pct,
       dual_final.dual, dual_final.dual_pct, 
       apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct,
-      tpl_final.tpl, tpl_final.tpl_pct, 
       bsp_group_cid_final.bsp_group_cid, bsp_group_cid_final.bsp_group_cid_days, 
       full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
       cov_type_final.cov_type, cov_type_final.cov_type_days, 
@@ -1364,7 +1324,6 @@ claims_elig <- function(conn,
       dual_final.dual, dual_final.dual_pct,
       apde_dual_final.apde_dual, apde_dual_final.apde_dual_pct, 
       pha_final.pha, pha_final.pha_pct,
-      tpl_final.tpl, tpl_final.tpl_pct, 
       bsp_group_cid_final.bsp_group_cid, bsp_group_cid_final.bsp_group_cid_days, 
       full_benefit_final.full_benefit, full_benefit_final.full_benefit_pct, 
       cov_type_final.cov_type, cov_type_final.cov_type_days, 
@@ -1410,14 +1369,14 @@ claims_elig <- function(conn,
         {race_eth_me_sql} {race_recent_sql} {race_eth_recent_sql} 
         {lang_amharic_sql} {lang_arabic_sql} {lang_chinese_sql} {lang_english_sql} 
         {lang_korean_sql} {lang_russian_sql} {lang_somali_sql} {lang_spanish_sql}
-        {lang_ukrainian_sql} {lang_vietnamese_sql} {lang_me_sql}
+        {lang_ukrainian_sql} {lang_vietnamese_sql} {lang_max_sql}
         {geo_kc_ever_sql}
       ) demo
       INNER JOIN
       (SELECT {id_name}, cov_days, duration, cov_pct, covgap_max 
         FROM ##cov_time_tot) timevar
         ON demo.{id_name} = timevar.{id_name}
-      {mcaid_cov_sql} {mcare_cov_sql} {dual_sql} {tpl_sql} 
+      {mcaid_cov_sql} {mcare_cov_sql} {dual_sql} 
       {bsp_group_cid_sql} {full_benefit_sql} {cov_type_sql} {mco_id_sql} 
       {part_a_sql} {part_b_sql} {part_c_sql} {buy_in_sql} 
       {pha_cov_sql} {pha_agency_sql} {pha_subsidy_sql} {pha_voucher_sql} 
@@ -1426,7 +1385,7 @@ claims_elig <- function(conn,
       {geo_county_code_sql} {geo_ach_code_sql} {geo_kc_sql}
       WHERE 1 = 1 
       {age_min_sql} {age_max_sql} 
-      {mcaid_cov_where_sql} {mcare_cov_where_sql} {dual_where_sql} {tpl_where_sql}
+      {mcaid_cov_where_sql} {mcare_cov_where_sql} {dual_where_sql}
       {bsp_group_cid_where_sql} {full_benefit_where_sql}
       {cov_type_where_sql} {mco_id_where_sql} {part_a_where_sql} 
       {part_b_where_sql} {part_c_where_sql} {buy_in_where_sql}

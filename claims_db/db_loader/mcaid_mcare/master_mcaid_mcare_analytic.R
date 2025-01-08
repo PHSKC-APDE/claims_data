@@ -14,6 +14,7 @@ library(lubridate) # Manipulate dates
 library(odbc) # Read to and write from SQL
 library(RCurl) # Read files from Github
 library(configr) # Read in YAML files
+library(here) # facilitate using relative file paths
 library(glue) # Safely combine SQL code
 library(RecordLinkage)
 library(rads) # misc APDE functions
@@ -30,21 +31,22 @@ if (server == "phclaims") {
 
 
 #### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_ccw.R") 
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
+source(here::here("claims_db", "db_loader", "scripts_general", "add_index.R"))
+source(here::here("claims_db", "db_loader", "scripts_general", "alter_schema.R"))
+source(here::here("claims_db", "db_loader", "scripts_general", "load_ccw.R"))
+source(here::here("claims_db", "db_loader", "scripts_general", "create_table.R"))
+source(here::here("claims_db", "db_loader", "scripts_general", "etl_log.R"))
+source(here::here("claims_db", "db_loader", "scripts_general", "load_table.R"))
+source(here::here("claims_db", "db_loader", "scripts_general", "qa_load_sql.R"))
 
 
 #### IDENTITY LINKAGE (CROSSWALK TABLE) ####
 # Make stage version of linkage
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.xwalk_apde_mcaid_mcare_pha.R")
+    source(here::here("claims_db", "phclaims", "stage", "tables", "load_stage.xwalk_apde_mcaid_mcare_pha.R"))
 
 # QA stage version
-    devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.xwalk_apde_mcaid_mcare_pha.R")
+    source(here::here("claims_db", "phclaims", "stage", "tables", "qa_stage.xwalk_apde_mcaid_mcare_pha.R"))
+
     qa_xwalk_apde_mcaid_mcare_pha_f(conn = db_claims, 
                                     skip_mcare = T, # will create a column of id_mcare with NULL values when skip_mcare = T, this is a place holder until we have an actual linkage
                                     load_only = F # keep load_only = F unless it is the first time you are running the QA code
@@ -73,11 +75,11 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 #### CREATE ELIG ANALYTIC TABLES ------------------------------------------- ----
 #### MCAID_MCARE_ELIG_DEMO ####
 # Create and load stage
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_demo.R")
-
+    source(here::here("claims_db", "phclaims", "stage", "tables", "load_stage.mcaid_mcare_elig_demo.R"))
+    
 # QA stage version
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcaid_mcare_elig_demo.R")
-qa_mcaid_mcare_elig_demo_f(conn = db_claims, load_only = F)
+  source(here::here("claims_db", "phclaims", "stage", "tables", "qa_stage.mcaid_mcare_elig_demo.R"))
+  qa_mcaid_mcare_elig_demo_f(conn = db_claims, load_only = F)
 
 # Alter schema to final table (currently hard coded, use YAML eventually)
 alter_schema_f(conn = db_claims, 
@@ -93,11 +95,11 @@ DBI::dbExecute(db_claims,
 
 #### MCAID_MCARE_ELIG_TIMEVAR ####
 # Create and load stage
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_elig_timevar.R")
+  source(here::here("claims_db", "phclaims", "stage", "tables", "load_stage.mcaid_mcare_elig_timevar.R"))
 
 # QA stage version
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcaid_mcare_elig_timevar.R")
-qa_mcaid_mcare_elig_timevar_f(conn = db_claims, load_only = F)
+  source(here::here("claims_db", "phclaims", "stage", "tables", "qa_stage.mcaid_mcare_elig_timevar.R"))
+  qa_mcaid_mcare_elig_timevar_f(conn = db_claims, load_only = F)
 
 # Alter schema to final table (currently hard coded, use YAML eventually)
 alter_schema_f(conn = db_claims, 
@@ -119,8 +121,8 @@ DBI::dbExecute(db_claims,
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_line.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_line.yaml"
+  source(here::here("claims_db", "phclaims", "stage", "tables", "load_stage.mcaid_mcare_claim_line.R"))
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_line.yaml"
 
 ### B) Create table
 create_table_f(conn = db_claims, 
@@ -148,7 +150,7 @@ rm(load_stage.mcaid_mcare_claim_line_f, qa_stage.mcaid_mcare_claim_line_qa_f, co
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_icdcm_header.R")
+source(here::here("claims_db", "phclaims", "stage", "tables", "load_stage.mcaid_mcare_claim_icdcm_header.R"))
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_icdcm_header.yaml"
 
 ### B) Create table
@@ -177,7 +179,7 @@ rm(load_stage.mcaid_mcare_claim_icdcm_header_f, qa_stage.mcaid_mcare_claim_icdcm
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_procedure.R")
+source(here::here("claims_db", "phclaims", "stage", "tables", "load_stage.mcaid_mcare_claim_procedure.R"))
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_procedure.yaml"
 
 ### B) Create table
@@ -213,7 +215,7 @@ rm(load_stage.mcaid_mcare_claim_procedure_f, qa_stage.mcaid_mcare_claim_procedur
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_header.R")
+source(here::here("claims_db", "phclaims", "stage", "tables", "load_stage.mcaid_mcare_claim_header.R"))
 config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_mcare_claim_header.yaml"
 
 ### B) Create table

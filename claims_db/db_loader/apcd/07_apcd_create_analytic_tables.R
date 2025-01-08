@@ -16,7 +16,7 @@
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
 
 library(pacman)
-pacman::p_load(tidyverse, lubridate, odbc, glue)
+pacman::p_load(tidyverse, lubridate, odbc, glue, keyring)
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
@@ -35,6 +35,9 @@ interactive_auth <- FALSE
 prod <- TRUE
 dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
+keyring::key_list() #Confirm you have a key set for hhsaw and inthealth_edw_prod on this machine
+
+#key_set("HHSAW_prod", username = "shernandez@kingcounty.gov") #Only run this each time password is changed
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 1: apcd_elig_demo ####
@@ -146,6 +149,10 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2022.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
 
+# 2023
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2023.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
 ### PLACEHOLDER FOR ADDING THE NEXT COMPLETE CALENDAR YEAR TABLE ###
 
 
@@ -159,6 +166,7 @@ system.time(load_stage.apcd_elig_plr_f(from_date = "2019-01-01", to_date = "2019
 system.time(load_stage.apcd_elig_plr_f(from_date = "2020-01-01", to_date = "2020-12-31")) #2020
 system.time(load_stage.apcd_elig_plr_f(from_date = "2021-01-01", to_date = "2021-12-31")) #2021
 system.time(load_stage.apcd_elig_plr_f(from_date = "2022-01-01", to_date = "2022-12-31")) #2022
+system.time(load_stage.apcd_elig_plr_f(from_date = "2023-01-01", to_date = "2023-12-31")) #2023
 ##placeholder for adding the next complete calendar year table
 
 
@@ -172,6 +180,7 @@ system.time(apcd_plr_2019_qa <- qa_stage.apcd_elig_plr_f(year = "2019"))
 system.time(apcd_plr_2020_qa <- qa_stage.apcd_elig_plr_f(year = "2020"))
 system.time(apcd_plr_2021_qa <- qa_stage.apcd_elig_plr_f(year = "2021"))
 system.time(apcd_plr_2022_qa <- qa_stage.apcd_elig_plr_f(year = "2022"))
+system.time(apcd_plr_2023_qa <- qa_stage.apcd_elig_plr_f(year = "2023"))
 ##placeholder for adding the next complete calendar year table
 
 #Process QA results from across all tables
@@ -183,7 +192,8 @@ df_list <- list(apcd_plr_2014_qa,
                 apcd_plr_2019_qa,
                 apcd_plr_2020_qa,
                 apcd_plr_2021_qa,
-                apcd_plr_2022_qa)
+                apcd_plr_2022_qa,
+                apcd_plr_2023_qa)
 ##placeholder for adding the next complete calendar year table
 columns <- c("qa_result")
 elig_plr_qa_composite_result <- data.frame(matrix(nrow = 0, ncol = length(columns)))
@@ -367,7 +377,7 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 system.time(table_duplicate_f(
   conn_from = dw_inthealth,
   conn_to = db_claims,
-  server_to = "hhsaw", #must match ODBC data source name AND keyring service name
+  server_to = "HHSAW_prod", #must match ODBC data source name AND keyring service name
   db_to = "hhs_analytics_workspace",
   from_schema = "stg_claims",
   from_table = "ref_apcd_provider_npi",
@@ -422,7 +432,7 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 system.time(table_duplicate_f(
   conn_from = dw_inthealth,
   conn_to = db_claims,
-  server_to = "hhsaw", #must match ODBC data source name AND keyring service name
+  server_to = "HHSAW_prod", #must match ODBC data source name AND keyring service name
   db_to = "hhs_analytics_workspace",
   from_schema = "stg_claims",
   from_table = "ref_kc_provider_master",
@@ -441,7 +451,7 @@ message(paste0("Completed copying ref.kc_provider_master to HHSAW - ", Sys.time(
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 10: apcd_claim_header ####
+#### Table 10: apcd_claim_header #### (~3hr)
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_header - ", Sys.time()))
@@ -452,7 +462,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 ### B) Create table
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+             overall = T, ind_yr = F, overwrite = T, server = "HHSAW_prod")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_header_f())

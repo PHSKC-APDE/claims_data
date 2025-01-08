@@ -11,8 +11,7 @@
 #' tables.
 #' 
 #' @param conn SQL server connection created using \code{odbc} package.
-#' @param server Which server do you want to run the query against? NB. Currently only
-#' Medicaid data is available on HHSAW.
+#' @param server Which server do you want to run the query against? NB. Currently just HHSAW.
 #' @param source Which claims data source do you want to pull from?
 #' @param dual Collapse over the dual eligiblity flag.
 #' @param cov_time_day Recalculate coverage time in the new period. Default is TRUE.
@@ -46,7 +45,7 @@
 #' new_timevar <- elig_timevar_collapse(conn = db_hhsaw, server = "hhsaw",
 #' source = "mcaid", full_benefit = T, geo_add1 = T, geo_city = T, geo_zip = T,
 #' geocode_vars = T)
-#' new_timevar2 <- elig_timevar_collapse(conn = db_claims, server="phclaims",
+#' new_timevar2 <- elig_timevar_collapse(conn = db_hhsaw, server="hhsaw",
 #' source = "apcd", med_covgrp = T, geo_county = T)
 #' new_timevar_hhsaw <- elig_timevar_collapse(conn = db_hhsaw, server="hhsaw",
 #' source = "mcaid", full_benefit = T, geo_add1 = T, geo_city = T, geo_zip = T,
@@ -55,7 +54,7 @@
 #' @export
 
 elig_timevar_collapse <- function(conn,
-                                  server = c("phclaims", "hhsaw"),
+                                  server = c("hhsaw"),
                                   source = c("mcaid", "apcd"),
                                   #all-source columns
                                   dual = F,
@@ -120,18 +119,8 @@ elig_timevar_collapse <- function(conn,
   server <- match.arg(server)
   source <- match.arg(source)
   
-  if (server == "hhsaw" & source != "mcaid") {
-    stop("Currently only Medicaid data is available on HHSAW")
-  }
-  
-  if (server == "phclaims") {
-    schema <- "final"
-    tbl <- glue::glue("{source}_elig_timevar")
-  } else {
-    schema <- "claims"
-    tbl <- "final_mcaid_elig_timevar"
-  }
-  
+  schema <- "claims"
+  tbl <- glue::glue("final_{source}_elig_timevar")
   
   id_name <- glue::glue("id_{source}")
   

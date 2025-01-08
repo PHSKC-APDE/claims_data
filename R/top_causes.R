@@ -10,8 +10,7 @@
 #' 2) To restrict to certain visit types (e.g., ED visits, hospitalizations)
 #' 
 #' @param conn SQL server connection created using \code{odbc} package.
-#' @param server Which server do you want to run the query against? NB. Currently only
-#' Medicaid data is available on HHSAW.
+#' @param server Which server do you want to run the query against? NB. Currently just HHSAW.
 #' @param source Which claims data source do you want to pull from?
 #' @param cohort The group of individuals of interest. Note: it is possible to generate a cohort on the fly
 #' using \code{\link{claims_elig}}.
@@ -37,7 +36,6 @@
 #'
 #' @examples
 #' \dontrun{
-#' db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
 #' system.time(mcaid_only <- claims_elig(conn = db_hhsaw, source = "mcaid", server = "hhsaw",
 #'     from_date = "2014-01-01", to_date = "2015-02-25",
 #'     geo_zip = c("98104", "98133", "98155"),
@@ -52,7 +50,7 @@
 #' @export
 
 top_causes <- function(conn,
-                       server = c("phclaims", "hhsaw"),
+                       server = c("hhsaw"),
                        source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
                        cohort,
                        cohort_id = NULL,
@@ -78,19 +76,10 @@ top_causes <- function(conn,
   # Source check
   source <- match.arg(source)
   
-  if (server == "hhsaw" & source != "mcaid") {
-    stop("Currently only Medicaid data is available on HHSAW")
-  }
-  
-  if (server == "phclaims") {
-    header_schema <- "final"
-    header_tbl_prefix <- ""
-    ref_schema <- "ref"
-  } else { # HHSAW organizes under claims schema
-    header_schema <- "claims"
-    header_tbl_prefix <- "final_"
-    ref_schema <- "ref"
-  }
+  # HHSAW organizes under claims schema
+  header_schema <- "claims"
+  header_tbl_prefix <- "final_"
+  ref_schema <- "ref"
   
   # Source
   if (source == "apcd") {

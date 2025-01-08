@@ -38,7 +38,8 @@ tables <- data.frame(table_name = c(
   "stage_apcd_elig_plr_2019",
   "stage_apcd_elig_plr_2020",
   "stage_apcd_elig_plr_2021",
-  "stage_apcd_elig_plr_2022"
+  "stage_apcd_elig_plr_2022",
+  "stage_apcd_elig_plr_2023"
 ))
 
 ## Use function to loop over table names and create SQL code

@@ -6,6 +6,9 @@
 #
 # 2024-03
 
+#10-16-24 Added Keyring for INTHEALTH
+#10-16-24 commented out step 3 which is checking that the tables are mirrored on HHSAW. This should occur as part of script 8
+
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
@@ -28,6 +31,12 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 #### STEP 1: CREATE CONNECTIONS ####
 
 ##Establish connection to inthealth_edw prod
+#Enter credentials for HHSAW
+#key_set("hhsaw", username = "shernandez@kingcounty.gov") #Only run this each time password is changed
+#key_set("inthealth_edw_prod", username = "shernandez@kingcounty.gov") #Only run this each time password is changed
+keyring::key_list() #Run this to list all the stored usernames
+
+
 interactive_auth <- FALSE
 prod <- TRUE
 server <- "hhsaw"
@@ -132,27 +141,28 @@ lapply(folder_list, function(folder_list) {
 })
 
 
+
 #### STEP 3: CONFIRM EXTERNAL TABLES ON HHSAW ARE WORKING ####
 
 ##Query external tables and return row counts
-external_table_row_counts <- lapply(folder_list, function(folder_list) {
+#external_table_row_counts <- lapply(folder_list, function(folder_list) {
   
-  table_selected <- folder_list
-  message(paste0("Querying row count for HHSAW external table: ", table_selected))
-  sql_query <- dbGetQuery(conn = db_claims, glue_sql("SELECT count(*) as row_count FROM [claims].[stage_apcd_{DBI::SQL(`table_selected`)}];",
-                                                     .con = db_claims))
-  da_inner <- data.frame(table_name = table_selected, row_count = sql_query$row_count)
-  return(da_inner)
-}) %>%
-  bind_rows()
+ # table_selected <- folder_list
+  #message(paste0("Querying row count for HHSAW external table: ", table_selected))
+  #sql_query <- dbGetQuery(conn = db_claims, glue_sql("SELECT count(*) as row_count FROM [claims].[stage_apcd_{DBI::SQL(`table_selected`)}];",
+      #                                               .con = db_claims))
+  #da_inner <- data.frame(table_name = table_selected, row_count = sql_query$row_count)
+  #return(da_inner)
+#}) %>%
+ # bind_rows()
 
 ## QA message
-if (table(external_table_row_counts$row_count>0)["TRUE"][[1]] != length(folder_list)) {
-  stop(glue::glue("Not all external tables have non-zero row counts. Inspect manually"))
-} else {
-  message("All external tables are working properly.")
-}
+#if (table(external_table_row_counts$row_count>0)["TRUE"][[1]] != length(folder_list)) {
+ # stop(glue::glue("Not all external tables have non-zero row counts. Inspect manually"))
+#} else {
+ # message("All external tables are working properly.")
+#}
 
 
 ## Closing message
-message(paste0("All tables have been successfully copied to inthealth_edw - ", Sys.time()))
+#message(paste0("All tables have been successfully copied to inthealth_edw - ", Sys.time()))
