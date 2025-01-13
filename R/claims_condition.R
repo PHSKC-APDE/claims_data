@@ -1,14 +1,24 @@
 #' @title Find chronic health condition status for claims IDs
 #' 
-#' @description \code{claims_condition} builds a SQL query to return chronic health condition information.
+#' @description \code{claims_condition} builds a SQL query to return chronic
+#' health condition information.
 #' 
 #' @details LARGELY FOR INTERNAL USE
-#' This function builds and sends a SQL query to return a Medicaid member cohort with a specified chronic health condition.
-#' If requested, the function will also join the returned data to a specified data frame in R, joining on Medicaid member ID. 
-#' Users can specify the join type (left, right, inner). By default "ever" status is returned - for example a request for diabetic
-#' members will return members with any history of diabetes in the Medicaid claims database, using the Chronic Conditions Warehouse
-#' definition from CDC. If a date range is supplied, the function will only return members who were identified as having the
-#' condition during the date range (a function of both Medicaid coverage and health care diagnostic information).
+#' This function builds and sends a SQL query to return a Medicaid member cohort
+#' with a specified chronic health condition. If requested, the function will
+#' also join the returned data to a specified data frame in R, joining on
+#' Medicaid member ID.
+#' 
+#' Users can specify the join type (left, right, inner).
+#' 
+#' By default, the last 18-6 months are returned - for example a request for
+#' diabetic members will return members with diabetes known between 18 and 6
+#' months ago in the Medicaid claims database, using the Chronic Conditions
+#' Warehouse definition from CDC.
+#' 
+#' If a date range is supplied, the function will only return members who were
+#' identified as having the condition during the date range (a function of both
+#' Medicaid coverage and health care diagnostic information).
 #' 
 #' @param conn SQL server connection created using \code{odbc} package
 #' @param source Which claims data source do you want to pull from?
@@ -113,13 +123,23 @@ claims_condition <- function(conn,
   
   
   #### BUILD AND RUN SQL QUERY ####
+  if (source == "mcaid") {
   sql_call <- glue::glue_sql(
+    "SELECT {id_name}, ccw_desc, first_encounter_date, last_encounter_date
+    FROM {`schema`}.{`paste0(tbl_prefix, tbl)`}
+    WHERE first_encounter_date <= {to_date} AND last_encounter_date >= {from_date} 
+    {cond_sql} {id_sql} 
+    ORDER BY {id_name}, ccw_desc, first_encounter_date",
+    .con = conn)
+  } else {
+    sql_call <- glue::glue_sql(
     "SELECT {id_name}, ccw_desc, from_date, to_date
     FROM {`schema`}.{`paste0(tbl_prefix, tbl)`}
     WHERE from_date <= {to_date} AND to_date >= {from_date} 
     {cond_sql} {id_sql} 
     ORDER BY {id_name}, ccw_desc, from_date",
     .con = conn)
+  }
   
   #Execute SQL query
   result <- DBI::dbGetQuery(conn, sql_call)
