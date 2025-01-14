@@ -531,18 +531,17 @@ apcd_claim_ccw_qa2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
   from stg_claims.stage_apcd_claim_ccw;",
   .con = dw_inthealth))
 
-#count rows that overlap with prior row or following row, expect 0
+#count cases with >1 row per person-condition, expect 0
 apcd_claim_ccw_qa3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
   "
   with temp1 as (
-    select id_apcd,
-    datediff(day, lag(to_date, 1, null) over(partition by id_apcd, ccw_desc order by from_date), from_date) as prev_row_diff,
-    datediff(day, to_date, lead(from_date, 1, null) over(partition by id_apcd, ccw_desc order by from_date)) as next_row_diff
-    from stg_claims.stage_apcd_claim_ccw
+    select id_mcaid, ccw_code, count(*) as row_count
+    from stg_claims.stage_mcaid_claim_ccw
+    group by id_mcaid, ccw_code
   )
-  select 'stg_claims.stage_apcd_claim_ccw' as 'table', 'overlapping rows, expect 0' as qa_type, count(*) as qa
+  select 'stg_claims.stage_apcd_claim_ccw' as 'table', 'more than 1 row per person-condition, expect 0' as qa_type, count(*) as qa
   from temp1
-  where prev_row_diff < 0 or next_row_diff < 0;",
+  where row_count > 1;",
   .con = dw_inthealth))
 
 ##Process QA results
