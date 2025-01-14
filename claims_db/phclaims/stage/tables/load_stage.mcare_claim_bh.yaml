@@ -15,7 +15,7 @@ inthealth:
     rolling_table: ref_rolling_time_24mo_2012_2020
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
-    from_date: date
-    to_date: date
+    first_encounter_date: date
+    last_encounter_date: date
     bh_cond: varchar(200)
     last_run: date

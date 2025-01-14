@@ -11,8 +11,8 @@ hhsaw:
     ref_table_pre: ref_
 vars:
     id_mcare: varchar(255) collate SQL_Latin1_General_Cp1_CS_AS
-    from_date: date
-    to_date: date
+    first_encounter_date: date
+    last_encounter_date: date
     ccw_code: tinyint
     ccw_desc: varchar(200)
     last_run: datetime
