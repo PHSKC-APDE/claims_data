@@ -703,9 +703,9 @@ mcare_claim_ccw_qa2 <- dbGetQuery(conn = inthealth, glue_sql(
 mcare_claim_ccw_qa3 <- dbGetQuery(conn = inthealth, glue_sql(
   "
   with temp1 as (
-    select id_mcaid, ccw_code, count(*) as row_count
+    select id_mcare, ccw_code, count(*) as row_count
     from stg_claims.stage_mcare_claim_ccw
-    group by id_mcaid, ccw_code
+    group by id_mcare, ccw_code
   )
   select 'stg_claims.stage_mcare_claim_ccw' as 'table', 'more than 1 row per person-condition, expect 0' as qa_type, count(*) as qa
   from temp1
@@ -774,9 +774,9 @@ mcare_claim_bh_qa2 <- dbGetQuery(conn = inthealth, glue_sql(
 mcare_claim_bh_qa3 <- dbGetQuery(conn = inthealth, glue_sql(
   "
   with temp1 as (
-    select id_mcaid, ccw_code, count(*) as row_count
+    select id_mcare, ccw_code, count(*) as row_count
     from stg_claims.stage_mcare_claim_bh
-    group by id_mcaid, ccw_code
+    group by id_mcare, ccw_code
   )
   select 'stg_claims.stage_mcare_claim_bh' as 'table', 'more than 1 row per person-condition, expect 0' as qa_type, count(*) as qa
   from temp1
