@@ -66,7 +66,7 @@ if(T) {
                            password = key_get("hca_mft", key_list("hca_mft")[["username"]]))
   sftp_changedir(tofolder = "Claims", current_connection_name = "sftp_con")
   sftp_claims <- sftp_listfiles(sftp_con, recurse = F)
-  sftp_changedir(tofolder = "../Revised%20DSA%20Eligibility/", current_connection_name = "sftp_con")
+  sftp_changedir(tofolder = "../Eligibility/", current_connection_name = "sftp_con")
   sftp_elig <- sftp_listfiles(sftp_con, recurse = F)
   sftp_file_cnt <- nrow(sftp_claims) + nrow(sftp_elig)
   ## CHECK FOR EXISTING - TO DO!
@@ -81,7 +81,7 @@ if(T) {
     message(paste0("Downloading Files - ", Sys.time()))
     sftp_changedir(tofolder = "../Claims", current_connection_name = "sftp_con")
     sftp_download(file = sftp_claims$name, tofolder = paste0(dldir, "Claims"))
-    sftp_changedir(tofolder = "../Revised%20DSA%20Eligibility/", current_connection_name = "sftp_con")
+    sftp_changedir(tofolder = "../Eligibility/", current_connection_name = "sftp_con")
     sftp_download(file = sftp_elig$name, tofolder = paste0(dldir, "Eligibility"))
     message(paste0("Download Completed - ", Sys.time()))
     
@@ -144,7 +144,7 @@ if(T) {
       tfiles[x, "type"] <- "claims"
     }
     if(tfiles[x, "type"] == "elig") {
-      config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
+      config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
       tfiles[x, "server_loc"] <- "//kcitsqlutpdbh51/importdata/Data/KC_Elig/"
     } else {
       config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_claim_partial.yaml"))

@@ -60,8 +60,8 @@ if (server == "hhsaw") {
 
 #### RAW ELIG ####
 ### Bring in yaml file and function
-load_mcaid_elig_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R")
+load_mcaid_elig_config <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.yaml"))
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_load_raw.mcaid_elig_partial.R")
 
 
 ### Select File
@@ -137,10 +137,10 @@ rm(load_mcaid_claim_config)
 
 #### STAGE ELIG ####
 # Call in config file to get vars (and check for errors)
-table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml"))
+table_config_stage_elig <- yaml::yaml.load(httr::GET("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.yaml"))
 #if (table_config_stage_elig[[1]] == "Not Found") {stop("Error in config file. Check URL")}
 # Load and run function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/mcaid_synapse/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig.R")
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 if (server == "hhsaw") {
