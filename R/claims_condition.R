@@ -123,7 +123,6 @@ claims_condition <- function(conn,
   
   
   #### BUILD AND RUN SQL QUERY ####
-  if (source == "mcaid") {
   sql_call <- glue::glue_sql(
     "SELECT {id_name}, ccw_desc, first_encounter_date, last_encounter_date
     FROM {`schema`}.{`paste0(tbl_prefix, tbl)`}
@@ -131,15 +130,6 @@ claims_condition <- function(conn,
     {cond_sql} {id_sql} 
     ORDER BY {id_name}, ccw_desc, first_encounter_date",
     .con = conn)
-  } else {
-    sql_call <- glue::glue_sql(
-    "SELECT {id_name}, ccw_desc, from_date, to_date
-    FROM {`schema`}.{`paste0(tbl_prefix, tbl)`}
-    WHERE from_date <= {to_date} AND to_date >= {from_date} 
-    {cond_sql} {id_sql} 
-    ORDER BY {id_name}, ccw_desc, from_date",
-    .con = conn)
-  }
   
   #Execute SQL query
   result <- DBI::dbGetQuery(conn, sql_call)
