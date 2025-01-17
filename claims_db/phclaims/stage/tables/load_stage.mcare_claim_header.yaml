@@ -14,6 +14,23 @@ vars:
     service_type_code: tinyint
     patient_status: varchar(255)
     patient_status_code: varchar(255)
+    ccs_superlevel_desc: varchar(255)
+    ccs_broad_desc: varchar(500)
+    ccs_broad_code: varchar(255)
+    ccs_midlevel_desc: varchar(255)
+    ccs_detail_desc: varchar(500)
+    ccs_detail_code: varchar(255)
+    mh_primary: tinyint
+    mh_any: tinyint
+    sud_primary: tinyint
+    sud_any: tinyint
+    injury_nature_narrow: tinyint
+    injury_nature_broad: tinyint
+    injury_nature_type: varchar(255)
+    injury_nature_icdcm: varchar(255)
+    injury_ecode: varchar(255)
+    injury_intent: varchar(255)
+    injury_mechanism: varchar(255)
     ed_perform: tinyint
     ed_perform_id: bigint
     ed_pophealth: tinyint
