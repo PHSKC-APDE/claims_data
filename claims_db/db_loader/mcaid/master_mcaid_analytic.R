@@ -46,13 +46,19 @@ dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth
 #### COPY NECESSARY REF TABLES ####
 from_conn <- create_db_connection("hhsaw", interactive = F, prod = T)
 table_copy_df <- read.csv("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/db_loader/mcaid/McaidTableCopyList.csv")
+if(prod == T) {
+  s_to <- "inthealth"
+} else {
+  s_to <- "inthealth_dev"
+}
 table_duplicate_f(conn_from = from_conn, 
                   conn_to = dw_inthealth, 
-                  server_to = "inthealth", 
+                  server_to = s_to, 
                   db_to = "inthealth_edw",
                   table_df = table_copy_df,
                   confirm_tables = F,
                   delete_table = T)
+
 
 #### CREATE ELIG TABLES --------------------------------------------------------
 #### MCAID_ELIG_DEMO ####
@@ -335,6 +341,14 @@ claim_ccw_fail <- claim_load_f(table = "ccw")
 #### MCAID_CLAIM_BH ####
 claim_bh_fail <- claim_load_f(table = "bh")
 
+#### UPDATING MCAID_ELIG_DEMO FOR NONCISGENDERED ####
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.R")
+stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.yaml")
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#----------NEW FUNCTION----------#
+### Clean up
+rm(qa_stage_mcaid_elig_demo, stage_mcaid_elig_demo_config, load_stage_mcaid_elig_demo_f, 
+   last_run_elig_demo)
 
 
 #### STAGE TABLE TO FINAL TABLE ####
@@ -433,6 +447,8 @@ for(table in table_list) {
   
   message(paste0("Done working on table: ", to_table, " - ", Sys.time()))
 }
+
+
 
 ## Closing message
 message(paste0("All tables have been successfully copied to inthealth_edw - ", Sys.time()))
