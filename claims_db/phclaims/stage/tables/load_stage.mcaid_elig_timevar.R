@@ -245,7 +245,36 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
                  " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
                  " mins)"))
   
+  # Rebuild full_benefit flag for proper contiguous behavior later
+  # Step 2c = ~8.5 mins
+  try(odbc::dbRemoveTable(conn, "#timevar_02c", temporary = T), silent = T)
   
+  step2c_sql <- glue::glue_sql(
+    "SELECT id_mcaid, from_date, to_date, dual, health_home_flag, 
+  bsp_group_cid, cov_type, mco_id, 
+  geo_add1, geo_add2, geo_city, geo_state, geo_zip, 
+  geo_hash_clean, geo_hash_geocode, MAX(full_benefit) AS full_benefit
+  INTO #timevar_02c
+  FROM #timevar_02b
+  GROUP BY id_mcaid, from_date, to_date, dual, health_home_flag, 
+  bsp_group_cid, cov_type, mco_id, 
+  geo_add1, geo_add2, geo_city, geo_state, geo_zip, 
+  geo_hash_clean, geo_hash_geocode",
+    .con = conn)
+  
+  message("Running step 2c: Rebuild full_benefit flag")
+  time_start <- Sys.time()
+  odbc::dbGetQuery(conn = conn, step2c_sql)
+  
+  # Add an index to the temp table to make the next step much faster
+  #odbc::dbGetQuery(conn = conn,
+  #                 "CREATE CLUSTERED INDEX [timevar_02c_idx] ON #timevar_02c 
+  #               (id_mcaid, from_date, to_date)")
+  
+  time_end <- Sys.time()
+  message(paste0("Step 2c took ", round(difftime(time_end, time_start, units = "secs"), 2),
+                 " secs (", round(difftime(time_end, time_start, units = "mins"), 2),
+                 " mins)"))
   
   #### STEP 3: IDENTIFY CONTIGUOUS PERIODS (~45 MINS↑) ####
   # Calculate the number of days between each from_date and the previous to_date
@@ -262,7 +291,7 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
       ORDER BY id_mcaid, from_date), from_date) AS group_num
   INTO #timevar_03a
-  FROM #timevar_02b"
+  FROM #timevar_02c"
   )
   
   message("Running step 3a: calculate # days between each from_date and previous to_date")
