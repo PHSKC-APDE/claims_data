@@ -240,6 +240,9 @@ qa_mcaid_elig_timevar_f <- function(conn = NULL,
                      .con = conn_qa))
   }
   
+  #### CHECK FOR OVERLAPPING DATE RANGES ####
+  
+  
   
   
   #### CHECK SPECIFIC INDIVIDUALS TO ENSURE THEIR DATES WORK ####
