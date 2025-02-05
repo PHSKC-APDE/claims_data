@@ -50,6 +50,8 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
   ndc_tbl <- config[[server]][["ndc_tbl"]]
   config[[server]][["to_schema"]] <- schema
   
+  message(glue::glue("Updating noncisgender column on [{schema}].[{demog_tbl}]."))
+  
   # Query tables
   tbl1_dysphoria <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
     "SELECT id_mcaid, icdcm_norm, icdcm_version
@@ -230,8 +232,8 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
   # Taking us from around 80,000 to 60,000
   tbl4c_ndc_codes$ACTIVE_NUMERATOR_STRENGTH <- 
     vapply(strsplit(tbl4c_ndc_codes$ACTIVE_NUMERATOR_STRENGTH,";"), `[`, 1, FUN.VALUE=character(1))
-  tbl4c_ndc_codes$ACTIVE_NUMERATOR_STRENGTH <- as.numeric(
-    vapply(strsplit(tbl4c_ndc_codes$ACTIVE_NUMERATOR_STRENGTH," "), `[`, 1, FUN.VALUE=character(1)))
+  tbl4c_ndc_codes$ACTIVE_NUMERATOR_STRENGTH <- suppressWarnings(as.numeric(
+    vapply(strsplit(tbl4c_ndc_codes$ACTIVE_NUMERATOR_STRENGTH," "), `[`, 1, FUN.VALUE=character(1))))
   tbl4c_ndc_codes <- tbl4c_ndc_codes[
     (ACTIVE_NUMERATOR_STRENGTH >= 7 & DOSAGEFORMNAME %in% c("INJECTION", "INJECTION, SOLUTION"))
     | (ACTIVE_NUMERATOR_STRENGTH >= 2 & DOSAGEFORMNAME %in% c("GEL", "PATCH", "GEL, METERED"))
@@ -375,7 +377,7 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
     stop("Not all IDs loaded into temp table!")
   }
   # Update mcaid_elig_demo table
-  DBI::dbSendQuery(conn, glue::glue_sql(
+  DBI::dbExecute(conn, glue::glue_sql(
     "
     UPDATE a
     SET noncisgender = 1
@@ -388,6 +390,7 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
   DBI::dbExecute(conn, 
                  glue::glue_sql("DROP TABLE {`schema`}.{`to_table`}",
                                 .con = conn))
+  message(glue::glue("[{schema}].[{demog_tbl}] table has had the noncisgender column updated."))
 }
 
 
