@@ -8,4 +8,4 @@ hhsaw:
     ref_schema: stg_reference
     ndc_tbl: ref_ndc_codes
 vars:
-    all_ids: VARCHAR(255)
+    id_mcaid: VARCHAR(255)
