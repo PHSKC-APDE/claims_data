@@ -21,7 +21,7 @@ vars:
     gender_male: TINYINT
     gender_female_t: NUMERIC
     gender_male_t: NUMERIC
-    noncisgendered: TINYINT
+    noncisgender: TINYINT
     race_me: VARCHAR(20)
     race_eth_me: VARCHAR(20)
     race_recent: VARCHAR(20)
