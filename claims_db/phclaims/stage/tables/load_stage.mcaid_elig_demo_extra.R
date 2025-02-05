@@ -48,6 +48,7 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
   demog_tbl <- config[[server]][["demog_tbl"]]
   ref_schema <- config[[server]][["ref_schema"]]
   ndc_tbl <- config[[server]][["ndc_tbl"]]
+  config[[server]][["to_schema"]] <- schema
   
   # Query tables
   tbl1_dysphoria <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
@@ -352,6 +353,7 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
     union, c(transmasc_ids_no_conflict, transfem_ids_no_conflict, trans_unknown_ids))  # 13766
   
   all_ids_tbl <- as.data.frame(all_ids)
+  names(all_ids_tbl) <- c("id_mcaid")
   
   # Create temporary table with noncisgender IDs and load via BCP
   create_table_f(conn = conn, 
@@ -359,12 +361,19 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
                  config = config,
                  overwrite = T)
   load_df_bcp_f(dataset = all_ids_tbl,
-             server = "inthealth",
+             server = stg_server,
              db_name = "inthealth_edw",
              schema_name = schema,
              table_name = to_table,
              user = keyring::key_list(server)[["username"]],
-             pass = keyring::key_get(server_to, keyring::key_list(server_to)[["username"]]))
+             pass = keyring::key_get(server, keyring::key_list(server)[["username"]]))
+  # Check if all ids loaded
+  id_cnt <- DBI::dbGetQuery(conn,
+                            glue::glue_sql("SELECT COUNT(*) FROM {`schema`}.{`to_table`}",
+                                           .con = conn))[1,1]
+  if(id_cnt != nrow(all_ids_tbl)) {
+    stop("Not all IDs loaded into temp table!")
+  }
   # Update mcaid_elig_demo table
   DBI::dbSendQuery(conn, glue::glue_sql(
     "
@@ -376,7 +385,9 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
     ",
   .con = conn))
   # Delete the 'temporary' table
-  DBI::dbRemoveTable(conn, name = "table_name")
+  DBI::dbExecute(conn, 
+                 glue::glue_sql("DROP TABLE {`schema`}.{`to_table`}",
+                                .con = conn))
 }
 
 
