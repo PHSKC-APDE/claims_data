@@ -15,16 +15,17 @@
 # production_server <- F  # Change as needed!
 # 
 # schema <- "stg_claims"
+# to_table <- "temp_noncisgender"
 # proc_tbl <- "stage_mcaid_claim_procedure"
 # pharm_tbl <- "stage_mcaid_claim_pharm"
 # header_tbl <- "stage_mcaid_claim_icdcm_header"
 # demog_tbl <- "stage_mcaid_elig_demo"
+# ref_schema <- "stg_reference"
+# ndc_tbl <- "ref_ndc_codes"
 # 
 # conn <- create_db_connection("inthealth", interactive = F, prod = production_server)
-# hhsaw_conn <- create_db_connection("hhsaw", interactive = F, prod = T)
 
 load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
-                                               hhsaw_conn = NULL,
                                                server = c("hhsaw", "phclaims"),
                                                config = NULL,
                                                get_config = F) {
@@ -39,11 +40,14 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
       stop("A URL must be specified in config if using get_config = T")
     }
   }
-  
+  schema <- config[[server]][["schema"]]
+  to_table <- config[[server]][["to_table"]]
   proc_tbl <- config[[server]][["proc_tbl"]]
   pharm_tbl <- config[[server]][["pharm_tbl"]]
   header_tbl <- config[[server]][["header_tbl"]]
   demog_tbl <- config[[server]][["demog_tbl"]]
+  ref_schema <- config[[server]][["ref_schema"]]
+  ndc_tbl <- config[[server]][["ndc_tbl"]]
   
   # Query tables
   tbl1_dysphoria <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
@@ -180,15 +184,15 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
     ",
     .con = conn)))
   
-  tbl4a_ndc_codes <- setDT(DBI::dbGetQuery(hhsaw_conn, glue::glue_sql(
+  tbl4a_ndc_codes <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
     "SELECT ndc, UPPER(NONPROPRIETARYNAME) AS ndc_name
-     FROM [ref].[ndc_codes]
+     FROM {`ref_schema`}.{`ndc_tbl`}
      WHERE UPPER(NONPROPRIETARYNAME) LIKE '%ESTRAD%'
      OR UPPER(NONPROPRIETARYNAME) LIKE '%ESTRO%'
      OR UPPER(NONPROPRIETARYNAME) LIKE '%ESTRIOL%'
      OR UPPER(NONPROPRIETARYNAME) LIKE '%ESTR/PRG%'
     ",
-    .con = hhsaw_conn)))
+    .con = conn)))
   tbl4a_fem_no_req <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
     "SELECT id_mcaid, ndc
      FROM {`schema`}.{`pharm_tbl`}
@@ -196,15 +200,15 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
     ",
     .con = conn)))
   
-  tbl4b_ndc_codes <- setDT(DBI::dbGetQuery(hhsaw_conn, glue::glue_sql(
+  tbl4b_ndc_codes <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
     "SELECT ndc, UPPER(NONPROPRIETARYNAME) AS ndc_name
-     FROM [ref].[ndc_codes]
+     FROM {`ref_schema`}.{`ndc_tbl`}
      WHERE UPPER(NONPROPRIETARYNAME) LIKE '%DIHYDROTESTOSTERONE PROPIONATE%'
      OR UPPER(NONPROPRIETARYNAME) LIKE '%NANDROLONE%'
      OR UPPER(NONPROPRIETARYNAME) LIKE '%STANOLONE%'
      OR UPPER(NONPROPRIETARYNAME) LIKE '%STANOZOLOL%'
     ",
-    .con = hhsaw_conn)))
+    .con = conn)))
   tbl4b_masc_no_req <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
     "SELECT id_mcaid, ndc
      FROM {`schema`}.{`pharm_tbl`}
@@ -212,13 +216,13 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
     ",
     .con = conn)))
   
-  tbl4c_ndc_codes <- setDT(DBI::dbGetQuery(hhsaw_conn, glue::glue_sql(
+  tbl4c_ndc_codes <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
     "SELECT ndc, UPPER(NONPROPRIETARYNAME) AS ndc_name, DOSAGEFORMNAME,
     ACTIVE_NUMERATOR_STRENGTH, ACTIVE_INGRED_UNIT
-     FROM [ref].[ndc_codes]
+     FROM {`ref_schema`}.{`ndc_tbl`}
      WHERE UPPER(NONPROPRIETARYNAME) LIKE '%TESTOSTERONE%'
     ",
-    .con = hhsaw_conn)))
+    .con = conn)))
   # > 7mg intramuscular drugs; >2mg gels/transdermal patches
   # NOTE: This misses solution, tablet, capsule, liquid, capsule liquid filled,
   # spray, solution/drops, powder, pellet implantable, pellet, cream, and kit
@@ -238,13 +242,13 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
     ",
     .con = conn)))
   
-  tbl4d_ndc_codes <- setDT(DBI::dbGetQuery(hhsaw_conn, glue::glue_sql(
+  tbl4d_ndc_codes <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
     "SELECT ndc, UPPER(NONPROPRIETARYNAME) AS ndc_name, DOSAGEFORMNAME,
     ACTIVE_NUMERATOR_STRENGTH, ACTIVE_INGRED_UNIT
-     FROM [ref].[ndc_codes]
+     FROM {`ref_schema`}.{`ndc_tbl`}
      WHERE UPPER(NONPROPRIETARYNAME) LIKE '%SPIRONOLACTONE%'
     ",
-    .con = hhsaw_conn)))
+    .con = conn)))
   # >50mg dose requirement
   # NOTE: This gets tablets, but misses solutions/drops, powder, and suspensions
   # Around 60,000 rows gone from final 4d
@@ -349,24 +353,25 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
   
   all_ids_tbl <- as.data.frame(all_ids)
   
-  # Update mcaid_elig_demo table
-  # DBI::dbWriteTable(conn = conn,
-  #                   name = DBI::Id(schema = "stg_claims", table = "temp_noncisgender"),
-  #                   value = all_ids_tbl,
-  #                   overwrite = T)
-  load_bcp_f(dataset = all_ids_tbl,
+  # Create temporary table with noncisgender IDs and load via BCP
+  create_table_f(conn = conn, 
+                 server = server,
+                 config = config,
+                 overwrite = T)
+  load_df_bcp_f(dataset = all_ids_tbl,
              server = "inthealth",
              db_name = "inthealth_edw",
-             schema_name = "stg_claims",
-             table_name = "temp_noncisgender",
-             user = "kfukutaki@kingcounty.gov",
-             pass = key_get('hhsaw','kfukutaki@kingcounty.gov'))
+             schema_name = schema,
+             table_name = to_table,
+             user = keyring::key_list(server)[["username"]],
+             pass = keyring::key_get(server_to, keyring::key_list(server_to)[["username"]]))
+  # Update mcaid_elig_demo table
   DBI::dbSendQuery(conn, glue::glue_sql(
     "
     UPDATE a
     SET noncisgender = 1
-    FROM stg_claims.stage_mcaid_elig_demo_test a
-    INNER JOIN stg_claims.temp_noncisgender b
+    FROM {`schema`}.{`demog_tbl`} a
+    INNER JOIN {`schema`}.{`to_table`} b
     ON a.id_mcaid = b.id_mcaid
     ",
   .con = conn))
