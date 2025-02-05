@@ -102,13 +102,13 @@ apcd_prep_check_f <- function(config) {
 
 ## Checks if ETL log table exists, creates table if not
 apcd_etl_check_function_f <- function(config) {
-  conn <- DBI::dbConnect(odbc::odbc(), config$odbc_name)
-  if(!DBI::dbExistsTable(conn, DBI::Id(schema = config$ref_schema, table = config$etl_table))) {
+  conn <- create_db_connection(server = "hhsaw", prod = F, interactive = F)
+  if(!DBI::dbExistsTable(conn, DBI::Id(schema = config$schema_name, table = config$etl_table))) {
     vars <- apcd_get_table_vars_f(table_file_path = config$table_file_path, 
-                                  schema = config$ref_schema, 
-                                  table = config$etl_table)
+                                  schema = config$ref_pre, 
+                                  table = "apcd_etl_log")
     create_table(conn, 
-                 to_schema = config$ref_schema,
+                 to_schema = config$schema_name,
                  to_table = config$etl_table,
                  vars = vars)
   }
@@ -117,17 +117,17 @@ apcd_etl_check_function_f <- function(config) {
 ## Returns entire ETL log table along with the max file number for each table
 apcd_etl_get_list_f <- function(config) {
   apcd_etl_check_function_f(config)
-  conn <- DBI::dbConnect(odbc::odbc(), config$odbc_name)
+  conn <- create_db_connection(server = "hhsaw", prod = F, interactive = F)
   results <- DBI::dbGetQuery(conn,
                              glue::glue_sql("SELECT a.[etl_id], a.[file_date], a.[file_number], b.[max_file_num], 
              a.[rows_file], a.[rows_loaded], a.[datetime_etl_create], 
              a.[datetime_download], a.[datetime_load], a.[datetime_archive], 
              a.[datetime_delete], a.[file_schema], a.[file_table], 
              a.[file_name], a.[file_path] 
-             FROM {`config$ref_schema`}.{`config$etl_table`} a 
+             FROM {`config$schema_name`}.{`config$etl_table`} a 
              INNER JOIN (SELECT [file_date], [file_schema], [file_table], 
               MAX([file_number]) AS max_file_num 
-              FROM {`config$ref_schema`}.{`config$etl_table`} 
+              FROM {`config$schema_name`}.{`config$etl_table`} 
               GROUP BY [file_date], [file_schema], [file_table]) b 
               ON a.[file_date] = b.file_date 
                 AND a.[file_schema] = b.[file_schema] 
@@ -147,7 +147,7 @@ apcd_etl_entry_f <- function(config,
                              file_number = NULL,
                              column_name = NULL,
                              value = NULL) {
-  conn <- DBI::dbConnect(odbc::odbc(), config$odbc_name)
+  conn <- create_db_connection(server = "hhsaw", prod = F, interactive = F)
   if(is.null(etl_id)) {
     if(is.null(file_name)) {
       stop("To create a new ETL entry, file_name is requried.")
@@ -165,7 +165,7 @@ apcd_etl_entry_f <- function(config,
       stop("To create a new ETL entry, file_name is requried.")
     }
     DBI::dbExecute(conn,
-                   glue_sql("INSERT INTO {`config$ref_schema`}.{`config$etl_table`}
+                   glue::glue_sql("INSERT INTO {`config$schema_name`}.{`config$etl_table`}
                             ([file_name], [file_date], [file_schema], [file_table], 
                             [file_number], [datetime_etl_create])
                             VALUES
@@ -174,7 +174,7 @@ apcd_etl_entry_f <- function(config,
                             .con = conn))
     results <- DBI::dbGetQuery(conn,
                                glue_sql("SELECT [etl_id] 
-                                      FROM {`config$ref_schema`}.{`config$etl_table`}
+                                      FROM {`config$schema_name`}.{`config$etl_table`}
                                       WHERE [file_name] = {file_name}",
                                         .con = conn))
     results <- as.numeric(results)
@@ -188,7 +188,7 @@ apcd_etl_entry_f <- function(config,
       value <- DBI::SQL("GETDATE()")
     }
     DBI::dbExecute(conn,
-                   glue_sql("UPDATE {`config$ref_schema`}.{`config$etl_table`}
+                   glue_sql("UPDATE {`config$schema_name`}.{`config$etl_table`}
                             SET {`column_name`} = {value} 
                             WHERE [etl_id] = {etl_id}",
                             .con = conn))
@@ -200,14 +200,14 @@ apcd_etl_entry_f <- function(config,
 apcd_etl_get_entry_f <- function(config,
                                  etl_id) {
   apcd_etl_check_function_f(config)
-  conn <- DBI::dbConnect(odbc::odbc(), config$odbc_name)
+  conn <- create_db_connection(server = "hhsaw", prod = F, interactive = F)
   results <- DBI::dbGetQuery(conn,
                              glue_sql("SELECT [etl_id], [file_date], [file_number], 
                                       [rows_file], [rows_loaded], [datetime_etl_create], 
                                       [datetime_download], [datetime_load], 
                                       [datetime_archive], [datetime_delete], 
                                       [file_schema], [file_table], [file_name], [file_path]                                       
-                                      FROM {`config$ref_schema`}.{`config$etl_table`}                                      
+                                      FROM {`config$schema_name`}.{`config$etl_table`}                                      
                                       WHERE [etl_id] = {etl_id}",
                                       .con = conn))
   return(results)
@@ -218,10 +218,10 @@ apcd_etl_get_entry_value_f <- function(config,
                                        etl_id,
                                        column_name) {
   apcd_etl_check_function_f(config)
-  conn <- DBI::dbConnect(odbc::odbc(), config$odbc_name)
+  conn <- create_db_connection(server = "hhsaw", prod = F, interactive = F)
   results <- DBI::dbGetQuery(conn,
                              glue_sql("SELECT {`column_name`}                                       
-                                      FROM {`config$ref_schema`}.{`config$etl_table`}                                      
+                                      FROM {`config$schema_name`}.{`config$etl_table`}                                      
                                       WHERE [etl_id] = {etl_id}",
                                       .con = conn))
   return(results[1,1])
@@ -245,31 +245,21 @@ apcd_get_table_vars_f <- function(table_file_path,
 
 ## Returns a list of files from the SFTP (all 3 directories), determines schema, table, file number and file date
 apcd_ftp_get_file_list_f <- function(config) {
-  # Get list of files from SFTP
-  h <- curl::new_handle()
-  curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
-  url <- paste0(config$ftp_url, "ref_schema/")
-  json <- curl::curl_fetch_memory(url, handle = h)
-  ftpfiles <- fromJSON(rawToChar(json$content))
-  rfiles <- cbind(ftpfiles[["files"]]["fileName"], ftpfiles[["files"]]["lastModifiedTime"])
-  rfiles$url <- paste0(url,rfiles$fileName)
+  rfiles <- as.data.frame(list.files(ref_dir, full.names = F))
+  names(rfiles) <- c("fileName")
+  rfiles$url <- paste0(ref_dir,rfiles$fileName)
   rfiles$schema <- "ref"
-  h <- curl::new_handle()
-  curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
-  url <- paste0(config$ftp_url, "stage_schema/")
-  json <- curl::curl_fetch_memory(url, handle = h)
-  ftpfiles <- fromJSON(rawToChar(json$content))
-  sfiles <- cbind(ftpfiles[["files"]]["fileName"], ftpfiles[["files"]]["lastModifiedTime"])
-  sfiles$url <- paste0(url,sfiles$fileName)
+  
+  sfiles <- as.data.frame(list.files(stage_dir, full.names = F))
+  names(sfiles) <- c("fileName")
+  sfiles$url <- paste0(stage_dir,sfiles$fileName)
   sfiles$schema <- "stage"
-  h <- curl::new_handle()
-  curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
-  url <- paste0(config$ftp_url, "final_schema/")
-  json <- curl::curl_fetch_memory(url, handle = h)
-  ftpfiles <- fromJSON(rawToChar(json$content))
-  ffiles <- cbind(ftpfiles[["files"]]["fileName"], ftpfiles[["files"]]["lastModifiedTime"])
-  ffiles$url <- paste0(url,ffiles$fileName)
+  
+  ffiles <- as.data.frame(list.files(final_dir, full.names = F))
+  names(ffiles) <- c("fileName")
+  ffiles$url <- paste0(final_dir,ffiles$fileName)
   ffiles$schema <- "final"
+  
   files <- rbind(rfiles, sfiles, ffiles)
   files <- files[, !(names(files) %in% c("lastModifiedTime"))]
   colnames(files) <- c("file_name", "url", "schema")
@@ -291,14 +281,7 @@ apcd_ftp_get_file_list_f <- function(config) {
 ## Downloads file from SFTP and saves it to the specified directory. Updates the ETL log with file_path and datetime_download. Returns the datetime_download
 apcd_ftp_get_file_f <- function(config,  
                                 file) {
-  h <- curl::new_handle()
-  curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
-  # Download file
-  curl::curl_download(url = file$url, 
-                      destfile = file$file_path,
-                      quiet = T,
-                      handle = h)
-  # Update ETL log
+
   apcd_etl_entry_f(config,
                    etl_id = file$etl_id,
                    column_name = "datetime_download")
@@ -313,15 +296,23 @@ apcd_ftp_get_file_f <- function(config,
 apcd_data_load_f <- function(config,
                              file) {
   # Extract file
-  message(paste0("......Extracting File: "  , file$file_name, "..."))
-  if(file.exists(str_replace(file$file_path, '.gz', ''))) {
-    file.remove(str_replace(file$file_path, '.gz', ''))
+  if(file$file_schema == "ref") {
+    file_path <- file.path(config$base_dir, config$ref_dir, file$file_name)  
+  } else if(file$file_schema == "stage") {
+    file_path <- file.path(config$base_dir, config$stage_dir, file$file_name)  
+  } else {
+    file_path <- file.path(config$base_dir, config$final_dir, file$file_name)  
   }
-  gunzip(file$file_path, remove = F)
+  
+  message(paste0("......Extracting File: "  , file$file_name, "..."))
+  if(file.exists(str_replace(file_path, '.gz', ''))) {
+    file.remove(str_replace(file_path, '.gz', ''))
+  }
+  gunzip(file$file_path, destname = str_replace(file_path, '.gz', ''), remove = F)
   message("......Extracting Complete...")
   # Count rows in file and update ETL log
   message("......Counting Rows in File...")
-  file_raw <- str_replace(file$file_path, ".gz", "")
+  file_raw <- str_replace(file_path, ".gz", "")
   file$rows_file <- read.table(text = shell(paste("wc -l", file_raw), intern = T))[1,1]
   apcd_etl_entry_f(config,
                    etl_id = file$etl_id,
@@ -335,7 +326,7 @@ apcd_data_load_f <- function(config,
                         schema_name = file$file_schema,
                         table_name = file$file_table)
   }
-  conn <- DBI::dbConnect(odbc::odbc(), config$odbc_name)
+  conn <- create_db_connection(server = "hhsaw", prod = F, interactive = F)
   # Create table if the file is the first file for the table
   if(file$file_number == 1) {
     vars <- apcd_get_table_vars_f(table_file_path = config$table_file_path, 
@@ -343,47 +334,40 @@ apcd_data_load_f <- function(config,
                                   table = file$file_table)
     
     create_table(conn, 
-                 to_schema = file$file_schema, 
-                 to_table = file$file_table,                    
+                 to_schema = config$schema_name, 
+                 to_table = paste0(file$file_schema, "_", file$file_table),                    
                  vars = vars)
   }
-  # Create table if the file is the first file for the table
-  if(file$file_number == 1) {
-    vars <- apcd_get_table_vars_f(table_file_path = config$table_file_path, 
-                                  schema = file$file_schema, 
-                                  table = file$file_table)
-    
-    create_table(conn, 
-                 to_schema = file$file_schema, 
-                 to_table = file$file_table,                    
-                 vars = vars)
-  }
+
   # Load data via BCP
   message("......Loading Data to SQL... ")
   load_table_from_file(conn = conn,
                        config = config,
                        server = "apcd",
-                       to_schema = file$file_schema,
-                       to_table = file$file_table,
+                       to_schema = config$schema_name,
+                       to_table = paste0(file$file_schema, "_", file$file_table),
                        file_path = file_raw,
                        truncate = F,
-                       first_row = 1)
+                       first_row = 1,
+                       azure = T,
+                       azure_uid = keyring::key_list("hhsaw")[["username"]],
+                       azure_pwd = keyring::key_get("hhsaw", keyring::key_list("hhsaw")[["username"]]))
   message("......Loading Complete... ")
   
   # Count rows in table, subtract row counts from previously loaded files
   message("......Counting Rows in SQL Table...")
   file$rows_loaded <- DBI::dbGetQuery(conn, 
                                       glue::glue_sql("SELECT COUNT(*) 
-                                                     FROM {`file$file_schema`}.{`file$file_table`}", 
+                                                     FROM {`config$schema_name`}.{`paste0(file$file_schema, '_', file$file_table)`}", 
                                                      .con = conn))[1,1]
   if(file$max_file_num > 1) {
     file$rows_loaded <- file$rows_loaded - DBI::dbGetQuery(conn, 
-                                                           glue::glue_sql("SELECT SUM(ISNULL([rows_loaded], 0)) 
+                                                         glue::glue_sql("SELECT SUM(ISNULL([rows_loaded], 0)) 
                    FROM {`config$schema_name`}.{`config$etl_table`}
                    WHERE [file_date] = {file$file_date}
                     AND [file_schema] = {file$file_schema} 
                     AND [file_table] = {file$file_table}", 
-                                                                          .con = conn))[1,1]
+                                                                        .con = conn))[1,1]
   }
   # Update rows_loaded in ETL log
   apcd_etl_entry_f(config,
@@ -395,7 +379,7 @@ apcd_data_load_f <- function(config,
   if(file$rows_file == file$rows_loaded) {
     message("......All Rows Successfully Loaded to SQL Table...")
     # Update datetime_load in ETL log
-    conn <- DBI::dbConnect(odbc::odbc(), config$odbc_name)
+    conn <- create_db_connection(server = "hhsaw", prod = F, interactive = F)
     apcd_etl_entry_f(config,
                      etl_id = file$etl_id,
                      column_name = "datetime_load")
@@ -404,18 +388,21 @@ apcd_data_load_f <- function(config,
     result <- paste0("ERROR: Row Count of File ", file$file_name, " (", file$rows_file, ") does NOT MATCH Rows Loaded to SQL Table (", file$rows_loaded, ")!!!")
   }
   # If the file is the last file for the table, add an index to the table
-  if(file$file_schema != config$ref_schema && file$file_num == file$max_file_num && is.na(result)) {
+  #if(file$file_schema != "ref" && file$file_num == file$max_file_num && is.na(result)) {
+  if(1 == 0) {
     message("......Adding Index... ")
-    conn <- DBI::dbConnect(odbc::odbc(), config$odbc_name)
+    conn <- create_db_connection(server = "hhsaw", prod = F, interactive = F)
     index_name <- paste0(config$index_prefix, 
+                         config$schema_name,
+                         "_",
                          file$file_schema,
                          "_",
                          file$file_table)
     add_index(conn = conn,
               config = config,
               server = "apcd",
-              to_schema = file$file_schema,
-              to_table = file$file_table,
+              to_schema = config$schema_name,
+              to_table = paste0(file$file_schema, '_', file$file_table),
               index_type = config$index_type,
               index_name = index_name)
     
@@ -431,17 +418,17 @@ apcd_data_load_f <- function(config,
 apcd_data_archive_f <- function(config, 
                                 schema_name,  
                                 table_name) {
-  conn <- DBI::dbConnect(odbc::odbc(), config$odbc_name)
+  conn <- create_db_connection(server = "hhsaw", prod = F, interactive = F)
   # Check for old archive table and delete it
-  if(DBI::dbExistsTable(conn, DBI::Id(schema = schema_name, table = paste0(table_name, config$archive_suffix)))) {
+  if(DBI::dbExistsTable(conn, DBI::Id(schema = config$schema_name, table = paste0(schema_name, "_", table_name, config$archive_suffix)))) {
     message("......Dropping Old Archived SQL Table...")
     DBI::dbExecute(conn,
-                   glue::glue_sql("DROP TABLE {`schema_name`}.{`paste0(table_name, config$archive_suffix)`}",
+                   glue::glue_sql("DROP TABLE {`config$schema_name`}.{`paste0(schema_name, '_', table_name, config$archive_suffix)`}",
                                   .con = conn))
     # Update ETL log datetime_delete for all entries affected by the deleting old archive table
     to_del <- DBI::dbGetQuery(conn,
                               glue::glue_sql("SELECT etl_id
-                                             FROM {`config$ref_schema`}.{`config$etl_table`}
+                                             FROM {`config$schema_name`}.{`config$etl_table`}
                                              WHERE datetime_delete IS NULL
                                               AND datetime_archive IS NOT NULL
                                               AND datetime_load IS NOT NULL
@@ -455,12 +442,12 @@ apcd_data_archive_f <- function(config,
                          column_name = "datetime_delete")
     }
   }
-  conn <- DBI::dbConnect(odbc::odbc(), config$odbc_name)
+  conn <- create_db_connection(server = "hhsaw", prod = F, interactive = F)
   # Check for old table and archive it by renaming table with the archive suffix
-  if(DBI::dbExistsTable(conn, DBI::Id(schema = schema_name, table = table_name))) {
+  if(DBI::dbExistsTable(conn, DBI::Id(schema = config$schema_name, table = paste0(schema_name, '_', table_name)))) {
     message("......Archiving Old SQL Table...")
     # Check if old table has an index and delete it
-    if(schema_name != config$ref_schema) {
+    if(schema_name != "ref") {
       existing_index <- DBI::dbGetQuery(conn, 
                                         glue::glue_sql("SELECT DISTINCT a.index_name 
                                                        FROM 
@@ -470,11 +457,11 @@ apcd_data_archive_f <- function(config,
                                                        WHERE type_desc LIKE 'CLUSTERED%') ind               
                                                        INNER JOIN                   
                                                        (SELECT name, schema_id, object_id FROM sys.tables   
-                                                       WHERE name = {table_name}) t                    
+                                                       WHERE name = {paste0(schema_name, '_', table)}) t                    
                                                        ON ind.object_id = t.object_id          
                                                        INNER JOIN                     
                                                        (SELECT name, schema_id FROM sys.schemas   
-                                                       WHERE name = {schema_name}) s                
+                                                       WHERE name = {config$schema_name}) s                
                                                        ON t.schema_id = s.schema_id) a",      
                                                        .con = conn))
       
@@ -483,22 +470,22 @@ apcd_data_archive_f <- function(config,
         lapply(seq_along(existing_index), function(i) {
           DBI::dbExecute(conn,
                          glue::glue_sql("DROP INDEX {`existing_index[['index_name']][[i]]`} 
-                                        ON {`schema_name`}.{`table_name`}", 
+                                        ON {`config$schema_name`}.{`paste0(schema_name, '_', table_name)`}", 
                                         .con = conn))
         })
       }
     }
     # Rename table
-    conn <- DBI::dbConnect(odbc::odbc(), config$odbc_name)
+    conn <- create_db_connection(server = "hhsaw", prod = F, interactive = F)
     DBI::dbExecute(conn,
                    glue::glue_sql("EXEC sp_rename 
-                                    {paste0(schema_name, '.', table_name)}, 
-                                    {paste0(table_name, config$archive_suffix)}",
+                                    {paste0(config$schema_name, '.', paste0(schema_name, '_', table_name))}, 
+                                    {paste0(paste0(schema_name, '_', table_name), config$archive_suffix)}",
                                   .con = conn))
     # Update ETL log datetime_archive for all entries affected by the archive old table
     to_archive <- DBI::dbGetQuery(conn,
                                   glue::glue_sql("SELECT etl_id
-                                             FROM {`config$ref_schema`}.{`config$etl_table`}
+                                             FROM {`config$schema_name`}.{`config$etl_table`}
                                              WHERE datetime_delete IS NULL
                                               AND datetime_archive IS NULL
                                               AND datetime_load IS NOT NULL
