@@ -9,25 +9,25 @@
 #' Note: Need to use "set nocount on" to avoid temptable issues with R stopping the query early
 #' 
 
-
-## Set up constants and dbs ----
-# pacman::p_load(data.table, glue, lubridate, odbc)
+# pacman::p_load(data.table, glue, keyring, lubridate, odbc)
 # devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
 # 
-# production_server <- T  # Change as needed!
+# production_server <- F  # Change as needed!
 # 
-# schema <- "claims"
+# schema <- "stg_claims"
 # proc_tbl <- "stage_mcaid_claim_procedure"
 # pharm_tbl <- "stage_mcaid_claim_pharm"
 # header_tbl <- "stage_mcaid_claim_icdcm_header"
 # demog_tbl <- "stage_mcaid_elig_demo"
-
-# conn <- create_db_connection("hhsaw", interactive = F, prod = production_server)
+# 
+# conn <- create_db_connection("inthealth", interactive = F, prod = production_server)
+# hhsaw_conn <- create_db_connection("hhsaw", interactive = F, prod = T)
 
 load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
-                                         server = c("hhsaw", "phclaims"),
-                                         config = NULL,
-                                         get_config = F) {
+                                               hhsaw_conn = NULL,
+                                               server = c("hhsaw", "phclaims"),
+                                               config = NULL,
+                                               get_config = F) {
   
   # Set up variables specific to the server
   server <- match.arg(server)
@@ -180,7 +180,7 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
     ",
     .con = conn)))
   
-  tbl4a_ndc_codes <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
+  tbl4a_ndc_codes <- setDT(DBI::dbGetQuery(hhsaw_conn, glue::glue_sql(
     "SELECT ndc, UPPER(NONPROPRIETARYNAME) AS ndc_name
      FROM [ref].[ndc_codes]
      WHERE UPPER(NONPROPRIETARYNAME) LIKE '%ESTRAD%'
@@ -188,7 +188,7 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
      OR UPPER(NONPROPRIETARYNAME) LIKE '%ESTRIOL%'
      OR UPPER(NONPROPRIETARYNAME) LIKE '%ESTR/PRG%'
     ",
-    .con = conn)))
+    .con = hhsaw_conn)))
   tbl4a_fem_no_req <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
     "SELECT id_mcaid, ndc
      FROM {`schema`}.{`pharm_tbl`}
@@ -196,7 +196,7 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
     ",
     .con = conn)))
   
-  tbl4b_ndc_codes <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
+  tbl4b_ndc_codes <- setDT(DBI::dbGetQuery(hhsaw_conn, glue::glue_sql(
     "SELECT ndc, UPPER(NONPROPRIETARYNAME) AS ndc_name
      FROM [ref].[ndc_codes]
      WHERE UPPER(NONPROPRIETARYNAME) LIKE '%DIHYDROTESTOSTERONE PROPIONATE%'
@@ -204,7 +204,7 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
      OR UPPER(NONPROPRIETARYNAME) LIKE '%STANOLONE%'
      OR UPPER(NONPROPRIETARYNAME) LIKE '%STANOZOLOL%'
     ",
-    .con = conn)))
+    .con = hhsaw_conn)))
   tbl4b_masc_no_req <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
     "SELECT id_mcaid, ndc
      FROM {`schema`}.{`pharm_tbl`}
@@ -212,13 +212,13 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
     ",
     .con = conn)))
   
-  tbl4c_ndc_codes <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
+  tbl4c_ndc_codes <- setDT(DBI::dbGetQuery(hhsaw_conn, glue::glue_sql(
     "SELECT ndc, UPPER(NONPROPRIETARYNAME) AS ndc_name, DOSAGEFORMNAME,
     ACTIVE_NUMERATOR_STRENGTH, ACTIVE_INGRED_UNIT
      FROM [ref].[ndc_codes]
      WHERE UPPER(NONPROPRIETARYNAME) LIKE '%TESTOSTERONE%'
     ",
-    .con = conn)))
+    .con = hhsaw_conn)))
   # > 7mg intramuscular drugs; >2mg gels/transdermal patches
   # NOTE: This misses solution, tablet, capsule, liquid, capsule liquid filled,
   # spray, solution/drops, powder, pellet implantable, pellet, cream, and kit
@@ -238,13 +238,13 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
     ",
     .con = conn)))
   
-  tbl4d_ndc_codes <- setDT(DBI::dbGetQuery(conn, glue::glue_sql(
+  tbl4d_ndc_codes <- setDT(DBI::dbGetQuery(hhsaw_conn, glue::glue_sql(
     "SELECT ndc, UPPER(NONPROPRIETARYNAME) AS ndc_name, DOSAGEFORMNAME,
     ACTIVE_NUMERATOR_STRENGTH, ACTIVE_INGRED_UNIT
      FROM [ref].[ndc_codes]
      WHERE UPPER(NONPROPRIETARYNAME) LIKE '%SPIRONOLACTONE%'
     ",
-    .con = conn)))
+    .con = hhsaw_conn)))
   # >50mg dose requirement
   # NOTE: This gets tablets, but misses solutions/drops, powder, and suspensions
   # Around 60,000 rows gone from final 4d
@@ -345,10 +345,33 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
   
   # Identified by any means
   all_ids <- Reduce(
-    union, c(transmasc_ids_no_conflict, transfem_ids_no_conflict, trans_unknown_ids))  # 13915
-
-  ## Upload to table ----
+    union, c(transmasc_ids_no_conflict, transfem_ids_no_conflict, trans_unknown_ids))  # 13766
   
+  all_ids_tbl <- as.data.frame(all_ids)
+  
+  # Update mcaid_elig_demo table
+  # DBI::dbWriteTable(conn = conn,
+  #                   name = DBI::Id(schema = "stg_claims", table = "temp_noncisgender"),
+  #                   value = all_ids_tbl,
+  #                   overwrite = T)
+  load_bcp_f(dataset = all_ids_tbl,
+             server = "inthealth",
+             db_name = "inthealth_edw",
+             schema_name = "stg_claims",
+             table_name = "temp_noncisgender",
+             user = "kfukutaki@kingcounty.gov",
+             pass = key_get('hhsaw','kfukutaki@kingcounty.gov'))
+  DBI::dbSendQuery(conn, glue::glue_sql(
+    "
+    UPDATE a
+    SET noncisgender = 1
+    FROM stg_claims.stage_mcaid_elig_demo_test a
+    INNER JOIN stg_claims.temp_noncisgender b
+    ON a.id_mcaid = b.id_mcaid
+    ",
+  .con = conn))
+  # Delete the 'temporary' table
+  DBI::dbRemoveTable(conn, name = "table_name")
 }
 
 
