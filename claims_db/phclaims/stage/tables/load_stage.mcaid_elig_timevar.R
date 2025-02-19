@@ -220,21 +220,16 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     CASE 
       WHEN fromdate IS NULL THEN startdate 
       WHEN startdate >= fromdate THEN startdate
-         WHEN startdate < fromdate
-              AND startdate = lag(startdate, 1) over(partition by id_mcaid, startdate order by fromdate)
-              AND lag(fromdate, 1) over(partition by id_mcaid, startdate order by fromdate) <= startdate
-              THEN startdate
+         WHEN startdate < fromdate AND min(fromdate) over(partition by id_mcaid, startdate) <= startdate THEN startdate
       WHEN startdate < fromdate THEN fromdate
       ELSE null END AS from_date, 
     CASE 
       WHEN todate IS NULL THEN enddate 
       WHEN enddate <= todate THEN enddate
-         WHEN enddate > todate
-              AND enddate = lead(enddate, 1) over (partition by id_mcaid, enddate order by todate)
-              AND lead(todate, 1) over (partition by id_mcaid, enddate order by todate) >= enddate
-              THEN enddate
+         WHEN enddate > todate AND max(todate) over (partition by id_mcaid, startdate) >= enddate THEN enddate
       WHEN enddate > todate THEN todate
       ELSE null END AS to_date
+
 
     FROM #timevar_02a) a",
     .con = conn)
