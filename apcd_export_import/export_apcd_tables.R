@@ -20,7 +20,7 @@ ref_dir <- paste0(temp_dir, "ref_schema/")
 stage_dir <- paste0(temp_dir, "stage_schema/")
 final_dir <- paste0(temp_dir, "final_schema/")
 source_tables <- read.xlsx(paste0(temp_dir, "documentation/apcd_source_tables.xlsx"), sheetIndex = 1)
-batch_date <- "20240801"
+batch_date <- "20241217"
 
 ### GET COLUMNS FOR TABLES
 table_list <- data.frame()
