@@ -238,7 +238,7 @@ qa_stage_mcaid_claim_preg_episode_f <- function(conn = NULL,
                    'Incorrect # of distict preg endpoint types (expecting 7)', 
                    'FAIL', 
                    {format(Sys.time(), usetz = FALSE)}, 
-                   '{end_tpes} distinct preg endpoint types (expecting 7)')",
+                   '{end_types} distinct preg endpoint types (expecting 7)')",
                                   .con = conn_qa))
   }
   
