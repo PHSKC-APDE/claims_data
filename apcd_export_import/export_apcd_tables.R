@@ -13,13 +13,20 @@ library(xlsx) # Read in XLSX files
 library(svDialogs) # Extra UI Elements
 
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
+source(file.path(here::here(),"apcd_export_import/apcd_import_functions.R"))
+config <- yaml::read_yaml(file.path(here::here(),"apcd_export_import/apcd_import_config.yaml"))
 
 export_dir <- "//phcifs/SFTP_DATA/APDEDataExchange/WA-APCD/export/"
+export_dir_new <- "//dphcifs.kc.kingcounty.lcl/APDE-CDIP/SFTP_APDEDATA/APDEDataExchange/WA-APCD/export/"
 temp_dir <- "C:/temp/apcd/"
 ref_dir <- paste0(temp_dir, "ref_schema/")
 stage_dir <- paste0(temp_dir, "stage_schema/")
 final_dir <- paste0(temp_dir, "final_schema/")
+<<<<<<< HEAD
 source_tables <- read.xlsx(paste0(temp_dir, "documentation/apcd_source_tables.xlsx"), sheetIndex = 1)
+=======
+source_tables <- read.xlsx(file.path(here::here(),"apcd_export_import/apcd_source_tables.xlsx"), sheetIndex = 1)
+>>>>>>> 2ec0099fc30b74c4d123fd732eac3270d6395f07
 batch_date <- "20241217"
 
 ### GET COLUMNS FOR TABLES
@@ -62,6 +69,7 @@ ORDER BY schema_name, table_name, column_position", .con = conn))
   table_list <- rbind(table_list, columns)
 }
 
+i <- 8
 ### EXPORT TABLES  
 for(i in 1:nrow(source_tables)) {
   message(glue::glue("{i}: Begin table {source_tables[i,'schema_name']}.{source_tables[i,'table_name']} - {Sys.time()}"))
@@ -109,12 +117,13 @@ GROUP BY sys.schemas.name, sys.objects.name", .con = conn))[1,1]
     DBI::dbExecute(conn, glue::glue_sql(
       "ALTER TABLE {`source_tables[i,'schema_name']`}.{`source_tables[i,'table_name']`} ADD rownum BIGINT IDENTITY(1,1)", .con = conn))
   } else { batches <- 1 }
+  blank <- "''"
   for(x in 1:batches) {
     if(batches > 1) {
-      sql <- glue::glue("SELECT {glue::glue_collapse(glue::glue('{cols$column_name}'), sep = ', ')} FROM {source_tables[i,'schema_name']}.{source_tables[i,'table_name']} WHERE rownum BETWEEN {cur_row} AND {cur_row + batch_size} ")
+      sql <- glue::glue("SELECT {glue::glue_collapse(glue::glue('REPLACE([{cols$column_name}], CHAR(9), {blank})'), sep = ', ')} FROM [{source_tables[i,'schema_name']}].[{source_tables[i,'table_name']}] WHERE [rownum] BETWEEN {cur_row} AND {cur_row + batch_size} order by rownum")
       cur_row <- cur_row + batch_size + 1
     } else {
-      sql <- glue::glue("SELECT {glue::glue_collapse(glue::glue('{cols$column_name}'), sep = ', ')} FROM {source_tables[i,'schema_name']}.{source_tables[i,'table_name']}")
+      sql <- glue::glue("SELECT {glue::glue_collapse(glue::glue('REPLACE([{cols$column_name}], CHAR(9), {blank})'), sep = ', ')} FROM [{source_tables[i,'schema_name']}].[{source_tables[i,'table_name']}]")
     }
     filename <- glue::glue("{cols[1, 'schema_name']}.{cols[1, 'table_name']}.{str_pad(x, 3, pad = '0')}_{batch_date}.csv")
     filepath <- paste0(temp_dir, filename)
@@ -151,6 +160,6 @@ GROUP BY sys.schemas.name, sys.objects.name", .con = conn))[1,1]
   }
 }
 table_list <- subset(table_list, select = -c(source_schema, source_table))
-etl_log <- read.xlsx(paste0(temp_dir, "documentation/apcd_etl_log.xlsx"), sheetIndex = 1)
+etl_log <- read.xlsx(file.path(here::here(),"apcd_export_import/apcd_etl_log.xlsx"), sheetIndex = 1)
 table_list <- rbind(table_list, etl_log)
-write.xlsx(table_list, paste0(temp_dir, "documentation/APCD_Tables_", batch_date, ".xlsx"), row.names = F, append = F)                     
+write.xlsx(table_list, file.path(here::here(),paste0("apcd_export_import/APCD_Tables_", batch_date, ".xlsx")), row.names = F, append = F)  
