@@ -960,7 +960,7 @@ on a.claim_header_id = c.claim_header_id
 left join stg_claims.tmp_apcd_claim_header_bh as d
 on a.claim_header_id = d.claim_header_id
 left join stg_claims.tmp_apcd_claim_header_injury as e
-on a.claim_header_id = e.claim_header_id;
+on a.claim_header_id = e.claim_header_id
 option (label = 'stage_apcd_claim_header');
     
 if object_id(N'stg_claims.tmp_apcd_claim_header_temp3',N'U') is not null drop table stg_claims.tmp_apcd_claim_header_temp3;
