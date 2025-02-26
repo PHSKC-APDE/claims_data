@@ -632,9 +632,15 @@ create table stg_claims.tmp_apcd_claim_header_injury (
 with (heap);
 
 --Step 10a: Create table of distinct icdcm codes
-IF object_id('tempdb..#stage_apcd_icdcm_distinct') is not null drop table #stage_apcd_icdcm_distinct;
+
+if object_id(N'stg_claims.tmp_apcd_icdcm_distinct',N'U') is not null drop table stg_claims.tmp_apcd_icdcm_distinct;
+create table stg_claims.tmp_apcd_icdcm_distinct (
+icdcm_norm varchar(255),
+icdcm_version tinyint
+)
+with (heap);
+insert into stg_claims.tmp_apcd_icdcm_distinct
 select distinct icdcm_norm, icdcm_version
-into #stage_apcd_icdcm_distinct
 from stg_claims.stage_apcd_claim_icdcm_header;
 
 --Step 10b: Flag nature of injury codes per CDC injury hospitalization surveillance definition for ICD-9-CM and ICD-10-CM
@@ -642,10 +648,16 @@ from stg_claims.stage_apcd_claim_icdcm_header;
 --ICD-9-CM definition is in 2nd paragraph of introduction
 --ICD-10-CM definition is in Table C (note this is same as Table B in 2020 NHSR update to nature of injury body region classification)
 --Tip - For using SQL between operator, the second parameter must be the last value in the list we want to include or it will miss values (e.g. 9949 not 994)
-IF object_id('tempdb..#stage_apcd_injury_nature_ref') is not null drop table #stage_apcd_injury_nature_ref;
+
+if object_id(N'stg_claims.tmp_apcd_injury_nature_ref',N'U') is not null drop table stg_claims.tmp_apcd_injury_nature_ref;
+create table stg_claims.tmp_apcd_injury_nature_ref (
+icdcm_norm varchar(255),
+icdcm_version tinyint
+)
+with (heap);
+insert into stg_claims.tmp_apcd_injury_nature_ref
 select distinct *
-into #stage_apcd_injury_nature_ref
-from #stage_apcd_icdcm_distinct
+from stg_claims.tmp_apcd_icdcm_distinct
 --Apply CDC surveillance definition for ICD-9-CM codes
 where (icdcm_version = 9 and 
 (icdcm_norm between '800%' and '9949%' or icdcm_norm like '9955%' or icdcm_norm between '99580%' and '99585%') -- inclusion
@@ -670,22 +682,40 @@ or (icdcm_norm like 'M97%' and substring(icdcm_norm,7,1) in ('A', 'B', 'C', ''))
 ));
 
 --Step 10c: Create flags for broad and narrrow injury surveillance definitions
-IF object_id('tempdb..#stage_apcd_injury_nature') is not null drop table #stage_apcd_injury_nature;
-select a.*,
+
+if object_id(N'stg_claims.tmp_apcd_injury_nature',N'U') is not null drop table stg_claims.tmp_apcd_injury_nature;
+create table stg_claims.tmp_apcd_injury_nature (
+claim_header_id bigint,
+icdcm_norm varchar(255),
+icdcm_version tinyint,
+icdcm_number varchar(255),
+injury_narrow tinyint,
+injury_broad tinyint
+)
+with (heap);
+insert into stg_claims.tmp_apcd_injury_nature
+select a.claim_header_id, a.icdcm_norm, a.icdcm_version, a.icdcm_number,
 case when b.icdcm_norm is not null and a.icdcm_number = '01' then 1 else 0 end as injury_narrow,
 case when b.icdcm_norm is not null then 1 else 0 end as injury_broad
-into #stage_apcd_injury_nature
 from stg_claims.stage_apcd_claim_icdcm_header as a
-left join #stage_apcd_injury_nature_ref as b
+left join stg_claims.tmp_apcd_injury_nature_ref as b
 on (a.icdcm_norm = b.icdcm_norm) and (a.icdcm_version = b.icdcm_version);
 
 --Step 10d: Identify external cause-of-injury codes for intent and mechanism
 
 --LIKE join distinct ICD-10-CM codes to ICD-10-CM external cause-of-injury code reference table
-IF object_id(N'tempdb..#stage_apcd_injury_cause_icd10cm_ref') is not null drop table #stage_apcd_injury_cause_icd10cm_ref;
+
+if object_id(N'stg_claims.tmp_apcd_injury_cause_icd10cm_ref',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_icd10cm_ref;
+create table stg_claims.tmp_apcd_injury_cause_icd10cm_ref (
+icdcm_norm varchar(255),
+icdcm_version tinyint,
+intent varchar(255),
+mechanism varchar(255)
+)
+with (heap);
+insert into stg_claims.tmp_apcd_injury_cause_icd10cm_ref
 select distinct a.icdcm_norm, a.icdcm_version, b.intent, b.mechanism
-into #stage_apcd_injury_cause_icd10cm_ref
-from (select * from #stage_apcd_icdcm_distinct where icdcm_version = 10) as a
+from (select * from stg_claims.tmp_apcd_icdcm_distinct where icdcm_version = 10) as a
 inner join (
 select icdcm, icdcm + '%' as icdcm_like, icdcm_version, intent, mechanism
 from stg_claims.ref_icdcm_codes
@@ -694,10 +724,18 @@ where icdcm_version = 10 and intent is not null
 on (a.icdcm_norm like b.icdcm_like) and (a.icdcm_version = b.icdcm_version);
 
 --LIKE join distinct ICD-9-CM codes to ICD-9-CM external cause-of-injury code reference table
-IF object_id(N'tempdb..#stage_apcd_injury_cause_icd9cm_ref') is not null drop table #stage_apcd_injury_cause_icd9cm_ref;
+
+if object_id(N'stg_claims.tmp_apcd_injury_cause_icd9cm_ref',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_icd9cm_ref;
+create table stg_claims.tmp_apcd_injury_cause_icd9cm_ref (
+icdcm_norm varchar(255),
+icdcm_version tinyint,
+intent varchar(255),
+mechanism varchar(255)
+)
+with (heap);
+insert into stg_claims.tmp_apcd_injury_cause_icd9cm_ref
 select distinct a.icdcm_norm, a.icdcm_version, b.intent, b.mechanism
-into #stage_apcd_injury_cause_icd9cm_ref
-from (select * from #stage_apcd_icdcm_distinct where icdcm_version = 9) as a
+from (select * from stg_claims.tmp_apcd_icdcm_distinct where icdcm_version = 9) as a
 inner join (
 select icdcm, icdcm + '%' as icdcm_like, icdcm_version, intent, mechanism
 from stg_claims.ref_icdcm_codes
@@ -706,25 +744,62 @@ where icdcm_version = 9 and intent is not null
 on (a.icdcm_norm like b.icdcm_like) and (a.icdcm_version = b.icdcm_version);
 
 --UNION ICD-10-CM and ICD-9-CM reference tables
-IF object_id(N'tempdb..#stage_apcd_injury_cause_ref') is not null drop table #stage_apcd_injury_cause_ref;
+
+if object_id(N'stg_claims.tmp_apcd_injury_cause_ref',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_ref;
+create table stg_claims.tmp_apcd_injury_cause_ref (
+icdcm_norm varchar(255),
+icdcm_version tinyint,
+intent varchar(255),
+mechanism varchar(255)
+)
+with (heap);
+insert into stg_claims.tmp_apcd_injury_cause_ref
 select *
-into #stage_apcd_injury_cause_ref
-from #stage_apcd_injury_cause_icd9cm_ref
+from stg_claims.tmp_apcd_injury_cause_icd9cm_ref
 union
 select *
-from #stage_apcd_injury_cause_icd10cm_ref;
+from stg_claims.tmp_apcd_injury_cause_icd10cm_ref;
 
 --EXACT join of above table to claims data with injury flags
-IF object_id(N'tempdb..#stage_apcd_injury_nature_cause') is not null drop table #stage_apcd_injury_nature_cause;
+
+if object_id(N'stg_claims.tmp_apcd_injury_nature_cause',N'U') is not null drop table stg_claims.tmp_apcd_injury_nature_cause;
+create table stg_claims.tmp_apcd_injury_nature_cause (
+claim_header_id bigint,
+icdcm_norm varchar(255),
+icdcm_version tinyint,
+icdcm_number varchar(255),
+injury_narrow tinyint,
+injury_broad tinyint,
+intent varchar(255),
+mechanism varchar(255),
+ecode_flag tinyint
+)
+with (heap);
+insert into stg_claims.tmp_apcd_injury_nature_cause
 select a.*, b.intent, b.mechanism,
 case when b.intent is not null and b.mechanism is not null then 1 else 0 end as ecode_flag
-into #stage_apcd_injury_nature_cause
-from #stage_apcd_injury_nature as a
-left join #stage_apcd_injury_cause_ref as b
+from stg_claims.tmp_apcd_injury_nature as a
+left join stg_claims.tmp_apcd_injury_cause_ref as b
 on (a.icdcm_norm = b.icdcm_norm) and (a.icdcm_version = b.icdcm_version);
 
 --Create rank variables for valid external cause-of-injury codes and for nature-of-injury codes
-IF object_id(N'tempdb..#stage_apcd_injury_nature_cause_ranks') is not null drop table #stage_apcd_injury_nature_cause_ranks;
+
+if object_id(N'stg_claims.tmp_apcd_injury_nature_cause_ranks',N'U') is not null drop table stg_claims.tmp_apcd_injury_nature_cause_ranks;
+create table stg_claims.tmp_apcd_injury_nature_cause_ranks (
+claim_header_id bigint,
+icdcm_norm varchar(255),
+icdcm_version tinyint,
+icdcm_number varchar(255),
+injury_narrow tinyint,
+injury_broad tinyint,
+intent varchar(255),
+mechanism varchar(255),
+ecode_flag tinyint,
+ecode_rank int,
+injury_nature_rank int
+)
+with (heap);
+insert into stg_claims.tmp_apcd_injury_nature_cause_ranks
 select *,
 case
 when ecode_flag = 0 then null
@@ -734,13 +809,25 @@ case
 when injury_broad = 0 then null
 else row_number() over (partition by claim_header_id, injury_broad order by icdcm_number)
 end as injury_nature_rank
-into #stage_apcd_injury_nature_cause_ranks
-from #stage_apcd_injury_nature_cause;
+from stg_claims.tmp_apcd_injury_nature_cause;
 
 --Step 10e: Aggregate to claim header level
 
 --Create some aggregated fields
-IF object_id(N'tempdb..#stage_apcd_injury_cause_header_level_tmp') is not null drop table #stage_apcd_injury_cause_header_level_tmp;
+
+if object_id(N'stg_claims.tmp_apcd_injury_cause_header_level_tmp',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_header_level_tmp;
+create table stg_claims.tmp_apcd_injury_cause_header_level_tmp (
+claim_header_id bigint,
+icdcm_norm varchar(255),
+injury_narrow tinyint,
+injury_broad tinyint,
+intent varchar(255),
+mechanism varchar(255),
+ecode_flag_max tinyint,
+ecode_rank int
+)
+with (heap);
+insert into stg_claims.tmp_apcd_injury_cause_header_level_tmp
 select claim_header_id,
 icdcm_norm,
 max(injury_narrow) over (partition by claim_header_id) as injury_narrow,
@@ -748,44 +835,80 @@ max(injury_broad) over (partition by claim_header_id) as injury_broad,
 intent, mechanism,
 max(ecode_flag) over (partition by claim_header_id) as ecode_flag_max,
 ecode_rank
-into #stage_apcd_injury_cause_header_level_tmp
-from #stage_apcd_injury_nature_cause_ranks;
+from stg_claims.tmp_apcd_injury_nature_cause_ranks;
 
 --Collapse to claim header level
-IF object_id(N'tempdb..#stage_apcd_injury_cause_header_level_tmp2') is not null drop table #stage_apcd_injury_cause_header_level_tmp2;
+
+if object_id(N'stg_claims.tmp_apcd_injury_cause_header_level_tmp2',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_header_level_tmp2;
+create table stg_claims.tmp_apcd_injury_cause_header_level_tmp2 (
+claim_header_id bigint,
+ecode varchar(255),
+injury_narrow tinyint,
+injury_broad tinyint,
+intent varchar(255),
+mechanism varchar(255)
+)
+with (heap);
+insert into stg_claims.tmp_apcd_injury_cause_header_level_tmp2
 select distinct claim_header_id, 
 case when ecode_rank = 1 then icdcm_norm else null end as ecode,
 	injury_narrow, injury_broad, intent, mechanism
-into #stage_apcd_injury_cause_header_level_tmp2
-from #stage_apcd_injury_cause_header_level_tmp
+from stg_claims.tmp_apcd_injury_cause_header_level_tmp
 where (ecode_flag_max = 0) or (ecode_flag_max = 1 and ecode_rank = 1); -- subset to claim header level by selecting 1st-ranked ecode or stays having no ecodes at all
 
 --Add back first-ranked diagnosis with a nature-of-injury code
-IF object_id(N'tempdb..#stage_apcd_injury_cause_header_level_tmp3') is not null drop table #stage_apcd_injury_cause_header_level_tmp3;
+
+if object_id(N'stg_claims.tmp_apcd_injury_cause_header_level_tmp3',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_header_level_tmp3;
+create table stg_claims.tmp_apcd_injury_cause_header_level_tmp3 (
+claim_header_id bigint,
+ecode varchar(255),
+injury_narrow tinyint,
+injury_broad tinyint,
+intent varchar(255),
+mechanism varchar(255),
+icdcm_injury_nature varchar(255),
+icdcm_injury_nature_version tinyint
+)
+with (heap);
+insert into stg_claims.tmp_apcd_injury_cause_header_level_tmp3
 select a.*, b.icdcm_norm as icdcm_injury_nature, b.icdcm_version as icdcm_injury_nature_version
-into #stage_apcd_injury_cause_header_level_tmp3
-from #stage_apcd_injury_cause_header_level_tmp2 as a
-left join (select * from #stage_apcd_injury_nature_cause_ranks where injury_nature_rank = 1) as b
+from stg_claims.tmp_apcd_injury_cause_header_level_tmp2 as a
+left join (select * from stg_claims.tmp_apcd_injury_nature_cause_ranks where injury_nature_rank = 1) as b
 on a.claim_header_id = b.claim_header_id;
 
 --Step 10f: Create reference table to categorize type of nature of injury
 
 --First join to ref.icdcm_codes to grab CCS detail description, removing [initial encounter] phrase
-IF object_id(N'tempdb..#stage_apcd_distinct_injury_nature_icdcm_tmp1') is not null drop table #stage_apcd_distinct_injury_nature_icdcm_tmp1;
+
+if object_id(N'stg_claims.tmp_apcd_distinct_injury_nature_icdcm_tmp1',N'U') is not null drop table stg_claims.tmp_apcd_distinct_injury_nature_icdcm_tmp1;
+create table stg_claims.tmp_apcd_distinct_injury_nature_icdcm_tmp1 (
+icdcm_injury_nature varchar(255),
+icdcm_injury_nature_version tinyint,
+ccs_detail_desc varchar(255)
+)
+with (heap);
+insert into stg_claims.tmp_apcd_distinct_injury_nature_icdcm_tmp1
 select distinct icdcm_injury_nature, icdcm_injury_nature_version,
 case
   	when b.ccs_detail_desc like '%; initial encounter%' then replace(b.ccs_detail_desc, '; initial encounter', '')
   	when b.ccs_detail_desc like '%, initial encounter%' then replace(b.ccs_detail_desc, ', initial encounter', '')
   	else b.ccs_detail_desc
 end as ccs_detail_desc
-into #stage_apcd_distinct_injury_nature_icdcm_tmp1
-from #stage_apcd_injury_cause_header_level_tmp3 as a
+from stg_claims.tmp_apcd_injury_cause_header_level_tmp3 as a
 left join stg_claims.ref_icdcm_codes as b
 on (a.icdcm_injury_nature = b.icdcm) and (a.icdcm_injury_nature_version = b.icdcm_version)
 where a.icdcm_injury_nature is not null;
 
 --Normalize type of injury categories
-IF object_id(N'tempdb..#stage_apcd_distinct_injury_nature_icdcm_final') is not null drop table #stage_apcd_distinct_injury_nature_icdcm_final;
+
+if object_id(N'stg_claims.tmp_apcd_distinct_injury_nature_icdcm_final',N'U') is not null drop table stg_claims.tmp_apcd_distinct_injury_nature_icdcm_final;
+create table stg_claims.tmp_apcd_distinct_injury_nature_icdcm_final (
+icdcm_injury_nature varchar(255),
+icdcm_injury_nature_version tinyint,
+ccs_detail_desc varchar(255)
+)
+with (heap);
+insert into stg_claims.tmp_apcd_distinct_injury_nature_icdcm_final
 select icdcm_injury_nature, icdcm_injury_nature_version,
 case
 when ccs_detail_desc in ('Other specified injury', 'Other unspecified injury') then 'Other injuries'
@@ -799,33 +922,33 @@ when ccs_detail_desc in ('Crushing injury', 'Crushing injury or internal injury'
 when ccs_detail_desc in ('Burns', 'Burn and corrosion') then 'Burn and corrosion'
 else ccs_detail_desc
 end as ccs_detail_desc
-into #stage_apcd_distinct_injury_nature_icdcm_final
-from #stage_apcd_distinct_injury_nature_icdcm_tmp1;
+from stg_claims.tmp_apcd_distinct_injury_nature_icdcm_tmp1;
 
 --Step 10g: Add broad type categories to nature of injury ICD-CM codes
+
 insert into stg_claims.tmp_apcd_claim_header_injury
 select
 a.*,
 b.ccs_detail_desc as icdcm_injury_nature_type
-from #stage_apcd_injury_cause_header_level_tmp3 as a
-left join #stage_apcd_distinct_injury_nature_icdcm_final as b
+from stg_claims.tmp_apcd_injury_cause_header_level_tmp3 as a
+left join stg_claims.tmp_apcd_distinct_injury_nature_icdcm_final as b
 on (a.icdcm_injury_nature = b.icdcm_injury_nature) and (a.icdcm_injury_nature_version = b.icdcm_injury_nature_version)
 option (label = 'tmp_apcd_claim_header_injury');
 
 --Clean up temp tables
-IF object_id('tempdb..#stage_apcd_icdcm_distinct') is not null drop table #stage_apcd_icdcm_distinct;
-IF object_id('tempdb..#stage_apcd_injury_nature_ref') is not null drop table #stage_apcd_injury_nature_ref;
-IF object_id('tempdb..#stage_apcd_injury_nature') is not null drop table #stage_apcd_injury_nature;
-IF object_id(N'tempdb..#stage_apcd_injury_cause_icd10cm_ref') is not null drop table #stage_apcd_injury_cause_icd10cm_ref;
-IF object_id(N'tempdb..#stage_apcd_injury_cause_icd9cm_ref') is not null drop table #stage_apcd_injury_cause_icd9cm_ref;
-IF object_id(N'tempdb..#stage_apcd_injury_cause_ref') is not null drop table #stage_apcd_injury_cause_ref;
-IF object_id(N'tempdb..#stage_apcd_injury_nature_cause') is not null drop table #stage_apcd_injury_nature_cause;
-IF object_id(N'tempdb..#stage_apcd_injury_nature_cause_ranks') is not null drop table #stage_apcd_injury_nature_cause_ranks;
-IF object_id(N'tempdb..#stage_apcd_injury_cause_header_level_tmp') is not null drop table #stage_apcd_injury_cause_header_level_tmp;
-IF object_id(N'tempdb..#stage_apcd_injury_cause_header_level_tmp2') is not null drop table #stage_apcd_injury_cause_header_level_tmp2;
-IF object_id(N'tempdb..#stage_apcd_injury_cause_header_level_tmp3') is not null drop table #stage_apcd_injury_cause_header_level_tmp3;
-IF object_id(N'tempdb..#stage_apcd_distinct_injury_nature_icdcm_tmp1') is not null drop table #stage_apcd_distinct_injury_nature_icdcm_tmp1;
-IF object_id(N'tempdb..#stage_apcd_distinct_injury_nature_icdcm_final') is not null drop table #stage_apcd_distinct_injury_nature_icdcm_final;
+if object_id(N'stg_claims.tmp_apcd_icdcm_distinct',N'U') is not null drop table stg_claims.tmp_apcd_icdcm_distinct;
+if object_id(N'stg_claims.tmp_apcd_injury_nature_ref',N'U') is not null drop table stg_claims.tmp_apcd_injury_nature_ref;
+if object_id(N'stg_claims.tmp_apcd_injury_nature',N'U') is not null drop table stg_claims.tmp_apcd_injury_nature;
+if object_id(N'stg_claims.tmp_apcd_injury_cause_icd10cm_ref',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_icd10cm_ref;
+if object_id(N'stg_claims.tmp_apcd_injury_cause_icd9cm_ref',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_icd9cm_ref;
+if object_id(N'stg_claims.tmp_apcd_injury_cause_ref',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_ref;
+if object_id(N'stg_claims.tmp_apcd_injury_nature_cause',N'U') is not null drop table stg_claims.tmp_apcd_injury_nature_cause;
+if object_id(N'stg_claims.tmp_apcd_injury_nature_cause_ranks',N'U') is not null drop table stg_claims.tmp_apcd_injury_nature_cause_ranks;
+if object_id(N'stg_claims.tmp_apcd_injury_cause_header_level_tmp',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_header_level_tmp;
+if object_id(N'stg_claims.tmp_apcd_injury_cause_header_level_tmp2',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_header_level_tmp2;
+if object_id(N'stg_claims.tmp_apcd_injury_cause_header_level_tmp3',N'U') is not null drop table stg_claims.tmp_apcd_injury_cause_header_level_tmp3;
+if object_id(N'stg_claims.tmp_apcd_distinct_injury_nature_icdcm_tmp1',N'U') is not null drop table stg_claims.tmp_apcd_distinct_injury_nature_icdcm_tmp1;
+if object_id(N'stg_claims.tmp_apcd_distinct_injury_nature_icdcm_final',N'U') is not null drop table stg_claims.tmp_apcd_distinct_injury_nature_icdcm_final;
   
     
 ------------------
