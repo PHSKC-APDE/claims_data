@@ -2,28 +2,26 @@
 #' 
 #' @description Utilize claims information to get a better idea of different
 #' gender identities in Medicaid data and append that to the mcaid_elig_demo
-#' table
+#' table.
 #' 
-#' @details 
+#' @details This function adds on additional information (currently just a
+#' calculated non-cisgender column) to the mcaid_elig_demo table. It runs after
+#' the rest of the load_stage scripts are run so that it can use those in the
+#' calculations of additional columns.
 #' 
-#' Note: Need to use "set nocount on" to avoid temptable issues with R stopping the query early
+#' The methods are based on "Beyond Gender Identity Disorder Diagnosis Codes:
+#' An Examination of Additional Methods to Identify Transgender Individuals
+#' in Administrative Databases" by Guneet Jasuja et al.
 #' 
-
-# pacman::p_load(data.table, glue, keyring, lubridate, odbc)
-# devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
-# 
-# production_server <- F  # Change as needed!
-# 
-# schema <- "stg_claims"
-# to_table <- "temp_noncisgender"
-# proc_tbl <- "stage_mcaid_claim_procedure"
-# pharm_tbl <- "stage_mcaid_claim_pharm"
-# header_tbl <- "stage_mcaid_claim_icdcm_header"
-# demog_tbl <- "stage_mcaid_elig_demo"
-# ref_schema <- "stg_reference"
-# ndc_tbl <- "ref_ndc_codes"
-# 
-# conn <- create_db_connection("inthealth", interactive = F, prod = production_server)
+#' In the future, we may modify the methods to account for updates to methods
+#' of administration (things like powders, gels, etc. are not counted here),
+#' along with other updates to methods that may improve accuracy of
+#' identification. Only the ICD10 codes section is used, as with the 10 year
+#' deletion rule we essentially only have ICD 10 codes in Medicaid.
+#' 
+#' Note: Need to use "set nocount on" to avoid temptable issues with R stopping
+#' the query early
+#' 
 
 load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
                                                server = c("hhsaw", "phclaims"),
@@ -392,8 +390,3 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
                                 .con = conn))
   message(glue::glue("[{schema}].[{demog_tbl}] table has had the noncisgender column updated."))
 }
-
-
-
-
-
