@@ -341,14 +341,14 @@ claim_ccw_fail <- claim_load_f(table = "ccw")
 #### MCAID_CLAIM_BH ####
 claim_bh_fail <- claim_load_f(table = "bh")
 
-#### UPDATING MCAID_ELIG_DEMO FOR NONCISGENDERED ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.R")
-stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.yaml")
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
-#----------NEW FUNCTION----------#
+#### MCAID_ELIG_DEMO_EXTRA ####
+### Updates the [noncisgender] column in the elig demo table based on values in the different claim tables
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo_extra.R")
+stage_mcaid_elig_demo_extra_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo_extra.yaml")
+# Run function
+load_stage_mcaid_elig_demo_extra_f(conn = dw_inthealth, server = server, config = stage_mcaid_elig_demo_extra_config)
 ### Clean up
-rm(qa_stage_mcaid_elig_demo, stage_mcaid_elig_demo_config, load_stage_mcaid_elig_demo_f, 
-   last_run_elig_demo)
+rm(stage_mcaid_elig_demo_extra_config, load_stage_mcaid_elig_demo_extra_f)
 
 
 #### STAGE TABLE TO FINAL TABLE ####
