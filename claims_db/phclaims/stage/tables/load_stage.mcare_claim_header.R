@@ -789,7 +789,7 @@ load_stage.mcare_claim_header_f <- function() {
     if object_id(N'stg_claims.tmp_mcare_claim_header_temp2',N'U') is not null drop table stg_claims.tmp_mcare_claim_header_temp2;
     
     
-    ------------------
+    -------------------
     --STEP 8: CCS groupings (superlevel, broad, midlevel, detail) for primary diagnosis
     -------------------
     
@@ -1072,60 +1072,60 @@ load_stage.mcare_claim_header_f <- function() {
     --STEP 11: Conduct overlap and clustering for ED population health measure (Yale measure)
     --Adaptation of Philip's Medicaid code, which is adaptation of Eli's original code
     -------------------
-        
+    
     --create table shell
     if object_id(N'stg_claims.tmp_mcare_claim_header_ed_pophealth',N'U') is not null drop table stg_claims.tmp_mcare_claim_header_ed_pophealth;
     create table stg_claims.tmp_mcare_claim_header_ed_pophealth (
-    	claim_header_id varchar(255) collate SQL_Latin1_General_Cp1_CS_AS,
-        ed_pophealth_id bigint
+	    claim_header_id varchar(255) collate SQL_Latin1_General_Cp1_CS_AS,
+    	ed_pophealth_id bigint
     )
     with (heap);
-        
+    
     --Set date of service matching window
     declare @match_window int;
     set @match_window = 1;
-            
+        
     --insert data
     with increment_stays_by_person as
     (
-        select
-        id_mcare,
-        claim_header_id,
-        first_service_date,
-        last_service_date,
-        --create chronological (0, 1) indicator column.
-        --if 0, it is the first ED visit for the person OR the ED visit appears to be a duplicate (overlapping service dates) of the prior visit.
-        --if 1, the prior ED visit appears to be distinct from the following stay.
-        --this indicator column will be summed to create an episode_id.
-        case
+      select
+      id_mcare,
+      claim_header_id,
+      first_service_date,
+      last_service_date,
+      --create chronological (0, 1) indicator column.
+      --if 0, it is the first ED visit for the person OR the ED visit appears to be a duplicate (overlapping service dates) of the prior visit.
+      --if 1, the prior ED visit appears to be distinct from the following stay.
+      --this indicator column will be summed to create an episode_id.
+      case
         when row_number() over(partition by id_mcare order by first_service_date, last_service_date, claim_header_id) = 1 then 0
         when datediff(day, lag(first_service_date) over(partition by id_mcare
-            order by first_service_date, last_service_date, claim_header_id), first_service_date) <= @match_window then 0
+          order by first_service_date, last_service_date, claim_header_id), first_service_date) <= @match_window then 0
         when datediff(day, lag(first_service_date) over(partition by id_mcare
-            order by first_service_date, last_service_date, claim_header_id), first_service_date) > @match_window then 1
-        end as increment
-        from stg_claims.tmp_mcare_claim_header_temp3
-        where ed_yale_carrier = 1 or ed_yale_opt = 1 or ed_yale_ipt = 1
+          order by first_service_date, last_service_date, claim_header_id), first_service_date) > @match_window then 1
+      end as increment
+      from stg_claims.tmp_mcare_claim_header_temp3
+      where ed_yale_carrier = 1 or ed_yale_opt = 1 or ed_yale_ipt = 1
     ),
-            
+        
     --Sum [increment] column (Cumulative Sum) within person to create an stay_id that combines duplicate/overlapping ED visits.
     create_within_person_stay_id AS
     (
-        select
-        id_mcare,
-        claim_header_id,
-        sum(increment) over(partition by id_mcare order by first_service_date, last_service_date, claim_header_id rows unbounded preceding) + 1 as within_person_stay_id
-        from increment_stays_by_person
+      select
+      id_mcare,
+      claim_header_id,
+      sum(increment) over(partition by id_mcare order by first_service_date, last_service_date, claim_header_id rows unbounded preceding) + 1 as within_person_stay_id
+      from increment_stays_by_person
     )
-        
+    
     insert into stg_claims.tmp_mcare_claim_header_ed_pophealth
     select
     claim_header_id,
     dense_rank() over(order by id_mcare, within_person_stay_id) as ed_pophealth_id
     from create_within_person_stay_id
     option (label = 'tmp_mcare_claim_header_ed_pophealth');
-        
-        
+    
+    
     ------------------
     --STEP 12: Join back ed_pophealth, CCS, BH, and injury tables with header table on claim header ID
     -------------------
@@ -1190,7 +1190,7 @@ load_stage.mcare_claim_header_f <- function() {
     on a.claim_header_id = d.claim_header_id
     left join stg_claims.tmp_mcare_claim_header_injury as e
     on a.claim_header_id = e.claim_header_id;
-        
+    
     --drop final temp tables
     if object_id(N'stg_claims.tmp_mcare_claim_header_temp3',N'U') is not null drop table stg_claims.tmp_mcare_claim_header_temp3;
     if object_id(N'stg_claims.tmp_mcare_claim_header_ed_pophealth',N'U') is not null drop table stg_claims.tmp_mcare_claim_header_ed_pophealth;

@@ -15,6 +15,23 @@ vars:
     claim_type_apcd_id: varchar(255)
     claim_type_id: tinyint
     type_of_bill_code: varchar(255)
+    ccs_superlevel_desc: varchar(255)
+    ccs_broad_desc: varchar(500)
+    ccs_broad_code: varchar(255)
+    ccs_midlevel_desc: varchar(255)
+    ccs_detail_desc: varchar(500)
+    ccs_detail_code: varchar(255)
+    mh_primary: tinyint
+    mh_any: tinyint
+    sud_primary: tinyint
+    sud_any: tinyint
+    injury_nature_narrow: tinyint
+    injury_nature_broad: tinyint
+    injury_nature_type: varchar(255)
+    injury_nature_icdcm: varchar(255)
+    injury_ecode: varchar(255)
+    injury_intent: varchar(255)
+    injury_mechanism: varchar(255)
     cardiac_imaging_and_tests_flag: tinyint
     chiropractic_flag: tinyint
     consultations_flag: tinyint

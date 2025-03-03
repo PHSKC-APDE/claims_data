@@ -451,7 +451,7 @@ message(paste0("Completed copying ref.kc_provider_master to HHSAW - ", Sys.time(
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 10: apcd_claim_header #### (~3hr)
+#### Table 10: apcd_claim_header (~3hr) #### 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_header - ", Sys.time()))

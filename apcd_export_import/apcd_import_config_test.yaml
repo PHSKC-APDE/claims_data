@@ -1,8 +1,8 @@
-table_file_path: APCD_Tables_20240801.xlsx
+table_file_path: APCD_Tables_20241217.xlsx
 ftp_url: https://mft.kingcounty.gov/api/v2.0/files/APDEDE-WA-APCD/WA-APCD/
 ftp_keyring: apcd_sftp
-db_name: APCD
-server_path: kcitazrhpasqldev20.database.windows.net
+db_name: hhs_analytics_workspace
+server_path: hhsaw_dev
 odbc_name: hhsaw_dev
 base_dir: C:/temp/apcd
 ref_dir: ref_schema
@@ -10,10 +10,11 @@ stage_dir: stage_schema
 final_dir: final_schema
 field_term: \t
 row_term: \n
-ref_schema: ref
-stage_schema: stage
-final_schema: final
-etl_table: apcd_etl_log
+schema_name: jwhitehurst
+ref_pre: ref
+stage_pre: stage
+final_pre: final
+etl_table: z_apcd_etl_log
 archive_suffix: _archive
 index_type: ccs
 index_prefix: idx_ccs_

@@ -57,7 +57,7 @@ load_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                              ,cast(NDC as varchar(255)) as ndc
                              ,cast(DAYS_SUPPLY as smallint) as rx_days_supply
                              ,cast(SBMTD_DISPENSED_QUANTITY as numeric(19,3)) as rx_quantity
-                             ,cast(PRSCRPTN_FILLED_DATE as date) as rx_fill_date
+                             ,cast(coalesce(PRSCRPTN_FILLED_DATE, TO_SRVC_DATE) as date) as rx_fill_date
                              ,DRUG_DOSAGE as rx_dosage_form
 							 ,PACKAGE_SIZE_UOM as rx_dosage_unit
                              ,cast(case when (len([PRSCRBR_ID]) = 10 and 

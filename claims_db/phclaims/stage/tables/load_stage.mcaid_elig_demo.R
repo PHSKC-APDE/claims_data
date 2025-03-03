@@ -237,11 +237,11 @@ CASE WHEN race_all LIKE '%BLACK%' THEN 1 ELSE 0 END AS race_black,
 CASE WHEN race_all LIKE '%ASIAN%' THEN 1 ELSE 0 END AS race_asian, 
 CASE WHEN race_all LIKE '%HAWAIIAN%' OR race_all LIKE '%PACIFIC ISLANDER%' THEN 1 ELSE 0 END AS race_nhpi, 
 CASE WHEN race_all LIKE '%WHITE%' THEN 1 ELSE 0 END AS race_white, 
-CASE WHEN race_all LIKE '%HISPANIC%' THEN 1 ELSE 0 END AS race_latino, 
+CASE WHEN race_all LIKE 'HISPANIC%' THEN 1 ELSE 0 END AS race_latino, 
 CASE WHEN race_all LIKE '%ALASKAN_NATIVE%' OR race_all LIKE '%AMERICAN INDIAN%' 
 	OR race_all LIKE '%BLACK%' OR race_all LIKE '%ASIAN%' 
 	OR race_all LIKE '%HAWAIIAN%' OR race_all LIKE '%PACIFIC ISLANDER%'  
-	OR race_all LIKE '%WHITE%' OR race_all LIKE '%HISPANIC%' THEN 0 ELSE 1 END AS race_na
+	OR race_all LIKE '%WHITE%' OR race_all LIKE 'HISPANIC%' THEN 0 ELSE 1 END AS race_na
 INTO #elig_race
 FROM #elig_demoever                                      
                                       ", .con = conn))
@@ -581,7 +581,8 @@ lang_somali_t,
 lang_spanish_t, 
 lang_ukrainian_t, 
 lang_vietnamese_t, 
-last_run)
+last_run,
+noncisgender)
 SELECT
 a.id_mcaid, 
 a.dob, 
@@ -631,7 +632,8 @@ d.lang_somali_t,
 d.lang_spanish_t, 
 d.lang_ukrainian_t, 
 d.lang_vietnamese_t, 
-GETDATE()
+GETDATE(),
+0
 FROM #elig_dob a
 INNER JOIN #elig_gender_final b ON a.id_mcaid = b.id_mcaid
 INNER JOIN #elig_race_final c ON a.id_mcaid = c.id_mcaid
