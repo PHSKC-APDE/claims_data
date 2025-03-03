@@ -47,13 +47,13 @@ dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth
 from_conn <- create_db_connection("hhsaw", interactive = F, prod = T)
 table_copy_df <- read.csv("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/db_loader/mcaid/McaidTableCopyList.csv")
 if(prod == T) {
-  s_to <- "inthealth"
+  stg_server <- "inthealth"
 } else {
-  s_to <- "inthealth_dev"
+  stg_server <- "inthealth_dev"
 }
 table_duplicate_f(conn_from = from_conn, 
                   conn_to = dw_inthealth, 
-                  server_to = s_to, 
+                  server_to = stg_server, 
                   db_to = "inthealth_edw",
                   table_df = table_copy_df,
                   confirm_tables = F,
