@@ -237,11 +237,11 @@ CASE WHEN race_all LIKE '%BLACK%' THEN 1 ELSE 0 END AS race_black,
 CASE WHEN race_all LIKE '%ASIAN%' THEN 1 ELSE 0 END AS race_asian, 
 CASE WHEN race_all LIKE '%HAWAIIAN%' OR race_all LIKE '%PACIFIC ISLANDER%' THEN 1 ELSE 0 END AS race_nhpi, 
 CASE WHEN race_all LIKE '%WHITE%' THEN 1 ELSE 0 END AS race_white, 
-CASE WHEN race_all LIKE '%HISPANIC%' THEN 1 ELSE 0 END AS race_latino, 
+CASE WHEN race_all LIKE 'HISPANIC%' THEN 1 ELSE 0 END AS race_latino, 
 CASE WHEN race_all LIKE '%ALASKAN_NATIVE%' OR race_all LIKE '%AMERICAN INDIAN%' 
 	OR race_all LIKE '%BLACK%' OR race_all LIKE '%ASIAN%' 
 	OR race_all LIKE '%HAWAIIAN%' OR race_all LIKE '%PACIFIC ISLANDER%'  
-	OR race_all LIKE '%WHITE%' OR race_all LIKE '%HISPANIC%' THEN 0 ELSE 1 END AS race_na
+	OR race_all LIKE '%WHITE%' OR race_all LIKE 'HISPANIC%' THEN 0 ELSE 1 END AS race_na
 INTO #elig_race
 FROM #elig_demoever                                      
                                       ", .con = conn))
