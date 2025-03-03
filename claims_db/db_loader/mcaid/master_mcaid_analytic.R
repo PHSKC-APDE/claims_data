@@ -33,11 +33,17 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/notify.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/table_duplicate.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_df_bcp.R")
 #memory.limit(size = 56000) # Only necessary for R version < 4.2
 
 server <- "hhsaw"
 interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
 prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
+if(prod) {
+  stg_server <- "inthealth"
+} else {
+  stg_server <- "inthealth_dev"
+}
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
@@ -63,6 +69,7 @@ table_duplicate_f(conn_from = from_conn,
 #### CREATE ELIG TABLES --------------------------------------------------------
 #### MCAID_ELIG_DEMO ####
 ### Bring in function and config file
+
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.R")
 stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.yaml")
 
@@ -347,9 +354,6 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 stage_mcaid_elig_demo_extra_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo_extra.yaml")
 # Run function
 load_stage_mcaid_elig_demo_extra_f(conn = dw_inthealth, server = server, config = stage_mcaid_elig_demo_extra_config)
-### Clean up
-rm(stage_mcaid_elig_demo_extra_config, load_stage_mcaid_elig_demo_extra_f)
-
 
 #### STAGE TABLE TO FINAL TABLE ####
 table_list <- c("elig_demo", "elig_timevar",
@@ -363,8 +367,6 @@ message(paste0("Beginning process to copy data from INTHEALTH_EDW to HHSAW - ", 
 
 #Begin loop
 for(table in table_list) {
-  
-  
   from_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_", table, ".yaml"))
   from_schema <- from_config[[server]][["to_schema"]]
   from_table <- from_config[[server]][["to_table"]]
@@ -402,7 +404,6 @@ for(table in table_list) {
   DBI::dbExecute(conn = db_claims,
                  glue::glue_sql("execute claims.usp_external_table_load @fromtable = N{ext_table}, @totable = N{to_table};",
                                 .con = db_claims))
-  
   #Row count comparison for all tables except PLR tables
     inthealth_row_count <- DBI::dbGetQuery(conn = db_claims,
                                            glue::glue_sql("select count(*) as row_count from {`ext_schema`}.{`ext_table`};",
@@ -410,7 +411,6 @@ for(table in table_list) {
     hhsaw_row_count <- DBI::dbGetQuery(conn = db_claims,
                                        glue::glue_sql("select count(*) as row_count from {`to_schema`}.{`to_table`};",
                                                       .con = db_claims))
-    
   if (inthealth_row_count$row_count == hhsaw_row_count$row_count) {
       DBI::dbExecute(
         conn = db_claims,
@@ -423,11 +423,9 @@ for(table in table_list) {
                  {format(Sys.time(), usetz = FALSE)}, 
                  'All rows transferred to final table ({inthealth_row_count$row_count})')",
                        .con = db_claims))
-      
       # Track success
       table_fail <- 0
       add_index_f(conn = db_claims, server = server, table_config = to_config)
-      
     } else {
       DBI::dbExecute(
         conn = db_claims,

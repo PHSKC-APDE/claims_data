@@ -1,0 +1,11 @@
+hhsaw:
+    schema: stg_claims
+    to_table: temp_noncisgender
+    proc_tbl: stage_mcaid_claim_procedure
+    pharm_tbl: stage_mcaid_claim_pharm
+    header_tbl: stage_mcaid_claim_icdcm_header
+    demog_tbl: stage_mcaid_elig_demo
+    ref_schema: stg_reference
+    ndc_tbl: ref_ndc_codes
+vars:
+    id_mcaid: VARCHAR(255)
