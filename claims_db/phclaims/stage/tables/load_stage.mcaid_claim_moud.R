@@ -132,7 +132,6 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  procedure_code in (
   			'H0020', 'S0109', 'G2078', 'G2067',
 			  'J0571', 'J0572', 'J0573', 'J0574', 'J0575', 'G2068', 'G2079', 'Q9991', 'Q9992', 'G2069', 'G2070', 'G2072', 'J0570',
-			  'G2073', 'J2315',
 			  'G2074', 'G2075', 'G2076', 'G2077', 'G2080', 'G2086', 'G2087', 'G2088', 'G2213', 
 			  'J0577')
 		  --codes requiring primary diagnosis of OUD
