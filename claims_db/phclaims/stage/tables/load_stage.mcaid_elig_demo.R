@@ -580,8 +580,7 @@ lang_somali_t,
 lang_spanish_t, 
 lang_ukrainian_t, 
 lang_vietnamese_t, 
-last_run,
-noncisgender)
+last_run)
 SELECT
 a.id_mcaid, 
 a.dob, 
@@ -631,8 +630,7 @@ d.lang_somali_t,
 d.lang_spanish_t, 
 d.lang_ukrainian_t, 
 d.lang_vietnamese_t, 
-GETDATE(),
-0
+GETDATE()
 FROM #elig_dob a
 INNER JOIN #elig_gender_final b ON a.id_mcaid = b.id_mcaid
 INNER JOIN #elig_race_final c ON a.id_mcaid = c.id_mcaid
