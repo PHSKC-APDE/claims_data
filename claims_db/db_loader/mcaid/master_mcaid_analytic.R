@@ -354,6 +354,21 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 stage_mcaid_elig_demo_extra_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo_extra.yaml")
 # Run function
 load_stage_mcaid_elig_demo_extra_f(conn = dw_inthealth, server = server, config = stage_mcaid_elig_demo_extra_config)
+### QA stage version
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
+final_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/final/tables/load_final.mcaid_elig_demo.yaml"))
+stage_mcaid_elig_demo_config[[server]][["final_schema"]] <- final_config[[server]][["to_schema"]]
+stage_mcaid_elig_demo_config[[server]][["final_table"]] <- final_config[[server]][["to_table"]]
+# Re-establish connection because it drops out faster in Azure VM
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+qa_mcaid_elig_demo_extra <- qa_mcaid_elig_demo_extra_f(conn = dw_inthealth, conn_qa = db_claims, server = server, 
+                                                 config = stage_mcaid_elig_demo_config)
+### Clean up
+rm(qa_mcaid_elig_demo_extra, qa_mcaid_elig_demo_extra_f, stage_mcaid_elig_demo_config, final_config, load_stage_mcaid_elig_demo_extra_f)
+
+
+
 
 #### STAGE TABLE TO FINAL TABLE ####
 table_list <- c("elig_demo", "elig_timevar",
