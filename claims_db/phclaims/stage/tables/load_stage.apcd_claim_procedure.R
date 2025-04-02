@@ -4,6 +4,7 @@
 # 2019-10
 #
 # 2024-04-29 update: Modified for HHSAW migration
+# 2025-04-02 update: Removed procedure_code_number column and consolidated modifier codes into single column
 
 ### Run from master_apcd_analytic script
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/07_apcd_create_analytic_tables.R
@@ -20,9 +21,8 @@ load_stage.apcd_claim_procedure_f <- function() {
     -------------------
     insert into stg_claims.stage_apcd_claim_procedure
     select a.internal_member_id as id_apcd, a.medical_claim_header_id as claim_header_id,
-    	a.first_service_dt as first_service_date, a.last_service_dt as last_service_date, a.procedure_code, a.procedure_code_number,
-    	a.procedure_modifier_code_1 as modifier_1, a.procedure_modifier_code_2 as modifier_2, a.procedure_modifier_code_3 as modifier_3,
-    	a.procedure_modifier_code_4 as modifier_4, getdate() as last_run
+    	a.first_service_dt as first_service_date, a.last_service_dt as last_service_date, a.procedure_code, a.modifier_code,
+    	getdate() as last_run
     from stg_claims.apcd_claim_procedure_raw as a
     --exclude denined/orphaned claims
     left join stg_claims.apcd_medical_claim_header as b
