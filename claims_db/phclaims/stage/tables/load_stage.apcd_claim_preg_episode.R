@@ -84,7 +84,7 @@ load_stage.apcd_claim_preg_episode_f <- function() {
     --Join new reference table to claims data using EXACT join
     IF OBJECT_ID(N'tempdb..#preg_px') IS NOT NULL drop table #preg_px;
     select a.id_apcd, a.claim_header_id, a.last_service_date, a.procedure_code, 
-        a.procedure_code_number, b.lb, b.ect, b.ab, b.sa, b.sb, b.tro, b.deliv
+        b.lb, b.ect, b.ab, b.sa, b.sb, b.tro, b.deliv
     into #preg_px
     from stg_claims.stage_apcd_claim_procedure as a
     inner join #ref_px as b
