@@ -6,6 +6,8 @@
 #
 # R script developed by Jeremy Whitehurst using SQL scripts from Eli Kern, Jennifer Liu and Spencer Hensley
 #
+# Update 2025-04-03 (Eli Kern): Tweak code given new modifier_code structure 
+#
 ## 
 
 ## Function elements
@@ -148,10 +150,7 @@ FROM {`final_schema`}.{`paste0(final_table, 'mcaid_claim_procedure')`} AS A
 WHERE year(last_service_date) >= 2016 
 	and 
 	(a.procedure_code in ('G1028', 'G2215', 'G2216 ', 'J2310', 'J2311') 
-		or 
-	a.procedure_code = 'J3490' and (modifier_1 in ('HG', 'TG') 
-	    or modifier_2 in ('HG', 'TG')
-		or modifier_3 in ('HG', 'TG') or modifier_4 in ('HG', 'TG')));",
+		or (a.procedure_code = 'J3490' and modifier_code in ('HG', 'TG')));",
 	  .con = conn)
   DBI::dbExecute(conn = conn, step2_sql)
   
