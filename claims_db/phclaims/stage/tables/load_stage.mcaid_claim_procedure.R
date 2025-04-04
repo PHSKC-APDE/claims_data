@@ -8,6 +8,8 @@
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05 and 2019-12
 # Modified by: Philip Sylling, 2019-06-11
 # 
+# Update 2025-04-03 (Eli Kern): Remove procedure_code_number column and consolidate modifier codes into a single column
+#
 # Data Pull Run time: 9.66 min
 # Create Index Run Time: 5.75 min
 # 
@@ -58,11 +60,7 @@ load_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                                ,first_service_date
                                ,last_service_date
                                ,procedure_code
-                               ,cast(procedure_code_number as varchar(4)) as procedure_code_number
-                               ,modifier_1
-                               ,modifier_2
-                               ,modifier_3
-                               ,modifier_4
+                               ,modifier_code
                                ,getdate() as last_run
                                INTO {`to_schema`}.{`to_table`}
                                FROM 
@@ -93,7 +91,10 @@ load_stage_mcaid_claim_procedure_f <- function(conn = NULL,
                                ) as a
                                
                                unpivot(procedure_code for procedure_code_number in 
-                                       ([01],[02],[03],[04],[05],[06],[07],[08],[09],[10],[11],[12],[line])) as procedure_code;", 
+                                       ([01],[02],[03],[04],[05],[06],[07],[08],[09],[10],[11],[12],[line])) as procedure_code
+                               
+                               unpivot(modifier_code for modifier_code_number in 
+                                       ([modifier_1],[modifier_2],[modifier_3],[modifier_4])) as modifier_code;", 
                                .con = conn)
   
   message("Running step 2: Load to ", to_schema, ".", to_table)

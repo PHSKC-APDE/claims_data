@@ -30,9 +30,5 @@ vars:
     first_service_date: DATE
     last_service_date: DATE
     procedure_code: VARCHAR(200)
-    procedure_code_number: VARCHAR(4)
-    modifier_1: VARCHAR(200)
-    modifier_2: VARCHAR(200)
-    modifier_3: VARCHAR(200)
-    modifier_4: VARCHAR(200)
+    modifier_code: VARCHAR(200)
     last_run: DATETIME
