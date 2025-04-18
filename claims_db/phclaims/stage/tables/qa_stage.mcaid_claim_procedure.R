@@ -176,40 +176,41 @@ qa_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   
   
   #### Check that procedure_code_number in ('01':'12','line') ####
-  procedure_num_chk <- as.integer(
-    DBI::dbGetQuery(conn,
-                    glue::glue_sql("SELECT count([procedure_code_number])
-                  FROM {`to_schema`}.{`to_table`}
-                  where [procedure_code_number] not in
-                                 ('01','02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', 'line')", 
-                                   .con = conn)))
-  
-  # Write findings to metadata
-  if (procedure_num_chk == 0) {
-    procedure_num_fail <- 0
-    DBI::dbExecute(conn = conn_qa,
-                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
-                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({format(last_run, usetz = FALSE)}, 
-                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                   'procedure_code_number = 01-12 or line', 
-                   'PASS', 
-                   {format(Sys.time(), usetz = FALSE)}, 
-                   'All procedure_code_number values were 01:12 or line')",
-                                  .con = conn_qa))
-  } else {
-    procedure_num_fail <- 1
-    DBI::dbExecute(conn = conn_qa,
-                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
-                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
-                   VALUES ({format(last_run, usetz = FALSE)}, 
-                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
-                   'procedure_code_number = 01-12 or line', 
-                   'FAIL', 
-                   {format(Sys.time(), usetz = FALSE)}, 
-                   'There were {procedure_num_chk} procedure_code_number values not 01 through 12 or line')",
-                                  .con = conn_qa))
-  }
+  ### COLUMN REMOVED 04/2025
+#  procedure_num_chk <- as.integer(
+#    DBI::dbGetQuery(conn,
+#                    glue::glue_sql("SELECT count([procedure_code_number])
+#                  FROM {`to_schema`}.{`to_table`}
+#                  where [procedure_code_number] not in
+#                                 ('01','02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', 'line')", 
+#                                   .con = conn)))
+#  
+#  # Write findings to metadata
+#  if (procedure_num_chk == 0) {
+#    procedure_num_fail <- 0
+#    DBI::dbExecute(conn = conn_qa,
+#                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+#                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
+#                   VALUES ({format(last_run, usetz = FALSE)}, 
+#                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
+#                   'procedure_code_number = 01-12 or line', 
+#                   'PASS', 
+#                   {format(Sys.time(), usetz = FALSE)}, 
+#                   'All procedure_code_number values were 01:12 or line')",
+#                                  .con = conn_qa))
+#  } else {
+#    procedure_num_fail <- 1
+#    DBI::dbExecute(conn = conn_qa,
+#                   glue::glue_sql("INSERT INTO {`qa_schema`}.{DBI::SQL(qa_table)}qa_mcaid
+#                   (last_run, table_name, qa_item, qa_result, qa_date, note) 
+#                   VALUES ({format(last_run, usetz = FALSE)}, 
+#                   '{DBI::SQL(to_schema)}.{DBI::SQL(to_table)}',
+#                   'procedure_code_number = 01-12 or line', 
+#                   'FAIL', 
+#                   {format(Sys.time(), usetz = FALSE)}, 
+#                   'There were {procedure_num_chk} procedure_code_number values not 01 through 12 or line')",
+#                                  .con = conn_qa))
+#  }
   
   
   #### Compare number of procedure codes in current vs. prior analytic tables ####
