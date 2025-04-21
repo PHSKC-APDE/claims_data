@@ -441,10 +441,10 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
     conn_hhsaw <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
     df_address_geocode <- odbc::dbGetQuery(conn_hhsaw, 
                            glue::glue_sql("SELECT geo_hash_geocode,        
-                                          geo_id10_county,         
-                                          geo_id10_tract, 
-                                          geo_id10_hra,         
-                                          geo_id10_schooldistrict        
+                                          geo_id20_county,         
+                                          geo_id20_tract, 
+                                          geo_id20_hra,         
+                                          geo_id20_schooldistrict        
                                           FROM {`address_schema`}.{`geocode_table`}",                                         
                                           .con = conn_hhsaw))
     conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
@@ -485,9 +485,9 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       FROM #timevar_04b) a
       LEFT JOIN
       (SELECT DISTINCT geo_hash_geocode,
-        geo_id10_county AS geo_county_code, 
-        geo_id10_tract AS geo_tract_code, geo_id10_hra AS geo_hra_code, 
-        geo_id10_schooldistrict AS geo_school_code
+        geo_id20_county AS geo_county_code, 
+        geo_id20_tract AS geo_tract_code, geo_id20_hra AS geo_hra_code, 
+        geo_id20_schooldistrict AS geo_school_code
         FROM ", address_geocode_table, ") b
       ON a.geo_hash_geocode = b.geo_hash_geocode
       LEFT JOIN
