@@ -1410,8 +1410,8 @@ claims_elig <- function(conn,
                                                 FROM {`schema_rac`}.{`tbl_rac`}",
                                                 .con = conn))
     
-    hra_names <- (rads.data::spatial_hra_vid_region)[,c("hra", "vid")]
-    data.table::setnames(hra_names, c("hra", "vid"), c("geo_hra_name", "geo_hra_code"))
+    hra_names <- (rads.data::spatial_hra20_to_region20)[,c("hra20_name", "hra20_id")]
+    data.table::setnames(hra_names, c("hra20_name", "hra20_id"), c("geo_hra_name", "geo_hra_code"))
     
     county_names <- (rads.data::spatial_county_codes)[,c("geo_county_name", "geo_county_code_fips")]
     county_names <- dplyr::mutate(county_names, geo_county_code_fips = stringr::str_pad(geo_county_code_fips, width = 3, pad = "0"))
