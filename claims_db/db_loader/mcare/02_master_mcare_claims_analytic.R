@@ -18,9 +18,9 @@ pacman::p_load(DBI, glue, tidyverse, lubridate, odbc, configr, RCurl)
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
 
 #Set expected years of data for QA checks
-years_expected_from2014 <- 8 #number of years of data we expect (2014+)
-years_expected_from2015 <- 7 #number of years of data we expect (2015+)
-years_expected_from2017 <- 5 #number of years of data we expect (2017+)
+years_expected_from2014 <- 9 #number of years of data we expect (2014+)
+years_expected_from2015 <- 8 #number of years of data we expect (2015+)
+years_expected_from2017 <- 6 #number of years of data we expect (2017+)
 
 #Connect to inthealth_edw
 interactive_auth <- FALSE
