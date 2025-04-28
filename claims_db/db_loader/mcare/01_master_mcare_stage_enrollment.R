@@ -25,8 +25,8 @@ bene_enrollment_sql <- glue::glue_sql(
   ,cast(trim(bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id
   ,[bene_enrollmt_ref_yr]
   ,[zip_cd]
-  ,[bene_birth_dt]
-  ,[bene_death_dt]
+  ,CAST([bene_birth_dt] AS DATE) AS bene_birth_dt
+  ,CAST([bene_death_dt] AS DATE) AS bene_death_dt
   ,[sex_ident_cd]
   ,[bene_race_cd]
   ,[rti_race_cd]
@@ -89,8 +89,8 @@ bene_enrollment_sql <- glue::glue_sql(
   ,cast(trim(a.bene_id) as varchar(255)) collate SQL_Latin1_General_CP1_CS_AS as bene_id
   ,a.[bene_enrollmt_ref_yr]
   ,a.[bene_zip_cd]
-  ,a.[bene_birth_dt]
-  ,a.[bene_death_dt]
+  ,CAST(a.[bene_birth_dt] AS DATE) AS bene_birth_dtbene_birth_dt
+  ,CAST(a.[bene_death_dt] AS DATE) AS bene_death_dt
   ,a.[bene_sex_ident_cd]
   ,a.[bene_race_cd]
   ,a.[rti_race_cd]
@@ -267,7 +267,7 @@ nrow(bene_id_test_both)
 # of birth are mostly clustered in a given year/month for a given enrollment_year,
 # as this would indicate that something went wrong with how these dates were formatted/parsed along the way.
 date_check_sql <- glue::glue_sql("
-SELECT bene_enrollmt_ref_yr, bene_id, bene_birth_dt, bene_death_dt
+SELECT bene_enrollmt_ref_yr AS year, bene_id, CAST(bene_birth_dt AS DATE) AS bene_birth_dt, CAST(bene_death_dt AS DATE) AS bene_death_dt
 FROM stg_claims.mcare_bene_enrollment
 ",
 .con = dw_inthealth)
