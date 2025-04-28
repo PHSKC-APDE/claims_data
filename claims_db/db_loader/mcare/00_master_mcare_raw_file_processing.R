@@ -209,7 +209,7 @@ if(T) {
                                           ORDER BY etl_batch_id",
                                           .con = conn_db))
     
-    for(i in 2:nrow(files)) {
+    for(i in 1:nrow(files)) {
       file <- files[i,]
       schema <- "stg_claims"
       table <- file$note
