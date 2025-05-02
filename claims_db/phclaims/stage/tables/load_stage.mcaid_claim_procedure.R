@@ -9,6 +9,7 @@
 # Modified by: Philip Sylling, 2019-06-11
 # 
 # Update 2025-04-03 (Eli Kern): Remove procedure_code_number column and consolidate modifier codes into a single column
+# Update 2025-05-02 (Eli Kern): Debugging recent code change that is dropping procedure codes without any modifier codes
 #
 # Data Pull Run time: 9.66 min
 # Create Index Run Time: 5.75 min
@@ -54,47 +55,129 @@ load_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   #### STEP 2: INSERT INTO TABLE ####
   # Takes ~ 60 minutes in Azure
   # NB: Changes in table structure need to altered here and the YAML file
-  insert_sql <- glue::glue_sql("SELECT DISTINCT
-                               id_mcaid
-                               ,claim_header_id
-                               ,first_service_date
-                               ,last_service_date
-                               ,procedure_code
-                               ,modifier_code
-                               ,getdate() as last_run
-                               INTO {`to_schema`}.{`to_table`}
-                               FROM 
-                               (
-                                 select
-                                 MBR_H_SID as id_mcaid
-                                 ,TCN as claim_header_id
-                                 ,FROM_SRVC_DATE as first_service_date
-                                 ,TO_SRVC_DATE as last_service_date
-                                 ,PRCDR_CODE_1 as [01]
-                                 ,PRCDR_CODE_2 as [02]
-                                 ,PRCDR_CODE_3 as [03]
-                                 ,PRCDR_CODE_4 as [04]
-                                 ,PRCDR_CODE_5 as [05]
-                                 ,PRCDR_CODE_6 as [06]
-                                 ,PRCDR_CODE_7 as [07]
-                                 ,PRCDR_CODE_8 as [08]
-                                 ,PRCDR_CODE_9 as [09]
-                                 ,PRCDR_CODE_10 as [10]
-                                 ,PRCDR_CODE_11 as [11]
-                                 ,PRCDR_CODE_12 as [12]
-                                 ,LINE_PRCDR_CODE as [line]
-                                 ,MDFR_CODE1 as [modifier_1]
-                                 ,MDFR_CODE2 as [modifier_2]
-                                 ,MDFR_CODE3 as [modifier_3]
-                                 ,MDFR_CODE4 as [modifier_4]
-                                 FROM {`from_schema`}.{`from_table`}
-                               ) as a
-                               
-                               unpivot(procedure_code for procedure_code_number in 
-                                       ([01],[02],[03],[04],[05],[06],[07],[08],[09],[10],[11],[12],[line])) as procedure_code
-                               
-                               unpivot(modifier_code for modifier_code_number in 
-                                       ([modifier_1],[modifier_2],[modifier_3],[modifier_4])) as modifier_code;", 
+  insert_sql <- glue::glue_sql(
+    "-- Base CTE: pulled once from the source table
+    WITH base_data AS (
+        SELECT
+            MBR_H_SID,
+            TCN,
+            FROM_SRVC_DATE,
+            TO_SRVC_DATE,
+            PRCDR_CODE_1, PRCDR_CODE_2, PRCDR_CODE_3, PRCDR_CODE_4,
+            PRCDR_CODE_5, PRCDR_CODE_6, PRCDR_CODE_7, PRCDR_CODE_8,
+            PRCDR_CODE_9, PRCDR_CODE_10, PRCDR_CODE_11, PRCDR_CODE_12,
+            LINE_PRCDR_CODE,
+            MDFR_CODE1, MDFR_CODE2, MDFR_CODE3, MDFR_CODE4
+        FROM {`from_schema`}.{`from_table`}
+    ),
+    
+    -- CTE for PRCDR_CODE_1 to 12 (ICD codes with no modifiers)
+    icd_procedures AS (
+        SELECT
+            MBR_H_SID AS id_mcaid,
+            TCN AS claim_header_id,
+            FROM_SRVC_DATE AS first_service_date,
+            TO_SRVC_DATE AS last_service_date,
+            procedure_code,
+            NULL AS modifier_code
+        FROM (
+            SELECT
+                MBR_H_SID,
+                TCN,
+                FROM_SRVC_DATE,
+                TO_SRVC_DATE,
+                PRCDR_CODE_1 AS [01], PRCDR_CODE_2 AS [02], PRCDR_CODE_3 AS [03], PRCDR_CODE_4 AS [04],
+                PRCDR_CODE_5 AS [05], PRCDR_CODE_6 AS [06], PRCDR_CODE_7 AS [07], PRCDR_CODE_8 AS [08],
+                PRCDR_CODE_9 AS [09], PRCDR_CODE_10 AS [10], PRCDR_CODE_11 AS [11], PRCDR_CODE_12 AS [12]
+            FROM base_data
+        ) icd
+        UNPIVOT (
+            procedure_code FOR code_position IN
+            ([01], [02], [03], [04], [05], [06], [07], [08], [09], [10], [11], [12])
+        ) AS unpvt_icd
+    ),
+    
+    -- LINE_PRCDR_CODE rows with associated modifiers
+    line_procedures_with_modifiers AS (
+        SELECT
+            MBR_H_SID AS id_mcaid,
+            TCN AS claim_header_id,
+            FROM_SRVC_DATE AS first_service_date,
+            TO_SRVC_DATE AS last_service_date,
+            LINE_PRCDR_CODE AS procedure_code,
+            modifier_code
+        FROM (
+            SELECT
+                MBR_H_SID,
+                TCN,
+                FROM_SRVC_DATE,
+                TO_SRVC_DATE,
+                LINE_PRCDR_CODE,
+                MDFR_CODE1 AS [modifier_1],
+                MDFR_CODE2 AS [modifier_2],
+                MDFR_CODE3 AS [modifier_3],
+                MDFR_CODE4 AS [modifier_4]
+            FROM base_data
+        ) mod_src
+        UNPIVOT (
+            modifier_code FOR mod_position IN
+            ([modifier_1], [modifier_2], [modifier_3], [modifier_4])
+        ) AS unpvt_mod
+        WHERE LINE_PRCDR_CODE IS NOT NULL
+    ),
+    
+    -- LINE_PRCDR_CODE rows that have no modifier codes
+    line_procedures_no_modifiers AS (
+        SELECT
+            MBR_H_SID AS id_mcaid,
+            TCN AS claim_header_id,
+            FROM_SRVC_DATE AS first_service_date,
+            TO_SRVC_DATE AS last_service_date,
+            LINE_PRCDR_CODE AS procedure_code,
+            NULL AS modifier_code
+        FROM base_data
+        WHERE LINE_PRCDR_CODE IS NOT NULL
+          AND MDFR_CODE1 IS NULL
+          AND MDFR_CODE2 IS NULL
+          AND MDFR_CODE3 IS NULL
+          AND MDFR_CODE4 IS NULL
+    )
+    
+    -- Final selection with deduplication via UNION
+    SELECT
+        id_mcaid,
+        claim_header_id,
+        first_service_date,
+        last_service_date,
+        procedure_code,
+        modifier_code,
+        GETDATE() AS last_run
+    INTO {`to_schema`}.{`to_table`}
+    FROM icd_procedures
+    
+    UNION
+    
+    SELECT
+        id_mcaid,
+        claim_header_id,
+        first_service_date,
+        last_service_date,
+        procedure_code,
+        modifier_code,
+        GETDATE() AS last_run
+    FROM line_procedures_with_modifiers
+    
+    UNION
+    
+    SELECT
+        id_mcaid,
+        claim_header_id,
+        first_service_date,
+        last_service_date,
+        procedure_code,
+        modifier_code,
+        GETDATE() AS last_run
+    FROM line_procedures_no_modifiers;", 
                                .con = conn)
   
   message("Running step 2: Load to ", to_schema, ".", to_table)
