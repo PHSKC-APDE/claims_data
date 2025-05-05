@@ -337,22 +337,25 @@ if (sum(claim_line_fail, claim_icdcm_header_fail, claim_procedure_fail, claim_ph
 } else {
   claim_load_f(table = "header")
 }
+#### MCAID_CLAIM_CCW ####
+claim_ccw_fail <- claim_load_f(table = "ccw")
+#### MCAID_CLAIM_BH ####
+claim_bh_fail <- claim_load_f(table = "bh")
 #### MCAID_CLAIM_NALOXONE ####
 claim_naloxone_fail <- claim_load_f(table = "naloxone")
 #### MCAID_CLAIM_MOUD ####
 claim_moud_fail <- claim_load_f(table = "moud")
 #### MCAID_CLAIM_PREG_EPISODE ####
 claim_preg_episode_fail <- claim_load_f(table = "preg_episode")
-#### MCAID_CLAIM_CCW ####
-claim_ccw_fail <- claim_load_f(table = "ccw")
-#### MCAID_CLAIM_BH ####
-claim_bh_fail <- claim_load_f(table = "bh")
 
 #### MCAID_ELIG_DEMO_EXTRA ####
 ### Updates the [noncisgender] column in the elig demo table based on values in the different claim tables
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo_extra.R")
 stage_mcaid_elig_demo_extra_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo_extra.yaml")
+stage_mcaid_elig_demo_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_demo.yaml")
 # Run function
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 load_stage_mcaid_elig_demo_extra_f(conn = dw_inthealth, server = server, config = stage_mcaid_elig_demo_extra_config)
 ### QA stage version
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcaid_elig_demo.R")
@@ -464,7 +467,7 @@ for(table in table_list) {
 
 
 ## Closing message
-message(paste0("All tables have been successfully copied to inthealth_edw - ", Sys.time()))
+message(paste0("All tables have been successfully copied from inthealth_edw - ", Sys.time()))
 
 
 
