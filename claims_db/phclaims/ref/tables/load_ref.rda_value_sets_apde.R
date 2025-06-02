@@ -10,6 +10,10 @@
 #Updated coding in step 6 when collapsing to distinct rows to not account for desc variable b/c many ICD-CM codes had different descriptions between this update and previous update
 #Removed uploading table to PHClaims as it's no longer needed
 
+##2025-6-2 updates JL:
+#Added MOUD procedure codes to the reference table so an updated OUD definition can be created
+# (these are not from the RDA)
+
 #### Setup ####
 
 ##Load packages and set defaults
@@ -917,17 +921,35 @@ rda_value_sets_updated %>%
   filter(row_count >1) 
 
 
+#### Step 6b: Add in MOUD procedure codes (these are not from RDA) ####
+
+#Load in MOUD procedure code reference table that was previously created
+moud_proc <- dbGetQuery(statement = "select * from claims.ref_moud_procedure_code;", 
+                        conn = db_hhsaw) %>% 
+  mutate(value_set_group = "sud",
+         value_set_name = "apde-moud-procedure",
+         data_source_type = "procedure",
+         code_set = "HCPCS",
+         code = procedure_code,
+         desc = toupper(desc),
+         sub_group_condition = "sud_opioid") %>% 
+  select(value_set_group, value_set_name, data_source_type, code_set, code, desc, sub_group_condition)
+
+#Bind the MOUD procedure codes to RDA reference table
+rda_value_sets_updated_final <- plyr::rbind.fill(rda_value_sets_updated, moud_proc)
+
+
 #### Step 7: Export initial version of reference table ####
 
 #Add last run date/time
-rda_value_sets_updated <- rda_value_sets_updated %>% mutate(last_run = Sys.time())
+rda_value_sets_updated_final <- rda_value_sets_updated_final %>% mutate(last_run = Sys.time())
 
 #Load Rdata file to SP site
-myteamfolder_rda_value_set_existing$save_rdata(rda_value_sets_updated, file = "rda_value_sets_current.rdata")
+myteamfolder_rda_value_set_existing$save_rdata(rda_value_sets_updated_final, file = "rda_value_sets_current.rdata")
 
 #Save backup file with today's date
 myteamfolder_rda_value_set_existing$
-  save_rdata(rda_value_sets_updated,file = paste0("rda_value_sets_current_backup_", Sys.Date(), ".rdata"))
+  save_rdata(rda_value_sets_updated_final,file = paste0("rda_value_sets_current_backup_", Sys.Date(), ".rdata"))
 
 
 #### Step 8: Upload updated reference table to HHSAW ####
@@ -937,7 +959,7 @@ to_table <- "rda_value_sets_apde"
 
 # Load data
 dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table), 
-             value = as.data.frame(rda_value_sets_updated), 
+             value = as.data.frame(rda_value_sets_updated_final), 
              overwrite = T)
 
 # Add index
