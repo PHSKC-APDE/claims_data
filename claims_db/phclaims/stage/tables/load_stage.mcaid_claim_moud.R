@@ -164,7 +164,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   			on a.ndc = b.code
   	left join (
 		  select ndc, DOSAGEFORMNAME
-		  from {`stage_schema`}.{`paste0(ref_table, 'ndc_codes')`}) as c
+		  from {`ref_schema`}.{`paste0(ref_table, 'ndc_codes')`}) as c
   			on b.code = c.ndc
   	where a.rx_fill_date >= '2016-01-01';
   

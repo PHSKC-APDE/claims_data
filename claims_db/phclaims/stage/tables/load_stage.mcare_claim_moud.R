@@ -163,7 +163,7 @@ load_stage.mcare_claim_moud_f <- function() {
     on a.ndc = b.code
     left join (
         select ndc, DOSAGEFORMNAME
-        from stg_claims.ref_ndc_codes) as c
+        from stg_reference.ref_ndc_codes) as c
     on b.code = c.ndc
     where a.last_service_date >= '2016-01-01';
     
