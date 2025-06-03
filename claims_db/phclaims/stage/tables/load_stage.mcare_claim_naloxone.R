@@ -146,7 +146,7 @@ load_stage.mcare_claim_naloxone_f <- function() {
     	getdate() as last_run
     
     FROM stg_claims.final_mcare_claim_pharm as a
-    	left join stg_claims.ref_ndc_codes as b
+    	left join stg_reference.ref_ndc_codes as b
     	on a.ndc = b.ndc
     
     	inner join #naloxone_ndc_ref_table as c

@@ -98,7 +98,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   		on a.claim_header_id = b.claim_header_id
   	left join (
 		  select distinct code, icdcm_version, sub_group_condition
-  			from {`ref_schema`}.rda_value_sets_apde where sub_group_condition = 'sud_opioid' and data_source_type = 'diagnosis'
+  			from {`ref_schema`}.{`paste0(ref_table, 'rda_value_sets_apde')`} where sub_group_condition = 'sud_opioid' and data_source_type = 'diagnosis'
 		  ) as c
 		  on (b.primary_diagnosis = c.code) and (b.icdcm_version = c.icdcm_version);",
 	  .con = conn)
@@ -158,13 +158,13 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 	  from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`} as a
 	  inner join (
   		select distinct code, sub_group_pharmacy
-		  from {`ref_schema`}.rda_value_sets_apde
+		  from {`ref_schema`}.{`paste0(ref_table, 'rda_value_sets_apde')`}
 		  where sub_group_pharmacy in ('pharm_buprenorphine', 'pharm_buprenorphine_naloxone', 'pharm_naltrexone_rx')
 		  ) as b
   			on a.ndc = b.code
   	left join (
 		  select ndc, DOSAGEFORMNAME
-		  from {`stage_schema`}.{`paste0(ref_table, 'ndc_codes')`}) as c
+		  from {`ref_schema`}.{`paste0(ref_table, 'ndc_codes')`}) as c
   			on b.code = c.ndc
   	where a.rx_fill_date >= '2016-01-01';
   

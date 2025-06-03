@@ -90,7 +90,7 @@ load_stage.mcare_claim_moud_f <- function() {
     on a.claim_header_id = b.claim_header_id
     left join (
         select distinct code, icdcm_version, sub_group_condition
-        from stg_claims.ref_rda_value_sets_apde where sub_group_condition = 'sud_opioid' and data_source_type = 'diagnosis'
+        from stg_reference.ref_rda_value_sets_apde where sub_group_condition = 'sud_opioid' and data_source_type = 'diagnosis'
     ) as c
     on (b.primary_diagnosis = c.code) and (b.icdcm_version = c.icdcm_version);
         
@@ -157,13 +157,13 @@ load_stage.mcare_claim_moud_f <- function() {
     from stg_claims.final_mcare_claim_pharm as a
     inner join (
         select distinct code, sub_group_pharmacy
-        from stg_claims.ref_rda_value_sets_apde
+        from stg_reference.ref_rda_value_sets_apde
         where sub_group_pharmacy in ('pharm_buprenorphine', 'pharm_buprenorphine_naloxone', 'pharm_naltrexone_rx')
     ) as b
     on a.ndc = b.code
     left join (
         select ndc, DOSAGEFORMNAME
-        from stg_claims.ref_ndc_codes) as c
+        from stg_reference.ref_ndc_codes) as c
     on b.code = c.ndc
     where a.last_service_date >= '2016-01-01';
     
