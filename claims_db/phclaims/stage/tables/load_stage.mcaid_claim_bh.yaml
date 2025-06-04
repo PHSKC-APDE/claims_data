@@ -13,7 +13,7 @@ hhsaw:
   final_table: final_mcaid_claim_bh
   final_table_pre: final_
   ref_schema: stg_reference
-  ref_table: rda_value_sets_apde
+  ref_table: ref_rda_value_sets_apde
   rolling_schema: stg_claims
   rolling_table: ref_rolling_time_24mo_2012_2020
   qa_schema: claims
