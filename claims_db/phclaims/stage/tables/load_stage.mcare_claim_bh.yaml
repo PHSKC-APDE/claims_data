@@ -9,7 +9,7 @@ inthealth:
     icdcm_from_table: final_mcare_claim_icdcm_header
     to_schema: stg_claims
     to_table: stage_mcare_claim_bh_dev
-    ref_schema: stg_claims
+    ref_schema: stg_reference
     ref_table: ref_rda_value_sets_apde
     icdcm_ref_schema: stg_claims
     icdcm_ref_table: ref_icdcm_codes
