@@ -98,6 +98,8 @@ load_bh <- function(conn = NULL,
     claim_header_from_table <- table_config[[server]][["claim_header_from_table"]][[1]]
     claim_pharm_from_schema <- table_config[[server]][["claim_pharm_from_schema"]][[1]]
     claim_pharm_from_table <- table_config[[server]][["claim_pharm_from_table"]][[1]]
+    claim_procedure_from_schema <- table_config[[server]][["claim_procedure_from_schema"]][[1]]
+    claim_procedure_from_table <- table_config[[server]][["claim_procedure_from_table"]][[1]]
     icdcm_from_schema <- table_config[[server]][["icdcm_from_schema"]][[1]]
     icdcm_from_table <- table_config[[server]][["icdcm_from_table"]][[1]]
     ref_schema <- table_config[[server]][["ref_schema"]][[1]]
@@ -111,6 +113,8 @@ load_bh <- function(conn = NULL,
     claim_header_from_table <- table_config[["claim_header_from_table"]][[1]]
     claim_pharm_from_schema <- table_config[["claim_pharm_from_schema"]][[1]]
     claim_pharm_from_table <- table_config[["claim_pharm_from_table"]][[1]]
+    claim_procedure_from_schema <- table_config[["claim_procedure_from_schema"]][[1]]
+    claim_procedure_from_table <- table_config[["claim_procedure_from_table"]][[1]]
     icdcm_from_schema <- table_config[["icdcm_from_schema"]][[1]]
     icdcm_from_table <- table_config[["icdcm_from_table"]][[1]]
     # Assumes working in PHClaims for ref data if using older YAML format
