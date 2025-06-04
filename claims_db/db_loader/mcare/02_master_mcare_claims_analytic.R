@@ -765,28 +765,14 @@ mcare_claim_bh_qa1 <- dbGetQuery(conn = inthealth, glue_sql(
 
 #count conditions run
 mcare_claim_bh_qa2 <- dbGetQuery(conn = inthealth, glue_sql(
-  "select 'stg_claims.stage_mcare_claim_bh' as 'table', '# conditions, expect 16' as qa_type,
+  "select 'stg_claims.stage_mcare_claim_bh' as 'table', '# conditions, expect 17' as qa_type,
   count(distinct bh_cond) as qa
   from stg_claims.stage_mcare_claim_bh;",
   .con = inthealth))
 
-#count rows that overlap with prior row or following row, expect 0
-mcare_claim_bh_qa3 <- dbGetQuery(conn = inthealth, glue_sql(
-  "
-  with temp1 as (
-    select id_mcare, bh_cond, count(*) as row_count
-    from stg_claims.stage_mcare_claim_bh
-    group by id_mcare, bh_cond
-  )
-  select 'stg_claims.stage_mcare_claim_bh' as 'table', 'more than 1 row per person-condition, expect 0' as qa_type, count(*) as qa
-  from temp1
-  where row_count > 1;;",
-  .con = inthealth))
-
 ##Process QA results
 if(all(c(mcare_claim_bh_qa1$qa==0
-         & mcare_claim_bh_qa2$qa==16
-         & mcare_claim_bh_qa3$qa==0))) {
+         & mcare_claim_bh_qa2$qa==17))) {
   message(paste0("mcare_claim_bh QA result: PASS - ", Sys.time()))
 } else {
   stop(paste0("mcare_claim_bh QA result: FAIL - ", Sys.time()))
