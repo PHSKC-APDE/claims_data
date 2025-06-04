@@ -5,8 +5,8 @@ hhsaw:
     icdcm_from_table: final_mcare_claim_icdcm_header
     to_schema: stg_claims
     to_table: stage_mcare_claim_ccw
-    icdcm_ref_schema: stg_claims
-    icdcm_ref_table: ref_icdcm_codes
+    icdcm_ref_schema: stg_reference
+    icdcm_ref_table: icdcm_codes
     ref_schema: stg_claims
     ref_table_pre: ref_
 vars:
