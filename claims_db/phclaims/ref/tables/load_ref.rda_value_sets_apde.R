@@ -14,6 +14,9 @@
 #Added MOUD procedure codes to the reference table so an updated OUD definition can be created
 # (these are not from the RDA)
 
+#2025-6-9 updates JL:
+#Adding another variable as flag for more general MOUD procedure codes (e.g. 96372) that require primary OUD diagnosis
+
 #### Setup ####
 
 ##Load packages and set defaults
@@ -77,10 +80,12 @@ sub_group_pharmacy <- read_xlsx(
   colNames = TRUE,
   detectDates = TRUE)
 
-## Load existing RDA value set, dropping last_run variable
+## Load existing RDA value set, dropping last_run variable and MOUD procedure codes (will be added later)
 myteamfolder_rda_value_set_existing$get_item("rda_value_sets_current.rdata")$load_rdata()
-rda_value_sets_existing <- rda_value_sets_updated %>% select(-last_run)
-rm(rda_value_sets_updated)
+rda_value_sets_existing <- rda_value_sets_updated_final %>% 
+  filter(value_set_name != "apde-moud-procedure") %>% 
+  select(-last_run)
+rm(rda_value_sets_updated_final)
 
 ## Load new value sets for MH and SUD measures
 temp_mh_vs_new <- tempfile(fileext = ".xlsx")
@@ -932,8 +937,12 @@ moud_proc <- dbGetQuery(statement = "select * from claims.ref_moud_procedure_cod
          code_set = "HCPCS",
          code = procedure_code,
          desc = toupper(desc),
-         sub_group_condition = "sud_opioid") %>% 
-  select(value_set_group, value_set_name, data_source_type, code_set, code, desc, sub_group_condition)
+         sub_group_condition = "sud_opioid",
+         oud_dx1_flag = ifelse(procedure_code %in% c("H0033", "96372", "11981", "11983", 
+                                                     "G0516", "G0518", "G2073", "J2315"), 
+                               1, 0)) %>% 
+  select(value_set_group, value_set_name, data_source_type, code_set, code, desc, sub_group_condition,
+         oud_dx1_flag)
 
 #Bind the MOUD procedure codes to RDA reference table
 rda_value_sets_updated_final <- plyr::rbind.fill(rda_value_sets_updated, moud_proc)
