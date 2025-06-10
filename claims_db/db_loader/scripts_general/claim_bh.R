@@ -211,7 +211,25 @@ load_bh <- function(conn = NULL,
     # Build SQL query
     sql3 <- glue_sql("
     --Identify all OUD-relevant claims using diagnosis, drug and procedure codes
-    with oud_claims as (
+    
+    --to prep for procedure code step, extract all claims with primary OUD diagnosis
+    with oud_dx1 as (
+    	SELECT DISTINCT
+    	claim_header_id
+    	,1 as oud_dx1
+    	FROM  (
+    		SELECT claim_header_id, primary_diagnosis, icdcm_version
+    		FROM {`claim_header_from_schema`}.{`claim_header_from_table`}
+    	) as a
+    	INNER JOIN (
+    		SELECT sub_group_condition, code_set, code, icdcm_version, value_set_name
+    	FROM  {`ref_schema`}.{`ref_table`}
+    	WHERE code_set in ('ICD9CM', 'ICD10CM') and sub_group_condition = 'sud_opioid'
+    	) as b
+    	ON (a.primary_diagnosis = b.code) and (a.icdcm_version = b.icdcm_version)
+    ),
+
+    oud_claims as (
     	SELECT  
     	coalesce(diag.{`id_source`}, rx.{`id_source`}, pcode.{`id_source`}) as {`id_source`}
     	,coalesce(diag.claim_header_id, rx.claim_header_id, pcode.claim_header_id) as claim_header_id
@@ -272,14 +290,22 @@ load_bh <- function(conn = NULL,
     			SELECT DISTINCT a.{`id_source`}
     			,a.claim_header_id
     			,a.first_service_date as 'svc_date'
+    			,case
+				    when b.oud_dx1_flag = 0 then 1
+				    when b.oud_dx1_flag = 1 and c.oud_dx1 = 1 then 1
+				    else 0
+			    end as oud_dx1_flag	
     			FROM {`claim_procedure_from_schema`}.{`claim_procedure_from_table`} as a
     			INNER JOIN (
-    				SELECT sub_group_condition, code_set, code
+    				SELECT sub_group_condition, code_set, code, oud_dx1_flag
     				FROM {`ref_schema`}.{`ref_table`}
     				WHERE value_set_name in ('apde-moud-procedure') and sub_group_condition = 'sud_opioid'
     			) as b
     			ON a.procedure_code = b.code
+    			LEFT JOIN oud_dx1 as c
+			    on a.claim_header_id = c.claim_header_id
     		) as c
+    		where c.oud_dx1_flag = 1 -- ensure restriction for procedure codes requiring dx1 = OUD
     	) as pcode
     	on diag.claim_header_id = pcode.claim_header_id
     ),
