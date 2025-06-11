@@ -284,6 +284,13 @@ load_stage_mcaid_elig_month_f <- function(conn = NULL,
   
   #### STEP 7: Insert data into table shell ####
   
+  #First, create table shell
+  create_table_f(conn = conn, 
+                 server = server,
+                 config = config,
+                 overwrite = T)
+  
+  #Prep and run SQL code
   step7_sql <- glue::glue_sql(paste0(
     "
     INSERT INTO {`to_schema`}.{`to_table`}
