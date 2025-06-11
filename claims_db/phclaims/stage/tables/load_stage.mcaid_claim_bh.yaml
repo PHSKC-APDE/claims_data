@@ -8,7 +8,7 @@ hhsaw:
   icdcm_from_schema: stg_claims
   icdcm_from_table: stage_mcaid_claim_icdcm_header
   to_schema: stg_claims
-  to_table: stage_mcaid_claim_bh_dev
+  to_table: stage_mcaid_claim_bh
   final_schema: claims
   final_table: final_mcaid_claim_bh
   final_table_pre: final_
