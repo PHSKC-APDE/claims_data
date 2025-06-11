@@ -3,6 +3,8 @@ inthealth:
     claim_header_from_table: final_mcare_claim_header
     claim_pharm_from_schema: stg_claims
     claim_pharm_from_table: final_mcare_claim_pharm
+    claim_procedure_from_schema: stg_claims
+    claim_procedure_from_table: final_mcare_claim_procedure
     icdcm_from_schema: stg_claims
     icdcm_from_table: final_mcare_claim_icdcm_header
     to_schema: stg_claims
