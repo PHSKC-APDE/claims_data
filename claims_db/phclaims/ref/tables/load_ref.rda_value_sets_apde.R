@@ -17,6 +17,10 @@
 #2025-6-9 updates JL:
 #Adding another variable as flag for more general MOUD procedure codes (e.g. 96372) that require primary OUD diagnosis
 
+#2025-6-12 updates JL:
+#From NO HARMS, there were 66 ICD-10-CM codes associated with self-harm but not mapped to mh_any = 1
+    #-adding them to this table so Kai can then update the icdcm_codes table
+
 #### Setup ####
 
 ##Load packages and set defaults
@@ -84,7 +88,7 @@ sub_group_pharmacy <- read_xlsx(
 myteamfolder_rda_value_set_existing$get_item("rda_value_sets_current.rdata")$load_rdata()
 rda_value_sets_existing <- rda_value_sets_updated_final %>% 
   filter(value_set_name != "apde-moud-procedure") %>% 
-  select(-last_run)
+  select(-c(last_run, oud_dx1_flag))
 rm(rda_value_sets_updated_final)
 
 ## Load new value sets for MH and SUD measures
@@ -899,9 +903,47 @@ rda_value_sets_new_rx <- rda_value_sets_new_rx %>%
 rda_value_sets_new_rx %>% filter(data_source_type == "pharmacy" & is.na(sub_group_condition)) %>% count()
 
 
+#### Step 5b: Add in 66 ICD-10-CM codes that were identified through NO HARMS ####
+extra_idc <- data.frame(value_set_group = "mh",
+                        value_set_name = "apde-added-diagnosis",
+                        data_source_type = "diagnosis",
+                        code_set = "ICD10CM",
+                        code = c("T43652", "T43652A", "T43652D", "T43652S", "T45AX2A", 
+                                 "T45AX2D", "T45AX2S", "T4792X", "X738XX", "X739XX", 
+                                 "X7401X", "X7402X", "X7409X", "X748XX", "X749XX", "X75XXX",
+                                 "X76XXX", "X770XX", "X771XX", "T4592X", "X710XX", "X711XX", 
+                                 "X712XX", "X713XX", "X718XX", "X719XX", "X72XXX", "X730XX",
+                                 "T3692X", "T3792X", "T3992X", "X781XX", "X782XX", "X788XX",
+                                 "X789XX", "X79XXX", "X80XXX", "X810XX", "X811XX", "X818XX", 
+                                 "X820XX", "X821XX", "X822XX", "X828XX", "X830XX", "X731XX", 
+                                 "X732XX", "X838XX", "X772XX", "X773XX", "X778XX", "X779XX", 
+                                 "X780XX", "T1491X", "T56822A", "T56822D", "T56822S", "X831XX",
+                                 "X832XX", "T40412", "T40422", "T40492", "T4272X", "T4392X", 
+                                 "T4142X", "T4992X"),
+                        icdcm_version = 10,
+                        sub_group_condition = "mh_other") 
+
+# Join to ref.icdcm_codes table in order to get the description
+extra_idc_final <- dbGetQuery(conn = db_hhsaw, 
+                              statement = "select distinct icdcm, icdcm_version, icdcm_description
+                                            from ref.icdcm_codes
+                                            WHERE (SUBSTRING(icdcm, 1, 3) IN ('X60', 'X61', 'X62', 'X63', 'X64', 'X65', 'X66', 'X67', 'X68', 'X69', 'X70', 'X71', 'X72', 'X73', 'X74', 'X75', 'X76', 'X77', 'X78', 'X79', 'X80', 'X81', 'X82', 'X83', 'X84')  
+                                              OR (SUBSTRING(icdcm, 1, 3) IN ('T36', 'T37', 'T38', 'T39', 'T40', 'T41', 'T42', 'T43', 'T44', 'T45', 'T46', 'T47', 'T48', 'T49', 'T50', 'T51', 'T52', 'T53', 'T54', 'T55', 'T56', 'T57', 'T58', 'T59', 'T60', 'T61', 'T62', 'T63', 'T64', 'T65') 
+                                                AND SUBSTRING(icdcm, 6, 1) = '2'
+                                                AND SUBSTRING(icdcm, 1, 4) NOT IN ('T369', 'T379', 'T399', 'T414', 'T427', 'T439', 'T459', 'T479', 'T499')) 
+                                              OR (SUBSTRING(icdcm, 1, 4) IN ('T369', 'T379', 'T399', 'T414', 'T427', 'T439', 'T459', 'T479', 'T499') 
+                                                AND SUBSTRING(icdcm, 5, 1) = '2') 
+                                              OR (SUBSTRING(icdcm, 1, 3) = 'T71' AND SUBSTRING(icdcm, 6, 1) = '2') OR SUBSTRING(icdcm, 1, 5) = 'T1491' ) 
+                                              AND mh_any IS NULL") %>% 
+  right_join(extra_idc, by = c("icdcm" = "code", "icdcm_version")) %>% 
+  mutate(desc = toupper(icdcm_description)) %>% 
+  rename(code = icdcm) %>% 
+  select(value_set_group, value_set_name, data_source_type, code_set, code, desc, icdcm_version, 
+         sub_group_condition)
+
 #### Step 6: Bind to existing RDA value set and collapse to distinct rows ####
 
-rda_value_sets_updated <- bind_rows(rda_value_sets_existing, rda_value_sets_new_rx) %>% 
+rda_value_sets_updated <- bind_rows(rda_value_sets_existing, rda_value_sets_new_rx, extra_idc_final) %>% 
   distinct(across(-desc), .keep_all = TRUE)
 
 #Confirm that no ICD-CM codes have more than 1 row
