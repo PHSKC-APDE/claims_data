@@ -7,6 +7,7 @@
 # SQL script created by: Eli Kern, APDE, PHSKC, 2018-03-21
 # R functions created by: Alastair Matheson, PHSKC (APDE), 2019-05 and 2019-12
 # Modified by: Philip Sylling, 2019-06-11
+# Eli updated on 6/12/25: Added pharmacy_npi field
 # 
 # Data Pull Run time: 5.58 min
 # Create Index Run Time: 2.17 min
@@ -59,7 +60,7 @@ load_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                              ,cast(SBMTD_DISPENSED_QUANTITY as numeric(19,3)) as rx_quantity
                              ,cast(coalesce(PRSCRPTN_FILLED_DATE, TO_SRVC_DATE) as date) as rx_fill_date
                              ,DRUG_DOSAGE as rx_dosage_form
-							 ,PACKAGE_SIZE_UOM as rx_dosage_unit
+							               ,PACKAGE_SIZE_UOM as rx_dosage_unit
                              ,cast(case when (len([PRSCRBR_ID]) = 10 and 
                                               isnumeric([PRSCRBR_ID]) = 1 and 
                                               left([PRSCRBR_ID], 1) in (1,2)) then 'NPI'
@@ -68,7 +69,12 @@ load_stage_mcaid_claim_pharm_f <- function(conn = NULL,
                                          isnumeric(substring([PRSCRBR_ID], 3, 7)) = 1) then 'DEA'
                                    when [PRSCRBR_ID] = '5123456787' then 'WA HCA'
                                    when [PRSCRBR_ID] is not null then 'UNKNOWN' end as varchar(10)) as prescriber_id_format                           
-                             ,PRSCRBR_ID as prescriber_id                                                        
+                             ,PRSCRBR_ID as prescriber_id
+                             ,cast(case 
+                                when [CLAIM_STATUS] = 71 then [BLNG_NATIONAL_PRVDR_IDNTFR] 
+                                when ([CLAIM_STATUS] = 83 and [NPI] is not null) then [NPI] 
+                                when ([CLAIM_STATUS] = 83 and [NPI] is null) then [BLNG_NATIONAL_PRVDR_IDNTFR] 
+                              end as bigint) as billing_provider_npi
                              ,getdate() as last_run
                              INTO {`to_schema`}.{`to_table`}
                              FROM {`from_schema`}.{`from_table`}
