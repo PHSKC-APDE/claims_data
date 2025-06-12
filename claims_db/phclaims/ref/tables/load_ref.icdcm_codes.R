@@ -73,6 +73,9 @@ new_year <- F  # Toggle if there's a new year of ICD10CM files
 root_dir <- "C:/Users/kfukutaki.KC/King County/DPH-KCCross-SectorData - Documents/References/ICD-CM/ICD-10-CM_CMS"
 new_directory_file <- "2025 Code Descriptions/icd10cm_codes_2025.txt"
 old_file <- "C:/Users/kfukutaki.kc/OneDrive - King County/Documents/Code/reference-data/claims_data/ICD_9_10_CM_Complete.xlsx"
+# Where we are uploading it to
+to_schema <- "ref"
+to_table <- "icdcm_codes"
 
 ## Step 0 (optional): Add new year of ICD-CM codes ----
 if (new_year) {
@@ -817,19 +820,16 @@ icd10_codes <- unique(icd910cm[icd910cm$icdcm_version == 10,]$icdcm)
 
 # differences for each data source
 length(setdiff(mcaid[mcaid$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 2
-length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 26
+length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 6
 length(setdiff(apcd[apcd$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 0
-length(setdiff(apcd[apcd$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 390
-length(setdiff(chars[chars$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 236
-length(setdiff(chars[chars$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 351
+length(setdiff(apcd[apcd$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 406
+length(setdiff(chars[chars$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 119
+length(setdiff(chars[chars$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 265
 
 
 # Step 7: Upload reference table to SQL Server ----
 ## Set up server connection ----
-to_schema <- "ref"
-to_table <- "icdcm_codes"
 
-# If wanting to load table to both servers, do HHSAW first
 # Make connection
 # Load data
 dbWriteTable(db_hhsaw, name = DBI::Id(schema = to_schema, table = to_table), 
