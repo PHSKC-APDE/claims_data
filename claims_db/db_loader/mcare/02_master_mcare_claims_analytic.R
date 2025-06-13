@@ -76,7 +76,7 @@ DBI::dbExecute(conn = inthealth,
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 2: mcare_elig_timevar ####
+#### Table 2A: mcare_elig_timevar ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 ### A) Call in functions
@@ -120,6 +120,54 @@ DBI::dbExecute(conn = inthealth,
 ### F) Rename current stg_claims.stage table as stg_claims.final table
 DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_elig_timevar TO final_mcare_elig_timevar;",
+                              .con = inthealth))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 2B: mcare_elig_month ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_month.R")
+config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_month.yaml"
+inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### B) Create table
+create_table_f(conn = inthealth, 
+               config_url = config_url,
+               overall = T, ind_yr = F, overwrite = T)
+
+### C) Load tables
+system.time(load_stage.mcare_elig_month_f(conn = inthealth, config_url = config_url))
+
+### D) Table-level QA
+system.time(mcare_elig_month_qa <- qa_stage.mcare_elig_month_qa_f(conn = inthealth, config_url = config_url))
+rm(config_url)
+
+#Process results
+if(all(c(mcare_elig_month_qa$qa[[1]] == 0
+         & mcare_elig_month_qa$qa[[2]] == 0
+         & mcare_elig_month_qa$qa[[3]] == 0
+         & mcare_elig_month_qa$qa[[4]] == 0
+         & mcare_elig_month_qa$qa[[5]] == 0
+         & mcare_elig_month_qa$qa[[6]] == 0
+         & mcare_elig_month_qa$qa[[7]] == 0
+         & mcare_elig_month_qa$qa[[8]] == 0
+         & mcare_elig_month_qa$qa[[9]] == 0
+         & mcare_elig_month_qa$qa[[10]] == 0))) {
+  message("mcare_elig_month QA result: PASS")
+} else {
+  stop("mcare_elig_month QA result: FAIL")
+}
+
+### E) Archive current stg_claims.final table
+DBI::dbExecute(conn = inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_elig_month TO archive_mcare_elig_month;",
+                              .con = inthealth))
+
+### F) Rename current stg_claims.stage table as stg_claims.final table
+DBI::dbExecute(conn = inthealth,
+               glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_elig_month TO final_mcare_elig_month;",
                               .con = inthealth))
 
 
