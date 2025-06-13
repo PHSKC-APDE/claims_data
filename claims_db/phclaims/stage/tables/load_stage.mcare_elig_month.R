@@ -25,7 +25,7 @@ load_stage.mcare_elig_month_f <- function(conn = NULL,
   bene_enrollment_table <- config[["bene_enrollment_table"]]
   elig_demo_table <- config[["elig_demo_table"]]
   
-  message("Creating ", to_schema, ".", to_table, ". This will take ~10 minutes to run.")
+  message("Creating ", to_schema, ".", to_table, ". This will take ~5-10 minutes to run.")
   
   ### Run SQL query
   odbc::dbGetQuery(inthealth, glue::glue_sql(
@@ -284,7 +284,20 @@ load_stage.mcare_elig_month_f <- function(conn = NULL,
 }
 
 #### Table-level QA script ####
-qa_stage.mcare_elig_month_qa_f <- function() {
+qa_stage.mcare_elig_month_qa_f <- function(conn = NULL,
+                                           config_url = NULL) {
+  
+  ### Set up variables from config file
+  if (is.null(config_url) == T){
+    stop("A URL must be specified in config_url")
+  } else {
+    config <- yaml::yaml.load(RCurl::getURL(config_url))
+  }
+  
+  to_schema <- config[["schema"]]
+  to_table <- config[["table"]]
+  bene_enrollment_table <- config[["bene_enrollment_table"]]
+  elig_demo_table <- config[["elig_demo_table"]]
   
   #Count of people with to_date after death_dt, expect 0
   res1 <- dbGetQuery(conn = conn, glue_sql(
