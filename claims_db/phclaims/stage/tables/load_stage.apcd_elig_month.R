@@ -33,73 +33,63 @@ load_stage.apcd_elig_month_f <- function(conn = NULL,
   ### Run SQL query
   odbc::dbGetQuery(conn, glue::glue_sql(
     "
-    -------------------
-    --STEP 1: Use member_month_detail table to create coverage group variables
-    -------------------
-    if object_id('tempdb..#apcd_month_temp1') is not null drop table #apcd_month_temp1;
-    create table #apcd_month_temp1
-    with (
-        distribution = hash(internal_member_id),
-        heap
+    --Use member_month_detail table to create coverage group variables
+    with apcd_month_temp1 as (
+      select
+      internal_member_id,
+      convert(date, cast(year_month as varchar(200)) + '01') as from_date,
+      dateadd(day, -1, dateadd(month, 1, convert(date, cast(year_month as varchar(200)) + '01'))) as to_date,
+      year_month,
+      zip_code, 
+      --create empirical dual flag based on presence of medicaid and medicare ID
+      case when (med_medicaid_eligibility_id is not null or rx_medicaid_eligibility_id is not null or dental_medicaid_eligibility_id is not null)
+          and (med_medicare_eligibility_id is not null or rx_medicare_eligibility_id is not null or dental_medicare_eligibility_id is not null)
+          then 1 else 0
+      end as dual_flag,
+            
+      --create coverage categorical variable for medical coverage
+      case
+      when med_medicaid_eligibility_id is not null and med_commercial_eligibility_id is null and med_medicare_eligibility_id is null then 1 --Medicaid only
+      when med_medicaid_eligibility_id is null and med_commercial_eligibility_id is null and med_medicare_eligibility_id is not null then 2 --Medicare only
+      when med_medicaid_eligibility_id is null and med_commercial_eligibility_id is not null and med_medicare_eligibility_id is null then 3 --Commercial only
+      when med_medicaid_eligibility_id is not null and med_commercial_eligibility_id is null and med_medicare_eligibility_id is not null then 4 -- Medicaid-Medicare dual
+      when med_medicaid_eligibility_id is not null and med_commercial_eligibility_id is not null and med_medicare_eligibility_id is null then 5 --Medicaid-commercial dual
+      when med_medicaid_eligibility_id is null and med_commercial_eligibility_id is not null and med_medicare_eligibility_id is not null then 6 --Medicare-commercial dual
+      when med_medicaid_eligibility_id is not null and med_commercial_eligibility_id is not null and med_medicare_eligibility_id is not null then 7 -- All three
+      when medical_eligibility_id is not null then 8 -- Unknown market
+      else 0 --no medical coverage
+      end as med_covgrp,
+            
+      --create coverage categorical variable for pharmacy coverage
+      case
+      when rx_medicaid_eligibility_id is not null and rx_commercial_eligibility_id is null and rx_medicare_eligibility_id is null then 1 --Medicaid only
+      when rx_medicaid_eligibility_id is null and rx_commercial_eligibility_id is null and rx_medicare_eligibility_id is not null then 2 --Medicare only
+      when rx_medicaid_eligibility_id is null and rx_commercial_eligibility_id is not null and rx_medicare_eligibility_id is null then 3 --Commercial only
+      when rx_medicaid_eligibility_id is not null and rx_commercial_eligibility_id is null and rx_medicare_eligibility_id is not null then 4 -- Medicaid-Medicare dual
+      when rx_medicaid_eligibility_id is not null and rx_commercial_eligibility_id is not null and rx_medicare_eligibility_id is null then 5 --Medicaid-commercial dual
+      when rx_medicaid_eligibility_id is null and rx_commercial_eligibility_id is not null and rx_medicare_eligibility_id is not null then 6 --Medicare-commercial dual
+      when rx_medicaid_eligibility_id is not null and rx_commercial_eligibility_id is not null and rx_medicare_eligibility_id is not null then 7 -- All three
+      when pharmacy_eligibility_id is not null then 8 -- Unknown market
+      else 0 --no pharm coverage
+      end as pharm_covgrp,
+            
+      --create coverage categorical variable for dental coverage
+      case
+      when dental_medicaid_eligibility_id is not null and dental_commercial_eligibility_id is null and dental_medicare_eligibility_id is null then 1 --Medicaid only
+      when dental_medicaid_eligibility_id is null and dental_commercial_eligibility_id is null and dental_medicare_eligibility_id is not null then 2 --Medicare only
+      when dental_medicaid_eligibility_id is null and dental_commercial_eligibility_id is not null and dental_medicare_eligibility_id is null then 3 --Commercial only
+      when dental_medicaid_eligibility_id is not null and dental_commercial_eligibility_id is null and dental_medicare_eligibility_id is not null then 4 -- Medicaid-Medicare dual
+      when dental_medicaid_eligibility_id is not null and dental_commercial_eligibility_id is not null and dental_medicare_eligibility_id is null then 5 --Medicaid-commercial dual
+      when dental_medicaid_eligibility_id is null and dental_commercial_eligibility_id is not null and dental_medicare_eligibility_id is not null then 6 --Medicare-commercial dual
+      when dental_medicaid_eligibility_id is not null and dental_commercial_eligibility_id is not null and dental_medicare_eligibility_id is not null then 7 -- All three
+      when dental_eligibility_id is not null then 8 -- Unknown market
+      else 0 --no dental coverage
+      end as dental_covgrp
+            
+      from {`from_schema`}.{`from_table`}
     )
-    as
-    select
-    internal_member_id,
-    convert(date, cast(year_month as varchar(200)) + '01') as from_date,
-    dateadd(day, -1, dateadd(month, 1, convert(date, cast(year_month as varchar(200)) + '01'))) as to_date,
-    year_month,
-    zip_code, 
-    --create empirical dual flag based on presence of medicaid and medicare ID
-    case when (med_medicaid_eligibility_id is not null or rx_medicaid_eligibility_id is not null or dental_medicaid_eligibility_id is not null)
-        and (med_medicare_eligibility_id is not null or rx_medicare_eligibility_id is not null or dental_medicare_eligibility_id is not null)
-        then 1 else 0
-    end as dual_flag,
-          
-    --create coverage categorical variable for medical coverage
-    case
-    when med_medicaid_eligibility_id is not null and med_commercial_eligibility_id is null and med_medicare_eligibility_id is null then 1 --Medicaid only
-    when med_medicaid_eligibility_id is null and med_commercial_eligibility_id is null and med_medicare_eligibility_id is not null then 2 --Medicare only
-    when med_medicaid_eligibility_id is null and med_commercial_eligibility_id is not null and med_medicare_eligibility_id is null then 3 --Commercial only
-    when med_medicaid_eligibility_id is not null and med_commercial_eligibility_id is null and med_medicare_eligibility_id is not null then 4 -- Medicaid-Medicare dual
-    when med_medicaid_eligibility_id is not null and med_commercial_eligibility_id is not null and med_medicare_eligibility_id is null then 5 --Medicaid-commercial dual
-    when med_medicaid_eligibility_id is null and med_commercial_eligibility_id is not null and med_medicare_eligibility_id is not null then 6 --Medicare-commercial dual
-    when med_medicaid_eligibility_id is not null and med_commercial_eligibility_id is not null and med_medicare_eligibility_id is not null then 7 -- All three
-    when medical_eligibility_id is not null then 8 -- Unknown market
-    else 0 --no medical coverage
-    end as med_covgrp,
-          
-    --create coverage categorical variable for pharmacy coverage
-    case
-    when rx_medicaid_eligibility_id is not null and rx_commercial_eligibility_id is null and rx_medicare_eligibility_id is null then 1 --Medicaid only
-    when rx_medicaid_eligibility_id is null and rx_commercial_eligibility_id is null and rx_medicare_eligibility_id is not null then 2 --Medicare only
-    when rx_medicaid_eligibility_id is null and rx_commercial_eligibility_id is not null and rx_medicare_eligibility_id is null then 3 --Commercial only
-    when rx_medicaid_eligibility_id is not null and rx_commercial_eligibility_id is null and rx_medicare_eligibility_id is not null then 4 -- Medicaid-Medicare dual
-    when rx_medicaid_eligibility_id is not null and rx_commercial_eligibility_id is not null and rx_medicare_eligibility_id is null then 5 --Medicaid-commercial dual
-    when rx_medicaid_eligibility_id is null and rx_commercial_eligibility_id is not null and rx_medicare_eligibility_id is not null then 6 --Medicare-commercial dual
-    when rx_medicaid_eligibility_id is not null and rx_commercial_eligibility_id is not null and rx_medicare_eligibility_id is not null then 7 -- All three
-    when pharmacy_eligibility_id is not null then 8 -- Unknown market
-    else 0 --no pharm coverage
-    end as pharm_covgrp,
-          
-    --create coverage categorical variable for dental coverage
-    case
-    when dental_medicaid_eligibility_id is not null and dental_commercial_eligibility_id is null and dental_medicare_eligibility_id is null then 1 --Medicaid only
-    when dental_medicaid_eligibility_id is null and dental_commercial_eligibility_id is null and dental_medicare_eligibility_id is not null then 2 --Medicare only
-    when dental_medicaid_eligibility_id is null and dental_commercial_eligibility_id is not null and dental_medicare_eligibility_id is null then 3 --Commercial only
-    when dental_medicaid_eligibility_id is not null and dental_commercial_eligibility_id is null and dental_medicare_eligibility_id is not null then 4 -- Medicaid-Medicare dual
-    when dental_medicaid_eligibility_id is not null and dental_commercial_eligibility_id is not null and dental_medicare_eligibility_id is null then 5 --Medicaid-commercial dual
-    when dental_medicaid_eligibility_id is null and dental_commercial_eligibility_id is not null and dental_medicare_eligibility_id is not null then 6 --Medicare-commercial dual
-    when dental_medicaid_eligibility_id is not null and dental_commercial_eligibility_id is not null and dental_medicare_eligibility_id is not null then 7 -- All three
-    when dental_eligibility_id is not null then 8 -- Unknown market
-    else 0 --no dental coverage
-    end as dental_covgrp
-          
-    from {`from_schema`}.{`from_table`};
     
-    
-    -------------------
-    --STEP 2: Add additional coverage flag and geo variables, calculate cov time, add time period vars, and insert into table shell
-    -------------------
+    --Add additional coverage flag and geo variables, calculate cov time, add time period vars, and insert into table shell
     insert into {`to_schema`}.{`to_table`}
     select 
     a.internal_member_id as id_apcd,
@@ -134,7 +124,7 @@ load_stage.apcd_elig_month_f <- function(conn = NULL,
     case when b.zip_group_desc = 'King' then 1 else 0 end as geo_kc,
     datediff(day, a.from_date, a.to_date) + 1 as cov_time_day,
     getdate() as last_run
-    from #apcd_month_temp1 as a
+    from apcd_month_temp1 as a
     left join (select distinct zip_code, zip_group_desc from {`ref_schema`}.{`ref_apcd_zip_group`} where zip_group_type_desc = 'County') as b
     on a.zip_code = b.zip_code
     left join (select distinct zip_code, zip_group_code, zip_group_desc from {`ref_schema`}.{`ref_apcd_zip_group`} where left(zip_group_type_desc, 3) = 'Acc') as c
