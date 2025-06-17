@@ -6,6 +6,8 @@ ref_schema: stg_claims
 ref_apcd_zip_group: ref_apcd_zip_group
 ref_geo_county_code_wa: ref_geo_county_code_wa
 ref_date: ref_date
+apcd_elig_demo: stage_apcd_elig_demo
+apcd_eligibility: apcd_eligibility
 vars:
     id_apcd: bigint
     from_date: date
