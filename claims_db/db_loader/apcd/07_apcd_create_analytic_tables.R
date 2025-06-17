@@ -139,15 +139,15 @@ rm(config_url)
 
 if(
   (apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to raw tables"]==
-   apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to timevar" &
+   apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to elig_month" &
                     apcd_month_qa$table=="\"stg_claims\".\"apcd_member_month_detail\""])
   
   & (apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to raw tables"]==
-     apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to timevar" &
+     apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to elig_month" &
                       apcd_month_qa$table=="\"stg_claims\".\"stage_apcd_elig_demo\""])
   
   & (apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, King 2016, expect match to member_month"]==
-     apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, King 2016, expect match to timevar"])
+     apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, King 2016, expect match to elig_month"])
   
   & apcd_month_qa$qa[apcd_month_qa$qa_type=="non-WA resident segments with non-null county name, expect 0"]==0
   & apcd_month_qa$qa[apcd_month_qa$qa_type=="WA resident segments with null county name, expect 0"]==0

@@ -164,11 +164,11 @@ qa_stage.apcd_elig_month_f <- function(conn = NULL,
     from {`to_schema`}.{`to_table`}",
     .con = conn))
   res2 <- dbGetQuery(conn = conn, glue_sql(
-    "select '{`from_schema`}.{`from_table`}' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
+    "select '{`from_schema`}.{`from_table`}' as 'table', 'member count, expect match to elig_month' as qa_type, count(distinct internal_member_id) as qa
     from {`from_schema`}.{`from_table`}",
     .con = conn))
   res3 <- dbGetQuery(conn = conn, glue_sql(
-    "select '{`from_schema`}.{`apcd_elig_demo`}' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct id_apcd) as qa
+    "select '{`from_schema`}.{`apcd_elig_demo`}' as 'table', 'member count, expect match to elig_month' as qa_type, count(distinct id_apcd) as qa
     from {`from_schema`}.{`apcd_elig_demo`}",
     .con = conn))
   res4 <- dbGetQuery(conn = conn, glue_sql(
@@ -178,13 +178,13 @@ qa_stage.apcd_elig_month_f <- function(conn = NULL,
       and geo_ach = 'HealthierHere'",
     .con = conn))
   res5 <- dbGetQuery(conn = conn, glue_sql(
-    "select '{`from_schema`}.{`from_table`}' as 'table', 'member count, King 2016, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
+    "select '{`from_schema`}.{`from_table`}' as 'table', 'member count, King 2016, expect match to elig_month' as qa_type, count(distinct internal_member_id) as qa
     from {`from_schema`}.{`from_table`}
       where left(year_month,4) = '2016'
       and zip_code in (select zip_code from {`ref_schema`}.{`ref_apcd_zip_group`} where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
     .con = conn))
   res6 <- dbGetQuery(conn = conn, glue_sql(
-    "select '{`from_schema`}.{`apcd_eligibility`}' as 'table', 'member count, King 2016, expect slightly more than timevar' as qa_type, count(distinct internal_member_id) as qa
+    "select '{`from_schema`}.{`apcd_eligibility`}' as 'table', 'member count, King 2016, expect slightly more than elig_month' as qa_type, count(distinct internal_member_id) as qa
     from {`from_schema`}.{`apcd_eligibility`}
       where eligibility_start_dt <= '2016-12-31' and eligibility_end_dt >= '2016-01-01'
       and zip in (select zip_code from {`ref_schema`}.{`ref_apcd_zip_group`} where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
