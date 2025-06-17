@@ -168,8 +168,8 @@ qa_stage.apcd_elig_month_f <- function(conn = NULL,
     from {`from_schema`}.{`from_table`}",
     .con = conn))
   res3 <- dbGetQuery(conn = conn, glue_sql(
-    "select '{`from_schema`}.{`stage_apcd_elig_demo`}' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct id_apcd) as qa
-    from {`from_schema`}.{`stage_apcd_elig_demo`}",
+    "select '{`from_schema`}.{`apcd_elig_demo`}' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct id_apcd) as qa
+    from {`from_schema`}.{`apcd_elig_demo`}",
     .con = conn))
   res4 <- dbGetQuery(conn = conn, glue_sql(
     "select '{`to_schema`}.{`to_table`}' as 'table', 'member count, King 2016, expect match to member_month' as qa_type, count(distinct id_apcd) as qa
