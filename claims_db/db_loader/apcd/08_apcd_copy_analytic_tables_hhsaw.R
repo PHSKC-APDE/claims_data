@@ -35,6 +35,7 @@ message(paste0("Beginning process to copy data from INTHEALTH_EDW to HHSAW - ", 
 table_list <- list(
   "final_apcd_elig_demo",
   "final_apcd_elig_timevar",
+  "final_apcd_elig_month",
   "final_apcd_elig_plr",
   "final_apcd_claim_line",
   "final_apcd_claim_icdcm_header",
