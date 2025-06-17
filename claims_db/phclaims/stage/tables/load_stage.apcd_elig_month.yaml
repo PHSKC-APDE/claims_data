@@ -1,0 +1,40 @@
+from_schema: stg_claims
+from_table: apcd_member_month_detail
+to_schema: stg_claims
+to_table: stage_apcd_elig_month
+ref_schema: stg_claims
+ref_apcd_zip_group: ref_apcd_zip_group
+ref_geo_county_code_wa: ref_geo_county_code_wa
+ref_date: ref_date
+vars:
+    id_apcd: bigint
+    from_date: date
+    to_date: date
+    year_month: int
+    year_quarter: int
+    year: int
+    med_covgrp: tinyint
+    pharm_covgrp: tinyint
+    dental_covgrp: tinyint
+    med_medicaid: tinyint
+    med_medicare: tinyint
+    med_commercial: tinyint
+    med_unknown: tinyint
+    pharm_medicaid: tinyint
+    pharm_medicare: tinyint
+    pharm_commercial: tinyint
+    pharm_unknown: tinyint
+    dental_medicaid: tinyint
+    dental_medicare: tinyint
+    dental_commercial: tinyint
+    dental_unknown: tinyint
+    dual: tinyint
+    geo_zip: varchar(255)
+    geo_county_code: varchar(255)
+    geo_county: varchar(255)
+    geo_ach_code: varchar(255)
+    geo_ach: varchar(255)
+    geo_wa: tinyint
+    geo_kc: tinyint
+    cov_time_day: bigint
+    last_run: datetime
