@@ -28,7 +28,7 @@ load_stage.apcd_elig_month_f <- function(conn = NULL,
   apcd_elig_demo <- config[["apcd_elig_demo"]]
   apcd_eligibility <- config[["apcd_eligibility"]]
   
-  message("Creating ", to_schema, ".", to_table, ". This will take ~5-10 minutes to run.")
+  message("Creating ", to_schema, ".", to_table, ". This will take ~40 minutes to run.")
   
   ### Run SQL query
   odbc::dbGetQuery(conn, glue::glue_sql(
