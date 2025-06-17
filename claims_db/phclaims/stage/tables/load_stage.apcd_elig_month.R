@@ -17,8 +17,8 @@ load_stage.apcd_elig_month_f <- function(conn = NULL,
     config <- yaml::yaml.load(RCurl::getURL(config_url))
   }
   
-  from_schema <- config[["stg_claims"]]
-  from_table <- config[["apcd_member_month_detail"]]
+  from_schema <- config[["from_schema"]]
+  from_table <- config[["from_table"]]
   to_schema <- config[["to_schema"]]
   to_table <- config[["to_table"]]
   ref_schema <- config[["ref_schema"]]
