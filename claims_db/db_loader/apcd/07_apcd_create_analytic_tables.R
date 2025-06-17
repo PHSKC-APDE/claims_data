@@ -11,6 +11,7 @@
 
 #2022-02: Eli switched to using APDE repo functions where Alastair has moved them over
 #2024-03: Eli updated for migration to Azure HHSAW
+#2025-06: Eli added apcd_elig_month table
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
@@ -67,7 +68,7 @@ if((apcd_demo_qa$qa[[1]] == apcd_demo_qa$qa[[2]]) & (apcd_demo_qa$qa[[1]] == apc
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 2: apcd_elig_timevar ####
+#### Table 2A: apcd_elig_timevar ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_elig_timevar - ", Sys.time()))
@@ -106,6 +107,57 @@ if(
   message(paste0("apcd_elig_timevar QA result: PASS - ", Sys.time()))
 } else {
   stop(paste0("apcd_elig_timevar QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 2B: apcd_elig_month ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_elig_month - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_month.R")
+
+### B) Create table
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_month.yaml"
+create_table(conn = dw_inthealth, 
+             config_url = config_url,
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### C) Load tables
+system.time(load_stage.apcd_elig_month_f(
+  conn = dw_inthealth,
+  config_url = config_url))
+
+### D) Table-level QA
+system.time(apcd_month_qa <- qa_stage.apcd_elig_month_f(
+  conn = dw_inthealth,
+  config_url = config_url))
+rm(config_url)
+
+if(
+  (apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to raw tables"]==
+   apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to timevar" &
+                    apcd_month_qa$table=="\"stg_claims\".\"apcd_member_month_detail\""])
+  
+  & (apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to raw tables"]==
+     apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to timevar" &
+                      apcd_month_qa$table=="\"stg_claims\".\"stage_apcd_elig_demo\""])
+  
+  & (apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, King 2016, expect match to member_month"]==
+     apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, King 2016, expect match to timevar"])
+  
+  & apcd_month_qa$qa[apcd_month_qa$qa_type=="non-WA resident segments with non-null county name, expect 0"]==0
+  & apcd_month_qa$qa[apcd_month_qa$qa_type=="WA resident segments with null county name, expect 0"]==0
+  & apcd_month_qa$qa[apcd_month_qa$qa_type=="count of member elig segments with no coverage, expect 0"]==0
+  & apcd_month_qa$qa[apcd_month_qa$qa_type=="mcaid-mcare duals with dual flag = 0, expect 0"]==0
+  
+) {
+  message(paste0("apcd_elig_month QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_elig_month QA result: FAIL - ", Sys.time()))
 }
 
 
