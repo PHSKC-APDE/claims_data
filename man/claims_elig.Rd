@@ -7,6 +7,7 @@
 claims_elig(
   conn,
   source = c("apcd", "mcaid", "mcaid_mcare", "mcare", "mcaid_mcare_pha"),
+  server = c("hhsaw"),
   from_date = Sys.Date() - months(18),
   to_date = Sys.Date() - months(6),
   cov_min = 0,
@@ -21,7 +22,6 @@ claims_elig(
   pha_max = NULL,
   med_covgrp = NULL,
   pharm_covgrp = NULL,
-  tpl_max = NULL,
   bsp_group_cid = NULL,
   full_benefit_min = NULL,
   cov_type = NULL,
@@ -68,7 +68,7 @@ claims_elig(
   lang_spanish = NULL,
   lang_ukrainian = NULL,
   lang_vietnamese = NULL,
-  lang_me = NULL,
+  lang_max = NULL,
   geo_zip = NULL,
   geo_hra_code = NULL,
   geo_school_code = NULL,
@@ -85,6 +85,8 @@ claims_elig(
 \item{conn}{SQL server connection created using \code{odbc} package}
 
 \item{source}{Which claims data source do you want to pull from?}
+
+\item{server}{Which server do you want to run the query against? Currently all data on HHSAW.}
 
 \item{from_date}{Begin date for coverage period, "YYYY-MM-DD", 
 defaults to 18 months prior to today's date (A)}
@@ -124,9 +126,6 @@ during requested date range (percent scale) (PHA)}
 
 \item{pharm_covgrp}{Pharmacy coverage group type in APCD data (AP)}
 
-\item{tpl_max}{Maximum time with third-party liability during the requested
-time period (percent scale) (MD)}
-
 \item{bsp_group_cid}{Most frequently reported BSP group during requested date
 range, case insensitive, can take multiple values (MD)}
 
@@ -137,13 +136,22 @@ time period (percent scale) (MD)}
 
 \item{mco_id}{Managed care organization ID (MD)}
 
-\item{part_a_min}{Maximum time enrolled in Part A of Medicare during the requested 
+\item{part_a_min}{Minimum time enrolled in Part A of Medicare during the requested 
 time period (percent scale) (ME)}
 
-\item{part_b_min}{Maximum time enrolled in Part B of Medicare during the requested 
+\item{part_a_max}{Maximum time enrolled in Part A of Medicare during the requested 
 time period (percent scale) (ME)}
 
-\item{part_c_min}{Maximum time enrolled in Part C of Medicare during the requested 
+\item{part_b_min}{Minimum time enrolled in Part B of Medicare during the requested 
+time period (percent scale) (ME)}
+
+\item{part_b_max}{Maximum time enrolled in Part B of Medicare during the requested 
+time period (percent scale) (ME)}
+
+\item{part_c_min}{Minimum time enrolled in Part C of Medicare during the requested 
+time period (percent scale) (ME)}
+
+\item{part_c_max}{Maximum time enrolled in Part C of Medicare during the requested 
 time period (percent scale) (ME)}
 
 \item{buy_in_min}{Minimum time with state buy in during the requested time
@@ -229,8 +237,9 @@ case insensitive, can take multiple values (e.g., c("latino", "black")) (MD/ME)}
 
 \item{lang_vietnamese}{Alone or in combination Vietnamese written or spoken language over entire member history (MD)}
 
-\item{lang_me}{Most frequently recorded spoken/written language over entire member history, 
-case insensitive, can take multiple values (e.g., c("chinese", "english")) (MD)}
+\item{lang_max}{Most frequently recorded spoken/written language over entire member history, 
+case insensitive, can take multiple values (e.g., c("CHINESE", "ENGLISH")). Ties will
+go to a random winner between tied languages. (MD)}
 
 \item{geo_zip}{Most frequently reported ZIP code during requested date range,
 can take multiple values (e.g., c("98104", "98105")) (A)}
@@ -253,7 +262,7 @@ during requested data range (use ACH codes), can take multiple values (AP)}
 \item{geo_kc_ever}{Ever resided in King County (ME)}
 
 \item{geo_kc_min}{Minimum amount of requested date range a person needs to have 
-resided in King County to be included (AP/ME)}
+resided in King County to be included (AP/MD/ME)}
 
 \item{timevar_denom}{Which denominator is used to calculate the percentages
 for time-varying parameters (e.g., dual_min, geo_kc_min). Choose from
@@ -287,11 +296,11 @@ full_benefits flag set to 1, pha_agency returns 'Non-PHA' but pha_subsidy return
 }
 \examples{
 \dontrun{
-claims_elig(conn = db.claims51, source = "apcd", 
+test <- claims_elig(conn = db_hhsaw, source = "apcd", server = "hhsaw",
   from_date = "2017-01-01", to_date = "2017-06-30")
-claims_elig(conn = db.claims51, source = "mcaid", 
+test2 <- claims_elig(conn = db_hhsaw, source = "mcaid", server = "hhsaw",
   from_date = "2017-01-01", to_date = "2017-06-30", age_min = 18, 
-  age_max = 64, lang_me = c("ARABIC", "SOMALI"), zip = c("98103", "98105"))
+  age_max = 64, lang_max = c("ARABIC", "SOMALI"), geo_zip = c("98103", "98105"))
 }
 
 }
