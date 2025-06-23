@@ -50,6 +50,7 @@
 #' new_timevar_hhsaw <- elig_timevar_collapse(conn = db_hhsaw, server="hhsaw",
 #' source = "mcaid", full_benefit = T, geo_add1 = T, geo_city = T, geo_zip = T,
 #' geocode_vars = T)
+#' }
 #' 
 #' @export
 
