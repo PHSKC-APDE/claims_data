@@ -1,5 +1,5 @@
 Package: claims
-Version: 0.1.11
+Version: 0.1.12
 Title: Query and analyze WA State Medicaid, Medicare, and APCD data
 Description: LARGELY FOR INTERNAL USE
   This package is for querying and analyzing WA State Medicaid, Medicare, and 
@@ -13,9 +13,12 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Imports:
-    odbc,
+    data.table,
     DBI,
     dplyr,
+    glue,
+    lubridate,
+    odbc,
     rads.data,
     rlang,
     stringr
@@ -25,5 +28,4 @@ Suggests:
     tidyr,
     knitr,
     rmarkdown
-RoxygenNote: 7.1.1
-VignetteBuilder: knitr
+RoxygenNote: 7.3.2
