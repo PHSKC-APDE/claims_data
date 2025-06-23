@@ -39,13 +39,13 @@
 #' condition <- claims_condition(con = db_hhsaw, source = "apcd", server = "hhsaw",
 #'                               from_date = "2020-01-01", to_date = "2020-12-31", 
 #'                               condition = c("ccw_diabetes", "ccw_arthritis",
-#'                               "ccw_cataract", "ccw_hypertension")
+#'                               "ccw_cataract", "ccw_hypertension"))
 #' condition <- claims_condition(con = db_hhsaw, source = "mcaid_mcare", server = "hhsaw",
 #'                               condition = "ccw_depression", id = c(1, 6, 2:8))
 #' hhsaw_condition <- claims_condition(con = db_hhsaw, source = "mcaid", server = "hhsaw",
 #'                                     condition = "ccw_pneumonia", from_date = "2020-01-01",
 #'                                     to_date = "2022-08-24")
-#' 
+#' }
 #' @export
 claims_condition <- function(conn, 
                                source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
