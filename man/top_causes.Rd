@@ -6,6 +6,7 @@
 \usage{
 top_causes(
   conn,
+  server = c("hhsaw"),
   source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
   cohort,
   cohort_id = NULL,
@@ -18,12 +19,14 @@ top_causes(
   top = 15,
   catch_all = F,
   primary_dx = T,
-  type = c("ed", "ed_avoid_ny", "ed_avoid_ca", "inpatient", "all"),
+  type = c("ed", "inpatient", "all"),
   override_all = F
 )
 }
 \arguments{
 \item{conn}{SQL server connection created using \code{odbc} package.}
+
+\item{server}{Which server do you want to run the query against? NB. Currently just HHSAW.}
 
 \item{source}{Which claims data source do you want to pull from?}
 
@@ -56,8 +59,6 @@ default is no.}
 
 \item{type}{Which types of visits to include. Choose from the following:
 ed (any ED visit), 
-ed_avoid_ny (any avoidable ED visit (based on NYU classification))
-ed_avoid_ca (any avoidable ED visit (based on CA classification))
 inpatient (any inpatient visit)
 all (all claims, must be paired with override_all option)}
 
@@ -76,9 +77,15 @@ There are optional flags for the following:
 }
 \examples{
 \dontrun{
-top_15 <- top_causes_f(cohort = focus_pop, cohort_id = id, conn = db.claims51)
-top_15_dynamic <- top_causes_f(cohort = mcaid_elig_f(conn = db.claims51, 
-from_date = "2017-01-01", to_date = "2017-12-31", korean = 1, zip = "98103"), top = 3)
+system.time(mcaid_only <- claims_elig(conn = db_hhsaw, source = "mcaid", server = "hhsaw",
+    from_date = "2014-01-01", to_date = "2015-02-25",
+    geo_zip = c("98104", "98133", "98155"),
+    cov_type = "FFS", race_asian = 1, 
+    show_query = T))
+top_15_dynamic <- top_causes(
+    cohort = mcaid_only, top = 3, conn = db_hhsaw, source = "mcaid",
+    server="hhsaw"
+)
 }
 
 }
