@@ -55,15 +55,15 @@
 #' @param mco_id Managed care organization ID (MD)
 #' @param part_a_min Minimum time enrolled in Part A of Medicare during the requested 
 #' time period (percent scale) (ME)
-#' @param part_a_min Maximum time enrolled in Part A of Medicare during the requested 
+#' @param part_a_max Maximum time enrolled in Part A of Medicare during the requested 
 #' time period (percent scale) (ME)
 #' @param part_b_min Minimum time enrolled in Part B of Medicare during the requested 
 #' time period (percent scale) (ME)
-#' @param part_b_min Maximum time enrolled in Part B of Medicare during the requested 
+#' @param part_b_max Maximum time enrolled in Part B of Medicare during the requested 
 #' time period (percent scale) (ME)
 #' @param part_c_min Minimum time enrolled in Part C of Medicare during the requested 
 #' time period (percent scale) (ME)
-#' @param part_c_min Maximum time enrolled in Part C of Medicare during the requested 
+#' @param part_c_max Maximum time enrolled in Part C of Medicare during the requested 
 #' time period (percent scale) (ME)
 #' @param buy_in_min Minimum time with state buy in during the requested time
 #' period (percent scale) (ME)
@@ -137,6 +137,8 @@
 #' enrolled). Default is duration.
 #' @param show_query Print the SQL query that is being run. Useful for debugging.
 #' Default is TRUE
+#'
+#' @importFrom data.table setnames
 #'
 #' @examples
 #' \dontrun{

@@ -44,6 +44,8 @@ tabloop_f(
 \item{suppress}{Specifies whether suppression should be applied}
 
 \item{rounding}{Specifies how many decimal places to round mean and median to}
+
+\item{...}{Additional arguments passed to \code{suppress_f} when \code{suppress = TRUE}}
 }
 \description{
 \code{tabloop_f} tabulates a data frame (e.g. summarize ndistinct) over fixed and 
@@ -62,11 +64,17 @@ and loop by variable matrix.
 }
 \examples{
 \dontrun{
-tabloop_f(df = mcaid_cohort, unit = id, loop = list_var(gender, race), fixed = list_var(region))
-tabloop_f(df = mcaid_cohort, unit = id, loop = list_var(gender, race, zip_code, cov_grp, language))
-tabloop_f_test(df = depression, dcount = list_var(id), count = list_var(hra_id),
-               sum = list_var(ed_cnt, inpatient_cnt, depression_ccw), mean = list_var(age), median = list_var(age),
-               loop = list_var(gender_mx), filter = T, rename = T, suppress = T, 
+tabloop_f(df = mcaid_cohort, count = id, loop = list_var(gender, race), fixed = list_var(region))
+tabloop_f(df = mcaid_cohort, count = id, loop = list_var(gender, race, zip_code, cov_grp, language))
+tabloop_f_test(df = depression, 
+               dcount = list_var(id), 
+               count = list_var(hra_id),
+               sum = list_var(ed_cnt, inpatient_cnt, depression_ccw), 
+               mean = list_var(age), median = list_var(age),
+               loop = list_var(gender_mx), 
+               filter = T, 
+               rename = T, 
+               suppress = T, 
                suppress_var = list_var(id_dcount), round = 3)
 }
 

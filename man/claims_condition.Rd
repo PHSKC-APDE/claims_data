@@ -7,15 +7,18 @@
 claims_condition(
   conn,
   source = c("apcd", "mcaid", "mcaid_mcare", "mcare"),
-  condition = c("ccw_alzheimer", "ccw_alzheimer_related", "ccw_anemia",
-    "ccw_arthritis", "ccw_asthma", "ccw_atrial_fib", "ccw_bph", "ccw_cancer_breast",
+  server = c("hhsaw"),
+  condition = c("ccw_alzheimer", "ccw_alzheimer_related", "ccw_anemia", "ccw_arthritis",
+    "ccw_asthma", "ccw_atrial_fib", "ccw_bph", "ccw_cancer_breast",
     "ccw_cancer_colorectal", "ccw_cancer_endometrial", "ccw_cancer_lung",
-    "ccw_cancer_prostate", "ccw_cataract", "ccw_chr_kidney_dis", "ccw_copd",
-    "ccw_depression", "ccw_diabetes", "ccw_glaucoma", "ccw_heart_failure",
+    "ccw_cancer_prostate", "ccw_cancer_urologic", "ccw_cataract", "ccw_chr_kidney_dis",
+    "ccw_copd", "ccw_depression", "ccw_diabetes", "ccw_glaucoma", "ccw_heart_failure",
     "ccw_hip_fracture", "ccw_hyperlipid", "ccw_hypertension", "ccw_hypothyroid",
-    "ccw_ischemic_heart_dis", "ccw_mi", "ccw_osteoporosis", "ccw_stroke"),
-  from_date = Sys.Date() - months(18),
-  to_date = Sys.Date() - months(6),
+    "ccw_ischemic_heart_dis", "ccw_mi", "ccw_non_alzheimer_dementia", 
+    
+    "ccw_osteoporosis", "ccw_parkinsons", "ccw_pneumonia", "ccw_stroke"),
+  from_date = Sys.Date() \%m-\% months(18),
+  to_date = Sys.Date() \%m-\% months(6),
   id = NULL
 )
 }
@@ -23,6 +26,8 @@ claims_condition(
 \item{conn}{SQL server connection created using \code{odbc} package}
 
 \item{source}{Which claims data source do you want to pull from?}
+
+\item{server}{Which server do you want to run the query against? NB. Currently just HHSAW.}
 
 \item{condition}{The chronic health condition requested from SQL Server. 
 Can select multiple using format c("<condition1>", "<condition2>").}
@@ -37,14 +42,39 @@ defaults to 6 months prior to today's date.}
 to a vector of IDs. Leave blank for all IDs in the specified date range.}
 }
 \description{
-\code{claims_condition} builds a SQL query to return chronic health condition information.
+\code{claims_condition} builds a SQL query to return chronic
+health condition information.
 }
 \details{
 LARGELY FOR INTERNAL USE
-This function builds and sends a SQL query to return a Medicaid member cohort with a specified chronic health condition.
-If requested, the function will also join the returned data to a specified data frame in R, joining on Medicaid member ID. 
-Users can specify the join type (left, right, inner). By default "ever" status is returned - for example a request for diabetic
-members will return members with any history of diabetes in the Medicaid claims database, using the Chronic Conditions Warehouse
-definition from CDC. If a date range is supplied, the function will only return members who were identified as having the
-condition during the date range (a function of both Medicaid coverage and health care diagnostic information).
+This function builds and sends a SQL query to return a Medicaid member cohort
+with a specified chronic health condition. If requested, the function will
+also join the returned data to a specified data frame in R, joining on
+Medicaid member ID.
+
+Users can specify the join type (left, right, inner).
+
+By default, the last 18-6 months are returned - for example a request for
+diabetic members will return members with diabetes known between 18 and 6
+months ago in the Medicaid claims database, using the Chronic Conditions
+Warehouse definition from CDC.
+
+If a date range is supplied, the function will only return members who were
+identified as having the condition during the date range (a function of both
+Medicaid coverage and health care diagnostic information).
+}
+\examples{
+\dontrun{
+condition <- claims_condition(con = db_hhsaw, source = "mcaid", server = "hhsaw",
+                              condition = "ccw_anemia")
+condition <- claims_condition(con = db_hhsaw, source = "apcd", server = "hhsaw",
+                              from_date = "2020-01-01", to_date = "2020-12-31", 
+                              condition = c("ccw_diabetes", "ccw_arthritis",
+                              "ccw_cataract", "ccw_hypertension"))
+condition <- claims_condition(con = db_hhsaw, source = "mcaid_mcare", server = "hhsaw",
+                              condition = "ccw_depression", id = c(1, 6, 2:8))
+hhsaw_condition <- claims_condition(con = db_hhsaw, source = "mcaid", server = "hhsaw",
+                                    condition = "ccw_pneumonia", from_date = "2020-01-01",
+                                    to_date = "2022-08-24")
+}
 }

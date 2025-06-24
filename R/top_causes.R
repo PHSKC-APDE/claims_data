@@ -34,6 +34,9 @@
 #' all (all claims, must be paired with override_all option)
 #' @param override_all Override the warning message about pulling all claims, default is FALSE.
 #'
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#' @importFrom data.table setDT
+#'
 #' @examples
 #' \dontrun{
 #' system.time(mcaid_only <- claims_elig(conn = db_hhsaw, source = "mcaid", server = "hhsaw",
@@ -233,7 +236,7 @@ top_causes <- function(conn,
     
     # Make progress bar
     print(glue("Loading {n_rounds} ID sets"))
-    pb <- txtProgressBar(min = 0, max = n_rounds, style = 3)
+    pb <- utils::txtProgressBar(min = 0, max = n_rounds, style = 3)
     
     for (i in 1:n_rounds) {
       
@@ -266,7 +269,7 @@ top_causes <- function(conn,
       list_end <- min(list_end + 1000, num_ids)
       
       # Update progress bar
-      setTxtProgressBar(pb, i)
+      utils::setTxtProgressBar(pb, i)
     }
     
     # Add index to id and from_date for faster join

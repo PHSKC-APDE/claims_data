@@ -6,7 +6,7 @@
 \usage{
 elig_timevar_collapse(
   conn,
-  server = c("phclaims", "hhsaw"),
+  server = c("hhsaw"),
   source = c("mcaid", "apcd"),
   dual = F,
   cov_time_day = T,
@@ -25,13 +25,12 @@ elig_timevar_collapse(
   pharm_medicaid = F,
   pharm_medicare = F,
   pharm_commercial = F,
+  geo_zip = F,
   geo_add1 = F,
   geo_add2 = F,
   geo_city = F,
   geo_state = F,
-  geo_zip = F,
   geocode_vars = F,
-  geo_zip_code = F,
   geo_county = F,
   geo_ach = F
 )
@@ -39,8 +38,7 @@ elig_timevar_collapse(
 \arguments{
 \item{conn}{SQL server connection created using \code{odbc} package.}
 
-\item{server}{Which server do you want to run the query against? NB. Currently only
-Medicaid data is available on HHSAW.}
+\item{server}{Which server do you want to run the query against? NB. Currently just HHSAW.}
 
 \item{source}{Which claims data source do you want to pull from?}
 
@@ -78,6 +76,8 @@ Medicaid data is available on HHSAW.}
 
 \item{pharm_commercial}{Collapse over the pharm_commercial field (APCD only).}
 
+\item{geo_zip}{Collapse over the geo_zip field (Medicaid only).}
+
 \item{geo_add1}{Collapse over the geo_add1 field (Medicaid only).}
 
 \item{geo_add2}{Collapse over the geo_add2 field (Medicaid only).}
@@ -86,13 +86,8 @@ Medicaid data is available on HHSAW.}
 
 \item{geo_state}{Collapse over the geo_state field (Medicaid only).}
 
-\item{geo_zip}{Collapse over the geo_zip field (Medicaid only).}
-
-\item{geocode_vars}{Bring in all geocded data elements (geo_zip_centroid, 
-geo_street_centroid, geo_county_code, geo_tractce10, geo_hra_code, 
-geo_school_code). Default is FALSE.}
-
-\item{geo_zip_code}{Collapse over the geo_zip_code field (APCD only).}
+\item{geocode_vars}{Bring in all geocded data elements (geo_county_code,
+geo_tractce10, geo_hra_code, geo_school_code). Default is FALSE.}
 
 \item{geo_county}{Collapse over the geo_countyfield (APCD only).}
 
@@ -112,10 +107,14 @@ tables.
 }
 \examples{
 \dontrun{
-new_timevar <- elig_timevar_collapse(conn = db_claims51, source = "mcaid",
-full_benefit = T, geo_add1 = T, geo_city = T, geo_zip = T, geocode_vars = T)
-new_timevar2 <- elig_timevar_collapse(conn = db_claims51, source = "apcd",
-ids = c("123", "456", "789"), med_covgrp = T, geo_county = T)
+new_timevar <- elig_timevar_collapse(conn = db_hhsaw, server = "hhsaw",
+source = "mcaid", full_benefit = T, geo_add1 = T, geo_city = T, geo_zip = T,
+geocode_vars = T)
+new_timevar2 <- elig_timevar_collapse(conn = db_hhsaw, server="hhsaw",
+source = "apcd", med_covgrp = T, geo_county = T)
+new_timevar_hhsaw <- elig_timevar_collapse(conn = db_hhsaw, server="hhsaw",
+source = "mcaid", full_benefit = T, geo_add1 = T, geo_city = T, geo_zip = T,
+geocode_vars = T)
 }
 
 }

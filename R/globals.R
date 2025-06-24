@@ -1,0 +1,26 @@
+# Declare global variables for devtools::check()
+utils::globalVariables(c(
+  ".",
+  "bsp_group_cid_days",
+  "bsp_group_name",
+  "ccs_catch_all",
+  "ccs_detail_desc",
+  "claim_cnt",
+  "claim_header_id",
+  "ed_pophealth_id",
+  "from_date_ind",
+  "geo_county_code_days",
+  "geo_county_code_fips",
+  "geo_county_name",
+  "geo_hra_code_days",
+  "geo_hra_name",
+  "group",
+  "group_cat",
+  "id_apcd",
+  "id_apde",
+  "id_mcaid",
+  "id_mcare",
+  "inpatient_id",
+  "link",
+  "to_date_ind"
+))
