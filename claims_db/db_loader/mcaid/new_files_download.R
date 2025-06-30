@@ -302,7 +302,7 @@ if(T) {
     proceed_msg <- glue("Would you like to create ETL Log Entries on HHSAW Dev?")
     proceed <- askYesNo(msg = proceed_msg)
     if (proceed == T) {
-      db_claims <- create_db_connection(server = "hhsaw", interactive = T, prod = F)
+      db_claims <- create_db_connection(server = "hhsaw", interactive = F, prod = F)
       for (x in 1:nrow(tfiles)) {
         tfiles[x, "batch_id_dev"] <- load_metadata_etl_log_file_f(conn = db_claims, 
                                                               server = "hhsaw",
