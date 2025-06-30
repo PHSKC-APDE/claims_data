@@ -24,7 +24,7 @@ library(svDialogs)
 
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/add_index.R")
 
 
 #### CONSTANTS AND SETUP ####
@@ -36,8 +36,8 @@ if(server != "phclaims") {
   interactive_auth <- T
   prod <- T
 }
-table_name_file <- "C:/Users/kfukutaki/OneDrive - King County/Documents/Code/20220602_deletion_tests/mcaid_tables.csv"
-delete_year <- 2012
+table_name_file <- "//dphcifs/APDE-CDIP/Mcaid-Mcare/mcaid_raw/mcaid_tables.csv"
+delete_year <- 2015
 
 # Table with information on each mcaid schema, table, and date_col in dev inthealth_edw for given server
 table_names <- fread(table_name_file)
@@ -53,7 +53,7 @@ for (row in 1:nrow(table_names)){
   table_name <- table_names[row,]$table
   schema <- table_names[row,]$schema
   date_col <- table_names[row,]$date_column
-  
+  message(paste0(row, " - ", table_name))
   if (is.na(date_col)){
     message(glue("No known way to handle this NA date column! Skipping to next table."))
     next
@@ -121,7 +121,7 @@ for (row in 1:nrow(table_names)){
       .con = db_claims
     ))
   }
-  
+  db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   # Check all rows transferred
   new_rows <- dbGetQuery(db_claims, glue::glue_sql(
     "select count (*) as cnt from {`schema`}.{`new_table_name`}", .con = db_claims))
@@ -129,7 +129,7 @@ for (row in 1:nrow(table_names)){
   if (old_rows != new_rows) {
     stop("Not all rows copied over for ", schema, ".", table_name)
   }
-  
+  db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
   # Copy all data except deletion year into new table
   DBI::dbExecute(db_claims, glue::glue_sql(
     "
@@ -146,13 +146,14 @@ for (row in 1:nrow(table_names)){
     } else {
       index_cols <- NULL
     }
-    
-    add_index(conn = db_claims, server = server, 
+    if(server != 'inthealth') {
+      add_index(conn = db_claims, server = server, 
               to_schema = schema, to_table = table_name,
               index_name = index_info$index_name[1],
               index_type = index_info$index_type[1],
               index_vars = index_cols,
               drop_index = F)
+    }
   }
 }
 
