@@ -134,6 +134,30 @@ rm(qa_stage_mcaid_elig_timevar, stage_mcaid_elig_timevar_config, load_stage_mcai
 
 
 
+#### MCAID_ELIG_MONTH ####
+### Bring in function and config file
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_month.R")
+stage_mcaid_elig_month_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_elig_month.yaml")
+
+# Run function
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+load_stage_mcaid_elig_month_f(conn = dw_inthealth, server = server, config = stage_mcaid_elig_month_config)
+
+# Re-establish connection because it drops out faster in Azure VM
+db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+
+# Pull out run date
+last_run_elig_month <- as.POSIXct(odbc::dbGetQuery(
+  dw_inthealth, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_month_config[[server]][['to_schema']]`}.{`stage_mcaid_elig_month_config[[server]][['to_table']]`}",
+                               .con = dw_inthealth))[[1]])
+
+### Clean up
+rm(stage_mcaid_elig_month_config, load_stage_mcaid_elig_month_f, last_run_elig_month)
+
+
+
+
 #### CREATE CLAIMS TABLES ------------------------------------------------------
 # Need to follow this order when making tables because of dependencies
 # These scripts depend only on [stage].[mcaid_claim]:
@@ -389,8 +413,11 @@ for(table in table_list) {
   from_schema <- from_config[[server]][["to_schema"]]
   from_table <- from_config[[server]][["to_table"]]
   qa_schema <- from_config[[server]][["qa_schema"]]
-  if(is.null(from_config[[server]][["qa_table_pre"]])) { qa_table <- from_config[[server]][["qa_table"]] }
-  else { qa_table <- from_config[[server]][["qa_table_pre"]] }
+  if(is.null(from_config[[server]][["qa_table_pre"]])) { 
+    qa_table <- from_config[[server]][["qa_table"]] 
+  } else { 
+      qa_table <- from_config[[server]][["qa_table_pre"]] 
+  }
   to_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/final/tables/load_final.mcaid_", table, ".yaml"))
   to_schema <- to_config[[server]][["to_schema"]]
   to_table <- to_config[[server]][["to_table"]]
