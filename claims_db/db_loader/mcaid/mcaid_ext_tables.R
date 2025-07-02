@@ -20,6 +20,7 @@ table_list <- c("elig_demo", "elig_timevar", "elig_month",
                 "claim_moud", "claim_preg_episode",
                 "claim_ccw", "claim_bh")
 
+### CREATE EXTERNAL TABLE SCRIPT FOR PROD
 from_conn <- create_db_connection("inthealth", interactive = F, prod = T)
 to_conn <- create_db_connection("hhsaw", interactive = F, prod = T)
 file <- paste0("c:/temp/mcaid/prod_claims_ext_", format(Sys.Date(), "%Y%m%d"), ".sql")
@@ -41,7 +42,7 @@ for(i in 1:length(table_list)) {
   )
 }
 
-
+### COPY STAGE TABLE TABLE STRUCTURE FROM PROD TO DEV
 from_conn <- create_db_connection("inthealth", interactive = F, prod = T)
 to_conn <- create_db_connection("inthealth", interactive = F, prod = F)
 
@@ -60,6 +61,8 @@ for(i in 1:length(table_list)) {
                     table_structure_only = T)
 }
 
+
+### CREATE EXTERNAL TABLE SCRIPT FOR DEV
 from_conn <- create_db_connection("inthealth", interactive = F, prod = F)
 to_conn <- create_db_connection("hhsaw", interactive = F, prod = F)
 file <- paste0("c:/temp/mcaid/dev_claims_ext_", format(Sys.Date(), "%Y%m%d"), ".sql")
@@ -81,3 +84,21 @@ for(i in 1:length(table_list)) {
   )
 }
 
+### COPY FINAL TABLE TABLE STRUCTURE FROM PROD TO DEV
+from_conn <- create_db_connection("hhsaw", interactive = F, prod = T)
+to_conn <- create_db_connection("hhsaw", interactive = F, prod = F)
+
+for(i in 1:length(table_list)) {
+  table <- table_list[[i]]
+  table_duplicate_f(conn_from = from_conn, 
+                    conn_to = to_conn, 
+                    server_to = "hhsaw_dev", 
+                    db_to = "hhs_analytics_workspace",
+                    from_schema = "claims",
+                    from_table = paste0("final_mcaid_", table),
+                    to_schema = "claims",
+                    to_table = paste0("final_mcaid_", table),
+                    confirm_tables = F,
+                    delete_table = T,
+                    table_structure_only = T)
+}
