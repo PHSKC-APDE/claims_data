@@ -152,6 +152,7 @@ last_run_elig_month <- as.POSIXct(odbc::dbGetQuery(
   dw_inthealth, glue::glue_sql("SELECT MAX (last_run) FROM {`stage_mcaid_elig_month_config[[server]][['to_schema']]`}.{`stage_mcaid_elig_month_config[[server]][['to_table']]`}",
                                .con = dw_inthealth))[[1]])
 
+
 ### Clean up
 rm(stage_mcaid_elig_month_config, load_stage_mcaid_elig_month_f, last_run_elig_month)
 
@@ -398,7 +399,7 @@ rm(qa_mcaid_elig_demo_extra, qa_mcaid_elig_demo_extra_f, stage_mcaid_elig_demo_c
 
 
 #### STAGE TABLE TO FINAL TABLE ####
-table_list <- c("elig_demo", "elig_timevar",
+table_list <- c("elig_demo", "elig_timevar", "elig_month",
                 "claim_line", "claim_icdcm_header",
                 "claim_procedure", "claim_pharm",
                 "claim_header", "claim_naloxone",
