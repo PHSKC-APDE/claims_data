@@ -50,7 +50,7 @@ dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth
 
 
 #### COPY NECESSARY REF TABLES ####
-from_conn <- create_db_connection("hhsaw", interactive = F, prod = T)
+from_conn <- create_db_connection("hhsaw", interactive = interactive_auth, prod = T)
 table_copy_df <- read.csv("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/db_loader/mcaid/McaidTableCopyList.csv")
 if(prod == T) {
   stg_server <- "inthealth"
