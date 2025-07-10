@@ -24,7 +24,7 @@ options("scipen"=999) # turn off scientific notation
 db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
 
 ## Set date for NDC folder name ----
-ndc_download_date <- "20240619"
+ndc_download_date <- "20250709"
 
 ## Read data ----
 product <- fread(file.path("//dphcifs/apde-cdip/Mcaid-Mcare/mcaid_raw/ndc_reference_tables/", ndc_download_date,
@@ -113,6 +113,7 @@ missing <- read_excel("//dphcifs/apde-cdip/Mcaid-Mcare/mcaid_raw/ndc_reference_t
 allcodes <- rbindlist(list(allcodes, missing), use.names=T, fill=T)
 
 ## Upload ----
+head(allcodes)  # last check
 DBI::dbWriteTable(conn = db_hhsaw, 
                   name = DBI::Id(schema = "ref", table = "ndc_codes"),
                   value = allcodes,
