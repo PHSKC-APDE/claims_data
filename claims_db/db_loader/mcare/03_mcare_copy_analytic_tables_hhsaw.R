@@ -45,7 +45,8 @@ table_list <- list(
   "final_mcare_claim_procedure",
   "final_mcare_claim_provider",
   "final_mcare_elig_demo",
-  "final_mcare_elig_timevar"
+  "final_mcare_elig_timevar",
+  "final_mcare_elig_month"
 )
 
 #Define modified table list if needed (e.g., when loop breaks after some tables have been copied)
