@@ -816,7 +816,7 @@ load_stage.mcare_claim_header_f <- function() {
     ,a.ccs_midlevel_desc
     ,a.ccs_detail_desc
     ,a.ccs_detail_code
-    from stg_claims.ref_icdcm_codes as a
+    from stg_reference.icdcm_codes as a
     inner join stg_claims.tmp_mcare_claim_header_temp3 as b
     on (a.icdcm_version = b.icdcm_version) and (a.icdcm = b.primary_diagnosis)
     option (label = 'tmp_mcare_claim_header_ccs');
@@ -845,7 +845,7 @@ load_stage.mcare_claim_header_f <- function() {
     ,max(case when a.mh_any = 1 then 1 else 0 end) as mh_any
     ,max(case when b.icdcm_number = '01' and a.sud_any = 1 then 1 else 0 end) as sud_primary
     ,max(case when a.sud_any = 1 then 1 else 0 end) as sud_any
-    from stg_claims.ref_icdcm_codes as a
+    from stg_reference.icdcm_codes as a
     inner join stg_claims.final_mcare_claim_icdcm_header as b
     on (a.icdcm_version = b.icdcm_version) and (a.icdcm = b.icdcm_norm)
     group by b.claim_header_id
@@ -928,7 +928,7 @@ load_stage.mcare_claim_header_f <- function() {
     from (select * from #stage_mcare_icdcm_distinct where icdcm_version = 10) as a
     inner join (
     select icdcm, icdcm + '%' as icdcm_like, icdcm_version, intent, mechanism
-    from stg_claims.ref_icdcm_codes
+    from stg_reference.icdcm_codes
     where icdcm_version = 10 and intent is not null
     ) as b
     on (a.icdcm_norm like b.icdcm_like) and (a.icdcm_version = b.icdcm_version);
@@ -940,7 +940,7 @@ load_stage.mcare_claim_header_f <- function() {
     from (select * from #stage_mcare_icdcm_distinct where icdcm_version = 9) as a
     inner join (
     select icdcm, icdcm + '%' as icdcm_like, icdcm_version, intent, mechanism
-    from stg_claims.ref_icdcm_codes
+    from stg_reference.icdcm_codes
     where icdcm_version = 9 and intent is not null
     ) as b
     on (a.icdcm_norm like b.icdcm_like) and (a.icdcm_version = b.icdcm_version);
@@ -1020,7 +1020,7 @@ load_stage.mcare_claim_header_f <- function() {
     end as ccs_detail_desc
     into #stage_mcare_distinct_injury_nature_icdcm_tmp1
     from #stage_mcare_injury_cause_header_level_tmp3 as a
-    left join stg_claims.ref_icdcm_codes as b
+    left join stg_reference.icdcm_codes as b
     on (a.icdcm_injury_nature = b.icdcm) and (a.icdcm_injury_nature_version = b.icdcm_version)
     where a.icdcm_injury_nature is not null;
     
