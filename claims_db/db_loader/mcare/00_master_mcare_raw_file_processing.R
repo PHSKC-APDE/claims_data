@@ -20,14 +20,28 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/c
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/copy_into.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/table_duplicate.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_df_bcp.R")
+
 interactive_auth <- FALSE
 prod <- TRUE
 
 conn_db <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
 conn_dw <- create_db_connection(server = "inthealth", interactive = interactive_auth, prod = prod)
 
+table_duplicate_f(conn_from = conn_db, 
+                  conn_to = conn_dw,
+                  server_to = "inthealth", 
+                  db_to = "inthealth_edw",
+                  from_schema = "claims",
+                  from_table = "ref_mcare_files_data_dictionary",
+                  to_schema = "stg_claims",
+                  to_table = "ref_mcare_files_data_dictionary",
+                  confirm_tables = F,
+                  delete_table = T)
+
 rawdir <- "//dphcifs/APDE-CDIP/Mcaid-Mcare/medicare_raw/"
-batchdir <- "Files_20250408"
+batchdir <- "Files_20250523"
 batchyear <- 2022
 basedir <- "C:/temp/mcare"
 exdir <- paste0(basedir, "/ex/")
@@ -46,18 +60,21 @@ for(i in 1:nrow(files)) {
 files <- data.frame("fileName" = list.files(exdir, pattern="*.csv"))
 tablefile <- DBI::dbGetQuery(conn_db, "SELECT DISTINCT 
                                       table_name, REPLACE(table_name, 'mcare_', '') AS file_name
-                                      FROM claims.ref_mcare_tables")
+                                      FROM claims.ref_mcare_files_data_dictionary")
 
-get_mcare_table_columns_f <- function(conn, table, year = 9999) {
-  x <- DBI::dbGetQuery(conn, glue::glue_sql("SELECT column_name, column_type
-                                            FROM claims.ref_mcare_tables
-                                            WHERE min_year <= {year} AND table_name = {table}
+get_mcare_table_columns_f <- function(conn, table) {
+  x <- DBI::dbGetQuery(conn, glue::glue_sql("SELECT *
+                                            FROM claims.ref_mcare_files_data_dictionary
+                                            WHERE table_name = {table}
                                             ORDER BY column_order", .con = conn))
   return(x)
 }
 
-columns <- data.frame(matrix(ncol = 5, nrow = 0))
-colnames(columns) <- c("table_name", "column_name", "column_type", "column_order", "min_year")
+columns <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(columns) <- c("table_name", "column_name", "column_type", "column_order")
+allcolumns <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(allcolumns) <- c("table_name", "column_name", "column_type", "column_order")
+a <- 1
 for(i in 1:nrow(files)) {
   con <- file(paste0(exdir, files[i, "fileName"]), "r")
   first_line <- readLines(con, n = 1)
@@ -74,13 +91,14 @@ for(i in 1:nrow(files)) {
       files[i, "table_name"] <- tablefile[t, "table_name"]
     }
   }
-  tcols <- get_mcare_table_columns_f(conn_db, files[i, "table_name"], 2100)
+  tcols <- get_mcare_table_columns_f(conn_db, files[i, "table_name"])
   new_order <- DBI::dbGetQuery(conn_db, glue::glue_sql("SELECT MAX(column_order)
-                                            FROM claims.ref_mcare_tables
+                                            FROM claims.ref_mcare_files_data_dictionary
                                             WHERE table_name = {files[i, 'table_name']}", .con = conn_db))[1,1] + 1
-  cols <- data.frame(matrix(ncol = 5, nrow = 0))
-  colnames(cols) <- c("table_name", "column_name", "column_type", "column_order", "min_year")
+  cols <- data.frame(matrix(ncol = 4, nrow = 0))
+  colnames(cols) <- c("table_name", "column_name", "column_type", "column_order")
   c <- 1
+  t <- 1
   for(col in fcols) {
     if(any(tcols == col) == F) {
       message(paste0(files[i, "table_name"], " - ", col))
@@ -88,10 +106,15 @@ for(i in 1:nrow(files)) {
       cols[c, "column_name"] <- col
       cols[c, "column_type"] <- "VARCHAR(255)"
       cols[c, "column_order"] <- new_order
-      cols[c, "min_year"] <- batchyear
       new_order <- new_order + 1
       c <- c + 1
     }
+    allcolumns[a, "table_name"] <- files[i, "table_name"]
+    allcolumns[a, "column_name"] <- col
+    allcolumns[a, "column_type"] <- "VARCHAR(255)"
+    allcolumns[a, "column_order"] <- t
+    a <- a + 1
+    t <- t + 1
   }
   if(nrow(cols) > 0) {
     if(nrow(columns) > 0) {
@@ -132,9 +155,25 @@ for(i in 1:nrow(files)) {
   files[i, "row_count"] <- nrow(df)
   colnames(df) <- tolower(colnames(df))
   fcols <- tolower(colnames(df))
-  tcols <- get_mcare_table_columns_f(conn_db, files[i, "table_name"], 2100)
+  tcols <- get_mcare_table_columns_f(conn_db, files[i, "table_name"])
+  tcols <- tcols[2:nrow(tcols),]
   torder <- data.frame(matrix(ncol = nrow(tcols), nrow = 0))
   colnames(torder) <- tcols[,"column_name"]
+  for(c in 1:length(colnames(df))) {
+    col <- colnames(df)[[c]]
+    for(t in 1:nrow(tcols)) {
+      if(col == tcols[t, "column_name"]) { 
+      } else if(col == tcols[t, "column_name_long"]) {
+        colnames(df)[[c]] <- tcols[t, "column_name"]
+        message(paste0("COLUMN CHANGE: ", c, " - ", tcols[t, "column_name"], " = ", tcols[t, "column_name_long"], " - long"))
+      } else if(is.na(tcols[t, "column_name_alt"]) == F) { 
+        if(col == tcols[t, "column_name_alt"]) {
+          colnames(df)[[c]] <- tcols[t, "column_name"]
+          message(paste0("COLUMN CHANGE: ", c, " - ", tcols[t, "column_name"], " = ", tcols[t, "column_name_alt"], " - alt"))
+        }
+      }
+    }
+  }
   df <- plyr::rbind.fill(torder, df)
   message(paste0(i, " - writing ", files[i, "fileName"]))
   write.table(df, paste0(fixdir, files[i, "fileName"]), sep = "|", quote = F, na = "", row.names = F)
@@ -180,7 +219,7 @@ if(T) {
     message("Files uploaded and ETL log entries created...")
   }
   rm(blob_endp, blob_token, cols, columns, cont, df, tablefile, files, tcols, torder,
-     addcol, c, col, con, etl, exdir, basedir, gzdir, first_line, fcols, i, new_order,
+     c, col, con, etl, exdir, basedir, gzdir, first_line, fcols, i, new_order,
      rawdir, sep, t, uploaddir, fixdir, batch_date, batchdir)
 }
 
@@ -217,10 +256,11 @@ if(T) {
       table_archive <- paste0("archive_", table)
       message(paste0(Sys.time(), " - ", i, " : ", file$etl_batch_id))
       message(paste0("...Begin loading ", file$file_name, " to [", schema, "].[", table_raw, "]..."))
-      vars <- get_mcare_table_columns_f(conn_db, table, year(file$date_max))
+      v <- get_mcare_table_columns_f(conn_db, table)
+      vars <- v[2:nrow(v),]
       table_config <- list()
       for(v in 1:nrow(vars)) {
-        table_config$vars[vars[v,1]] <- "VARCHAR(255)"
+        table_config$vars[vars[v, "column_name"]] <- "VARCHAR(255)"
       }
       table_config$hhsaw$to_schema <- schema
       table_config$hhsaw$to_table <- table_raw
@@ -247,28 +287,19 @@ if(T) {
       }
       message(paste0("...Copying data from ", table_raw, " to ", table))
       cols <- DBI::dbGetQuery(conn_dw,
-                                   glue::glue_sql("SELECT LOWER([COLUMN_NAME]) AS 'column_name'
-                                                FROM [INFORMATION_SCHEMA].[COLUMNS]
-                                                WHERE [TABLE_NAME] = {table} AND [TABLE_SCHEMA] = {schema}
-                                                ORDER BY [ORDINAL_POSITION]",
+                                   glue::glue_sql("select a.column_name as 'to_col', b.column_name as 'from_col'
+                                                    from information_schema.columns a 
+                                                    left join stg_claims.ref_mcare_files_data_dictionary b on a.table_name = b.table_name and 
+                                                      (a.column_name = b.column_name or a.column_name = b.column_name_long or a.column_name = b.column_name_alt)
+                                                    where a.table_schema = {schema} and a.table_name = {table} and a.column_name <> 'etl_batch_id'
+                                                    order by a.ordinal_position",
                                                   .con = conn_dw))
       
-
-      new_cols <- dplyr::anti_join(vars, cols)
-      if(nrow(new_cols) > 0) {
-        for(c in 1:nrow(new_cols)) {
-          DBI::dbExecute(conn_dw, 
-                         glue::glue_sql("ALTER TABLE {`schema`}.{`table`} 
-                                        ADD {`new_cols[c,'column_name']`} {DBI::SQL(new_cols[c,'column_type'])} NULL;",
-                                        .con = conn_dw))
-        }
-      }
       DBI::dbExecute(conn_dw, glue::glue_sql("INSERT INTO {`schema`}.{`table`}      
-                                             ([etl_batch_id], {`names(table_config$vars)`*})   
+                                             ([etl_batch_id], {`cols$to_col`*})   
                                              SELECT {file$etl_batch_id},      
-                                             {`names(table_config$vars)`*}      
-                                             FROM {`schema`}.{`table_raw`}     
-                                             WHERE {`names(table_config$vars[1])`} <> {names(table_config$vars[1])}",  
+                                             {`cols$from_col`*}      
+                                             FROM {`schema`}.{`table_raw`}",  
                                              .con = conn_dw))
       copy_count <- DBI::dbGetQuery(conn_dw,
                                    glue::glue_sql("SELECT COUNT(*) FROM {`schema`}.{`table`} 
