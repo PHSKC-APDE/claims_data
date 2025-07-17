@@ -33,20 +33,20 @@ message(paste0("Beginning process to copy data from INTHEALTH_EDW to HHSAW - ", 
 
 #Full table list
 table_list <- list(
-  "final_mcare_claim_bh",
-  "final_mcare_claim_ccw",
-  "final_mcare_claim_header",
-  "final_mcare_claim_icdcm_header",
-  "final_mcare_claim_line",
-  "final_mcare_claim_moud",
-  "final_mcare_claim_naloxone",
-  "final_mcare_claim_pharm",
-  "final_mcare_claim_pharm_char",
-  "final_mcare_claim_procedure",
-  "final_mcare_claim_provider",
-  "final_mcare_elig_demo",
-  "final_mcare_elig_timevar",
-  "final_mcare_elig_month"
+  "mcare_claim_bh",
+  "mcare_claim_ccw",
+  "mcare_claim_header",
+  "mcare_claim_icdcm_header",
+  "mcare_claim_line",
+  "mcare_claim_moud",
+  "mcare_claim_naloxone",
+  "mcare_claim_pharm",
+  "mcare_claim_pharm_char",
+  "mcare_claim_procedure",
+  "mcare_claim_provider",
+  "mcare_elig_demo",
+  "mcare_elig_timevar",
+  "mcare_elig_month"
 )
 
 #Define modified table list if needed (e.g., when loop breaks after some tables have been copied)
@@ -55,27 +55,27 @@ table_list <- list(
 #Begin loop
 lapply(table_list, function(table_list) {
 
-  table_name <- glue::glue_sql(table_list)
-  message(paste0("Working on table: ", table_name, " - ", Sys.time()))
+  ext_table <- paste0("stage_", table_list)
+  to_table <- paste0("final_", table_list)
+  message(paste0("Working on table: ", to_table, " - ", Sys.time()))
   db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
   DBI::dbExecute(conn = db_claims,
-                 glue::glue_sql("execute claims.usp_load_{`table_name`};",
+                 glue::glue_sql("execute claims.usp_external_table_load @fromtable = N{ext_table}, @totable = N{to_table};",
                                 .con = db_claims))
   
   #Row count comparison for all tables
-  table_name_inthealth <- gsub("final_", "stage_", table_name)
   inthealth_row_count <- DBI::dbGetQuery(conn = db_claims,
-                                         glue::glue_sql("select count(*) as row_count from claims.{`table_name_inthealth`};",
+                                         glue::glue_sql("select count(*) as row_count from claims.{`ext_table`};",
                                                         .con = db_claims))
   hhsaw_row_count <- DBI::dbGetQuery(conn = db_claims,
-                                     glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",
+                                     glue::glue_sql("select count(*) as row_count from claims.{`to_table`};",
                                                     .con = db_claims))
   
   if (inthealth_row_count$row_count != hhsaw_row_count$row_count) {
     stop(glue::glue("Mismatching row count between inthealth_edw external table and HHSAW table."))
   }
   
-  message(paste0("Done working on table: ", table_name, " - ", Sys.time()))
+  message(paste0("Done working on table: ", to_table, " - ", Sys.time()))
 })
 
 ## Closing message
