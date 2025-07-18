@@ -1242,7 +1242,7 @@ load_stage.mcare_claim_procedure_f <- function() {
     -------------------------
     --Step 11: Exclude claims among people with no enrollment data and insert into table shell
     -------------------------
-    insert into stg_claims.stage_mcare_claim_procedure_dev
+    insert into stg_claims.stage_mcare_claim_procedure
     select a.*
     from final_union as a
     left join (select distinct bene_id from stg_claims.mcare_bene_enrollment) as b
@@ -1259,7 +1259,7 @@ qa_stage.mcare_claim_procedure_qa_f <- function() {
     "select 'stg_claims.stage_mcare_claim_procedure' as 'table',
   'rows with non-null hcpcs code' as qa_type,
   filetype_mcare, year(last_service_date) as service_year, count(*) as qa
-  from stg_claims.stage_mcare_claim_procedure_dev
+  from stg_claims.stage_mcare_claim_procedure
   where procedure_code is not null and len(procedure_code) = 5
   group by filetype_mcare, year(last_service_date)
   order by filetype_mcare, year(last_service_date);",
@@ -1270,7 +1270,7 @@ qa_stage.mcare_claim_procedure_qa_f <- function() {
     "select 'stg_claims.stage_mcare_claim_procedure' as 'table',
   'rows with non-null betos code' as qa_type,
   filetype_mcare, year(last_service_date) as service_year, count(*) as qa
-  from stg_claims.stage_mcare_claim_procedure_dev
+  from stg_claims.stage_mcare_claim_procedure
   where procedure_code is not null and len(procedure_code) <= 3 and left(procedure_code, 1) like '[A-Z]'
   group by filetype_mcare, year(last_service_date)
   order by filetype_mcare, year(last_service_date);",
@@ -1281,7 +1281,7 @@ qa_stage.mcare_claim_procedure_qa_f <- function() {
     "select 'stg_claims.stage_mcare_claim_procedure' as 'table',
   'rows with non-null ICD procedure code 1' as qa_type,
   filetype_mcare, year(last_service_date) as service_year, count(*) as qa
-  from stg_claims.stage_mcare_claim_procedure_dev
+  from stg_claims.stage_mcare_claim_procedure
   where procedure_code is not null and 
     (len(procedure_code) = 7 or (len(procedure_code) <=4 and left(procedure_code, 1) like '[0-9]'))
   group by filetype_mcare, year(last_service_date)
@@ -1292,7 +1292,7 @@ qa_stage.mcare_claim_procedure_qa_f <- function() {
   res4 <- dbGetQuery(conn = inthealth, glue_sql(
     "select 'stg_claims.stage_mcare_claim_procedure' as 'table', '# members not in bene_enrollment, expect 0' as qa_type,
     count(a.id_mcare) as qa
-    from stg_claims.stage_mcare_claim_procedure_dev as a
+    from stg_claims.stage_mcare_claim_procedure as a
     left join stg_claims.mcare_bene_enrollment as b
     on a.id_mcare = b.bene_id
     where b.bene_id is null;",
