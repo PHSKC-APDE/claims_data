@@ -1242,8 +1242,8 @@ load_stage.mcare_claim_procedure_f <- function() {
     -------------------------
     --Step 11: Exclude claims among people with no enrollment data and insert into table shell
     -------------------------
+    insert into stg_claims.stage_mcare_claim_procedure_dev
     select a.*
-    into stg_claims.stage_mcare_claim_procedure_dev --test code
     from final_union as a
     left join (select distinct bene_id from stg_claims.mcare_bene_enrollment) as b
     on a.id_mcare = b.bene_id
