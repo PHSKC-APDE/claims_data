@@ -66,7 +66,8 @@ if(all(c(mcare_elig_demo_qa$qa[[1]] == 0
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_elig_demo TO archive_mcare_elig_demo;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_elig_demo;
+                              RENAME OBJECT stg_claims.final_mcare_elig_demo TO archive_mcare_elig_demo;",
                               .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
@@ -114,7 +115,8 @@ if(all(c(mcare_elig_timevar_qa$qa[[1]] == 0
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_elig_timevar TO archive_mcare_elig_timevar;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_elig_timevar;
+                              RENAME OBJECT stg_claims.final_mcare_elig_timevar TO archive_mcare_elig_timevar;",
                               .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
@@ -162,7 +164,8 @@ if(all(c(mcare_elig_month_qa$qa[[1]] == 0
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_elig_month TO archive_mcare_elig_month;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_elig_month;
+                              RENAME OBJECT stg_claims.final_mcare_elig_month TO archive_mcare_elig_month;",
                               .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
@@ -239,7 +242,8 @@ if(all(c(qa_line_1:qa_line_2)) == TRUE & qa_line_3 == 0L & qa_line_4 == 0L & qa_
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_line TO archive_mcare_claim_line;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_claim_line;
+                              RENAME OBJECT stg_claims.final_mcare_claim_line TO archive_mcare_claim_line;",
                               .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
@@ -325,7 +329,8 @@ if(all(c(qa_icdcm_1:qa_icdcm_3)) == TRUE & qa_icdcm_4 == 0L) {
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_icdcm_header TO archive_mcare_claim_icdcm_header;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_claim_icdcm_header;
+                              RENAME OBJECT stg_claims.final_mcare_claim_icdcm_header TO archive_mcare_claim_icdcm_header;",
                               .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
@@ -411,7 +416,8 @@ if(all(c(qa_procedure_1:qa_procedure_3)) == TRUE & qa_procedure_4 == 0L) {
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_procedure TO archive_mcare_claim_procedure;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_claim_procedure;
+                              RENAME OBJECT stg_claims.final_mcare_claim_procedure TO archive_mcare_claim_procedure;",
                               .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
@@ -550,7 +556,8 @@ if(all(c(qa_provider_1:qa_provider_7)) == TRUE & qa_provider_8 == 0L) {
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_provider TO archive_mcare_claim_provider;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_claim_provider;
+                              RENAME OBJECT stg_claims.final_mcare_claim_provider TO archive_mcare_claim_provider;",
                               .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
@@ -620,7 +627,8 @@ if(all(c(qa_pharm_1:qa_pharm_2)) == TRUE & qa_pharm_3 == 0L) {
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_pharm TO archive_mcare_claim_pharm;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_claim_pharm;
+                              RENAME OBJECT stg_claims.final_mcare_claim_pharm TO archive_mcare_claim_pharm;",
                               .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
@@ -648,7 +656,8 @@ system.time(load_stage.mcare_claim_pharm_char_f())
 
 ### D) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_pharm_char TO archive_mcare_claim_pharm_char;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_claim_pharm_char;
+                              RENAME OBJECT stg_claims.final_mcare_claim_pharm_char TO archive_mcare_claim_pharm_char;",
                               .con = inthealth))
 
 ### E) Rename current stg_claims.stage table as stg_claims.final table
@@ -698,7 +707,8 @@ if(all(c(mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of headers"]
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_header TO archive_mcare_claim_header;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_claim_header;
+                              RENAME OBJECT stg_claims.final_mcare_claim_header TO archive_mcare_claim_header;",
                               .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
@@ -771,7 +781,8 @@ if(all(c(mcare_claim_ccw_qa1$qa==0
 
 ### D) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_ccw TO archive_mcare_claim_ccw;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_claim_ccw;
+                              RENAME OBJECT stg_claims.final_mcare_claim_ccw TO archive_mcare_claim_ccw;",
                               .con = inthealth))
 
 ### E) Rename current stg_claims.stage table as stg_claims.final table
@@ -828,7 +839,8 @@ if(all(c(mcare_claim_bh_qa1$qa==0
 
 ### D) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_bh TO archive_mcare_claim_bh;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_claim_bh;
+                              RENAME OBJECT stg_claims.final_mcare_claim_bh TO archive_mcare_claim_bh;",
                               .con = inthealth))
 
 ### E) Rename current stg_claims.stage table as stg_claims.final table
@@ -869,7 +881,8 @@ if(all(c(mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="# members not in b
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_moud TO archive_mcare_claim_moud;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_claim_moud;
+                              RENAME OBJECT stg_claims.final_mcare_claim_moud TO archive_mcare_claim_moud;",
                               .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
@@ -909,7 +922,8 @@ if(all(c(mcare_claim_naloxone_qa$qa[mcare_claim_naloxone_qa$qa_type=="# members 
 
 ### E) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
-               glue::glue_sql("RENAME OBJECT stg_claims.final_mcare_claim_naloxone TO archive_mcare_claim_naloxone;",
+               glue::glue_sql("DROP TABLE IF EXISTS stg_claims.archive_mcare_claim_naloxone;
+                              RENAME OBJECT stg_claims.final_mcare_claim_naloxone TO archive_mcare_claim_naloxone;",
                               .con = inthealth))
 
 ### F) Rename current stg_claims.stage table as stg_claims.final table
