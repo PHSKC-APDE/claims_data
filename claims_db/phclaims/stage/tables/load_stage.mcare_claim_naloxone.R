@@ -3,6 +3,7 @@
 #
 # 2024-06
 #
+# Update 2025-07-18 (Eli Kern): Tweak code given new modifier_code structure 
 
 ### Run from 02_master_mcare_claims_analytic.R script
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/02_master_mcare_claims_analytic.R
@@ -192,10 +193,7 @@ load_stage.mcare_claim_naloxone_f <- function() {
     WHERE year(last_service_date) >= 2016 
     	and 
     	(a.procedure_code in ('G1028', 'G2215', 'G2216 ', 'J2310', 'J2311') 
-    		or 
-    	a.procedure_code = 'J3490' and (modifier_1 in ('HG', 'TG') 
-    	    or modifier_2 in ('HG', 'TG')
-    		or modifier_3 in ('HG', 'TG') or modifier_4 in ('HG', 'TG')));",
+    		or (a.procedure_code = 'J3490' and modifier_code in ('HG', 'TG')));",
             .con = inthealth))
         }
 
