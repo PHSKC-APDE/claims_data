@@ -7,6 +7,7 @@
 # R script developed by Jeremy Whitehurst using SQL scripts from Eli Kern, Jennifer Liu and Spencer Hensley
 #
 # Update 2025-04-03 (Eli Kern): Tweak code given new modifier_code structure 
+# Updated 2025-08-28 (JL): Added an additional naloxone procedure code
 #
 ## 
 
@@ -125,12 +126,12 @@ SELECT
 	UPPER(procedure_long_desc) as description,
 	last_service_date AS [date],
 	CASE WHEN a.procedure_code IN ('G1028', 'G2215') THEN 2
-		WHEN a.procedure_code IN ('G2216', 'J2310', 'J2311', 'J3490') THEN 1
+		WHEN a.procedure_code IN ('G2216', 'J2310', 'J2311', 'J3490', 'J2312') THEN 1
 		ELSE NULL
 		END
 		AS quantity,
 	CASE WHEN a.procedure_code IN ('G1028', 'G2215') THEN 'SPRAY'
-		WHEN a.procedure_code IN ('G2216', 'J2310', 'J2311') THEN 'INJECTION'
+		WHEN a.procedure_code IN ('G2216', 'J2310', 'J2311', 'J2312') THEN 'INJECTION'
 		WHEN a.procedure_code IN ('J3490') THEN 'UNKNOWN'
 		ELSE NULL
 		END
@@ -149,7 +150,7 @@ FROM {`final_schema`}.{`paste0(final_table, 'mcaid_claim_procedure')`} AS A
 
 WHERE year(last_service_date) >= 2016 
 	and 
-	(a.procedure_code in ('G1028', 'G2215', 'G2216 ', 'J2310', 'J2311') 
+	(a.procedure_code in ('G1028', 'G2215', 'G2216 ', 'J2310', 'J2311', 'J2312') 
 		or (a.procedure_code = 'J3490' and modifier_code in ('HG', 'TG')));",
 	  .con = conn)
   DBI::dbExecute(conn = conn, step2_sql)
