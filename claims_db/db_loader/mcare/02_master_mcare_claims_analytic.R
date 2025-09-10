@@ -944,3 +944,5 @@ DBI::dbExecute(conn = inthealth,
 DBI::dbExecute(conn = inthealth,
                glue::glue_sql("RENAME OBJECT stg_claims.stage_mcare_claim_naloxone TO final_mcare_claim_naloxone;",
                               .con = inthealth))
+
+rm(list = ls())
