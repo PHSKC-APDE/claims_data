@@ -251,6 +251,8 @@ claim_load_f <- function(table = c("ccw", "icdcm_header", "header", "line",
     qa_stage <- qa_stage_mcaid_claim_naloxone_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config)
   } else if (table == "preg_episode") {
     qa_stage <- qa_stage_mcaid_claim_preg_episode_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config)
+  } else if (table == "bh") {
+    qa_stage <- qa_stage_mcaid_claim_bh_f(conn = dw_inthealth, conn_qa = db_claims, server = server, config = stage_config, skip_review = T)
   }
   
   conn <- create_db_connection(server, interactive = interactive_auth, prod = prod)
