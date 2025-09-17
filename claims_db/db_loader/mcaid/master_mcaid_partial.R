@@ -218,4 +218,4 @@ DBI::dbExecute(conn = db_claims,
                               .con = db_claims))
 
 rm(list = ls())    
-
+gc()

@@ -102,6 +102,49 @@ qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
   }
   
   
+  #### Check all IDs are also found in the elig_demo and time_var tables ####
+  ids_demo_chk <- as.integer(DBI::dbGetQuery(
+    conn, glue::glue_sql("SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
+                         FROM {`to_schema`}.{`to_table`} AS a
+                         LEFT JOIN {`to_schema`}.stage_mcaid_elig_demo AS b
+                         ON a.id_mcaid = b.id_mcaid
+                         WHERE b.id_mcaid IS NULL",
+                         .con = conn)))
+  
+  ids_timevar_chk <- as.integer(DBI::dbGetQuery(
+    conn, glue::glue_sql("SELECT COUNT (DISTINCT a.id_mcaid) AS cnt_id
+                         FROM {`to_schema`}.{`to_table`} AS a
+                         LEFT JOIN {`to_schema`}.stage_mcaid_elig_timevar AS b
+                         ON a.id_mcaid = b.id_mcaid
+                         WHERE b.id_mcaid IS NULL",
+                         .con = conn)))
+  
+  if (ids_demo_chk == 0 & ids_timevar_chk == 0) {
+    bh_qa <- rbind(bh_qa,
+                   data.frame(etl_batch_id = NA_integer_,
+                              last_run = last_run,
+                              table_name = paste0(to_schema, ".", to_table),
+                              qa_item = "Distinct IDs compared to elig tables",
+                              qa_result = "PASS",
+                              qa_date = Sys.time(),
+                              note = glue("'There were the same number of IDs as in the final mcaid_elig_demo ", 
+                                          "and mcaid_elig_timevar tables'")))
+  } else {
+    bh_qa <- rbind(bh_qa,
+                   data.frame(etl_batch_id = NA_integer_,
+                              last_run = last_run,
+                              table_name = paste0(to_schema, ".", to_table),
+                              qa_item = "Distinct IDs compared to elig tables",
+                              qa_result = "FAIL",
+                              qa_date = Sys.time(),
+                              note = glue("'There were {ids_demo_chk} {DBI::SQL(ifelse(ids_demo_chk >= 0, 'more', 'fewer'))} ",
+                                          "IDs than in the final mcaid_elig_demo table and ", 
+                                          "{ids_timevar_chk} {DBI::SQL(ifelse(ids_timevar_chk >= 0, 'more', 'fewer'))} ", 
+                                          "IDs than in the final mcaid_elig_timevar table')")))
+  }
+  
+  
+  
   #### COUNT NUMBER + PERCENT OF DISTINCT PEOPLE BY CONDITION ####
   distinct_id_bh <- dbGetQuery(
     conn,
@@ -138,7 +181,7 @@ qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
                    {DBI::SQL(glue_collapse(
                      glue_data_sql(bh_qa, 
                                    '({etl_batch_id}, {format(last_run, usetz = FALSE)}, {table_name}, {qa_item}, 
-                                   {qa_result}, {qa_date}, {note})', 
+                                   {qa_result}, {format(qa_date, usetz = FALSE)}, {note})', 
                                    .con = conn), 
                      sep = ', ')
                    )};",
@@ -146,6 +189,12 @@ qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
   
   
   
+  if (max(str_detect(bh_qa$qa_result, "FAIL")) == 0) {
+    bh_qa_fail <- 0L
+  } else {
+    bh_qa_fail <- 1L
+  }
+  
   message(glue::glue("QA of stage.mcaid_claim_bh complete. Result: {min(bh_qa$qa_result)}"))
-  return(0)
+  return(bh_qa_fail)
 }

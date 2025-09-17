@@ -112,7 +112,7 @@ qa_mcaid_elig_timevar_f <- function(conn = NULL,
                          .con = conn)))
   
   id_count_elig <- as.numeric(odbc::dbGetQuery(
-    conn, glue::glue_sql("SELECT COUNT (DISTINCT MEDICAID_RECIPIENT_ID) as count FROM {`from_schema`}.{`from_table`}",
+    conn, glue::glue_sql("SELECT COUNT (DISTINCT MBR_H_SID) as count FROM {`from_schema`}.{`from_table`}",
                          .con = conn)))
   
   if (id_count_timevar != id_count_elig) {

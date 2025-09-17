@@ -80,3 +80,4 @@ lapply(table_list, function(table_list) {
 
 ## Closing message
 message(paste0("All tables have been successfully copied to inthealth_edw - ", Sys.time()))
+rm(list = ls())
