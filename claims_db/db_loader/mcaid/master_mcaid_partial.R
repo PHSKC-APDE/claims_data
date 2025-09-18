@@ -197,8 +197,8 @@ logid <- load_stage.address_clean_geocode(server = server,
                                         config = stage_address_clean_config,
                                         interactive_auth = interactive_auth)
 # Checks status of kcgeocode process
-load_stage.address_clean_geocode_check(upid = logid)
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+load_stage.address_clean_geocode_check(upid = logid)
 check_status(logid,
             type = 'upid', con = db_claims,
               DBI::Id(schema = 'ref', table = 'address_status'))
