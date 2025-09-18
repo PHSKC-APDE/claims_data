@@ -127,7 +127,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  oud_dx1_flag
 	  into #mcaid_moud_proc_3
 	  from #mcaid_moud_proc_2
-	  where 
+	  where
   		--codes not requiring primary diagnosis of OUD
 		  procedure_code in (
   			'H0020', 'S0109', 'G2078', 'G2067',
@@ -143,18 +143,18 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   
   message("STEP 4: Pull pharmacy fill data for bup and naltrexone prescriptions")
   step4_sql <- glue::glue_sql("
-  IF OBJECT_ID(N'tempdb..#mcaid_moud_pharm_1') IS NOT NULL DROP TABLE #mcaid_moud_pharm_1;
+  IF OBJECT_ID({paste0(stage_schema, '.tmp_mcaid_moud_pharm_1')}) IS NOT NULL DROP TABLE {`stage_schema`}.tmp_mcaid_moud_pharm_1;
 	  select distinct 
 	    a.id_mcaid, a.claim_header_id, a.rx_fill_date as first_service_date, a.rx_fill_date as last_service_date, a.ndc,
 		  case when b.sub_group_pharmacy in ('pharm_buprenorphine', 'pharm_buprenorphine_naloxone') then 1 else 0 end as bup_rx_flag,
 		  case when b.sub_group_pharmacy = 'pharm_naltrexone_rx' then 1 else 0 end as nal_rx_flag,
 		  case 
-  			when c.DOSAGEFORMNAME like 'FILM%' or c.DOSAGEFORMNAME like 'TABLET%' then 'oral'
-			  when c.DOSAGEFORMNAME like 'KIT%' or c.DOSAGEFORMNAME like 'SOLUTION%' then 'injection/implant'
+  			when c.DOSAGEFORMNAME like 'FILM%' or c.DOSAGEFORMNAME like 'TABLET%' or c.DOSAGEFORMNAME like 'POWDER%' then 'oral'
+			  when c.DOSAGEFORMNAME like 'KIT%' or c.DOSAGEFORMNAME like 'SOLUTION%' or c.DOSAGEFORMNAME like 'INJECTION%' then 'injection/implant'
 			  else null
 			  end as admin_method,
 		  a.rx_days_supply as moud_days_supply
-	  into #mcaid_moud_pharm_1
+	  into {`stage_schema`}.tmp_mcaid_moud_pharm_1
 	  from {`final_schema`}.{`paste0(final_table, 'mcaid_claim_pharm')`} as a
 	  inner join (
   		select distinct code, sub_group_pharmacy
@@ -166,16 +166,7 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  select ndc, DOSAGEFORMNAME
 		  from {`ref_schema`}.{`paste0(ref_table, 'ndc_codes')`}) as c
   			on b.code = c.ndc
-  	where a.rx_fill_date >= '2016-01-01';
-  
-  	IF OBJECT_ID({paste0(stage_schema, '.tmp_mcaid_moud_pharm_2')}) IS NOT NULL DROP TABLE {`stage_schema`}.tmp_mcaid_moud_pharm_2;
-  	select 
-  	  id_mcaid, claim_header_id, first_service_date, last_service_date, ndc, bup_rx_flag, nal_rx_flag, 
-		  case when ndc = '00093572156' or ndc = '00093572056' or ndc = '49452483501'  or ndc = '00378876616' then 'oral' 
-  			else admin_method 
-			  end as admin_method, moud_days_supply
-	  into {`stage_schema`}.tmp_mcaid_moud_pharm_2
-	  from #mcaid_moud_pharm_1;",
+  	where a.rx_fill_date >= '2016-01-01';",
 	  .con = conn)
   DBI::dbExecute(conn = conn, step4_sql)
   
@@ -201,6 +192,9 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  oud_dx1_flag
 	  into #mcaid_moud_union_1
 	  from #mcaid_moud_proc_3
+	  where 
+	    --remove oral naltrexone
+	    moud_proc_flag_tbd = 1 or bup_proc_flag = 1 or meth_proc_flag = 1 or unspec_proc_flag = 1 or (nal_proc_flag = 1 and admin_method = 'injection/implant')
 	  union 
 	  select
   		id_mcaid,
@@ -219,7 +213,10 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  nal_rx_flag,
 		  moud_days_supply,
 		  null as oud_dx1_flag
-	  from {`stage_schema`}.tmp_mcaid_moud_pharm_2;",
+	  from {`stage_schema`}.tmp_mcaid_moud_pharm_1
+    where 
+      --remove oral naltrexone
+      bup_rx_flag = 1 or (nal_rx_flag = 1 and admin_method = 'injection/implant');",
 	  .con = conn)
   DBI::dbExecute(conn = conn, step5_sql)
   
