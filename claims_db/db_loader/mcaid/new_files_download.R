@@ -86,11 +86,20 @@ if(T) {
     message(paste0("Download Completed - ", Sys.time()))
     
     zfiles <- data.frame("fileName" = list.files(dldir, pattern="*.gz", recursive = T))
+    compression <- "gz"
+    if(nrow(zfiles) == 0) {
+      zfiles <- data.frame("fileName" = list.files(dldir, pattern="*.zip", recursive = T))  
+      compression <- "zip"
+    }
     message(paste0("Extracting Files - ", Sys.time()))
     for (x in 1:nrow(zfiles)) {
       message(paste0("Begin Extracting ", zfiles[x, "fileName"], " - ", Sys.time()))
       ## Extract file to specified directory
-      gunzip(paste0(dldir, "/", zfiles[x, "fileName"]), destname = paste0(exdir, "/", gsub("csv[.]gz$", "txt", zfiles[x, "fileName"])), remove = F)
+      if(compression == "gz") {
+        gunzip(paste0(dldir, "/", zfiles[x, "fileName"]), destname = paste0(exdir, "/", gsub("csv[.]gz$", "txt", zfiles[x, "fileName"])), remove = F)
+      } else {
+        unzip(paste0(dldir, "/", zfiles[x, "fileName"]), exdir = paste0(exdir, "/", substring(zfiles[x, "fileName"], 1, survPen::instr(zfiles[x, "fileName"], "/") - 1)))
+      }
       message(paste0("Extraction Completed - ", Sys.time()))
     }
     message("------------------------------")
@@ -103,6 +112,9 @@ if(T) {
   for(d in 1:length(exdirs)) {
     if(exdirs[d] != exdir) {
       efiles <- data.frame("fileName" = list.files(exdirs[d], pattern="*.txt"))
+      if(nrow(efiles) == 0) {
+        efiles <- data.frame("fileName" = list.files(exdirs[d], pattern="*.csv"))  
+      }
       tname <- paste0(substr(efiles[1, "fileName"], 1, str_locate(efiles[1, "fileName"], "[.]")[1, 1] - 1), ".txt")
       message(paste0("Begin Buidling ", tname, " - ", Sys.time()))
       for(i in 1:nrow(efiles)) {
@@ -116,9 +128,9 @@ if(T) {
         message(paste0("Writing ", length(df) - 1, " Rows to ", tname, " - ", Sys.time()))
         for(x in 1:length(df)) {
           if(x == 1 && i == 1) {
-            cat(df[x], file = paste0(txtdir, "/", tname), sep = "\n", append = F)
+            cat(str_replace_all(df[x], "\\|", "\t"), file = paste0(txtdir, "/", tname), sep = "\n", append = F)
           } else if(x > 1) {
-            cat(df[x], file = paste0(txtdir, "/", tname), sep = "\n", append = T)
+            cat(str_replace_all(df[x], "\\|", "\t"), file = paste0(txtdir, "/", tname), sep = "\n", append = T)
           }
         }
       }
@@ -302,7 +314,7 @@ if(T) {
     proceed_msg <- glue("Would you like to create ETL Log Entries on HHSAW Dev?")
     proceed <- askYesNo(msg = proceed_msg)
     if (proceed == T) {
-      db_claims <- create_db_connection(server = "hhsaw", interactive = F, prod = F)
+      db_claims <- create_db_connection(server = "hhsaw", interactive = T, prod = F)
       for (x in 1:nrow(tfiles)) {
         tfiles[x, "batch_id_dev"] <- load_metadata_etl_log_file_f(conn = db_claims, 
                                                               server = "hhsaw",
@@ -340,5 +352,5 @@ if(T) {
   }
 }
 
-
 rm(list=ls())
+gc()
