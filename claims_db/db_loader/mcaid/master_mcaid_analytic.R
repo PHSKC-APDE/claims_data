@@ -610,4 +610,6 @@ if(send_email == "Yes") {
                 vars = vars)
 }
 
+rm(list = ls())    
+gc()
 
