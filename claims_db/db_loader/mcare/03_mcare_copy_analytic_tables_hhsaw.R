@@ -11,12 +11,7 @@
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
         scipen = 999)
 
-pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils) # Load list of packages
-
-
-#### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
-
+pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils, apde.etl) # Load list of packages
 
 #### STEP 1: CREATE CONNECTIONS ####
 
@@ -24,7 +19,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 interactive_auth <- FALSE
 prod <- TRUE
 db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
-
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 #### STEP 2: COPY DATA FOR ALL TABLES ####
 
@@ -46,7 +41,10 @@ table_list <- list(
   "mcare_claim_provider",
   "mcare_elig_demo",
   "mcare_elig_timevar",
-  "mcare_elig_month"
+  "mcare_elig_month",
+  "mcare_bene_enrollment",
+  "mcare_bene_names",
+  "mcare_bene_ssn_xwalk"
 )
 
 #Define modified table list if needed (e.g., when loop breaks after some tables have been copied)
@@ -55,8 +53,14 @@ table_list <- list(
 #Begin loop
 lapply(table_list, function(table_list) {
 
-  ext_table <- paste0("stage_", table_list)
-  to_table <- paste0("final_", table_list)
+  if(survPen::instr(table_list, "bene") == 0) {
+    ext_table <- paste0("stage_", table_list)
+    to_table <- paste0("final_", table_list)
+  } else {
+    ext_table <- table_list
+    to_table <- paste0("stage_", table_list)
+  }
+  
   message(paste0("Working on table: ", to_table, " - ", Sys.time()))
   db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
   DBI::dbExecute(conn = db_claims,
