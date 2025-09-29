@@ -124,6 +124,13 @@
                                             FROM [IDMatch].[IM_HISTORY_TABLE]
                                             WHERE IS_HISTORICAL = 'N' AND SOURCE_SYSTEM = 'MEDICAID' AND KCMASTER_ID IS NOT NULL")) 
     
+    if(nrow(mcaid[!grepl('WA$', id_mcaid)])){
+      stop("\n\U0001F92C\U1F6D1\U0001f47f\n", 
+           "id_mcaid is NOT in the form `123456789WA', which is the MEDICAID_RECIPIENT_ID.\n", 
+           "It has likely been changed MBR_H_SID, a purely numeric ID.\n", 
+           "To crosswalk between the two, use [claims].[mcaid_id_crosswalk].")
+    }
+    
     pha <- setDT(odbc::dbGetQuery(db_idh, 
                                   "SELECT DISTINCT 
                                         KCMASTER_ID, 
