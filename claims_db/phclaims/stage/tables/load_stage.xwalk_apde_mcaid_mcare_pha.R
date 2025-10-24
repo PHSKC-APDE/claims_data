@@ -116,20 +116,14 @@
                                   "SELECT DISTINCT KCMASTER_ID
                                             FROM [IDMatch].[IM_HISTORY_TABLE]
                                             WHERE IS_HISTORICAL = 'N' AND KCMASTER_ID IS NOT NULL")) 
+  
     mcaid <- setDT(odbc::dbGetQuery(db_idh, 
                                     "SELECT DISTINCT 
                                               KCMASTER_ID, 
-                                              id_mcaid = MEDICAID_ID, 
+                                              id_mcaid = MBR_H_SID, 
                                               touched = CAST(LAST_TOUCHED AS DATE)
                                             FROM [IDMatch].[IM_HISTORY_TABLE]
                                             WHERE IS_HISTORICAL = 'N' AND SOURCE_SYSTEM = 'MEDICAID' AND KCMASTER_ID IS NOT NULL")) 
-    
-    if(nrow(mcaid[!grepl('WA$', id_mcaid)])){
-      stop("\n\U0001F92C\U1F6D1\U0001f47f\n", 
-           "id_mcaid is NOT in the form `123456789WA', which is the MEDICAID_RECIPIENT_ID.\n", 
-           "It has likely been changed MBR_H_SID, a purely numeric ID.\n", 
-           "To crosswalk between the two, use [claims].[mcaid_id_crosswalk].")
-    }
     
     pha <- setDT(odbc::dbGetQuery(db_idh, 
                                   "SELECT DISTINCT 
@@ -139,7 +133,6 @@
                                       FROM [IDMatch].[IM_HISTORY_TABLE]
                                       WHERE IS_HISTORICAL = 'N' AND phousing_id IS NOT NULL AND KCMASTER_ID IS NOT NULL")) 
 
-
   ## remove random white spaces ----
     rads::string_clean(idh)
     rads::string_clean(mcaid)
@@ -148,7 +141,7 @@
   ## ensure data follow proper patterns ----
     idh <- unique(idh[grepl('^[0-9]{9}KC$', KCMASTER_ID), .(KCMASTER_ID)])
     
-    mcaid <- unique(mcaid[grepl('^[0-9]{9}WA$', id_mcaid), .(KCMASTER_ID, id_mcaid, touched)])
+    mcaid <- unique(mcaid[grepl('^[0-9]+$', id_mcaid), .(KCMASTER_ID, id_mcaid, touched)])
       
     pha <- unique(pha[nchar(phousing_id) == 64, .(KCMASTER_ID, phousing_id, touched)])
     
@@ -166,9 +159,11 @@
     
 # Merge on Medicaid IDs ----
     idh <- merge(idh, mcaid, by = c('KCMASTER_ID'), all = T)
+    if(nrow(idh[is.na(id_apde)]) >0){stop("\n\U1F6D1 After merging `mcaid` onto `idh`, the combined table is missing an `id_apde`. This should not happen!")}
     
 # Merge on phousing_id ----
     idh <- merge(idh, pha, by = c('KCMASTER_ID'), all = T)
+    if(nrow(idh[is.na(id_apde)]) >0){stop("\n\U1F6D1 After merging `pha` onto `idh`, the combined table is missing an `id_apde`. This should not happen!")}
     
 # Merge on Medicare IDs ----
     # in the future may have actual medicare IDs linked via the IDH or from
@@ -180,10 +175,12 @@
 # Write to SQL ----
     idh_field_types <- c("id_apde" = "NVARCHAR(10)", 
                          "KCMASTER_ID" = 'NVARCHAR(11)', 
-                         "id_mcaid" = 'NVARCHAR(11)', 
+                         "id_mcaid" = 'NVARCHAR(10)', 
                          "id_mcare" = "CHAR(15) collate SQL_Latin1_General_Cp1_CS_AS", 
                          "phousing_id" = "NVARCHAR(64)",
                          "last_run" = "datetime") 
+    
+    rads::tsql_convert_types(ph.data = idh, field_types = idh_field_types)
     
     rads::tsql_chunk_loader(ph.data = idh,
                             db_conn = rads::validate_hhsaw_key(),
