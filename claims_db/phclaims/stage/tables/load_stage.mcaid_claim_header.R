@@ -294,7 +294,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            ON px.procedure_code = pc_ref.code
            --telehealth procedure/modifier code combinations
      		   LEFT JOIN 
-    		   (SELECT code, modifier_flag, modifier_cr, modifier_95, modifier_gt, modifier_g0, modifier_gq, modifier_fq, modifier_93, 1 as telehealth_pcode FROM claims.ref_telehealth) AS tel_ref
+    		   (SELECT code, modifier_flag, modifier_cr, modifier_95, modifier_gt, modifier_g0, modifier_gq, modifier_fq, modifier_93, 1 as telehealth_pcode FROM {`ref_schema`}.{DBI::SQL(ref_table)}telehealth) AS tel_ref
     		    -- procedure codes not requiring a modifier code
       			on (tel_ref.code = px.procedure_code and tel_ref.modifier_flag is null)
       			-- procedure codes requiring a modifier code 
