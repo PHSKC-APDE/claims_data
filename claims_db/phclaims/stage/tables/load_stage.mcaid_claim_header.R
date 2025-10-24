@@ -13,6 +13,7 @@
 # Revised: Alastair Matheson | 2020-01-27 | Added primary care flags
 # Revised: Eli Kern | 2023-09-13 | Added new BH flags, new CCS flags, renamed columns, removed outdated columns, revised injury code to be consistent with CHARS
 # Revised: Eli Kern | 2024-01-16 | Added ccs_superlevel_desc and ccs_midlevel_desc columns to aid with tabulating leading causes
+
 # 
 # Data Pull Run time: XX min
 # Create Index Run Time: XX min
@@ -73,6 +74,10 @@
 # ,[inpatient_id]
 # ,[pc_visit]
 # ,[pc_visit_id] 
+# ,[telehealth]
+# ,[telehealth_id]
+# ,[ucc]
+# ,[ucc_id] 
 # ,[last_run]
 
 
@@ -84,9 +89,9 @@
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
 load_stage_mcaid_claim_header_f <- function(conn = NULL,
-                                           server = c("hhsaw"),
-                                           config = NULL,
-                                           get_config = F) {
+                                            server = c("hhsaw"),
+                                            config = NULL,
+                                            get_config = F) {
   
   
   # Set up variables specific to the server
@@ -111,13 +116,13 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   icdcm_ref_table <- config[[server]][["icdcm_ref_table"]]
   temp_schema <- config[[server]][["temp_schema"]]
   temp_table <- ifelse(is.null(config[[server]][["temp_table"]]), '',
-                      config[[server]][["temp_table"]])
+                       config[[server]][["temp_table"]])
   stage_schema <- config[[server]][["stage_schema"]]
   stage_table <- ifelse(is.null(config[[server]][["stage_table"]]), '',
                         config[[server]][["stage_table"]])
   final_schema <- config[[server]][["final_schema"]]
   final_table <- ifelse(is.null(config[[server]][["final_table"]]), '',
-                       config[[server]][["final_table"]])
+                        config[[server]][["final_table"]])
   
   message("Creating ", to_schema, ".", to_table, ". This will take ~80 minutes to run.")
   
@@ -145,6 +150,8 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   try(DBI::dbRemoveTable(conn, "#stage_mcaid_ed_yale_final", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "#stage_mcaid_ed_perform_id", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "#stage_mcaid_inpatient_id", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "#stage_mcaid_telehealth_id", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "#stage_mcaid_ucc_id", temporary = T), silent = T)
   
   #stage_mcaid_# Set up temp table
   # Could turn this code into a function and add test options if desired
@@ -276,13 +283,30 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
                  glue::glue_sql("SELECT px.claim_header_id 
            --ed visits sub-flags
            ,max(case when px.procedure_code like '9928[123458]' then 1 else 0 end) as 'ed_pcode1'
-           ,MAX(ISNULL(pc_ref.pc_pcode, 0)) AS pc_pcode 
+           ,MAX(ISNULL(pc_ref.pc_pcode, 0)) AS pc_pcode
+           --telehealth procedure code flag
+           ,max(isnull(tel_ref.telehealth_pcode, 0)) as tel_pcode
            INTO #stage_mcaid_procedure_code FROM
-           (SELECT claim_header_id, procedure_code FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_procedure) AS px
+           (SELECT claim_header_id, procedure_code, modifier_code FROM {`stage_schema`}.{DBI::SQL(stage_table)}mcaid_claim_procedure) AS px
            LEFT JOIN
            (SELECT code, 1 AS pc_pcode FROM {`ref_schema`}.{DBI::SQL(ref_table)}pc_visit_oregon 
            WHERE code_system IN ('cpt', 'hcpcs')) pc_ref
            ON px.procedure_code = pc_ref.code
+           --telehealth procedure/modifier code combinations
+     		   LEFT JOIN 
+    		   (SELECT code, modifier_flag, modifier_cr, modifier_95, modifier_gt, modifier_g0, modifier_gq, modifier_fq, modifier_93, 1 as telehealth_pcode FROM claims.ref_telehealth) AS tel_ref
+    		    -- procedure codes not requiring a modifier code
+      			on (tel_ref.code = px.procedure_code and tel_ref.modifier_flag is null)
+      			-- procedure codes requiring a modifier code 
+      			or (tel_ref.code = px.procedure_code and tel_ref.modifier_93 is not null and (px.modifier_code = tel_ref.modifier_93))
+      			or (tel_ref.code = px.procedure_code and tel_ref.modifier_95 is not null and (px.modifier_code = tel_ref.modifier_95))
+      			or (tel_ref.code = px.procedure_code and tel_ref.modifier_cr is not null and (px.modifier_code = tel_ref.modifier_cr))			
+      			or (tel_ref.code = px.procedure_code and tel_ref.modifier_fq is not null and (px.modifier_code = tel_ref.modifier_fq))
+      			or (tel_ref.code = px.procedure_code and tel_ref.modifier_g0 is not null and (px.modifier_code = tel_ref.modifier_g0))			
+      			or (tel_ref.code = px.procedure_code and tel_ref.modifier_gq is not null and (px.modifier_code = tel_ref.modifier_gq))
+      			or (tel_ref.code = px.procedure_code and tel_ref.modifier_gt is not null and (px.modifier_code = tel_ref.modifier_gt))
+      			-- modifier code alone regardless of procedure code 
+      			or px.modifier_code = tel_ref.code          
            GROUP BY claim_header_id",
                                 .con = conn))
   
@@ -394,6 +418,10 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
               AND pc_provider.pc_provider = 1
               AND header.clm_type_mcaid_id NOT IN (19, 31, 33) --Ambulatory surgery centers/inpatient 
             THEN 1 ELSE 0 END AS pc_visit
+    		   -- Telehealth flag
+    			 ,case when (procedure_code.tel_pcode = 1 or header.place_of_service_code in ('10', '02')) then 1 else 0 end as 'telehealth'
+    			 -- Urgent Care flag 
+    			 ,case when header.place_of_service_code in ('20') then 1 else 0 end as 'ucc'		       
            
            INTO #stage_mcaid_temp1
            FROM #stage_mcaid_header as header
@@ -409,7 +437,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
            ON header.billing_provider_npi = pc_provider.billing_provider_npi",
                                 .con = conn))
   
-
+  
   #### STEP 8: CCS GROUPINGS (SUPERLEVEL, BROAD, MIDLEVEL, DETAIL) FOR PRIMARY DIAGNOSIS ####
   message("STEP 8: CCS GROUPINGS (SUPERLEVEL, BROAD, MIDLEVEL, DETAIL) FOR PRIMARY DX")
   try(DBI::dbRemoveTable(conn, "#stage_mcaid_ccs", temporary = T), silent = T)
@@ -852,7 +880,8 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   
   # Add index
   #DBI::dbExecute(conn, "create clustered index [idx_cl_#stage_mcaid_ed_yale_final] on #stage_mcaid_ed_yale_final(claim_header_id)")
- 
+  
+  
   
   # Set up ED IDs
   try(DBI::dbRemoveTable(conn, "#stage_mcaid_ed_perform_id", temporary = T), silent = T)
@@ -902,6 +931,42 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   #DBI::dbExecute(conn, "create clustered index [idx_cl_#stage_mcaid_pc_visit_id] on #stage_mcaid_pc_visit_id([claim_header_id])")
   
   
+  ## Create [telehealth_id] column
+  try(DBI::dbRemoveTable(conn, "#stage_mcaid_telehealth_id", temporary = T), silent = T)
+  try(DBI::dbExecute(conn, "DROP TABLE #stage_mcaid_telehealth_id;"), silent = T)
+  
+  DBI::dbExecute(conn,
+                 "SELECT [id_mcaid]
+                 ,[claim_header_id]
+                 ,[first_service_date]
+                 ,[telehealth]
+                 ,DENSE_RANK() OVER(ORDER BY [id_mcaid], [first_service_date]) AS [telehealth_id]
+                 INTO #stage_mcaid_telehealth_id
+                 FROM #stage_mcaid_temp1
+                 WHERE telehealth = 1;")
+  
+  # Add index
+  #DBI::dbExecute(conn, "create clustered index [idx_cl_#stage_mcaid_telehealth_id] on #stage_mcaid_telehealth_id([claim_header_id])")
+  
+  
+  ## Create [ucc_id] column
+  try(DBI::dbRemoveTable(conn, "#stage_mcaid_ucc_id", temporary = T), silent = T)
+  try(DBI::dbExecute(conn, "DROP TABLE #stage_mcaid_ucc_id;"), silent = T)
+  
+  DBI::dbExecute(conn,
+                 "SELECT [id_mcaid]
+                 ,[claim_header_id]
+                 ,[first_service_date]
+                 ,[ucc]
+                 ,DENSE_RANK() OVER(ORDER BY [id_mcaid], [first_service_date]) AS [ucc_id]
+                 INTO #stage_mcaid_ucc_id
+                 FROM #stage_mcaid_temp1
+                 WHERE ucc = 1;")
+  
+  # Add index
+  #DBI::dbExecute(conn, "create clustered index [idx_cl_#stage_mcaid_ucc_id] on #stage_mcaid_ucc_id([claim_header_id])")
+  
+  
   #### STEP 12: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE) ####
   message("STEP 12: CREATE FINAL SUMMARY TABLE WITH EVENT-BASED FLAGS (TEMP STAGE)")
   try(DBI::dbRemoveTable(conn, "#stage_mcaid_temp_final", temporary = T), silent = T)
@@ -944,6 +1009,12 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
              
              --Primary care
              ,j.pc_visit_id
+			       
+			       -- Telehealth
+			       ,k.telehealth_id
+			       
+			       -- Urgent care
+			       ,l.ucc_id
              
              INTO #stage_mcaid_temp_final
              FROM #stage_mcaid_temp1 as a
@@ -961,6 +1032,10 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
              on a.claim_header_id = i.claim_header_id
              left join #stage_mcaid_pc_visit_id AS j
              on a.claim_header_id = j.claim_header_id
+			       left join #stage_mcaid_telehealth_id AS k
+             on a.claim_header_id = k.claim_header_id
+			       left join #stage_mcaid_ucc_id AS l
+             on a.claim_header_id = l.claim_header_id
            ")
   
   
@@ -1008,6 +1083,8 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   try(DBI::dbRemoveTable(conn, "#stage_mcaid_ed_yale_final", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "#stage_mcaid_ed_perform_id", temporary = T), silent = T)
   try(DBI::dbRemoveTable(conn, "#stage_mcaid_inpatient_id", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "#stage_mcaid_telehealth_id", temporary = T), silent = T)
+  try(DBI::dbRemoveTable(conn, "#stage_mcaid_ucc_id", temporary = T), silent = T)
   
   time_end <- Sys.time()
   message(glue::glue("Table creation took {round(difftime(time_end, time_start, units = 'secs'), 2)} ",

@@ -67,4 +67,8 @@ vars:
     inpatient_id: BIGINT
     pc_visit: TINYINT
     pc_visit_id: BIGINT
+    telehealth: TINYINT
+    telehealth_id: BIGINT
+    ucc: TINYINT
+    ucc_id: BIGINT
     last_run: DATETIME
