@@ -12,6 +12,7 @@ claims,ref_date,stg_claims,ref_date
 claims,ref_moll_trimester,stg_claims,ref_moll_trimester
 claims,ref_ccw_lookup,stg_claims,ref_ccw_lookup
 claims,ref_telehealth,stg_claims,ref_telehealth
+ref,ndc_codes,stg_claims,ref_ndc_codes
 ref,ndc_codes,stg_reference,ref_ndc_codes
 ref,rda_value_sets_apde,stg_reference,ref_rda_value_sets_apde
 ref,icdcm_codes,stg_reference,icdcm_codes
