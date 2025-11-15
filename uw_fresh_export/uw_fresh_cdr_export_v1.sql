@@ -13,26 +13,41 @@
 
 --Use MPM_Person table to create time-varying flag for ZIP-based KC residence
 --Then subset to people with KC residence between 201706 and 202312 and add in patient_id from MPM_IndexPatient table
---442,045 distinct P1 IDs, 442,040 distinct CDR patient IDs
+--613,056 distinct P1 IDs, 613,050 distinct CDR patient IDs
 if object_id(N'stg_cdr.uwf_kc_subset', N'U') is not null drop table stg_cdr.uwf_kc_subset;
+--pull ZIP code and insurance start dates from time-varying CDR data table
 with temp1 as (
 	select provideroneid,
 	cast(insurance_start_date as date) as insurance_start_date,
-	zip as cdr_zip
+	left(zip, 5) as cdr_zip
 	from stg_cdr.MPM_Person
 ),
+--create ZIP-based KC residence flag
 temp2 as (
 	select a.*, b.geo_kc
 	from temp1 as a
 	left join stg_claims.ref_geo_kc_zip as b
 	on a.cdr_zip = b.geo_zip
+),
+--create person-level flags to identify study cohort
+temp3 as (
+	select provideroneid,
+	max(case when insurance_start_date < '2017-06-01' and geo_kc = 1 then 1 else 0 end) as geo_kc_pre_period,
+	max(case when insurance_start_date > '2017-06-01' and geo_kc is null then 1 else 0 end) as geo_non_kc_post_period_start,
+	max(case when insurance_start_date between '2017-06-01' and '2023-12-31' and geo_kc = 1 then 1 else 0 end) as geo_kc_study_period
+	from temp2
+	group by provideroneid
 )
-select distinct a.provideroneid, b.patientid, a.geo_kc
+--add in CDR patientid and subset to study cohort
+select a.provideroneid, c.patientid, max(a.geo_kc) as geo_kc
 into stg_cdr.uwf_kc_subset
 from temp2 as a
-left join stg_cdr.MPM_IndexPatient as b
+left join temp3 as b
 on a.provideroneid = b.provideroneid
-where geo_kc = 1 and a.insurance_start_date between '2017-06-01' and '2023-12-31';
+left join stg_cdr.MPM_IndexPatient as c
+on a.provideroneid = c.provideroneid
+where b.geo_kc_study_period = 1 OR (b.geo_kc_pre_period = 1 and b.geo_non_kc_post_period_start = 1)
+group by a.provideroneid, c.patientid;
 
 
 ------------------------------------
