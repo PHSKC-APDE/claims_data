@@ -55,6 +55,8 @@ group by a.provideroneid, c.patientid;
 ------------------------------------
 
 --Prep MPM_IndexPatient table
+--Exclude direct identifiers
+--Convert dob to age as oif 12/31/23
 if object_id(N'stg_cdr.export_uwf_mpm_indexpatient', N'U') is not null drop table stg_cdr.export_uwf_mpm_indexpatient;
 select distinct
 a.patientid,
@@ -79,6 +81,8 @@ inner join (select distinct patientid from stg_cdr.uwf_kc_subset) as b
 on a.patientid = b.patientid;
 
 --Prep MPM_Person table
+--Exclude direct identifiers
+--Convert dob to age as oif 12/31/23
 if object_id(N'stg_cdr.export_uwf_mpm_person', N'U') is not null drop table stg_cdr.export_uwf_mpm_person;
 select distinct
 b.patientid,
@@ -103,6 +107,7 @@ inner join stg_cdr.uwf_kc_subset as b
 on a.provideroneid = b.provideroneid;
 
 --Prep REF_RaceEthnicityCode table
+--No exclusions or modifications necessary
 if object_id(N'stg_cdr.export_uwf_ref_raceeth_code', N'U') is not null drop table stg_cdr.export_uwf_ref_raceeth_code;
 select distinct
 code,
@@ -112,6 +117,7 @@ into stg_cdr.export_uwf_ref_raceeth_code
 from stg_cdr.REF_RaceEthnicityCode;
 
 --Prep CCD_Header table
+--No exclusions or modifications necessary
 if object_id(N'stg_cdr.export_uwf_ccd_header', N'U') is not null drop table stg_cdr.export_uwf_ccd_header;
 select distinct
 a.patient_id as patientid,
@@ -130,6 +136,7 @@ inner join (select distinct patientid from stg_cdr.uwf_kc_subset) as b
 on a.patient_id = b.patientid;
 
 --Prep CHR_Allergies table
+--No exclusions or modifications necessary
 if object_id(N'stg_cdr.export_uwf_chr_allergy', N'U') is not null drop table stg_cdr.export_uwf_chr_allergy;
 select distinct
 a.patient_id as patientid,
@@ -162,34 +169,11 @@ from stg_cdr.CHR_Allergies as a
 inner join (select distinct patientid from stg_cdr.uwf_kc_subset) as b
 on a.patient_id = b.patientid;
 
---Prep CHR_Labs table -- first create table shell with clustered index on patient_id, allowing nvarchar(max) for test_result
-
+--Prep CHR_Labs table
+--Parse test_result column to set text values to null to avoid sharing direct identifiers
+--Confirmed that all 220 distinct values of cwe_answer_score do not contain sensitive information
+--Confirmed that numeric test_result values do not contain alpha characters (with exception of 2 rows that contained an exponent)
 if object_id(N'stg_cdr.export_uwf_chr_lab', N'U') is not null drop table stg_cdr.export_uwf_chr_lab;
-create table stg_cdr.export_uwf_chr_lab
-(
-  patientid int not null,
-  service_date datetime null,
-  ccd_available_deprecated_flag char(1) null,
-  test_completion_status varchar(255) null,
-  test_code varchar(255) null,
-  test_code_system_oid varchar(255) null,
-  test_code_description varchar(255) null,
-  test_description_from_facility varchar(255) null,
-  test_result nvarchar(max) null,
-  measurement_units varchar(255) null,
-  reference_range varchar(255) null,
-  result_format_text varchar(255) null,
-  test_result_system_oid varchar(255) null,
-  cwe_code varchar(255) null,
-  cwe_system_oid varchar(255) null,
-  cwe_question varchar(255) null,
-  cwe_answer_score varchar(255) null,
-  apde_last_run datetime null
-)
-with (clustered index (patientid));
-
---load data to table shell
-insert into stg_cdr.export_uwf_chr_lab
 select distinct
 a.patient_id as patientid,
 a.service_date,
@@ -199,7 +183,7 @@ a.test_code,
 a.test_code_system_oid,
 a.test_code_description,
 a.test_description_from_facility,
-a.test_result,
+case when a.result_format_text = 'TX' then null else cast(a.test_result as varchar(255)) end as test_result,
 a.measurement_units,
 a.reference_range,
 a.result_format_text,
@@ -209,11 +193,170 @@ a.cwe_system_oid,
 a.cwe_question,
 a.cwe_answer_score,
 getdate() as apde_last_run
+into stg_cdr.export_uwf_chr_lab
 from stg_cdr.CHR_Labs_ek_test as a
 inner join (select distinct patientid from stg_cdr.uwf_kc_subset) as b
 on a.patient_id = b.patientid;
 
+--Prep CHR_Meds table
+--Exclude patient_instructions column to avoid potential sharing of sensitive information
+if object_id(N'stg_cdr.export_uwf_chr_med', N'U') is not null drop table stg_cdr.export_uwf_chr_med;
+select distinct
+a.patient_id as patientid,
+a.ccd_section,
+a.service_date,
+a.ccd_available_deprecated_flag,
+a.drug_code_system_description,
+a.drug_code,
+a.drug_code_system_oid,
+a.drug_code_description,
+a.drug_description_from_ccd,
+a.drug_lot_number,
+a.manufacturer_name,
+a.product_name,
+a.route_code,
+a.route_code_system_oid,
+a.route_code_description,
+a.route_text_from_ccd,
+a.complex_dose_indicator,
+a.dose_unit_high,
+a.dose_amount_high,
+a.dose_unit_low,
+a.dose_amount_low,
+a.dosage_measurement_unit,
+a.dose_unit_quantity,
+--a.patient_instructions, -- excluded to avoid potential sharing of sensitive information
+a.planned_administration_flag,
+a.rx_status,
+a.rx_status_code_system,
+a.supply_instructions,
+a.supply_number_of_fills,
+a.supply_planned_flag,
+a.supply_product_code,
+a.supply_product_code_system,
+a.supply_code_description,
+a.supply_text_from_ccd,
+a.supply_manufacturer_name,
+a.supply_product_name,
+a.supply_quantity_unit,
+a.supply_quantity_amount,
+a.supplysequencenumber,
+a.medflag,
+a.immunization_refusal_reason_code,
+a.immunization_refusal_reason_code_system,
+a.immunization_refusal_reason_text,
+a.injection_location_code,
+a.injection_location_code_system,
+a.injection_location_code_description,
+a.injection_location_text_from_ccd,
+a.dose_frequency_unit_and_value,
+getdate() as apde_last_run
+into stg_cdr.export_uwf_chr_med
+from stg_cdr.CHR_MedicationAndImmunizations_ek_test as a
+inner join (select distinct patientid from stg_cdr.uwf_kc_subset) as b
+on a.patient_id = b.patientid;
 
---NEXT: meds
-select top 10 * from stg_cdr.CHR_Labs_ek_test;
-select top 10 * from stg_cdr.export_uwf_chr_lab;
+--Prep CHR_Problems table
+--No exclusions or modifications necessary
+if object_id(N'stg_cdr.export_uwf_chr_problem', N'U') is not null drop table stg_cdr.export_uwf_chr_problem;
+select distinct
+a.patient_id as patientid,
+a.service_date,
+a.ccd_available_deprecated_flag,
+a.diagnosis_code,
+a.oid_of_dx_coding_system,
+a.diagnosis_code_description,
+a.diagnosis_text_decription_from_the_ccd,
+a.diagnosis_status,
+getdate() as apde_last_run
+into stg_cdr.export_uwf_chr_problem
+from stg_cdr.raw_CHR_Problems_ek_test as a
+inner join (select distinct patientid from stg_cdr.uwf_kc_subset) as b
+on a.patient_id = b.patientid;
+
+--Prep CHR_Procedures table
+--No exclusions or modifications necessary
+if object_id(N'stg_cdr.export_uwf_chr_procedure', N'U') is not null drop table stg_cdr.export_uwf_chr_procedure;
+select distinct
+a.patient_id as patientid,
+a.service_date,
+a.available_or_deprecated_flag,
+a.procedure_status,
+a.procedure_code,
+a.oid_of_procedure_code_system,
+a.procedure_code_description,
+a.procedure_description_from_ccd,
+a.procedure_description,
+getdate() as apde_last_run
+into stg_cdr.export_uwf_chr_procedure
+from stg_cdr.raw_CHR_Procedures_ek_test as a
+inner join (select distinct patientid from stg_cdr.uwf_kc_subset) as b
+on a.patient_id = b.patientid;
+
+--Prep CHR_Vitals table
+--No exclusions or modifications necessary
+if object_id(N'stg_cdr.export_uwf_chr_vital', N'U') is not null drop table stg_cdr.export_uwf_chr_vital;
+select distinct
+a.patient_id as patientid,
+a.service_date,
+a.ccd_available_deprecated_flag,
+a.test_code,
+a.oid_of_coding_system,
+a.test_code_description,
+a.test_decription_from_the_ccd,
+a.blood_pressure_diastolic_code,
+a.blood_pressure_diastolic_value,
+a.blood_pressure_systolic_code,
+a.blood_pressure_systolic_value,
+a.vital_sign_result,
+a.vital_sign_value,
+a.vital_sign_unit,
+getdate() as apde_last_run
+into stg_cdr.export_uwf_chr_vital
+from stg_cdr.raw_CHR_VitalSigns_ek_test as a
+inner join (select distinct patientid from stg_cdr.uwf_kc_subset) as b
+on a.patient_id = b.patientid;
+
+
+------------------------------------
+--STEP 3: Prep Medicaid/P1 tables
+------------------------------------
+
+--Create cross-walk for id_mcaid to p1_id, subset to people in UW Fresh Study subset
+if object_id('tempdb..#mcaid_ids') is not null drop table #mcaid_ids;
+select distinct
+a.medicaid_recipient_id as id_p1,
+a.mbr_h_sid as id_mcaid,
+b.patientid
+into #mcaid_ids
+from stg_claims.stage_mcaid_elig as a
+inner join stg_cdr.uwf_kc_subset as b
+on a.medicaid_recipient_id = b.provideroneid
+where b.patientid is not null;
+
+--Prep mcaid_claim_ccw table
+if object_id(N'stg_cdr.export_uwf_mcaid_claim_ccw', N'U') is not null drop table stg_cdr.export_uwf_mcaid_claim_ccw;
+select distinct
+b.patientid,
+a.first_encounter_date,
+a.last_encounter_date,
+a.ccw_code,
+a.ccw_desc,
+a.last_run as apde_last_run
+into stg_cdr.export_uwf_mcaid_claim_ccw
+from stg_claims.stage_mcaid_claim_ccw as a
+inner join #mcaid_ids as b
+on a.id_mcaid = b.id_mcaid;
+
+--Prep mcaid_claim_bh table
+if object_id(N'stg_cdr.export_uwf_mcaid_claim_bh', N'U') is not null drop table stg_cdr.export_uwf_mcaid_claim_bh;
+select distinct
+b.patientid,
+a.first_encounter_date,
+a.last_encounter_date,
+a.bh_cond,
+a.last_run as apde_last_run
+into stg_cdr.export_uwf_mcaid_claim_bh
+from stg_claims.stage_mcaid_claim_bh as a
+inner join #mcaid_ids as b
+on a.id_mcaid = b.id_mcaid;
