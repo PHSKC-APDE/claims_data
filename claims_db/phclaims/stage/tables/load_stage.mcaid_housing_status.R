@@ -86,12 +86,12 @@ load_stage_mcaid_housing_status <- function(conn = NULL,
   
   ## Upload ----
   # Add last run date/time
-  full[, last_run := Sys.time()]
+  mcaid_upload[, last_run := Sys.time()]
   
   # Write out table
-  DBI::dbWriteTable(conn = db_hhsaw,
+  DBI::dbWriteTable(conn = conn,
                     name = DBI::Id(schema = schema, table = to_table),
-                    value = full,
+                    value = mcaid_upload,
                     overwrite = T)
   
 }
