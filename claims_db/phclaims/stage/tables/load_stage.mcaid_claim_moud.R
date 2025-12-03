@@ -61,15 +61,15 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
 		  case when procedure_code in ('G2073', 'J2315') then 1 else 0 end as nal_proc_flag,
 		  case when procedure_code in ('G2074', 'G2075', 'G2076', 'G2077', 'G2080', 'G2086', 'G2087', 'G2088', 'G2213') then 1 else 0 end as unspec_proc_flag,
 		  case
-			  when procedure_code in ('H0033', 'H0020', 'S0109', 'J0571', 'J0572', 'J0573', 'J0574', 'J0575', '96372') then 1
+			  when procedure_code in ('H0033', 'H0020', 'S0109', 'J0571', 'J0572', 'J0573', 'J0574', 'J0575') then 1
 			  when procedure_code in ('G2078', 'G2067', 'G2068', 'G2079', 'J0577') then 7
-			  when procedure_code in ('Q9991', 'Q9992', 'G2069', 'G2073', 'J2315') then 30
+			  when procedure_code in ('Q9991', 'Q9992', 'G2069', 'G2073', 'J2315', '96372') then 30
 			  when procedure_code in ('G2070', 'G2072', 'J0570', '11981', '11983', 'G0516', 'G0518') then 180
 			  else 0
 			  end as moud_days_supply,
 		  case 
-  			when procedure_code in ('H0033', 'H0020', 'S0109', 'G2078', 'G2067', 'J0571', 'J0572', 'J0573', 'J0574', 'J0575', 'G2068', 'G2079', 'G2073', '96372') then 'oral'
-			  when procedure_code in ('Q9991', 'Q9992', 'G2069', 'G2070', 'G2072', 'J0570', '11981', '11983', 'G0516', 'G0518', 'G2073', 'J2315', 'J0577') then 'injection/implant'
+  			when procedure_code in ('H0033', 'H0020', 'S0109', 'G2078', 'G2067', 'J0571', 'J0572', 'J0573', 'J0574', 'J0575', 'G2068', 'G2079', 'G2073') then 'oral'
+			  when procedure_code in ('Q9991', 'Q9992', 'G2069', 'G2070', 'G2072', 'J0570', '11981', '11983', 'G0516', 'G0518', 'G2073', 'J2315', 'J0577', '96372') then 'injection/implant'
 			  else null
 			  end as admin_method
 	  into #mcaid_moud_proc_1
