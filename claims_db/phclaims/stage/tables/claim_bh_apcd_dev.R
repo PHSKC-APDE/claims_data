@@ -189,7 +189,7 @@ load_bh <- function(conn = NULL,
    ,svc_date
    ,bh_cond
    -- BASED ON PRESCRIPTIONS
-   FROM (SELECT DISTINCT a.{`id_source`}
+   FROM (SELECT DISTINCT a.{`id_source_pharm`} as {`id_source`}
 			,a.{`rx_fill_date`} as 'svc_date'
 	    ,b.sub_group_condition as 'bh_cond'
     FROM {`claim_pharm_from_schema`}.{`claim_pharm_from_table`} a
@@ -284,7 +284,7 @@ load_bh <- function(conn = NULL,
     		-- BASED ON PRESCRIPTIONS
     		FROM (
     			SELECT DISTINCT
-    			a.{`id_source`}, a.claim_header_id, a.{`rx_fill_date`} as 'svc_date'
+    			a.{`id_source_pharm`} as {`id_source`}, a.claim_header_id, a.{`rx_fill_date`} as 'svc_date'
     			FROM {`claim_pharm_from_schema`}.{`claim_pharm_from_table`} as a
     			INNER JOIN (
     				SELECT sub_group_condition, code_set, code
