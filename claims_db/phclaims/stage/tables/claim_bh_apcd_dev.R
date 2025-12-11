@@ -83,6 +83,15 @@ load_bh <- function(conn = NULL,
     ndc <- "ndc"
   }
   
+  # Specify claim header ID variable based on data source (needed for WA-APCD)
+  if (source %in% c("apcd")) {
+    claim_header_id <- "claim_header_id"
+    claim_header_id_pharm <- "pharmacy_claim_service_line_id"
+  } else {
+    claim_header_id <- "claim_header_id"
+    claim_header_id_pharm <- "claim_header_id"
+  }
+  
   # Set up test number of rows if needed
   if (is.null(test_rows)) {
     top_rows = DBI::SQL('')
@@ -284,7 +293,7 @@ load_bh <- function(conn = NULL,
     		-- BASED ON PRESCRIPTIONS
     		FROM (
     			SELECT DISTINCT
-    			a.{`id_source_pharm`} as {`id_source`}, a.claim_header_id, a.{`rx_fill_date`} as 'svc_date'
+    			a.{`id_source_pharm`} as {`id_source`}, a.{`claim_header_id_pharm`} as {`claim_header_id`}, a.{`rx_fill_date`} as 'svc_date'
     			FROM {`claim_pharm_from_schema`}.{`claim_pharm_from_table`} as a
     			INNER JOIN (
     				SELECT sub_group_condition, code_set, code
