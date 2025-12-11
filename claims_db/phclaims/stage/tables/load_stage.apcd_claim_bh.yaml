@@ -1,0 +1,23 @@
+inthealth:
+    claim_header_from_schema: stg_claims
+    claim_header_from_table: stage_apcd_claim_header
+    claim_pharm_from_schema: stg_claims
+    claim_pharm_from_table: apcd_pharmacy_claim
+    claim_procedure_from_schema: stg_claims
+    claim_procedure_from_table: stage_apcd_claim_procedure
+    icdcm_from_schema: stg_claims
+    icdcm_from_table: stage_apcd_claim_icdcm_header
+    to_schema: stg_claims
+    to_table: stage_apcd_claim_bh
+    ref_schema: stg_reference
+    ref_table: ref_rda_value_sets_apde
+    icdcm_ref_schema: stg_claims
+    icdcm_ref_table: ref_icdcm_codes
+    rolling_schema: stg_claims
+    rolling_table: ref_rolling_time_24mo_2012_2020
+vars:
+    id_apcd: bigint
+    first_encounter_date: date
+    last_encounter_date: date
+    bh_cond: varchar(200)
+    last_run: date
