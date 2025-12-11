@@ -57,8 +57,13 @@ load_bh <- function(conn = NULL,
   # Specify id variable name based on data source
   if (source == "mcaid_mcare") {
     id_source <- "id_apde"
+    id_source_pharm <- "id_apde"
+  } else if (source == "apcd") {
+    id_source <- "id_apcd"
+    id_source_pharm <- "internal_member_id"
   } else {
     id_source <- paste0("id_", source)
+    id_source_pharm <- paste0("id_", source)
   }
   
   # Specify Rx filled date variable name based on data source
