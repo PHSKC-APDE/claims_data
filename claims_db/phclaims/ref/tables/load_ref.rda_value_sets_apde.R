@@ -21,6 +21,9 @@
 #From NO HARMS, there were 66 ICD-10-CM codes associated with self-harm but not mapped to mh_any = 1
     #-adding them to this table so Kai can then update the icdcm_codes table
 
+#2026-1-9 updates JL:
+#ICD-CM codes with ccs_detail_code of 'MBD013' changed to be in the 'mh_other' category, except for F63 and F630
+
 #### Setup ####
 
 ##Load packages and set defaults
@@ -49,7 +52,7 @@ db_hhsaw <- DBI::dbConnect(odbc::odbc(),
 #### Step 1: Load existing reference table and new value sets ####
 
 mh_value_set_new_version <- "2024-07-31" ##UPDATE EACH TIME THIS SCRIPT IS RUN
-sud_value_set_new_version <- "2024-07-31" ##UPDATE EACH TIME THIS SCRIPT IS R
+sud_value_set_new_version <- "2024-07-31" ##UPDATE EACH TIME THIS SCRIPT IS RUN
 
 ##Connect to SharePoint/TEAMS site
 myteam <- get_team(team_name = "DPH-KCCross-SectorData",
@@ -696,7 +699,7 @@ rda_value_sets_new <- rda_value_sets_new %>%
                            "EXT005", "EXT007", "EXT011", "EXT018", "EXT014", "EXT030", "EXT016", "EXT029",
                            "EXT017", "EXT010", "EXT019", "10.3", "INJ073", "GEN025", "INJ064", "INJ059", "MBD012",
                            "5.13") ~ "mh_depression",
-    ccs_detail_code %in% c("MBD008", "5.7", "MBD013") ~ "mh_disrupt",
+    ccs_detail_code %in% c("MBD008", "5.7") ~ "mh_disrupt",
     ccs_detail_code %in% c("MBD003", "5.8") ~ "mh_mania_bipolar",
     ccs_detail_code %in% c("12.2", "5.10", "MBD001") ~ "mh_psychotic",
     ccs_detail_code %in% c("5.11", "MBD017", "DIG007", "DIG018", "INF007", "CIR005", "MAL010", "DIG019",
@@ -792,6 +795,8 @@ rda_value_sets_new <- rda_value_sets_new %>%
     ccs_detail_code %in% c("MBD007") & str_detect(code, "^F439") ~ "mh_anxiety",
     ccs_detail_code %in% c("MBD007") & str_detect(code, "^F432") ~ "mh_adjustment",
     
+    ccs_detail_code == "MBD013" & code %in% c("F63", "F630") ~ "mh_disrupt",
+    ccs_detail_code == "MBD013" ~ "mh_other",
     
     TRUE ~ NA_character_
   ))
@@ -805,7 +810,7 @@ count(filter(rda_value_sets_new, code_set %in% c("ICD9CM", "ICD10CM") & is.na(su
 blanks <- rda_value_sets_new %>%
   filter(code_set %in% c("ICD9CM", "ICD10CM") & is.na(sub_group_condition)) %>%
   distinct(code_set, code, desc, sub_group_condition)
-#there were 109 missing in 1/7/2025 update
+#there were 105 missing in 1/9/2026 update
 
 #Manual recoding
 rda_value_sets_new <- rda_value_sets_new %>% 
@@ -950,11 +955,14 @@ rda_value_sets_updated <- bind_rows(rda_value_sets_existing, rda_value_sets_new_
 rda_value_sets_updated %>% filter(code_set %in% c("ICD9CM", "ICD10CM")) %>% group_by(code) %>%
   mutate(row_count = n()) %>% ungroup() %>% count(row_count)
 
-#no need to run the below if there are no ICD-CM codes with >1 row (most likely not needed after Jan 2025 update)
-rda_value_sets_updated <- subset(rda_value_sets_updated, !(code %in% c("30113", "30122") & 
-                                                             sub_group_condition %in% c("mh_mania_bipolar", 
-                                                                                        "mh_psychotic")))
-#these were previously classified as mh_mania_polar and mh_psychotic but are now mh_other
+#no need to run the below if there are no ICD-CM codes with >1 row (most likely not needed after Jan 2026 updates)
+rda_value_sets_updated <- subset(rda_value_sets_updated, 
+                                 !(code %in% c("F068", "F09", "F488", "F489", "F54", "F59",
+                                               "F938", "F939", "F989", "F99", "O9934", 
+                                               "O99340", "O99341", "O99342", "O99343", 
+                                               "O99344", "O99345") & 
+                                     sub_group_condition == 'mh_disrupt'))
+#these were previously classified as mh_disrupt but are now mh_other
 
 #Confirm that no NDC codes have more than 1 row
 rda_value_sets_updated %>% filter(code_set %in% c("NDC")) %>% group_by(code) %>%
