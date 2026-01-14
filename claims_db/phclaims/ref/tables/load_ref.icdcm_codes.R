@@ -451,7 +451,7 @@ ccs_9_simple <- select(ccs_9_simple, icdcode, ccs_broad_desc:ccs_catch_all) %>% 
 
 ## Step 4B: Read in CCS reference table for ICD-10-CM
 
-ccs_10_raw <- read_csv("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/DXCCSR_v2024-1.csv?raw=true", 
+ccs_10_raw <- read_csv("https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/DXCCSR_v2026-1.csv?raw=true", 
                        col_select = c(1,7,8)) %>%
   
   #rename variables
@@ -820,11 +820,11 @@ icd10_codes <- unique(icd910cm[icd910cm$icdcm_version == 10,]$icdcm)
 
 # differences for each data source
 length(setdiff(mcaid[mcaid$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 2
-length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 6
+length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 135
 length(setdiff(apcd[apcd$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 0
 length(setdiff(apcd[apcd$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 406
-length(setdiff(chars[chars$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 119
-length(setdiff(chars[chars$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 265
+length(setdiff(chars[chars$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 7
+length(setdiff(chars[chars$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 215
 
 
 # Step 7: Upload reference table to SQL Server ----
