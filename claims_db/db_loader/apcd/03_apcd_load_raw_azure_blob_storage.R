@@ -6,6 +6,7 @@
 #
 # 2024-02
 # 2024-12 Added code to delete folder contents  (Susan/Jeremy)
+# 2026-01 update from Eli: Add logic to only delete old files if any exist (this caused script to fail when Azure Blob folder was empty)
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
@@ -67,8 +68,10 @@ lapply(folder_list, function(folder_list) {
   #Select table from list
   folder_selected <- folder_list
   old_files <- AzureStor::list_storage_files(cont, paste0("claims/apcd/", folder_selected, "_import"))
-  for(i in 1:nrow(old_files)) {
-    AzureStor::delete_storage_file(cont, old_files[i, "name",], confirm = F)
+  if(nrow(old_files) > 0) {
+	  for(i in 1:nrow(old_files)) {
+		AzureStor::delete_storage_file(cont, old_files[i, "name",], confirm = F)
+	  }
   }
   message(paste0("Working on folder for: ", folder_selected, " - ", Sys.time()))
   
