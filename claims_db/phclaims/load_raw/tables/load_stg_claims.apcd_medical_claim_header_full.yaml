@@ -8,12 +8,12 @@ hhsaw:
     ext_table: apcd_medical_claim_header
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/medical_claim_header_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: 679362039
-col_count: 46
+row_count: 744098941
+col_count: 48
 date_min: '2014-01-01'
-date_max: '2024-06-30'
-date_delivery: '2024-09-15'
-note_delivery: apcd_medical_claim_header, extract 10025
+date_max: '2025-06-30'
+date_delivery: '2024-12-18'
+note_delivery: apcd_medical_claim_header, extract 10033
 vars:
     medical_claim_header_id: bigint
     submitter_id: bigint
@@ -61,3 +61,5 @@ vars:
     psychiatric_visits_flag: integer
     surgery_and_anesthesia_flag: integer
     telehealth_flag: integer
+    observation_stay_flag: integer
+    pc_flag: integer

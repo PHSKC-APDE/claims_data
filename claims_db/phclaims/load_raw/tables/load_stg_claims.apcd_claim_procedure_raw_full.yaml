@@ -8,20 +8,16 @@ hhsaw:
     ext_table: apcd_claim_procedure_raw
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/claim_procedure_raw_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: 1521015239
-col_count: 10
+row_count: 1769577405
+col_count: 6
 date_min: '2014-01-01'
-date_max: '2024-06-30'
-date_delivery: '2024-09-15'
-note_delivery: apcd_claim_procedure_raw, extract 10025
+date_max: '2025-06-30'
+date_delivery: '2024-12-18'
+note_delivery: apcd_claim_procedure_raw, extract 10033
 vars:
     internal_member_id: bigint
     medical_claim_header_id: bigint
     first_service_dt: date
     last_service_dt: date
     procedure_code: varchar(10)
-    procedure_code_number: varchar(4)
-    procedure_modifier_code_1: varchar(10)
-    procedure_modifier_code_2: varchar(10)
-    procedure_modifier_code_3: varchar(10)
-    procedure_modifier_code_4: varchar(10)
+    modifier_code: varchar(10)
