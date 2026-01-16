@@ -9,6 +9,7 @@
 #3/11/24 update: Added smart selection for write path
 #3/11/24 update: Modified YAML creation code to align with COPY_INTO function in Azure environment
 #9/25/24 update:YAML file path
+#1/16/26 update: Changing row count to numeric to handle values in excess of 2.1 billion
 
 #### Create YAML files from CSV format files for all non-reference files ####
 
@@ -72,7 +73,7 @@ lapply(table_list, function(table_list) {
                                    "ext_data_source" = ext_data_source, "ext_schema" = ext_schema, "ext_table" = sql_table,
                                    "dl_path" = glue(dl_path_base, table_name_part, "_import/"),
                                    "base_url" = base_url)
-  row_count <- as.integer(unique(format_df$row_count))
+  row_count <- as.numeric(unique(format_df$row_count))
   col_count <- as.integer(unique(format_df$column_count))
   format_list <- list("hhsaw" = server_parameter_list, "row_count" = row_count, "col_count" = col_count, "date_min" = date_min,
                       "date_max" = date_max, "date_delivery" = date_delivery, "note_delivery" = glue(sql_table, ", extract ", apcd_extract_number),
