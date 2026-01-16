@@ -397,7 +397,7 @@ qa_load_row_count_f <- function(conn,
     
     ### Count the actual number of rows loaded to SQL
     row_cnt <- as.numeric(DBI::dbGetQuery(conn,
-                                glue::glue_sql("SELECT COUNT (*) FROM {`schema`}.{`table`}", 
+                                glue::glue_sql("SELECT COUNT_BIG (*) FROM {`schema`}.{`table`}", 
                                                .con = conn)))
     
     ### Compare counts
@@ -430,7 +430,7 @@ qa_load_row_count_f <- function(conn,
       
       # Count the actual number of rows loaded to SQL
       row_cnt <- DBI::dbGetQuery(conn,
-                                  glue::glue_sql("SELECT COUNT (*)
+                                  glue::glue_sql("SELECT COUNT_BIG (*)
                                                  FROM {`schema`}.{`table_new`}", 
                                                  .con = conn))
       
