@@ -52,12 +52,12 @@ qa_sql_row_count_f <- function(conn = db_claims,
   ### VALUES
   rows_from <- odbc::dbGetQuery(conn = conn,
                                 glue::glue_sql(
-                                  "SELECT COUNT (*) FROM {`from_schema`}.{`from_table`}",
+                                  "SELECT COUNT_BIG (*) FROM {`from_schema`}.{`from_table`}",
                                   .con = conn))
   
   rows_to <- odbc::dbGetQuery(conn = conn,
                                 glue::glue_sql(
-                                  "SELECT COUNT (*) FROM {`to_schema`}.{`to_table`}",
+                                  "SELECT COUNT_BIG (*) FROM {`to_schema`}.{`to_table`}",
                                   .con = conn))
   
   
