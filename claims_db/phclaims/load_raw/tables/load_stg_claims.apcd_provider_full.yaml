@@ -8,7 +8,7 @@ hhsaw:
     ext_table: apcd_provider
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/provider_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: 59143373
+row_count: 5.9143373e+07
 col_count: 17
 date_min: '2014-01-01'
 date_max: '2025-06-30'

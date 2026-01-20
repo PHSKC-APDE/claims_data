@@ -8,7 +8,7 @@ hhsaw:
     ext_table: apcd_pharmacy_claim
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/pharmacy_claim_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: 893954516
+row_count: 8.9395452e+08
 col_count: 36
 date_min: '2014-01-01'
 date_max: '2025-06-30'

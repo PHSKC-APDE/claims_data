@@ -8,7 +8,7 @@ hhsaw:
     ext_table: apcd_claim_icdcm_raw
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/claim_icdcm_raw_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: .na.integer
+row_count: 2.685599e+09
 col_count: 8
 date_min: '2014-01-01'
 date_max: '2025-06-30'
