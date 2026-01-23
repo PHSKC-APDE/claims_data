@@ -8,6 +8,7 @@
 
 #10-16-24 Added Keyring for INTHEALTH
 #10-16-24 commented out step 3 which is checking that the tables are mirrored on HHSAW. This should occur as part of script 8
+#1-23-26 Eli updated the  [claims].[metadata_etl_log] column [row_count] to BIGINT;
 
 
 #### Set up global parameter and call in libraries ####
