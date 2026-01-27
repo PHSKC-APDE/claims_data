@@ -8,7 +8,7 @@ hhsaw:
     ext_table: apcd_member_month_detail
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/member_month_detail_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: 7.5742828e+08
+row_count: '757428277'
 col_count: 24
 date_min: '2014-01-01'
 date_max: '2025-06-30'

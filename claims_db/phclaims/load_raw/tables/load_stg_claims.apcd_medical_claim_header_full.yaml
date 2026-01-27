@@ -8,7 +8,7 @@ hhsaw:
     ext_table: apcd_medical_claim_header
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/medical_claim_header_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: 7.4409894e+08
+row_count: '744098941'
 col_count: 48
 date_min: '2014-01-01'
 date_max: '2025-06-30'

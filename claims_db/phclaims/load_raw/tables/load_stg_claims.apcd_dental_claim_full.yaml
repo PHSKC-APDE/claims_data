@@ -8,7 +8,7 @@ hhsaw:
     ext_table: apcd_dental_claim
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/dental_claim_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: 2.1844469e+08
+row_count: '218444685'
 col_count: 31
 date_min: '2014-01-01'
 date_max: '2025-06-30'

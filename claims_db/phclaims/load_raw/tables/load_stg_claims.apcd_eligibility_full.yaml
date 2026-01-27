@@ -8,7 +8,7 @@ hhsaw:
     ext_table: apcd_eligibility
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/eligibility_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: 3.5680033e+08
+row_count: '356800330'
 col_count: 39
 date_min: '2014-01-01'
 date_max: '2025-06-30'
