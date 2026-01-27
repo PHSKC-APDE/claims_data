@@ -398,7 +398,7 @@ qa_load_row_count_f <- function(conn,
     ### Count the actual number of rows loaded to SQL
     row_cnt <- as.numeric(DBI::dbGetQuery(conn,
                                 glue::glue_sql("SELECT COUNT_BIG (*) FROM {`schema`}.{`table`}", 
-                                               .con = conn)))
+                                               .con = conn))[[1]])
     
     ### Compare counts
     count_check <- row_exp == row_cnt
