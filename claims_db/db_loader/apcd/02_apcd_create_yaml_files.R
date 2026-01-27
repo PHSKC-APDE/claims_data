@@ -26,12 +26,8 @@ read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" #Folder containing exp
 ##Smart selection for write path for YAML files
 if(file.exists("C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/")){ #Susan on DPHXPHAAPR5EBYK
   write_path <- "C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/"
-} else if(file.exists("C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/")){ #Susan on KCITENGPRRSTUD00
-  write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/"
-} else if(file.exists("C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_db/phclaims/load_raw/tables/")){ #Eli on KCITENGPRRSTUD00
-  write_path <- "C:/Users/kerneli.PH/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/"
-} else if(file.exists("C:/Users/kerneli/GitHub/claims_data/claims_db/phclaims/load_raw/tables/")){ #Eli on KC laptop
-  write_path <- "C:/Users/kerneli/GitHub/claims_data/claims_db/phclaims/load_raw/tables/"
+} else if(file.exists("C:/GitHub/claims_data/claims_db/phclaims/load_raw/tables/")){ #Eli on KC laptop
+  write_path <- "C:/GitHub/claims_data/claims_db/phclaims/load_raw/tables/"
 }
 
 #Set static parameters for YAML file
