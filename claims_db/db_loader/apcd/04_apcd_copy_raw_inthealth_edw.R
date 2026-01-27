@@ -9,6 +9,7 @@
 #10-16-24 Added Keyring for INTHEALTH
 #10-16-24 commented out step 3 which is checking that the tables are mirrored on HHSAW. This should occur as part of script 8
 #1-23-26 Eli updated the  [claims].[metadata_etl_log] column [row_count] to BIGINT;
+#1-27-26 Eli updated the row count formatting
 
 
 #### Set up global parameter and call in libraries ####
@@ -53,6 +54,8 @@ message(paste0("Beginning process to copy tables to inthealth_edw - ", Sys.time(
 #Establish list of Azure Blob Storage folders for which GZIP files will be copied to inthealth_edw
 folder_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
                     "member_month_detail", "pharmacy_claim", "provider", "provider_master")
+
+
 
 #Begin loop
 lapply(folder_list, function(folder_list) {
