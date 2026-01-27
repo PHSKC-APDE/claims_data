@@ -9,7 +9,8 @@
 #3/11/24 update: Added smart selection for write path
 #3/11/24 update: Modified YAML creation code to align with COPY_INTO function in Azure environment
 #9/25/24 update:YAML file path
-#1/16/26 update: Changing row count to numeric to handle values in excess of 2.1 billion
+#1/16/26 update: Change row count to numeric to handle values in excess of 2.1 billion (leading to QA fail)
+#1/27/26 update: Change row count to character to avoid scientific notation in YAML files (leading to QA fail)
 
 #### Create YAML files from CSV format files for all non-reference files ####
 
