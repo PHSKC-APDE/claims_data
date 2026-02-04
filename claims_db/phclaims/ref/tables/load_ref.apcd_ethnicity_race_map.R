@@ -14,6 +14,9 @@
 #Wrote table to HHSAW using dbWriteTable instead of YAML file approach
 #Added Cuban to ethnicity-race map
 
+##2026-02 updates:
+#Added key ring and revised location of the files
+
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
 
@@ -35,6 +38,9 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 # Clear all current tokens
 AzureAuth::clean_token_directory(confirm = FALSE)
 
+#to set SharePoint keyring
+keyring::key_set("sharepoint", username = "shernandez@kingcounty.gov")
+
 # Connect to a named MS TEAMS site
 team_site <- get_team(
   team_name = "DPH-KCCross-SectorData",
@@ -45,8 +51,8 @@ team_site <- get_team(
 
 team_folder <- team_site$
   get_drive("Documents")$
-  get_item("References")$
-  get_item("APCD")
+  get_item("APCD")$
+  get_item("References")
 
 team_folder$list_items()
 
