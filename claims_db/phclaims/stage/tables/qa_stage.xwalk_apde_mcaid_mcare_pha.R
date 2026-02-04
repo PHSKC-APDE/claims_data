@@ -275,7 +275,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
   id_count_mcaid <- uniqueN(xwalk[!is.na(id_mcaid)]$id_mcaid)
 
   idh_count_mcaid <- odbc::dbGetQuery(db_idh, 
-                                            "SELECT COUNT(DISTINCT MEDICAID_ID) AS freq
+                                            "SELECT COUNT(DISTINCT MBR_H_SID) AS freq
                                       FROM [IDMatch].[IM_HISTORY_TABLE]
                                       WHERE IS_HISTORICAL = 'N' AND SOURCE_SYSTEM = 'MEDICAID' AND KCMASTER_ID IS NOT NULL")[]$freq
   
