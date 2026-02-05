@@ -3,7 +3,10 @@
 #
 # 2024-05
 #10-16-2024 added keyring for inthealth
-# update the deprecated function 
+#02-05-2026 update the deprecated function 
+
+# clean memory ----
+rm(list=ls())
 
 ## Set up global parameters and call in libraries
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
@@ -25,13 +28,14 @@ dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth
 keyring::key_list() #Confirm you have a key set for hhsaw and inthealth_edw_prod on this machine
 
 #Load Jeremy's table duplicate function
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/table_duplicate.R")
+#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/table_duplicate.R")
+#updated functtion
 
-
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde.etl/refs/heads/main/R/table_duplicate.R")
 #### STEP 2: Copy tables from HHSAW claims schema ####
 
 #Specify tables to be copied from claims schema of HHSAW
-table_df_claims <- as.data.frame(
+table_duplicate <- as.data.frame(
   list(
     from_schema = c("claims"),
     from_table = c("ref_apcd_claim_status",
@@ -69,7 +73,7 @@ table_df_claims <- as.data.frame(
   )
 
 #Run command
-system.time(table_duplicate_f(
+system.time(table_duplicate(
   conn_from = db_claims,
   conn_to = dw_inthealth,
   server_to = "inthealth_edw_prod",
