@@ -3,11 +3,17 @@
 #
 # 2024-05
 #10-16-2024 added keyring for inthealth
+# update the deprecated function 
 
 ## Set up global parameters and call in libraries
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
 origin <- "1970-01-01" # Date origin
-pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils)
+#install.packages("remotes")       # if you don’t already have remotes
+# use these instructions #1-2 if you need to set up a token https://github.com/PHSKC-APDE/apde.data
+#remotes::install_github("PHSKC-APDE/apde.etl")
+#info on package https://github.com/PHSKC-APDE/apde.etl
+
+pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils, apde.etl)
 
 #### STEP 1: Connect to SQL DATABASES ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
