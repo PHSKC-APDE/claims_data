@@ -29,15 +29,15 @@ keyring::key_list() #Confirm you have a key set for hhsaw and inthealth_edw_prod
 
 #Load Jeremy's table duplicate function
 #devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/table_duplicate.R")
-#updated functtion
-
+#updated function
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde.etl/refs/heads/main/R/table_duplicate.R")
+
+
 #### STEP 2: Copy tables from HHSAW claims schema ####
 
 #Specify tables to be copied from claims schema of HHSAW
-table_duplicate <- as.data.frame(
-  list(
-    from_schema = c("claims"),
+tables_to_copy <- data.frame(
+    from_schema = ("claims"),
     from_table = c("ref_apcd_claim_status",
                    "ref_apcd_ethnicity_race_map",
                    "ref_apcd_zip_group",
@@ -53,7 +53,7 @@ table_duplicate <- as.data.frame(
                    "ref_rolling_time_36mo_2012_2020",
                    "ref_date",
                    "ref_apcd_procedure_code"),
-    to_schema = c("stg_claims"),
+    to_schema = ("stg_claims"),
     to_table = c("ref_apcd_claim_status",
                  "ref_apcd_ethnicity_race_map",
                  "ref_apcd_zip_group",
@@ -68,9 +68,10 @@ table_duplicate <- as.data.frame(
                  "ref_rolling_time_24mo_2012_2020",
                  "ref_rolling_time_36mo_2012_2020",
                  "ref_date",
-                 "ref_apcd_procedure_code")
+                 "ref_apcd_procedure_code"),
+    stringsAsFactors = FALSE # prevents character columns in a data frame to be automatically converted into factors
     )
-  )
+
 
 #Run command
 system.time(table_duplicate(
@@ -78,7 +79,7 @@ system.time(table_duplicate(
   conn_to = dw_inthealth,
   server_to = "inthealth_edw_prod",
   db_to = "inthealth_edw",
-  table_df = table_df_claims,
+  table_df = tables_to_copy,
   confirm_tables = TRUE,
   delete_table = TRUE
 ))
