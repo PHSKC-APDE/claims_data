@@ -48,9 +48,6 @@ tables_to_copy <- data.frame(
                    "ref_moll_preg_endpoint",
                    "ref_moll_trimester",
                    "ref_pc_visit_oregon",
-                   "ref_rolling_time_12mo_2012_2020",
-                   "ref_rolling_time_24mo_2012_2020",
-                   "ref_rolling_time_36mo_2012_2020",
                    "ref_date",
                    "ref_apcd_procedure_code"),
     to_schema = ("stg_claims"),
@@ -64,9 +61,6 @@ tables_to_copy <- data.frame(
                  "ref_moll_preg_endpoint",
                  "ref_moll_trimester",
                  "ref_pc_visit_oregon",
-                 "ref_rolling_time_12mo_2012_2020",
-                 "ref_rolling_time_24mo_2012_2020",
-                 "ref_rolling_time_36mo_2012_2020",
                  "ref_date",
                  "ref_apcd_procedure_code"),
     stringsAsFactors = FALSE # prevents character columns in a data frame to be automatically converted into factors
@@ -98,7 +92,7 @@ table_df_ref <- as.data.frame(
 )
 
 #Run command
-system.time(table_duplicate_f(
+system.time(table_duplicate(
   conn_from = db_claims,
   conn_to = dw_inthealth,
   server_to = "inthealth_edw_prod",
