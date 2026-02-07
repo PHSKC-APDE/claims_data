@@ -1,5 +1,5 @@
 to_schema: stg_claims
-to_table: stage_apcd_elig_plr_2023
+to_table: stage_apcd_elig_plr_2024
 vars:
     id_apcd: bigint
     geo_wa: tinyint
