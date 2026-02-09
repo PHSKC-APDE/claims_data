@@ -18,6 +18,7 @@ options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 
 
 library(pacman)
 pacman::p_load(tidyverse, lubridate, odbc, glue, keyring)
+library (apde.etl)
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
@@ -434,7 +435,7 @@ if(all(c(apcd_provider_npi_qa$qa[apcd_provider_npi_qa$qa_type=="# of provider ID
 message(paste0("Beginning copying ref.apcd_provider_npi to HHSAW - ", Sys.time()))
 db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 
-system.time(table_duplicate_f(
+system.time(table_duplicate(
   conn_from = dw_inthealth,
   conn_to = db_claims,
   server_to = "HHSAW_prod", #must match ODBC data source name AND keyring service name
@@ -489,7 +490,7 @@ if(all(c(kc_provider_master_qa$qa[kc_provider_master_qa$qa_type=="# of NPIs with
 message(paste0("Beginning copying ref.kc_provider_master to HHSAW - ", Sys.time()))
 db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 
-system.time(table_duplicate_f(
+system.time(table_duplicate(
   conn_from = dw_inthealth,
   conn_to = db_claims,
   server_to = "HHSAW_prod", #must match ODBC data source name AND keyring service name
