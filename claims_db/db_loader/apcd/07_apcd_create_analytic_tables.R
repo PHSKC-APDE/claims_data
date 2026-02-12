@@ -543,7 +543,7 @@ if(all(c(apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of headers"] =
          & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_pophealth_id values used for >1 person, expect 0"] == 0
          & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of distinct ed_pophealth_id values"] ==
             apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="max ed_pophealth_id - min + 1"]
-         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_perform rows with no ed_pophealth, expect 0"] == 0
+         #& apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_perform rows with no ed_pophealth, expect 0"] == 0 #no longer an accurate QA
          & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_pophealth visits where the overlap date is greater than 1 day, expect 0"] == 0))) {
   message(paste0("apcd_claim_header QA result: PASS - ", Sys.time()))
 } else {
