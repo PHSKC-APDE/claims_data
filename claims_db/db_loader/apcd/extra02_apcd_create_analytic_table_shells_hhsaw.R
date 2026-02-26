@@ -21,13 +21,20 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 
 ## Create and index table shells if table does not exist
 # Remember to reuse YAML config files used for Synapse, need to manually pass schema and table name to create_table function
-
+#change to 'T' when it's an existing table
 ## [FILL IN BLANKS BEFORE USING]
 
 create_table(
   conn = db_claims, 
   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.BLANK.yaml",
   overall = T, ind_yr = F, overwrite = F, server = "hhsaw", to_schema = "claims", to_table = "BLANK")
+
+##EXAMPLE: 
+create_table(
+  conn = db_claims, 
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.yaml",
+  overall = T, ind_yr = F, overwrite = T, server = "hhsaw", to_schema = "claims", to_table = "final_apcd_claim_header")
+
 
 dbExecute(
   conn = db_claims,
