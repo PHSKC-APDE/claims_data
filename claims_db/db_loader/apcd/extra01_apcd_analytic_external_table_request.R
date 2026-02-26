@@ -20,11 +20,12 @@ conn_ext <- create_db_connection("hhsaw", interactive = F, prod = T)
 
 ## Create list of tables on inthealth_edw for which I need an external table on HHSAW
 ## Update list as needed to replace list with new tables or tables that have had changes to column number/name/type
+#Use names in inthealth_edw (synapse). Don't include schema in table name.
+
 tables <- data.frame(table_name = c(
-  "stage_apcd_elig_demo",
   "stage_apcd_elig_plr_2024",
-  "claims.final_apcd_claim_procedure",
-  "claims.final_apcd_claim_header"
+  "stage_apcd_claim_procedure",
+  "stage_apcd_claim_header"
 ))
 
 ## Use function to loop over table names and create SQL code
@@ -38,6 +39,6 @@ for (i in 1:nrow(tables)) {
                          schema_ext = "claims",
                          table_ext = tables[i, 1],
                          sql_display = T,
-                         sql_file_path = "\\\\dphcifs/apde-cdip/apcd/apcd_ext_tables_20240524.sql",
+                         sql_file_path = "\\\\dphcifs/apde-cdip/apcd/apcd_ext_tables_20260225.sql",
                          overwrite = F) 
 }
