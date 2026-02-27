@@ -29,13 +29,36 @@ create_table(
   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.BLANK.yaml",
   overall = T, ind_yr = F, overwrite = F, server = "hhsaw", to_schema = "claims", to_table = "BLANK")
 
-##EXAMPLE: 
+dbExecute(
+  conn = db_claims,
+  glue_sql("create clustered columnstore index idx_ccs_BLANK on claims.BLANK;"))
+
+##EXAMPLES: 
 create_table(
   conn = db_claims, 
   config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.yaml",
   overall = T, ind_yr = F, overwrite = T, server = "hhsaw", to_schema = "claims", to_table = "final_apcd_claim_header")
 
+dbExecute(
+  conn = db_claims,
+  glue_sql("create clustered columnstore index idx_ccs_BLANK on claims.final_apcd_claim_header;"))
+
+
+create_table(
+  conn = db_claims, 
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2024.yaml",
+  overall = T, ind_yr = F, overwrite = T, server = "hhsaw", to_schema = "claims", to_table = "final_apcd_elig_plr_2024")
 
 dbExecute(
   conn = db_claims,
-  glue_sql("create clustered columnstore index idx_ccs_BLANK on claims.BLANK;"))
+  glue_sql("create clustered columnstore index idx_ccs_BLANK on claims.final_apcd_elig_plr_2024;"))
+
+
+create_table(
+  conn = db_claims, 
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_procedure.yaml",
+  overall = T, ind_yr = F, overwrite = T, server = "hhsaw", to_schema = "claims", to_table = "final_apcd_claim_procedure")
+
+dbExecute(
+  conn = db_claims,
+  glue_sql("create clustered columnstore index idx_ccs_BLANK on claims.final_apcd_claim_procedure;"))
