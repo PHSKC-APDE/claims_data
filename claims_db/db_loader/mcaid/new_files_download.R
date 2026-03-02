@@ -24,11 +24,11 @@ library(R.utils)
 library(zip)
 library(sftp)
 library(readr)
+library(apde.etl)
 
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
 
 #### CREATE CONNECTION ####
 ##interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
@@ -65,7 +65,7 @@ if(T) {
                            username = key_list("hca_mft")[["username"]],   
                            password = key_get("hca_mft", key_list("hca_mft")[["username"]]))
   sftp_changedir(tofolder = "Claims", current_connection_name = "sftp_con")
-  sftp_claims <- sftp_listfiles(sftp_con, recurse = F)
+  sftp_claims <- sftp::sftp_listfiles(sftp_con, recurse = F)
   sftp_changedir(tofolder = "../Eligibility/", current_connection_name = "sftp_con")
   sftp_elig <- sftp_listfiles(sftp_con, recurse = F)
   sftp_file_cnt <- nrow(sftp_claims) + nrow(sftp_elig)
@@ -126,11 +126,18 @@ if(T) {
           message(paste0("Creating ", tname, " - ", Sys.time()))
         }
         message(paste0("Writing ", length(df) - 1, " Rows to ", tname, " - ", Sys.time()))
+        rif <- length(df)
+        rifu <- as.integer(rif/100)
+        rp <- 1
         for(x in 1:length(df)) {
           if(x == 1 && i == 1) {
             cat(str_replace_all(df[x], "\\|", "\t"), file = paste0(txtdir, "/", tname), sep = "\n", append = F)
           } else if(x > 1) {
             cat(str_replace_all(df[x], "\\|", "\t"), file = paste0(txtdir, "/", tname), sep = "\n", append = T)
+          }
+          if(x == (rp * rifu)) {
+            message(paste0("...Progress...", rp, "% written...", Sys.time()))
+            rp <- rp + 1
           }
         }
       }
@@ -188,14 +195,17 @@ if(T) {
       min_date <- as.Date(paste0(substr(min_date, 1, 4), "-", substr(min_date, 5, 6), "-01"))
       max_date <- as.Date(ymd(paste0(substr(max_date, 1, 4), "-", substr(max_date, 5, 6), "-01")) %m+% months(1)) - 1
       db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
-      prev_rpm <- DBI::dbGetQuery(db_claims,
+      prev_data <- DBI::dbGetQuery(db_claims,
                                   glue::glue_sql(
-                                    "SELECT TOP (1) row_count / (DATEDIFF(month, date_min, date_max) + 1) as rpm
+                                    "SELECT TOP (1) row_count / (DATEDIFF(month, date_min, date_max) + 1) as rpm, 
+                                    DATEDIFF(month, date_min, date_max) + 1 as num_mon, date_min, date_max
                         FROM {`schema`}.{`table`}
                         WHERE row_count IS NOT NULL 
                         AND data_source = 'Medicaid' 
                         AND CHARINDEX('elig', file_name, 1) > 0
-                        ORDER BY delivery_date DESC", .con = db_claims))[1,1]
+                        ORDER BY delivery_date DESC", .con = db_claims))
+      prev_rpm <- prev_data[1,1]
+      prev_mon <- prev_data[1,2]
       curr_rpm <- row_cnt / (interval(min_date, max_date) %/% months(1) + 1)
       rpm_diff <- (curr_rpm - prev_rpm) / prev_rpm
       mcnt <- dates %>% count(CLNDR_YEAR_MNTH)
@@ -213,14 +223,17 @@ if(T) {
       min_date <- as.Date(paste0(format(min_date, "%Y"), "-", format(min_date, "%m"), "-01"))
       max_date <- as.Date(ymd(paste0(format(max_date, "%Y"), "-", format(max_date, "%m"), "-01")) %m+% months(1)) - 1
       db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
-      prev_rpm <- DBI::dbGetQuery(db_claims,
+      prev_data <- DBI::dbGetQuery(db_claims,
                                   glue::glue_sql(
-                                    "SELECT TOP (1) row_count / (DATEDIFF(month, date_min, date_max) + 1) as rpm
+                                    "SELECT TOP (1) row_count / (DATEDIFF(month, date_min, date_max) + 1) as rpm, 
+                                    DATEDIFF(month, date_min, date_max) + 1 as num_mon, date_min, date_max
                         FROM {`schema`}.{`table`}
                         WHERE row_count IS NOT NULL 
                         AND data_source = 'Medicaid' 
                         AND CHARINDEX('claim', file_name, 1) > 0
-                        ORDER BY delivery_date DESC", .con = db_claims))[1,1]
+                        ORDER BY delivery_date DESC", .con = db_claims))
+      prev_rpm <- prev_data[1,1]
+      prev_mon <- prev_data[1,2]
       curr_rpm <- row_cnt / (interval(min_date, max_date) %/% months(1) + 1)
       rpm_diff <- (curr_rpm - prev_rpm) / prev_rpm
       dates <- as.data.frame(dates)
@@ -238,6 +251,18 @@ if(T) {
     tfiles[x,"col_qa"] <- col_qa
     tfiles[x,"row_cnt"] <- row_cnt
     tfiles[x,"rpm_diff"] <- rpm_diff
+    tfiles[x,"mon_cnt"] <- nrow(mcnt)
+    if(tfiles[x, 'mon_cnt'] == prev_mon) {
+      tfiles[x, "monvprev"] <- "PASS"
+    } else {
+      tfiles[x, "monvprev"] <- "FAIL"
+    }
+    if(lubridate::interval(prev_data[1, "date_min"], tfiles[x,"min_date"]) %/% months(1) == 1
+       && lubridate::interval(prev_data[1, "date_max"], tfiles[x,"max_date"]) %/% months(1) == 1) {
+        tfiles[x, 'expdates'] <- "PASS"
+    } else {
+      tfiles[x, 'expdates'] <- "FAIL"
+    }
     message(paste0("QA Checks Completed  - ", Sys.time()))
     rm(dates, load_table)
   }
@@ -245,12 +270,17 @@ if(T) {
   message("------------------------------")
   message(paste0("All QA Checks Completed - ", Sys.time()))
   message("------------------------------")
+  
+  
+  
   ## Display QA Results
   for (x in 1:nrow(tfiles)) {
     message(glue("File: {tfiles[x, 'fileName']}
              Date Delivery: {tfiles[x, 'del_date']}
              Date Min: {tfiles[x, 'min_date']}
              Date Max: {tfiles[x, 'max_date']}
+             Months vs Prev: {tfiles[x, 'monvprev']}
+             Expected Dates: {tfiles[x, 'expdates']}
              Column QA: {tfiles[x, 'col_qa']}
              Row Count: {tfiles[x, 'row_cnt']}
              Rows vs Prev: {round(tfiles[x, 'rpm_diff'] * 100, 2)}%
@@ -297,7 +327,7 @@ if(T) {
     
     db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
     for (x in 1:nrow(tfiles)) {
-      tfiles[x, "batch_id_prod"] <- load_metadata_etl_log_file_f(conn = db_claims, 
+      tfiles[x, "batch_id_prod"] <- load_metadata_etl_log_file(conn = db_claims, 
                                                             server = "hhsaw",
                                                             batch_type = "incremental", 
                                                             data_source = "Medicaid", 
@@ -314,9 +344,9 @@ if(T) {
     proceed_msg <- glue("Would you like to create ETL Log Entries on HHSAW Dev?")
     proceed <- askYesNo(msg = proceed_msg)
     if (proceed == T) {
-      db_claims <- create_db_connection(server = "hhsaw", interactive = T, prod = F)
+      db_claims <- create_db_connection(server = "hhsaw", interactive = F, prod = F)
       for (x in 1:nrow(tfiles)) {
-        tfiles[x, "batch_id_dev"] <- load_metadata_etl_log_file_f(conn = db_claims, 
+        tfiles[x, "batch_id_dev"] <- load_metadata_etl_log_file(conn = db_claims, 
                                                               server = "hhsaw",
                                                               batch_type = "incremental", 
                                                               data_source = "Medicaid", 
