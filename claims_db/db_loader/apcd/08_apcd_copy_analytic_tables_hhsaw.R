@@ -67,10 +67,10 @@ lapply(table_list, function(table_list) {
   if(table_name != "final_apcd_elig_plr") {
     table_name_inthealth <- gsub("final_", "stage_", table_name)
     inthealth_row_count <- DBI::dbGetQuery(conn = db_claims,
-                                           glue::glue_sql("select count(*) as row_count from claims.{`table_name_inthealth`};",
+                                           glue::glue_sql("select  COUNT_BIG(*) as row_count from claims.{`table_name_inthealth`};",
                                                           .con = db_claims))
     hhsaw_row_count <- DBI::dbGetQuery(conn = db_claims,
-                                       glue::glue_sql("select count(*) as row_count from claims.{`table_name`};",
+                                       glue::glue_sql("select  COUNT_BIG(*) as row_count from claims.{`table_name`};",
                                                       .con = db_claims))
     
     if (inthealth_row_count$row_count != hhsaw_row_count$row_count) {
