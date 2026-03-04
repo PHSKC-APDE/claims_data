@@ -17,7 +17,6 @@ origin <- "1970-01-01" # Set the origin date, which is needed for many data/time
 
 #Set path for secure drive where HEDIS and QRS value sets are stored
 hedis_file_path <- "//dphcifs/APDE-CDIP/HEDIS/"
-hedis_write_path <- "//dphcifs/APDE-CDIP/HEDIS/hedis_value_sets_for_sql_load/"
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
