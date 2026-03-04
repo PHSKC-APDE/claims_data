@@ -685,23 +685,27 @@ hedis_medication_list_2018 <- read.xlsx(
     med_conversion_factor)
 
 
-#### Step 2: Bind all years into one data frame for each reference table ####
+#### Step 2: Bind all years into one data frame for each reference table and add date-time for last_run column ####
 
 hedis_measures <- ls(pattern = "^hedis_measure_\\d{4}$") |>
   mget(envir = .GlobalEnv) |>
-  bind_rows()
+  bind_rows() %>%
+  mutate(last_run = Sys.time())
 
 hedis_value_sets <- ls(pattern = "^hedis_value_set_\\d{4}$") |>
   mget(envir = .GlobalEnv) |>
-  bind_rows()
+  bind_rows() %>%
+  mutate(last_run = Sys.time())
 
 hedis_medication_measures <- ls(pattern = "^hedis_medication_measure_\\d{4}$") |>
   mget(envir = .GlobalEnv) |>
-  bind_rows()
+  bind_rows() %>%
+  mutate(last_run = Sys.time())
 
 hedis_medication_lists <- ls(pattern = "^hedis_medication_list_\\d{4}$") |>
   mget(envir = .GlobalEnv) |>
-  bind_rows()
+  bind_rows() %>%
+  mutate(last_run = Sys.time())
 
 #Remove interim data frames
 rm(list = ls(pattern = "^hedis_measure_\\d{4}$"))
