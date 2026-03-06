@@ -40,7 +40,7 @@
 #   R or a URL that should be used
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
-load_stage_mcaid_elig_demo_f <- function(conn = NULL,
+load_stage_mcaid_elig_demo <- function(conn = NULL,
                                         server = c("hhsaw", "phclaims"),
                                         config = NULL,
                                         get_config = F) {
@@ -525,7 +525,7 @@ DROP TABLE #elig_lang_max;
   ### Add in date for last run
   #### LOAD TO SQL SERVER ####
   message("Loading to SQL")
-  create_table_f(conn = conn, 
+  create_table(conn = conn, 
                  server = server,
                  config = config,
                  overwrite = T)

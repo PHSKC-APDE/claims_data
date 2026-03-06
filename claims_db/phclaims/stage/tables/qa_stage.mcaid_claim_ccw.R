@@ -17,7 +17,7 @@
 #  (set to T because it holds up automated monthly runs)
 
 
-qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
+qa_stage_mcaid_claim_ccw <- function(conn = NULL,
                                        conn_qa = NULL,
                                        server = c("hhsaw", "phclaims"),
                                        config = NULL,
@@ -173,7 +173,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   
   
   #### CHECK AGE DISTRIBUTION BY CONDITION FOR A GIVEN YEAR ####
-  age_dist_cond_f <- function(year = 2017) {
+  age_dist_cond<- function(year = 2017) {
     
     if (lubridate::leap_year(year)) {
       pt <- 366
@@ -219,7 +219,7 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
     return(output)
   }
   
-  age_dist_pop_f <- function(year = 2017) {
+  age_dist_pop<- function(year = 2017) {
     
     if (lubridate::leap_year(year)) {
       pt <- 366
@@ -266,8 +266,8 @@ qa_stage_mcaid_claim_ccw_f <- function(conn = NULL,
   }
   
   
-  age_dist_cond_chk <- age_dist_cond_f(year = 2018)
-  age_dist_pop_chk <- age_dist_pop_f(year = 2018)
+  age_dist_cond_chk <- age_dist_cond(year = 2018)
+  age_dist_pop_chk <- age_dist_pop(year = 2018)
   
   age_dist_cond_chk <- left_join(age_dist_cond_chk, age_dist_pop_chk,
                                  by = "age_grp7") %>%
