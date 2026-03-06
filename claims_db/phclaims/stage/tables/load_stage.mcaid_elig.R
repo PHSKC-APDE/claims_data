@@ -8,13 +8,13 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
-load_stage.mcaid_elig_f <- function(conn_db = NULL,
+load_stage.mcaid_elig <- function(conn_db = NULL,
                                     conn_dw = NULL,
                                     server = NULL,
                                     full_refresh = F, 
                                     config = NULL) {
   
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
+  #devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
   
   ### Error checks
   if (is.null(conn_dw)) {stop("No DW connection specificed")}
@@ -115,7 +115,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
       }
       try(DBI::dbSendQuery(conn_db, 
                            glue::glue("EXEC sp_rename '{archive_schema}.{archive_table}',  '{paste0(archive_table, '_bak')}'")))
-      alter_schema_f(conn = conn_db, 
+      alter_schema(conn = conn_db, 
                      from_schema = to_schema, 
                      to_schema = archive_schema,
                      table_name = to_table, 
@@ -309,6 +309,9 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
     } else {
       message(" A new type of duplicate is present. Investigate further")
     }
+    rm(var_names)
+    rm(duplicate_check_reason, duplicate_check_hoh, duplicate_check_rac, duplicate_type,
+       temp_rows_01, temp_rows_02, dedup_sql)
   }
   
   
@@ -320,7 +323,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   # First drop existing table
   try(odbc::dbRemoveTable(conn_dw, DBI::Id(schema = to_schema, table = to_table)), silent = T)
   
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
+  #devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
   
   
   # Then set up first block of SQL, which varies by server
@@ -330,7 +333,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
                                           DISTRIBUTION = HASH ({`date_var`})) AS ",
                                  .con = conn_dw)
   } else if (server == "phclaims") {
-    create_table_f(conn = conn_dw, 
+    create_table(conn = conn_dw, 
                    server = server,
                    config = config,
                    overwrite = T)
@@ -556,9 +559,7 @@ load_stage.mcaid_elig_f <- function(conn_db = NULL,
   
   #### CLEAN UP ####
   # Drop global temp table
-  rm(vars, var_names)
-  rm(duplicate_check_reason, duplicate_check_hoh, duplicate_check_rac, duplicate_type,
-     temp_rows_01, temp_rows_02, dedup_sql)
+  rm(vars)
   rm(from_schema, from_table, to_schema, to_table, archive_schema, date_truncate)
   rm(rows_stage, rows_load_raw, rows_archive, distinct_rows_load_raw, null_ids)
   rm(row_diff_qa_fail, null_ids_qa_fail)

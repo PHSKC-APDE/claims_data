@@ -4,7 +4,7 @@
 # 2019-05
 
 #### FUNCTION TO CHECK ACTUAL VS EXPECT ROW COUNTS IN SOURCE FILES ####
-qa_file_row_count_f <- function(server = NULL,
+qa_file_row_count <- function(server = NULL,
                                 config = NULL,
                                 config_url = NULL,
                                 config_file = NULL,
@@ -162,7 +162,7 @@ qa_file_row_count_f <- function(server = NULL,
 
 
 #### FUNCTION TO CHECK COLUMNS MATCH SQL TABLES ####
-qa_column_order_f <- function(conn = NULL,
+qa_column_order <- function(conn = NULL,
                               server = NULL,
                               config = NULL,
                               config_url = NULL,
@@ -322,7 +322,7 @@ qa_column_order_f <- function(conn = NULL,
 
 
 #### FUNCTION TO CHECK LOADED VS EXPECT ROW COUNTS IN SOURCE FILES ####
-qa_load_row_count_f <- function(conn,
+qa_load_row_count <- function(conn,
                                 server = NULL,
                                 config = NULL,
                                 config_url = NULL,
@@ -480,7 +480,7 @@ qa_load_row_count_f <- function(conn,
 
 
 #### FUNCTION TO CHECK THAT DATES MATCH EXPECTED RANGE ####
-qa_date_range_f <- function(conn,
+qa_date_range <- function(conn,
                             server = NULL,
                             config = NULL,
                             config_url = NULL,
