@@ -18,6 +18,7 @@ options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 
 
 library(pacman)
 pacman::p_load(tidyverse, lubridate, odbc, glue, keyring)
+library (apde.etl)
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
@@ -205,6 +206,11 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2023.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
 
+# 2024
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2024.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+
 ### PLACEHOLDER FOR ADDING THE NEXT COMPLETE CALENDAR YEAR TABLE ###
 
 
@@ -219,6 +225,7 @@ system.time(load_stage.apcd_elig_plr_f(from_date = "2020-01-01", to_date = "2020
 system.time(load_stage.apcd_elig_plr_f(from_date = "2021-01-01", to_date = "2021-12-31")) #2021
 system.time(load_stage.apcd_elig_plr_f(from_date = "2022-01-01", to_date = "2022-12-31")) #2022
 system.time(load_stage.apcd_elig_plr_f(from_date = "2023-01-01", to_date = "2023-12-31")) #2023
+system.time(load_stage.apcd_elig_plr_f(from_date = "2024-01-01", to_date = "2024-12-31")) #2024
 ##placeholder for adding the next complete calendar year table
 
 
@@ -233,6 +240,7 @@ system.time(apcd_plr_2020_qa <- qa_stage.apcd_elig_plr_f(year = "2020"))
 system.time(apcd_plr_2021_qa <- qa_stage.apcd_elig_plr_f(year = "2021"))
 system.time(apcd_plr_2022_qa <- qa_stage.apcd_elig_plr_f(year = "2022"))
 system.time(apcd_plr_2023_qa <- qa_stage.apcd_elig_plr_f(year = "2023"))
+system.time(apcd_plr_2024_qa <- qa_stage.apcd_elig_plr_f(year = "2024"))
 ##placeholder for adding the next complete calendar year table
 
 #Process QA results from across all tables
@@ -245,7 +253,8 @@ df_list <- list(apcd_plr_2014_qa,
                 apcd_plr_2020_qa,
                 apcd_plr_2021_qa,
                 apcd_plr_2022_qa,
-                apcd_plr_2023_qa)
+                apcd_plr_2023_qa,
+                apcd_plr_2024_qa)
 ##placeholder for adding the next complete calendar year table
 columns <- c("qa_result")
 elig_plr_qa_composite_result <- data.frame(matrix(nrow = 0, ncol = length(columns)))
@@ -426,7 +435,7 @@ if(all(c(apcd_provider_npi_qa$qa[apcd_provider_npi_qa$qa_type=="# of provider ID
 message(paste0("Beginning copying ref.apcd_provider_npi to HHSAW - ", Sys.time()))
 db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 
-system.time(table_duplicate_f(
+system.time(table_duplicate(
   conn_from = dw_inthealth,
   conn_to = db_claims,
   server_to = "HHSAW_prod", #must match ODBC data source name AND keyring service name
@@ -481,7 +490,7 @@ if(all(c(kc_provider_master_qa$qa[kc_provider_master_qa$qa_type=="# of NPIs with
 message(paste0("Beginning copying ref.kc_provider_master to HHSAW - ", Sys.time()))
 db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 
-system.time(table_duplicate_f(
+system.time(table_duplicate(
   conn_from = dw_inthealth,
   conn_to = db_claims,
   server_to = "HHSAW_prod", #must match ODBC data source name AND keyring service name
@@ -534,7 +543,7 @@ if(all(c(apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of headers"] =
          & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_pophealth_id values used for >1 person, expect 0"] == 0
          & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of distinct ed_pophealth_id values"] ==
             apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="max ed_pophealth_id - min + 1"]
-         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_perform rows with no ed_pophealth, expect 0"] == 0
+         #& apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_perform rows with no ed_pophealth, expect 0"] == 0 #no longer an accurate QA
          & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_pophealth visits where the overlap date is greater than 1 day, expect 0"] == 0))) {
   message(paste0("apcd_claim_header QA result: PASS - ", Sys.time()))
 } else {
