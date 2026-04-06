@@ -25,10 +25,9 @@ library(apde.etl)
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_ccw.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_bh.R")
-#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
-#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
 #devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
-#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
 
 #memory.limit(size = 56000) # Only necessary for R version < 4.2
 
@@ -184,7 +183,7 @@ claim_load <- function(table = c("ccw", "icdcm_header", "header", "line",
   ### Bring in function and config file
   # ccw script already called in above
   if (table != "ccw" & table != "bh") {
-    devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".R"))
+    #devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".R"))
   }
   stage_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".yaml"))
   
@@ -224,7 +223,7 @@ claim_load <- function(table = c("ccw", "icdcm_header", "header", "line",
   
   ### QA table 
  # if (table != "bh") {
-    devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_", table, ".R"))
+    #devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_", table, ".R"))
   #}
   
   qa_stage <- 0
@@ -526,6 +525,16 @@ if(T) {
     
   }
 }
+
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_ref.mcaid_demo_summary.R")
+ref_mcaid_demo_summary_config <- yaml::read_yaml("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_ref.mcaid_demo_summary.yaml")
+# Run Housing Status function and copy from prod to dev
+if(T) {
+  message("Creating Medicaid Demo Summary Reference Table...")
+  db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
+  load_ref_mcaid_demo_summary(conn = db_claims, server = server, config = ref_mcaid_demo_summary_config)
+}
+
 
 #### DROP TABLES NO LONGER NEEDED ####
 bak_check <- dlg_list(c("Yes", "No"), title = "CHECK BACKUP TABLES?")$res
