@@ -137,9 +137,6 @@ for(i in 1:nrow(files)) {
 }
 
 
-
-
-
 for(i in 1:nrow(files)) {
   files[i, "etl_id"] <- maxid + i
   file_name <- paste0(dir_gz, files[i, "table_name"], "_", batch, ".txt.gz")
@@ -274,7 +271,26 @@ ERRORFILE = {paste0(base_path, 'error')}
       
   }  
       
-      message(paste0("...Copying data from ", table_raw, " to ", table))
+   
+  
+###### - ATTENTION ELI: This is where I stopped. #######
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+     message(paste0("...Copying data from ", table_raw, " to ", table))
       
         table_vars <- DBI::dbGetQuery(conn_db,
                                       glue::glue_sql("SELECT * 
