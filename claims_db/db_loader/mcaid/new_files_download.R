@@ -23,6 +23,8 @@ library(svDialogs)
 library(R.utils)
 library(zip)
 library(sftp)
+library(curl)
+library(jsonlite)
 library(readr)
 library(apde.etl)
 
@@ -51,7 +53,7 @@ cont <- storage_container(blob_endp, "inthealth")
 #### Start File Processing
 if(T) {
   #### Set sftp url, credentials and directories
-  url <- "mft.wa.gov"
+  url <- "https://mft.wa.gov"
   basedir <- "C:/temp/mcaid/"
   dldir <- paste0(basedir, "download/")
   exdir <- paste0(basedir, "extract")
@@ -59,6 +61,34 @@ if(T) {
   txtdir <- paste0(basedir, "txt")
   schema <- "claims"
   table <- "metadata_etl_log"
+  
+  ## Create SFTP/MFT connection
+  url <- "https://mft.wa.gov/webclient/"
+  h <- curl::new_handle()
+  curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list("hca_mft")[["username"]], ":", key_get("hca_mft", key_list("hca_mft")[["username"]])))
+  
+  json <- curl::curl_fetch_memory(url, handle = h)
+  data <- fromJSON(rawToChar(json$content))
+  data <- xml2::read_xml(rawToChar(json$content))
+  
+  curl::curl_download(url = url, 
+                      destfile = "c:/temp/test.txt",
+                      quiet = T,
+                      handle = h)
+  
+  
+  # Loading packages
+  library(httr)
+  library(jsonlite)
+  
+  call <- "https://mft.wa.gov/"
+  
+  data <- GET(url = call)
+  
+  status_code(data)
+  str(data)
+  
+  
   
   ## Create SFTP/MFT connection
   sftp_con <- sftp_connect(server = url,   
