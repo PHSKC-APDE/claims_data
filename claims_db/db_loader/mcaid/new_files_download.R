@@ -24,15 +24,14 @@ library(R.utils)
 library(zip)
 library(sftp)
 library(readr)
-
+library(apde.etl)
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
 
 #### CREATE CONNECTION ####
 ##interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
-interactive_auth <- FALSE
+interactive_auth <- TRUE
 ##prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
 prod <- TRUE
 
@@ -51,7 +50,7 @@ cont <- storage_container(blob_endp, "inthealth")
 #### Start File Processing
 if(T) {
   #### Set sftp url, credentials and directories
-  url <- "mft.wa.gov"
+  url <- "mft.wa.gov/"
   basedir <- "C:/temp/mcaid/"
   dldir <- paste0(basedir, "download/")
   exdir <- paste0(basedir, "extract")
@@ -61,14 +60,39 @@ if(T) {
   table <- "metadata_etl_log"
   
   ## Create SFTP/MFT connection
-  sftp_con <- sftp_connect(server = url,   
-                           username = key_list("hca_mft")[["username"]],   
-                           password = key_get("hca_mft", key_list("hca_mft")[["username"]]))
-  sftp_changedir(tofolder = "Claims", current_connection_name = "sftp_con")
-  sftp_claims <- sftp_listfiles(sftp_con, recurse = F)
-  sftp_changedir(tofolder = "../Eligibility/", current_connection_name = "sftp_con")
-  sftp_elig <- sftp_listfiles(sftp_con, recurse = F)
+  process_chunk <- function(chunk) {
+    raw_text <- rawToChar(chunk)
+    combined_text <- paste0(leftover, raw_text)
+    lines <- strsplit(combined_text, "\n", fixed = TRUE)[[1]]
+    last_char <- substr(combined_text, nchar(combined_text), nchar(combined_text))
+    if (last_char == "\n") {
+      processed_lines <- lines
+      leftover <<- ""
+    } else {
+      processed_lines <- lines[-length(lines)]
+      leftover <<- lines[length(lines)]
+    }
+    all_files <<- c(all_files, processed_lines)
+    #message("Parsed ", length(processed_lines), " files in this chunk...")
+  }
+  h <- curl::new_handle()
+  all_files <- character()
+  leftover <- ""
+  curl::handle_setopt(h, dirlistonly = TRUE, customrequest = "GET", httpauth = 1, userpwd = paste0(key_list("hca_mft")[["username"]], ":", key_get("hca_mft", key_list("hca_mft")[["username"]])))
+  curl::curl_fetch_stream(paste0("sftp://", url, "Claims/"), handle = h, process_chunk)
+  sftp_claims <- as.data.frame(list(file_name = all_files))
+  sftp_claims$folder <- "Claims"
+  all_files <- character()
+  leftover <- ""
+  curl::handle_reset(h)
+  curl::handle_setopt(h, dirlistonly = TRUE, customrequest = "GET", httpauth = 1, userpwd = paste0(key_list("hca_mft")[["username"]], ":", key_get("hca_mft", key_list("hca_mft")[["username"]])))
+  curl::curl_fetch_stream(paste0("sftp://", url, "Eligibility/"), handle = h, process_chunk)
+  sftp_elig <- as.data.frame(list(file_name = all_files))
+  sftp_elig$folder <- "Eligibility"
+  rm(all_files, leftover, process_chunk)
   sftp_file_cnt <- nrow(sftp_claims) + nrow(sftp_elig)
+  sftp_files <- rbind(sftp_claims, sftp_elig)
+  sftp_files$url <- paste0("sftp://", key_list("hca_mft")[["username"]], "@", url, sftp_files$folder, "/", sftp_files$file_name)
   ## CHECK FOR EXISTING - TO DO!
   etl_exists <- 0
   
@@ -79,10 +103,20 @@ if(T) {
   
   if (proceed == T) {
     message(paste0("Downloading Files - ", Sys.time()))
-    sftp_changedir(tofolder = "../Claims", current_connection_name = "sftp_con")
-    sftp_download(file = sftp_claims$name, tofolder = paste0(dldir, "Claims"))
-    sftp_changedir(tofolder = "../Eligibility/", current_connection_name = "sftp_con")
-    sftp_download(file = sftp_elig$name, tofolder = paste0(dldir, "Eligibility"))
+    for(f in 1:nrow(sftp_files)) {
+      message(paste0("...Downloading file ", f, " of ", nrow(sftp_files), ": ", sftp_files[f, "file_name"], " - ", Sys.time()))
+      curl::handle_reset(h)
+      curl::handle_setopt(h, httpauth = 1, userpwd = paste0(key_list("hca_mft")[["username"]], ":", key_get("hca_mft", key_list("hca_mft")[["username"]])))
+      start_time <- Sys.time()
+      curl::curl_download(url = sftp_files[f, "url"], 
+                          destfile = paste0(dldir, sftp_files[f, "folder"], "/", sftp_files[f, "file_name"]),
+                          quiet = F,
+                          handle = h)
+      end_time <- Sys.time()
+      if(nrow(sftp_files) > 1 && f < nrow(sftp_files) && end_time - start_time < 60) {
+        Sys.sleep(as.integer(60 - (end_time - start_time)) + 1)
+      }
+    }
     message(paste0("Download Completed - ", Sys.time()))
     
     zfiles <- data.frame("fileName" = list.files(dldir, pattern="*.gz", recursive = T))
