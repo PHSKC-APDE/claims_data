@@ -1,61 +1,9 @@
 ## Install Packages
-if("odbc" %in% rownames(installed.packages()) == F) {
-  install.packages("odbc")
+if("pacman" %in% rownames(installed.packages()) == F) {
+  install.packages("pacman")
 }
-library(odbc) # Read to and write from SQL
-if("curl" %in% rownames(installed.packages()) == F) {
-  install.packages("curl")
-}
-library(curl) # Read files from FTP
-if("keyring" %in% rownames(installed.packages()) == F) {
-  install.packages("keyring")
-}
-library(keyring) # Access stored credentials
-if("R.utils" %in% rownames(installed.packages()) == F) {
-  install.packages("R.utils")
-}
-library(R.utils) # File and folder manipulation
-if("zip" %in% rownames(installed.packages()) == F) {
-  install.packages("zip")
-}
-library(zip) # Extract data from gzip
-if("jsonlite" %in% rownames(installed.packages()) == F) {
-  install.packages("jsonlite")
-}
-library(jsonlite) # Extract data from curl
-if("tidyverse" %in% rownames(installed.packages()) == F) {
-  install.packages("tidyverse")
-}
-library(tidyverse) # Manipulate data
-if("dplyr" %in% rownames(installed.packages()) == F) {
-  install.packages("dplyr")
-}
-library(dplyr) # Manipulate data
-if("lubridate" %in% rownames(installed.packages()) == F) {
-  install.packages("lubridate")
-}
-library(lubridate) # Manipulate data
-if("glue" %in% rownames(installed.packages()) == F) {
-  install.packages("glue")
-}
-library(glue) # Safely combine SQL code
-if("configr" %in% rownames(installed.packages()) == F) {
-  install.packages("configr")
-}
-library(configr) # Read in YAML files
-if("xlsx" %in% rownames(installed.packages()) == F) {
-  install.packages("xlsx")
-}
-library(xlsx) # Read in XLSX files
-if("svDialogs" %in% rownames(installed.packages()) == F) {
-  install.packages("svDialogs")
-}
-library(svDialogs) # Extra UI Elements
+pacman::p_load(odbc, curl, keyring, R.utils, zip, tidyverse, lubridate, glue, configr, dply, svDialogs, remotes, rjson, openxlsx)
 if("apde.etl" %in% rownames(installed.packages()) == F) {
-  if("remotes" %in% rownames(installed.packages()) == F) {
-    install.packages("remotes")
-  }
-  library(remotes) # Remote Install Function for GitHub
   remotes::install_github("PHSKC-APDE/apde.etl", auth_token = NULL)
 }
 library(apde.etl) ## Pull in APDE Common Functions
@@ -246,7 +194,7 @@ apcd_etl_get_entry_value <- function(config,
 apcd_get_table_vars <- function(table_file_path, 
                                 schema, 
                                 table) {
-  tables <- read.xlsx(table_file_path, 1)
+  tables <- openxlsx::read.xlsx(table_file_path, 1)
   sel_table <- tables %>%
     filter(schema_name == schema) %>%
     filter(table_name == table)
@@ -261,33 +209,75 @@ apcd_get_table_vars <- function(table_file_path,
 ## Returns a list of files from the SFTP (all 3 directories), determines schema, table, file number and file date
 apcd_ftp_get_file_list <- function(config) {
   # Get list of files from SFTP
+  stream_cb <- function(chunk) {
+    # Appends the new raw chunk to the existing buffer
+    data_buffer <<- c(data_buffer, chunk)
+  }
   h <- curl::new_handle()
-  curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
-  url <- paste0(config$ftp_url, "ref_schema/")
-  json <- curl::curl_fetch_memory(url, handle = h)
-  ftpfiles <- fromJSON(rawToChar(json$content))
-  rfiles <- cbind(ftpfiles[["files"]]["fileName"], ftpfiles[["files"]]["lastModifiedTime"])
-  rfiles$url <- paste0(url,rfiles$fileName)
-  rfiles$schema <- "ref"
-  h <- curl::new_handle()
-  curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
-  url <- paste0(config$ftp_url, "stage_schema/")
-  json <- curl::curl_fetch_memory(url, handle = h)
-  ftpfiles <- fromJSON(rawToChar(json$content))
-  sfiles <- cbind(ftpfiles[["files"]]["fileName"], ftpfiles[["files"]]["lastModifiedTime"])
-  sfiles$url <- paste0(url,sfiles$fileName)
-  sfiles$schema <- "stage"
-  h <- curl::new_handle()
-  curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
-  url <- paste0(config$ftp_url, "final_schema/")
-  json <- curl::curl_fetch_memory(url, handle = h)
-  ftpfiles <- fromJSON(rawToChar(json$content))
-  ffiles <- cbind(ftpfiles[["files"]]["fileName"], ftpfiles[["files"]]["lastModifiedTime"])
-  ffiles$url <- paste0(url,ffiles$fileName)
-  ffiles$schema <- "final"
+  x <- 0
+  repeat {
+    x <- x + 1
+    message(paste0("Attempt ", x, " to get list for ref_schema..."))
+    curl::handle_reset(h)
+    curl::handle_setopt(handle = h, customrequest = "GET", httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
+    url <- paste0(config$ftp_url, "ref_schema/")
+    data_buffer <- raw(0)
+    curl::curl_fetch_stream(url, handle = h, stream_cb)
+    if(substr(rawToChar(data_buffer), 1, 1) == "{" || x > 20) {
+      break;
+    }
+  }  
+  ftpfiles <- fromJSON(rawToChar(data_buffer))$files
+  rfiles <- data.frame()
+  for(i in 1:length(ftpfiles)) {
+    rfiles[i, "file_name"] <- ftpfiles[[i]]$fileName
+    rfiles[i, "url"] <- paste0(url, rfiles[i, "file_name"])
+    rfiles[i, "schema"] <- "ref"
+  }
+  message("...", nrow(rfiles), " files found for ref_schema...")
+  x <- 0
+  repeat {
+    curl::handle_reset(h)
+    curl::handle_setopt(handle = h, customrequest = "GET", httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
+    url <- paste0(config$ftp_url, "stage_schema/")
+    data_buffer <- raw(0)
+    curl::curl_fetch_stream(url, handle = h, stream_cb)
+    x <- x + 1
+    message(paste0("Attempt ", x, " to get list for stage_schema"))
+    if(substr(rawToChar(data_buffer), 1, 1) == "{" || x > 20) {
+      break;
+    }
+  }  
+  ftpfiles <- fromJSON(rawToChar(data_buffer))$files
+  sfiles <- data.frame()
+  for(i in 1:length(ftpfiles)) {
+    sfiles[i, "file_name"] <- ftpfiles[[i]]$fileName
+    sfiles[i, "url"] <- paste0(url, sfiles[i, "file_name"])
+    sfiles[i, "schema"] <- "stage"
+  }
+  message("...", nrow(sfiles), " files found for stage_schema...")
+  x <- 0
+  repeat {
+    x <- x + 1
+    message(paste0("Attempt ", x, " to get list for final_schema"))
+    curl::handle_reset(h)
+    curl::handle_setopt(handle = h, customrequest = "GET", httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
+    url <- paste0(config$ftp_url, "final_schema/")
+    data_buffer <- raw(0)
+    curl::curl_fetch_stream(url, handle = h, stream_cb)
+    if(substr(rawToChar(data_buffer), 1, 1) == "{" || x > 20) {
+      break;
+    }
+  }  
+  ftpfiles <- fromJSON(rawToChar(data_buffer))$files
+  ffiles <- data.frame()
+  for(i in 1:length(ftpfiles)) {
+    ffiles[i, "file_name"] <- ftpfiles[[i]]$fileName
+    ffiles[i, "url"] <- paste0(url, ffiles[i, "file_name"])
+    ffiles[i, "schema"] <- "final"
+  }
+  message("...", nrow(ffiles), " files found for final_schema...")
   files <- rbind(rfiles, sfiles, ffiles)
-  files <- files[, !(names(files) %in% c("lastModifiedTime"))]
-  colnames(files) <- c("file_name", "url", "schema")
   for(f in 1:nrow(files)) {
     files[f, "table"] <- strsplit(files[f, "file_name"], "[.]")[[1]][2]
     files[f, "file_number"] <- as.numeric(substring(strsplit(files[f, "file_name"], "[.]")[[1]][3], 1, 3))
@@ -306,8 +296,24 @@ apcd_ftp_get_file_list <- function(config) {
 ## Downloads file from SFTP and saves it to the specified directory. Updates the ETL log with file_path and datetime_download. Returns the datetime_download
 apcd_ftp_get_file <- function(config,  
                                 file) {
+  stream_cb <- function(chunk) {
+    # Appends the new raw chunk to the existing buffer
+    data_buffer <<- c(data_buffer, chunk)
+  }
   h <- curl::new_handle()
-  curl::handle_setopt(handle = h, httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
+  x <- 0
+  repeat {
+    x <- x + 1
+    message(paste0("...Attempt ", x, " to authorize MFT connection..."))
+    curl::handle_reset(h)
+    curl::handle_setopt(handle = h, customrequest = "GET", httpauth = 1, userpwd = paste0(key_list(config$ftp_keyring)[["username"]], ":", key_get(config$ftp_keyring, key_list(config$ftp_keyring)[["username"]])))
+    url <- paste0(config$ftp_url, file$file_schema, "_schema/")
+    data_buffer <- raw(0)
+    curl::curl_fetch_stream(url, handle = h, stream_cb)
+    if(substr(rawToChar(data_buffer), 1, 1) == "{" || x > 20) {
+      break;
+    }
+  }  
   # Download file
   curl::curl_download(url = file$url, 
                       destfile = file$file_path,

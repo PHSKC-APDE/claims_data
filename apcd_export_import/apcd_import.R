@@ -8,7 +8,7 @@ if(T) {
     config$table_file_path <- file.path(here::here(),"apcd_export_import", config$table_file_path)
   } else if(file.exists(file.path(here::here(),"apcd_import_functions.R"))) {
     suppressWarnings(source(file.path(here::here(),"apcd_import_functions.R"))) 
-    config <- yaml::read_yaml(file.path(here::here(),"apcd_import_config_test.yaml"))
+    config <- yaml::read_yaml(file.path(here::here(),"apcd_import_config.yaml"))
     config$table_file_path <- file.path(here::here(),config$table_file_path)
   } else {
     suppressWarnings(source("apcd_import_functions.R"))
