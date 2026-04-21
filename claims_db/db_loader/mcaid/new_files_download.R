@@ -150,24 +150,13 @@ if(T) {
         efiles <- data.frame("fileName" = list.files(exdirs[d], pattern="*.csv"))  
       }
       tname <- paste0(substr(efiles[1, "fileName"], 1, str_locate(efiles[1, "fileName"], "[.]")[1, 1] - 1), ".txt")
-      message(paste0("Begin Buidling ", tname, " - ", Sys.time()))
-      for(i in 1:nrow(efiles)) {
-        message(paste0("Reading File ", i, " of ", nrow(efiles), " - ", Sys.time()))
-        con <- file(paste0(exdirs[d],"/",efiles[i, "fileName"]),"r")
-        df <- readLines(con)
-        close(con)
-        if(i == 1) {
-          message(paste0("Creating ", tname, " - ", Sys.time()))
-        }
-        message(paste0("Writing ", length(df) - 1, " Rows to ", tname, " - ", Sys.time()))
-        for(x in 1:length(df)) {
-          if(x == 1 && i == 1) {
-            cat(str_replace_all(df[x], "\\|", "\t"), file = paste0(txtdir, "/", tname), sep = "\n", append = F)
-          } else if(x > 1) {
-            cat(str_replace_all(df[x], "\\|", "\t"), file = paste0(txtdir, "/", tname), sep = "\n", append = T)
-          }
-        }
-      }
+      message(paste0("Buidling ", tname, " - ", Sys.time()))
+      file_path_e <- paste0(gsub("/", "\\\\", exdirs[d]), "\\")
+      file_path_t <- paste0(gsub("/", "\\\\", txtdir), "\\")
+      efiles$filepath <- paste0(file_path_e, efiles$fileName)
+      files <- paste(efiles$filepath, collapse = ", ")
+      ps_cmd <- paste0('Get-Content ', files, ' | ForEach-Object { $_ -replace "\\|", "`t" } | Set-Content ', file_path_t, tname)
+      system(paste('powershell -Command', shQuote(ps_cmd)))
       message(paste0("File ", tname, " Complete - ", Sys.time()))
     }
     message(paste0("File Consolodation Complete - ", Sys.time()))
