@@ -1,12 +1,15 @@
-------------------------------------
+/*------------------------------------
 --Eli Kern, PHSKC-HSci-APDE, 11/2025
 --Prep Clinical Data Repository (CDR) extract for UW Fresh Study team
 --Include select ProviderOne (P1) tables
 --Subset to KC residents during measurement window (6/1/17 - 12/31/25)
 --Indirect identifiers to include dates of service, single-year age, census tract and ZIP code of residence
 --No direct identifiers shall be included in any data tables
---Updated April 2026 to prep March 2026 CDR extract for sharing (date period extended through 12/31/25)
-------------------------------------
+--Updated April 2026:
+	--Prep March 2026 CDR extract for sharing (date period extended through 12/31/25)
+	--Add chr_patients table
+	--Revise subsetting method to include patients in chr_patients table missing from mpm_indexpatient table
+------------------------------------*/
 
 ------------------------------------
 --STEP 1: Create reference table for subsetting CDR patients to KC residents during measurement window 6/1/17-12/31/25
@@ -14,43 +17,70 @@
 
 --Use MPM_Person table to create time-varying flag for ZIP-based KC residence
 --Then subset to people with KC residence between 201706 and 202512 and add in patient_id from MPM_IndexPatient table
---665,717 distinct P1 IDs, 665,712 distinct CDR patient IDs
+--Then add in people from CHR_Patients table who are missing from MPM table
+--892,507 distinct CDR patient IDs
+
 if object_id(N'stg_cdr.uwf_kc_subset', N'U') is not null drop table stg_cdr.uwf_kc_subset;
 --pull ZIP code and insurance start dates from time-varying CDR data table
-with temp1 as (
+with mpm_1 as (
 	select provideroneid,
 	cast(insurance_start_date as date) as insurance_start_date,
 	left(zip, 5) as cdr_zip
 	from stg_cdr.raw_MPM_Person_20260319
 ),
 --create ZIP-based KC residence flag
-temp2 as (
+mpm_2 as (
 	select a.*, b.geo_kc
-	from temp1 as a
+	from mpm_1 as a
 	left join stg_claims.ref_geo_kc_zip as b
 	on a.cdr_zip = b.geo_zip
 ),
 --create person-level flags to identify study cohort
-temp3 as (
+mpm_3 as (
 	select provideroneid,
 	max(case when insurance_start_date < '2017-06-01' and geo_kc = 1 then 1 else 0 end) as geo_kc_pre_period,
 	max(case when insurance_start_date > '2017-06-01' and geo_kc is null then 1 else 0 end) as geo_non_kc_post_period_start,
 	max(case when insurance_start_date between '2017-06-01' and '2025-12-31' and geo_kc = 1 then 1 else 0 end) as geo_kc_study_period
-	from temp2
+	from mpm_2
 	group by provideroneid
-)
+),
 --add in CDR patientid and subset to study cohort
-select a.provideroneid, c.patientid, max(a.geo_kc) as geo_kc
+mpm_final as (
+	select a.provideroneid, c.patientid, max(a.geo_kc) as geo_kc
+	from mpm_2 as a
+	left join mpm_3 as b
+	on a.provideroneid = b.provideroneid
+	left join stg_cdr.raw_MPM_IndexPatient_20260319 as c
+	on a.provideroneid = c.provideroneid
+	where (b.geo_kc_study_period = 1 OR (b.geo_kc_pre_period = 1 and b.geo_non_kc_post_period_start = 1))
+		and (c.patientid is not null) -- removes a small number of people (~5) who are in MPM_Person but not MPM_IndexPatient table
+	group by a.provideroneid, c.patientid
+),
+--flag people from CHR_Patients table who are missing from MPM_IndexPatient table
+chr_1 as (
+	select distinct patient_id from stg_cdr.raw_CHR_Patients_20260319
+	except select distinct patientid as patient_id from stg_cdr.raw_MPM_IndexPatient_20260319
+),
+--subset CHR_Patients table those living in KC ZIP codes with last updated dates during or after the study period
+chr_2 as (
+	select a.patient_id
+	from stg_cdr.raw_CHR_Patients_20260319 as a
+	inner join stg_claims.ref_geo_kc_zip as b
+	on left(a.zip, 5) = b.geo_zip and a.record_change_date >= '2017-06-01'
+),
+--combine two chr temp tables
+	chr_final as (
+	select null as provideroneid, a.patient_id, 1 as geo_kc
+	from chr_1 as a
+	inner join chr_2 as b
+	on a.patient_id = b.patient_id
+)
+--combine data from mpm and chr tables to create final person reference table (people missing from MPM tables will have null P1 ID)
+select *
 into stg_cdr.uwf_kc_subset
-from temp2 as a
-left join temp3 as b
-on a.provideroneid = b.provideroneid
-left join stg_cdr.raw_MPM_IndexPatient_20260319 as c
-on a.provideroneid = c.provideroneid
-where b.geo_kc_study_period = 1 OR (b.geo_kc_pre_period = 1 and b.geo_non_kc_post_period_start = 1)
-group by a.provideroneid, c.patientid;
+from mpm_final
+union select * from chr_final;
 
-select count(distinct provideroneid) from stg_cdr.uwf_kc_subset;
 select count(distinct patientid) from stg_cdr.uwf_kc_subset;
 
 
@@ -60,7 +90,7 @@ select count(distinct patientid) from stg_cdr.uwf_kc_subset;
 
 --Prep MPM_IndexPatient table
 --Exclude direct identifiers
---Convert dob to age as oif 12/31/25
+--Convert dob to age as of 12/31/25
 if object_id(N'stg_cdr.export_uwf_mpm_indexpatient', N'U') is not null drop table stg_cdr.export_uwf_mpm_indexpatient;
 select distinct
 a.patientid,
@@ -86,7 +116,7 @@ on a.patientid = b.patientid;
 
 --Prep MPM_Person table
 --Exclude direct identifiers
---Convert dob to age as oif 12/31/25
+--Convert dob to age as of 12/31/25
 if object_id(N'stg_cdr.export_uwf_mpm_person', N'U') is not null drop table stg_cdr.export_uwf_mpm_person;
 select distinct
 b.patientid,
@@ -109,6 +139,32 @@ into stg_cdr.export_uwf_mpm_person
 from stg_cdr.raw_MPM_Person_20260319 as a
 inner join stg_cdr.uwf_kc_subset as b
 on a.provideroneid = b.provideroneid;
+
+--Prep CHR_Patients table
+--Exclude direct identifiers
+--Convert dob to age as of 12/31/25
+if object_id(N'stg_cdr.export_uwf_chf_patients', N'U') is not null drop table stg_cdr.export_uwf_chf_patients;
+select distinct
+a.patient_id,
+a.city,
+a.zip,
+a.[state],
+case
+	when (datediff(day, a.date_of_birth, '2025-12-31') + 1) >= 0 then floor((datediff(day, a.date_of_birth, '2025-12-31') + 1) / 365.25)
+	when datediff(day, a.date_of_birth, '2025-12-31') < 0 then null
+end as age_20251231,
+a.sex,
+a.active,
+a.primary_language,
+a.race_code,
+a.record_create_date,
+a.record_change_date,
+getdate() as apde_last_run
+into stg_cdr.export_uwf_chf_patients
+from stg_cdr.raw_CHR_Patients_20260319 as a
+inner join (select distinct patientid from stg_cdr.uwf_kc_subset) as b
+on a.patient_id = b.patientid;
+
 
 --Prep REF_RaceEthnicityCode table
 --No exclusions or modifications necessary
