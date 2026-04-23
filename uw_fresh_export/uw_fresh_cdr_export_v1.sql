@@ -143,7 +143,7 @@ on a.provideroneid = b.provideroneid;
 --Prep CHR_Patients table
 --Exclude direct identifiers
 --Convert dob to age as of 12/31/25
-if object_id(N'stg_cdr.export_uwf_chf_patients', N'U') is not null drop table stg_cdr.export_uwf_chf_patients;
+if object_id(N'stg_cdr.export_uwf_chr_patients', N'U') is not null drop table stg_cdr.export_uwf_chr_patients;
 select distinct
 a.patient_id,
 a.city,
@@ -160,7 +160,7 @@ a.race_code,
 a.record_create_date,
 a.record_change_date,
 getdate() as apde_last_run
-into stg_cdr.export_uwf_chf_patients
+into stg_cdr.export_uwf_chr_patients
 from stg_cdr.raw_CHR_Patients_20260319 as a
 inner join (select distinct patientid from stg_cdr.uwf_kc_subset) as b
 on a.patient_id = b.patientid;
