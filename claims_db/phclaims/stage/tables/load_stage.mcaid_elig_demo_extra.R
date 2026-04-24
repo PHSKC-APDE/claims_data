@@ -23,7 +23,7 @@
 #' the query early
 #' 
 
-load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
+load_stage_mcaid_elig_demo_extra <- function(conn = NULL,
                                                server = c("hhsaw", "phclaims"),
                                                config = NULL,
                                                get_config = F) {
@@ -356,11 +356,11 @@ load_stage_mcaid_elig_demo_extra_f <- function(conn = NULL,
   names(all_ids_tbl) <- c("id_mcaid")
   
   # Create temporary table with noncisgender IDs and load via BCP
-  create_table_f(conn = conn, 
+  create_table(conn = conn, 
                  server = server,
                  config = config,
                  overwrite = T)
-  load_df_bcp_f(dataset = all_ids_tbl,
+  load_df_bcp(dataset = all_ids_tbl,
              server = stg_server,
              db_name = "inthealth_edw",
              schema_name = schema,

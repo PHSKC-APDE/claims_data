@@ -4,7 +4,7 @@
 # 2019-05
 
 #### FUNCTION TO CHECK ROW COUNTS MATCH in FROM and TO TABLES ####
-qa_sql_row_count_f <- function(conn = db_claims,
+qa_sql_row_count <- function(conn = db_claims,
                                server = NULL,
                                config = NULL,
                                config_url = NULL,

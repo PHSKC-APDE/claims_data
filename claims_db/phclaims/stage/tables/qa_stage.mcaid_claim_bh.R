@@ -17,7 +17,7 @@
 #  (set to T because it holds up automated monthly runs)
 
 
-qa_stage_mcaid_claim_bh_f <- function(conn = NULL,
+qa_stage_mcaid_claim_bh <- function(conn = NULL,
                                       conn_qa = NULL,
                                        server = c("hhsaw", "phclaims"),
                                        config = NULL,

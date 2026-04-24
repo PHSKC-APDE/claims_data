@@ -88,7 +88,7 @@
 #   R or a URL that should be used
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
-load_stage_mcaid_claim_header_f <- function(conn = NULL,
+load_stage_mcaid_claim_header <- function(conn = NULL,
                                             server = c("hhsaw"),
                                             config = NULL,
                                             get_config = F) {
@@ -1044,7 +1044,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   message("Loading to stage table")
   
   # Delete and remake table
-  create_table_f(conn = conn, server = server, config = config, overwrite = T)
+  create_table(conn = conn, server = server, config = config, overwrite = T)
   
   DBI::dbExecute(conn,
                  glue::glue_sql("INSERT INTO {`to_schema`}.{`to_table`} 
@@ -1058,7 +1058,7 @@ load_stage_mcaid_claim_header_f <- function(conn = NULL,
   #### STEP 14: ADD INDEX ####
   message("STEP 14: ADD INDEX")
   message("Creating index on final table")
-  #add_index_f(conn, server = server, table_config = config)
+  #add_index(conn, server = server, table_config = config)
   
   
   
