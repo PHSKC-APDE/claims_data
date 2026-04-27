@@ -19,18 +19,18 @@
 # test_mode = write things to the tmp schema to test out functions (default is FALSE)
 
 
-load_table_from_file_f <- function(
-  conn,
-  server = NULL,
-  config = NULL,
-  config_url = NULL,
-  config_file = NULL,
-  truncate = T,
-  overall = T,
-  ind_yr = F,
-  combine_yr = T,
-  test_mode = F,
-  filepath = NULL
+load_table_from_file <- function(
+    conn,
+    server = NULL,
+    config = NULL,
+    config_url = NULL,
+    config_file = NULL,
+    truncate = T,
+    overall = T,
+    ind_yr = F,
+    combine_yr = T,
+    test_mode = F,
+    filepath = NULL
 ) {
   
   
@@ -169,16 +169,16 @@ load_table_from_file_f <- function(
   
   #### SET UP A FUNCTION FOR COMMON ACTIONS ####
   # Both the overall load and year-specific loads use a similar set of code
-  loading_process_f <- function(conn_inner = conn,
-                                test_msg_inner = test_msg,
-                                ind_yr_inner = ind_yr,
-                                schema_inner = schema_name,
-                                table_name_inner = table_name,
-                                table_config_inner = table_config,
-                                load_rows_inner = load_rows,
-                                truncate_inner = truncate,
-                                drop_index = add_index,
-                                config_section) {
+  loading_process <- function(conn_inner = conn,
+                              test_msg_inner = test_msg,
+                              ind_yr_inner = ind_yr,
+                              schema_inner = schema_name,
+                              table_name_inner = table_name,
+                              table_config_inner = table_config,
+                              load_rows_inner = load_rows,
+                              truncate_inner = truncate,
+                              drop_index = add_index,
+                              config_section) {
     
     # Set up text for message
     if (ind_yr_inner == T) {
@@ -191,8 +191,8 @@ load_table_from_file_f <- function(
       # Extract file from gz and set filepath
       message("Decompressing ", paste0(filepath, "..."))
       R.utils::gunzip(filepath, 
-                    overwrite = T,
-                    remove = F)
+                      overwrite = T,
+                      remove = F)
       filepath <- substring(filepath, 1, nchar(filepath) - 3)
     }
     
@@ -267,9 +267,9 @@ load_table_from_file_f <- function(
       if(is.null(filepath) == T) {
         filepath <- table_config[[server]][["file_path"]]
       }
-      loading_process_f(config_section = server)
+      loading_process(config_section = server)
     } else {
-      loading_process_f(config_section = "overall")
+      loading_process(config_section = "overall")
     }
     
     
@@ -278,7 +278,7 @@ load_table_from_file_f <- function(
         devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
       }
       message("Adding index")
-      add_index_f(conn = conn, table_config = table_config, server = server, test_mode = test_mode)
+      add_index(conn = conn, table_config = table_config, server = server, test_mode = test_mode)
     }
   }
   
@@ -297,30 +297,30 @@ load_table_from_file_f <- function(
       table_name_new <- glue("{table_name}_{gsub('table_','',x)}")
       
       # Run loading function
-      loading_process_f(config_section = x, table_name_inner = table_name_new)
+      loading_process(config_section = x, table_name_inner = table_name_new)
       
       if (add_index == T) {
-      # Add index to the table
-      if (!is.null(table_config$index_type)) {
-        if (table_config$index_type == 'ccs') {
-          # Clustered columnstore index
-          dbGetQuery(conn,
-                     glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
+        # Add index to the table
+        if (!is.null(table_config$index_type)) {
+          if (table_config$index_type == 'ccs') {
+            # Clustered columnstore index
+            dbGetQuery(conn,
+                       glue::glue_sql("CREATE CLUSTERED COLUMNSTORE INDEX {`table_config$index_name`} ON 
                               {`schema_name`}.{`table_name_new`}",
-                                    .con = conn))
+                                      .con = conn))
+          } else {
+            stop("Invalid index_type specified")
+          }
         } else {
-          stop("Invalid index_type specified")
-        }
-      } else {
-        # Clustered index
-        dbGetQuery(conn,
-                   glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
+          # Clustered index
+          dbGetQuery(conn,
+                     glue::glue_sql("CREATE CLUSTERED INDEX {`table_config$index_name`} ON 
                               {`schema_name`}.{`table_name_new`}({`index_vars`*})",
-                                  index_vars = table_config$index,
-                                  .con = conn))
+                                    index_vars = table_config$index,
+                                    .con = conn))
         }
-        }
-      })
+      }
+    })
   }
   
   #### COMBINED INDIVIDUAL YEARS ####
@@ -437,7 +437,7 @@ load_table_from_file_f <- function(
         devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
       }
       message("Adding index")
-      add_index_f(conn = conn, table_config = table_config, test_mode = test_mode)
+      add_index(conn = conn, table_config = table_config, test_mode = test_mode)
     }
   }
 }
@@ -458,16 +458,16 @@ load_table_from_file_f <- function(
 # mcaid_claim = code specific to the Medicaid claims data, affects loading code
 
 
-load_table_from_sql_f <- function(
-  conn,
-  server = NULL,
-  config_url = NULL,
-  config_file = NULL,
-  truncate = F,
-  truncate_date = F,
-  auto_date = F,
-  test_mode = F,
-  mcaid_claim = F # Specific recoding of Medicaid claims variables
+load_table_from_sql <- function(
+    conn,
+    server = NULL,
+    config_url = NULL,
+    config_file = NULL,
+    truncate = F,
+    truncate_date = F,
+    auto_date = F,
+    test_mode = F,
+    mcaid_claim = F # Specific recoding of Medicaid claims variables
 ) {
   
   #### INITIAL ERROR CHECK ####
@@ -801,6 +801,6 @@ load_table_from_sql_f <- function(
       devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
     }
     message("Adding index")
-    add_index_f(conn = conn, server = server, table_config = table_config, test_mode = test_mode)
+    add_index(conn = conn, server = server, table_config = table_config, test_mode = test_mode)
   }
 }

@@ -13,7 +13,6 @@ library(tidyverse) # Manipulate data
 library(dplyr) # Manipulate data
 library(lubridate) # Manipulate dates
 library(odbc) # Read to and write from SQL
-library(RCurl) # Read files from Github
 library(configr) # Read in YAML files
 library(glue) # Safely combine SQL code
 library(sf) # Read shape files
@@ -23,6 +22,7 @@ library(svDialogs)
 library(R.utils)
 library(kcgeocode)
 library(pool)
+library(apde.etl)
 
 # These are use for geocoding new addresses
 geocode_path <- "//dchs-shares01/DCHSDATA/DCHSPHClaimsData/Geocoding"
@@ -30,26 +30,26 @@ s_shapes <- "//phshare01/epe_share/WORK/REQUESTS/Maps/Shapefiles/"
 g_shapes <- "//Kcitfsrprpgdw01/kclib/Plibrary2/"
 
 #### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/copy_into.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
+#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/copy_into.R")
+#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
+#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
+#devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
+
 #memory.limit(size = 56000) # Only necessary for R version < 4.2
 
 #### CHOOSE SERVER AND CREATE CONNECTION ####
 server <- dlg_list(c("hhsaw", "phclaims"), title = "Select Server.")$res
 if(server == "hhsaw") {
-  interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
-  prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
+  interactive_auth <- as.logical(dlg_list(c(TRUE, FALSE), title = "Interactive Authentication?")$res)
+  prod <- as.logical(dlg_list(c(TRUE, FALSE), title = "Production Server?")$res)
 } else {
   interactive_auth <- T  
   prod <- T
 }
+
+
+
 
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
@@ -65,14 +65,14 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 
 ### Select File
-raw_list <- get_unloaded_etl_batches_f(db_claims,
+raw_list <- get_unloaded_etl_batches(db_claims,
                                        server,
                                        "elig")
 batch_select <- dlg_list(raw_list[,"file_name"], title = "Select Raw File")$res
 batch <- raw_list[raw_list$file_name == batch_select, ]
 
 if (server == "hhsaw") {
-  load_load_raw.mcaid_elig_partial_f(conn = db_claims,
+  load_load_raw.mcaid_elig_partial(conn = db_claims,
                                      conn_dw = dw_inthealth,
                                      server = server,
                                      config = load_mcaid_elig_config,
@@ -80,14 +80,14 @@ if (server == "hhsaw") {
 } else if (server == "phclaims") {
   ### Create tables
   # Need to do this each time because of the etl_batch_id variable
-  create_table_f(conn = db_claims, 
+  create_table(conn = db_claims, 
                  server = server,
                  config = load_mcaid_elig_config,
                  overwrite = T)
   
   
   ### Load tables
-  load_load_raw.mcaid_elig_partial_f(conn = db_claims,
+  load_load_raw.mcaid_elig_partial(conn = db_claims,
                                      server = server,
                                      config = load_mcaid_elig_config,
                                      batch = batch)
@@ -104,27 +104,27 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
 ### Select File
-raw_list <- get_unloaded_etl_batches_f(db_claims,
+raw_list <- get_unloaded_etl_batches(db_claims,
                                        server,
                                        "claims")
 batch_select <- dlg_list(raw_list[,"file_name"], title = "Select Raw File")$res
 batch <- raw_list[raw_list$file_name == batch_select, ]
 
 if (server == "hhsaw") {
-  load_load_raw.mcaid_claim_partial_f(conn = db_claims,
+  load_load_raw.mcaid_claim_partial(conn = db_claims,
                                       conn_dw = dw_inthealth,
                                       server = server,
                                       config = load_mcaid_claim_config,
                                       batch = batch)
 } else if (server == "phclaims") {
   ### Create tables
-  create_table_f(conn = db_claims, 
+  create_table(conn = db_claims, 
                  server = server,
                  config = load_mcaid_claim_config,
                  overwrite = T)
   
   ### Load tables
-  load_load_raw.mcaid_claim_partial_f(conn = db_claims,
+  load_load_raw.mcaid_claim_partial(conn = db_claims,
                                       server = server,
                                       config = load_mcaid_claim_config,
                                       batch = batch)
@@ -147,13 +147,13 @@ if (server == "hhsaw") {
   dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 }
 if (server == "hhsaw") {
-  system.time(load_stage.mcaid_elig_f(conn_dw = dw_inthealth, 
+  system.time(load_stage.mcaid_elig(conn_dw = dw_inthealth, 
                                       conn_db = db_claims, 
                                       server = server,
                                       full_refresh = F, 
                                       config = table_config_stage_elig))
 } else if (server == "phclaims") {
-  system.time(load_stage.mcaid_elig_f(conn_dw = db_claims, 
+  system.time(load_stage.mcaid_elig(conn_dw = db_claims, 
                                       conn_db = db_claims, 
                                       server = server,
                                       full_refresh = F, 
@@ -173,13 +173,13 @@ if (server == "hhsaw") {
   dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 }
 if (server == "hhsaw") {
-  system.time(load_claims.stage_mcaid_claim_f(conn_dw = dw_inthealth, 
+  system.time(load_claims.stage_mcaid_claim(conn_dw = dw_inthealth, 
                                               conn_db = db_claims, 
                                               server = server,
                                               full_refresh = F, 
                                               config = table_config_stage_claims))
 } else if (server == "phclaims") {
-  system.time(load_claims.stage_mcaid_claim_f(conn_dw = db_claims, 
+  system.time(load_claims.stage_mcaid_claim(conn_dw = db_claims, 
                                               conn_db = db_claims, 
                                               server = server,
                                               full_refresh = F, 

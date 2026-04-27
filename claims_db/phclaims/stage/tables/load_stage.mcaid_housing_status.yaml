@@ -1,6 +1,7 @@
 hhsaw:
     schema: claims
     timevar_table: final_mcaid_elig_timevar
+    month_table: final_mcaid_elig_month
     icdcm_header_table: final_mcaid_claim_icdcm_header
     kcids_table: idh_client
     to_table: final_mcaid_housing_status

@@ -16,7 +16,7 @@
 #   R or a URL that should be used
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
-load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
+load_stage_mcaid_elig_timevar <- function(conn = NULL,
                                         server = c("hhsaw", "phclaims"),
                                         config = NULL,
                                         get_config = F) {
