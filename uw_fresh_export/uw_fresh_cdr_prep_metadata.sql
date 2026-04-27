@@ -47,10 +47,22 @@ select s.Name AS schema_name,
 	c.ORDINAL_POSITION as column_position,
 	c.COLUMN_NAME as column_name,
 	case
-		when DATA_TYPE = 'varchar' then 'varchar' + '(' + cast(CHARACTER_MAXIMUM_LENGTH as varchar) + ')'
-		when DATA_TYPE in ('numeric', 'decimal') then DATA_TYPE + 
-			'(' + cast(NUMERIC_PRECISION as varchar) + ',' + cast(NUMERIC_SCALE as varchar) + ')'
-		else data_type
+		when DATA_TYPE in ('varchar','char') 
+			then DATA_TYPE + '(' + cast(CHARACTER_MAXIMUM_LENGTH as varchar) + ')'
+
+		when DATA_TYPE in ('nvarchar','nchar')
+			then DATA_TYPE + '(' + 
+				 case 
+					 when CHARACTER_MAXIMUM_LENGTH = -1 then 'max'
+					 else cast(CHARACTER_MAXIMUM_LENGTH as varchar)
+				 end + ')'
+
+		when DATA_TYPE in ('numeric','decimal') 
+			then DATA_TYPE + '(' + 
+				 cast(NUMERIC_PRECISION as varchar) + ',' + 
+				 cast(NUMERIC_SCALE as varchar) + ')'
+
+		else DATA_TYPE
 	end as column_type,
 	cast(GETDATE() as date) as query_date
 from sys.tables t
@@ -67,10 +79,22 @@ select s.Name AS schema_name,
 	c.ORDINAL_POSITION as column_position,
 	c.COLUMN_NAME as column_name,
 	case
-		when DATA_TYPE = 'varchar' then 'varchar' + '(' + cast(CHARACTER_MAXIMUM_LENGTH as varchar) + ')'
-		when DATA_TYPE in ('numeric', 'decimal') then DATA_TYPE + 
-			'(' + cast(NUMERIC_PRECISION as varchar) + ',' + cast(NUMERIC_SCALE as varchar) + ')'
-		else data_type
+		when DATA_TYPE in ('varchar','char') 
+			then DATA_TYPE + '(' + cast(CHARACTER_MAXIMUM_LENGTH as varchar) + ')'
+
+		when DATA_TYPE in ('nvarchar','nchar')
+			then DATA_TYPE + '(' + 
+				 case 
+					 when CHARACTER_MAXIMUM_LENGTH = -1 then 'max'
+					 else cast(CHARACTER_MAXIMUM_LENGTH as varchar)
+				 end + ')'
+
+		when DATA_TYPE in ('numeric','decimal') 
+			then DATA_TYPE + '(' + 
+				 cast(NUMERIC_PRECISION as varchar) + ',' + 
+				 cast(NUMERIC_SCALE as varchar) + ')'
+
+		else DATA_TYPE
 	end as column_type,
 	cast(GETDATE() as date) as query_date
 from sys.tables t
