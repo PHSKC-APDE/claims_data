@@ -12,19 +12,16 @@
 #2022-02: Eli switched to using APDE repo functions where Alastair has moved them over
 #2024-03: Eli updated for migration to Azure HHSAW
 #2025-06: Eli added apcd_elig_month table
+#2026-05: Eli changed to use apde.etl for establishing SQL connection
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
 
 library(pacman)
-pacman::p_load(tidyverse, lubridate, odbc, glue, keyring)
+pacman::p_load(tidyverse, lubridate, odbc, glue, keyring, apde.etl)
 library (apde.etl)
 
 #### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_sql.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/add_index.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
@@ -35,7 +32,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/t
 ## Connect to Synapse
 interactive_auth <- FALSE
 prod <- TRUE
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+dw_inthealth <- apde.etl::create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 keyring::key_list() #Confirm you have a key set for hhsaw and inthealth_edw_prod on this machine
 
@@ -516,7 +513,7 @@ message(paste0("Completed copying ref.kc_provider_master to HHSAW - ", Sys.time(
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_header - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+dw_inthealth <- apde.etl::create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.R")
@@ -541,6 +538,9 @@ if(all(c(apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of headers"] =
          & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of claims with unmatched claim type, expect 0"] == 0
          & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ipt stays with no discharge date, expect 0"] == 0
          & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_pophealth_id values used for >1 person, expect 0"] == 0
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of inpatient_id values used for >1 person, expect 0"] == 0
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_perform_id values used for >1 person, expect 0"] == 0
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of pc_visit_id values used for >1 person, expect 0"] == 0
          & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of distinct ed_pophealth_id values"] ==
             apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="max ed_pophealth_id - min + 1"]
          #& apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_perform rows with no ed_pophealth, expect 0"] == 0 #no longer an accurate QA
