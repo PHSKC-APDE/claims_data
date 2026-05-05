@@ -1163,13 +1163,49 @@ qa_stage.apcd_claim_header_f <- function() {
     .con = dw_inthealth))
   
   #verify that no ed_pophealth_id value is used for more than one person
-  res8 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res8a <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of ed_pophealth_id values used for >1 person, expect 0' as qa_type,
     count(a.ed_pophealth_id) as qa
     from (
       select ed_pophealth_id, count(distinct id_apcd) as id_dcount
       from stg_claims.stage_apcd_claim_header
       group by ed_pophealth_id
+    ) as a
+    where a.id_dcount > 1;",
+    .con = dw_inthealth))
+  
+  #verify that no inpatient_id value is used for more than one person
+  res8b <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of inpatient_id values used for >1 person, expect 0' as qa_type,
+    count(a.inpatient_id) as qa
+    from (
+      select inpatient_id, count(distinct id_apcd) as id_dcount
+      from stg_claims.stage_apcd_claim_header
+      group by inpatient_id
+    ) as a
+    where a.id_dcount > 1;",
+    .con = dw_inthealth))
+  
+  #verify that no ed_perform_id value is used for more than one person
+  res8c <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of ed_perform_id values used for >1 person, expect 0' as qa_type,
+    count(a.ed_perform_id) as qa
+    from (
+      select ed_perform_id, count(distinct id_apcd) as id_dcount
+      from stg_claims.stage_apcd_claim_header
+      group by ed_perform_id
+    ) as a
+    where a.id_dcount > 1;",
+    .con = dw_inthealth))
+  
+  #verify that no pc_visit_id value is used for more than one person
+  res8d <- dbGetQuery(conn = dw_inthealth, glue_sql(
+    "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of pc_visit_id values used for >1 person, expect 0' as qa_type,
+    count(a.pc_visit_id) as qa
+    from (
+      select pc_visit_id, count(distinct id_apcd) as id_dcount
+      from stg_claims.stage_apcd_claim_header
+      group by pc_visit_id
     ) as a
     where a.id_dcount > 1;",
     .con = dw_inthealth))
