@@ -11,11 +11,7 @@
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
         scipen = 999)
 
-pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils) # Load list of packages
-
-
-#### SET UP FUNCTIONS ####
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
+pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils, apde.etl) # Load list of packages
 
 
 #### STEP 1: CREATE CONNECTIONS ####
@@ -23,7 +19,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ##Establish connection to HHSAW prod
 interactive_auth <- FALSE
 prod <- TRUE
-db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+db_claims <- apde.etl::create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 
 
 #### STEP 2: COPY DATA FOR ALL TABLES ####
@@ -51,14 +47,14 @@ table_list <- list(
 )
 
 #Define modified table list if needed (e.g., when loop breaks after some tables have been copied)
-#table_list <- list()
+#table_list <- list("")
 
 #Begin loop
 lapply(table_list, function(table_list) {
 
   table_name <- glue::glue_sql(table_list)
   message(paste0("Working on table: ", table_name, " - ", Sys.time()))
-  db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+  db_claims <- apde.etl::create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
   DBI::dbExecute(conn = db_claims,
                  glue::glue_sql("execute claims.usp_load_{`table_name`};",
                                 .con = db_claims))
