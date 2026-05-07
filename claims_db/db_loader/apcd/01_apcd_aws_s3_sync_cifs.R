@@ -6,20 +6,20 @@
 
 #2019-10-1 update: Changed local file location from J drive to machine running SQL Server
 #2023-09-20 update: Change local file path to CIFS folder given that server 51 is being retired
+#2026-05-07 update: Updating S3 folder path to new external bucket and folder
 
 ##### Set up global parameters and call in libraries #####
 options(max.print = 350, tibble.print_max = 50, scipen = 999)
 library(tidyverse)
 origin <- "1970-01-01" # Date origin
 write_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" ##Folder to save Amazon S3 files to
-s3_folder <- "\"s3://waae-kc-ext/apcd_export/\"" ##Name of S3 folder containing data and format files
+s3_folder <- "\"s3://aewa-all-external-buckets/waae-kc-ext/Export/\"" ##Name of S3 folder containing data and format files
 
 #### Save/sync files from Amazon S3 bucket to drive ####
 #Import credentials from C:\Users\[USERNAME]\.aws
-#credentials <- read.csv("C:/Users/kerneli/.aws/credentials") #Eli's KC laptop
-#credentials <- read.csv("C:/Users/kerneli.PH/.aws/credentials") #Eli's account on KCITENGPRRSTUD00.kc.kingcounty.lcl
-#credentials <- read.csv("C:/Users/shernandez/.aws/credentials") #Susan's account on KCITENGPRRSTUD00.kc.kingcounty.lcl
-credentials <- read.csv("C:/Users/SHERNANDEZ.KC/.aws/credentials") #Susan's account on KCITENGPRRSTUD00.kc.kingcounty.lcl
+#credentials <- read.csv("C:/Users/kerneli.kc/.aws/credentials") #Eli's KC laptop
+credentials <- read.csv("C:/Users/kerneli/.aws/credentials") #Eli on Susan's VM
+#credentials <- read.csv("C:/Users/SHERNANDEZ.KC/.aws/credentials") #Susan's account on KCITENGPRRSTUD00.kc.kingcounty.lcl
 credentials <- separate(credentials, col = X.default., sep = " = ", into = c("var_name", "value"))
 
 Sys.setenv("AWS_ACCESS_KEY_ID" =  credentials$value[1],
