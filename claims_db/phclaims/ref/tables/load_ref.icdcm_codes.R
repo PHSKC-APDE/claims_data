@@ -819,10 +819,10 @@ icd9_codes <- unique(icd910cm[icd910cm$icdcm_version == 9,]$icdcm)
 icd10_codes <- unique(icd910cm[icd910cm$icdcm_version == 10,]$icdcm)
 
 # differences for each data source
-length(setdiff(mcaid[mcaid$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 2
-length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 135
+length(setdiff(mcaid[mcaid$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 0
+length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 214
 length(setdiff(apcd[apcd$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 0
-length(setdiff(apcd[apcd$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 406
+length(setdiff(apcd[apcd$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 2372
 length(setdiff(chars[chars$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 7
 length(setdiff(chars[chars$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 215
 
