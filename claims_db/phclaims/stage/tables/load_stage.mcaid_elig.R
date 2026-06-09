@@ -310,7 +310,7 @@ load_stage.mcaid_elig <- function(conn_db = NULL,
       message(" A new type of duplicate is present. Investigate further")
     }
     rm(var_names)
-    rm(duplicate_check_reason, duplicate_check_hoh, duplicate_check_rac, duplicate_type,
+    rm(duplicate_check_reason, duplicate_check_hoh, duplicate_check_rac,
        temp_rows_01, temp_rows_02, dedup_sql)
   }
   
