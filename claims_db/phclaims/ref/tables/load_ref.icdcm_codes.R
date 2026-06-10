@@ -13,8 +13,8 @@
 #'   - Archive current version of ICD_9_10_CM_Complete in cross sector data
 #'   references/icd-cm folder with current date
 #'   - download code description in tabular order from
-#'   https://www.cms.gov/medicare/icd-10/2023-icd-10-cm (with appropriate year)
-#'   and extract files to cross sector data/general/references/icd-cm/icd-10-cm_cms
+#'   https://www.cms.gov/medicare/coding-billing/icd-10-codes
+#'   and extract files to healthcare_data/references/icd-cm/icd-10-cm_cms
 #'   - Update and use combine_codes.R file to add new unique values to existing
 #'   ICD_9_10_CM_Complete file
 #'   - Replace ICD_9_10_CM_Complete in the reference-data folder on a new branch, push, and PR
