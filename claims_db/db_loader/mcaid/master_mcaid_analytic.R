@@ -183,7 +183,7 @@ claim_load <- function(table = c("ccw", "icdcm_header", "header", "line",
   ### Bring in function and config file
   # ccw script already called in above
   if (table != "ccw" & table != "bh") {
-    #devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".R"))
+    devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".R"))
   }
   stage_config <- yaml::read_yaml(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcaid_claim_", table, ".yaml"))
   
@@ -223,7 +223,7 @@ claim_load <- function(table = c("ccw", "icdcm_header", "header", "line",
   
   ### QA table 
  # if (table != "bh") {
-    #devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_", table, ".R"))
+    devtools::source_url(paste0("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/qa_stage.mcaid_claim_", table, ".R"))
   #}
   
   qa_stage <- 0
@@ -390,7 +390,7 @@ dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth
 qa_mcaid_elig_demo_extra <- qa_mcaid_elig_demo_extra(conn = dw_inthealth, conn_qa = db_claims, server = server, 
                                                  config = stage_mcaid_elig_demo_config)
 ### Clean up
-rm(qa_mcaid_elig_demo_extra, qa_mcaid_elig_demo_extra, stage_mcaid_elig_demo_config, final_config, load_stage_mcaid_elig_demo_extra)
+rm(qa_mcaid_elig_demo_extra, stage_mcaid_elig_demo_config, final_config, load_stage_mcaid_elig_demo_extra)
 
 
 
