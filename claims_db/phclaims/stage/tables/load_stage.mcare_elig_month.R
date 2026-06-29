@@ -7,14 +7,14 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/02_master_mcare_claims_analytic.R
 
 #### Load script ####
-load_stage.mcare_elig_month_f <- function(conn = NULL,
+load_stage.mcare_elig_month <- function(conn = NULL,
                                           config_url = NULL) {
   
   ### Set up variables from config file
   if (is.null(config_url) == T){
     stop("A URL must be specified in config_url")
     } else {
-      config <- yaml::yaml.load(RCurl::getURL(config_url))
+      config <- yaml::yaml.load(httr::GET(config_url))
     }
   
   to_schema <- config[["schema"]]
@@ -284,14 +284,14 @@ load_stage.mcare_elig_month_f <- function(conn = NULL,
 }
 
 #### Table-level QA script ####
-qa_stage.mcare_elig_month_qa_f <- function(conn = NULL,
+qa_stage.mcare_elig_month_qa <- function(conn = NULL,
                                            config_url = NULL) {
   
   ### Set up variables from config file
   if (is.null(config_url) == T){
     stop("A URL must be specified in config_url")
   } else {
-    config <- yaml::yaml.load(RCurl::getURL(config_url))
+    config <- yaml::yaml.load(httr::GET(config_url))
   }
   
   to_schema <- config[["schema"]]

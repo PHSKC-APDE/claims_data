@@ -10,7 +10,7 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/02_master_mcare_claims_analytic.R
 
 #### Load script ####
-load_stage.mcare_claim_header_f <- function() {
+load_stage.mcare_claim_header <- function() {
   
   ### Run SQL query
   odbc::dbGetQuery(inthealth, glue::glue_sql(
@@ -1201,7 +1201,7 @@ load_stage.mcare_claim_header_f <- function() {
     }
 
 #### Table-level QA script ####
-qa_stage.mcare_claim_header_qa_f <- function() {
+qa_stage.mcare_claim_header_qa <- function() {
   
   #confirm that claim header is distinct
   res1 <- dbGetQuery(conn = inthealth, glue_sql(
