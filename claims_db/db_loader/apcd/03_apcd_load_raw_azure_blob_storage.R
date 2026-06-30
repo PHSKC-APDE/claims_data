@@ -7,6 +7,7 @@
 # 2024-02
 # 2024-12 Added code to delete folder contents  (Susan/Jeremy)
 # 2026-01 update from Eli: Add logic to only delete old files if any exist (this caused script to fail when Azure Blob folder was empty)
+# 2026-06 update from Eli: Switched to using PARQUET files
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
@@ -58,7 +59,7 @@ file_count_qa_results <- data.frame(
   load_complete_time=as.character()
 )
 
-#Establish list of CIFS folders for which GZIP files will be loaded to Azure Blob Storage
+#Establish list of CIFS folders for which PARQUET files will be loaded to Azure Blob Storage
 folder_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
