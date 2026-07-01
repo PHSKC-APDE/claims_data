@@ -60,8 +60,9 @@ file_count_qa_results <- data.frame(
 )
 
 #Establish list of CIFS folders for which PARQUET files will be loaded to Azure Blob Storage
-folder_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
-                   "member_month_detail", "pharmacy_claim", "provider", "provider_master")
+folder_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "inpatient_stay_summary_ltd", "medical_claim",
+                    "medical_claim_diagnosis", "medical_claim_header", "medical_claim_icd_procedure", 
+                   "member_month_detail", "pharmacy_claim", "provider", "provider_master", "reference_tables")
 
 #Begin loop
 lapply(folder_list, function(folder_list) {
@@ -76,13 +77,13 @@ lapply(folder_list, function(folder_list) {
   }
   message(paste0("Working on folder for: ", folder_selected, " - ", Sys.time()))
   
-  #Create CIFS folder path, load list of GZIP files, and count GZIP files
-  folder_path <- glue("//dphcifs/apde-cdip/apcd/apcd_data_import/", folder_selected, "_export/")
-  file_paths_list <- as.list(list.files(path = file.path(folder_path), full.names = F, pattern = "*.gz", all.files = F))
+  #Create CIFS folder path, load list of GZIP files, and count PARQUET files
+  folder_path <- glue("//dphcifs/apde-cdip/apcd/apcd_data_import/", folder_selected, "/")
+  file_paths_list <- as.list(list.files(path = file.path(folder_path), full.names = F, pattern = "*.parquet", all.files = F))
   file_count_cifs <- length(file_paths_list)
-  message(paste0("Number of GZIP files in CIFS folder for: ", folder_selected, " - ", file_count_cifs, " files"))
+  message(paste0("Number of PARQUET files in CIFS folder for: ", folder_selected, " - ", file_count_cifs, " files"))
   
-  #Load GZIP files to Azure Blob Storage using AzureStor package
+  #Load PARQUET files to Azure Blob Storage using AzureStor package
   for (i in 1:length(file_paths_list)) {
    file_name <- file_paths_list[i]
    message(paste0("Begin Uploading ", file_name, " - ", Sys.time()))
@@ -91,9 +92,9 @@ lapply(folder_list, function(folder_list) {
                              dest = paste0("claims/apcd/", folder_selected, "_import/", file_name))
    message(paste0("Upload Completed - ", Sys.time()))}
    
-   #Count number of GZIP files uploaded to Azure Blob Storage
+   #Count number of PARQUET files uploaded to Azure Blob Storage
    file_list_azure <- AzureStor::list_storage_files(cont, dir = glue("claims/apcd/", folder_selected, "_import/"))$name
-   file_count_azure <- length(file_list_azure[grepl("*.gz$", file_list_azure)])
+   file_count_azure <- length(file_list_azure[grepl("*.parquet$", file_list_azure)])
    message(paste0("Number of GZIP files in Azure for: ", folder_selected, " - ", file_count_azure, " files"))
    
    #QA check
