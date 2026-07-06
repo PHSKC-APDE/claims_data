@@ -24,42 +24,14 @@ pacman::p_load(tidyverse, glue, arrow)
 
 #### STEP 0: Define custom functions ####
 
-#Function to calculate max string lengths for all string columns
-get_max_string_lengths <- function(ds) {
-  # Identify string columns
-  string_cols <- names(ds)[
-    sapply(ds$schema$fields, function(f) f$type$ToString() == "string")
-  ]
-  
-  max_lengths <- list()
-  
-  for (col in string_cols) {
-    max_len <- ds %>% 
-      summarise(n = max(nchar(!!sym(col)))) %>% 
-      collect() %>% 
-      pull(n)
-    
-    # Handle NULL (all values maybe NA)
-    if (is.na(max_len)) max_len <- 0
-    
-    max_lengths[[col]] <- max_len
-  }
-  
-  return(max_lengths)
-}
-
 #Function to convert Arrow types → SQL types (using lengths)
-convert_arrow_to_sql <- function(arrow_type, max_length = NULL) {
+convert_arrow_to_sql <- function(arrow_type) {
   arrow_type <- tolower(arrow_type)
   
   # STRING → VARCHAR(n)
   if (arrow_type == "string") {
-    if (is.null(max_length) || max_length == 0) {
-      return("VARCHAR(50)")  # fallback
-    } else {
-      return(paste0("VARCHAR(", max_length, ")"))
+      return("VARCHAR(272)")
     }
-  }
   
   # NUMERIC TYPES
   if (arrow_type == "int32") return("INT")
@@ -80,7 +52,7 @@ convert_arrow_to_sql <- function(arrow_type, max_length = NULL) {
   if (grepl("^date", arrow_type)) return("DATE")
   
   # FALLBACK
-  return("VARCHAR(200)")
+  return("VARCHAR(272)")
 }
 
 
@@ -128,37 +100,35 @@ lapply(table_list, function(table_list) {
   sql_table <- glue("apcd_", table_name_part)
   
   #Assign Synapse table DISTRIBUTION to each table
-  if(table_list %in% c("cmsdrg_output_multi_ver", "inpatient_stay_summary_ltd"))
-    table_dist <- "DISTRIBUTION = HASH(inpatient_discharge_id)"
-  else if(table_list %in% c("eligibility", "member_month_detail", "dental_claim", "pharmacy_claim"))
+  if(table_list %in% c("cmsdrg_output_multi_ver", "inpatient_stay_summary_ltd")) {
+    table_dist <- "DISTRIBUTION = HASH(inpatient_discharge_id)" 
+  } else if(table_list %in% c("eligibility", "member_month_detail", "dental_claim", "pharmacy_claim")) {
     table_dist <- "DISTRIBUTION = HASH(internal_member_id)"
-  else if(table_list %in% c("medical_claim", "medical_claim_diagnosis", "medical_claim_icd_procedure"))
+  } else if(table_list %in% c("medical_claim", "medical_claim_diagnosis", "medical_claim_icd_procedure")) {
     table_dist <- "DISTRIBUTION = HASH(medical_claim_service_line_id)"
-  else if(table_list %in% c("medical_claim_header"))
+  } else if(table_list %in% c("medical_claim_header")) {
     table_dist <- "DISTRIBUTION = HASH(medical_claim_header_id)"
-  else if(table_list %in% c("provider"))
+  } else if(table_list %in% c("provider")) {
     table_dist <- "DISTRIBUTION = HASH(internal_provider_id)"
-  else if(table_list %in% c("provider_master"))
+  } else if(table_list %in% c("provider_master")) {
     table_dist <- "DISTRIBUTION = REPLICATE"
-  else
+  } else {
     table_dist <- "DISTRIBUTION = ROUND_ROBIN"
+  }
   
   #Extract column names, data types, row count, and column count
   ds <- arrow::open_dataset(parquet_files, format = "parquet")
   vars_list <- names(ds)
   dtypes_arrow <- sapply(ds$schema, function(x) x$ToString())
+  dtypes_clean <- sub(".*: ", "", dtypes_arrow)
   row_count_num <- ds %>% summarise(n = n()) %>% collect() %>% pull(n)
   row_count <- as.character(row_count_num) #convert to string to avoid scientific notation
   col_count <- length(vars_list)
-  
-  #Get max string lengths to inform VARCHAR length
-  string_lengths <- get_max_string_lengths(ds)
-  
+
   #Convert every column to SQL type
   sql_types <- mapply(function(col, type) {
-    max_len <- string_lengths[[col]]
-    convert_arrow_to_sql(type, max_len)
-  }, col = vars_list, type = dtypes_arrow, USE.NAMES = TRUE)
+    convert_arrow_to_sql(type)
+  }, col = vars_list, type = dtypes_clean, USE.NAMES = TRUE)
   sql_types <- as.list(sql_types)
   
   #Set up static parameters
