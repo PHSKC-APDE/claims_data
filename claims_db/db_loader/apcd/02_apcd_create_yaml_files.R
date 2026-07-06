@@ -20,7 +20,7 @@ options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 
 origin <- "1970-01-01" # Date origin
 
 library(pacman)
-pacman::p_load(tidyverse, glue, arrow)
+pacman::p_load(tidyverse, glue, arrow, duckdb)
 
 #### STEP 0: Define custom functions ####
 
@@ -93,7 +93,12 @@ lapply(table_list, function(table_list) {
   
   #Read table path from list
   table_path <- glue(read_path, table_list)
-  parquet_files <- list.files(table_path, pattern = "\\.parquet$", full.names = TRUE)
+  parquet_files <- list.files(
+    table_path,
+    pattern = "\\.parquet$",
+    full.names = TRUE,
+    recursive = FALSE
+  )
   
   #Extract table name
   table_name_part <- table_list
@@ -116,20 +121,28 @@ lapply(table_list, function(table_list) {
     table_dist <- "DISTRIBUTION = ROUND_ROBIN"
   }
   
-  #Extract column names, data types, row count, and column count
-  ds <- arrow::open_dataset(parquet_files, format = "parquet")
+  #Extract column names, data types, and column count
+  ds <- open_dataset(table_path, format="parquet")
   vars_list <- names(ds)
   dtypes_arrow <- sapply(ds$schema, function(x) x$ToString())
   dtypes_clean <- sub(".*: ", "", dtypes_arrow)
-  row_count_num <- ds %>% summarise(n = n()) %>% collect() %>% pull(n)
-  row_count <- as.character(row_count_num) #convert to string to avoid scientific notation
   col_count <- length(vars_list)
-
-  #Convert every column to SQL type
+  
+  #Convert arrow data types to SQL data type
   sql_types <- mapply(function(col, type) {
     convert_arrow_to_sql(type)
   }, col = vars_list, type = dtypes_clean, USE.NAMES = TRUE)
   sql_types <- as.list(sql_types)
+  
+  #Use duckdb to get row count
+  con <- dbConnect(duckdb())
+  row_count_num <- sum(sapply(parquet_files, function(fp) {
+    as.numeric(dbGetQuery(con, paste0(
+      "SELECT count(*) FROM read_parquet('", fp, "')"
+    ))$count)
+  }))
+  row_count <- as.character(row_count_num) #convert to string to avoid scientific notation
+  dbDisconnect(con, shutdown=TRUE)
   
   #Set up static parameters
   server_parameter_list <- list("to_schema" = to_schema, "to_table" = sql_table, "qa_schema" = qa_schema, "qa_table" = qa_table,
