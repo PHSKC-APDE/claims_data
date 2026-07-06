@@ -11,6 +11,7 @@
 #9/25/24 update:YAML file path
 #1/16/26 update: Change row count to numeric to handle values in excess of 2.1 billion (leading to QA fail)
 #1/27/26 update: Change row count to character to avoid scientific notation in YAML files (leading to QA fail)
+#7/6/26 update: Adapt to pull info from PARQUET files and add table distribution parameter for inthealth_edw
 
 #### Create YAML files from CSV format files for all non-reference files ####
 
@@ -19,10 +20,72 @@ options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 
 origin <- "1970-01-01" # Date origin
 
 library(pacman)
-pacman::p_load(tidyverse, glue)
+pacman::p_load(tidyverse, glue, arrow)
+
+#### STEP 0: Define custom functions ####
+
+#Function to calculate max string lengths for all string columns
+get_max_string_lengths <- function(ds) {
+  # Identify string columns
+  string_cols <- names(ds)[
+    sapply(ds$schema$fields, function(f) f$type$ToString() == "string")
+  ]
+  
+  max_lengths <- list()
+  
+  for (col in string_cols) {
+    max_len <- ds %>% 
+      summarise(n = max(nchar(!!sym(col)))) %>% 
+      collect() %>% 
+      pull(n)
+    
+    # Handle NULL (all values maybe NA)
+    if (is.na(max_len)) max_len <- 0
+    
+    max_lengths[[col]] <- max_len
+  }
+  
+  return(max_lengths)
+}
+
+#Function to convert Arrow types → SQL types (using lengths)
+convert_arrow_to_sql <- function(arrow_type, max_length = NULL) {
+  arrow_type <- tolower(arrow_type)
+  
+  # STRING → VARCHAR(n)
+  if (arrow_type == "string") {
+    if (is.null(max_length) || max_length == 0) {
+      return("VARCHAR(50)")  # fallback
+    } else {
+      return(paste0("VARCHAR(", max_length, ")"))
+    }
+  }
+  
+  # NUMERIC TYPES
+  if (arrow_type == "int32") return("INT")
+  if (arrow_type == "int64") return("BIGINT")
+  
+  # DECIMAL
+  if (grepl("^decimal128", arrow_type)) {
+    ps <- gsub("decimal128\\(|\\)", "", arrow_type)
+    return(paste0("DECIMAL(", ps, ")"))
+  }
+  
+  # FLOATS
+  if (arrow_type == "double") return("FLOAT")
+  if (arrow_type == "float")  return("REAL")
+  
+  # DATES & TIMESTAMPS
+  if (grepl("^timestamp", arrow_type)) return("DATETIME2")
+  if (grepl("^date", arrow_type)) return("DATE")
+  
+  # FALLBACK
+  return("VARCHAR(200)")
+}
+
 
 #### STEP 1: Set universal parameters ####
-read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" #Folder containing exported format files
+read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" #Folder containing files exported from Analytic Enclave
 
 ##Smart selection for write path for YAML files
 if(file.exists("C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/")){ #Susan on DPHXPHAAPR5EBYK
@@ -42,12 +105,13 @@ base_url <- "https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/"
 
 #Set extract-specific parameters for YAML file
 date_min <- as.Date("2014-01-01")
-date_max <- as.Date("2025-06-30")
-date_delivery <- as.Date("2024-12-18")
-apcd_extract_number <- "10033"
+date_max <- as.Date("2025-12-31")
+date_delivery <- as.Date("2026-05-07")
+apcd_extract_number <- "10037"
 
 #Establish list of tables for which YAML format files will be created
-table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
+table_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "inpatient_stay_summary_ltd", "medical_claim",
+                   "medical_claim_diagnosis", "medical_claim_header", "medical_claim_icd_procedure",
                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
 
@@ -56,25 +120,57 @@ table_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "
 lapply(table_list, function(table_list) {
   
   #Read table path from list
-  table_path <- glue(read_path, table_list, "_export")
+  table_path <- glue(read_path, table_list)
+  parquet_files <- list.files(table_path, pattern = "\\.parquet$", full.names = TRUE)
   
   #Extract table name
-  table_name_part <- gsub("_format.csv", "", list.files(path = file.path(table_path), pattern = "*format.csv", full.names = F))
+  table_name_part <- table_list
   sql_table <- glue("apcd_", table_name_part)
   
-  #Extract column names, positions and data types from XML format file, convert to YAML and write to file
-  apcd_format_file <- list.files(path = file.path(table_path), pattern = "*format.csv", full.names = T)
-  format_df <- read_csv(apcd_format_file, show_col_types = F)
-  vars_list <- as.list(deframe(select(arrange(format_df, as.numeric(as.character(column_position))), column_name, column_type)))
+  #Assign Synapse table DISTRIBUTION to each table
+  if(table_list %in% c("cmsdrg_output_multi_ver", "inpatient_stay_summary_ltd"))
+    table_dist <- "DISTRIBUTION = HASH(inpatient_discharge_id)"
+  else if(table_list %in% c("eligibility", "member_month_detail", "dental_claim", "pharmacy_claim"))
+    table_dist <- "DISTRIBUTION = HASH(internal_member_id)"
+  else if(table_list %in% c("medical_claim", "medical_claim_diagnosis", "medical_claim_icd_procedure"))
+    table_dist <- "DISTRIBUTION = HASH(medical_claim_service_line_id)"
+  else if(table_list %in% c("medical_claim_header"))
+    table_dist <- "DISTRIBUTION = HASH(medical_claim_header_id)"
+  else if(table_list %in% c("provider"))
+    table_dist <- "DISTRIBUTION = HASH(internal_provider_id)"
+  else if(table_list %in% c("provider_master"))
+    table_dist <- "DISTRIBUTION = REPLICATE"
+  else
+    table_dist <- "DISTRIBUTION = ROUND_ROBIN"
+  
+  #Extract column names, data types, row count, and column count
+  ds <- arrow::open_dataset(parquet_files, format = "parquet")
+  vars_list <- names(ds)
+  dtypes_arrow <- sapply(ds$schema, function(x) x$ToString())
+  row_count_num <- ds %>% summarise(n = n()) %>% collect() %>% pull(n)
+  row_count <- as.character(row_count_num) #convert to string to avoid scientific notation
+  col_count <- length(vars_list)
+  
+  #Get max string lengths to inform VARCHAR length
+  string_lengths <- get_max_string_lengths(ds)
+  
+  #Convert every column to SQL type
+  sql_types <- mapply(function(col, type) {
+    max_len <- string_lengths[[col]]
+    convert_arrow_to_sql(type, max_len)
+  }, col = vars_list, type = dtypes_arrow, USE.NAMES = TRUE)
+  sql_types <- as.list(sql_types)
+  
+  #Set up static parameters
   server_parameter_list <- list("to_schema" = to_schema, "to_table" = sql_table, "qa_schema" = qa_schema, "qa_table" = qa_table,
                                    "ext_data_source" = ext_data_source, "ext_schema" = ext_schema, "ext_table" = sql_table,
+                                   "table_distribution" = table_dist,
                                    "dl_path" = glue(dl_path_base, table_name_part, "_import/"),
                                    "base_url" = base_url)
-  row_count <- as.character(unique(format_df$row_count))
-  col_count <- as.integer(unique(format_df$column_count))
+
   format_list <- list("hhsaw" = server_parameter_list, "row_count" = row_count, "col_count" = col_count, "date_min" = date_min,
                       "date_max" = date_max, "date_delivery" = date_delivery, "note_delivery" = glue(sql_table, ", extract ", apcd_extract_number),
-                      "vars" = vars_list)
+                      "vars" = sql_types)
   yaml::write_yaml(x = format_list,
                    file = glue(write_path, "load_", to_schema, ".", sql_table, "_full", ".yaml"),
                    indent = 4,
@@ -83,5 +179,5 @@ lapply(table_list, function(table_list) {
                      Date = function(x) format(x, "%Y-%m-%d")
                    ))
   
-  glue(sql_table, " format file successfully converted to YAML file")
+  glue(sql_table, " YAML file successfully created.")
 })
