@@ -1,0 +1,41 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_provider_master
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_provider_master
+    table_distribution: DISTRIBUTION = REPLICATE
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/provider_master_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: '2809876'
+col_count: 23
+date_min: '2014-01-01'
+date_max: '2025-12-31'
+date_delivery: '2026-05-07'
+note_delivery: apcd_provider_master, extract 10037
+vars:
+    internal_provider_id: BIGINT
+    extract_id: BIGINT
+    entity_type: VARCHAR(272)
+    organization_name_legal: VARCHAR(272)
+    last_name_legal: VARCHAR(272)
+    first_name_legal: VARCHAR(272)
+    middle_name_legal: VARCHAR(272)
+    organization_name_other: VARCHAR(272)
+    organization_name_other_type: VARCHAR(272)
+    last_name_other: VARCHAR(272)
+    first_name_other: VARCHAR(272)
+    middle_name_other: VARCHAR(272)
+    generation_suffix: VARCHAR(272)
+    professional_credential_code: VARCHAR(272)
+    npi: BIGINT
+    primary_taxonomy: VARCHAR(272)
+    secondary_taxonomy: VARCHAR(272)
+    city_physical: VARCHAR(272)
+    state_physical: VARCHAR(272)
+    zip_physical: VARCHAR(272)
+    county_physical: VARCHAR(272)
+    country_physical: VARCHAR(272)
+    ach_region_physical: VARCHAR(272)

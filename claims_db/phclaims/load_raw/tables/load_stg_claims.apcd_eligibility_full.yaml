@@ -1,0 +1,103 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_eligibility
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_eligibility
+    table_distribution: DISTRIBUTION = HASH(internal_member_id)
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/eligibility_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: '445898288'
+col_count: 85
+date_min: '2014-01-01'
+date_max: '2025-12-31'
+date_delivery: '2026-05-07'
+note_delivery: apcd_eligibility, extract 10037
+vars:
+    eligibility_id: BIGINT
+    extract_id: BIGINT
+    submitter_id: BIGINT
+    submitter_code: VARCHAR(272)
+    internal_member_id: BIGINT
+    coverage_class: VARCHAR(272)
+    eligibility_start_dt: DATE
+    eligibility_end_dt: DATE
+    product_code_id: BIGINT
+    product_code: VARCHAR(272)
+    primary_insurance_indicator_id: BIGINT
+    primary_insurance_ind_code: VARCHAR(272)
+    subscriber_relationship_id: BIGINT
+    subscriber_relationship_code: VARCHAR(272)
+    gender_code: VARCHAR(272)
+    coverage_level_id: BIGINT
+    coverage_level_code: VARCHAR(272)
+    coverage_type_id: BIGINT
+    coverage_type_code: VARCHAR(272)
+    market_category_id: BIGINT
+    market_category_code: VARCHAR(272)
+    entitlement_code_id: BIGINT
+    entitlement_code: VARCHAR(272)
+    entitlement_code_id_orig: BIGINT
+    entitlement_code_orig: VARCHAR(272)
+    managed_care_id: BIGINT
+    managed_care_code: VARCHAR(272)
+    medicare_status_id: BIGINT
+    medicare_status_code: VARCHAR(272)
+    dual_eligibility_code_id: BIGINT
+    dual_eligibility_code: VARCHAR(272)
+    aid_category_id: BIGINT
+    aid_category_code: VARCHAR(272)
+    managed_care_flag: VARCHAR(272)
+    purchased_through_exchange: VARCHAR(272)
+    purchased_through_exchange_id: BIGINT
+    exchange_market_type: VARCHAR(272)
+    exchange_market_type_id: BIGINT
+    exchange_metallic_tier_id: BIGINT
+    exchange_metallic_tier_code: VARCHAR(272)
+    city: VARCHAR(272)
+    state: VARCHAR(272)
+    zip: VARCHAR(272)
+    medicaid_ffs_flag: VARCHAR(272)
+    race_id1: BIGINT
+    race_code1: VARCHAR(272)
+    race_id2: BIGINT
+    race_code2: VARCHAR(272)
+    ethnicity_id1: BIGINT
+    ethnicity_code1: VARCHAR(272)
+    ethnicity_id2: BIGINT
+    ethnicity_code2: VARCHAR(272)
+    hispanic_id: BIGINT
+    hispanic_code: VARCHAR(272)
+    behavioral_health_ind_code: VARCHAR(272)
+    out_of_state_flag: VARCHAR(272)
+    dup_flag_pbm_tpa: VARCHAR(272)
+    dup_flag_managed_care: VARCHAR(272)
+    dup_flag_part_d: VARCHAR(272)
+    high_deductible_hlth_plan_flag: VARCHAR(272)
+    grandfathered_plan_ind: VARCHAR(272)
+    grandfathered_plan_ind_id: BIGINT
+    public_empl_benefit_board_flag: VARCHAR(272)
+    race_code_imputed_external: VARCHAR(272)
+    part_a_termination_code: INT
+    part_b_termination_code: INT
+    subscriber_id: BIGINT
+    primary_care_provider_npi: BIGINT
+    age_65_flag: VARCHAR(272)
+    business_type_code: VARCHAR(272)
+    employer_ein: VARCHAR(272)
+    exchange_product: VARCHAR(272)
+    fips_state_county_code: VARCHAR(272)
+    full_medicaid_coverage_flag: VARCHAR(272)
+    group_name: VARCHAR(272)
+    hospice_status_indicator_code: VARCHAR(272)
+    hospice_status_indicator_id: BIGINT
+    insured_group_policy_number: VARCHAR(272)
+    long_term_coverage_code: VARCHAR(272)
+    long_term_coverage_code_id: BIGINT
+    medical_home_initiative_code: VARCHAR(272)
+    medical_home_npi: BIGINT
+    medicare_advantage_code: VARCHAR(272)
+    medicare_advantage_id: BIGINT
+    naic: VARCHAR(272)

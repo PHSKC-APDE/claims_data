@@ -1,0 +1,42 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_medical_claim_header
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_medical_claim_header
+    table_distribution: DISTRIBUTION = HASH(medical_claim_header_id)
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/medical_claim_header_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: '841107848'
+col_count: 24
+date_min: '2014-01-01'
+date_max: '2025-12-31'
+date_delivery: '2026-05-07'
+note_delivery: apcd_medical_claim_header, extract 10037
+vars:
+    medical_claim_header_id: BIGINT
+    extract_id: BIGINT
+    submitter_id: BIGINT
+    internal_member_id: BIGINT
+    billing_internal_provider_id: BIGINT
+    product_code_id: BIGINT
+    product_code: VARCHAR(272)
+    age: INT
+    first_service_dt: DATE
+    last_service_dt: DATE
+    first_paid_dt: DATE
+    last_paid_dt: DATE
+    diagnosis_id: BIGINT
+    diagnosis_code: VARCHAR(272)
+    icd_version_ind: VARCHAR(272)
+    header_status: VARCHAR(272)
+    denied_header_flag: VARCHAR(272)
+    orphaned_header_flag: VARCHAR(272)
+    claim_type_id: BIGINT
+    type_of_setting_id: BIGINT
+    place_of_setting_id: BIGINT
+    type_of_bill_code: VARCHAR(272)
+    emergency_room_flag: VARCHAR(272)
+    operating_room_flag: VARCHAR(272)

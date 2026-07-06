@@ -1,0 +1,46 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_member_month_detail
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_member_month_detail
+    table_distribution: DISTRIBUTION = HASH(internal_member_id)
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/member_month_detail_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: '1091674545'
+col_count: 28
+date_min: '2014-01-01'
+date_max: '2025-12-31'
+date_delivery: '2026-05-07'
+note_delivery: apcd_member_month_detail, extract 10037
+vars:
+    internal_member_id: BIGINT
+    extract_id: BIGINT
+    year_month: VARCHAR(272)
+    medical_product_code_id: BIGINT
+    medical_product_code: VARCHAR(272)
+    medical_submitter_id: BIGINT
+    medical_eligibility_id: BIGINT
+    med_commercial_eligibility_id: BIGINT
+    med_medicare_eligibility_id: BIGINT
+    med_medicaid_eligibility_id: BIGINT
+    pharmacy_product_code_id: BIGINT
+    pharmacy_product_code: VARCHAR(272)
+    pharmacy_submitter_id: BIGINT
+    pharmacy_eligibility_id: BIGINT
+    rx_commercial_eligibility_id: BIGINT
+    rx_medicare_eligibility_id: BIGINT
+    rx_medicaid_eligibility_id: BIGINT
+    dental_product_code_id: BIGINT
+    dental_product_code: BIGINT
+    dental_submitter_id: BIGINT
+    dental_eligibility_id: BIGINT
+    dental_commercial_eligibility_id: BIGINT
+    dental_medicare_eligibility_id: BIGINT
+    dental_medicaid_eligibility_id: BIGINT
+    age: INT
+    age_in_months: INT
+    gender_code: VARCHAR(272)
+    zip_code: VARCHAR(272)

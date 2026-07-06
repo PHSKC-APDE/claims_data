@@ -1,0 +1,80 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_pharmacy_claim
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_pharmacy_claim
+    table_distribution: DISTRIBUTION = HASH(internal_member_id)
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/pharmacy_claim_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: '1693964262'
+col_count: 62
+date_min: '2014-01-01'
+date_max: '2025-12-31'
+date_delivery: '2026-05-07'
+note_delivery: apcd_pharmacy_claim, extract 10037
+vars:
+    pharmacy_claim_service_line_id: BIGINT
+    extract_id: BIGINT
+    submitter_id: BIGINT
+    internal_member_id: BIGINT
+    submitter_clm_control_num: VARCHAR(272)
+    product_code_id: BIGINT
+    product_code: VARCHAR(272)
+    gender_code: VARCHAR(272)
+    age: INT
+    age_in_months: INT
+    subscriber_relationship_id: BIGINT
+    subscriber_relationship_code: VARCHAR(272)
+    line_counter: INT
+    prescription_filled_dt: DATE
+    first_paid_dt: DATE
+    last_paid_dt: DATE
+    national_drug_code: VARCHAR(272)
+    drug_name: VARCHAR(272)
+    claim_status_id: BIGINT
+    claim_status_code: VARCHAR(272)
+    quantity: DECIMAL(38, 2)
+    days_supply: INT
+    thirty_day_equivalent: DECIMAL(38, 2)
+    refill_number: VARCHAR(272)
+    generic_drug_ind_id: BIGINT
+    generic_drug_ind_code: VARCHAR(272)
+    compound_drug_code_id: BIGINT
+    compound_drug_code: VARCHAR(272)
+    dispense_as_written_id: BIGINT
+    dispense_as_written_code: VARCHAR(272)
+    pharmacy_mail_order_code: VARCHAR(272)
+    pharmacy_provider_id: BIGINT
+    pharmacy_internal_provider_id: BIGINT
+    prscrbing_provider_id: BIGINT
+    prscrbing_internal_provider_id: BIGINT
+    network_indicator_id: BIGINT
+    network_indicator_code: VARCHAR(272)
+    city: VARCHAR(272)
+    state: VARCHAR(272)
+    zip: VARCHAR(272)
+    age_65_flag: VARCHAR(272)
+    out_of_state_flag: VARCHAR(272)
+    orphaned_adjustment_flag: VARCHAR(272)
+    denied_claim_flag: VARCHAR(272)
+    dup_flag_pbm_tpa: VARCHAR(272)
+    dup_flag_managed_care: VARCHAR(272)
+    dup_flag_part_d: VARCHAR(272)
+    medicaid_ffs_flag: VARCHAR(272)
+    injury_dt: DATE
+    benefits_exhausted_dt: DATE
+    drug_unit_of_measure_id: BIGINT
+    drug_unit_of_measure: VARCHAR(272)
+    patient_residence_code: VARCHAR(272)
+    submission_clarification_code: VARCHAR(272)
+    claim_line_type_code: VARCHAR(272)
+    claim_line_type_id: BIGINT
+    formulary_code: VARCHAR(272)
+    insured_group_policy_number: VARCHAR(272)
+    naic: VARCHAR(272)
+    pharm_ncpdp: BIGINT
+    pharmacy_npi: BIGINT
+    prescribing_provider_npi: BIGINT

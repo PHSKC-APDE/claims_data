@@ -1,0 +1,37 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_medical_claim_icd_procedure
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_medical_claim_icd_procedure
+    table_distribution: DISTRIBUTION = HASH(medical_claim_service_line_id)
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/medical_claim_icd_procedure_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: '173071669'
+col_count: 19
+date_min: '2014-01-01'
+date_max: '2025-12-31'
+date_delivery: '2026-05-07'
+note_delivery: apcd_medical_claim_icd_procedure, extract 10037
+vars:
+    medical_claim_service_line_id: BIGINT
+    internal_member_id: BIGINT
+    icd_procedure_code: VARCHAR(272)
+    icd_procedure_code_id: BIGINT
+    icd_procedure_performed_dt: DATE
+    icd_procedure_code_order: DECIMAL(38, 2)
+    ccs_category: VARCHAR(272)
+    ccs_description: VARCHAR(272)
+    admission_dt: DATE
+    discharge_dt: DATE
+    last_paid_dt: DATE
+    icd_version_ind: VARCHAR(272)
+    inpatient_discharge_id: BIGINT
+    drg: VARCHAR(272)
+    userkey1: VARCHAR(272)
+    drg_label_desc: VARCHAR(272)
+    drg_version_desc: VARCHAR(272)
+    clinical_event_id: BIGINT
+    extract_id: BIGINT
