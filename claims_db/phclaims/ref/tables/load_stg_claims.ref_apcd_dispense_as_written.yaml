@@ -1,7 +1,7 @@
 hhsaw:
     to_schema: stg_claims
     to_table: ref_apcd_dispense_as_written
-    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/dispense_as_written_import/
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/dispense_as_written000.parquet
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
 col_count: 5
 vars:

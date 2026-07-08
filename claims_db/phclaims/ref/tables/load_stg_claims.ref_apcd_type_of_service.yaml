@@ -1,7 +1,7 @@
 hhsaw:
     to_schema: stg_claims
     to_table: ref_apcd_type_of_service
-    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/type_of_service_import/
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/type_of_service000.parquet
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
 col_count: 8
 vars:

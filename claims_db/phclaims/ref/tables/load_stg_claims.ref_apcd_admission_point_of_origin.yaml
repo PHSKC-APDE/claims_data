@@ -1,7 +1,7 @@
 hhsaw:
     to_schema: stg_claims
     to_table: ref_apcd_admission_point_of_origin
-    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/admission_point_of_origin_import/
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/admission_point_of_origin000.parquet
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
 col_count: 6
 vars:

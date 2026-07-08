@@ -178,7 +178,7 @@ if(file.exists("C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/ph
 
 #Set static parameters for YAML file
 to_schema <- "stg_claims"
-dl_path_base <- "https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/"
+dl_path_base <- "https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/"
 base_url <- "https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/"
 
 
@@ -197,8 +197,9 @@ lapply(table_list, function(table_list) {
   table_path <- table_list
 
   #Extract table name
-  table_name_part <- gsub("000", "", tools::file_path_sans_ext(basename(table_list)))
-  sql_table <- glue("ref_apcd_", table_name_part)
+  table_name_part <- tools::file_path_sans_ext(basename(table_list))
+  table_name_clean <- gsub("000", "", table_name_part)
+  sql_table <- glue("ref_apcd_", table_name_clean)
   
   #Extract column names, data types, and column count
   ds <- open_dataset(table_path, format="parquet")
@@ -215,7 +216,7 @@ lapply(table_list, function(table_list) {
   
   #Set up static parameters
   server_parameter_list <- list("to_schema" = to_schema, "to_table" = sql_table,
-                                "dl_path" = glue(dl_path_base, table_name_part, "_import/"),
+                                "dl_path" = glue(dl_path_base, table_name_part, ".parquet"),
                                 "base_url" = base_url)
   
   format_list <- list("hhsaw" = server_parameter_list, "col_count" = col_count, "vars" = sql_types)
