@@ -11,7 +11,7 @@
 #9/25/24 update:YAML file path
 #1/16/26 update: Change row count to numeric to handle values in excess of 2.1 billion (leading to QA fail)
 #1/27/26 update: Change row count to character to avoid scientific notation in YAML files (leading to QA fail)
-#7/6/26 update: Adapt to pull info from PARQUET files and add table distribution parameter for inthealth_edw
+#7/6/26 update: Adapt to pull info from PARQUET files and add table distribution parameter for inthealth_edw, including reference tables
 
 #### Create YAML files from CSV format files for all non-reference files ####
 
@@ -56,7 +56,7 @@ convert_arrow_to_sql <- function(arrow_type) {
 }
 
 
-#### STEP 1: Set universal parameters ####
+#### STEP 1: Set universal parameters for data tables ####
 read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" #Folder containing files exported from Analytic Enclave
 
 ##Smart selection for write path for YAML files
@@ -87,7 +87,7 @@ table_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "in
                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
 
-#### STEP 2: Loop over APCD tables, saving create YAML file for each table ####
+#### STEP 2: Loop over APCD data tables, saving YAML file for each table ####
 
 lapply(table_list, function(table_list) {
   
@@ -156,6 +156,71 @@ lapply(table_list, function(table_list) {
                       "vars" = sql_types)
   yaml::write_yaml(x = format_list,
                    file = glue(write_path, "load_", to_schema, ".", sql_table, "_full", ".yaml"),
+                   indent = 4,
+                   indent.mapping.sequence = T,
+                   handlers = list(
+                     Date = function(x) format(x, "%Y-%m-%d")
+                   ))
+  
+  glue(sql_table, " YAML file successfully created.")
+})
+
+
+#### STEP 3: Set universal parameters for reference tables ####
+read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/reference_tables" #Folder containing ref tables exported from Analytic Enclave
+
+##Smart selection for write path for YAML files
+if(file.exists("C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/ref/tables/")){ #Susan on DPHXPHAAPR5EBYK
+  write_path <- "C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/ref/tables/"
+} else if(file.exists("C:/GitHub/claims_data/claims_db/phclaims/ref/tables/")){ #Eli on KC laptop
+  write_path <- "C:/GitHub/claims_data/claims_db/phclaims/ref/tables/"
+}
+
+#Set static parameters for YAML file
+to_schema <- "stg_claims"
+dl_path_base <- "https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/"
+base_url <- "https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/"
+
+
+#Establish list of tables for which YAML format files will be created
+table_list <-  list.files(
+  read_path,
+    pattern = "\\.parquet$",
+    full.names = TRUE
+)
+
+
+#### STEP 4: Loop over APCD ref tables, saving YAML file for each table ####
+lapply(table_list, function(table_list) {
+  
+  #Read table path from list
+  table_path <- table_list
+
+  #Extract table name
+  table_name_part <- gsub("000", "", tools::file_path_sans_ext(basename(table_list)))
+  sql_table <- glue("ref_apcd_", table_name_part)
+  
+  #Extract column names, data types, and column count
+  ds <- open_dataset(table_path, format="parquet")
+  vars_list <- names(ds)
+  dtypes_arrow <- sapply(ds$schema, function(x) x$ToString())
+  dtypes_clean <- sub(".*: ", "", dtypes_arrow)
+  col_count <- length(vars_list)
+  
+  #Convert arrow data types to SQL data type
+  sql_types <- mapply(function(col, type) {
+    convert_arrow_to_sql(type)
+  }, col = vars_list, type = dtypes_clean, USE.NAMES = TRUE)
+  sql_types <- as.list(sql_types)
+  
+  #Set up static parameters
+  server_parameter_list <- list("to_schema" = to_schema, "to_table" = sql_table,
+                                "dl_path" = glue(dl_path_base, table_name_part, "_import/"),
+                                "base_url" = base_url)
+  
+  format_list <- list("hhsaw" = server_parameter_list, "col_count" = col_count, "vars" = sql_types)
+  yaml::write_yaml(x = format_list,
+                   file = glue(write_path, "load_", to_schema, ".", sql_table, ".yaml"),
                    indent = 4,
                    indent.mapping.sequence = T,
                    handlers = list(
