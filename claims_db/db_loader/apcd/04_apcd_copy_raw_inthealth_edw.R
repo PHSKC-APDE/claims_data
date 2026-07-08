@@ -10,7 +10,7 @@
 #10-16-24 commented out step 3 which is checking that the tables are mirrored on HHSAW. This should occur as part of script 8
 #1-23-26 Eli updated the  [claims].[metadata_etl_log] column [row_count] to BIGINT;
 #1-27-26 Eli updated the row count formatting
-#7-8-26 Eli updated to use apde.etl package, adapted for PARQUET files, included table distrubtion parameter, included ref tables
+#7-8-26 Eli updated to use apde.etl package, adapted for PARQUET files, included table distribution parameter, included ref tables
 
 
 #### Set up global parameter and call in libraries ####
