@@ -42,10 +42,55 @@ dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
 
-#### STEP 2: LOAD DATA FOR ALL TABLES ####
+#### STEP 2: LOAD DATA FOR ALL APCD REFERENCE TABLES ####
 
 ## Beginning message (before loop begins)
-message(paste0("Beginning process to copy tables to inthealth_edw - ", Sys.time()))
+message(paste0("Beginning process to copy ref tables to inthealth_edw - ", Sys.time()))
+
+#Establish list of Azure Blob Storage folders for which ref tables will be copied to inthealth_edw
+read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/reference_tables" #Folder containing ref tables exported from Analytic Enclave
+file_list <-  list.files(
+  read_path,
+  pattern = "\\.parquet$",
+  full.names = TRUE
+)
+file_list <- as.list(file_list)
+
+
+file_list <- file_list[[1]] #testing code
+
+#Begin loop
+lapply(file_list, function(file_list) {
+  
+  ##Load YAML config file (dynamic GitHub URL)
+  table_name <- gsub("000", "", tools::file_path_sans_ext(basename(file_list)))
+  message("Loading YAML config file for: ", table_name, " - ", Sys.time())
+  table_config <- yaml::yaml.load(
+    httr::GET(glue(
+      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_stg_claims.ref_apcd_",
+      table_name,
+      ".yaml")))
+  
+  ##Load data
+  message("Loading data for: ", table_config[[server]][["to_table"]], " - ", Sys.time())
+
+  system.time(apde.etl::copy_into(
+    conn = dw_inthealth, 
+    server = server,
+    config = table_config,
+    file_type = "parquet",
+    overwrite = TRUE)
+  )
+})
+
+
+##Currently waiting for Jeremy to implement copy_into changes to generate proper COPY INTO syntax for PARQUET files
+
+
+#### STEP 3: LOAD DATA FOR ALL APCD DATA TABLES ####
+
+## Beginning message (before loop begins)
+message(paste0("Beginning process to copy data tables to inthealth_edw - ", Sys.time()))
 
 #Establish list of Azure Blob Storage folders for which GZIP files will be copied to inthealth_edw
 folder_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
@@ -142,7 +187,7 @@ lapply(folder_list, function(folder_list) {
 
 
 
-#### STEP 3: CONFIRM EXTERNAL TABLES ON HHSAW ARE WORKING ####
+#### STEP 4: CONFIRM EXTERNAL TABLES ON HHSAW ARE WORKING ####
 
 ##Query external tables and return row counts
 #external_table_row_counts <- lapply(folder_list, function(folder_list) {
