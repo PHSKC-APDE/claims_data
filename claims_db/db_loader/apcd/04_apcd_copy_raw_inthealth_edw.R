@@ -10,24 +10,20 @@
 #10-16-24 commented out step 3 which is checking that the tables are mirrored on HHSAW. This should occur as part of script 8
 #1-23-26 Eli updated the  [claims].[metadata_etl_log] column [row_count] to BIGINT;
 #1-27-26 Eli updated the row count formatting
+#7-8-26 Eli updated to use apde.etl package, adapted for PARQUET files, included table distrubtion parameter, included ref tables
 
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
         scipen = 999)
 
-pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils) # Load list of packages
+pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils, apde.etl) # Load list of packages
 
 
-#### SET UP FUNCTIONS ####
+#### SET UP FUNCTIONS NOT INCLUDED IN APDE.ETL PACKAGE ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/copy_into.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
 
 
 #### STEP 1: CREATE CONNECTIONS ####
