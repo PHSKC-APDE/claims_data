@@ -1,0 +1,21 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_betos
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/betos_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 14
+vars:
+    hcpcs_cd: VARCHAR(272)
+    rbcs_id: VARCHAR(272)
+    rbcs_cat: VARCHAR(272)
+    rbcs_cat_desc: VARCHAR(272)
+    rbcs_cat_subcat: VARCHAR(272)
+    rbcs_subcat_desc: VARCHAR(272)
+    rbcs_famnumb: VARCHAR(272)
+    rbcs_family_desc: VARCHAR(272)
+    rbcs_major_ind: VARCHAR(272)
+    hcpcs_cd_add_dt: DATE
+    hcpcs_end_dt: DATE
+    rbcs_release_year: INT
+    rbcs_reassigned: INT
+    final_cy_prior_to_reassignment: INT

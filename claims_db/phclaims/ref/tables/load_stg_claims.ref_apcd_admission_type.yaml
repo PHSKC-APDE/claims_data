@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_admission_type
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/admission_type_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    admission_type_id: BIGINT
+    extract_id: BIGINT
+    admission_type: VARCHAR(272)
+    admission_type_desc: VARCHAR(272)

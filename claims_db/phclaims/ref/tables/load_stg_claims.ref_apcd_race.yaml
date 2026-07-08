@@ -1,0 +1,13 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_race
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/race_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 6
+vars:
+    race_id: BIGINT
+    extract_id: BIGINT
+    race_code: VARCHAR(272)
+    race_desc: VARCHAR(272)
+    begin_dt: DATE
+    end_dt: DATE

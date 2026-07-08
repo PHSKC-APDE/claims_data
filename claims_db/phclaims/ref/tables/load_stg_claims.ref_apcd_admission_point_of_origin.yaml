@@ -1,0 +1,13 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_admission_point_of_origin
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/admission_point_of_origin_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 6
+vars:
+    admission_point_of_origin_id: BIGINT
+    extract_id: BIGINT
+    admission_point_of_origin_code: VARCHAR(272)
+    admission_point_of_origin_desc: VARCHAR(272)
+    begin_dt: DATE
+    end_dt: DATE

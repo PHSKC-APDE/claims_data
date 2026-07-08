@@ -1,0 +1,14 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_icd_procedure
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/icd_procedure_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 7
+vars:
+    icd_procedure_code_id: BIGINT
+    extract_id: BIGINT
+    icd_procedure_code: VARCHAR(272)
+    icd_procedure_code_desc: VARCHAR(272)
+    icd_version_ind: VARCHAR(272)
+    begin_dt: DATE
+    end_dt: DATE

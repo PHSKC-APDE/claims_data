@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_drug_unit_of_measure
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/drug_unit_of_measure_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    drug_unit_of_measure_id: BIGINT
+    extract_id: BIGINT
+    drug_unit_of_measure_code: VARCHAR(272)
+    drug_unit_of_measure_desc: VARCHAR(272)

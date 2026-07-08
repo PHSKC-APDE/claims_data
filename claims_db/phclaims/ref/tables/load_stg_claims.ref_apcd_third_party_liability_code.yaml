@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_third_party_liability_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/third_party_liability_code_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    third_party_liability_code_id: BIGINT
+    extract_id: BIGINT
+    third_party_liability_code: VARCHAR(272)
+    third_party_liability_code_dsc: VARCHAR(272)

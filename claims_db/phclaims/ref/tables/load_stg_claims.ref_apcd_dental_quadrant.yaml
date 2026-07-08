@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_dental_quadrant
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/dental_quadrant_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    dental_quadrant_id: BIGINT
+    extract_id: BIGINT
+    dental_quadrant_code: VARCHAR(272)
+    dental_quadrant_desc: VARCHAR(272)

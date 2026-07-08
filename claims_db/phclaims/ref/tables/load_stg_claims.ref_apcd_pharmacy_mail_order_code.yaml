@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_pharmacy_mail_order_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/pharmacy_mail_order_code_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    pharmacy_mail_order_code_id: BIGINT
+    extract_id: BIGINT
+    pharmacy_mail_order_code: VARCHAR(272)
+    pharmacy_mail_order_desc: VARCHAR(272)

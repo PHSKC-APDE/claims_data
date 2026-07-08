@@ -1,0 +1,10 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_medicare_demo_codes
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/medicare_demo_codes_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 3
+vars:
+    demo_id: INT
+    demo_id_num: VARCHAR(272)
+    demo_id_desc: VARCHAR(272)

@@ -1,0 +1,15 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_dual_eligibility_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/dual_eligibility_code_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 8
+vars:
+    dual_eligibility_code_id: BIGINT
+    extract_id: BIGINT
+    dual_eligibility_code: VARCHAR(272)
+    dual_eligibility_code_desc: VARCHAR(272)
+    dual_eligibility_indicator: VARCHAR(272)
+    plan_type: VARCHAR(272)
+    begin_dt: DATE
+    end_dt: DATE

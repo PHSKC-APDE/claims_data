@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_mco_paid_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/mco_paid_code_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    mco_paid_code_id: BIGINT
+    extract_id: BIGINT
+    mco_paid_code: VARCHAR(272)
+    mco_paid_code_desc: VARCHAR(272)

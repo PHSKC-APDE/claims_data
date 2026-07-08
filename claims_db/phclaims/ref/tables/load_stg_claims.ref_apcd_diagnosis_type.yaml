@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_diagnosis_type
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/diagnosis_type_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    diagnosis_type_id: BIGINT
+    extract_id: BIGINT
+    diagnosis_type_code: VARCHAR(272)
+    diagnosis_type_desc: VARCHAR(272)

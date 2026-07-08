@@ -1,0 +1,15 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_type_of_service
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/type_of_service_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 8
+vars:
+    type_of_service_id: BIGINT
+    extract_id: BIGINT
+    type_of_service_code: VARCHAR(272)
+    type_of_service_desc: VARCHAR(272)
+    code_set_type: VARCHAR(272)
+    submitter_id: BIGINT
+    begin_dt: DATE
+    end_dt: DATE

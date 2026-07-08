@@ -1,0 +1,21 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_exchange_product
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/exchange_product_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 14
+vars:
+    hios_id: INT
+    extract_id: BIGINT
+    hios_standard_component_id: VARCHAR(272)
+    hios_plan_id: VARCHAR(272)
+    enrollment_year: INT
+    market_type: VARCHAR(272)
+    plan_name: VARCHAR(272)
+    client_supplied_carrier_name: VARCHAR(272)
+    metallic_tier_enhanced: VARCHAR(272)
+    plan_type: VARCHAR(272)
+    formulary_id: VARCHAR(272)
+    hios_product_id: VARCHAR(272)
+    network_id: VARCHAR(272)
+    service_area_id: VARCHAR(272)

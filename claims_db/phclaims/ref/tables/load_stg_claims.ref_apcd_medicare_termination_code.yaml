@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_medicare_termination_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/medicare_termination_code_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    medicare_termination_id: INT
+    extract_id: BIGINT
+    medicare_termination_code: INT
+    medicare_termination_desc: VARCHAR(272)

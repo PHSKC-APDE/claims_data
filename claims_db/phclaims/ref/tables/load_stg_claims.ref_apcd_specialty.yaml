@@ -1,0 +1,16 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_specialty
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/specialty_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 9
+vars:
+    specialty_id: BIGINT
+    extract_id: BIGINT
+    specialty_code: VARCHAR(272)
+    specialty_desc: VARCHAR(272)
+    taxonomy_general_type: VARCHAR(272)
+    taxonomy_provider_type: VARCHAR(272)
+    taxonomy_specialization_area: VARCHAR(272)
+    specialty_type_desc: VARCHAR(272)
+    submitter_id: BIGINT

@@ -1,0 +1,12 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_submitted_claim_type
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/submitted_claim_type_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 5
+vars:
+    submitted_claim_type_id: BIGINT
+    extract_id: BIGINT
+    submitted_claim_type: VARCHAR(272)
+    submitted_claim_type_desc: VARCHAR(272)
+    plan_type: VARCHAR(272)

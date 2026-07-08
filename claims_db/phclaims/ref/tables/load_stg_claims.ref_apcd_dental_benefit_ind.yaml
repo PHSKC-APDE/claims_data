@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_dental_benefit_ind
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/dental_benefit_ind_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    dental_benefit_ind_id: BIGINT
+    extract_id: BIGINT
+    dental_benefit_ind_code: VARCHAR(272)
+    dental_benefit_ind_desc: VARCHAR(272)

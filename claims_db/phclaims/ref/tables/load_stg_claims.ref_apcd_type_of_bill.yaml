@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_type_of_bill
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/type_of_bill_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    type_of_bill_id: BIGINT
+    extract_id: BIGINT
+    type_of_bill_code: VARCHAR(272)
+    type_of_bill_desc: VARCHAR(272)

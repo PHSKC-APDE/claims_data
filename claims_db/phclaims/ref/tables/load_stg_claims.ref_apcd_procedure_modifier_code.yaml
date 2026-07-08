@@ -1,0 +1,14 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_procedure_modifier_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/procedure_modifier_code_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 7
+vars:
+    procedure_modifier_code_id: BIGINT
+    extract_id: BIGINT
+    procedure_modifier_code: VARCHAR(272)
+    procedure_modifier_desc: VARCHAR(272)
+    ambulance_procedure_modifier_desc: VARCHAR(272)
+    code_set_type: VARCHAR(272)
+    submitter_id: BIGINT

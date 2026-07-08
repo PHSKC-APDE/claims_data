@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_hospice_status_indicator
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/hospice_status_indicator_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    hospice_status_indicator_id: BIGINT
+    extract_id: BIGINT
+    hospice_status_indicator_code: VARCHAR(272)
+    hospice_status_indicator_desc: VARCHAR(272)

@@ -1,0 +1,13 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_ethnicity
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/ethnicity_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 6
+vars:
+    ethnicity_id: BIGINT
+    extract_id: BIGINT
+    ethnicity_code: VARCHAR(272)
+    ethnicity_desc: VARCHAR(272)
+    begin_dt: DATE
+    end_dt: DATE

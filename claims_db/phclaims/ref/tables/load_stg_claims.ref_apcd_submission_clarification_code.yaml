@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_submission_clarification_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/submission_clarification_code_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    submission_clarification_id_long: BIGINT
+    extract_id: BIGINT
+    submission_clarification_code: VARCHAR(272)
+    submission_clarification_code_desc: VARCHAR(272)

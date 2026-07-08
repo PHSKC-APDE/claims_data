@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_drg_outlier_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/drg_outlier_code_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    drg_outlier_code_id: BIGINT
+    extract_id: BIGINT
+    drg_outlier_code: VARCHAR(272)
+    drg_outlier_code_desc: VARCHAR(272)

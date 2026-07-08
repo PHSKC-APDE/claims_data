@@ -1,0 +1,21 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_drg_ref
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/drg_ref_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 14
+vars:
+    drg_label_id: BIGINT
+    extract_id: BIGINT
+    drg_code: VARCHAR(272)
+    drg_label_desc: VARCHAR(272)
+    begin_dt: DATE
+    end_dt: DATE
+    drg_version_code: VARCHAR(272)
+    drg_version_desc: VARCHAR(272)
+    drg_type: VARCHAR(272)
+    drg_severity_level_code: VARCHAR(272)
+    drg_severity_level_desc: VARCHAR(272)
+    mdc_code: INT
+    mdc_desc: VARCHAR(272)
+    msdrg_type: VARCHAR(272)

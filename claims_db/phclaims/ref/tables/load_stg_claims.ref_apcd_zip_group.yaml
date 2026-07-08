@@ -1,0 +1,12 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_zip_group
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/zip_group_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 5
+vars:
+    zip_code: VARCHAR(272)
+    zip_group_type_desc: VARCHAR(272)
+    zip_group_code: VARCHAR(272)
+    extract_id: BIGINT
+    zip_group_desc: VARCHAR(272)

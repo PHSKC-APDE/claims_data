@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_race_code_imputed_external
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/race_code_imputed_external_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    race_id_imputed_external: BIGINT
+    extract_id: BIGINT
+    race_code_imputed_external: VARCHAR(272)
+    race_code_imputed_external_desc: VARCHAR(272)

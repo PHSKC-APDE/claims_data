@@ -1,0 +1,13 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_hispanic
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/hispanic_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 6
+vars:
+    hispanic_id: BIGINT
+    extract_id: BIGINT
+    hispanic_code: VARCHAR(272)
+    hispanic_desc: VARCHAR(272)
+    begin_dt: DATE
+    end_dt: DATE

@@ -1,0 +1,16 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_zip_fips
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/zip_fips_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 9
+vars:
+    zip_code: VARCHAR(272)
+    extract_id: BIGINT
+    calendar_year_quarter: VARCHAR(272)
+    fips_code: VARCHAR(272)
+    residential_ratio: DECIMAL(38, 9)
+    business_ratio: DECIMAL(38, 9)
+    other_ratio: DECIMAL(38, 9)
+    total_ratio: DECIMAL(38, 9)
+    fips_code_primary_flag: VARCHAR(272)

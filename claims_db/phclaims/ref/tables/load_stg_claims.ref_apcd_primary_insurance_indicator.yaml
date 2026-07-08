@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_primary_insurance_indicator
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/primary_insurance_indicator_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    primary_insurance_indicator_id: BIGINT
+    extract_id: BIGINT
+    primary_insurance_ind_code: VARCHAR(272)
+    primary_insurance_ind_desc: VARCHAR(272)

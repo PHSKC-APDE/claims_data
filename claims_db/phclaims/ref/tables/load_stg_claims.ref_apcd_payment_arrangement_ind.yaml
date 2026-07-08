@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_payment_arrangement_ind
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/payment_arrangement_ind_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    payment_arrangement_ind_id: BIGINT
+    extract_id: BIGINT
+    payment_arrangement_ind_code: VARCHAR(272)
+    payment_arrangement_ind_desc: VARCHAR(272)
