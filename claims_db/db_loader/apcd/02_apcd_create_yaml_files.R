@@ -15,6 +15,9 @@
 
 #### Create YAML files from CSV format files for all non-reference files ####
 
+##Note that YAML creation time may be quite long (15-30 min) for very large fact tables with many columns (e.g., medical_claim)
+##The component that is responsible for 99% of run time is the duckdb scan of each string column to determine max length - this informs the varchar length
+
 ##### Set up global parameters and call in libraries #####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
 origin <- "1970-01-01" # Date origin
