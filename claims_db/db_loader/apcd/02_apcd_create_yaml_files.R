@@ -15,7 +15,7 @@
 
 #### Create YAML files from CSV format files for all non-reference files ####
 
-##Note that YAML creation time may be quite long (15-30 min) for very large fact tables with many columns (e.g., medical_claim)
+##Note that YAML creation time may be quite long (30-60 min) for very large fact tables with many columns (e.g., medical_claim)
 ##The component that is responsible for 99% of run time is the duckdb scan of each string column to determine max length - this informs the varchar length
 
 ##### Set up global parameters and call in libraries #####
@@ -151,6 +151,9 @@ lapply(table_list, function(table_list) {
   table_name_part <- table_list
   sql_table <- glue("apcd_", table_name_part)
   
+  #Status update
+  message(glue("Working on table: ", sql_table))
+  
   #Assign Synapse table DISTRIBUTION to each table
   if(table_list %in% c("cmsdrg_output_multi_ver", "inpatient_stay_summary_ltd")) {
     table_dist <- "DISTRIBUTION = HASH(inpatient_discharge_id)" 
@@ -230,7 +233,7 @@ lapply(table_list, function(table_list) {
                      Date = function(x) format(x, "%Y-%m-%d")
                    ))
   
-  glue(sql_table, " YAML file successfully created.")
+  message(glue(sql_table, " YAML file successfully created."))
 })
 
 
@@ -267,6 +270,9 @@ lapply(table_list, function(table_list) {
   table_name_part <- tools::file_path_sans_ext(basename(table_list))
   table_name_clean <- gsub("000", "", table_name_part)
   sql_table <- glue("ref_apcd_", table_name_clean)
+  
+  #Status update
+  message(glue("Working on table: ", sql_table))
   
   #Extract column names, data types, and column count
   ds <- open_dataset(table_path, format="parquet")
@@ -314,5 +320,5 @@ lapply(table_list, function(table_list) {
                      Date = function(x) format(x, "%Y-%m-%d")
                    ))
   
-  glue(sql_table, " YAML file successfully created.")
+  message(glue(sql_table, " YAML file successfully created."))
 })
