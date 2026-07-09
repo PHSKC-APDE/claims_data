@@ -24,6 +24,51 @@ pacman::p_load(tidyverse, glue, arrow, duckdb)
 
 #### STEP 0: Define custom functions ####
 
+#Function to determine max string length by column using duckdb
+get_max_string_lengths_duckdb <- function(parquet_files) {
+  
+  # DuckDB connection
+  con <- dbConnect(duckdb::duckdb(), dbdir = ":memory:")
+  on.exit(dbDisconnect(con, shutdown = TRUE), add = TRUE)
+  
+  # Build DuckDB list-of-files syntax:
+  # read_parquet(['file1','file2',...])
+
+  file_list_sql <- paste0(
+    "['",
+    paste(parquet_files, collapse = "', '"),
+    "']"
+  )
+  parquet_sql <- paste0("read_parquet(", file_list_sql, ")")
+  
+  # Get schema using Arrow
+  ds <- arrow::open_dataset(parquet_files)
+  schema <- ds$schema
+  
+  string_cols <- names(schema)[
+    sapply(schema$fields, function(f) grepl("string|utf8", f$type$ToString()))
+  ]
+  
+  if (length(string_cols) == 0) return(list())
+  
+  # Build SQL: SELECT MAX(LENGTH(col1)), MAX(LENGTH(col2)), ...
+  select_sql <- paste0(
+    "SELECT ",
+    paste0("MAX(LENGTH(", string_cols, ")) AS ", string_cols, collapse = ", "),
+    " FROM ",
+    parquet_sql
+  )
+  
+  # Execute single SQL query
+  res <- DBI::dbGetQuery(con, select_sql)
+  
+  # Convert row of results into a named list
+  max_lengths <- as.list(res[1, ])
+  names(max_lengths) <- string_cols
+  
+  return(max_lengths)
+}
+
 #Function to convert Arrow types → SQL types (using lengths)
 convert_arrow_to_sql <- function(arrow_type) {
   arrow_type <- tolower(arrow_type)
@@ -88,7 +133,6 @@ table_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "in
 
 
 #### STEP 2: Loop over APCD data tables, saving YAML file for each table ####
-
 lapply(table_list, function(table_list) {
   
   #Read table path from list
@@ -128,10 +172,31 @@ lapply(table_list, function(table_list) {
   dtypes_clean <- sub(".*: ", "", dtypes_arrow)
   col_count <- length(vars_list)
   
+  #Scan columns to identify max length for string columns
+  max_lengths <- get_max_string_lengths_duckdb(table_path)
+  
   #Convert arrow data types to SQL data type
-  sql_types <- mapply(function(col, type) {
-    convert_arrow_to_sql(type)
-  }, col = vars_list, type = dtypes_clean, USE.NAMES = TRUE)
+  sql_types <- mapply(
+    function(col, type) {
+      if (type == "string") {
+        ml <- max_lengths[[col]]
+        # Add your safety buffer: e.g. *2 for short strings, constant for longer strings
+        if (is.na(ml) || ml == 0) ml <- 1  # set width of 1 for null string cols
+        
+        if (ml < 10) {
+          safe_len <- ml * 2
+        } else {
+          safe_len <- ml + 50
+        }
+        return(paste0("VARCHAR(", safe_len, ")"))
+      } else {
+        convert_arrow_to_sql(type)   # your numeric + date mappings
+      }
+    },
+    col = vars_list,
+    type = dtypes_clean,
+    USE.NAMES = TRUE
+  )
   sql_types <- as.list(sql_types)
   
   #Use duckdb to get row count
@@ -189,7 +254,6 @@ table_list <-  list.files(
     full.names = TRUE
 )
 
-
 #### STEP 4: Loop over APCD ref tables, saving YAML file for each table ####
 lapply(table_list, function(table_list) {
   
@@ -208,10 +272,29 @@ lapply(table_list, function(table_list) {
   dtypes_clean <- sub(".*: ", "", dtypes_arrow)
   col_count <- length(vars_list)
   
+  #Scan columns to identify max length for string columns
+  max_lengths <- get_max_string_lengths_duckdb(table_path)
+  
   #Convert arrow data types to SQL data type
-  sql_types <- mapply(function(col, type) {
-    convert_arrow_to_sql(type)
-  }, col = vars_list, type = dtypes_clean, USE.NAMES = TRUE)
+  sql_types <- mapply(
+    function(col, type) {
+      if (type == "string") {
+        ml <- max_lengths[[col]]
+        # Add your safety buffer: e.g. *2 for short strings, constant for longer strings
+        if (ml < 10) {
+          safe_len <- ml * 2
+        } else {
+          safe_len <- ml + 50
+        }
+        return(paste0("VARCHAR(", safe_len, ")"))
+      } else {
+        convert_arrow_to_sql(type)   # your numeric + date mappings
+      }
+    },
+    col = vars_list,
+    type = dtypes_clean,
+    USE.NAMES = TRUE
+  )
   sql_types <- as.list(sql_types)
   
   #Set up static parameters
