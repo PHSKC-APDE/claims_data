@@ -91,6 +91,8 @@ folder_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "i
                    "medical_claim_diagnosis", "medical_claim_header", "medical_claim_icd_procedure",
                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
+folder_list <- folder_list[[1]] #testing code
+
 #Begin loop
 lapply(folder_list, function(folder_list) {
 
@@ -105,7 +107,7 @@ lapply(folder_list, function(folder_list) {
   
   ##Create ETL batch ID (each table will have its own ETL batch ID)
   message("Creating ETL batch ID for: ", table_name, " - ", Sys.time())
-  current_batch_id <- load_metadata_etl_log_file_f(conn = db_claims, 
+  current_batch_id <- load_metadata_etl_log_file(conn = db_claims, 
                                                    batch_type = "full", 
                                                    data_source = "APCD", 
                                                    date_min = table_config$date_min,
@@ -139,7 +141,7 @@ lapply(folder_list, function(folder_list) {
   
   ##QA row and column counts
   message("Running row count comparison QA for: ", table_config[[server]][["to_table"]], " - ", Sys.time())
-  qa_rows_sql <- qa_load_row_count_f(conn = dw_inthealth,
+  qa_rows_sql <- qa_load_row_count(conn = dw_inthealth,
                                      server = server,
                                      config = table_config,
                                      row_count = table_config$row_count,
