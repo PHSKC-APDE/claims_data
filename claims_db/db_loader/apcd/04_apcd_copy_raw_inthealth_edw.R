@@ -91,8 +91,6 @@ folder_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "i
                    "medical_claim_diagnosis", "medical_claim_header", "medical_claim_icd_procedure",
                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
-folder_list <- folder_list[[1]] #testing code
-
 #Begin loop
 lapply(folder_list, function(folder_list) {
 
@@ -127,6 +125,7 @@ lapply(folder_list, function(folder_list) {
   to_schema <- table_config[[server]][["to_schema"]]
   to_table <- table_config[[server]][["to_table"]]
   dl_path <- table_config[[server]][["dl_path"]]
+  table_distribution <- table_config[[server]][["table_distribution"]]
   
   system.time(apde.etl::copy_into(
     conn = dw_inthealth, 
@@ -134,12 +133,11 @@ lapply(folder_list, function(folder_list) {
     config = table_config,
     dl_path = dl_path,
     file_type = "parquet",
-    overwrite = TRUE,
-    batch_id_assign = TRUE,
-    batch_id = current_batch_id)
+    with = table_distribution,
+    overwrite = TRUE)
   )
   
-  ##QA row and column counts
+  ##QA row count
   message("Running row count comparison QA for: ", table_config[[server]][["to_table"]], " - ", Sys.time())
   qa_rows_sql <- qa_load_row_count(conn = dw_inthealth,
                                      server = server,
@@ -168,6 +166,16 @@ lapply(folder_list, function(folder_list) {
                     Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
   }
   
+  ## Add batch ID column to data table, using current batch ID
+  DBI::dbExecute(dw_inthealth,
+                 glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`} 
+                  ADD etl_batch_id INTEGER DEFAULT {current_batch_id}",
+                                .con = dw_inthealth))
+  DBI::dbExecute(dw_inthealth,
+                 glue::glue_sql("UPDATE {`to_schema`}.{`to_table`} 
+                  SET etl_batch_id = {current_batch_id}",
+                                .con = dw_inthealth))
+  
   ## Add date_load_raw to metadata_etl_log table
   message(paste0("Adding date_load_raw to metadata_etl_log for: ", table_config[[server]][["to_table"]]), " - ", Sys.time())
   DBI::dbExecute(db_claims,
@@ -177,7 +185,6 @@ lapply(folder_list, function(folder_list) {
                                  AND file_name = {to_table}",
                                 .con = db_claims))
 })
-
 
 
 #### STEP 4: CONFIRM EXTERNAL TABLES ON HHSAW ARE WORKING ####
