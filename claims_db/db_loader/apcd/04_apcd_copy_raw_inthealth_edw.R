@@ -76,6 +76,8 @@ lapply(file_list, function(file_list) {
     server = server,
     config = table_config,
     file_type = "parquet",
+    identity = "Storage Account Key",
+    secret = keyring::key_get("azure_storage_key", "dev"),
     overwrite = TRUE)
   )
 })
@@ -134,6 +136,8 @@ lapply(folder_list, function(folder_list) {
     dl_path = dl_path,
     file_type = "parquet",
     with = table_distribution,
+    identity = "Storage Account Key",
+    secret = keyring::key_get("azure_storage_key", "dev"),
     overwrite = TRUE)
   )
   
