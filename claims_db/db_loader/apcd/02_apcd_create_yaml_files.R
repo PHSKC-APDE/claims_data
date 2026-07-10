@@ -103,6 +103,26 @@ convert_arrow_to_sql <- function(arrow_type) {
   return("VARCHAR(272)")
 }
 
+# Normalize SQL types
+normalize_sql_type <- function(x) {
+  x <- tolower(x)
+  if (grepl("^bigint", x)) return("int64")
+  if (grepl("^int", x)) return("int32")
+  if (grepl("^decimal", x)) return("decimal")
+  if (grepl("^varchar", x)) return("string")
+  return(NA)
+}
+
+# Normalize Arrow types
+normalize_arrow_type <- function(x) {
+  x <- tolower(x)
+  if (x == "int64") return("int64")
+  if (x == "int32") return("int32")
+  if (grepl("^decimal", x)) return("decimal")
+  if (x == "string") return("string")
+  return(NA)
+}
+
 
 #### STEP 1: Set universal parameters for data tables ####
 read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" #Folder containing files exported from Analytic Enclave
@@ -134,10 +154,26 @@ table_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "in
                    "medical_claim_diagnosis", "medical_claim_header", "medical_claim_icd_procedure",
                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
+table_list <- table_list[[1]] #testing code
+
 
 #### STEP 2: Loop over APCD data tables, saving YAML file for each table ####
 lapply(table_list, function(table_list) {
   
+  #Pull most recent YAML file from GitHub if one exists
+  last_table_config <- yaml::yaml.load(
+    httr::GET(glue(
+      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_stg_claims.apcd_",
+      table_list,
+      "_full.yaml")))
+
+  if ("404" %in% names(last_table_config)) {
+    match_available <- FALSE
+  } else {
+    match_available <- TRUE
+    last_vars_list <- last_table_config$vars
+  }
+
   #Read table path from list
   table_path <- glue(read_path, table_list)
   parquet_files <- list.files(
@@ -178,32 +214,57 @@ lapply(table_list, function(table_list) {
   dtypes_clean <- sub(".*: ", "", dtypes_arrow)
   col_count <- length(vars_list)
   
-  #Scan columns to identify max length for string columns
-  max_lengths <- get_max_string_lengths_duckdb(table_path)
+  ##Compare columns from latest YAML file (if exists) with current parquet file
+
+  if(match_available == TRUE){
+    # Extract names & types from dtypes_arrow
+    arrow_names <- sub(":.*", "", dtypes_arrow)
+    arrow_types <- sub(".*: ", "", dtypes_arrow)
+    
+    # Find common columns
+    common_cols <- intersect(names(last_vars_list), arrow_names)
+    
+    # Compare
+    match_results <- sapply(common_cols, function(col) {
+      sql_type_norm <- normalize_sql_type(last_vars_list[[col]])
+      arrow_type_norm <- normalize_arrow_type(arrow_types[which(arrow_names == col)])
+      sql_type_norm == arrow_type_norm
+    })
+  } else {
+    match_results <- FALSE
+  }
   
-  #Convert arrow data types to SQL data type
-  sql_types <- mapply(
-    function(col, type) {
-      if (type == "string") {
-        ml <- max_lengths[[col]]
-        # Add your safety buffer: e.g. *2 for short strings, constant for longer strings
-        if (is.na(ml) || ml == 0) ml <- 1  # set width of 1 for null string cols
-        
-        if (ml < 10) {
-          safe_len <- ml * 2
+  ##If last YAML matches current PARQUET file, then reuse column info, else generate new information from parquet files
+  if(all(match_results) == TRUE){
+    sql_types <- last_vars_list
+  } else {
+    #Scan columns to identify max length for string columns
+    max_lengths <- get_max_string_lengths_duckdb(table_path)
+    
+    #Convert arrow data types to SQL data type
+    sql_types <- mapply(
+      function(col, type) {
+        if (type == "string") {
+          ml <- max_lengths[[col]]
+          # Add your safety buffer: e.g. *2 for short strings, constant for longer strings
+          if (is.na(ml) || ml == 0) ml <- 1  # set width of 1 for null string cols
+          
+          if (ml < 10) {
+            safe_len <- ml * 2
+          } else {
+            safe_len <- ml + 50
+          }
+          return(paste0("VARCHAR(", safe_len, ")"))
         } else {
-          safe_len <- ml + 50
+          convert_arrow_to_sql(type)   # your numeric + date mappings
         }
-        return(paste0("VARCHAR(", safe_len, ")"))
-      } else {
-        convert_arrow_to_sql(type)   # your numeric + date mappings
-      }
-    },
-    col = vars_list,
-    type = dtypes_clean,
-    USE.NAMES = TRUE
-  )
-  sql_types <- as.list(sql_types)
+      },
+      col = vars_list,
+      type = dtypes_clean,
+      USE.NAMES = TRUE
+    )
+    sql_types <- as.list(sql_types)
+  }
   
   #Use duckdb to get row count
   con <- dbConnect(duckdb())
