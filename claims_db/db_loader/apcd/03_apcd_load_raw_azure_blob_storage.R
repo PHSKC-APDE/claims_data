@@ -18,6 +18,7 @@ pacman::p_load(tidyverse, odbc, configr, glue, keyring, AzureStor, AzureAuth, sv
 #Needs to be run once unmodifed and needs secret password for user names 
 #keyring::key_set('adl_tenant', username = 'dev')
 #keyring::key_set('adl_app', username = 'dev')
+#keyring::key_set('azure_storage_key', username = 'dev')
 keyring::key_list()
 
 #### SET UP FUNCTIONS ####
