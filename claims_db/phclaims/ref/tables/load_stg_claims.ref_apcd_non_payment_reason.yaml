@@ -7,7 +7,7 @@ col_count: 6
 vars:
     non_payment_reason_id: BIGINT
     extract_id: BIGINT
-    non_payment_reason_code: VARCHAR(272)
-    non_payment_reason_desc: VARCHAR(272)
+    non_payment_reason_code: VARCHAR(4)
+    non_payment_reason_desc: VARCHAR(113)
     begin_dt: DATE
     end_dt: DATE

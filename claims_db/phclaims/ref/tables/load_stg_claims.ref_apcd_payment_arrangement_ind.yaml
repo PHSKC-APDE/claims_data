@@ -7,5 +7,5 @@ col_count: 4
 vars:
     payment_arrangement_ind_id: BIGINT
     extract_id: BIGINT
-    payment_arrangement_ind_code: VARCHAR(272)
-    payment_arrangement_ind_desc: VARCHAR(272)
+    payment_arrangement_ind_code: VARCHAR(4)
+    payment_arrangement_ind_desc: VARCHAR(86)

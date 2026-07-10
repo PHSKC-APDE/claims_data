@@ -7,15 +7,15 @@ col_count: 14
 vars:
     drg_label_id: BIGINT
     extract_id: BIGINT
-    drg_code: VARCHAR(272)
-    drg_label_desc: VARCHAR(272)
+    drg_code: VARCHAR(6)
+    drg_label_desc: VARCHAR(233)
     begin_dt: DATE
     end_dt: DATE
-    drg_version_code: VARCHAR(272)
-    drg_version_desc: VARCHAR(272)
-    drg_type: VARCHAR(272)
-    drg_severity_level_code: VARCHAR(272)
-    drg_severity_level_desc: VARCHAR(272)
+    drg_version_code: VARCHAR(4)
+    drg_version_desc: VARCHAR(86)
+    drg_type: VARCHAR(6)
+    drg_severity_level_code: VARCHAR(2)
+    drg_severity_level_desc: VARCHAR(67)
     mdc_code: INT
-    mdc_desc: VARCHAR(272)
-    msdrg_type: VARCHAR(272)
+    mdc_desc: VARCHAR(125)
+    msdrg_type: VARCHAR(8)

@@ -7,7 +7,7 @@ col_count: 6
 vars:
     discharge_status_id: BIGINT
     extract_id: BIGINT
-    discharge_status_code: VARCHAR(272)
-    discharge_status_desc: VARCHAR(272)
+    discharge_status_code: VARCHAR(4)
+    discharge_status_desc: VARCHAR(228)
     begin_dt: DATE
     end_dt: DATE

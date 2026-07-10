@@ -7,5 +7,5 @@ col_count: 4
 vars:
     third_party_liability_code_id: BIGINT
     extract_id: BIGINT
-    third_party_liability_code: VARCHAR(272)
-    third_party_liability_code_dsc: VARCHAR(272)
+    third_party_liability_code: VARCHAR(4)
+    third_party_liability_code_dsc: VARCHAR(86)

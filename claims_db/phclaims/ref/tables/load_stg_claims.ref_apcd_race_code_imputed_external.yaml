@@ -7,5 +7,5 @@ col_count: 4
 vars:
     race_id_imputed_external: BIGINT
     extract_id: BIGINT
-    race_code_imputed_external: VARCHAR(272)
-    race_code_imputed_external_desc: VARCHAR(272)
+    race_code_imputed_external: VARCHAR(4)
+    race_code_imputed_external_desc: VARCHAR(85)

@@ -7,4 +7,4 @@ col_count: 3
 vars:
     claim_type_id: BIGINT
     extract_id: BIGINT
-    claim_type_desc: VARCHAR(272)
+    claim_type_desc: VARCHAR(86)

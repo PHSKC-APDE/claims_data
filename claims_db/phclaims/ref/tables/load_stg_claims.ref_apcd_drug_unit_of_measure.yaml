@@ -7,5 +7,5 @@ col_count: 4
 vars:
     drug_unit_of_measure_id: BIGINT
     extract_id: BIGINT
-    drug_unit_of_measure_code: VARCHAR(272)
-    drug_unit_of_measure_desc: VARCHAR(272)
+    drug_unit_of_measure_code: VARCHAR(6)
+    drug_unit_of_measure_desc: VARCHAR(90)

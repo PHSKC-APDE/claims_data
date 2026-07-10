@@ -7,5 +7,5 @@ col_count: 4
 vars:
     compound_drug_code_id: BIGINT
     extract_id: BIGINT
-    compound_drug_code: VARCHAR(272)
-    compound_drug_code_desc: VARCHAR(272)
+    compound_drug_code: VARCHAR(4)
+    compound_drug_code_desc: VARCHAR(86)

@@ -6,5 +6,5 @@ hhsaw:
 col_count: 3
 vars:
     demo_id: INT
-    demo_id_num: VARCHAR(272)
-    demo_id_desc: VARCHAR(272)
+    demo_id_num: VARCHAR(4)
+    demo_id_desc: VARCHAR(315)

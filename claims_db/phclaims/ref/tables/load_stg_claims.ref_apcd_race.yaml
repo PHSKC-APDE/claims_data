@@ -7,7 +7,7 @@ col_count: 6
 vars:
     race_id: BIGINT
     extract_id: BIGINT
-    race_code: VARCHAR(272)
-    race_desc: VARCHAR(272)
+    race_code: VARCHAR(12)
+    race_desc: VARCHAR(93)
     begin_dt: DATE
     end_dt: DATE

@@ -6,9 +6,9 @@ hhsaw:
 col_count: 7
 vars:
     specialty_id: BIGINT
-    specialty_code: VARCHAR(272)
-    specialty_desc: VARCHAR(272)
-    taxonomy_general_type: VARCHAR(272)
-    taxonomy_provider_type: VARCHAR(272)
-    taxonomy_specialization_area: VARCHAR(272)
+    specialty_code: VARCHAR(60)
+    specialty_desc: VARCHAR(144)
+    taxonomy_general_type: VARCHAR(87)
+    taxonomy_provider_type: VARCHAR(126)
+    taxonomy_specialization_area: VARCHAR(121)
     extract_id: BIGINT

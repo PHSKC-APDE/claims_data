@@ -20,38 +20,38 @@ vars:
     extract_id: BIGINT
     submitter_id: BIGINT
     internal_member_id: BIGINT
-    submitter_clm_control_num: VARCHAR(272)
+    submitter_clm_control_num: VARCHAR(98)
     product_code_id: BIGINT
-    product_code: VARCHAR(272)
-    gender_code: VARCHAR(272)
+    product_code: VARCHAR(4)
+    gender_code: VARCHAR(2)
     age: INT
     age_in_months: INT
     subscriber_relationship_id: BIGINT
-    subscriber_relationship_code: VARCHAR(272)
+    subscriber_relationship_code: VARCHAR(4)
     line_counter: INT
     first_service_dt: DATE
     last_service_dt: DATE
     first_paid_dt: DATE
     last_paid_dt: DATE
-    place_of_service_code: VARCHAR(272)
+    place_of_service_code: VARCHAR(4)
     place_of_service_id: BIGINT
-    procedure_code: VARCHAR(272)
+    procedure_code: VARCHAR(10)
     procedure_code_id: BIGINT
-    procedure_modifier_code_1: VARCHAR(272)
+    procedure_modifier_code_1: VARCHAR(4)
     procedure_modifier_code_id_1: BIGINT
-    procedure_modifier_code_2: VARCHAR(272)
+    procedure_modifier_code_2: VARCHAR(4)
     procedure_modifier_code_id_2: BIGINT
     dental_tooth_system_id: BIGINT
-    dental_tooth_system_code: VARCHAR(272)
-    dental_tooth_code: VARCHAR(272)
+    dental_tooth_system_code: VARCHAR(4)
+    dental_tooth_code: VARCHAR(6)
     dental_quadrant_id: BIGINT
-    dental_quadrant_code: VARCHAR(272)
-    dental_tooth_surface_code: VARCHAR(272)
+    dental_quadrant_code: VARCHAR(2)
+    dental_tooth_surface_code: VARCHAR(10)
     claim_status_id: BIGINT
-    claim_status_code: VARCHAR(272)
+    claim_status_code: VARCHAR(4)
     quantity: DECIMAL(38, 2)
-    icd_version_ind: VARCHAR(272)
-    principal_diagnosis_code: VARCHAR(272)
+    icd_version_ind: VARCHAR(2)
+    principal_diagnosis_code: VARCHAR(14)
     principal_diagnosis_id: BIGINT
     rendering_provider_id: BIGINT
     rendering_internal_provider_id: BIGINT
@@ -60,14 +60,14 @@ vars:
     billing_internal_provider_id: BIGINT
     billing_provider_npi: BIGINT
     network_indicator_id: BIGINT
-    network_indicator_code: VARCHAR(272)
-    city: VARCHAR(272)
-    state: VARCHAR(272)
-    zip: VARCHAR(272)
-    age_65_flag: VARCHAR(272)
-    out_of_state_flag: VARCHAR(272)
-    orphaned_adjustment_flag: VARCHAR(272)
-    denied_claim_flag: VARCHAR(272)
-    entity_type: VARCHAR(272)
-    insured_group_policy_number: VARCHAR(272)
-    naic: VARCHAR(272)
+    network_indicator_code: VARCHAR(2)
+    city: VARCHAR(77)
+    state: VARCHAR(4)
+    zip: VARCHAR(10)
+    age_65_flag: VARCHAR(2)
+    out_of_state_flag: VARCHAR(2)
+    orphaned_adjustment_flag: VARCHAR(2)
+    denied_claim_flag: VARCHAR(2)
+    entity_type: VARCHAR(2)
+    insured_group_policy_number: VARCHAR(100)
+    naic: VARCHAR(10)

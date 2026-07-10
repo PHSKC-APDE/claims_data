@@ -7,8 +7,8 @@ col_count: 7
 vars:
     icd_procedure_code_id: BIGINT
     extract_id: BIGINT
-    icd_procedure_code: VARCHAR(272)
-    icd_procedure_code_desc: VARCHAR(272)
-    icd_version_ind: VARCHAR(272)
+    icd_procedure_code: VARCHAR(14)
+    icd_procedure_code_desc: VARCHAR(98)
+    icd_version_ind: VARCHAR(2)
     begin_dt: DATE
     end_dt: DATE

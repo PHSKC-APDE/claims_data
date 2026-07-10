@@ -7,5 +7,5 @@ col_count: 4
 vars:
     medicaid_program_code_id: BIGINT
     extract_id: BIGINT
-    medicaid_program_code: VARCHAR(272)
-    medicaid_program_code_desc: VARCHAR(272)
+    medicaid_program_code: VARCHAR(4)
+    medicaid_program_code_desc: VARCHAR(86)

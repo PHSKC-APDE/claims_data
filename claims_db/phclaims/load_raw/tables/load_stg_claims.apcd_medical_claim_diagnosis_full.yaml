@@ -22,19 +22,19 @@ vars:
     last_service_dt: DATE
     first_paid_dt: DATE
     last_paid_dt: DATE
-    diagnosis_code: VARCHAR(272)
+    diagnosis_code: VARCHAR(14)
     diagnosis_id: BIGINT
-    ccs_category: VARCHAR(272)
-    ccs_description: VARCHAR(272)
+    ccs_category: VARCHAR(12)
+    ccs_description: VARCHAR(174)
     medical_claim_diagnosis_order: INT
     diagnosis_type_id: BIGINT
-    diagnosis_type_code: VARCHAR(272)
+    diagnosis_type_code: VARCHAR(2)
     poa_diagnosis_ind_id: BIGINT
-    poa_diagnosis_ind_code: VARCHAR(272)
-    icd_version_ind: VARCHAR(272)
+    poa_diagnosis_ind_code: VARCHAR(4)
+    icd_version_ind: VARCHAR(2)
     inpatient_discharge_id: BIGINT
-    drg: VARCHAR(272)
-    userkey1: VARCHAR(272)
-    drg_label_desc: VARCHAR(272)
-    drg_version_desc: VARCHAR(272)
+    drg: VARCHAR(6)
+    userkey1: VARCHAR(8)
+    drg_label_desc: VARCHAR(196)
+    drg_version_desc: VARCHAR(16)
     extract_id: BIGINT

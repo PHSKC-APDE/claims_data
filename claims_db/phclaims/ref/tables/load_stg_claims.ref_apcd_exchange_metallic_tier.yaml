@@ -7,5 +7,5 @@ col_count: 4
 vars:
     exchange_metallic_tier_id: BIGINT
     extract_id: BIGINT
-    exchange_metallic_tier_code: VARCHAR(272)
-    exchange_metallic_tier_desc: VARCHAR(272)
+    exchange_metallic_tier_code: VARCHAR(4)
+    exchange_metallic_tier_desc: VARCHAR(86)

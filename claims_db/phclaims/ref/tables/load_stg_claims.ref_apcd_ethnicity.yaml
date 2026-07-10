@@ -7,7 +7,7 @@ col_count: 6
 vars:
     ethnicity_id: BIGINT
     extract_id: BIGINT
-    ethnicity_code: VARCHAR(272)
-    ethnicity_desc: VARCHAR(272)
+    ethnicity_code: VARCHAR(12)
+    ethnicity_desc: VARCHAR(92)
     begin_dt: DATE
     end_dt: DATE

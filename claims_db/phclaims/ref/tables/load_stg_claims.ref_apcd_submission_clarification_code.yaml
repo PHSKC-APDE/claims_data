@@ -7,5 +7,5 @@ col_count: 4
 vars:
     submission_clarification_id_long: BIGINT
     extract_id: BIGINT
-    submission_clarification_code: VARCHAR(272)
-    submission_clarification_code_desc: VARCHAR(272)
+    submission_clarification_code: VARCHAR(4)
+    submission_clarification_code_desc: VARCHAR(217)

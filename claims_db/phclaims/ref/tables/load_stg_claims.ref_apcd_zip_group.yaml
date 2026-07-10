@@ -5,8 +5,8 @@ hhsaw:
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
 col_count: 5
 vars:
-    zip_code: VARCHAR(272)
-    zip_group_type_desc: VARCHAR(272)
-    zip_group_code: VARCHAR(272)
+    zip_code: VARCHAR(10)
+    zip_group_type_desc: VARCHAR(93)
+    zip_group_code: VARCHAR(8)
     extract_id: BIGINT
-    zip_group_desc: VARCHAR(272)
+    zip_group_desc: VARCHAR(81)

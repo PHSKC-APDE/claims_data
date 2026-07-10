@@ -7,8 +7,8 @@ col_count: 7
 vars:
     product_code_id: BIGINT
     extract_id: BIGINT
-    product_code: VARCHAR(272)
-    product_desc: VARCHAR(272)
-    product_type: VARCHAR(272)
-    product_subtype: VARCHAR(272)
-    code_set_type: VARCHAR(272)
+    product_code: VARCHAR(10)
+    product_desc: VARCHAR(148)
+    product_type: VARCHAR(60)
+    product_subtype: VARCHAR(71)
+    code_set_type: VARCHAR(62)

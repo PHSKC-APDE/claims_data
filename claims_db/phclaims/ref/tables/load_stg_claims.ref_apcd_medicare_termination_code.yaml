@@ -8,4 +8,4 @@ vars:
     medicare_termination_id: INT
     extract_id: BIGINT
     medicare_termination_code: INT
-    medicare_termination_desc: VARCHAR(272)
+    medicare_termination_desc: VARCHAR(85)

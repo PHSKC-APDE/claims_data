@@ -7,5 +7,5 @@ col_count: 4
 vars:
     final_bill_code_id: BIGINT
     extract_id: BIGINT
-    final_bill_code: VARCHAR(272)
-    final_bill_code_desc: VARCHAR(272)
+    final_bill_code: VARCHAR(4)
+    final_bill_code_desc: VARCHAR(89)

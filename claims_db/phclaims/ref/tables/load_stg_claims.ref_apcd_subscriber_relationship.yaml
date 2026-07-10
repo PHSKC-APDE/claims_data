@@ -7,8 +7,8 @@ col_count: 7
 vars:
     subscriber_relationship_id: BIGINT
     extract_id: BIGINT
-    subscriber_relationship_code: VARCHAR(272)
-    subscriber_relationship_desc: VARCHAR(272)
-    code_set_type: VARCHAR(272)
+    subscriber_relationship_code: VARCHAR(4)
+    subscriber_relationship_desc: VARCHAR(95)
+    code_set_type: VARCHAR(16)
     begin_dt: DATE
     end_dt: DATE

@@ -7,5 +7,5 @@ col_count: 4
 vars:
     mco_paid_code_id: BIGINT
     extract_id: BIGINT
-    mco_paid_code: VARCHAR(272)
-    mco_paid_code_desc: VARCHAR(272)
+    mco_paid_code: VARCHAR(4)
+    mco_paid_code_desc: VARCHAR(91)

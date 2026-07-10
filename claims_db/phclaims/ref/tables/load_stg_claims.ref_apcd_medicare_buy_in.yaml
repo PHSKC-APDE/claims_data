@@ -7,5 +7,5 @@ col_count: 4
 vars:
     medicare_buy_in_id: BIGINT
     extract_id: BIGINT
-    medicare_buy_in_code: VARCHAR(272)
-    medicare_buy_in_desc: VARCHAR(272)
+    medicare_buy_in_code: VARCHAR(4)
+    medicare_buy_in_desc: VARCHAR(102)

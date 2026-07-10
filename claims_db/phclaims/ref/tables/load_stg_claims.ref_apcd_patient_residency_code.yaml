@@ -7,5 +7,5 @@ col_count: 4
 vars:
     patient_residency_id: INT
     extract_id: BIGINT
-    patient_residency_code: VARCHAR(272)
-    patient_residency_code_desc: VARCHAR(272)
+    patient_residency_code: VARCHAR(4)
+    patient_residency_code_desc: VARCHAR(111)

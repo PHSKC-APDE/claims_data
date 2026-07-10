@@ -7,5 +7,5 @@ col_count: 4
 vars:
     network_indicator_id: BIGINT
     extract_id: BIGINT
-    network_indicator_code: VARCHAR(272)
-    network_indicator_desc: VARCHAR(272)
+    network_indicator_code: VARCHAR(4)
+    network_indicator_desc: VARCHAR(100)

@@ -7,5 +7,5 @@ col_count: 4
 vars:
     language_id: BIGINT
     extract_id: BIGINT
-    language_code: VARCHAR(272)
-    language_desc: VARCHAR(272)
+    language_code: VARCHAR(14)
+    language_desc: VARCHAR(108)

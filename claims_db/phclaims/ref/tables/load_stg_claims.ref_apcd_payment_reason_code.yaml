@@ -7,9 +7,9 @@ col_count: 8
 vars:
     payment_reason_code_id: BIGINT
     extract_id: BIGINT
-    payment_reason_code: VARCHAR(272)
-    payment_reason_code_desc: VARCHAR(272)
-    code_set_type: VARCHAR(272)
+    payment_reason_code: VARCHAR(60)
+    payment_reason_code_desc: VARCHAR(650)
+    code_set_type: VARCHAR(62)
     submitter_id: BIGINT
     begin_dt: DATE
     end_dt: DATE

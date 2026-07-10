@@ -7,5 +7,5 @@ col_count: 4
 vars:
     drg_severity_level_id: BIGINT
     extract_id: BIGINT
-    drg_severity_level_code: VARCHAR(272)
-    drg_severity_level_desc: VARCHAR(272)
+    drg_severity_level_code: VARCHAR(4)
+    drg_severity_level_desc: VARCHAR(94)

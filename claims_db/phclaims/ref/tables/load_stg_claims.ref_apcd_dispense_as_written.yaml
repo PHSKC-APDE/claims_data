@@ -7,6 +7,6 @@ col_count: 5
 vars:
     dispense_as_written_id: BIGINT
     extract_id: BIGINT
-    dispense_as_written_code: VARCHAR(272)
-    dispense_as_written_code_desc: VARCHAR(272)
-    dispense_as_written_code_flag: VARCHAR(272)
+    dispense_as_written_code: VARCHAR(4)
+    dispense_as_written_code_desc: VARCHAR(114)
+    dispense_as_written_code_flag: VARCHAR(2)

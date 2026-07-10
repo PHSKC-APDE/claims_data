@@ -7,5 +7,5 @@ col_count: 4
 vars:
     data_source_type_id: BIGINT
     extract_id: BIGINT
-    data_source_type_code: VARCHAR(272)
-    data_source_type_desc: VARCHAR(272)
+    data_source_type_code: VARCHAR(6)
+    data_source_type_desc: VARCHAR(86)

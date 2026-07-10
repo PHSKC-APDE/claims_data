@@ -7,9 +7,9 @@ col_count: 8
 vars:
     dual_eligibility_code_id: BIGINT
     extract_id: BIGINT
-    dual_eligibility_code: VARCHAR(272)
-    dual_eligibility_code_desc: VARCHAR(272)
-    dual_eligibility_indicator: VARCHAR(272)
-    plan_type: VARCHAR(272)
+    dual_eligibility_code: VARCHAR(4)
+    dual_eligibility_code_desc: VARCHAR(141)
+    dual_eligibility_indicator: VARCHAR(78)
+    plan_type: VARCHAR(16)
     begin_dt: DATE
     end_dt: DATE

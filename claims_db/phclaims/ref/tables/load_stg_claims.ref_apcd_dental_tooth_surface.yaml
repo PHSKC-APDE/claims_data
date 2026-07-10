@@ -7,5 +7,5 @@ col_count: 4
 vars:
     dental_tooth_surface_id: BIGINT
     extract_id: BIGINT
-    dental_tooth_surface_code: VARCHAR(272)
-    dental_tooth_surface_desc: VARCHAR(272)
+    dental_tooth_surface_code: VARCHAR(4)
+    dental_tooth_surface_desc: VARCHAR(86)

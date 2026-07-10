@@ -7,5 +7,5 @@ col_count: 4
 vars:
     medicare_status_id: BIGINT
     extract_id: BIGINT
-    medicare_status_code: VARCHAR(272)
-    medicare_status_desc: VARCHAR(272)
+    medicare_status_code: VARCHAR(4)
+    medicare_status_desc: VARCHAR(113)

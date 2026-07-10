@@ -7,11 +7,11 @@ col_count: 10
 vars:
     revenue_code_id: BIGINT
     extract_id: BIGINT
-    revenue_code: VARCHAR(272)
-    revenue_code_desc: VARCHAR(272)
-    code_set_type: VARCHAR(272)
+    revenue_code: VARCHAR(8)
+    revenue_code_desc: VARCHAR(150)
+    code_set_type: VARCHAR(16)
     submitter_id: BIGINT
     revenue_code_group_code: BIGINT
-    revenue_code_group_desc: VARCHAR(272)
+    revenue_code_group_desc: VARCHAR(149)
     begin_dt: DATE
     end_dt: DATE

@@ -7,5 +7,5 @@ col_count: 4
 vars:
     diagnosis_type_id: BIGINT
     extract_id: BIGINT
-    diagnosis_type_code: VARCHAR(272)
-    diagnosis_type_desc: VARCHAR(272)
+    diagnosis_type_code: VARCHAR(2)
+    diagnosis_type_desc: VARCHAR(86)

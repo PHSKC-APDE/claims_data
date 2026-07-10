@@ -7,5 +7,5 @@ col_count: 4
 vars:
     primary_payer_code_id: BIGINT
     extract_id: BIGINT
-    primary_payer_code: VARCHAR(272)
-    primary_payer_code_desc: VARCHAR(272)
+    primary_payer_code: VARCHAR(4)
+    primary_payer_code_desc: VARCHAR(163)

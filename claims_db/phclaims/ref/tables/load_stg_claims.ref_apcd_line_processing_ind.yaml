@@ -7,7 +7,7 @@ col_count: 6
 vars:
     line_processing_ind_id: BIGINT
     extract_id: BIGINT
-    line_processing_ind_code: VARCHAR(272)
-    line_processing_ind_desc: VARCHAR(272)
+    line_processing_ind_code: VARCHAR(4)
+    line_processing_ind_desc: VARCHAR(117)
     begin_dt: DATE
     end_dt: DATE

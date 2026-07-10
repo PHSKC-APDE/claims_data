@@ -20,16 +20,16 @@ vars:
     extract_id: BIGINT
     submitter_id: BIGINT
     internal_provider_id: BIGINT
-    organization_name: VARCHAR(272)
-    last_name: VARCHAR(272)
-    first_name: VARCHAR(272)
-    middle_name: VARCHAR(272)
-    generation_suffix: VARCHAR(272)
-    entity_type: VARCHAR(272)
-    professional_credential_code: VARCHAR(272)
+    organization_name: VARCHAR(110)
+    last_name: VARCHAR(110)
+    first_name: VARCHAR(85)
+    middle_name: VARCHAR(2)
+    generation_suffix: VARCHAR(60)
+    entity_type: VARCHAR(2)
+    professional_credential_code: VARCHAR(2)
     orig_npi: BIGINT
     primary_specialty_id: BIGINT
-    primary_specialty_code: VARCHAR(272)
-    city: VARCHAR(272)
-    state: VARCHAR(272)
-    zip: VARCHAR(272)
+    primary_specialty_code: VARCHAR(60)
+    city: VARCHAR(80)
+    state: VARCHAR(4)
+    zip: VARCHAR(10)

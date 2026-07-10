@@ -7,5 +7,5 @@ col_count: 4
 vars:
     market_segment_id: BIGINT
     extract_id: BIGINT
-    market_segment_code: VARCHAR(272)
-    market_segment_code_desc: VARCHAR(272)
+    market_segment_code: VARCHAR(4)
+    market_segment_code_desc: VARCHAR(95)

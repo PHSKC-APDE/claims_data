@@ -7,5 +7,5 @@ col_count: 4
 vars:
     drug_administration_route_id: BIGINT
     extract_id: BIGINT
-    drug_administration_route_code: VARCHAR(272)
-    drug_administration_route_desc: VARCHAR(272)
+    drug_administration_route_code: VARCHAR(4)
+    drug_administration_route_desc: VARCHAR(86)

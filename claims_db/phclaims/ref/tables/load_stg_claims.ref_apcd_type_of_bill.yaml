@@ -7,5 +7,5 @@ col_count: 4
 vars:
     type_of_bill_id: BIGINT
     extract_id: BIGINT
-    type_of_bill_code: VARCHAR(272)
-    type_of_bill_desc: VARCHAR(272)
+    type_of_bill_code: VARCHAR(6)
+    type_of_bill_desc: VARCHAR(313)

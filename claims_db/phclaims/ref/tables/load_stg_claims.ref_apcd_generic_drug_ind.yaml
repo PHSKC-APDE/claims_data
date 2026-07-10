@@ -7,5 +7,5 @@ col_count: 4
 vars:
     generic_drug_ind_id: BIGINT
     extract_id: BIGINT
-    generic_drug_ind_code: VARCHAR(272)
-    generic_drug_ind_desc: VARCHAR(272)
+    generic_drug_ind_code: VARCHAR(4)
+    generic_drug_ind_desc: VARCHAR(86)

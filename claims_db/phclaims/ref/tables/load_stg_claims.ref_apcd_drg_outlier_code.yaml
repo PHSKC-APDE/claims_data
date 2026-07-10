@@ -7,5 +7,5 @@ col_count: 4
 vars:
     drg_outlier_code_id: BIGINT
     extract_id: BIGINT
-    drg_outlier_code: VARCHAR(272)
-    drg_outlier_code_desc: VARCHAR(272)
+    drg_outlier_code: VARCHAR(4)
+    drg_outlier_code_desc: VARCHAR(117)

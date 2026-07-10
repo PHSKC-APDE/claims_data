@@ -7,7 +7,7 @@ col_count: 6
 vars:
     ccsr_dx_category_mapping_id: INT
     extract_id: BIGINT
-    diagnosis_code: VARCHAR(272)
+    diagnosis_code: VARCHAR(14)
     ccsr_dx_category_id: INT
-    ccsr_dx_category_code: VARCHAR(272)
-    ccsr_dx_category_desc: VARCHAR(272)
+    ccsr_dx_category_code: VARCHAR(12)
+    ccsr_dx_category_desc: VARCHAR(174)

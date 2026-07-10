@@ -5,12 +5,12 @@ hhsaw:
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
 col_count: 9
 vars:
-    zip_code: VARCHAR(272)
+    zip_code: VARCHAR(10)
     extract_id: BIGINT
-    calendar_year_quarter: VARCHAR(272)
-    fips_code: VARCHAR(272)
+    calendar_year_quarter: VARCHAR(12)
+    fips_code: VARCHAR(10)
     residential_ratio: DECIMAL(38, 9)
     business_ratio: DECIMAL(38, 9)
     other_ratio: DECIMAL(38, 9)
     total_ratio: DECIMAL(38, 9)
-    fips_code_primary_flag: VARCHAR(272)
+    fips_code_primary_flag: VARCHAR(2)

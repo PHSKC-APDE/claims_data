@@ -7,8 +7,8 @@ col_count: 7
 vars:
     managed_care_id: BIGINT
     extract_id: BIGINT
-    managed_care_code: VARCHAR(272)
-    managed_care_desc: VARCHAR(272)
-    code_set_type: VARCHAR(272)
+    managed_care_code: VARCHAR(4)
+    managed_care_desc: VARCHAR(154)
+    code_set_type: VARCHAR(16)
     submitter_id: BIGINT
-    managed_care_flag: VARCHAR(272)
+    managed_care_flag: VARCHAR(4)

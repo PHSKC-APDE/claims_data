@@ -7,7 +7,7 @@ col_count: 6
 vars:
     place_of_service_id: BIGINT
     extract_id: BIGINT
-    place_of_service_code: VARCHAR(272)
-    place_of_service_desc: VARCHAR(272)
+    place_of_service_code: VARCHAR(4)
+    place_of_service_desc: VARCHAR(119)
     begin_dt: DATE
     end_dt: DATE

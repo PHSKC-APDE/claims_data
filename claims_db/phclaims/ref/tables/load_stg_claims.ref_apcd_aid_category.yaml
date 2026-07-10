@@ -7,8 +7,8 @@ col_count: 7
 vars:
     aid_category_id: BIGINT
     extract_id: BIGINT
-    aid_category_code: VARCHAR(272)
-    aid_category_desc: VARCHAR(272)
+    aid_category_code: VARCHAR(8)
+    aid_category_desc: VARCHAR(164)
     begin_dt: DATE
     end_dt: DATE
-    full_medicaid_flag: VARCHAR(272)
+    full_medicaid_flag: VARCHAR(2)

@@ -7,15 +7,15 @@ col_count: 14
 vars:
     hios_id: INT
     extract_id: BIGINT
-    hios_standard_component_id: VARCHAR(272)
-    hios_plan_id: VARCHAR(272)
+    hios_standard_component_id: VARCHAR(64)
+    hios_plan_id: VARCHAR(66)
     enrollment_year: INT
-    market_type: VARCHAR(272)
-    plan_name: VARCHAR(272)
-    client_supplied_carrier_name: VARCHAR(272)
-    metallic_tier_enhanced: VARCHAR(272)
-    plan_type: VARCHAR(272)
-    formulary_id: VARCHAR(272)
-    hios_product_id: VARCHAR(272)
-    network_id: VARCHAR(272)
-    service_area_id: VARCHAR(272)
+    market_type: VARCHAR(68)
+    plan_name: VARCHAR(165)
+    client_supplied_carrier_name: VARCHAR(84)
+    metallic_tier_enhanced: VARCHAR(70)
+    plan_type: VARCHAR(6)
+    formulary_id: VARCHAR(12)
+    hios_product_id: VARCHAR(60)
+    network_id: VARCHAR(12)
+    service_area_id: VARCHAR(12)

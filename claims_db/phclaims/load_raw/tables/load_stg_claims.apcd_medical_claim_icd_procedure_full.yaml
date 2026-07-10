@@ -18,20 +18,20 @@ note_delivery: apcd_medical_claim_icd_procedure, extract 10037
 vars:
     medical_claim_service_line_id: BIGINT
     internal_member_id: BIGINT
-    icd_procedure_code: VARCHAR(272)
+    icd_procedure_code: VARCHAR(14)
     icd_procedure_code_id: BIGINT
     icd_procedure_performed_dt: DATE
     icd_procedure_code_order: DECIMAL(38, 2)
-    ccs_category: VARCHAR(272)
-    ccs_description: VARCHAR(272)
+    ccs_category: VARCHAR(12)
+    ccs_description: VARCHAR(146)
     admission_dt: DATE
     discharge_dt: DATE
     last_paid_dt: DATE
-    icd_version_ind: VARCHAR(272)
+    icd_version_ind: VARCHAR(2)
     inpatient_discharge_id: BIGINT
-    drg: VARCHAR(272)
-    userkey1: VARCHAR(272)
-    drg_label_desc: VARCHAR(272)
-    drg_version_desc: VARCHAR(272)
+    drg: VARCHAR(6)
+    userkey1: VARCHAR(8)
+    drg_label_desc: VARCHAR(196)
+    drg_version_desc: VARCHAR(16)
     clinical_event_id: BIGINT
     extract_id: BIGINT

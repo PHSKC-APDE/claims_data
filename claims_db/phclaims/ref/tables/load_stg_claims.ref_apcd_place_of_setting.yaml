@@ -7,4 +7,4 @@ col_count: 3
 vars:
     place_of_setting_id: BIGINT
     extract_id: BIGINT
-    place_of_setting_desc: VARCHAR(272)
+    place_of_setting_desc: VARCHAR(86)

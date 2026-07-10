@@ -7,7 +7,7 @@ col_count: 6
 vars:
     claim_status_id: BIGINT
     extract_id: BIGINT
-    claim_status_code: VARCHAR(272)
-    claim_status_desc: VARCHAR(272)
+    claim_status_code: VARCHAR(4)
+    claim_status_desc: VARCHAR(106)
     begin_dt: DATE
     end_dt: DATE

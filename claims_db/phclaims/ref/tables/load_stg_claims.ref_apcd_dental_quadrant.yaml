@@ -7,5 +7,5 @@ col_count: 4
 vars:
     dental_quadrant_id: BIGINT
     extract_id: BIGINT
-    dental_quadrant_code: VARCHAR(272)
-    dental_quadrant_desc: VARCHAR(272)
+    dental_quadrant_code: VARCHAR(4)
+    dental_quadrant_desc: VARCHAR(130)

@@ -7,5 +7,5 @@ col_count: 4
 vars:
     pharmacy_mail_order_code_id: BIGINT
     extract_id: BIGINT
-    pharmacy_mail_order_code: VARCHAR(272)
-    pharmacy_mail_order_desc: VARCHAR(272)
+    pharmacy_mail_order_code: VARCHAR(4)
+    pharmacy_mail_order_desc: VARCHAR(86)

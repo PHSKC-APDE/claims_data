@@ -7,7 +7,7 @@ col_count: 6
 vars:
     hispanic_id: BIGINT
     extract_id: BIGINT
-    hispanic_code: VARCHAR(272)
-    hispanic_desc: VARCHAR(272)
+    hispanic_code: VARCHAR(4)
+    hispanic_desc: VARCHAR(92)
     begin_dt: DATE
     end_dt: DATE

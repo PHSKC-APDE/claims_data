@@ -7,10 +7,10 @@ col_count: 9
 vars:
     specialty_id: BIGINT
     extract_id: BIGINT
-    specialty_code: VARCHAR(272)
-    specialty_desc: VARCHAR(272)
-    taxonomy_general_type: VARCHAR(272)
-    taxonomy_provider_type: VARCHAR(272)
-    taxonomy_specialization_area: VARCHAR(272)
-    specialty_type_desc: VARCHAR(272)
+    specialty_code: VARCHAR(70)
+    specialty_desc: VARCHAR(190)
+    taxonomy_general_type: VARCHAR(87)
+    taxonomy_provider_type: VARCHAR(126)
+    taxonomy_specialization_area: VARCHAR(121)
+    specialty_type_desc: VARCHAR(70)
     submitter_id: BIGINT

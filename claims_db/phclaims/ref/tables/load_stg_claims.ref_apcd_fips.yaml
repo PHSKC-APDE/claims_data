@@ -8,16 +8,16 @@ vars:
     fips_id: BIGINT
     extract_id: BIGINT
     fips_version: INT
-    fips_summary_level: VARCHAR(272)
-    fips_state_code: VARCHAR(272)
-    fips_state: VARCHAR(272)
-    fips_county_code: VARCHAR(272)
-    fips_code: VARCHAR(272)
-    fips_county_subdivision_code: VARCHAR(272)
-    fips_place_code: VARCHAR(272)
-    fips_consolidated_city_code: VARCHAR(272)
-    fips_area_name: VARCHAR(272)
+    fips_summary_level: VARCHAR(6)
+    fips_state_code: VARCHAR(4)
+    fips_state: VARCHAR(70)
+    fips_county_code: VARCHAR(6)
+    fips_code: VARCHAR(10)
+    fips_county_subdivision_code: VARCHAR(10)
+    fips_place_code: VARCHAR(10)
+    fips_consolidated_city_code: VARCHAR(10)
+    fips_area_name: VARCHAR(107)
     fips_region_code: INT
-    fips_region_name: VARCHAR(272)
+    fips_region_name: VARCHAR(70)
     fips_division_code: INT
-    fips_division_name: VARCHAR(272)
+    fips_division_name: VARCHAR(77)

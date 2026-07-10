@@ -7,5 +7,5 @@ col_count: 4
 vars:
     admission_type_id: BIGINT
     extract_id: BIGINT
-    admission_type: VARCHAR(272)
-    admission_type_desc: VARCHAR(272)
+    admission_type: VARCHAR(4)
+    admission_type_desc: VARCHAR(86)

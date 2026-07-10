@@ -7,10 +7,10 @@ col_count: 9
 vars:
     diagnosis_id: BIGINT
     extract_id: BIGINT
-    diagnosis_code: VARCHAR(272)
-    diagnosis_desc: VARCHAR(272)
-    icd_version_ind: VARCHAR(272)
-    code_set_type: VARCHAR(272)
+    diagnosis_code: VARCHAR(14)
+    diagnosis_desc: VARCHAR(129)
+    icd_version_ind: VARCHAR(2)
+    code_set_type: VARCHAR(16)
     submitter_id: BIGINT
     begin_dt: DATE
     end_dt: DATE

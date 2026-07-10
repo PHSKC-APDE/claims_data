@@ -5,9 +5,9 @@ hhsaw:
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
 col_count: 6
 vars:
-    zip_code: VARCHAR(272)
+    zip_code: VARCHAR(10)
     extract_id: BIGINT
-    city: VARCHAR(272)
-    state: VARCHAR(272)
+    city: VARCHAR(77)
+    state: VARCHAR(4)
     county_code: BIGINT
-    county_name: VARCHAR(272)
+    county_name: VARCHAR(75)

@@ -7,9 +7,9 @@ col_count: 8
 vars:
     type_of_service_id: BIGINT
     extract_id: BIGINT
-    type_of_service_code: VARCHAR(272)
-    type_of_service_desc: VARCHAR(272)
-    code_set_type: VARCHAR(272)
+    type_of_service_code: VARCHAR(6)
+    type_of_service_desc: VARCHAR(150)
+    code_set_type: VARCHAR(62)
     submitter_id: BIGINT
     begin_dt: DATE
     end_dt: DATE

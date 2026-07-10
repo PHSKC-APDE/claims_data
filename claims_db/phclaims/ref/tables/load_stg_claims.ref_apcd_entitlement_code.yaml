@@ -7,5 +7,5 @@ col_count: 4
 vars:
     entitlement_code_id: BIGINT
     extract_id: BIGINT
-    entitlement_code: VARCHAR(272)
-    entitlement_code_desc: VARCHAR(272)
+    entitlement_code: VARCHAR(4)
+    entitlement_code_desc: VARCHAR(113)

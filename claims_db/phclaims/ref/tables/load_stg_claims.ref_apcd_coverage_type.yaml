@@ -7,5 +7,5 @@ col_count: 4
 vars:
     coverage_type_id: BIGINT
     extract_id: BIGINT
-    coverage_type_code: VARCHAR(272)
-    coverage_type_desc: VARCHAR(272)
+    coverage_type_code: VARCHAR(6)
+    coverage_type_desc: VARCHAR(205)

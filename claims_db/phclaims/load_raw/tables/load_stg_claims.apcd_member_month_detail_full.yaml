@@ -18,16 +18,16 @@ note_delivery: apcd_member_month_detail, extract 10037
 vars:
     internal_member_id: BIGINT
     extract_id: BIGINT
-    year_month: VARCHAR(272)
+    year_month: VARCHAR(12)
     medical_product_code_id: BIGINT
-    medical_product_code: VARCHAR(272)
+    medical_product_code: VARCHAR(4)
     medical_submitter_id: BIGINT
     medical_eligibility_id: BIGINT
     med_commercial_eligibility_id: BIGINT
     med_medicare_eligibility_id: BIGINT
     med_medicaid_eligibility_id: BIGINT
     pharmacy_product_code_id: BIGINT
-    pharmacy_product_code: VARCHAR(272)
+    pharmacy_product_code: VARCHAR(4)
     pharmacy_submitter_id: BIGINT
     pharmacy_eligibility_id: BIGINT
     rx_commercial_eligibility_id: BIGINT
@@ -42,5 +42,5 @@ vars:
     dental_medicaid_eligibility_id: BIGINT
     age: INT
     age_in_months: INT
-    gender_code: VARCHAR(272)
-    zip_code: VARCHAR(272)
+    gender_code: VARCHAR(2)
+    zip_code: VARCHAR(10)
