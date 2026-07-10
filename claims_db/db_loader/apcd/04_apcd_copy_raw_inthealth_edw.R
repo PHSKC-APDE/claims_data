@@ -56,9 +56,6 @@ file_list <-  list.files(
 )
 file_list <- as.list(file_list)
 
-
-file_list <- file_list[[1]] #testing code
-
 #Begin loop
 lapply(file_list, function(file_list) {
   
@@ -84,19 +81,15 @@ lapply(file_list, function(file_list) {
 })
 
 
-##Currently waiting for Jeremy to implement copy_into changes to generate proper COPY INTO syntax for PARQUET files
-
-
 #### STEP 3: LOAD DATA FOR ALL APCD DATA TABLES ####
 
 ## Beginning message (before loop begins)
 message(paste0("Beginning process to copy data tables to inthealth_edw - ", Sys.time()))
 
-#Establish list of Azure Blob Storage folders for which GZIP files will be copied to inthealth_edw
-folder_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
-                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
-
-
+#Establish list of Azure Blob Storage folders for which PARQUET files will be copied to inthealth_edw
+folder_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "inpatient_stay_summary_ltd", "medical_claim",
+                   "medical_claim_diagnosis", "medical_claim_header", "medical_claim_icd_procedure",
+                   "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
 #Begin loop
 lapply(folder_list, function(folder_list) {
@@ -133,18 +126,16 @@ lapply(folder_list, function(folder_list) {
   to_table <- table_config[[server]][["to_table"]]
   dl_path <- table_config[[server]][["dl_path"]]
   
-  system.time(copy_into_f(conn = dw_inthealth, 
-              server = server,
-              config = table_config,
-              dl_path = dl_path,
-              file_type = "csv",
-              compression = "gzip",
-              field_terminator = ",",
-              row_terminator = "0x0A",
-              overwrite = TRUE,
-              rodbc = FALSE,
-              batch_id_assign = TRUE,
-              batch_id = current_batch_id))
+  system.time(apde.etl::copy_into(
+    conn = dw_inthealth, 
+    server = server,
+    config = table_config,
+    dl_path = dl_path,
+    file_type = "parquet",
+    overwrite = TRUE,
+    batch_id_assign = TRUE,
+    batch_id = current_batch_id)
+  )
   
   ##QA row and column counts
   message("Running row count comparison QA for: ", table_config[[server]][["to_table"]], " - ", Sys.time())
