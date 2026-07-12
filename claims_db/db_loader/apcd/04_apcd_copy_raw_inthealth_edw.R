@@ -76,8 +76,6 @@ lapply(file_list, function(file_list) {
     server = server,
     config = table_config,
     file_type = "parquet",
-    identity = "Storage Account Key",
-    secret = keyring::key_get("azure_storage_key", "dev"),
     overwrite = TRUE)
   )
 })
@@ -92,6 +90,14 @@ message(paste0("Beginning process to copy data tables to inthealth_edw - ", Sys.
 folder_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "inpatient_stay_summary_ltd", "medical_claim",
                    "medical_claim_diagnosis", "medical_claim_header", "medical_claim_icd_procedure",
                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
+
+folder_list <- list( "medical_claim_header", "medical_claim_icd_procedure",
+                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
+
+#tables for which COPY INTO fails midway with authentication error
+#folder_list <- list("medical_claim", "medical_claim_diagnosis")
+
+#note - come back to deal with medical_Claim table once done with all of these other ones!!!!
 
 #Begin loop
 lapply(folder_list, function(folder_list) {
@@ -130,14 +136,15 @@ lapply(folder_list, function(folder_list) {
   table_distribution <- table_config[[server]][["table_distribution"]]
   
   system.time(apde.etl::copy_into(
+  #system.time(copy_into_test( #for testing with Jeremy - medical_claim table
     conn = dw_inthealth, 
     server = server,
     config = table_config,
     dl_path = dl_path,
     file_type = "parquet",
     with = table_distribution,
-    identity = "Storage Account Key",
-    secret = keyring::key_get("azure_storage_key", "dev"),
+    #identity = "Shared Access Signature",
+    #secret = keyring::key_get("azure_blob_sas_token", "dev"),
     overwrite = TRUE)
   )
   
