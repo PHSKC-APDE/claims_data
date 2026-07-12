@@ -19,6 +19,7 @@ pacman::p_load(tidyverse, odbc, configr, glue, keyring, AzureStor, AzureAuth, sv
 #keyring::key_set('adl_tenant', username = 'dev')
 #keyring::key_set('adl_app', username = 'dev')
 #keyring::key_set('azure_storage_key', username = 'dev')
+#keyring::key_set('azure_blob_sas_token', username = 'dev')
 keyring::key_list()
 
 #### SET UP FUNCTIONS ####
