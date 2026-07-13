@@ -95,9 +95,7 @@ folder_list <- list( "medical_claim_header", "medical_claim_icd_procedure",
                     "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
 #tables for which COPY INTO fails midway with authentication error
-#folder_list <- list("medical_claim", "medical_claim_diagnosis")
-
-#note - come back to deal with medical_Claim table once done with all of these other ones!!!!
+folder_list <- list("medical_claim", "medical_claim_diagnosis")
 
 #Begin loop
 lapply(folder_list, function(folder_list) {
