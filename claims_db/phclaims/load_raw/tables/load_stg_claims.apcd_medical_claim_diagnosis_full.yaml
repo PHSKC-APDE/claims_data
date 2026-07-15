@@ -6,7 +6,7 @@ hhsaw:
     ext_data_source: datascr_WS_EDW
     ext_schema: stg_claims
     ext_table: apcd_medical_claim_diagnosis
-    table_distribution: DISTRIBUTION = HASH(medical_claim_service_line_id)
+    table_distribution: DISTRIBUTION = HASH(internal_member_id)
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/medical_claim_diagnosis_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
 row_count: '8530524721'
