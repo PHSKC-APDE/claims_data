@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_patient_residency_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/patient_residency_code000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    patient_residency_id: INT
+    extract_id: BIGINT
+    patient_residency_code: VARCHAR(4)
+    patient_residency_code_desc: VARCHAR(111)

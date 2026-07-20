@@ -1,0 +1,14 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_subscriber_relationship
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/subscriber_relationship000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 7
+vars:
+    subscriber_relationship_id: BIGINT
+    extract_id: BIGINT
+    subscriber_relationship_code: VARCHAR(4)
+    subscriber_relationship_desc: VARCHAR(95)
+    code_set_type: VARCHAR(16)
+    begin_dt: DATE
+    end_dt: DATE

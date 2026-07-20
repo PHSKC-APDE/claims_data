@@ -1,0 +1,13 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_zip
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/zip000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 6
+vars:
+    zip_code: VARCHAR(10)
+    extract_id: BIGINT
+    city: VARCHAR(77)
+    state: VARCHAR(4)
+    county_code: BIGINT
+    county_name: VARCHAR(75)

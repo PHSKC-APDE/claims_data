@@ -1,0 +1,14 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_product_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/product_code000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 7
+vars:
+    product_code_id: BIGINT
+    extract_id: BIGINT
+    product_code: VARCHAR(10)
+    product_desc: VARCHAR(148)
+    product_type: VARCHAR(60)
+    product_subtype: VARCHAR(71)
+    code_set_type: VARCHAR(62)

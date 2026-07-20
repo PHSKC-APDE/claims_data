@@ -6,29 +6,30 @@ hhsaw:
     ext_data_source: datascr_WS_EDW
     ext_schema: stg_claims
     ext_table: apcd_provider
+    table_distribution: DISTRIBUTION = HASH(internal_provider_id)
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/provider_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: '59143373'
+row_count: '36750843'
 col_count: 17
 date_min: '2014-01-01'
-date_max: '2025-06-30'
-date_delivery: '2024-12-18'
-note_delivery: apcd_provider, extract 10033
+date_max: '2025-12-31'
+date_delivery: '2026-05-07'
+note_delivery: apcd_provider, extract 10037
 vars:
-    provider_id: bigint
-    extract_id: bigint
-    submitter_id: bigint
-    internal_provider_id: bigint
-    organization_name: varchar(100)
-    last_name: varchar(100)
-    first_name: varchar(60)
-    middle_name: varchar(2)
-    generation_suffix: varchar(10)
-    entity_type: varchar(10)
-    professional_credential_code: varchar(20)
-    orig_npi: bigint
-    primary_specialty_id: bigint
-    primary_specialty_code: varchar(50)
-    city: varchar(30)
-    state: varchar(2)
-    zip: varchar(15)
+    provider_id: BIGINT
+    extract_id: BIGINT
+    submitter_id: BIGINT
+    internal_provider_id: BIGINT
+    organization_name: VARCHAR(110)
+    last_name: VARCHAR(110)
+    first_name: VARCHAR(85)
+    middle_name: VARCHAR(2)
+    generation_suffix: VARCHAR(60)
+    entity_type: VARCHAR(2)
+    professional_credential_code: VARCHAR(2)
+    orig_npi: BIGINT
+    primary_specialty_id: BIGINT
+    primary_specialty_code: VARCHAR(60)
+    city: VARCHAR(80)
+    state: VARCHAR(4)
+    zip: VARCHAR(10)

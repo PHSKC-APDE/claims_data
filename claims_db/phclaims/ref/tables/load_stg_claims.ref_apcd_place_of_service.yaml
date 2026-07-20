@@ -1,0 +1,13 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_place_of_service
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/place_of_service000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 6
+vars:
+    place_of_service_id: BIGINT
+    extract_id: BIGINT
+    place_of_service_code: VARCHAR(4)
+    place_of_service_desc: VARCHAR(119)
+    begin_dt: DATE
+    end_dt: DATE

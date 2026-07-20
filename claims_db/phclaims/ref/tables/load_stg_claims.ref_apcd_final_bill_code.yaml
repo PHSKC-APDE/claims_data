@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_final_bill_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/final_bill_code000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    final_bill_code_id: BIGINT
+    extract_id: BIGINT
+    final_bill_code: VARCHAR(4)
+    final_bill_code_desc: VARCHAR(89)

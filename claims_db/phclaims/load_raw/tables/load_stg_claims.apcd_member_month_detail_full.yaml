@@ -6,36 +6,41 @@ hhsaw:
     ext_data_source: datascr_WS_EDW
     ext_schema: stg_claims
     ext_table: apcd_member_month_detail
+    table_distribution: DISTRIBUTION = HASH(internal_member_id)
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/member_month_detail_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: '757428277'
-col_count: 24
+row_count: '1091674545'
+col_count: 28
 date_min: '2014-01-01'
-date_max: '2025-06-30'
-date_delivery: '2024-12-18'
-note_delivery: apcd_member_month_detail, extract 10033
+date_max: '2025-12-31'
+date_delivery: '2026-05-07'
+note_delivery: apcd_member_month_detail, extract 10037
 vars:
-    internal_member_id: bigint
-    year_month: varchar(6)
-    medical_product_code_id: bigint
-    medical_submitter_id: bigint
-    medical_eligibility_id: bigint
-    med_commercial_eligibility_id: bigint
-    med_medicare_eligibility_id: bigint
-    med_medicaid_eligibility_id: bigint
-    pharmacy_product_code_id: bigint
-    pharmacy_submitter_id: bigint
-    pharmacy_eligibility_id: bigint
-    rx_commercial_eligibility_id: bigint
-    rx_medicare_eligibility_id: bigint
-    rx_medicaid_eligibility_id: bigint
-    dental_product_code_id: bigint
-    dental_submitter_id: bigint
-    dental_eligibility_id: bigint
-    dental_commercial_eligibility_id: bigint
-    dental_medicare_eligibility_id: bigint
-    dental_medicaid_eligibility_id: bigint
-    age: integer
-    age_in_months: integer
-    gender_code: varchar(10)
-    zip_code: varchar(15)
+    internal_member_id: BIGINT
+    extract_id: BIGINT
+    year_month: VARCHAR(12)
+    medical_product_code_id: BIGINT
+    medical_product_code: VARCHAR(4)
+    medical_submitter_id: BIGINT
+    medical_eligibility_id: BIGINT
+    med_commercial_eligibility_id: BIGINT
+    med_medicare_eligibility_id: BIGINT
+    med_medicaid_eligibility_id: BIGINT
+    pharmacy_product_code_id: BIGINT
+    pharmacy_product_code: VARCHAR(4)
+    pharmacy_submitter_id: BIGINT
+    pharmacy_eligibility_id: BIGINT
+    rx_commercial_eligibility_id: BIGINT
+    rx_medicare_eligibility_id: BIGINT
+    rx_medicaid_eligibility_id: BIGINT
+    dental_product_code_id: BIGINT
+    dental_product_code: BIGINT
+    dental_submitter_id: BIGINT
+    dental_eligibility_id: BIGINT
+    dental_commercial_eligibility_id: BIGINT
+    dental_medicare_eligibility_id: BIGINT
+    dental_medicaid_eligibility_id: BIGINT
+    age: INT
+    age_in_months: INT
+    gender_code: VARCHAR(2)
+    zip_code: VARCHAR(10)

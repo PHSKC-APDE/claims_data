@@ -1,0 +1,13 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_non_payment_reason
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/non_payment_reason000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 6
+vars:
+    non_payment_reason_id: BIGINT
+    extract_id: BIGINT
+    non_payment_reason_code: VARCHAR(4)
+    non_payment_reason_desc: VARCHAR(113)
+    begin_dt: DATE
+    end_dt: DATE

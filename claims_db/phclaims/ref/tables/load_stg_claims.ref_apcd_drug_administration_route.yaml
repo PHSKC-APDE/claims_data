@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_drug_administration_route
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/drug_administration_route000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    drug_administration_route_id: BIGINT
+    extract_id: BIGINT
+    drug_administration_route_code: VARCHAR(4)
+    drug_administration_route_desc: VARCHAR(86)

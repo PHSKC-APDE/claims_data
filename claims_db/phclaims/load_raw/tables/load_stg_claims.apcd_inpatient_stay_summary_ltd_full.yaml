@@ -1,0 +1,98 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_inpatient_stay_summary_ltd
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_inpatient_stay_summary_ltd
+    table_distribution: DISTRIBUTION = HASH(inpatient_discharge_id)
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/inpatient_stay_summary_ltd_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: '6509376'
+col_count: 80
+date_min: '2014-01-01'
+date_max: '2025-12-31'
+date_delivery: '2026-05-07'
+note_delivery: apcd_inpatient_stay_summary_ltd, extract 10037
+vars:
+    inpatient_discharge_id: BIGINT
+    extract_id: BIGINT
+    internal_member_id: BIGINT
+    place_of_setting_id: BIGINT
+    first_service_dt: DATE
+    last_service_dt: DATE
+    admit_dt: DATE
+    discharge_dt: DATE
+    discharge_status_id: BIGINT
+    discharge_status_code: VARCHAR(4)
+    admission_type: VARCHAR(4)
+    admission_point_of_origin_code: VARCHAR(4)
+    length_of_stay: INT
+    sex: VARCHAR(2)
+    age: INT
+    admit_diagnosis_code: VARCHAR(14)
+    primary_diagnosis_code: VARCHAR(14)
+    diagnosis_code_1: VARCHAR(14)
+    diagnosis_code_2: VARCHAR(14)
+    diagnosis_code_3: VARCHAR(14)
+    diagnosis_code_4: VARCHAR(14)
+    diagnosis_code_5: VARCHAR(14)
+    diagnosis_code_6: VARCHAR(14)
+    diagnosis_code_7: VARCHAR(14)
+    diagnosis_code_8: VARCHAR(14)
+    diagnosis_code_9: VARCHAR(14)
+    diagnosis_code_10: VARCHAR(14)
+    diagnosis_code_11: VARCHAR(14)
+    diagnosis_code_12: VARCHAR(14)
+    diagnosis_code_13: VARCHAR(14)
+    diagnosis_code_14: VARCHAR(14)
+    diagnosis_code_15: VARCHAR(14)
+    diagnosis_code_16: VARCHAR(14)
+    diagnosis_code_17: VARCHAR(14)
+    diagnosis_code_18: VARCHAR(14)
+    diagnosis_code_19: VARCHAR(14)
+    diagnosis_code_20: VARCHAR(14)
+    diagnosis_code_21: VARCHAR(14)
+    diagnosis_code_22: VARCHAR(14)
+    diagnosis_code_23: VARCHAR(14)
+    diagnosis_code_24: VARCHAR(14)
+    diagnosis_code_25: VARCHAR(4)
+    diagnosis_code_26: VARCHAR(4)
+    diagnosis_code_27: VARCHAR(4)
+    diagnosis_code_28: VARCHAR(4)
+    diagnosis_code_29: VARCHAR(4)
+    diagnosis_code_30: VARCHAR(4)
+    icd_procedure_code_1: VARCHAR(14)
+    icd_procedure_code_2: VARCHAR(14)
+    icd_procedure_code_3: VARCHAR(14)
+    icd_procedure_code_4: VARCHAR(14)
+    icd_procedure_code_5: VARCHAR(14)
+    icd_procedure_code_6: VARCHAR(14)
+    icd_procedure_code_7: VARCHAR(14)
+    icd_procedure_code_8: VARCHAR(14)
+    icd_procedure_code_9: VARCHAR(14)
+    icd_procedure_code_10: VARCHAR(14)
+    icd_procedure_code_11: VARCHAR(14)
+    icd_procedure_code_12: VARCHAR(14)
+    icd_procedure_code_13: VARCHAR(14)
+    icd_procedure_code_14: VARCHAR(14)
+    icd_procedure_code_15: VARCHAR(14)
+    icd_procedure_code_16: VARCHAR(14)
+    icd_procedure_code_17: VARCHAR(14)
+    icd_procedure_code_18: VARCHAR(14)
+    icd_procedure_code_19: VARCHAR(14)
+    icd_procedure_code_20: VARCHAR(14)
+    icd_procedure_code_21: VARCHAR(14)
+    icd_procedure_code_22: VARCHAR(14)
+    icd_procedure_code_23: VARCHAR(14)
+    icd_procedure_code_24: VARCHAR(14)
+    icd_procedure_code_25: VARCHAR(4)
+    icd_procedure_code_26: VARCHAR(4)
+    icd_procedure_code_27: VARCHAR(4)
+    icd_procedure_code_28: VARCHAR(4)
+    icd_procedure_code_29: VARCHAR(4)
+    icd_procedure_code_30: VARCHAR(4)
+    icd_version_ind: VARCHAR(2)
+    transfer_to: BIGINT
+    place_of_setting_count: INT

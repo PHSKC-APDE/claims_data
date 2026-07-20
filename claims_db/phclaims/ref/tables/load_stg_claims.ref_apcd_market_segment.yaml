@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_market_segment
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/market_segment000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    market_segment_id: BIGINT
+    extract_id: BIGINT
+    market_segment_code: VARCHAR(4)
+    market_segment_code_desc: VARCHAR(95)

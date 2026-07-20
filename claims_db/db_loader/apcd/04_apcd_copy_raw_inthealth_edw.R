@@ -10,24 +10,20 @@
 #10-16-24 commented out step 3 which is checking that the tables are mirrored on HHSAW. This should occur as part of script 8
 #1-23-26 Eli updated the  [claims].[metadata_etl_log] column [row_count] to BIGINT;
 #1-27-26 Eli updated the row count formatting
+#7-8-26 Eli updated to use apde.etl package, adapted for PARQUET files, included table distribution parameter, included ref tables
 
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
         scipen = 999)
 
-pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils) # Load list of packages
+pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils, apde.etl) # Load list of packages
 
 
-#### SET UP FUNCTIONS ####
+#### SET UP FUNCTIONS NOT INCLUDED IN APDE.ETL PACKAGE ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/copy_into.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
 
 
 #### STEP 1: CREATE CONNECTIONS ####
@@ -46,16 +42,60 @@ dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth
 db_claims <- create_db_connection(server, interactive = interactive_auth, prod = prod)
 
 
-#### STEP 2: LOAD DATA FOR ALL TABLES ####
+#### STEP 2: LOAD DATA FOR ALL APCD REFERENCE TABLES ####
 
 ## Beginning message (before loop begins)
-message(paste0("Beginning process to copy tables to inthealth_edw - ", Sys.time()))
+message(paste0("Beginning process to copy ref tables to inthealth_edw - ", Sys.time()))
 
-#Establish list of Azure Blob Storage folders for which GZIP files will be copied to inthealth_edw
-folder_list <- list("claim_icdcm_raw", "claim_line_raw", "claim_procedure_raw", "claim_provider_raw", "dental_claim", "eligibility", "medical_claim_header",
+#Establish list of Azure Blob Storage folders for which ref tables will be copied to inthealth_edw
+read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/reference_tables" #Folder containing ref tables exported from Analytic Enclave
+file_list <-  list.files(
+  read_path,
+  pattern = "\\.parquet$",
+  full.names = TRUE
+)
+file_list <- as.list(file_list)
+
+#Begin loop
+lapply(file_list, function(file_list) {
+  
+  ##Load YAML config file (dynamic GitHub URL)
+  table_name <- gsub("000", "", tools::file_path_sans_ext(basename(file_list)))
+  message("Loading YAML config file for: ", table_name, " - ", Sys.time())
+  table_config <- yaml::yaml.load(
+    httr::GET(glue(
+      "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_stg_claims.ref_apcd_",
+      table_name,
+      ".yaml")))
+  
+  ##Load data
+  message("Loading data for: ", table_config[[server]][["to_table"]], " - ", Sys.time())
+
+  system.time(apde.etl::copy_into(
+    conn = dw_inthealth, 
+    server = server,
+    config = table_config,
+    file_type = "parquet",
+    overwrite = TRUE)
+  )
+})
+
+
+#### STEP 3: LOAD DATA FOR ALL APCD DATA TABLES ####
+
+## Beginning message (before loop begins)
+message(paste0("Beginning process to copy data tables to inthealth_edw - ", Sys.time()))
+
+#Establish list of Azure Blob Storage folders for which PARQUET files will be copied to inthealth_edw
+folder_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "inpatient_stay_summary_ltd", "medical_claim",
+                   "medical_claim_diagnosis", "medical_claim_header", "medical_claim_icd_procedure",
+                   "member_month_detail", "pharmacy_claim", "provider", "provider_master")
+
+folder_list <- list( "medical_claim_header", "medical_claim_icd_procedure",
                     "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
-
+#tables for which COPY INTO fails midway with authentication error
+folder_list <- list("medical_claim", "medical_claim_diagnosis")
 
 #Begin loop
 lapply(folder_list, function(folder_list) {
@@ -71,7 +111,7 @@ lapply(folder_list, function(folder_list) {
   
   ##Create ETL batch ID (each table will have its own ETL batch ID)
   message("Creating ETL batch ID for: ", table_name, " - ", Sys.time())
-  current_batch_id <- load_metadata_etl_log_file_f(conn = db_claims, 
+  current_batch_id <- load_metadata_etl_log_file(conn = db_claims, 
                                                    batch_type = "full", 
                                                    data_source = "APCD", 
                                                    date_min = table_config$date_min,
@@ -91,23 +131,24 @@ lapply(folder_list, function(folder_list) {
   to_schema <- table_config[[server]][["to_schema"]]
   to_table <- table_config[[server]][["to_table"]]
   dl_path <- table_config[[server]][["dl_path"]]
+  table_distribution <- table_config[[server]][["table_distribution"]]
   
-  system.time(copy_into_f(conn = dw_inthealth, 
-              server = server,
-              config = table_config,
-              dl_path = dl_path,
-              file_type = "csv",
-              compression = "gzip",
-              field_terminator = ",",
-              row_terminator = "0x0A",
-              overwrite = TRUE,
-              rodbc = FALSE,
-              batch_id_assign = TRUE,
-              batch_id = current_batch_id))
+  system.time(apde.etl::copy_into(
+  #system.time(copy_into_test( #for testing with Jeremy - medical_claim table
+    conn = dw_inthealth, 
+    server = server,
+    config = table_config,
+    dl_path = dl_path,
+    file_type = "parquet",
+    with = table_distribution,
+    #identity = "Shared Access Signature",
+    #secret = keyring::key_get("azure_blob_sas_token", "dev"),
+    overwrite = TRUE)
+  )
   
-  ##QA row and column counts
+  ##QA row count
   message("Running row count comparison QA for: ", table_config[[server]][["to_table"]], " - ", Sys.time())
-  qa_rows_sql <- qa_load_row_count_f(conn = dw_inthealth,
+  qa_rows_sql <- qa_load_row_count(conn = dw_inthealth,
                                      server = server,
                                      config = table_config,
                                      row_count = table_config$row_count,
@@ -134,6 +175,16 @@ lapply(folder_list, function(folder_list) {
                     Check {qa_schema}.{qa_table} for details (etl_batch_id = {current_batch_id}"))
   }
   
+  ## Add batch ID column to data table, using current batch ID
+  DBI::dbExecute(dw_inthealth,
+                 glue::glue_sql("ALTER TABLE {`to_schema`}.{`to_table`} 
+                  ADD etl_batch_id INTEGER DEFAULT {current_batch_id}",
+                                .con = dw_inthealth))
+  DBI::dbExecute(dw_inthealth,
+                 glue::glue_sql("UPDATE {`to_schema`}.{`to_table`} 
+                  SET etl_batch_id = {current_batch_id}",
+                                .con = dw_inthealth))
+  
   ## Add date_load_raw to metadata_etl_log table
   message(paste0("Adding date_load_raw to metadata_etl_log for: ", table_config[[server]][["to_table"]]), " - ", Sys.time())
   DBI::dbExecute(db_claims,
@@ -145,8 +196,7 @@ lapply(folder_list, function(folder_list) {
 })
 
 
-
-#### STEP 3: CONFIRM EXTERNAL TABLES ON HHSAW ARE WORKING ####
+#### STEP 4: CONFIRM EXTERNAL TABLES ON HHSAW ARE WORKING ####
 
 ##Query external tables and return row counts
 #external_table_row_counts <- lapply(folder_list, function(folder_list) {
