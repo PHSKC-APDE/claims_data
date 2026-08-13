@@ -87,15 +87,11 @@ lapply(file_list, function(file_list) {
 message(paste0("Beginning process to copy data tables to inthealth_edw - ", Sys.time()))
 
 #Establish list of Azure Blob Storage folders for which PARQUET files will be copied to inthealth_edw
+#Note that in Aug 2026, KCIT needed to scale inthealth_edw from DW500c to DW2500c to get "medical_claim", "medical_claim_diagnosis" tables to copy
+#Without this scaling, the COPY INTO commands timed out with an authentication failure before completed
 folder_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "inpatient_stay_summary_ltd", "medical_claim",
                    "medical_claim_diagnosis", "medical_claim_header", "medical_claim_icd_procedure",
                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
-
-folder_list <- list( "medical_claim_header", "medical_claim_icd_procedure",
-                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
-
-#tables for which COPY INTO fails midway with authentication error
-folder_list <- list("medical_claim", "medical_claim_diagnosis")
 
 #Begin loop
 lapply(folder_list, function(folder_list) {
