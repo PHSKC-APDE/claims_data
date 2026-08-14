@@ -40,7 +40,8 @@ tables_to_copy_from_hhsaw_claims <- data.frame(
                    "ref_moll_preg_endpoint",
                    "ref_moll_trimester",
                    "ref_pc_visit_oregon",
-                   "ref_date"),
+                   "ref_date",
+                   "ref_apcd_ethnicity_race_map"),
     to_schema = ("stg_claims"),
     to_table = c("ref_ccw_lookup",
                  "ref_geo_county_code_wa",
@@ -49,7 +50,8 @@ tables_to_copy_from_hhsaw_claims <- data.frame(
                  "ref_moll_preg_endpoint",
                  "ref_moll_trimester",
                  "ref_pc_visit_oregon",
-                 "ref_date"),
+                 "ref_date",
+                 "ref_apcd_ethnicity_race_map"),
     stringsAsFactors = FALSE # prevents character columns in a data frame to be automatically converted into factors
     )
 
