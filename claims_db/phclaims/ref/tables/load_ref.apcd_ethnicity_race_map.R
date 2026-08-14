@@ -17,21 +17,18 @@
 ##2026-02 updates:
 #Added key ring and revised location of the files
 
+#8/14/26 Eli updated to use apde.etl package
+
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
 
 library(pacman)
-pacman::p_load(tidyverse, lubridate, odbc, RCurl, configr, glue, Microsoft365R)
-
-# SQL loading functions developed by APDE
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_table_from_file.R")
+pacman::p_load(tidyverse, lubridate, odbc, RCurl, configr, glue, Microsoft365R, apde.etl)
 
 # Connect to HHSAW
 interactive_auth <- FALSE
 prod <- TRUE
-db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+db_claims <- apde.etl::create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 
 ## Connect to Cross-Sector Data SP site
 
@@ -39,11 +36,11 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 AzureAuth::clean_token_directory(confirm = FALSE)
 
 #to set SharePoint keyring
-keyring::key_set("sharepoint", username = "shernandez@kingcounty.gov")
+#keyring::key_set("sharepoint", username = "shernandez@kingcounty.gov")
 
 # Connect to a named MS TEAMS site
-team_site <- get_team(
-  team_name = "DPH-KCCross-SectorData",
+team_site <- get_sharepoint_site(
+  site_url = "https://kc1.sharepoint.com/teams/DPH-APDE-Healthcare-Data-InternalOpsSharedChannel",
   tenant = "kingcounty.gov",
   username = keyring::key_list("sharepoint")$username,
   password = keyring::key_get("sharepoint", keyring::key_list("sharepoint")$username),
