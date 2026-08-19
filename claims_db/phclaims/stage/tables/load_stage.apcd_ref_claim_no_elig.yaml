@@ -1,0 +1,5 @@
+to_schema: stg_claims
+to_table: apcd_ref_claim_no_elig
+vars:
+    id_apcd: bigint
+    last_run: datetime
