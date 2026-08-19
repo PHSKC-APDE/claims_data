@@ -13,6 +13,7 @@
 #2024-03: Eli updated for migration to Azure HHSAW
 #2025-06: Eli added apcd_elig_month table
 #2026-05: Eli changed to use apde.etl for establishing SQL connection
+#2026-08: Eli added i) creation of apcd_ref_nonresident_id and apcd_ref_claim_no_elig tables, ii) 
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
@@ -36,6 +37,43 @@ dw_inthealth <- apde.etl::create_db_connection("inthealth", interactive = intera
 keyring::key_list() #Confirm you have a key set for hhsaw and inthealth_edw_prod on this machine
 
 #key_set("HHSAW_prod", username = "shernandez@kingcounty.gov") #Only run this each time password is changed
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 0A: apcd_ref_nonresident_id ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_ref_nonresident_id - ", Sys.time()))
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_ref_nonresident_id.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, 
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_ref_nonresident_id.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### C) Load tables
+system.time(load_stage.apcd_ref_nonresident_id_f())
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 0B: apcd_ref_claim_no_id ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_ref_claim_no_elig - ", Sys.time()))
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_ref_claim_no_elig.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, 
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_ref_claim_no_elig.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### C) Load tables
+system.time(load_stage.apcd_ref_claim_no_elig_f())
+
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 1: apcd_elig_demo ####
