@@ -27,8 +27,8 @@ load_stage.apcd_ref_nonresident_id_f <- function() {
       group by id_apcd
     )
     --write member IDs for out-of-state members to persistent table
+    insert into stg_claims.apcd_ref_nonresident_id
     select distinct id_apcd, getdate() as last_run
-    into stg_claims.apcd_ref_nonresident_id
     from temp2
     where out_of_state_all = 1;",
     .con = dw_inthealth))

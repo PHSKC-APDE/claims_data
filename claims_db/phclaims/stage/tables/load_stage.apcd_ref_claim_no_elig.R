@@ -27,8 +27,8 @@ load_stage.apcd_ref_claim_no_elig_f <- function() {
       from stg_claims.apcd_dental_claim
     )
     --select IDs in claim table but not in member_month table
+    insert into stg_claims.apcd_ref_claim_no_elig
     select internal_member_id as id_apcd, getdate() as last_run 
-    into stg_claims.apcd_ref_claim_no_elig
     from temp2
     except
     select internal_member_id as id_apcd, getdate() as last_run from temp1;",
