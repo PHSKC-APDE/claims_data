@@ -164,8 +164,13 @@ qa_stage.apcd_elig_timevar_f <- function() {
     from stg_claims.stage_apcd_elig_timevar",
     .con = dw_inthealth))
   res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select 'stg_claims.apcd_member_month_detail' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
-    from stg_claims.apcd_member_month_detail",
+    "select 'stg_claims.apcd_member_month_detail' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct x.internal_member_id) as qa
+    from stg_claims.apcd_member_month_detail as x
+      left join stg_claims.apcd_ref_nonresident_id as y
+      on x.internal_member_id = y.id_apcd
+      left join stg_claims.apcd_ref_claim_no_elig as z
+      on x.internal_member_id = z.id_apcd
+      where y.id_apcd is null and z.id_apcd is null --exclude members with no WA residency OR no elig data",
     .con = dw_inthealth))
   res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_elig_demo' as 'table', 'member count, expect match to timevar' as qa_type, count(distinct id_apcd) as qa
@@ -178,16 +183,26 @@ qa_stage.apcd_elig_timevar_f <- function() {
       and geo_ach = 'HealthierHere'",
     .con = dw_inthealth))
   res5 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select 'stg_claims.apcd_member_month_detail' as 'table', 'member count, King 2016, expect match to timevar' as qa_type, count(distinct internal_member_id) as qa
-    from stg_claims.apcd_member_month_detail
-      where left(year_month,4) = '2016'
-      and zip_code in (select zip_code from stg_claims.ref_apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
+    "select 'stg_claims.apcd_member_month_detail' as 'table', 'member count, King 2016, expect match to timevar' as qa_type, count(distinct x.internal_member_id) as qa
+    from stg_claims.apcd_member_month_detailas x
+      left join stg_claims.apcd_ref_nonresident_id as y
+      on x.internal_member_id = y.id_apcd
+      left join stg_claims.apcd_ref_claim_no_elig as z
+      on x.internal_member_id = z.id_apcd
+      where y.id_apcd is null and z.id_apcd is null --exclude members with no WA residency OR no elig data
+        and left(year_month,4) = '2016'
+        and zip_code in (select zip_code from stg_claims.ref_apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
     .con = dw_inthealth))
   res6 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select 'stg_claims.apcd_eligibility' as 'table', 'member count, King 2016, expect slightly more than timevar' as qa_type, count(distinct internal_member_id) as qa
-    from stg_claims.apcd_eligibility
-      where eligibility_start_dt <= '2016-12-31' and eligibility_end_dt >= '2016-01-01'
-      and zip in (select zip_code from stg_claims.ref_apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
+    "select 'stg_claims.apcd_eligibility' as 'table', 'member count, King 2016, expect slightly more than timevar' as qa_type, count(distinct x.internal_member_id) as qa
+    from stg_claims.apcd_eligibility as x
+      left join stg_claims.apcd_ref_nonresident_id as y
+      on x.internal_member_id = y.id_apcd
+      left join stg_claims.apcd_ref_claim_no_elig as z
+      on x.internal_member_id = z.id_apcd
+      where y.id_apcd is null and z.id_apcd is null --exclude members with no WA residency OR no elig data
+        and eligibility_start_dt <= '2016-12-31' and eligibility_end_dt >= '2016-01-01'
+        and zip in (select zip_code from stg_claims.ref_apcd_zip_group where zip_group_desc = 'King' and zip_group_type_desc = 'County')",
     .con = dw_inthealth))
   res7 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_elig_timevar' as 'table', 'count of member elig segments with no coverage, expect 0' as qa_type, count(distinct id_apcd) as qa
