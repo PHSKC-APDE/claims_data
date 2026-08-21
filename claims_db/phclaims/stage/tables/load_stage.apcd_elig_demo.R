@@ -278,7 +278,16 @@ qa_stage.apcd_elig_demo_f <- function() {
     "select 'stg_claims.stage_apcd_elig_demo' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct id_apcd) as qa from stg_claims.stage_apcd_elig_demo",
     .con = dw_inthealth))
   res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select 'stg_claims.apcd_member_month_detail' as 'table', 'distinct count, expect to equal other qa values' as qa_type, count(distinct internal_member_id) as qa from stg_claims.apcd_member_month_detail",
+    "select 'stg_claims.apcd_member_month_detail' as 'table',
+      'distinct count, expect to equal other qa values' as qa_type,
+      count(distinct x.internal_member_id) as qa
+      from stg_claims.apcd_member_month_detail as x
+      left join stg_claims.apcd_ref_nonresident_id as y
+      on x.internal_member_id = y.id_apcd
+      left join stg_claims.apcd_ref_claim_no_elig as z
+      on x.internal_member_id = z.id_apcd
+      where y.id_apcd is null and z.id_apcd is null --exclude members with no WA residency OR no elig data
+    ",
     .con = dw_inthealth))
   res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.stage_apcd_elig_demo' as 'table', 'count, expect to equal other qa values' as qa_type, count(id_apcd) as qa from stg_claims.stage_apcd_elig_demo",
