@@ -184,7 +184,7 @@ qa_stage.apcd_elig_timevar_f <- function() {
     .con = dw_inthealth))
   res5 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.apcd_member_month_detail' as 'table', 'member count, King 2016, expect match to timevar' as qa_type, count(distinct x.internal_member_id) as qa
-    from stg_claims.apcd_member_month_detailas x
+    from stg_claims.apcd_member_month_detail as x
       left join stg_claims.apcd_ref_nonresident_id as y
       on x.internal_member_id = y.id_apcd
       left join stg_claims.apcd_ref_claim_no_elig as z
