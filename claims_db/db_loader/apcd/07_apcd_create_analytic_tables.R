@@ -235,22 +235,18 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 # 2022
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2022.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
-
 # 2023
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2023.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
-
 # 2024
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2024.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
-
 # 2025
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2025.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
 
 
 ### PLACEHOLDER FOR ADDING THE NEXT COMPLETE CALENDAR YEAR TABLE ###
-
 
 ### C) Load tables
 system.time(load_stage.apcd_elig_plr_f(from_date = "2014-01-01", to_date = "2014-12-31")) #2014
@@ -266,7 +262,6 @@ system.time(load_stage.apcd_elig_plr_f(from_date = "2023-01-01", to_date = "2023
 system.time(load_stage.apcd_elig_plr_f(from_date = "2024-01-01", to_date = "2024-12-31")) #2024
 system.time(load_stage.apcd_elig_plr_f(from_date = "2025-01-01", to_date = "2025-12-31")) #2025
 ##placeholder for adding the next complete calendar year table
-
 
 ### D) Table-level QA
 system.time(apcd_plr_2014_qa <- qa_stage.apcd_elig_plr_f(year = "2014"))
