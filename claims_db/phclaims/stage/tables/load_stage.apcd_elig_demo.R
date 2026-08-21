@@ -7,16 +7,13 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
 
 # 2024-03-25 update: Modified for migration to Azure HHSAW
+# 2026-08-21 update: Modified under migration of ETL from Enclave -> KC
+  # Added code to exclude i) non-WA residents and ii) people with no claims but no enrollment data
 
 #### Load script ####
 load_stage.apcd_elig_demo_f <- function() {
   odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
-    "--Code to load data to stage.apcd_elig_demo table
-    --A historical record of each person's non time-varying demographics (e.g. date of birth, gender, race/ethnicity)
-    --Eli Kern (PHSKC-APDE)
-    --2019-10
-    --Takes 60 min to run
-    
+    "
     ------------------
     --STEP 1: Estimate date of birth and create gender variables from member_month_detail table
     -------------------
@@ -29,7 +26,7 @@ load_stage.apcd_elig_demo_f <- function() {
     	max(gender_recent) as gender_recent
     into #mm_temp1
     from (
-    select internal_member_id, cast(year_month as int) as year_month, age, 
+    select x.internal_member_id, cast(year_month as int) as year_month, age, 
     	--when age changes between two contiguous months (year_month diff = 1 or 89 [for 12 to 01] AND difference in age = 1 year, use this change to estimate DOB
     	case when age - lag(age,1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int)) = 1 and 
     		(cast(year_month as int) - lag(cast(year_month as int),1) over (partition by internal_member_id order by internal_member_id, cast(year_month as int))) in (1, 89)
@@ -47,7 +44,12 @@ load_stage.apcd_elig_demo_f <- function() {
       last_value(gender_code) over (partition by internal_member_id
     	order by internal_member_id, case when gender_code = 'U' or gender_code is null then null else cast(year_month as int) end
     		rows between unbounded preceding and unbounded following) as gender_recent
-    from stg_claims.apcd_member_month_detail
+    from stg_claims.apcd_member_month_detail as x
+    left join stg_claims.apcd_ref_nonresident_id as y
+    on x.internal_member_id = y.id_apcd
+    left join stg_claims.apcd_ref_claim_no_elig as z
+    on x.internal_member_id = z.id_apcd
+    where y.id_apcd is null and z.id_apcd is null --exclude members with no WA residency OR no elig data
     ) as a
     group by a.internal_member_id;
     
@@ -89,12 +91,17 @@ load_stage.apcd_elig_demo_f <- function() {
     --latino (1=Yes, 2=No)
     --race variable codes in ref.apcd_race
     if object_id('tempdb..#elig_temp1') is not null drop table #elig_temp1;
-    select eligibility_id, internal_member_id as id_apcd, eligibility_end_dt,
+    select eligibility_id, x.internal_member_id as id_apcd, eligibility_end_dt,
     case when race_id1 in (1,2,3,4,5) then race_id1 else 0 end as race_id1,
     case when race_id2 in (1,2,3,4,5) then race_id2 else 0 end as race_id2,
     case when hispanic_id in (1,2) then hispanic_id else 0 end as latino_id
     into #elig_temp1
-    from stg_claims.apcd_eligibility;
+    from stg_claims.apcd_eligibility as x
+    left join stg_claims.apcd_ref_nonresident_id as y
+    on x.internal_member_id = y.id_apcd
+    left join stg_claims.apcd_ref_claim_no_elig as z
+    on x.internal_member_id = z.id_apcd
+    where y.id_apcd is null and z.id_apcd is null --exclude members with no WA residency OR no elig data;
     
     
     ------------------
