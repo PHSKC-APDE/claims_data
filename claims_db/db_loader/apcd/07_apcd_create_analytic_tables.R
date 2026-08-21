@@ -244,6 +244,10 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2024.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
 
+# 2025
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2025.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
 
 ### PLACEHOLDER FOR ADDING THE NEXT COMPLETE CALENDAR YEAR TABLE ###
 
