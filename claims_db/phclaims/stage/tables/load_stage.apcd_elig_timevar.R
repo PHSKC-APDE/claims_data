@@ -6,6 +6,8 @@
 #2022-04-26 update: Added new variables for dental coverage, and added geo_kc flag for KC residence
 #2023-08-02 update: Removed use of eligibility table, thus removing bsp_group_cid and full_benefit variables
 #2023-04-26 update: Modified for migration to HHSAW
+# 2026-08-21 update: Modified under migration of ETL from Enclave -> KC
+  # Added code to exclude i) non-WA residents and ii) people with no claims but no enrollment data
 
 ### Run from master_apcd_analytic script
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
@@ -21,7 +23,7 @@ load_stage.apcd_elig_timevar_f <- function() {
     -------------------
     if object_id('tempdb..#temp1') is not null drop table #temp1;
     select
-      internal_member_id,
+      x.internal_member_id,
       convert(date, cast(year_month as varchar(200)) + '01') as from_date,
       dateadd(day, -1, dateadd(month, 1, convert(date, cast(year_month as varchar(200)) + '01'))) as to_date,
       zip_code, 
@@ -71,7 +73,12 @@ load_stage.apcd_elig_timevar_f <- function() {
       end as dental_covgrp
       
     into #temp1
-    from stg_claims.apcd_member_month_detail;
+    from stg_claims.apcd_member_month_detail as x
+    left join stg_claims.apcd_ref_nonresident_id as y
+    on x.internal_member_id = y.id_apcd
+    left join stg_claims.apcd_ref_claim_no_elig as z
+    on x.internal_member_id = z.id_apcd
+    where y.id_apcd is null and z.id_apcd is null --exclude members with no WA residency OR no elig data;
     
     
     ------------
