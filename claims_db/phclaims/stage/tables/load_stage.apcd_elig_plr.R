@@ -365,7 +365,7 @@ load_stage.apcd_elig_plr_f <- function(from_date = NULL, to_date = NULL, calenda
 #### Table-level QA script ####
 qa_stage.apcd_elig_plr_f <- function(year = NULL) {
   
-  table_name <- glue::glue_sql(paste0("apcd_elig_plr_", year))
+  table_name <- glue::glue_sql(paste0("apcd_elig_plr_", year), .con = dw_inthealth)
 
   #all members are distinct
   res1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
