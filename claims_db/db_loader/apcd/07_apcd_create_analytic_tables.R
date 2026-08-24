@@ -356,7 +356,8 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 ### B) Create table
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_icdcm_header.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw",
+             with = "DISTRIBUTION = HASH(claim_header_id)")
 
 ### C) Load tables
 system.time(load_stage.apcd_claim_icdcm_header_f())
