@@ -6,7 +6,7 @@
 # 2024-04-29 update: Modified for HHSAW migration
 # 2025-04-02 update: Removed procedure_code_number column and consolidated modifier codes into single column
 # 2026-08-24 update: Modified under migration of ETL from Enclave -> KC
-  # Added code to exclude i) non-WA residents, ii) people with no claims but no enrollment data, iii) condensed code using PIVOT,
+  # Added code to exclude i) non-WA residents, ii) people with no claims but no enrollment data, iii) condensed code using CROSS APPLY,
   # iv) source ICD procedure codes from medical_claim_icd_procedure table
   
 ### Run from master_apcd_analytic script
