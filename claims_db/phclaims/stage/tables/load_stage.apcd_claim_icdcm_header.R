@@ -81,8 +81,8 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	--Normalize ICD-CM codes and union tables
 	temp3 as (
 		select
-		internal_member_id,
-		medical_claim_header_id,
+		id_apcd,
+		claim_header_id,
 		first_service_date,
 		last_service_date,
 		icdcm_raw,
@@ -97,8 +97,8 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 		from temp1
 
 		union select
-		internal_member_id,
-		medical_claim_header_id,
+		id_apcd,
+		claim_header_id,
 		first_service_date,
 		last_service_date,
 		icdcm_raw,
@@ -115,8 +115,8 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	--Create icdcm_hash column and insert to table shell
 	insert into stg_claims.stage_apcd_claim_icdcm_header
 	select
-	internal_member_id,
-	medical_claim_header_id,
+	id_apcd,
+	claim_header_id,
 	first_service_date,
 	last_service_date,
 	icdcm_raw,
