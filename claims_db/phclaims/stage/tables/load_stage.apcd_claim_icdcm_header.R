@@ -18,7 +18,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
     "
 	--Pull diagnosis codes from medical_claim_diagnosis table, collapse to header, apply exclusions, fix ICD-CM version
 	with temp1 as (
-		distinct
+		select distinct
 		a.internal_member_id as id_apcd,
 		b.medical_claim_header_id as claim_header_id,
 		c.first_service_dt as first_service_date,
