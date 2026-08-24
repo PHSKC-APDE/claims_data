@@ -17,18 +17,14 @@ load_stage.apcd_claim_line_f <- function() {
   ### Run SQL query
   odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
     "
-    ------------------
-    --STEP 1: Select (distinct) desired columns from claim line table
-    --Exclude all denied/orphaned claim lines
-    -------------------
     insert into stg_claims.stage_apcd_claim_line
     select distinct
     a.internal_member_id as id_apcd,
     a.medical_claim_header_id as claim_header_id,
     a.medical_claim_service_line_id as claim_line_id,
     a.line_counter,
-    a.first_service_dt as first_service_date,
-    a.last_service_dt as last_service_date,
+    b.first_service_dt as first_service_date,
+    b.last_service_dt as last_service_date,
     NULL as charge_amt, --interim placeholder until cost data allowed
     a.revenue_code,
     a.place_of_service_code,
