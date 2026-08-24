@@ -20,7 +20,6 @@ load_stage.apcd_claim_procedure_f <- function() {
     "
 	--Extract HCPCS and CPT procedure codes
 	with line_procedure as (
-		--test code for line-level procedure codes
 		select
 		distinct
 		a.internal_member_id as id_apcd,
@@ -69,7 +68,6 @@ load_stage.apcd_claim_procedure_f <- function() {
 	),
 	--Extract ICD procedure codes
 	icd_procedure as (
-		--test code for ICD procedure codes
 		select
 		distinct
 		a.internal_member_id as id_apcd,
