@@ -125,7 +125,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	icdcm_number,
 	checksum(icdcm_norm, icdcm_version) as icdcm_hash,
 	getdate() as last_run
-	from temp4;",
+	from temp3;",
     .con = dw_inthealth))
 }
 
