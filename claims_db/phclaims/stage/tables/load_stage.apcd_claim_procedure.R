@@ -94,7 +94,7 @@ load_stage.apcd_claim_procedure_f <- function() {
 		and (y.id_apcd is null and z.id_apcd is null)
 	)
 	--Union and insert into table shell
-	insert into stg_claims.apcd_claim_procedure
+	insert into stg_claims.stage_apcd_claim_procedure
 	select *, getdate() as last_run from line_procedure
 	union select *, getdate() as last_run from icd_procedure;",
     .con = dw_inthealth))
