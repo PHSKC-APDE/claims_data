@@ -552,6 +552,59 @@ message(paste0("Completed copying ref.kc_provider_master to HHSAW - ", Sys.time(
 #Copy tables and set distribution as REPLICATE, add CHECKSUM to ref_icdcm_codes table)
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
+## Create copies of all needed ref tables using REPLICATE distribution
+table_name_list <- list(
+  "ref_apcd_claim_status",
+  "ref_apcd_provider_npi",
+  "ref_kc_provider_master",
+  "ref_kc_claim_type_crosswalk",
+  "ref_icdcm_codes",
+  "ref_pc_visit_oregon"
+)
+
+lapply(table_name_list, function(tbl) {
+  
+  # Name of the replicated table
+  rep_tbl <- paste0(tbl, "_rep")
+  
+  # DROP statement
+  drop_sql <- glue_sql(
+    "IF OBJECT_ID('stg_claims.{rep_tbl}', 'U') IS NOT NULL DROP TABLE stg_claims.{rep_tbl};",
+    rep_tbl = DBI::SQL(rep_tbl),
+    .con = dw_inthealth
+  )
+  
+  # CREATE TABLE AS SELECT statement
+  create_sql <- glue_sql(
+    "CREATE TABLE stg_claims.{rep_tbl}
+    WITH (
+        DISTRIBUTION = REPLICATE,
+        CLUSTERED COLUMNSTORE INDEX
+    )
+    AS
+    SELECT *
+    FROM stg_claims.{tbl};",
+    rep_tbl = DBI::SQL(rep_tbl),
+    tbl = DBI::SQL(tbl),
+    .con = dw_inthealth
+  )
+  
+  message("Dropping table if exists: ", rep_tbl)
+  DBI::dbExecute(dw_inthealth, drop_sql)
+  
+  message("Creating replicated table: ", rep_tbl)
+  DBI::dbExecute(dw_inthealth, create_sql)
+})
+
+## Add CHECKSUM(icdcm, icdcm_version) as icdcm_hash column to stg.claims_ref_icdcm_codes_rep table
+system.time(dbSendQuery(
+  conn = dw_inthealth,
+  glue_sql("
+    ALTER TABLE stg_claims.ref_icdcm_codes_rep
+    ADD icdcm_hash INT;
+    UPDATE stg_claims.ref_icdcm_codes_rep
+    SET icdcm_hash = CHECKSUM(icdcm, icdcm_version);", .con = dw_inthealth)))
+
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 #### Table 13: apcd_claim_header (~3hr) #### 
