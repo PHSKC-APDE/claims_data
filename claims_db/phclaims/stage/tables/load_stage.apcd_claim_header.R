@@ -362,7 +362,7 @@ load_stage.apcd_claim_header_f <- function() {
 		a.last_service_date,
 		a.first_paid_date,
 		a.last_paid_date,
-		a.charge_amt,
+		--a.charge_amt, --exclude until cost information is available
 		c.primary_diagnosis,
 		c.icdcm_version,
 		c.icdcm_hash,
@@ -1123,7 +1123,7 @@ load_stage.apcd_claim_header_f <- function() {
 		a.last_service_date,
 		a.first_paid_date,
 		a.last_paid_date,
-		a.charge_amt,
+		NULL as charge_amt, --placeholder until cost information is available
 		a.primary_diagnosis,
 		a.icdcm_version,
 		a.claim_status_id,
