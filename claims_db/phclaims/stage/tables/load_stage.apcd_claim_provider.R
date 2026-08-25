@@ -77,7 +77,7 @@ qa_stage.apcd_claim_provider_f <- function() {
     "select 'stg_claims.stage_apcd_claim_provider' as 'table', '# referring provider claim headers, expect match to raw' as qa_type,
     count(distinct claim_header_id) as qa
     from stg_claims.stage_apcd_claim_provider
-    where provider_type is 'referring';",
+    where provider_type = 'referring';",
     .con = dw_inthealth))
   
   res2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
