@@ -10,6 +10,7 @@
 	#Use hash fact tables and replicate reference tables to reduce run time
 	#Expanded ED pophealth definition to include Medicare Type B ED visit G-codes and 99292 (critical care add-on)
 	#Applies fix to DENSE_RANK-generated values for inpatient_id, pc_visit_id, ed_perform_id
+	#Add new code to extract Onpoint service type line-level flags from medical_claim table
 
 ### Run from master_apcd_analytic script
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/07_apcd_create_analytic_tables.R
@@ -44,35 +45,9 @@ load_stage.apcd_claim_header_f <- function() {
 		a.last_service_dt AS last_service_date,
 		a.first_paid_dt AS first_paid_date,
 		a.last_paid_dt AS last_paid_date,
-		a.charge_amt,
+		--a.charge_amt, --exclude until cost information is available
 		c.claim_status_id,
 		CASE WHEN a.type_of_bill_code IN (-1,-2) THEN NULL ELSE a.type_of_bill_code END AS type_of_bill_code,
-
-		-- service type flags from OnPoint
-		a.cardiac_imaging_and_tests_flag,
-		a.chiropractic_flag,
-		a.consultations_flag,
-		a.covid19_flag,
-		a.dialysis_flag,
-		a.durable_medical_equip_flag,
-		a.echography_flag,
-		a.endoscopic_procedure_flag,
-		a.evaluation_and_management_flag,
-		a.health_home_utilization_flag,
-		a.hospice_utilization_flag,
-		a.imaging_advanced_flag,
-		a.imaging_standard_flag,
-		a.inpatient_acute_flag,
-		a.inpatient_nonacute_flag,
-		a.lab_and_pathology_flag,
-		a.oncology_and_chemotherapy_flag,
-		a.physical_therapy_rehab_flag,
-		a.preventive_screenings_flag,
-		a.preventive_vaccinations_flag,
-		a.preventive_visits_flag,
-		a.psychiatric_visits_flag,
-		a.surgery_and_anesthesia_flag,
-		a.telehealth_flag,
 
 		-- concatenate claim type variables
 		CAST(CONVERT(varchar(100), a.claim_type_id)
@@ -121,6 +96,48 @@ load_stage.apcd_claim_header_f <- function() {
 	WHERE a.denied_header_flag = 'N'
 	  AND a.orphaned_header_flag = 'N'
 	OPTION (LABEL = 'apcd_claim_header_temp1');
+
+
+	------------------------------------------------------------
+	--STEP 1b: Generate claim header-level flags for line-level service type flags
+	------------------------------------------------------------
+	IF OBJECT_ID(N'stg_claims.tmp_apcd_service_type_flags', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_service_type_flags;
+
+	CREATE TABLE stg_claims.tmp_apcd_service_type_flags
+	WITH
+	(
+		DISTRIBUTION = HASH(claim_header_id),
+		CLUSTERED COLUMNSTORE INDEX
+	)
+	AS
+	SELECT medical_claim_header_id AS claim_header_id,
+		MAX(CASE WHEN cardiac_imaging_and_tests_flag = 'Y' THEN 1 ELSE 0 END) AS cardiac_imaging_and_tests_flag,
+		MAX(CASE WHEN chiropractic_flag = 'Y' THEN 1 ELSE 0 END) AS chiropractic_flag,
+		MAX(CASE WHEN consultations_flag = 'Y' THEN 1 ELSE 0 END) AS consultations_flag,
+		MAX(CASE WHEN covid19_flag = 'Y' THEN 1 ELSE 0 END) AS covid19_flag,
+		MAX(CASE WHEN dialysis_flag = 'Y' THEN 1 ELSE 0 END) AS dialysis_flag,
+		MAX(CASE WHEN durable_medical_equip_flag = 'Y' THEN 1 ELSE 0 END) AS durable_medical_equip_flag,
+		MAX(CASE WHEN echography_flag = 'Y' THEN 1 ELSE 0 END) AS echography_flag,
+		MAX(CASE WHEN endoscopic_procedure_flag = 'Y' THEN 1 ELSE 0 END) AS endoscopic_procedure_flag,
+		MAX(CASE WHEN evaluation_and_management_flag = 'Y' THEN 1 ELSE 0 END) AS evaluation_and_management_flag,
+		MAX(CASE WHEN health_home_utilization_flag = 'Y' THEN 1 ELSE 0 END) AS health_home_utilization_flag,
+		MAX(CASE WHEN hospice_utilization_flag = 'Y' THEN 1 ELSE 0 END) AS hospice_utilization_flag,
+		MAX(CASE WHEN imaging_advanced_flag = 'Y' THEN 1 ELSE 0 END) AS imaging_advanced_flag,
+		MAX(CASE WHEN imaging_standard_flag = 'Y' THEN 1 ELSE 0 END) AS imaging_standard_flag,
+		MAX(CASE WHEN inpatient_acute_flag = 'Y' THEN 1 ELSE 0 END) AS inpatient_acute_flag,
+		MAX(CASE WHEN inpatient_nonacute_flag = 'Y' THEN 1 ELSE 0 END) AS inpatient_nonacute_flag,
+		MAX(CASE WHEN lab_and_pathology_flag = 'Y' THEN 1 ELSE 0 END) AS lab_and_pathology_flag,
+		MAX(CASE WHEN oncology_and_chemotherapy_flag = 'Y' THEN 1 ELSE 0 END) AS oncology_and_chemotherapy_flag,
+		MAX(CASE WHEN physical_therapy_rehab_flag = 'Y' THEN 1 ELSE 0 END) AS physical_therapy_rehab_flag,
+		MAX(CASE WHEN preventive_screenings_flag = 'Y' THEN 1 ELSE 0 END) AS preventive_screenings_flag,
+		MAX(CASE WHEN preventive_vaccinations_flag = 'Y' THEN 1 ELSE 0 END) AS preventive_vaccinations_flag,
+		MAX(CASE WHEN preventive_visits_flag = 'Y' THEN 1 ELSE 0 END) AS preventive_visits_flag,
+		MAX(CASE WHEN psychiatric_visits_flag = 'Y' THEN 1 ELSE 0 END) AS psychiatric_visits_flag,
+		MAX(CASE WHEN surgery_and_anesthesia_flag = 'Y' THEN 1 ELSE 0 END) AS surgery_and_anesthesia_flag,
+		MAX(CASE WHEN telehealth_flag = 'Y' THEN 1 ELSE 0 END) AS telehealth_flag
+	FROM stg_claims.apcd_medical_claim
+	GROUP BY medical_claim_header_id
+	OPTION (LABEL = 'apcd_service_type_flags');
 
 
 	------------------------------------------------------------
@@ -359,30 +376,30 @@ load_stage.apcd_claim_header_f <- function() {
 		d.ccs_midlevel_desc,
 		d.ccs_detail_desc,
 		d.ccs_detail_code,
-		a.cardiac_imaging_and_tests_flag,
-		a.chiropractic_flag,
-		a.consultations_flag,
-		a.covid19_flag,
-		a.dialysis_flag,
-		a.durable_medical_equip_flag,
-		a.echography_flag,
-		a.endoscopic_procedure_flag,
-		a.evaluation_and_management_flag,
-		a.health_home_utilization_flag,
-		a.hospice_utilization_flag,
-		a.imaging_advanced_flag,
-		a.imaging_standard_flag,
-		a.inpatient_acute_flag,
-		a.inpatient_nonacute_flag,
-		a.lab_and_pathology_flag,
-		a.oncology_and_chemotherapy_flag,
-		a.physical_therapy_rehab_flag,
-		a.preventive_screenings_flag,
-		a.preventive_vaccinations_flag,
-		a.preventive_visits_flag,
-		a.psychiatric_visits_flag,
-		a.surgery_and_anesthesia_flag,
-		a.telehealth_flag,
+		e.cardiac_imaging_and_tests_flag,
+		e.chiropractic_flag,
+		e.consultations_flag,
+		e.covid19_flag,
+		e.dialysis_flag,
+		e.durable_medical_equip_flag,
+		e.echography_flag,
+		e.endoscopic_procedure_flag,
+		e.evaluation_and_management_flag,
+		e.health_home_utilization_flag,
+		e.hospice_utilization_flag,
+		e.imaging_advanced_flag,
+		e.imaging_standard_flag,
+		e.inpatient_acute_flag,
+		e.inpatient_nonacute_flag,
+		e.lab_and_pathology_flag,
+		e.oncology_and_chemotherapy_flag,
+		e.physical_therapy_rehab_flag,
+		e.preventive_screenings_flag,
+		e.preventive_vaccinations_flag,
+		e.preventive_visits_flag,
+		e.psychiatric_visits_flag,
+		e.surgery_and_anesthesia_flag,
+		e.telehealth_flag,
 
 		-- ED performance (RDA)
 		CASE WHEN a.ed_perform_temp = 1 AND b.kc_clm_type_id = 4 THEN 1 ELSE 0 END AS ed_perform,
@@ -423,11 +440,14 @@ load_stage.apcd_claim_header_f <- function() {
 		ON a.claim_header_id = c.claim_header_id
 	LEFT JOIN stg_claims.ref_icdcm_codes_rep AS d
 		ON (c.icdcm_hash = d.icdcm_hash)
+	LEFT JOIN stg_claims.tmp_apcd_service_type_flags AS e
+	ON a.claim_header_id = e.claim_header_id
 	OPTION (LABEL = 'apcd_claim_header_temp2');
 
 	--drop intermediate persistent tables no longer needed
 	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_header_temp1', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_header_temp1;
 	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_header_temp1b', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_header_temp1b;
+	IF OBJECT_ID(N'stg_claims.tmp_apcd_service_type_flags', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_service_type_flags;
 
 
 	------------------------------------------------------------
