@@ -474,7 +474,7 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 system.time(table_duplicate(
   conn_from = dw_inthealth,
   conn_to = db_claims,
-  server_to = "HHSAW_prod", #must match ODBC data source name AND keyring service name
+  server_to = "hhsaw", #must match ODBC data source name AND keyring service name
   db_to = "hhs_analytics_workspace",
   from_schema = "stg_claims",
   from_table = "ref_apcd_provider_npi",
@@ -487,7 +487,7 @@ system.time(table_duplicate(
 ### F) Index table on HHSAW
 system.time(dbSendQuery(
   conn = db_claims,
-  glue_sql("create clustered columnstore index idx_ccs_ref_apcd_provider_npi on claims.ref_apcd_provider_npi;")))
+  glue_sql("create clustered columnstore index idx_ccs_ref_apcd_provider_npi on claims.ref_apcd_provider_npi;", .con = db_claims)))
 
 message(paste0("Completed copying ref.apcd_provider_npi to HHSAW - ", Sys.time()))
 
@@ -529,7 +529,7 @@ db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod 
 system.time(table_duplicate(
   conn_from = dw_inthealth,
   conn_to = db_claims,
-  server_to = "HHSAW_prod", #must match ODBC data source name AND keyring service name
+  server_to = "hhsaw", #must match ODBC data source name AND keyring service name
   db_to = "hhs_analytics_workspace",
   from_schema = "stg_claims",
   from_table = "ref_kc_provider_master",
@@ -542,9 +542,15 @@ system.time(table_duplicate(
 ### F) Index table on HHSAW
 system.time(dbSendQuery(
   conn = db_claims,
-  glue_sql("create clustered columnstore index idx_ccs_ref_kc_provider_master on claims.ref_kc_provider_master;")))
+  glue_sql("create clustered columnstore index idx_ccs_ref_kc_provider_master on claims.ref_kc_provider_master;", .con = db_claims)))
 
 message(paste0("Completed copying ref.kc_provider_master to HHSAW - ", Sys.time()))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 13 prep: Copy ref tables needed to make claim_header table ####
+#Copy tables and set distribution as REPLICATE, add CHECKSUM to ref_icdcm_codes table)
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
