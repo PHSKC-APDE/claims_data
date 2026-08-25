@@ -18,7 +18,7 @@ load_stage.apcd_claim_provider_f <- function() {
   odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
     "
 	insert into stg_claims.stage_apcd_claim_provider
-	select
+	select distinct
 		a.internal_member_id as id_apcd,
 		b.medical_claim_header_id as claim_header_id,
 		b.first_service_dt as first_service_date,
@@ -34,26 +34,35 @@ load_stage.apcd_claim_provider_f <- function() {
 	left join stg_claims.apcd_ref_claim_no_elig as z
 	on a.internal_member_id = z.id_apcd
 	cross apply (
-		values
-			(a.billing_internal_provider_id,
-			 a.billing_provider_id,
-			 'billing'),
+		select
+			a.billing_internal_provider_id as provider_id_apcd,
+			a.billing_provider_id as provider_id_raw_apcd,
+			'billing' as provider_type
+		where a.billing_internal_provider_id not in ('-1','-2')
 
-			(a.attending_internal_provider_id,
-			 a.attending_provider_id,
-			 'attending'),
+		union all
+		select
+			a.attending_internal_provider_id,
+			a.attending_provider_id,
+			'attending'
+		where a.attending_internal_provider_id not in ('-1','-2')
 
-			(a.rendering_internal_provider_id,
-			 a.rendering_provider_id,
-			 'rendering'),
+		union all
+		select
+			a.rendering_internal_provider_id,
+			a.rendering_provider_id,
+			'rendering'
+		where a.rendering_internal_provider_id not in ('-1','-2')
 
-			(a.referring_internal_provider_id,
-			 a.referring_provider_id,
-			 'referring')
-	) v(provider_id_apcd, provider_id_raw_apcd, provider_type)
-	where v.provider_id_apcd not in ('-1','-2')
+		union all
+		select
+			a.referring_internal_provider_id,
+			a.referring_provider_id,
+			'referring'
+		where a.referring_internal_provider_id not in ('-1','-2')
+	) v
 	--exclude denined/orphaned claims
-	and (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
+	where (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
 	--exclude members with no WA residency OR no elig data
 	and (y.id_apcd is null and z.id_apcd is null);",
 		.con = dw_inthealth))
