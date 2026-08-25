@@ -428,13 +428,11 @@ create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.co
 system.time(load_stage.apcd_claim_provider_f())
 
 ### D) Table-level QA
-apcd_claim_provider_qa1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-  "select count(*) as qa from stg_claims.stage_apcd_claim_provider;", .con = dw_inthealth))
+system.time(apcd_provider_qa <- qa_stage.apcd_claim_provider_f())
 
-apcd_claim_provider_qa2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-  "select count(*) as qa from stg_claims.apcd_claim_provider_raw;", .con = dw_inthealth))
-  
-if(apcd_claim_provider_qa1$qa == apcd_claim_provider_qa2$qa) {
+#Process QA results
+if((apcd_provider_qa$qa[apcd_provider_qa$qa_type=="# referring provider claim headers, expect match to raw"]==
+    apcd_provider_qa$qa[apcd_provider_qa$qa_type=="# referring provider claim headers, expect match to apcd_claim_provider"])) {
   message(paste0("apcd_claim_provider QA result: PASS - ", Sys.time()))
 } else {
   stop(paste0("apcd_claim_provider QA result: FAIL - ", Sys.time()))
