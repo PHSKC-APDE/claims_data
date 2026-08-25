@@ -25,7 +25,8 @@ load_stage.apcd_claim_provider_f <- function() {
 		b.last_service_dt as last_service_date,
 		v.provider_id_apcd,
 		v.provider_id_raw_apcd,
-		v.provider_type
+		v.provider_type,
+		getdate() as last_run
 	from stg_claims.apcd_medical_claim as a
 	left join stg_claims.apcd_medical_claim_header as b
 	on a.medical_claim_header_id = b.medical_claim_header_id
