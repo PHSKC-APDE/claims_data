@@ -195,9 +195,9 @@ lapply(table_list, function(table_list) {
     table_dist <- "DISTRIBUTION = HASH(inpatient_discharge_id)" 
   } else if(table_list %in% c("eligibility", "member_month_detail", "dental_claim", "pharmacy_claim")) {
     table_dist <- "DISTRIBUTION = HASH(internal_member_id)"
-  } else if(table_list %in% c("medical_claim", "medical_claim_diagnosis", "medical_claim_icd_procedure")) {
+  } else if(table_list %in% c("medical_claim_diagnosis", "medical_claim_icd_procedure")) {
     table_dist <- "DISTRIBUTION = HASH(internal_member_id)"
-  } else if(table_list %in% c("medical_claim_header")) {
+  } else if(table_list %in% c("medical_claim_header", "medical_claim")) {
     table_dist <- "DISTRIBUTION = HASH(medical_claim_header_id)"
   } else if(table_list %in% c("provider")) {
     table_dist <- "DISTRIBUTION = HASH(internal_provider_id)"
