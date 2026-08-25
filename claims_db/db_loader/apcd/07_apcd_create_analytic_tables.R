@@ -620,7 +620,7 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.yaml",
              overall = T, ind_yr = F, overwrite = T, server = "HHSAW_prod")
 
-### C) Load tables
+### C) Load table
 system.time(load_stage.apcd_claim_header_f())
 
 ### D) Table-level QA
