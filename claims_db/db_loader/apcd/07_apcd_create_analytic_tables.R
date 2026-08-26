@@ -13,7 +13,8 @@
 #2024-03: Eli updated for migration to Azure HHSAW
 #2025-06: Eli added apcd_elig_month table
 #2026-05: Eli changed to use apde.etl for establishing SQL connection
-#2026-08: Eli added i) creation of apcd_ref_nonresident_id and apcd_ref_claim_no_elig tables, ii) 
+#2026-08: Eli added i) creation of apcd_ref_nonresident_id and apcd_ref_claim_no_elig tables, ii) updated QA code where needed,
+  # iii) added code to create REPLICATE copies of ref tables needed for claim_header_table, iv) added claim_bh table
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
