@@ -39,6 +39,7 @@ table_list <- list(
   "final_apcd_claim_provider",
   "final_apcd_claim_header",
   "final_apcd_claim_ccw",
+  "final_apcd_claim_bh",
   "final_apcd_claim_preg_episode",
   "final_apcd_claim_dental",
   "final_apcd_claim_pharmacy",
