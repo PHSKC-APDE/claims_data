@@ -714,7 +714,56 @@ if(all(c(apcd_claim_ccw_qa1$qa==0
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 15: apcd_claim_preg_episode ####
+#### Table 15: apcd_claim_bh ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_bh - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Create table
+
+apde.etl::create_table(
+  conn = dw_inthealth,
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_bh.yaml",
+  overall = T, ind_yr = F, overwrite = T, server = "inthealth")
+
+### B) Load tables (6 min run time)
+system.time(load_bh(
+  server = "inthealth",
+  conn = dw_inthealth,
+  source = "apcd",
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_bh.yaml"))
+
+### C) Table-level QA
+
+#all members should be in elig_demo table
+apcd_claim_bh_qa1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "select 'stg_claims.stage_apcd_claim_bh' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+    count(distinct a.id_apcd) as qa
+    from stg_claims.stage_apcd_claim_bh as a
+    left join stg_claims.stage_apcd_elig_demo as b
+    on a.id_apcd = a.id_apcd
+    where a.id_apcd is null;",
+  .con = dw_inthealth))
+
+#count conditions run
+apcd_claim_bh_qa2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "select 'stg_claims.stage_apcd_claim_bh' as 'table', '# conditions, expect 17' as qa_type,
+  count(distinct bh_cond) as qa
+  from stg_claims.stage_apcd_claim_bh;",
+  .con = dw_inthealth))
+
+##Process QA results
+if(all(c(apcd_claim_bh_qa1$qa[apcd_claim_bh_qa1$qa_type=="# members not in elig_demo, expect 0"] == 0,
+         apcd_claim_bh_qa2$qa[apcd_claim_bh_qa1$qa_type=="# conditions, expect 17"] == 17))) {
+  message(paste0("apcd_claim_bh QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_bh QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 16: apcd_claim_preg_episode ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_preg_episode - ", Sys.time()))
