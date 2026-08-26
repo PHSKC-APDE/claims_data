@@ -33,7 +33,7 @@ apde.etl::create_table(
 
 dbExecute(
   conn = db_claims,
-  glue_sql("create clustered columnstore index idx_ccs_BLANK on claims.BLANK;"))
+  glue_sql("create clustered columnstore index idx_ccs_BLANK on claims.BLANK;", .con = db_claims))
 
 ##EXAMPLE: 
 # apde.etl::create_table(
@@ -43,4 +43,4 @@ dbExecute(
 # 
 # dbExecute(
 #   conn = db_claims,
-#   glue_sql("create clustered columnstore index idx_ccs_BLANK on claims.final_apcd_elig_plr_2024;"))
+#   glue_sql("create clustered columnstore index idx_ccs_elig_plr_2024 on claims.final_apcd_elig_plr_2024;", .con = db_claims))
