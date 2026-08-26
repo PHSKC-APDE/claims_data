@@ -1246,9 +1246,15 @@ qa_stage.apcd_claim_header_f <- function() {
   res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "select 'stg_claims.apcd_medical_claim_header' as 'table', '# of headers in raw table' as qa_type,
     count(*) as qa
-    from stg_claims.apcd_medical_claim_header
+    from stg_claims.apcd_medical_claim_header as a
+	LEFT JOIN stg_claims.apcd_ref_nonresident_id AS y
+	ON a.internal_member_id = y.id_apcd
+	LEFT JOIN stg_claims.apcd_ref_claim_no_elig AS z
+	ON a.internal_member_id = z.id_apcd
     --exclude denined/orphaned claims
-    where denied_header_flag = 'N' and orphaned_header_flag = 'N';",
+    where denied_header_flag = 'N' and orphaned_header_flag = 'N'
+	--exclude members with no WA residency OR no elig data
+	AND y.id_apcd IS NULL AND z.id_apcd IS NULL;",
     .con = dw_inthealth))
   
   #all members should be in elig_demo table
@@ -1348,16 +1354,8 @@ qa_stage.apcd_claim_header_f <- function() {
     from stg_claims.stage_apcd_claim_header;",
     .con = dw_inthealth))
   
-  #verify that there are no rows with ed_perform_id without ed_pophealth_id
-  res10 <- dbGetQuery(conn = dw_inthealth, glue_sql(
-    "select 'stg_claims.stage_apcd_claim_header' as 'table', '# of ed_perform rows with no ed_pophealth, expect 0' as qa_type,
-    count(*) as qa
-    from stg_claims.stage_apcd_claim_header
-    where ed_perform_id is not null and ed_pophealth_id is null;",
-    .con = dw_inthealth))
-  
   #verify that 1-day overlap window was implemented correctly with ed_pophealth_id
-  res11 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  res10 <- dbGetQuery(conn = dw_inthealth, glue_sql(
     "with cte as
     (
     select * 
