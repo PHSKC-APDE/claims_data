@@ -53,7 +53,7 @@ table_list <- list(
 #Begin loop
 lapply(table_list, function(table_list) {
 
-  table_name <- glue::glue_sql(table_list)
+  table_name <- glue::glue_sql(table_list, .con = db_claims)
   message(paste0("Working on table: ", table_name, " - ", Sys.time()))
   db_claims <- apde.etl::create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
   DBI::dbExecute(conn = db_claims,
