@@ -31,7 +31,7 @@ load_stage.apcd_ref_member_exclude_f <- function() {
       select distinct id_apcd,
       1 as non_wa_resident
       from temp2
-      where out_of_state_all = 1;
+      where out_of_state_all = 1
     ),
     --select distinct member IDs from member_month_detail table
     temp3 as (
