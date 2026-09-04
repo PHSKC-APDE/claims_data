@@ -19,7 +19,6 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
     "
 	--STEP 0: Cleanup old temp tables
 	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_d1_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_d1_raw;
-	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_d1_dedup', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_d1_dedup;
 	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_header_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_header_raw;
 	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_norm', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_norm;
 	
@@ -28,10 +27,10 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	WITH
 	(
 	DISTRIBUTION = HASH(claim_header_id),
-	CLUSTERED COLUMNSTORE INDEX
+	HEAP
 	)
 	AS
-	SELECT
+	SELECT DISTINCT
 	a.internal_member_id AS id_apcd,
 	b.medical_claim_header_id AS claim_header_id,
 	c.first_service_dt AS first_service_date,
@@ -68,25 +67,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	--exclude members with no WA residency OR no elig data
 	AND y.id_apcd IS NULL;
 
-	--STEP 2: Deduplicate line-level diagnosis codes (faster than using DISTINCT in first step)
-	CREATE TABLE stg_claims.tmp_apcd_icdcm_d1_dedup
-	WITH
-	(
-	DISTRIBUTION = HASH(claim_header_id),
-	CLUSTERED COLUMNSTORE INDEX
-	)
-	AS
-	SELECT *
-	FROM
-	(
-	SELECT *,
-	ROW_NUMBER() OVER (PARTITION BY id_apcd, claim_header_id, icdcm_raw ORDER BY id_apcd) AS rn
-	FROM stg_claims.tmp_apcd_icdcm_d1_raw
-	) x
-	WHERE rn = 1;
-	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_d1_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_d1_raw;
-
-	--STEP 3: Extract primary diagnsosis codes from medical claim header table, applying exclusions
+	--STEP 2: Extract primary diagnsosis codes from medical claim header table, applying exclusions
 	--Note that ICD-CM version in this table does not need correcting (all first digit alpha codes > 2015-10-01 are V and E codes)
 	CREATE TABLE stg_claims.tmp_apcd_icdcm_header_raw
 	WITH
@@ -114,7 +95,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	--exclude members with no WA residency OR no elig data
 	AND y.id_apcd IS NULL;
 
-	--STEP 4: Normalize ICD-CM codes and union tables
+	--STEP 3: Normalize ICD-CM codes and union tables
 	CREATE TABLE stg_claims.tmp_apcd_icdcm_norm
 	WITH
 	(
@@ -136,7 +117,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	END AS icdcm_norm,
 	icdcm_version,
 	icdcm_number
-	FROM stg_claims.tmp_apcd_icdcm_d1_dedup
+	FROM stg_claims.tmp_apcd_icdcm_d1_raw
 	UNION ALL
 	SELECT
 	id_apcd,
@@ -153,11 +134,11 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	icdcm_version,
 	icdcm_number
 	FROM stg_claims.tmp_apcd_icdcm_header_raw;
-	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_d1_dedup', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_d1_dedup;
+	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_d1_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_d1_raw;
 	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_header_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_header_raw;
 	
 
-	--STEP 5: Create icdcm_hash column and create final table (CTA is faster than INSERT INTO in Synapse)
+	--STEP 4: Create icdcm_hash column and create final table (CTA is faster than INSERT INTO in Synapse)
 	IF OBJECT_ID('stg_claims.stage_apcd_claim_icdcm_header', 'U') IS NOT NULL DROP TABLE stg_claims.stage_apcd_claim_icdcm_header;
 	CREATE TABLE stg_claims.stage_apcd_claim_icdcm_header
 	WITH
