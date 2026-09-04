@@ -60,6 +60,7 @@ load_stage.apcd_ref_member_exclude_f <- function() {
       from temp3
     )
     --join 2 ref tables and insert into table shell
+    insert into stg_claims.apcd_ref_member_exclude
     select
     coalesce(a.id_apcd, b.id_apcd) as id_apcd,
     case when a.non_wa_resident is null then 0 else a.non_wa_resident end as non_wa_resident,
