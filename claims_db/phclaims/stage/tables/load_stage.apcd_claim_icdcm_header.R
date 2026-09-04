@@ -65,7 +65,8 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	AND c.denied_header_flag = 'N'
 	AND c.orphaned_header_flag = 'N'
 	--exclude members with no WA residency OR no elig data
-	AND y.id_apcd IS NULL;
+	AND y.id_apcd IS NULL
+	OPTION (LABEL = 'icdcm_step1');
 
 	--STEP 2: Extract primary diagnsosis codes from medical claim header table, applying exclusions
 	--Note that ICD-CM version in this table does not need correcting (all first digit alpha codes > 2015-10-01 are V and E codes)
@@ -103,6 +104,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	CLUSTERED COLUMNSTORE INDEX
 	)
 	AS
+	-- First branch: line-level diagnoses
 	SELECT
 	id_apcd,
 	claim_header_id,
@@ -110,15 +112,28 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	last_service_date,
 	icdcm_raw,
 	CASE
-	WHEN icdcm_version = 10 AND LEN(icdcm_raw) < 3 THEN NULL -- set to null ICD-10-CM codes that are too short
-	WHEN icdcm_version = 9 AND LEN(icdcm_raw) = 3 THEN icdcm_raw + '00' -- pad ICD-9-CM codes to 5 digits
-	WHEN icdcm_version = 9 AND LEN(icdcm_raw) = 4 THEN icdcm_raw + '0' -- pad ICD-9-CM codes to 5 digits
+	WHEN icdcm_version = 10 AND raw_len < 3 THEN NULL
+	WHEN icdcm_version = 9 AND raw_len = 3 THEN icdcm_raw + '00'
+	WHEN icdcm_version = 9 AND raw_len = 4 THEN icdcm_raw + '0'
 	ELSE icdcm_raw
 	END AS icdcm_norm,
 	icdcm_version,
 	icdcm_number
-	FROM stg_claims.tmp_apcd_icdcm_d1_raw
+	FROM (
+		SELECT
+		id_apcd,
+		claim_header_id,
+		first_service_date,
+		last_service_date,
+		icdcm_raw,
+		LEN(icdcm_raw) AS raw_len,
+		icdcm_version,
+		icdcm_number
+		FROM stg_claims.tmp_apcd_icdcm_d1_raw
+	) AS d1
 	UNION ALL
+
+	-- Second branch: header-level diagnoses
 	SELECT
 	id_apcd,
 	claim_header_id,
@@ -126,17 +141,28 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	last_service_date,
 	icdcm_raw,
 	CASE
-	WHEN icdcm_version = 10 AND LEN(icdcm_raw) < 3 THEN NULL -- set to null ICD-10-CM codes that are too short
-	WHEN icdcm_version = 9 AND LEN(icdcm_raw) = 3 THEN icdcm_raw + '00' -- pad ICD-9-CM codes to 5 digits
-	WHEN icdcm_version = 9 AND LEN(icdcm_raw) = 4 THEN icdcm_raw + '0' -- pad ICD-9-CM codes to 5 digits
+	WHEN icdcm_version = 10 AND raw_len < 3 THEN NULL
+	WHEN icdcm_version = 9 AND raw_len = 3 THEN icdcm_raw + '00'
+	WHEN icdcm_version = 9 AND raw_len = 4 THEN icdcm_raw + '0'
 	ELSE icdcm_raw
 	END AS icdcm_norm,
 	icdcm_version,
 	icdcm_number
-	FROM stg_claims.tmp_apcd_icdcm_header_raw;
+		FROM (
+		SELECT
+		id_apcd,
+		claim_header_id,
+		first_service_date,
+		last_service_date,
+		icdcm_raw,
+		LEN(icdcm_raw) AS raw_len,
+		icdcm_version,
+		icdcm_number
+		FROM stg_claims.tmp_apcd_icdcm_header_raw
+	) AS hdr
+	OPTION (LABEL='icdcm_step3_union_norm');
 	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_d1_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_d1_raw;
 	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_header_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_header_raw;
-	
 
 	--STEP 4: Create icdcm_hash column and create final table (CTA is faster than INSERT INTO in Synapse)
 	IF OBJECT_ID('stg_claims.stage_apcd_claim_icdcm_header', 'U') IS NOT NULL DROP TABLE stg_claims.stage_apcd_claim_icdcm_header;
@@ -158,7 +184,8 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	icdcm_number,
 	CHECKSUM(icdcm_norm, icdcm_version) AS icdcm_hash,
 	GETDATE() AS last_run
-	FROM stg_claims.tmp_apcd_icdcm_norm;
+	FROM stg_claims.tmp_apcd_icdcm_norm
+	OPTION (LABEL='icdcm_step4_final');
 	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_norm', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_norm;",
     .con = dw_inthealth))
 }
