@@ -7,7 +7,7 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/apcd/master_apcd_analytic.R
 
 #### Load script ####
-load_stage.apcd_ref_nonresident_id_f <- function() {
+load_stage.apcd_ref_member_exclude_f <- function() {
   odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
     "
     --flag out of state member months
