@@ -93,17 +93,14 @@ load_stage.apcd_claim_header_f <- function() {
 	LEFT JOIN stg_claims.ref_apcd_claim_status_rep AS c
 		ON a.header_status = c.claim_status_code
 		
-	LEFT JOIN stg_claims.apcd_ref_nonresident_id AS y
+	LEFT JOIN stg_claims.apcd_ref_member_exclude AS y
 		ON a.internal_member_id = y.id_apcd
-	LEFT JOIN stg_claims.apcd_ref_claim_no_elig AS z
-		ON a.internal_member_id = z.id_apcd
 
 	--exclude denined/orphaned claims
 	WHERE a.denied_header_flag = 'N'
 	  AND a.orphaned_header_flag = 'N'
 	--exclude members with no WA residency OR no elig data
 	  AND y.id_apcd IS NULL
-	  AND z.id_apcd IS NULL
 	OPTION (LABEL = 'apcd_claim_header_temp1');
 
 
@@ -145,12 +142,10 @@ load_stage.apcd_claim_header_f <- function() {
 		MAX(CASE WHEN surgery_and_anesthesia_flag = 'Y' THEN 1 ELSE 0 END) AS surgery_and_anesthesia_flag,
 		MAX(CASE WHEN telehealth_flag = 'Y' THEN 1 ELSE 0 END) AS telehealth_flag
 	FROM stg_claims.apcd_medical_claim as a
-	LEFT JOIN stg_claims.apcd_ref_nonresident_id AS y
+	LEFT JOIN stg_claims.apcd_ref_member_exclude AS y
 		ON a.internal_member_id = y.id_apcd
-	LEFT JOIN stg_claims.apcd_ref_claim_no_elig AS z
-		ON a.internal_member_id = z.id_apcd
 	--exclude members with no WA residency OR no elig data
-	WHERE y.id_apcd IS NULL AND z.id_apcd IS NULL
+	WHERE y.id_apcd IS NULL
 	GROUP BY medical_claim_header_id
 	OPTION (LABEL = 'apcd_service_type_flags');
 
@@ -180,16 +175,14 @@ load_stage.apcd_claim_header_f <- function() {
 		--procedure code table
 		LEFT JOIN stg_claims.stage_apcd_claim_procedure AS b
 			ON a.medical_claim_header_id = b.claim_header_id
-		LEFT JOIN stg_claims.apcd_ref_nonresident_id AS y
+		LEFT JOIN stg_claims.apcd_ref_member_exclude AS y
 			ON a.internal_member_id = y.id_apcd
-		LEFT JOIN stg_claims.apcd_ref_claim_no_elig AS z
-			ON a.internal_member_id = z.id_apcd
 		
 		--exclude denined/orphaned claims
 		WHERE a.denied_header_flag = 'N'
 		  AND a.orphaned_header_flag = 'N'
 		--exclude members with no WA residency OR no elig data
-		  AND y.id_apcd IS NULL AND z.id_apcd IS NULL
+		  AND y.id_apcd IS NULL
 		
 		--cluster to claim header
 		GROUP BY a.medical_claim_header_id
@@ -287,16 +280,14 @@ load_stage.apcd_claim_header_f <- function() {
 		) AS d
 			ON a.medical_claim_header_id = d.claim_header_id
 			
-		LEFT JOIN stg_claims.apcd_ref_nonresident_id AS y
+		LEFT JOIN stg_claims.apcd_ref_member_exclude AS y
 			ON a.internal_member_id = y.id_apcd
-		LEFT JOIN stg_claims.apcd_ref_claim_no_elig AS z
-			ON a.internal_member_id = z.id_apcd
 
 		--exclude denined/orphaned claims
 		WHERE a.denied_header_flag = 'N'
 		  AND a.orphaned_header_flag = 'N'
 		--exclude members with no WA residency OR no elig data
-		  AND y.id_apcd IS NULL AND z.id_apcd IS NULL
+		  AND y.id_apcd IS NULL
 
 		--cluster to claim header
 		GROUP BY a.medical_claim_header_id
@@ -1247,14 +1238,12 @@ qa_stage.apcd_claim_header_f <- function() {
     "select 'stg_claims.apcd_medical_claim_header' as 'table', '# of headers in raw table' as qa_type,
     count(*) as qa
     from stg_claims.apcd_medical_claim_header as a
-	LEFT JOIN stg_claims.apcd_ref_nonresident_id AS y
+	LEFT JOIN stg_claims.apcd_ref_member_exclude AS y
 	ON a.internal_member_id = y.id_apcd
-	LEFT JOIN stg_claims.apcd_ref_claim_no_elig AS z
-	ON a.internal_member_id = z.id_apcd
     --exclude denined/orphaned claims
     where denied_header_flag = 'N' and orphaned_header_flag = 'N'
 	--exclude members with no WA residency OR no elig data
-	AND y.id_apcd IS NULL AND z.id_apcd IS NULL;",
+	AND y.id_apcd IS NULL;",
     .con = dw_inthealth))
   
   #all members should be in elig_demo table

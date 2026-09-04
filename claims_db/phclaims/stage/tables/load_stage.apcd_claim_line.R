@@ -44,15 +44,13 @@ load_stage.apcd_claim_line_f <- function() {
     
     left join stg_claims.apcd_medical_claim_header as b
     on a.medical_claim_header_id = b.medical_claim_header_id
-    left join stg_claims.apcd_ref_nonresident_id as y
+    left join stg_claims.apcd_ref_member_exclude as y
     on a.internal_member_id = y.id_apcd
-    left join stg_claims.apcd_ref_claim_no_elig as z
-    on a.internal_member_id = z.id_apcd
     
     --exclude denined/orphaned claims
     where (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
     --exclude members with no WA residency OR no elig data
-    and (y.id_apcd is null and z.id_apcd is null);",
+    and (y.id_apcd is null);",
     .con = dw_inthealth))
 }
 

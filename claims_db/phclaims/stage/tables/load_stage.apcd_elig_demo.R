@@ -45,11 +45,9 @@ load_stage.apcd_elig_demo_f <- function() {
     	order by internal_member_id, case when gender_code = 'U' or gender_code is null then null else cast(year_month as int) end
     		rows between unbounded preceding and unbounded following) as gender_recent
     from stg_claims.apcd_member_month_detail as x
-    left join stg_claims.apcd_ref_nonresident_id as y
+    left join stg_claims.apcd_ref_member_exclude as y
     on x.internal_member_id = y.id_apcd
-    left join stg_claims.apcd_ref_claim_no_elig as z
-    on x.internal_member_id = z.id_apcd
-    where y.id_apcd is null and z.id_apcd is null --exclude members with no WA residency OR no elig data
+    where y.id_apcd is null --exclude members with no WA residency OR no elig data
     ) as a
     group by a.internal_member_id;
     
@@ -97,11 +95,9 @@ load_stage.apcd_elig_demo_f <- function() {
     case when hispanic_id in (1,2) then hispanic_id else 0 end as latino_id
     into #elig_temp1
     from stg_claims.apcd_eligibility as x
-    left join stg_claims.apcd_ref_nonresident_id as y
+    left join stg_claims.apcd_ref_member_exclude as y
     on x.internal_member_id = y.id_apcd
-    left join stg_claims.apcd_ref_claim_no_elig as z
-    on x.internal_member_id = z.id_apcd
-    where y.id_apcd is null and z.id_apcd is null --exclude members with no WA residency OR no elig data;
+    where y.id_apcd is null --exclude members with no WA residency OR no elig data;
     
     
     ------------------
@@ -282,11 +278,9 @@ qa_stage.apcd_elig_demo_f <- function() {
       'distinct count, expect to equal other qa values' as qa_type,
       count(distinct x.internal_member_id) as qa
       from stg_claims.apcd_member_month_detail as x
-      left join stg_claims.apcd_ref_nonresident_id as y
-      on x.internal_member_id = y.id_apcd
-      left join stg_claims.apcd_ref_claim_no_elig as z
-      on x.internal_member_id = z.id_apcd
-      where y.id_apcd is null and z.id_apcd is null --exclude members with no WA residency OR no elig data
+	  left join stg_claims.apcd_ref_member_exclude as y
+	  on x.internal_member_id = y.id_apcd
+	  where y.id_apcd is null --exclude members with no WA residency OR no elig data
     ",
     .con = dw_inthealth))
   res3 <- dbGetQuery(conn = dw_inthealth, glue_sql(

@@ -30,10 +30,8 @@ load_stage.apcd_claim_provider_f <- function() {
 	from stg_claims.apcd_medical_claim as a
 	left join stg_claims.apcd_medical_claim_header as b
 	on a.medical_claim_header_id = b.medical_claim_header_id
-	left join stg_claims.apcd_ref_nonresident_id as y
-	on a.internal_member_id = y.id_apcd
-	left join stg_claims.apcd_ref_claim_no_elig as z
-	on a.internal_member_id = z.id_apcd
+    left join stg_claims.apcd_ref_member_exclude as y
+    on a.internal_member_id = y.id_apcd
 	cross apply (
 		select
 			a.billing_internal_provider_id as provider_id_apcd,
@@ -65,7 +63,7 @@ load_stage.apcd_claim_provider_f <- function() {
 	--exclude denined/orphaned claims
 	where (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
 	--exclude members with no WA residency OR no elig data
-	and (y.id_apcd is null and z.id_apcd is null);",
+	and (y.id_apcd is null);",
 		.con = dw_inthealth))
 }
 
@@ -86,15 +84,13 @@ qa_stage.apcd_claim_provider_f <- function() {
 	from stg_claims.apcd_medical_claim as a
 	left join stg_claims.apcd_medical_claim_header as b
 	on a.medical_claim_header_id = b.medical_claim_header_id
-	left join stg_claims.apcd_ref_nonresident_id as y
-	on a.internal_member_id = y.id_apcd
-	left join stg_claims.apcd_ref_claim_no_elig as z
-	on a.internal_member_id = z.id_apcd
+    left join stg_claims.apcd_ref_member_exclude as y
+    on a.internal_member_id = y.id_apcd
 	where a.referring_internal_provider_id not in ('-1','-2')
 	--exclude denined/orphaned claims
 	and (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
 	--exclude members with no WA residency OR no elig data
-	and (y.id_apcd is null and z.id_apcd is null);",
+	and (y.id_apcd is null);",
     .con = dw_inthealth))
   
   res_final <- mget(ls(pattern="^res")) %>% bind_rows()

@@ -44,16 +44,14 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 		on a.medical_claim_service_line_id = b.medical_claim_service_line_id
 		left join stg_claims.apcd_medical_claim_header as c
 		on b.medical_claim_header_id = c.medical_claim_header_id
-		left join stg_claims.apcd_ref_nonresident_id as y
+		left join stg_claims.apcd_ref_member_exclude as y
 		on a.internal_member_id = y.id_apcd
-		left join stg_claims.apcd_ref_claim_no_elig as z
-		on a.internal_member_id = z.id_apcd
 		--exclude null/invalid ICD-CM codes
 		where (a.diagnosis_code not in ('-1','-2') and a.diagnosis_type_code not in ('S'))
 		--exclude denied and orphaned headers
 		and (c.denied_header_flag = 'N' and c.orphaned_header_flag = 'N')
 		--exclude members with no WA residency OR no elig data
-		and (y.id_apcd is null and z.id_apcd is null)
+		and (y.id_apcd is null)
 	),
 	--Pull primary diagnosis from medical_claim_header table, apply exclusions
 	--Note that ICD-CM version in this table does not need correcting (all first digit alpha codes > 2015-10-01 are V and E codes)
@@ -67,16 +65,14 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 		case when icd_version_ind = '9' then 9 when icd_version_ind = '0' then 10 end as icdcm_version,
 		'01' as icdcm_number
 		from stg_claims.apcd_medical_claim_header as a
-		left join stg_claims.apcd_ref_nonresident_id as y
+		left join stg_claims.apcd_ref_member_exclude as y
 		on a.internal_member_id = y.id_apcd
-		left join stg_claims.apcd_ref_claim_no_elig as z
-		on a.internal_member_id = z.id_apcd
 		--exclude null/invalid ICD-CM codes
 		where (a.diagnosis_code not in ('-1','-2'))
 		--exclude denied and orphaned headers
 		and (a.denied_header_flag = 'N' and a.orphaned_header_flag = 'N')
 		--exclude members with no WA residency OR no elig data
-		and (y.id_apcd is null and z.id_apcd is null)
+		and (y.id_apcd is null)
 	),
 	--Normalize ICD-CM codes and union tables
 	temp3 as (

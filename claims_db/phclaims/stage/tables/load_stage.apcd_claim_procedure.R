@@ -31,10 +31,8 @@ load_stage.apcd_claim_procedure_f <- function() {
 		from stg_claims.apcd_medical_claim as a
 		left join stg_claims.apcd_medical_claim_header as b
 		on a.medical_claim_header_id = b.medical_claim_header_id
-		left join stg_claims.apcd_ref_nonresident_id as y
+		left join stg_claims.apcd_ref_member_exclude as y
 		on a.internal_member_id = y.id_apcd
-		left join stg_claims.apcd_ref_claim_no_elig as z
-		on a.internal_member_id = z.id_apcd
 		cross apply (
 			-- Valid modifiers
 			select a.procedure_modifier_code_1
@@ -64,7 +62,7 @@ load_stage.apcd_claim_procedure_f <- function() {
 		--exclude denined/orphaned claims
 		and (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
 		--exclude members with no WA residency OR no elig data
-		and (y.id_apcd is null and z.id_apcd is null)
+		and (y.id_apcd is null)
 	),
 	--Extract ICD procedure codes
 	icd_procedure as (
@@ -81,15 +79,13 @@ load_stage.apcd_claim_procedure_f <- function() {
 		on a.medical_claim_service_line_id = b.medical_claim_service_line_id
 		left join stg_claims.apcd_medical_claim_header as c
 		on b.medical_claim_header_id = c.medical_claim_header_id
-		left join stg_claims.apcd_ref_nonresident_id as y
+		left join stg_claims.apcd_ref_member_exclude as y
 		on a.internal_member_id = y.id_apcd
-		left join stg_claims.apcd_ref_claim_no_elig as z
-		on a.internal_member_id = z.id_apcd
 		where a.icd_procedure_code not in ('-1','-2')
 		--exclude denined/orphaned claims
 		and (c.denied_header_flag = 'N' and c.orphaned_header_flag = 'N')
 		--exclude members with no WA residency OR no elig data
-		and (y.id_apcd is null and z.id_apcd is null)
+		and (y.id_apcd is null)
 	)
 	--Union and insert into table shell
 	insert into stg_claims.stage_apcd_claim_procedure
