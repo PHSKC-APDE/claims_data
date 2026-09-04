@@ -55,7 +55,9 @@ load_stage.apcd_ref_member_exclude_f <- function() {
       1 as no_elig_data
       from temp4
       except
-      select internal_member_id as id_apcd from temp3
+      select internal_member_id as id_apcd,
+      1 as no_elig_data
+      from temp3
     )
     --join 2 ref tables and insert into table shell
     select
