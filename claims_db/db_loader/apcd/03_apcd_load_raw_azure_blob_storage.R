@@ -1,4 +1,4 @@
-#### MASTER CODE TO UPLOAD WA-APCD GZIP files to Azure Blob Storage
+#### MASTER CODE TO UPLOAD WA-APCD PARQUET files to Azure Blob Storage
 #
 # Eli Kern, PHSKC-APDE
 #
@@ -46,12 +46,12 @@ blob_endp <- storage_endpoint("https://inthealthdtalakegen2.blob.core.windows.ne
 cont <- storage_container(blob_endp, "inthealth")
 
 
-#### STEP 2: UPLOAD GZIP FILES TO AZURE BLOG STORAGE ####
+#### STEP 2: UPLOAD PARQUET FILES TO AZURE BLOG STORAGE ####
 
 #Note that storage_upload (one file at a time) is faster than storage_multiupload (parallel uploads) for large files
 
 ## Beginning message (before loop begins)
-message(paste0("Beginning process to load GZIP files to Azure Blob Storage - ", Sys.time()))
+message(paste0("Beginning process to load PARQUET files to Azure Blob Storage - ", Sys.time()))
 
 ##Set up empty dataframe to hold QA results
 file_count_qa_results <- data.frame(
@@ -79,7 +79,7 @@ lapply(folder_list, function(folder_list) {
   }
   message(paste0("Working on folder for: ", folder_selected, " - ", Sys.time()))
   
-  #Create CIFS folder path, load list of GZIP files, and count PARQUET files
+  #Create CIFS folder path, load list of PARQUET files, and count PARQUET files
   folder_path <- glue("//dphcifs/apde-cdip/apcd/apcd_data_import/", folder_selected, "/")
   file_paths_list <- as.list(list.files(path = file.path(folder_path), full.names = F, pattern = "*.parquet", all.files = F))
   file_count_cifs <- length(file_paths_list)
@@ -97,7 +97,7 @@ lapply(folder_list, function(folder_list) {
    #Count number of PARQUET files uploaded to Azure Blob Storage
    file_list_azure <- AzureStor::list_storage_files(cont, dir = glue("claims/apcd/", folder_selected, "_import/"))$name
    file_count_azure <- length(file_list_azure[grepl("*.parquet$", file_list_azure)])
-   message(paste0("Number of GZIP files in Azure for: ", folder_selected, " - ", file_count_azure, " files"))
+   message(paste0("Number of PARQUET files in Azure for: ", folder_selected, " - ", file_count_azure, " files"))
    
    #QA check
    if(file_count_cifs == file_count_azure) {
