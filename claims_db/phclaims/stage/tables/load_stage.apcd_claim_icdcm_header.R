@@ -17,134 +17,156 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
   ### Run SQL query
   odbc::dbGetQuery(dw_inthealth, glue::glue_sql(
     "
-	--Pull diagnosis codes from medical_claim_diagnosis table, collapse to header, apply exclusions, fix ICD-CM version
+	--STEP 0: Cleanup old temp tables
+	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_d1_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_d1_raw;
+	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_d1_dedup', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_d1_dedup;
+	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_header_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_header_raw;
+	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_norm', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_norm;
 	
-	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_icdcm_header_temp1', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp1;
-	CREATE TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp1
+	--STEP 1: Extract line-level diagnosis codes without collapsing yet
+	CREATE TABLE stg_claims.tmp_apcd_icdcm_d1_raw
 	WITH
 	(
-		DISTRIBUTION = ROUND_ROBIN,
-		HEAP
+	DISTRIBUTION = HASH(claim_header_id),
+	CLUSTERED COLUMNSTORE INDEX
 	)
 	AS
-	select distinct --note, DISTINCT is needed because ICD-CM codes can be duplicated across claim lines
-	a.internal_member_id as id_apcd,
-	b.medical_claim_header_id as claim_header_id,
-	c.first_service_dt as first_service_date,
-	c.last_service_dt as last_service_date,
-	a.diagnosis_code as icdcm_raw,
-
+	SELECT
+	a.internal_member_id AS id_apcd,
+	b.medical_claim_header_id AS claim_header_id,
+	c.first_service_dt AS first_service_date,
+	c.last_service_dt AS last_service_date,
+	a.diagnosis_code AS icdcm_raw,
 	--fix ICD-CM version when it it set to 9 and should be 10, convert from text to number
-	case
-		when a.icd_version_ind = '9' and a.last_service_dt >= '2015-10-01' and a.diagnosis_code like '[A-Z]%' then 10
-		when a.icd_version_ind = '9' then 9
-		when a.icd_version_ind = '0' then 10
-	end as icdcm_version,
-
+	CASE
+		WHEN a.icd_version_ind = '9'
+			 AND a.last_service_dt >= '2015-10-01'
+			 AND a.diagnosis_code LIKE '[A-Z]%'
+		THEN 10
+		WHEN a.icd_version_ind = '9' THEN 9
+		WHEN a.icd_version_ind = '0' THEN 10
+	END AS icdcm_version,
 	--assign diagnosis number
-	case
-		when a.diagnosis_type_code = 'A' then 'admit'
-		when a.diagnosis_type_code = 'E' then 'ecode'
-		else 'all'
-	end as icdcm_number
-
-	from stg_claims.apcd_medical_claim_diagnosis as a
-	left join stg_claims.apcd_medical_claim as b
-	on a.medical_claim_service_line_id = b.medical_claim_service_line_id
-	left join stg_claims.apcd_medical_claim_header as c
-	on b.medical_claim_header_id = c.medical_claim_header_id
-	left join stg_claims.apcd_ref_member_exclude as y
-	on a.internal_member_id = y.id_apcd
+	CASE
+		WHEN a.diagnosis_type_code = 'A' THEN 'admit'
+		WHEN a.diagnosis_type_code = 'E' THEN 'ecode'
+		ELSE 'all'
+	END AS icdcm_number
+	FROM stg_claims.apcd_medical_claim_diagnosis AS a
+	LEFT JOIN stg_claims.apcd_medical_claim AS b
+	ON a.medical_claim_service_line_id = b.medical_claim_service_line_id
+	LEFT JOIN stg_claims.apcd_medical_claim_header AS c
+	ON b.medical_claim_header_id = c.medical_claim_header_id
+	LEFT JOIN stg_claims.apcd_ref_member_exclude AS y
+	ON a.internal_member_id = y.id_apcd
 	--exclude null/invalid ICD-CM codes
-	where (a.diagnosis_code not in ('-1','-2') and a.diagnosis_type_code not in ('S'))
+	WHERE a.diagnosis_code NOT IN ('-1', '-2')
+	AND a.diagnosis_type_code NOT IN ('S')
 	--exclude denied and orphaned headers
-	and (c.denied_header_flag = 'N' and c.orphaned_header_flag = 'N')
+	AND c.denied_header_flag = 'N'
+	AND c.orphaned_header_flag = 'N'
 	--exclude members with no WA residency OR no elig data
-	and (y.id_apcd is null);
-	
-	
-	--Pull primary diagnosis from medical_claim_header table, apply exclusions
+	AND y.id_apcd IS NULL;
+
+	--STEP 2: Deduplicate line-level diagnosis codes (faster than using DISTINCT in first step)
+	CREATE TABLE stg_claims.tmp_apcd_icdcm_d1_dedup
+	WITH
+	(
+	DISTRIBUTION = HASH(claim_header_id),
+	CLUSTERED COLUMNSTORE INDEX
+	)
+	AS
+	SELECT *
+	FROM
+	(
+	SELECT *,
+	ROW_NUMBER() OVER (PARTITION BY id_apcd, claim_header_id, icdcm_raw ORDER BY id_apcd) AS rn
+	FROM stg_claims.tmp_apcd_icdcm_d1_raw
+	) x
+	WHERE rn = 1;
+	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_d1_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_d1_raw;
+
+	--STEP 3: Extract primary diagnsosis codes from medical claim header table, applying exclusions
 	--Note that ICD-CM version in this table does not need correcting (all first digit alpha codes > 2015-10-01 are V and E codes)
-	
-	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_icdcm_header_temp2', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp2;
-	CREATE TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp2
+	CREATE TABLE stg_claims.tmp_apcd_icdcm_header_raw
 	WITH
 	(
-		DISTRIBUTION = ROUND_ROBIN,
-		HEAP
+	DISTRIBUTION = HASH(claim_header_id),
+	CLUSTERED COLUMNSTORE INDEX
 	)
 	AS
-	select
-	a.internal_member_id as id_apcd,
-	a.medical_claim_header_id as claim_header_id,
-	a.first_service_dt as first_service_date,
-	a.last_service_dt as last_service_date,
-	a.diagnosis_code as icdcm_raw,
-	case when icd_version_ind = '9' then 9 when icd_version_ind = '0' then 10 end as icdcm_version,
-	'01' as icdcm_number
-	from stg_claims.apcd_medical_claim_header as a
-	left join stg_claims.apcd_ref_member_exclude as y
-	on a.internal_member_id = y.id_apcd
+	SELECT
+	a.internal_member_id AS id_apcd,
+	a.medical_claim_header_id AS claim_header_id,
+	a.first_service_dt AS first_service_date,
+	a.last_service_dt AS last_service_date,
+	a.diagnosis_code AS icdcm_raw,
+	CASE WHEN icd_version_ind = '9' THEN 9 WHEN icd_version_ind = '0' THEN 10 END AS icdcm_version,
+	'01' AS icdcm_number
+	FROM stg_claims.apcd_medical_claim_header AS a
+	LEFT JOIN stg_claims.apcd_ref_member_exclude AS y
+	ON a.internal_member_id = y.id_apcd
 	--exclude null/invalid ICD-CM codes
-	where (a.diagnosis_code not in ('-1','-2'))
+	WHERE a.diagnosis_code NOT IN ('-1','-2')
 	--exclude denied and orphaned headers
-	and (a.denied_header_flag = 'N' and a.orphaned_header_flag = 'N')
+	AND a.denied_header_flag = 'N'
+	AND a.orphaned_header_flag = 'N'
 	--exclude members with no WA residency OR no elig data
-	and (y.id_apcd is null);
-	
-	--Normalize ICD-CM codes and union tables
-	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_icdcm_header_temp3', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp3;
-	CREATE TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp3
+	AND y.id_apcd IS NULL;
+
+	--STEP 4: Normalize ICD-CM codes and union tables
+	CREATE TABLE stg_claims.tmp_apcd_icdcm_norm
 	WITH
 	(
-		DISTRIBUTION = ROUND_ROBIN,
-		HEAP
+	DISTRIBUTION = HASH(claim_header_id),
+	CLUSTERED COLUMNSTORE INDEX
 	)
 	AS
-	select
+	SELECT
 	id_apcd,
 	claim_header_id,
 	first_service_date,
 	last_service_date,
 	icdcm_raw,
-	case
-		when (icdcm_version = 10 and len(icdcm_raw) < 3) then null -- set to null ICD-10-CM codes that are too short
-		when (icdcm_version = 9 and len(icdcm_raw) = 3) then icdcm_raw + '00' -- pad ICD-9-CM codes to 5 digits
-		when (icdcm_version = 9 and len(icdcm_raw) = 4) then icdcm_raw + '0' -- pad ICD-9-CM codes to 5 digits
-		else icdcm_raw 
-	end as icdcm_norm,
+	CASE
+	WHEN icdcm_version = 10 AND LEN(icdcm_raw) < 3 THEN NULL -- set to null ICD-10-CM codes that are too short
+	WHEN icdcm_version = 9 AND LEN(icdcm_raw) = 3 THEN icdcm_raw + '00' -- pad ICD-9-CM codes to 5 digits
+	WHEN icdcm_version = 9 AND LEN(icdcm_raw) = 4 THEN icdcm_raw + '0' -- pad ICD-9-CM codes to 5 digits
+	ELSE icdcm_raw
+	END AS icdcm_norm,
 	icdcm_version,
 	icdcm_number
-	from stg_claims.tmp_apcd_claim_icdcm_header_temp1
+	FROM stg_claims.tmp_apcd_icdcm_d1_dedup
+	UNION ALL
+	SELECT
+	id_apcd,
+	claim_header_id,
+	first_service_date,
+	last_service_date,
+	icdcm_raw,
+	CASE
+	WHEN icdcm_version = 10 AND LEN(icdcm_raw) < 3 THEN NULL -- set to null ICD-10-CM codes that are too short
+	WHEN icdcm_version = 9 AND LEN(icdcm_raw) = 3 THEN icdcm_raw + '00' -- pad ICD-9-CM codes to 5 digits
+	WHEN icdcm_version = 9 AND LEN(icdcm_raw) = 4 THEN icdcm_raw + '0' -- pad ICD-9-CM codes to 5 digits
+	ELSE icdcm_raw
+	END AS icdcm_norm,
+	icdcm_version,
+	icdcm_number
+	FROM stg_claims.tmp_apcd_icdcm_header_raw;
+	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_d1_dedup', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_d1_dedup;
+	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_header_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_header_raw;
+	
 
-	union all
-	select
-	id_apcd,
-	claim_header_id,
-	first_service_date,
-	last_service_date,
-	icdcm_raw,
-	case
-		when (icdcm_version = 10 and len(icdcm_raw) < 3) then null -- set to null ICD-10-CM codes that are too short
-		when (icdcm_version = 9 and len(icdcm_raw) = 3) then icdcm_raw + '00' -- pad ICD-9-CM codes to 5 digits
-		when (icdcm_version = 9 and len(icdcm_raw) = 4) then icdcm_raw + '0' -- pad ICD-9-CM codes to 5 digits
-		else icdcm_raw 
-	end as icdcm_norm,
-	icdcm_version,
-	icdcm_number
-	from stg_claims.tmp_apcd_claim_icdcm_header_temp2;
-	
-	--Create icdcm_hash column and create final table (CTA is faster than INSERT INTO in Synapse)
-	
-	IF OBJECT_ID(N'stg_claims.stage_apcd_claim_icdcm_header', N'U') IS NOT NULL DROP TABLE stg_claims.stage_apcd_claim_icdcm_header;
+	--STEP 5: Create icdcm_hash column and create final table (CTA is faster than INSERT INTO in Synapse)
+	IF OBJECT_ID('stg_claims.stage_apcd_claim_icdcm_header', 'U') IS NOT NULL DROP TABLE stg_claims.stage_apcd_claim_icdcm_header;
 	CREATE TABLE stg_claims.stage_apcd_claim_icdcm_header
 	WITH
 	(
-		DISTRIBUTION = HASH(claim_header_id),
-		CLUSTERED COLUMNSTORE INDEX
+	DISTRIBUTION = HASH(claim_header_id),
+	CLUSTERED COLUMNSTORE INDEX
 	)
 	AS
-	select
+	SELECT
 	id_apcd,
 	claim_header_id,
 	first_service_date,
@@ -153,14 +175,10 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	icdcm_norm,
 	icdcm_version,
 	icdcm_number,
-	checksum(icdcm_norm, icdcm_version) as icdcm_hash,
-	getdate() as last_run
-	from stg_claims.tmp_apcd_claim_icdcm_header_temp3;
-	
-	--Drop staging tables
-	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_icdcm_header_temp1', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp1;
-	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_icdcm_header_temp2', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp2;
-	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_icdcm_header_temp3', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp3;",
+	CHECKSUM(icdcm_norm, icdcm_version) AS icdcm_hash,
+	GETDATE() AS last_run
+	FROM stg_claims.tmp_apcd_icdcm_norm;
+	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_norm', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_norm;",
     .con = dw_inthealth))
 }
 
