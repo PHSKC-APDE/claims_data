@@ -1,0 +1,7 @@
+to_schema: stg_claims
+to_table: apcd_ref_member_exclude
+vars:
+    id_apcd: bigint
+    non_wa_resident: tinyint
+    no_elig_data: tinyint
+    last_run: datetime

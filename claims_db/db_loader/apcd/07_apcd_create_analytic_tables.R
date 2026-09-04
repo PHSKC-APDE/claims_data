@@ -15,6 +15,7 @@
 #2026-05: Eli changed to use apde.etl for establishing SQL connection
 #2026-08: Eli added i) creation of apcd_ref_nonresident_id and apcd_ref_claim_no_elig tables, ii) updated QA code where needed,
   # iii) added code to create REPLICATE copies of ref tables needed for claim_header_table, iv) added claim_bh table
+#2026-09: Eli combined ref_non_resident_id and ref_claim_no_elig tables into a single table to improve ETL performance
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
@@ -45,7 +46,7 @@ keyring::key_list() #Confirm you have a key set for hhsaw and inthealth_edw_prod
 #### Table 1: apcd_ref_nonresident_id ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
-message(paste0("Beginning creation process for apcd_ref_nonresident_id - ", Sys.time()))
+message(paste0("Beginning creation process for apcd_ref_member_exclude - ", Sys.time()))
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_ref_nonresident_id.R")
