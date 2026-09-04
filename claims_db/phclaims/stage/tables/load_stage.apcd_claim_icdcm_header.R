@@ -20,7 +20,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	--Pull diagnosis codes from medical_claim_diagnosis table, collapse to header, apply exclusions, fix ICD-CM version
 	
 	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_icdcm_header_temp1', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp1;
-	CREATE TABLE stg_claims.tmp_apcd_claim_header_temp1
+	CREATE TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp1
 	WITH
 	(
 		DISTRIBUTION = ROUND_ROBIN,
@@ -67,7 +67,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	--Note that ICD-CM version in this table does not need correcting (all first digit alpha codes > 2015-10-01 are V and E codes)
 	
 	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_icdcm_header_temp2', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp2;
-	CREATE TABLE stg_claims.tmp_apcd_claim_header_temp2
+	CREATE TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp2
 	WITH
 	(
 		DISTRIBUTION = ROUND_ROBIN,
@@ -94,7 +94,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	
 	--Normalize ICD-CM codes and union tables
 	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_icdcm_header_temp3', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp3;
-	CREATE TABLE stg_claims.tmp_apcd_claim_header_temp3
+	CREATE TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp3
 	WITH
 	(
 		DISTRIBUTION = ROUND_ROBIN,
@@ -115,7 +115,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	end as icdcm_norm,
 	icdcm_version,
 	icdcm_number
-	from stg_claims.tmp_apcd_claim_header_temp1
+	from stg_claims.tmp_apcd_claim_icdcm_header_temp1
 
 	union all
 	select
@@ -132,7 +132,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	end as icdcm_norm,
 	icdcm_version,
 	icdcm_number
-	from stg_claims.tmp_apcd_claim_header_temp2;
+	from stg_claims.tmp_apcd_claim_icdcm_header_temp2;
 	
 	--Create icdcm_hash column and create final table (CTA is faster than INSERT INTO in Synapse)
 	
