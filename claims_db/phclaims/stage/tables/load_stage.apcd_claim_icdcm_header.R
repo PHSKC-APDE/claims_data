@@ -132,7 +132,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	end as icdcm_norm,
 	icdcm_version,
 	icdcm_number
-	from stg_claims.tmp_apcd_claim_header_temp2
+	from stg_claims.tmp_apcd_claim_header_temp2;
 	
 	--Create icdcm_hash column and create final table (CTA is faster than INSERT INTO in Synapse)
 	
@@ -155,7 +155,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	icdcm_number,
 	checksum(icdcm_norm, icdcm_version) as icdcm_hash,
 	getdate() as last_run
-	from tmp_apcd_claim_icdcm_header_temp3;
+	from stg_claims.tmp_apcd_claim_icdcm_header_temp3;
 	
 	--Drop staging tables
 	IF OBJECT_ID(N'stg_claims.tmp_apcd_claim_icdcm_header_temp1', N'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_claim_icdcm_header_temp1;
