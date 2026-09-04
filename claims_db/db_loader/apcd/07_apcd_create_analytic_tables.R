@@ -43,7 +43,7 @@ keyring::key_list() #Confirm you have a key set for hhsaw and inthealth_edw_prod
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 1: apcd_ref_nonresident_id ####
+#### Table 1: apcd_ref_member_exclude ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_ref_member_exclude - ", Sys.time()))
