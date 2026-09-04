@@ -54,14 +54,15 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 ### B) Create table
 create_table(conn = dw_inthealth, 
              config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_ref_member_exclude.yaml",
-             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw",
+             with = "DISTRIBUTION = REPLICATE")
 
 ### C) Load tables
 system.time(load_stage.apcd_ref_member_exclude_f())
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 3: apcd_elig_demo ####
+#### Table 2: apcd_elig_demo ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_elig_demo - ", Sys.time()))
@@ -88,7 +89,7 @@ if((apcd_demo_qa$qa[[1]] == apcd_demo_qa$qa[[2]]) & (apcd_demo_qa$qa[[1]] == apc
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 4: apcd_elig_timevar ####
+#### Table 3: apcd_elig_timevar ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_elig_timevar - ", Sys.time()))
@@ -131,7 +132,7 @@ if(
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 5: apcd_elig_month ####
+#### Table 4: apcd_elig_month ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_elig_month - ", Sys.time()))
@@ -182,7 +183,7 @@ if(
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 6: apcd_elig_plr_DATE ####
+#### Table 5: apcd_elig_plr_DATE ####
 # Note: Eventually use claim_elig function to generate these tables
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
@@ -300,7 +301,7 @@ if(all(elig_plr_qa_composite_result$qa_result) == TRUE) {
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 7: apcd_claim_line ####
+#### Table 6: apcd_claim_line ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_line - ", Sys.time()))
@@ -330,7 +331,7 @@ if(all(c(apcd_line_qa$qa[[1]] == 0
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 8: apcd_claim_icdcm_header ####
+#### Table 7: apcd_claim_icdcm_header ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_icdcm_header - ", Sys.time()))
@@ -365,7 +366,7 @@ if(all(c(apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="# members not in elig_demo, ex
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 9: apcd_claim_procedure ####
+#### Table 8: apcd_claim_procedure ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_procedure - ", Sys.time()))
@@ -396,7 +397,7 @@ if(all(c(apcd_procedure_qa$qa[apcd_procedure_qa$qa_type=="# members not in elig_
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 10: apcd_claim_provider ####
+#### Table 9: apcd_claim_provider ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_provider - ", Sys.time()))
@@ -425,7 +426,7 @@ if((apcd_provider_qa$qa[apcd_provider_qa$qa_type=="# referring provider claim he
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 11: ref.apcd_provider_npi ####
+#### Table 10: ref.apcd_provider_npi ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for ref.apcd_provider_npi - ", Sys.time()))
@@ -478,7 +479,7 @@ message(paste0("Completed copying ref.apcd_provider_npi to HHSAW - ", Sys.time()
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 12: ref.kc_provider_master ####
+#### Table 11: ref.kc_provider_master ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for ref.kc_provider_master - ", Sys.time()))
@@ -533,7 +534,7 @@ message(paste0("Completed copying ref.kc_provider_master to HHSAW - ", Sys.time(
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 13 prep: Copy ref tables needed to make claim_header table ####
+#### Table 12 prep: Copy ref tables needed to make claim_header table ####
 #Copy tables and set distribution as REPLICATE, add CHECKSUM to ref_icdcm_codes table)
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
@@ -592,7 +593,7 @@ system.time(dbSendQuery(
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 13: apcd_claim_header (~3hr) #### 
+#### Table 12: apcd_claim_header (~3hr) #### 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_header - ", Sys.time()))
@@ -634,7 +635,7 @@ if(all(c(apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of headers"] =
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 14: apcd_claim_ccw ####
+#### Table 13: apcd_claim_ccw ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_ccw - ", Sys.time()))
@@ -698,7 +699,7 @@ if(all(c(apcd_claim_ccw_qa1$qa==0
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 15: apcd_claim_bh ####
+#### Table 14: apcd_claim_bh ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_bh - ", Sys.time()))
@@ -747,7 +748,7 @@ if(all(c(apcd_claim_bh_qa1$qa[apcd_claim_bh_qa1$qa_type=="# members not in elig_
 
 
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
-#### Table 16: apcd_claim_preg_episode ####
+#### Table 15: apcd_claim_preg_episode ####
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_preg_episode - ", Sys.time()))
