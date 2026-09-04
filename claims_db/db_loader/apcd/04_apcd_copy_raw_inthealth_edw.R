@@ -1,4 +1,4 @@
-#### MASTER CODE TO COPY, UNZIP, and COMBINE WA-APCD GZIP files to INTHEALTH_EDW
+#### MASTER CODE TO COPY, UNZIP, and COMBINE WA-APCD PARQUET files to INTHEALTH_EDW
 #
 # Eli Kern, PHSKC-APDE
 #
@@ -122,7 +122,7 @@ lapply(folder_list, function(folder_list) {
   
   ##Load data
   #Note that tables in EDW automatically have an index created
-  #This function will automatically combine all GZIP files in a given folder into a single SQL table
+  #This function will automatically combine all PARQUET files in a given folder into a single SQL table
   message("Loading data for: ", table_config[[server]][["to_table"]], " - ", Sys.time())
   to_schema <- table_config[[server]][["to_schema"]]
   to_table <- table_config[[server]][["to_table"]]
@@ -190,29 +190,3 @@ lapply(folder_list, function(folder_list) {
                                  AND file_name = {to_table}",
                                 .con = db_claims))
 })
-
-
-#### STEP 4: CONFIRM EXTERNAL TABLES ON HHSAW ARE WORKING ####
-
-##Query external tables and return row counts
-#external_table_row_counts <- lapply(folder_list, function(folder_list) {
-  
- # table_selected <- folder_list
-  #message(paste0("Querying row count for HHSAW external table: ", table_selected))
-  #sql_query <- dbGetQuery(conn = db_claims, glue_sql("SELECT count(*) as row_count FROM [claims].[stage_apcd_{DBI::SQL(`table_selected`)}];",
-      #                                               .con = db_claims))
-  #da_inner <- data.frame(table_name = table_selected, row_count = sql_query$row_count)
-  #return(da_inner)
-#}) %>%
- # bind_rows()
-
-## QA message
-#if (table(external_table_row_counts$row_count>0)["TRUE"][[1]] != length(folder_list)) {
- # stop(glue::glue("Not all external tables have non-zero row counts. Inspect manually"))
-#} else {
- # message("All external tables are working properly.")
-#}
-
-
-## Closing message
-#message(paste0("All tables have been successfully copied to inthealth_edw - ", Sys.time()))
