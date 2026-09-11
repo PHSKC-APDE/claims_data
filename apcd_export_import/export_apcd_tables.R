@@ -11,8 +11,9 @@ library(glue) # Safely combine SQL code
 library(configr) # Read in YAML files
 library(xlsx) # Read in XLSX files
 library(svDialogs) # Extra UI Elements
+library(apde.etl)
 
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
+
 source(file.path(here::here(),"apcd_export_import/apcd_import_functions.R"))
 config <- yaml::read_yaml(file.path(here::here(),"apcd_export_import/apcd_import_config.yaml"))
 
@@ -22,8 +23,8 @@ temp_dir <- "C:/temp/apcd/"
 ref_dir <- paste0(temp_dir, "ref_schema/")
 stage_dir <- paste0(temp_dir, "stage_schema/")
 final_dir <- paste0(temp_dir, "final_schema/")
-source_tables <- read.xlsx(file.path(here::here(),"apcd_export_import/apcd_source_tables.xlsx"), sheetIndex = 1)
-batch_date <- "20260318"
+source_tables <- read.xlsx(file.path(here::here(),"apcd_export_import/apcd_source_tables.xlsx"))
+batch_date <- "20260901"
 
 ### GET COLUMNS FOR TABLES
 table_list <- data.frame()
@@ -61,6 +62,14 @@ ORDER BY schema_name, table_name, column_position", .con = conn))
 
   table_list <- rbind(table_list, columns)
 }
+
+### CREATE TABLE DOCUMENTATION
+table_list_out <- subset(table_list, select = -c(schema_in, table_in))
+etl_log <- read.xlsx(file.path(here::here(),"apcd_export_import/apcd_etl_log.xlsx"))
+table_list_out <- rbind(table_list_out, etl_log)
+write.xlsx(table_list_out, file.path(here::here(),paste0("apcd_export_import/APCD_Tables_", batch_date, ".xlsx")), rowNnames = F, append = F)  
+rm(table_list_out, etl_log)
+
 ### GET ROW AND BATCH COUNTS
 for(i in 1:nrow(source_tables)) {
   message(glue::glue("{i}: Getting info from {source_tables[i,'schema_in']}.{source_tables[i,'table_in']} - {Sys.time()}"))
@@ -94,10 +103,14 @@ WHERE sys.dm_db_partition_stats.object_id = sys.objects.object_id
 	AND sys.objects.name = {source_tables[i,'table_in']}
 GROUP BY sys.schemas.name, sys.objects.name", .con = conn))[1,1]
   }
+  conn <- create_db_connection(server, interactive = F, prod = T)
   row_cnt <- DBI::dbGetQuery(conn, glue::glue_sql(
     "SELECT COUNT_BIG(*) FROM {`source_tables[i,'schema_in']`}.{`source_tables[i,'table_in']`}", .con = conn))[1,1]
   if(batches > 0) {
     batch_size <- round(row_cnt / batches, 0)
+    while(batch_size * batches < row_cnt) {
+      batch_size <- round(batch_size * 1.001, 0)
+    }
   } else { 
     batches <- 1 
     batch_size <- row_cnt  
@@ -105,10 +118,12 @@ GROUP BY sys.schemas.name, sys.objects.name", .con = conn))[1,1]
   source_tables[i,"rows"] <- row_cnt
   source_tables[i,"batches"] <- batches
   source_tables[i,"batch_size"] <- batch_size
+  DBI::dbDisconnect(conn)
 }
+
 ### EXPORT TABLES  
 for(i in 1:nrow(source_tables)) {
-  if(source_tables[i,"schema_in"] == 'stg_claims') {
+  if(source_tables[i,'schema_in'] == 'stg_claims') {
     server <- "inthealth"
     db_name <- "inthealth_edw"
     conn <- create_db_connection(server, interactive = F, prod = T)
@@ -175,7 +190,3 @@ for(i in 1:nrow(source_tables)) {
   }
 }
 
-table_list <- subset(table_list, select = -c(schema_in, table_in))
-etl_log <- read.xlsx(file.path(here::here(),"apcd_export_import/apcd_etl_log.xlsx"), sheetIndex = 1)
-table_list <- rbind(table_list, etl_log)
-write.xlsx(table_list, file.path(here::here(),paste0("apcd_export_import/APCD_Tables_", batch_date, ".xlsx")), row.names = F, append = F)  
