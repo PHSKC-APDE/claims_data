@@ -21,23 +21,19 @@ library(data.table)
 library(glue)
 library(odbc) # Read to and write from SQL
 library(svDialogs)
-
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/add_index.R")
-
+library(apde.etl)
 
 #### CONSTANTS AND SETUP ####
 server <- dlg_list(c("phclaims", "hhsaw", "inthealth"), title = "Select Server.")$res
 if(server != "phclaims") {
-  interactive_auth <- dlg_list(c("TRUE", "FALSE"), title = "Interactive Authentication?")$res
-  prod <- dlg_list(c("TRUE", "FALSE"), title = "Production Server?")$res
+  interactive_auth <- as.logical(dlg_list(c(TRUE, FALSE), title = "Interactive Authentication?")$res)
+  prod <- as.logical(dlg_list(c(TRUE, FALSE), title = "Production Server?")$res)
 } else {
   interactive_auth <- T
   prod <- T
 }
 table_name_file <- "//dphcifs/APDE-CDIP/Mcaid-Mcare/mcaid_raw/mcaid_tables.csv"
-delete_year <- 2015
+delete_year <- 2016
 
 # Table with information on each mcaid schema, table, and date_col in dev inthealth_edw for given server
 table_names <- fread(table_name_file)
@@ -50,6 +46,7 @@ index_info_df <- data.frame(table=c(table_name),
 
 # Loop through each table, rename, copy all but delete condition into new table
 for (row in 1:nrow(table_names)){
+  if(table_names[row,]$prod_only == 1 && prod == F) { next }
   table_name <- table_names[row,]$table
   schema <- table_names[row,]$schema
   date_col <- table_names[row,]$date_column
@@ -57,7 +54,7 @@ for (row in 1:nrow(table_names)){
   if (is.na(date_col)){
     message(glue("No known way to handle this NA date column! Skipping to next table."))
     next
-  } else if (date_col %in% c("CLNDR_YEAR_MNTH", "FROM_SRVC_DATE", "first_service_date")) {
+  } else if (date_col %in% c("CLNDR_YEAR_MNTH", "FROM_SRVC_DATE", "first_service_date", "from_date", "rx_fill_date")) {
     delete_condition <- DBI::SQL(glue("{tolower(date_col)} LIKE '{delete_year}%'"))
   } else {
     message(glue("No known way to handle this date column: {date_col}! Skipping to next table."))
@@ -157,6 +154,21 @@ for (row in 1:nrow(table_names)){
   }
 }
 
+# DELETE
+ttd <- DBI::dbGetQuery(db_claims, 
+                                    "SELECT table_schema, table_name 
+                                    FROM information_schema.tables 
+                                    WHERE table_name LIKE '%_to_delete';")
+for(i in 1:nrow(ttd)) {
+  drop_table <- dlg_message(glue::glue("DROP TABLE? {ttd[i,]$table_schema}.{ttd[i,]$table_name}"), type = "yesno")$res
+  if(length(drop_table) == 0) { next }
+  if(drop_table == "yes") {
+    message(glue::glue("DROPPING TABLE [{ttd[i,]$table_schema}].[{ttd[i,]$table_name}]!"))
+    DBI::dbExecute(db_claims,
+                   glue::glue_sql("DROP TABLE {`ttd[i,]$table_schema`}.{`ttd[i,]$table_name`}",
+                                  .con = db_claims))
+  }
+}
 
 
 
