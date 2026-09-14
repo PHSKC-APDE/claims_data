@@ -23,7 +23,7 @@
 #   R or a URL that should be used
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
-load_stage_mcaid_claim_procedure_f <- function(conn = NULL,
+load_stage_mcaid_claim_procedure <- function(conn = NULL,
                                                   server = c("hhsaw", "phclaims"),
                                                   config = NULL,
                                                   get_config = F) {
@@ -191,5 +191,5 @@ load_stage_mcaid_claim_procedure_f <- function(conn = NULL,
   
   #### STEP 3: ADD INDEX ####
   # Takes ~6 minutes in Azure
-  #add_index_f(conn, server = server, table_config = config)
+  #add_index(conn, server = server, table_config = config)
 }

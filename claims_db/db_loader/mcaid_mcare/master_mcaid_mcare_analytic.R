@@ -26,7 +26,7 @@ server <- select.list(choices = c("phclaims", "hhsaw"))
 if (server == "phclaims") {
   db_claims <- DBI::dbConnect(odbc::odbc(), "PHClaims51")
 } else if (server == "hhsaw") {
-  db_claims <- rads::validate_hhsaw_key()
+  db_claims <- apde.data::authenticate_hhsaw()
 }
 
 

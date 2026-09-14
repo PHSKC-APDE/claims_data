@@ -9,7 +9,7 @@
 
 # No overlaps
 
-qa_mcaid_elig_timevar_f <- function(conn = NULL,
+qa_mcaid_elig_timevar <- function(conn = NULL,
                                     conn_qa = NULL,
                                     server = c("hhsaw", "phclaims"),
                                     config = NULL,

@@ -11,7 +11,7 @@
 # conn = database connection
 # server = whether we are working in HHSAW or PHClaims
 
-load_stage_mcaid_claim_moud_f <- function(conn = NULL,
+load_stage_mcaid_claim_moud <- function(conn = NULL,
                                           server = c("hhsaw", "phclaims"),
 										                      config = NULL,
                                           get_config = F) {
@@ -428,5 +428,5 @@ load_stage_mcaid_claim_moud_f <- function(conn = NULL,
   
   
   #### ADD INDEX ####
-  #add_index_f(conn, server = server, table_config = config)
+  #add_index(conn, server = server, table_config = config)
 }

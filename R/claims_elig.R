@@ -689,9 +689,9 @@ claims_elig <- function(conn,
   
   ### Set up the denominator to be used in timevar percents
   if (timevar_denom == "duration") {
-    denom_sql <- glue::glue_sql("duration")
+    denom_sql <- glue::glue_sql("duration", .con = conn)
   } else if (timevar_denom == "cov_days") {
-    denom_sql <- glue::glue_sql("cov_days")
+    denom_sql <- glue::glue_sql("cov_days", .con = conn)
   } else {
     stop("timevar_denom must be one of 'duration' or 'cov_days'")
   }

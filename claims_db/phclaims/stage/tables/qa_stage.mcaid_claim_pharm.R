@@ -20,7 +20,7 @@
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
 
-qa_stage_mcaid_claim_pharm_f <- function(conn = NULL,
+qa_stage_mcaid_claim_pharm <- function(conn = NULL,
                                          conn_qa = NULL,
                                          server = c("hhsaw", "phclaims"),
                                          config = NULL,

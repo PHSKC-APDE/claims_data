@@ -7,7 +7,7 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_partial.R
 
 
-load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
+load_load_raw.mcaid_elig_partial <- function(conn = NULL,
                                                conn_dw = NULL,
                                                server = NULL,
                                                config = NULL,
@@ -49,11 +49,11 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   
   
   #### LOAD FUNCTIONS IF NEEDED ####
-  if (exists("load_metadata_etl_log_f") == F) {
+  if (exists("load_metadata_etl_log") == F) {
     devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
   }
   
-  if (exists("qa_file_row_count_f") == F) {
+  if (exists("qa_file_row_count") == F) {
     devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
   }
   
@@ -95,7 +95,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     #### QA CHECK: ACTUAL VS EXPECTED ROW COUNTS ####
 #    message("Checking expected vs. actual row counts")
     # Use the load config file for the list of tables to check and their expected row counts
-#    qa_rows_file <- qa_file_row_count_f(config = table_config, 
+#    qa_rows_file <- qa_file_row_count(config = table_config, 
 #                                        server = server,
 #                                        overall = T, 
 #                                        ind_yr = F)
@@ -119,7 +119,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
     
     #### QA CHECK: ORDER OF COLUMNS IN SOURCE FILE MATCH TABLE SHELLS IN SQL ####
 #    message("Checking column order")
-#    qa_column <- qa_column_order_f(conn = conn_dw,
+#    qa_column <- qa_column_order(conn = conn_dw,
 #                                   config = table_config, 
 #                                   server = server,
 #                                   overall = T, 
@@ -148,16 +148,18 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   message("Loading tables to SQL")
 
   if (server == "hhsaw") {
-    copy_into_f(conn = conn_dw, 
+    copy_into(conn = conn_dw, 
                 server = server,
                 config = table_config,
                 dl_path = paste0(table_config[[server]][["base_url"]], batch["file_location"], batch["file_name"]),
                 file_type = "csv", compression = "gzip",
                 identity = "Storage Account Key", secret = key_get("inthealth_edw"),
                 overwrite = T,
-                rodbc = rodbc)
+                rodbc = rodbc,
+              field_term = "\\t",
+              row_term = "\\n")
   } else if (server == "phclaims") {
-    load_table_from_file_f(conn = conn_dw,
+    load_table_from_file(conn = conn_dw,
                            server = server,
                            config = table_config,
                            filepath = paste0(batch$file_location, batch$file_name),
@@ -170,7 +172,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   #### QA CHECK: ROW COUNTS MATCH SOURCE FILE COUNT ####
   message("Checking loaded row counts vs. expected")
   # Use the load config file for the list of tables to check and their expected row counts
-  qa_rows_sql <- qa_load_row_count_f(conn = conn_dw,
+  qa_rows_sql <- qa_load_row_count(conn = conn_dw,
                                      server = server,
                                      config = table_config,
                                      row_count = batch$row_count,
@@ -264,7 +266,7 @@ load_load_raw.mcaid_elig_partial_f <- function(conn = NULL,
   
   
   #### QA CHECK: DATE RANGE MATCHES EXPECTED RANGE ####
-  qa_date_range <- qa_date_range_f(conn = conn_dw,
+  qa_date_range <- qa_date_range(conn = conn_dw,
                                    server = server,
                                    config = table_config,
                                    overall = T, ind_yr = F,

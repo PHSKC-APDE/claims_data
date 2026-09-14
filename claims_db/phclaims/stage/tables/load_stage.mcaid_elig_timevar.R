@@ -16,7 +16,7 @@
 #   R or a URL that should be used
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
-load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
+load_stage_mcaid_elig_timevar <- function(conn = NULL,
                                         server = c("hhsaw", "phclaims"),
                                         config = NULL,
                                         get_config = F) {
@@ -294,7 +294,8 @@ load_stage_mcaid_elig_timevar_f <- function(conn = NULL,
       geo_add1, geo_add2, geo_city, geo_state, geo_zip, geo_hash_clean, geo_hash_geocode
       ORDER BY id_mcaid, from_date), from_date) AS group_num
   INTO #timevar_03a
-  FROM #timevar_02c"
+  FROM #timevar_02c",
+    .con = conn
   )
   
   message("Running step 3a: calculate # days between each from_date and previous to_date")

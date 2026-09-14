@@ -14,13 +14,12 @@
 
 #Set global parameters and call in libraries
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
-pacman::p_load(DBI, glue, tidyverse, lubridate, odbc, configr, RCurl)
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
+pacman::p_load(DBI, glue, tidyverse, lubridate, odbc, configr, RCurl, apde.etl)
 
 #Set expected years of data for QA checks
-years_expected_from2014 <- 9 #number of years of data we expect (2014+)
-years_expected_from2015 <- 8 #number of years of data we expect (2015+)
-years_expected_from2017 <- 6 #number of years of data we expect (2017+)
+years_expected_from2014 <- 11 #number of years of data we expect (2014+)
+years_expected_from2015 <- 10 #number of years of data we expect (2015+)
+years_expected_from2017 <- 8 #number of years of data we expect (2017+)
 
 #Connect to inthealth_edw
 interactive_auth <- FALSE
@@ -28,7 +27,6 @@ prod <- TRUE
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 #Set up functions
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/create_table.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_ccw.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_bh.R")
 
@@ -39,20 +37,23 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_demo.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T)
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
 system.time(load_stage.mcare_elig_demo_f())
 
 ### D) Table-level QA
-system.time(mcare_elig_demo_qa <- qa_stage.mcare_elig_demo_qa_f())
-rm(config_url)
+system.time(mcare_elig_demo_qa <- qa_stage.mcare_elig_demo_qa())
+rm(config_url, config)
 
 #Process results
 if(all(c(mcare_elig_demo_qa$qa[[1]] == 0
@@ -83,20 +84,23 @@ DBI::dbExecute(conn = inthealth,
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_timevar.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T)
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
-system.time(load_stage.mcare_elig_timevar_f())
+system.time(load_stage.mcare_elig_timevar())
 
 ### D) Table-level QA
-system.time(mcare_elig_timevar_qa <- qa_stage.mcare_elig_timevar_qa_f())
-rm(config_url)
+system.time(mcare_elig_timevar_qa <- qa_stage.mcare_elig_timevar_qa())
+rm(config_url, config)
 
 #Process results
 if(all(c(mcare_elig_timevar_qa$qa[[1]] == 0
@@ -133,20 +137,23 @@ DBI::dbExecute(conn = inthealth,
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_month.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_month.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_elig_month.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+               config = config,
                overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
-system.time(load_stage.mcare_elig_month_f(conn = inthealth, config_url = config_url))
+system.time(load_stage.mcare_elig_month(conn = inthealth, config_url <- config_url))
 
 ### D) Table-level QA
-system.time(mcare_elig_month_qa <- qa_stage.mcare_elig_month_qa_f(conn = inthealth, config_url = config_url))
-rm(config_url)
+system.time(mcare_elig_month_qa <- qa_stage.mcare_elig_month_qa(conn = inthealth, config_url <- config_url))
+rm(config_url, config)
 
 #Process results
 if(all(c(mcare_elig_month_qa$qa[[1]] == 0
@@ -183,20 +190,23 @@ DBI::dbExecute(conn = inthealth,
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_line.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_line.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_line.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T)
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
-system.time(load_stage.mcare_claim_line_f())
+system.time(load_stage.mcare_claim_line())
 
 ### D) Table-level QA
-system.time(mcare_claim_line_qa <- qa_stage.mcare_claim_line_qa_f())
-rm(config_url)
+system.time(mcare_claim_line_qa <- qa_stage.mcare_claim_line_qa())
+rm(config_url, config)
 
 ##Process QA results
 
@@ -207,8 +217,9 @@ for (i in c("hha", "hospice", "inpatient", "outpatient", "snf")) {
     nrow()
   if(i == "dme") {
     y <- years_expected_from2015 == x
-  } else
+  } else {
     y <- years_expected_from2014 == x
+  }
   qa_line_1 <- c(qa_line_1,y)
 }
 qa_line_1 <- all(qa_line_1)
@@ -262,20 +273,23 @@ DBI::dbExecute(conn = inthealth,
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_icdcm_header.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_icdcm_header.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_icdcm_header.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T)
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
-system.time(load_stage.mcare_claim_icdcm_header_f())
+system.time(load_stage.mcare_claim_icdcm_header())
 
 ### D) Table-level QA
-system.time(mcare_claim_icdcm_header_qa <- qa_stage.mcare_claim_icdcm_header_qa_f())
-rm(config_url)
+system.time(mcare_claim_icdcm_header_qa <- qa_stage.mcare_claim_icdcm_header_qa())
+rm(config_url, config)
 
 ##Process QA results
 
@@ -350,20 +364,23 @@ DBI::dbExecute(conn = inthealth,
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_procedure.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_procedure.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_procedure.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T)
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
-system.time(load_stage.mcare_claim_procedure_f())
+system.time(load_stage.mcare_claim_procedure())
 
 ### D) Table-level QA
-system.time(mcare_claim_procedure_qa <- qa_stage.mcare_claim_procedure_qa_f())
-rm(config_url)
+system.time(mcare_claim_procedure_qa <- qa_stage.mcare_claim_procedure_qa())
+rm(config_url, config)
 
 ##Process QA results
 
@@ -438,20 +455,23 @@ DBI::dbExecute(conn = inthealth,
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_provider.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_provider.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_provider.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T)
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
-system.time(load_stage.mcare_claim_provider_f())
+system.time(load_stage.mcare_claim_provider())
 
 ### D) Table-level QA
-system.time(mcare_claim_provider_qa <- qa_stage.mcare_claim_provider_qa_f())
-rm(config_url)
+system.time(mcare_claim_provider_qa <- qa_stage.mcare_claim_provider_qa())
+rm(config_url, config)
 
 ##Process QA results
 
@@ -579,20 +599,23 @@ DBI::dbExecute(conn = inthealth,
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T)
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
-system.time(load_stage.mcare_claim_pharm_f())
+system.time(load_stage.mcare_claim_pharm())
 
 ### D) Table-level QA
-system.time(mcare_claim_pharm_qa <- qa_stage.mcare_claim_pharm_qa_f())
-rm(config_url)
+system.time(mcare_claim_pharm_qa <- qa_stage.mcare_claim_pharm_qa())
+rm(config_url, config)
 
 ##Process QA results
 
@@ -651,16 +674,19 @@ DBI::dbExecute(conn = inthealth,
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm_char.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm_char.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_pharm_char.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T)
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
-system.time(load_stage.mcare_claim_pharm_char_f())
+system.time(load_stage.mcare_claim_pharm_char())
 
 ### D) Archive current stg_claims.final table
 DBI::dbExecute(conn = inthealth,
@@ -681,20 +707,23 @@ DBI::dbExecute(conn = inthealth,
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_header.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_header.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_header.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T)
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
-system.time(load_stage.mcare_claim_header_f())
+system.time(load_stage.mcare_claim_header())
 
 ### D) Table-level QA
-system.time(mcare_claim_header_qa <- qa_stage.mcare_claim_header_qa_f())
-rm(config_url)
+system.time(mcare_claim_header_qa <- qa_stage.mcare_claim_header_qa())
+rm(config_url, config)
 
 ##Process QA results
 if(all(c(mcare_claim_header_qa$qa[mcare_claim_header_qa$qa_type=="# of headers"] ==
@@ -734,10 +763,12 @@ DBI::dbExecute(conn = inthealth,
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Create table
-create_table_f(
-  conn = inthealth,
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_ccw.yaml",
-  overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_ccw.yaml"
+config <- yaml::yaml.load(httr::GET(config_url))
+create_table(conn = inthealth,
+             server = "hhsaw",
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### B) Load tables
 system.time(load_ccw(
@@ -746,7 +777,7 @@ system.time(load_ccw(
   source = c("mcare"),
   print_query = FALSE,
   ccw_list_name = "all",
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_ccw.yaml"))
+  config_url = config_url))
 
 ### C) Table-level QA
 
@@ -809,17 +840,19 @@ DBI::dbExecute(conn = inthealth,
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Create table
-create_table_f(
-  conn = inthealth,
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_bh.yaml",
-  overall = T, ind_yr = F, overwrite = T, server = "inthealth")
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_bh.yaml"
+config <- yaml::yaml.load(httr::GET(config_url))
+create_table(conn = inthealth, 
+             config = config,
+             server = "inthealth",
+             overall = T, ind_yr = F, overwrite = T)
 
 ### B) Load tables
 system.time(load_bh(
   server = "inthealth",
   conn = inthealth,
   source = "mcare",
-  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_bh.yaml"))
+  config_url = config_url))
 
 ### C) Table-level QA
 
@@ -867,20 +900,23 @@ DBI::dbExecute(conn = inthealth,
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_moud.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_moud.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_moud.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T)
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
-system.time(load_stage.mcare_claim_moud_f())
+system.time(load_stage.mcare_claim_moud())
 
 ### D) Table-level QA
-system.time(mcare_claim_moud_qa <- qa_stage.mcare_claim_moud_qa_f())
-rm(config_url)
+system.time(mcare_claim_moud_qa <- qa_stage.mcare_claim_moud_qa())
+rm(config_url, config)
 
 ##Process QA results
 if(all(c(mcare_claim_moud_qa$qa[mcare_claim_moud_qa$qa_type=="# members not in bene_enrollment, expect 0"] == 0
@@ -910,20 +946,23 @@ DBI::dbExecute(conn = inthealth,
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_naloxone.R")
-config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_naloxone.yaml"
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.mcare_claim_naloxone.yaml"
 inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### B) Create table
-create_table_f(conn = inthealth, 
-               config_url = config_url,
-               overall = T, ind_yr = F, overwrite = T)
+config <- yaml::yaml.load(httr::GET(config_url))
+config$to_schema <- config$schema
+config$to_table <- config$table
+create_table(conn = inthealth, 
+             config = config,
+             overall = T, ind_yr = F, overwrite = T)
 
 ### C) Load tables
-system.time(load_stage.mcare_claim_naloxone_f())
+system.time(load_stage.mcare_claim_naloxone())
 
 ### D) Table-level QA
-system.time(mcare_claim_naloxone_qa <- qa_stage.mcare_claim_naloxone_qa_f())
-rm(config_url)
+system.time(mcare_claim_naloxone_qa <- qa_stage.mcare_claim_naloxone_qa())
+rm(config_url, config)
 
 ##Process QA results
 if(all(c(mcare_claim_naloxone_qa$qa[mcare_claim_naloxone_qa$qa_type=="# members not in bene_enrollment, expect 0"] == 0

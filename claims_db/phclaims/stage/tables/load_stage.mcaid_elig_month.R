@@ -11,7 +11,7 @@
 #   R or a URL that should be used
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
-load_stage_mcaid_elig_month_f <- function(conn = NULL,
+load_stage_mcaid_elig_month <- function(conn = NULL,
                                         server = c("hhsaw"),
                                         config = NULL,
                                         get_config = F) {
@@ -285,7 +285,7 @@ load_stage_mcaid_elig_month_f <- function(conn = NULL,
   #### STEP 7: Insert data into table shell ####
   
   #First, create table shell
-  create_table_f(conn = conn, 
+  create_table(conn = conn, 
                  server = server,
                  config = config,
                  overwrite = T)

@@ -20,7 +20,7 @@
 #   R or a URL that should be used
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 
-load_stage_mcaid_claim_pharm_f <- function(conn = NULL,
+load_stage_mcaid_claim_pharm <- function(conn = NULL,
                                                server = c("hhsaw", "phclaims"),
                                                config = NULL,
                                                get_config = F) {
@@ -92,5 +92,5 @@ load_stage_mcaid_claim_pharm_f <- function(conn = NULL,
   
   
   #### ADD INDEX ####
-  #add_index_f(conn, server = server, table_config = config)
+  #add_index(conn, server = server, table_config = config)
 }

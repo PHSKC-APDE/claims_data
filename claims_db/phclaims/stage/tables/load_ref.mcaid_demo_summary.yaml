@@ -1,0 +1,10 @@
+hhsaw:
+    ref_schema: ref
+    elig_schema: claims
+    to_table: mcaid_demo_summary
+    to_schema: ref
+    demo_table: final_mcaid_elig_demo
+    month_table: final_mcaid_elig_month
+    geocode_table: address_geocode
+    qa_schema: claims
+    qa_table: metadata_

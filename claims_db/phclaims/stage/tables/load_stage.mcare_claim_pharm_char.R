@@ -7,7 +7,7 @@
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcare/02_master_mcare_claims_analytic.R
 
 #### Load script ####
-load_stage.mcare_claim_pharm_char_f <- function() {
+load_stage.mcare_claim_pharm_char <- function() {
   
   ### Run SQL query
   odbc::dbGetQuery(inthealth, glue::glue_sql(

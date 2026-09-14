@@ -13,7 +13,7 @@
 # get_config = if a URL is supplied, set this to T so the YAML file is loaded
 # load_only = only enter new values to that table, no other QA
 
-qa_mcaid_elig_demo_f <- function(conn = NULL,
+qa_mcaid_elig_demo <- function(conn = NULL,
                                  conn_qa = NULL,
                                  server = c("hhsaw", "phclaims"),
                                  config = NULL,
@@ -213,7 +213,7 @@ qa_mcaid_elig_demo_f <- function(conn = NULL,
   
 }
 
-qa_mcaid_elig_demo_extra_f <- function(conn = NULL,
+qa_mcaid_elig_demo_extra <- function(conn = NULL,
                                  conn_qa = NULL,
                                  server = c("hhsaw", "phclaims"),
                                  config = NULL,

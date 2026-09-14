@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_medicare_buy_in
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/medicare_buy_in000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    medicare_buy_in_id: BIGINT
+    extract_id: BIGINT
+    medicare_buy_in_code: VARCHAR(4)
+    medicare_buy_in_desc: VARCHAR(102)

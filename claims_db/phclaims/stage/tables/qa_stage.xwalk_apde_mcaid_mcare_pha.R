@@ -14,7 +14,7 @@
 # Set up ----
   options(error = NULL, scipen = 999)
   Sys.setenv(TZ="UTC") # so time stamps align with those in SQL server
-  db_hhsaw <- rads::validate_hhsaw_key() # connects to Azure 16 HHSAW
+  db_hhsaw <- apde.data::authenticate_hhsaw() # connects to Azure 16 HHSAW
   
   db_idh <- DBI::dbConnect(odbc::odbc(), driver = "ODBC Driver 17 for SQL Server", 
                            server = "tcp:kcitazrhpasqlprp16.azds.kingcounty.gov,1433", 
@@ -275,7 +275,7 @@ qa_xwalk_apde_mcaid_mcare_pha_f <- function(conn = db_hhsaw,
   id_count_mcaid <- uniqueN(xwalk[!is.na(id_mcaid)]$id_mcaid)
 
   idh_count_mcaid <- odbc::dbGetQuery(db_idh, 
-                                            "SELECT COUNT(DISTINCT MEDICAID_ID) AS freq
+                                            "SELECT COUNT(DISTINCT MBR_H_SID) AS freq
                                       FROM [IDMatch].[IM_HISTORY_TABLE]
                                       WHERE IS_HISTORICAL = 'N' AND SOURCE_SYSTEM = 'MEDICAID' AND KCMASTER_ID IS NOT NULL")[]$freq
   

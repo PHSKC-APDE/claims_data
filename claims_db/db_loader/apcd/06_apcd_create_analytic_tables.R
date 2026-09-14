@@ -1,0 +1,783 @@
+#### MASTER CODE TO CREATE ANALYTIC TABLES FOR APCD DATA
+#
+# Loads and QAs data on stage schema
+# Changes schema of existing final tables to archive
+# Changes schema of new stage tables to final
+# Adds clustered columnstore indexes to new final tables
+#
+# Eli Kern, PHSKC (APDE)
+# Adapted from Alastair Matheson's Medicaid script
+# 2019-10
+
+#2022-02: Eli switched to using APDE repo functions where Alastair has moved them over
+#2024-03: Eli updated for migration to Azure HHSAW
+#2025-06: Eli added apcd_elig_month table
+#2026-05: Eli changed to use apde.etl for establishing SQL connection
+#2026-08: Eli added i) creation of apcd_ref_nonresident_id and apcd_ref_claim_no_elig tables, ii) updated QA code where needed,
+  # iii) added code to create REPLICATE copies of ref tables needed for claim_header_table, iv) added claim_bh table
+#2026-09: Eli combined ref_non_resident_id and ref_claim_no_elig tables into a single table to improve ETL performance
+
+#### Set up global parameter and call in libraries ####
+options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
+
+library(pacman)
+pacman::p_load(tidyverse, lubridate, odbc, glue, keyring, apde.etl)
+library (apde.etl)
+
+#### SET UP FUNCTIONS ####
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_file.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/qa_load_sql.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/load_ccw.R")
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_bh.R")
+
+## Connect to Synapse
+interactive_auth <- FALSE
+prod <- TRUE
+dw_inthealth <- apde.etl::create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+keyring::key_list() #Confirm you have a key set for hhsaw and inthealth_edw_prod on this machine
+
+#key_set("HHSAW_prod", username = "shernandez@kingcounty.gov") #Only run this each time password is changed
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 1: apcd_ref_member_exclude ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_ref_member_exclude - ", Sys.time()))
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_ref_member_exclude.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, 
+             config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_ref_member_exclude.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw",
+             with = "DISTRIBUTION = REPLICATE")
+
+### C) Load tables
+system.time(load_stage.apcd_ref_member_exclude_f())
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 2: apcd_elig_demo ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_elig_demo - ", Sys.time()))
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_demo.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_demo.yaml",
+               overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### C) Load tables
+system.time(load_stage.apcd_elig_demo_f())
+
+### D) Table-level QA
+system.time(apcd_demo_qa <- qa_stage.apcd_elig_demo_f())
+
+if((apcd_demo_qa$qa[[1]] == apcd_demo_qa$qa[[2]]) & (apcd_demo_qa$qa[[1]] == apcd_demo_qa$qa[[3]])) {
+  message(paste0("apcd_elig_demo QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_elig_demo QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 3: apcd_elig_timevar ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_elig_timevar - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_timevar.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, 
+               config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_timevar.yaml",
+               overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### C) Load tables
+system.time(load_stage.apcd_elig_timevar_f())
+
+### D) Table-level QA
+system.time(apcd_timevar_qa <- qa_stage.apcd_elig_timevar_f())
+
+if(
+  (apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, expect match to raw tables"]==
+    apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, expect match to timevar" & apcd_timevar_qa$table=="stg_claims.apcd_member_month_detail"])
+  
+  & (apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, expect match to raw tables"]==
+    apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, expect match to timevar" & apcd_timevar_qa$table=="stg_claims.stage_apcd_elig_demo"])
+  
+  & (apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, King 2016, expect match to member_month"]==
+     apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="member count, King 2016, expect match to timevar"])
+  
+  & apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="non-WA resident segments with non-null county name, expect 0"]==0
+  & apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="WA resident segments with null county name, expect 0"]==0
+  & apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="count of member elig segments with no coverage, expect 0"]==0
+  & apcd_timevar_qa$qa[apcd_timevar_qa$qa_type=="mcaid-mcare duals with dual flag = 0, expect 0"]==0
+  
+) {
+  message(paste0("apcd_elig_timevar QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_elig_timevar QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 4: apcd_elig_month ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_elig_month - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_month.R")
+
+### B) Create table
+config_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_month.yaml"
+create_table(conn = dw_inthealth, 
+             config_url = config_url,
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### C) Load tables
+system.time(load_stage.apcd_elig_month_f(
+  conn = dw_inthealth,
+  config_url = config_url))
+
+### D) Table-level QA
+system.time(apcd_month_qa <- qa_stage.apcd_elig_month_f(
+  conn = dw_inthealth,
+  config_url = config_url))
+rm(config_url)
+
+if(
+  (apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to raw tables"]==
+   apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to elig_month" &
+                    apcd_month_qa$table=="\"stg_claims\".\"apcd_member_month_detail\""])
+  
+  & (apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to raw tables"]==
+     apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, expect match to elig_month" &
+                      apcd_month_qa$table=="\"stg_claims\".\"stage_apcd_elig_demo\""])
+  
+  & (apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, King 2016, expect match to member_month"]==
+     apcd_month_qa$qa[apcd_month_qa$qa_type=="member count, King 2016, expect match to elig_month"])
+  
+  & apcd_month_qa$qa[apcd_month_qa$qa_type=="non-WA resident segments with non-null county name, expect 0"]==0
+  & apcd_month_qa$qa[apcd_month_qa$qa_type=="WA resident segments with null county name, expect 0"]==0
+  & apcd_month_qa$qa[apcd_month_qa$qa_type=="count of member elig segments with no coverage, expect 0"]==0
+  & apcd_month_qa$qa[apcd_month_qa$qa_type=="mcaid-mcare duals with dual flag = 0, expect 0"]==0
+  
+) {
+  message(paste0("apcd_elig_month QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_elig_month QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 5: apcd_elig_plr_DATE ####
+# Note: Eventually use claim_elig function to generate these tables
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_elig_plr tables - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr.R")
+
+### B) Create table
+# 2014
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2014.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+# 2015
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2015.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+# 2016
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2016.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+# 2017
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2017.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+# 2018
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2018.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+# 2019
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2019.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+# 2020
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2020.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+# 2021
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2021.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+# 2022
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2022.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+# 2023
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2023.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+# 2024
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2024.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+# 2025
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr_2025.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### PLACEHOLDER FOR ADDING THE NEXT COMPLETE CALENDAR YEAR TABLE ###
+
+### C) Load tables
+system.time(load_stage.apcd_elig_plr_f(from_date = "2014-01-01", to_date = "2014-12-31")) #2014
+system.time(load_stage.apcd_elig_plr_f(from_date = "2015-01-01", to_date = "2015-12-31")) #2015
+system.time(load_stage.apcd_elig_plr_f(from_date = "2016-01-01", to_date = "2016-12-31")) #2016
+system.time(load_stage.apcd_elig_plr_f(from_date = "2017-01-01", to_date = "2017-12-31")) #2017
+system.time(load_stage.apcd_elig_plr_f(from_date = "2018-01-01", to_date = "2018-12-31")) #2018
+system.time(load_stage.apcd_elig_plr_f(from_date = "2019-01-01", to_date = "2019-12-31")) #2019
+system.time(load_stage.apcd_elig_plr_f(from_date = "2020-01-01", to_date = "2020-12-31")) #2020
+system.time(load_stage.apcd_elig_plr_f(from_date = "2021-01-01", to_date = "2021-12-31")) #2021
+system.time(load_stage.apcd_elig_plr_f(from_date = "2022-01-01", to_date = "2022-12-31")) #2022
+system.time(load_stage.apcd_elig_plr_f(from_date = "2023-01-01", to_date = "2023-12-31")) #2023
+system.time(load_stage.apcd_elig_plr_f(from_date = "2024-01-01", to_date = "2024-12-31")) #2024
+system.time(load_stage.apcd_elig_plr_f(from_date = "2025-01-01", to_date = "2025-12-31")) #2025
+##placeholder for adding the next complete calendar year table
+
+### D) Table-level QA
+system.time(apcd_plr_2014_qa <- qa_stage.apcd_elig_plr_f(year = "2014"))
+system.time(apcd_plr_2015_qa <- qa_stage.apcd_elig_plr_f(year = "2015"))
+system.time(apcd_plr_2016_qa <- qa_stage.apcd_elig_plr_f(year = "2016"))
+system.time(apcd_plr_2017_qa <- qa_stage.apcd_elig_plr_f(year = "2017"))
+system.time(apcd_plr_2018_qa <- qa_stage.apcd_elig_plr_f(year = "2018"))
+system.time(apcd_plr_2019_qa <- qa_stage.apcd_elig_plr_f(year = "2019"))
+system.time(apcd_plr_2020_qa <- qa_stage.apcd_elig_plr_f(year = "2020"))
+system.time(apcd_plr_2021_qa <- qa_stage.apcd_elig_plr_f(year = "2021"))
+system.time(apcd_plr_2022_qa <- qa_stage.apcd_elig_plr_f(year = "2022"))
+system.time(apcd_plr_2023_qa <- qa_stage.apcd_elig_plr_f(year = "2023"))
+system.time(apcd_plr_2024_qa <- qa_stage.apcd_elig_plr_f(year = "2024"))
+system.time(apcd_plr_2025_qa <- qa_stage.apcd_elig_plr_f(year = "2025"))
+##placeholder for adding the next complete calendar year table
+
+#Process QA results from across all tables
+df_list <- list(apcd_plr_2014_qa,
+                apcd_plr_2015_qa,
+                apcd_plr_2016_qa,
+                apcd_plr_2017_qa,
+                apcd_plr_2018_qa,
+                apcd_plr_2019_qa,
+                apcd_plr_2020_qa,
+                apcd_plr_2021_qa,
+                apcd_plr_2022_qa,
+                apcd_plr_2023_qa,
+                apcd_plr_2024_qa,
+                apcd_plr_2025_qa)
+##placeholder for adding the next complete calendar year table
+columns <- c("qa_result")
+elig_plr_qa_composite_result <- data.frame(matrix(nrow = 0, ncol = length(columns)))
+
+for (i in df_list) {
+  elig_plr_qa_composite_result <- rbind(elig_plr_qa_composite_result, (i$qa[i$qa_type=="# members with >1 row, expect 0"]==0
+   & i$qa[i$qa_type=="non-WA county for WA resident, expect 0"]==0
+   & i$qa[i$qa_type=="non-WA residents, expect 0"]==0
+   & i$qa[i$qa_type=="# of members with day counts >365, expect 0"]==0
+   & i$qa[i$qa_type=="# of members with percents >100, expect 0"]==0
+   & i$qa[i$qa_type=="# of overall Medicaid members out of state, expect 0"]==0
+   & i$qa[i$qa_type=="# of overall Medicaid members"]>0))
+  
+  colnames(elig_plr_qa_composite_result) = columns
+  
+}
+
+if(all(elig_plr_qa_composite_result$qa_result) == TRUE) {
+  message(paste0("apcd_elig_plr QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_elig_plr QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 6: apcd_claim_line ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_line - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_line.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_line.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw",
+             with = "DISTRIBUTION = HASH(claim_header_id)")
+
+### C) Load tables
+system.time(load_stage.apcd_claim_line_f())
+
+### D) Table-level QA
+system.time(apcd_line_qa <- qa_stage.apcd_claim_line_f())
+
+##Process QA results
+if(all(c(apcd_line_qa$qa[[1]] == 0
+         & apcd_line_qa$qa[[2]] == 0))) {
+  message(paste0("apcd_claim_line QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_line QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 7: apcd_claim_icdcm_header ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_icdcm_header - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_icdcm_header.R")
+
+## B) Create table
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_icdcm_header.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw",
+             with = "DISTRIBUTION = HASH(claim_header_id)")
+
+### C) Load tables
+system.time(load_stage.apcd_claim_icdcm_header_f())
+
+### D) Table-level QA
+system.time(apcd_icdcm_qa <- qa_stage.apcd_claim_icdcm_header_f())
+
+#Process QA results
+if(all(c(apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="# members not in elig_demo, expect 0"] == 0
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="# members not in elig_timevar, expect 0"] == 0
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="# of null diagnoses, expect 0"] == 0
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="minimum length of ICD-9-CM, expect 5"] == 5
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="maximum length of ICD-9-CM, expect 5"] == 5
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="minimum length of ICD-10-CM, expect >=3"] >= 3
+         & apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="maximum length of ICD-10-CM, expect <=7"] >= 7))) {
+  message(paste0("apcd_claim_icdcm_header QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_icdcm_header QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 8: apcd_claim_procedure ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_procedure - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_procedure.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_procedure.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw",
+             with = "DISTRIBUTION = HASH(claim_header_id)")
+
+### C) Load tables
+system.time(load_stage.apcd_claim_procedure_f())
+
+### D) Table-level QA
+system.time(apcd_procedure_qa <- qa_stage.apcd_claim_procedure_f())
+
+#Process QA results
+if(all(c(apcd_procedure_qa$qa[apcd_procedure_qa$qa_type=="# members not in elig_demo, expect 0"] == 0
+         & apcd_procedure_qa$qa[apcd_procedure_qa$qa_type=="# members not in elig_timevar, expect 0"] == 0
+         & apcd_procedure_qa$qa[apcd_procedure_qa$qa_type=="# of null procedure codes, expect 0"] == 0))) {
+  message(paste0("apcd_claim_procedure QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_procedure QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 9: apcd_claim_provider ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_provider - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_provider.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_provider.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### C) Load tables
+system.time(load_stage.apcd_claim_provider_f())
+
+### D) Table-level QA
+system.time(apcd_provider_qa <- qa_stage.apcd_claim_provider_f())
+
+#Process QA results
+if((apcd_provider_qa$qa[apcd_provider_qa$qa_type=="# referring provider claim headers, expect match to raw"]==
+    apcd_provider_qa$qa[apcd_provider_qa$qa_type=="# referring provider claim headers, expect match to apcd_claim_provider"])) {
+  message(paste0("apcd_claim_provider QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_provider QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 10: ref.apcd_provider_npi ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for ref.apcd_provider_npi - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_provider_npi.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_provider_npi.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### C) Load tables
+system.time(load_ref.apcd_provider_npi_f())
+
+### D) Table-level QA
+system.time(apcd_provider_npi_qa <- qa_ref.apcd_provider_npi_f())
+
+##Process QA results
+if(all(c(apcd_provider_npi_qa$qa[apcd_provider_npi_qa$qa_type=="# of provider IDs with >1 row, expect 0"] == 0
+         & apcd_provider_npi_qa$qa[apcd_provider_npi_qa$qa_type=="# of NPIs with length != 10, expect 0"] == 0))) {
+  message(paste0("ref_apcd_provider_npi QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("ref_apcd_provider_npi QA result: FAIL - ", Sys.time()))
+}
+
+### E) Copy table to HHSAW
+message(paste0("Beginning copying ref.apcd_provider_npi to HHSAW - ", Sys.time()))
+db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+
+system.time(table_duplicate(
+  conn_from = dw_inthealth,
+  conn_to = db_claims,
+  server_to = "hhsaw", #must match ODBC data source name AND keyring service name
+  db_to = "hhs_analytics_workspace",
+  from_schema = "stg_claims",
+  from_table = "ref_apcd_provider_npi",
+  to_schema = "claims",
+  to_table = "ref_apcd_provider_npi",
+  confirm_tables = FALSE,
+  delete_table = TRUE
+))
+
+### F) Index table on HHSAW
+system.time(dbSendQuery(
+  conn = db_claims,
+  glue_sql("create clustered columnstore index idx_ccs_ref_apcd_provider_npi on claims.ref_apcd_provider_npi;", .con = db_claims)))
+
+message(paste0("Completed copying ref.apcd_provider_npi to HHSAW - ", Sys.time()))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 11: ref.kc_provider_master ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for ref.kc_provider_master - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.kc_provider_master.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.kc_provider_master.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### C) Load tables
+system.time(load_ref.kc_provider_master_f())
+
+### D) Table-level QA
+system.time(kc_provider_master_qa <- qa_ref.kc_provider_master_f())
+
+##Process QA results
+if(all(c(kc_provider_master_qa$qa[kc_provider_master_qa$qa_type=="# of NPIs with >1 row, expect 0"] == 0
+         & kc_provider_master_qa$qa[kc_provider_master_qa$qa_type=="# of NPIs with length != 10, expect 0"] == 0
+         & kc_provider_master_qa$qa[kc_provider_master_qa$qa_type=="# of taxonomies with length != 10, expect 0"] == 0
+         & kc_provider_master_qa$qa[kc_provider_master_qa$qa_type=="# of ZIP codes with length != 5, expect 0"] == 0))) {
+  message(paste0("ref.kc_provider_master QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("ref.kc_provider_master QA result: FAIL - ", Sys.time()))
+}
+
+### E) Copy table to HHSAW
+message(paste0("Beginning copying ref.kc_provider_master to HHSAW - ", Sys.time()))
+db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+
+system.time(table_duplicate(
+  conn_from = dw_inthealth,
+  conn_to = db_claims,
+  server_to = "hhsaw", #must match ODBC data source name AND keyring service name
+  db_to = "hhs_analytics_workspace",
+  from_schema = "stg_claims",
+  from_table = "ref_kc_provider_master",
+  to_schema = "claims",
+  to_table = "ref_kc_provider_master",
+  confirm_tables = FALSE,
+  delete_table = TRUE
+))
+
+### F) Index table on HHSAW
+system.time(dbSendQuery(
+  conn = db_claims,
+  glue_sql("create clustered columnstore index idx_ccs_ref_kc_provider_master on claims.ref_kc_provider_master;", .con = db_claims)))
+
+message(paste0("Completed copying ref.kc_provider_master to HHSAW - ", Sys.time()))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 12 prep: Copy ref tables needed to make claim_header table ####
+#Copy tables and set distribution as REPLICATE, add CHECKSUM to ref_icdcm_codes table)
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+## Create copies of all needed ref tables using REPLICATE distribution
+table_name_list <- list(
+  "ref_apcd_claim_status",
+  "ref_apcd_provider_npi",
+  "ref_kc_provider_master",
+  "ref_kc_claim_type_crosswalk",
+  "ref_icdcm_codes",
+  "ref_pc_visit_oregon"
+)
+
+lapply(table_name_list, function(tbl) {
+  
+  # Name of the replicated table
+  rep_tbl <- paste0(tbl, "_rep")
+  
+  # DROP statement
+  drop_sql <- glue_sql(
+    "IF OBJECT_ID('stg_claims.{rep_tbl}', 'U') IS NOT NULL DROP TABLE stg_claims.{rep_tbl};",
+    rep_tbl = DBI::SQL(rep_tbl),
+    .con = dw_inthealth
+  )
+  
+  # CREATE TABLE AS SELECT statement
+  create_sql <- glue_sql(
+    "CREATE TABLE stg_claims.{rep_tbl}
+    WITH (
+        DISTRIBUTION = REPLICATE,
+        CLUSTERED COLUMNSTORE INDEX
+    )
+    AS
+    SELECT *
+    FROM stg_claims.{tbl};",
+    rep_tbl = DBI::SQL(rep_tbl),
+    tbl = DBI::SQL(tbl),
+    .con = dw_inthealth
+  )
+  
+  message("Dropping table if exists: ", rep_tbl)
+  DBI::dbExecute(dw_inthealth, drop_sql)
+  
+  message("Creating replicated table: ", rep_tbl)
+  DBI::dbExecute(dw_inthealth, create_sql)
+})
+
+## Add CHECKSUM(icdcm, icdcm_version) as icdcm_hash column to stg.claims_ref_icdcm_codes_rep table
+system.time(dbSendQuery(
+  conn = dw_inthealth,
+  glue_sql("
+    ALTER TABLE stg_claims.ref_icdcm_codes_rep
+    ADD icdcm_hash INT;
+    UPDATE stg_claims.ref_icdcm_codes_rep
+    SET icdcm_hash = CHECKSUM(icdcm, icdcm_version);", .con = dw_inthealth)))
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 12: apcd_claim_header (~3hr) #### 
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_header - ", Sys.time()))
+dw_inthealth <- apde.etl::create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "HHSAW_prod")
+
+### C) Load table
+system.time(load_stage.apcd_claim_header_f())
+
+### D) Table-level QA
+system.time(apcd_claim_header_qa <- qa_stage.apcd_claim_header_f())
+
+##Process QA results
+if(all(c(apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of headers"] ==
+            apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of distinct headers"]
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of headers"] ==
+            apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of headers in raw table"]
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of members not in elig_demo, expect 0"] == 0
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of members not in elig_timevar, expect 0"] == 0
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of claims with unmatched claim type, expect 0"] == 0
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ipt stays with no discharge date, expect 0"] == 0
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_pophealth_id values used for >1 person, expect 0"] == 0
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of inpatient_id values used for >1 person, expect 0"] == 0
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_perform_id values used for >1 person, expect 0"] == 0
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of pc_visit_id values used for >1 person, expect 0"] == 0
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of distinct ed_pophealth_id values"] ==
+            apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="max ed_pophealth_id - min + 1"]
+         & apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of ed_pophealth visits where the overlap date is greater than 1 day, expect 0"] == 0))) {
+  message(paste0("apcd_claim_header QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_header QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 13: apcd_claim_ccw ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_ccw - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Create table
+create_table(
+  conn = dw_inthealth,
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml",
+  overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### B) Load tables
+system.time(load_ccw(
+  server = "hhsaw",
+  conn = dw_inthealth,
+  source = c("apcd"),
+  print_query = FALSE,
+  ccw_list_name = "all",
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_ccw.yaml"))
+
+### C) Table-level QA
+
+#all members should be in elig_demo table
+apcd_claim_ccw_qa1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "select 'stg_claims.stage_apcd_claim_ccw' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+    count(distinct a.id_apcd) as qa
+    from stg_claims.stage_apcd_claim_ccw as a
+    left join stg_claims.stage_apcd_elig_demo as b
+    on a.id_apcd = b.id_apcd
+    where b.id_apcd is null;",
+  .con = dw_inthealth))
+
+#count conditions run
+apcd_claim_ccw_qa2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "select 'stg_claims.stage_apcd_claim_ccw' as 'table', '# conditions, expect 31' as qa_type,
+  count(distinct ccw_code) as qa
+  from stg_claims.stage_apcd_claim_ccw;",
+  .con = dw_inthealth))
+
+#count cases with >1 row per person-condition, expect 0
+apcd_claim_ccw_qa3 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "
+  with temp1 as (
+    select id_mcaid, ccw_code, count(*) as row_count
+    from stg_claims.stage_mcaid_claim_ccw
+    group by id_mcaid, ccw_code
+  )
+  select 'stg_claims.stage_apcd_claim_ccw' as 'table', 'more than 1 row per person-condition, expect 0' as qa_type, count(*) as qa
+  from temp1
+  where row_count > 1;",
+  .con = dw_inthealth))
+
+##Process QA results
+if(all(c(apcd_claim_ccw_qa1$qa==0
+         & apcd_claim_ccw_qa2$qa==31
+         & apcd_claim_ccw_qa3$qa==0))) {
+  message(paste0("apcd_claim_ccw QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_ccw QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 14: apcd_claim_bh ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_bh - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Create table
+
+apde.etl::create_table(
+  conn = dw_inthealth,
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_bh.yaml",
+  overall = T, ind_yr = F, overwrite = T, server = "inthealth")
+
+### B) Load tables (6 min run time)
+system.time(load_bh(
+  server = "inthealth",
+  conn = dw_inthealth,
+  source = "apcd",
+  config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_bh.yaml"))
+
+### C) Table-level QA
+
+#all members should be in elig_demo table
+apcd_claim_bh_qa1 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "select 'stg_claims.stage_apcd_claim_bh' as 'table', '# members not in elig_demo, expect 0' as qa_type,
+    count(distinct a.id_apcd) as qa
+    from stg_claims.stage_apcd_claim_bh as a
+    left join stg_claims.stage_apcd_elig_demo as b
+    on a.id_apcd = a.id_apcd
+    where a.id_apcd is null;",
+  .con = dw_inthealth))
+
+#count conditions run
+apcd_claim_bh_qa2 <- dbGetQuery(conn = dw_inthealth, glue_sql(
+  "select 'stg_claims.stage_apcd_claim_bh' as 'table', '# conditions, expect 17' as qa_type,
+  count(distinct bh_cond) as qa
+  from stg_claims.stage_apcd_claim_bh;",
+  .con = dw_inthealth))
+
+##Process QA results
+if(all(c(apcd_claim_bh_qa1$qa[apcd_claim_bh_qa1$qa_type=="# members not in elig_demo, expect 0"] == 0,
+         apcd_claim_bh_qa2$qa[apcd_claim_bh_qa1$qa_type=="# conditions, expect 17"] == 17))) {
+  message(paste0("apcd_claim_bh QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_bh QA result: FAIL - ", Sys.time()))
+}
+
+
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+#### Table 15: apcd_claim_preg_episode ####
+## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
+
+message(paste0("Beginning creation process for apcd_claim_preg_episode - ", Sys.time()))
+dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+### A) Call in functions
+devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_preg_episode.R")
+
+### B) Create table
+create_table(conn = dw_inthealth, config_url = "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_preg_episode.yaml",
+             overall = T, ind_yr = F, overwrite = T, server = "hhsaw")
+
+### C) Load tables
+system.time(load_stage.apcd_claim_preg_episode_f())
+
+### D) Table-level QA
+system.time(apcd_claim_preg_episode_qa <- qa_stage.apcd_claim_preg_episode_f())
+
+##Process QA results
+if(all(c(apcd_claim_preg_episode_qa$qa[apcd_claim_preg_episode_qa$qa_type=="minimum age, expect 12"] == 12
+         & apcd_claim_preg_episode_qa$qa[apcd_claim_preg_episode_qa$qa_type=="minimum age, expect 55"] == 55
+         & apcd_claim_preg_episode_qa$qa[apcd_claim_preg_episode_qa$qa_type=="# of rows with null start or end date, expect 0"] == 0
+         & apcd_claim_preg_episode_qa$qa[apcd_claim_preg_episode_qa$qa_type=="# of valid GA rows with null GA columns, expect 0"] == 0
+         & apcd_claim_preg_episode_qa$qa[apcd_claim_preg_episode_qa$qa_type=="# of distinct preg endpoint types, expect 7"] == 7
+         & apcd_claim_preg_episode_qa$qa[apcd_claim_preg_episode_qa$qa_type=="# of LB records with valid GA and null lb_type, expect 0"] == 0))) {
+  message(paste0("apcd_claim_preg_episode QA result: PASS - ", Sys.time()))
+} else {
+  stop(paste0("apcd_claim_preg_episode QA result: FAIL - ", Sys.time()))
+}
+
+#Final message
+message(paste0("All APCD analytic tables complete! - ", Sys.time()))

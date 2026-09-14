@@ -4,3 +4,9 @@ overall:
     file_path: C:/Users/kerneli/King County/King County Cross-Sector Data - Documents/References/Claim type/kc_claim_type_crosswalk.csv
     field_term: ','
     row_term: \n
+vars:
+    source_clm_type_id: varchar(20)
+    source_clm_type_desc: varchar(255)
+    source_desc: varchar(255)
+    kc_clm_type_id: tinyint
+    kc_clm_type_desc: varchar(255)

@@ -9,7 +9,7 @@
 # to_schema = desired new schema for table
 # table_name = name of table
 
-alter_schema_f <- function(
+alter_schema <- function(
   conn = NULL,
   from_schema = NULL,
   to_schema = NULL,

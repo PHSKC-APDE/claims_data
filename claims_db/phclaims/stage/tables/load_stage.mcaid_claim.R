@@ -7,7 +7,7 @@
 ### Run from master_mcaid_full script
 # https://github.com/PHSKC-APDE/claims_data/blob/main/claims_db/db_loader/mcaid/master_mcaid_full.R
 
-load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL, 
+load_claims.stage_mcaid_claim <- function(conn_dw = NULL, 
                                             conn_db = NULL, 
                                             server = NULL,
                                             full_refresh = F, 
@@ -108,7 +108,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
       }
       try(DBI::dbSendQuery(conn_db, 
                            glue::glue("EXEC sp_rename '{archive_schema}.{archive_table}',  '{paste0(archive_table, '_bak')}'")))
-      alter_schema_f(conn = conn_db, 
+      alter_schema(conn = conn_db, 
                      from_schema = to_schema, 
                      to_schema = archive_schema,
                      table_name = to_table, 
@@ -129,7 +129,7 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
                                    AS ",
                                  .con = conn_dw)
   } else if (server == "phclaims") {
-    create_table_f(conn = conn_dw, 
+    create_table(conn = conn_dw, 
                    server = server,
                    config = config,
                    overwrite = T)
@@ -175,9 +175,9 @@ load_claims.stage_mcaid_claim_f <- function(conn_dw = NULL,
   
   
   ### Add index if needed
-  devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
+  #devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/add_index.R")
   if (server == "phclaims") {
-    add_index_f(conn = conn_db, server = server, table_config = config)
+    add_index(conn = conn_db, server = server, table_config = config)
   }
   
   

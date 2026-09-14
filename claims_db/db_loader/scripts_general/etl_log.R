@@ -13,7 +13,7 @@
   # and 2) set proceed <- T if auto_proceed == T and nrow(matches) >= 1
 
 
-load_metadata_etl_log_file_f <- function(conn = NULL,
+load_metadata_etl_log_file <- function(conn = NULL,
                                     server = NULL,
                                     batch_type = c("incremental", "full"),
                                     data_source = NULL,
@@ -222,7 +222,7 @@ Do you still want to make a new entry?")
 
 
 
-load_metadata_etl_log_f <- function(conn = NULL,
+load_metadata_etl_log <- function(conn = NULL,
                                     server = NULL,
                                     batch_type = c("incremental", "full"),
                                     data_source = NULL,
@@ -416,7 +416,7 @@ Do you still want to make a new entry?")
 
 #### FUNCTION TO DISPLAY DATA ASSOCIATED WITH AN ETL_BATCH_ID
 # Used to check that the right current_etl_id is being used
-retrieve_metadata_etl_log_f <- function(conn = NULL, 
+retrieve_metadata_etl_log <- function(conn = NULL, 
                                         server = NULL,
                                         etl_batch_id = NULL) {
   #### ERROR CHECKS ####
@@ -455,7 +455,7 @@ retrieve_metadata_etl_log_f <- function(conn = NULL,
 
 
 #### FUNCTION TO DISPLAY DATA ASSOCIATED WITH AN ETL_BATCH_ID
-get_unloaded_etl_batches_f <- function(conn = NULL,
+get_unloaded_etl_batches <- function(conn = NULL,
                                        server = NULL,
                                        type = c("claim", "elig")) {
   #### ERROR CHECKS ####

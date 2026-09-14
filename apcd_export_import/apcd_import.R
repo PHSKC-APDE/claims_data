@@ -1,32 +1,43 @@
 ### STEP 1: LOAD FUNCTIONS, CONFIG FILE, DEFINE DIRECTORY VARIABLES, AND CHECK CREDENTIALS
 if(T) {
   message("STEP 1: Loading Functions, Config File, Defining Variables, and Check SFTP Credentials...")
-  suppressWarnings(source("apcd_import_functions.R"))
-  config <- yaml::read_yaml("apcd_import_config.yaml")
+  if("here" %in% rownames(installed.packages()) == F) { install.packages("here") }
+  if(file.exists(file.path(here::here(),"apcd_export_import/apcd_import_functions.R"))) {
+    suppressWarnings(source(file.path(here::here(),"apcd_export_import/apcd_import_functions.R")))
+    config <- yaml::read_yaml(file.path(here::here(),"apcd_export_import/apcd_import_config.yaml"))
+    config$table_file_path <- file.path(here::here(),"apcd_export_import", config$table_file_path)
+  } else if(file.exists(file.path(here::here(),"apcd_import_functions.R"))) {
+    suppressWarnings(source(file.path(here::here(),"apcd_import_functions.R"))) 
+    config <- yaml::read_yaml(file.path(here::here(),"apcd_import_config.yaml"))
+    config$table_file_path <- file.path(here::here(),config$table_file_path)
+  } else {
+    suppressWarnings(source("apcd_import_functions.R"))
+    config <- yaml::read_yaml("apcd_import_config_test.yaml")
+  }
   #Define directories for downloaded files and extracted files.
   base_dir <- config$base_dir
   ref_dir <- paste0(base_dir, "/ref_schema")
   stage_dir <- paste0(base_dir, "/stage_schema")
   final_dir <- paste0(base_dir, "/final_schema")
-  apcd_prep_check_f(config)
+  apcd_prep_check(config)
   files <- data.frame()
-  memory.limit(size = 56000)
+  invisible(suppressWarnings(memory.limit(size = 56000)))
 }
 
 ### STEP 2: REVIEW SFTP FILES AND CREATE ETL ENTRIES
 if(T) {
   message("STEP 2: Review SFTP Files and Create New ETL Entries")
   message("Getting SFTP file list...")
-  files <- apcd_ftp_get_file_list_f(config)
+  files <- apcd_ftp_get_file_list(config)
   message("Comparing current ETL log with SFTP file list...")
-  etl_list <- apcd_etl_get_list_f(config)
+  etl_list <- apcd_etl_get_list(config)
   files <- files %>% 
     anti_join(etl_list, by = "file_name")
   
   message("Create ETL entries for new SFTP files...")
   if(nrow(files) > 0) {
     for(f in 1:nrow(files)) {
-      files[f, "etl_id"] <- apcd_etl_entry_f(config,
+      files[f, "etl_id"] <- apcd_etl_entry(config,
                                              file_name = files[f,]$file_name,
                                              file_date = files[f,]$file_date,
                                              file_schema = files[f,]$schema,
@@ -41,8 +52,8 @@ if(T) {
 ### STEP 3: CHOOSE SCHEMAS AND TABLES TO DOWNLOAD, THEN DOWNLOAD FILES
 if(T) {
   # Select which schemas and tables to download the files
-  files <- apcd_ftp_get_file_list_f(config)
-  etl_list <- apcd_etl_get_list_f(config)
+  files <- apcd_ftp_get_file_list(config)
+  etl_list <- apcd_etl_get_list(config)
   if(!is.Date(files$file_date)) {
     files$file_date <- as.Date(files$file_date)  
   }
@@ -81,7 +92,7 @@ if(T) {
       files[f, "file_path"] <- final_dir
     }
     files[f, "file_path"] <- paste0(files[f, "file_path"], "/", files[f, "file_name"])
-    files[f, "datetime_download"] <- apcd_ftp_get_file_f(config, 
+    files[f, "datetime_download"] <- apcd_ftp_get_file(config, 
                                                          file = files[f, ])
     message(paste0("......Download Complete. ", nrow(files) - f, " of ", nrow(files), " left to download..."))
   }
@@ -91,10 +102,8 @@ if(T) {
 ### STEP 4: EXTRACT AND LOAD DATA FROM FILES INTO SQL
 if(T) {
   # Select which schemas and tables to import
-  etl_list <- apcd_etl_get_list_f(config)
-  if(nrow(files) > 0) {
-    files <- etl_list %>% filter(is.na(datetime_load)) %>% filter(!is.na(datetime_download))
-  }
+  etl_list <- apcd_etl_get_list(config)
+  files <- etl_list %>% filter(is.na(datetime_load)) %>% filter(!is.na(datetime_download))
   files$schema_table <- paste0(files$file_schema, ".", files$file_table)
   files <- files[order(files$schema_table), ]
   schemas <- dlg_list(unique(files$file_schema), 
@@ -106,23 +115,25 @@ if(T) {
                      preselect = unique(files$schema_table),
                      title = "Select File Tables to Download")$res
   files <- files[files$schema_table %in% tables, ]
-  message(paste0("Begin Loading ", nrow(files), " Files into SQL Server..."))
-  import_errors <- list()
-  for(f in 1:nrow(files)) {
-    message(paste0("...Loading File: "  , f, ": ", files[f, "file_name"], "..."))
-    result <- apcd_data_load_f(config, file = files[f, ])  
-    message(paste0("......Loading Complete. ", nrow(files) - f, " of ", nrow(files), " left to import..."))
-    if(!is.na(result)) {
-      import_errors <- append(import_errors, result)
+  if(nrow(files) > 0) {
+    message(paste0("Begin Loading ", nrow(files), " Files into SQL Server..."))
+    import_errors <- list()
+    for(f in 1:nrow(files)) {
+      message(paste0("...Loading File: "  , f, ": ", files[f, "file_name"], "..."))
+      result <- apcd_data_load(config, file = files[f, ])  
+      message(paste0("......Loading Complete. ", nrow(files) - f, " of ", nrow(files), " left to import..."))
+      if(!is.na(result)) {
+        import_errors <- append(import_errors, result)
+      }
     }
-  }
-  message("All Files Loaded...")
-  if(length(import_errors) == 0) {
-    message("No errors to report...")
-  } else {
-    message(paste0("There were ", length(import_errors), " error(s):"))
-    for(x in 1:length(import_errors)) {
-      message(import_errors[x])
+    message("All Files Loaded...")
+    if(length(import_errors) == 0) {
+      message("No errors to report...")
+    } else {
+      message(paste0("There were ", length(import_errors), " error(s):"))
+      for(x in 1:length(import_errors)) {
+        message(import_errors[x])
+      }
     }
   }
 }

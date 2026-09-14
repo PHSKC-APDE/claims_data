@@ -1,0 +1,16 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_procedure_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/procedure_code000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 9
+vars:
+    procedure_code_id: BIGINT
+    extract_id: BIGINT
+    procedure_code: VARCHAR(12)
+    procedure_short_desc: VARCHAR(150)
+    procedure_long_desc: VARCHAR(206)
+    hipps_procedure_short_desc: VARCHAR(150)
+    hipps_procedure_long_desc: VARCHAR(462)
+    code_set_type: VARCHAR(62)
+    submitter_id: BIGINT

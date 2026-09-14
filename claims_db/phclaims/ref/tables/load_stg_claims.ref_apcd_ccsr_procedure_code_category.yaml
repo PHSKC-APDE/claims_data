@@ -1,0 +1,13 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_ccsr_procedure_code_category
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/ccsr_procedure_code_category000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 6
+vars:
+    ccsr_pc_category_mapping_id: INT
+    extract_id: BIGINT
+    icd_procedure_code: VARCHAR(14)
+    ccsr_pc_category_id: INT
+    ccsr_pc_category_code: VARCHAR(12)
+    ccsr_pc_category_desc: VARCHAR(146)
