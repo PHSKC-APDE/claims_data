@@ -26,7 +26,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	CREATE TABLE stg_claims.tmp_apcd_icdcm_d1_raw
 	WITH
 	(
-	DISTRIBUTION = ROUND_ROBIN,
+	DISTRIBUTION = HASH(claim_header_id),
 	HEAP
 	)
 	AS
@@ -66,7 +66,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	AND c.orphaned_header_flag = 'N'
 	--exclude members with no WA residency OR no elig data
 	AND y.id_apcd IS NULL
-	OPTION (LABEL = 'icdcm_step1_distinct_rr');
+	OPTION (LABEL = 'icdcm_step1');
 
 	--STEP 2: Extract primary diagnsosis codes from medical claim header table, applying exclusions
 	--Note that ICD-CM version in this table does not need correcting (all first digit alpha codes > 2015-10-01 are V and E codes)
@@ -94,15 +94,14 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 	AND a.denied_header_flag = 'N'
 	AND a.orphaned_header_flag = 'N'
 	--exclude members with no WA residency OR no elig data
-	AND y.id_apcd IS NULL
-	OPTION (LABEL='icdcm_step2_header');
+	AND y.id_apcd IS NULL;
 
 	--STEP 3: Normalize ICD-CM codes and union tables
 	CREATE TABLE stg_claims.tmp_apcd_icdcm_norm
 	WITH
 	(
 	DISTRIBUTION = HASH(claim_header_id),
-	HEAP
+	CLUSTERED COLUMNSTORE INDEX
 	)
 	AS
 	-- First branch: line-level diagnoses
@@ -161,7 +160,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 		icdcm_number
 		FROM stg_claims.tmp_apcd_icdcm_header_raw
 	) AS hdr
-	OPTION (LABEL='icdcm_step3_union_heap');
+	OPTION (LABEL='icdcm_step3_union_norm');
 	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_d1_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_d1_raw;
 	IF OBJECT_ID('stg_claims.tmp_apcd_icdcm_header_raw', 'U') IS NOT NULL DROP TABLE stg_claims.tmp_apcd_icdcm_header_raw;
 
