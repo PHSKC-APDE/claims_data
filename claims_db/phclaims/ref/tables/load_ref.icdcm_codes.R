@@ -59,7 +59,7 @@
 #' 1/9/2024 update: 1) Improve alignment of ccs between ICD-9/10-CM, 2) create ccs_super_category (5 levels)
 #' 4/23/2024 update: Bring in Step 0 function to add new data
 #' 1/7/2025 update: Add new mh_other category from RDA value sets reference table
-#' 9/10/2026 update: adding additional context to the steps and removing file paths specific to the user (outside of github items)
+#' 9/14/2026 update: adding additional context to the steps, removing file paths specific to the user (outside of github items), and manually adding 9 ICD-10-CM codes to CCS descriptions
 
 
 # SET OPTIONS AND BRING IN PACKAGES ----
@@ -517,6 +517,32 @@ ccs_10_simple <- ccs_10_raw %>%
       ccs_broad_code == "SYM" ~ "Symptoms, signs and abnormal clinical and laboratory findings, not elsewhere classified"
     ))
 
+## Add the 9 ICD-10-CM codes that are not currently in HCUP 
+toadd <- data.frame(
+  icdcode = c("J4B", "K6A01", "K6A09", "K6A8", "QA171", "QA1790", "QA1791", "QA1792",
+              "QA1798"),
+  ccs_broad_code = c("RSP", "DIG", "DIG", "DIG", "MAL", "MAL", "MAL", "MAL", "MAL"),
+  ccs_broad_desc = c("Diseases of the respiratory system", "Diseases of the digestive system",
+                     "Diseases of the digestive system", "Diseases of the digestive system",
+                     "Congenital malformations, deformations and chromosomal abnormalities", 
+                     "Congenital malformations, deformations and chromosomal abnormalities", 
+                     "Congenital malformations, deformations and chromosomal abnormalities",
+                     "Congenital malformations, deformations and chromosomal abnormalities", 
+                     "Congenital malformations, deformations and chromosomal abnormalities"),
+  ccs_detail_code = c("RSP008", "DIG016", "DIG016", "DIG025", "MAL010", "MAL010", 
+                      "MAL010", "MAL010", "MAL010"),
+  ccs_detail_desc = c("Chronic obstructive pulmonary disease and bronchiectasis", 
+                      "Peritonitis and intra-abdominal abscess", "Peritonitis and intra-abdominal abscess",
+                      "Other specified and unspecified gastrointestinal disorders",
+                      "Other specified and unspecified congenital anomalies", 
+                      "Other specified and unspecified congenital anomalies",
+                      "Other specified and unspecified congenital anomalies", 
+                      "Other specified and unspecified congenital anomalies",
+                      "Other specified and unspecified congenital anomalies")
+)
+
+ccs_10_simple <- rbind(ccs_10_simple, toadd)
+  
 ##Add ccs_catch_all variable
 ccs_10_simple <- ccs_10_simple %>%
   mutate(ccs_catch_all = case_when(
@@ -801,8 +827,7 @@ icd910cm <- icd910cm %>%
 
 # QA: Compare distinct ICD-9-CM and ICD-10-CM codes from CHARS, Medicaid, APCD
 # to see if there are any that do not join
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
-db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
+db_hhsaw <- apde.etl::create_db_connection("hhsaw", interactive = F, prod = T)
 
 mcaid_schema <- "claims"
 mcaid_tbl <- "final_mcaid_claim_icdcm_header"
@@ -838,10 +863,10 @@ icd9_codes <- unique(icd910cm[icd910cm$icdcm_version == 9,]$icdcm)
 icd10_codes <- unique(icd910cm[icd910cm$icdcm_version == 10,]$icdcm)
 
 # differences for each data source
-length(setdiff(mcaid[mcaid$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 2
+length(setdiff(mcaid[mcaid$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 0
 length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 6
 length(setdiff(apcd[apcd$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 0
-length(setdiff(apcd[apcd$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 406
+length(setdiff(apcd[apcd$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 203
 length(setdiff(chars[chars$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 119
 length(setdiff(chars[chars$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 265
 
