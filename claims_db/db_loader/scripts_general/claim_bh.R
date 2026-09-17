@@ -10,6 +10,7 @@
 ## Eli 11/6/24 update: Simplify and revise logic such that from_date (now first_encounter_date) is earliest condition-defining encounter
   ## and to_date (now last_encounter_date) is last condition-defining encounter, removing need for rolling time window
 ## Eli 6/3/25 update: Revise code to create Opioid Use Disorder flag using definition developed through OD2A: LOCAL grant
+## Eli 8/26/26 update: Modify to support use for WA-APCD data
   
 ### Function elements
 # conn = database connection
@@ -54,15 +55,39 @@ load_bh <- function(conn = NULL,
   # Specify id variable name based on data source
   if (source == "mcaid_mcare") {
     id_source <- "id_apde"
+    id_source_pharm <- "id_apde"
+  } else if (source == "apcd") {
+    id_source <- "id_apcd"
+    id_source_pharm <- "internal_member_id"
   } else {
     id_source <- paste0("id_", source)
+    id_source_pharm <- paste0("id_", source)
   }
   
   # Specify Rx filled date variable name based on data source
+  # Adapted for WA-APCD
   if (source %in% c("mcaid_mcare", "mcaid")) {
     rx_fill_date <- "rx_fill_date"
+  } else if (source %in% c("apcd")) {
+    rx_fill_date <- "prescription_filled_dt"
   } else {
     rx_fill_date <- "last_service_date"
+  }
+  
+  # Specify NDC variable based on data source (needed for WA-APCD)
+  if (source %in% c("apcd")) {
+    ndc <- "national_drug_code"
+  } else {
+    ndc <- "ndc"
+  }
+  
+  # Specify claim header ID variable based on data source (needed for WA-APCD)
+  if (source %in% c("apcd")) {
+    claim_header_id <- "claim_header_id"
+    claim_header_id_pharm <- "pharmacy_claim_service_line_id"
+  } else {
+    claim_header_id <- "claim_header_id"
+    claim_header_id_pharm <- "claim_header_id"
   }
   
   # Set up test number of rows if needed
@@ -171,14 +196,14 @@ load_bh <- function(conn = NULL,
    ,svc_date
    ,bh_cond
    -- BASED ON PRESCRIPTIONS
-   FROM (SELECT DISTINCT a.{`id_source`}
+   FROM (SELECT DISTINCT a.{`id_source_pharm`} as {`id_source`}
 			,a.{`rx_fill_date`} as 'svc_date'
 	    ,b.sub_group_condition as 'bh_cond'
     FROM {`claim_pharm_from_schema`}.{`claim_pharm_from_table`} a
     INNER JOIN (SELECT sub_group_condition, code_set, code
     	          FROM {`ref_schema`}.{`ref_table`}
     	          WHERE code_set in ('NDC') and sub_group_condition not in ('sud_opioid')) as b
-    ON a.ndc = b.code
+    ON a.{`ndc`} = b.code
           ) rx
       ",.con = conn)
     
@@ -266,14 +291,14 @@ load_bh <- function(conn = NULL,
     		-- BASED ON PRESCRIPTIONS
     		FROM (
     			SELECT DISTINCT
-    			a.{`id_source`}, a.claim_header_id, a.{`rx_fill_date`} as 'svc_date'
+    			a.{`id_source_pharm`} as {`id_source`}, a.{`claim_header_id_pharm`} as {`claim_header_id`}, a.{`rx_fill_date`} as 'svc_date'
     			FROM {`claim_pharm_from_schema`}.{`claim_pharm_from_table`} as a
     			INNER JOIN (
     				SELECT sub_group_condition, code_set, code
     				FROM {`ref_schema`}.{`ref_table`}
     				WHERE code_set in ('NDC') and sub_group_condition = 'sud_opioid'
     			) as b
-    			ON a.ndc = b.code
+    			ON a.{`ndc`} = b.code
     		) as c
     	) as rx
     	on diag.claim_header_id = rx.claim_header_id

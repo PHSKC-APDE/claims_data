@@ -1,0 +1,14 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_aid_category
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/aid_category000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 7
+vars:
+    aid_category_id: BIGINT
+    extract_id: BIGINT
+    aid_category_code: VARCHAR(8)
+    aid_category_desc: VARCHAR(164)
+    begin_dt: DATE
+    end_dt: DATE
+    full_medicaid_flag: VARCHAR(2)

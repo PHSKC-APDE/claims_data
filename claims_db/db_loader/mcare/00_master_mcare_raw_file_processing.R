@@ -15,13 +15,9 @@ library(tibble)
 library(AzureStor)
 library(AzureAuth)
 library(svDialogs)
+library(apde.etl)
 
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/etl_log.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_table.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/copy_into.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/table_duplicate.R")
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/load_df_bcp.R")
 
 interactive_auth <- FALSE
 prod <- TRUE
@@ -29,7 +25,7 @@ prod <- TRUE
 conn_db <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
 conn_dw <- create_db_connection(server = "inthealth", interactive = interactive_auth, prod = prod)
 
-table_duplicate_f(conn_from = conn_db, 
+table_duplicate(conn_from = conn_db, 
                   conn_to = conn_dw,
                   server_to = "inthealth", 
                   db_to = "inthealth_edw",
@@ -41,8 +37,8 @@ table_duplicate_f(conn_from = conn_db,
                   delete_table = T)
 
 rawdir <- "//dphcifs/APDE-CDIP/Mcaid-Mcare/medicare_raw/"
-batchdir <- "Files_20250523"
-batchyear <- 2022
+batchdir <- "Files_20260608"
+maxyear <- 2024
 basedir <- "C:/temp/mcare"
 exdir <- paste0(basedir, "/ex/")
 fixdir <- paste0(basedir, "/fixed/")
@@ -100,7 +96,7 @@ for(i in 1:nrow(files)) {
   c <- 1
   t <- 1
   for(col in fcols) {
-    if(any(tcols == col) == F) {
+    if(any(tcols == col) == F || is.na(any(tcols == col))) {
       message(paste0(files[i, "table_name"], " - ", col))
       cols[c, "table_name"] <- files[i, "table_name"]
       cols[c, "column_name"] <- col
@@ -136,7 +132,7 @@ if(nrow(columns > 0)) {
 } else {
   message("No new columns.")
 }
-
+write.csv(columns, paste0(basedir, "/new_cols.csv"))
 conn_db <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
 conn_dw <- create_db_connection(server = "inthealth", interactive = interactive_auth, prod = prod)
 
@@ -204,7 +200,11 @@ if(T) {
                      paste0(uploaddir, files[i, "gzName"]))
     }
     for(i in 1:nrow(files)) {
-      load_metadata_etl_log_file_f(conn = conn_db, 
+      batchyear <- as.numeric(stringr::str_sub(files[i, "fileName"], -8, -5))
+      if(batchyear > maxyear) { 
+        batchyear <- batchyear - 2 
+      }
+      load_metadata_etl_log_file(conn = conn_db, 
                                    server = "hhsaw",
                                    batch_type = "full", 
                                    data_source = "Medicare", 
@@ -247,6 +247,19 @@ if(T) {
                                             AND YEAR(date_min) = {year_select}
                                           ORDER BY etl_batch_id",
                                           .con = conn_db))
+    conn_db <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
+    conn_dw <- create_db_connection(server = "inthealth", interactive = interactive_auth, prod = prod)
+    
+    table_duplicate(conn_from = conn_db, 
+                    conn_to = conn_dw,
+                    server_to = "inthealth", 
+                    db_to = "inthealth_edw",
+                    from_schema = "claims",
+                    from_table = "ref_mcare_files_data_dictionary",
+                    to_schema = "stg_claims",
+                    to_table = "ref_mcare_files_data_dictionary",
+                    confirm_tables = F,
+                    delete_table = T)
     
     for(i in 1:nrow(files)) {
       file <- files[i,]
@@ -266,7 +279,7 @@ if(T) {
       table_config$hhsaw$to_table <- table_raw
       table_config$hhsaw$base_url <- "https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/"
       
-      copy_into_f(conn = conn_dw, 
+      copy_into(conn = conn_dw, 
                   server = "hhsaw",
                   config = table_config,
                   dl_path = paste0(table_config[["hhsaw"]][["base_url"]], file["file_location"], file["file_name"]),

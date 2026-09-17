@@ -1,0 +1,35 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: apcd_cmsdrg_output_multi_ver
+    qa_schema: claims
+    qa_table: metadata_qa_apcd
+    ext_data_source: datascr_WS_EDW
+    ext_schema: stg_claims
+    ext_table: apcd_cmsdrg_output_multi_ver
+    table_distribution: DISTRIBUTION = HASH(inpatient_discharge_id)
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/cmsdrg_output_multi_ver_import/
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+row_count: '6483172'
+col_count: 17
+date_min: '2014-01-01'
+date_max: '2025-12-31'
+date_delivery: '2026-05-07'
+note_delivery: apcd_cmsdrg_output_multi_ver, extract 10037
+vars:
+    inpatient_discharge_id: BIGINT
+    internal_member_id: BIGINT
+    userkey1: VARCHAR(8)
+    userkey2: VARCHAR(6)
+    icd_version_ind: VARCHAR(2)
+    length_of_stay: INT
+    grouper_type_version: INT
+    drg: VARCHAR(6)
+    mdc: INT
+    return_code_clinical: INT
+    weight: DECIMAL(38, 4)
+    medical_surgical_flag: INT
+    drg_label_id: BIGINT
+    drg_label_desc: VARCHAR(196)
+    drg_version_code: VARCHAR(4)
+    drg_version_desc: VARCHAR(16)
+    extract_id: BIGINT

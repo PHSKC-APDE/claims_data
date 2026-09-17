@@ -23,9 +23,9 @@ conn_ext <- create_db_connection("hhsaw", interactive = F, prod = T)
 #Use names in inthealth_edw (synapse). Don't include schema in table name.
 
 tables <- data.frame(table_name = c(
-  "stage_apcd_elig_plr_2024",
-  "stage_apcd_claim_procedure",
-  "stage_apcd_claim_header"
+  "stage_apcd_elig_plr_2025",
+  "stage_apcd_claim_bh",
+  "stage_apcd_claim_icdcm_header"
 ))
 
 ## Use function to loop over table names and create SQL code
@@ -39,6 +39,6 @@ for (i in 1:nrow(tables)) {
                          schema_ext = "claims",
                          table_ext = tables[i, 1],
                          sql_display = T,
-                         sql_file_path = "\\\\dphcifs/apde-cdip/apcd/apcd_ext_tables_20260225.sql",
+                         sql_file_path = "\\\\dphcifs/apde-cdip/apcd/apcd_ext_tables_20260826.sql",
                          overwrite = F) 
 }

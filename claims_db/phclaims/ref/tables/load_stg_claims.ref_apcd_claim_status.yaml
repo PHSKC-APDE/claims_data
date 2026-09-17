@@ -1,0 +1,13 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_claim_status
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/claim_status000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 6
+vars:
+    claim_status_id: BIGINT
+    extract_id: BIGINT
+    claim_status_code: VARCHAR(4)
+    claim_status_desc: VARCHAR(106)
+    begin_dt: DATE
+    end_dt: DATE

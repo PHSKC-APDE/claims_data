@@ -23,7 +23,7 @@
   
   set.seed(98104)
   
-  db_hhsaw <- rads::validate_hhsaw_key() # connects to Azure 16 HHSAW
+  db_hhsaw <- apde.data::authenticate_hhsaw() # connects to Azure 16 HHSAW
   
   db_idh <- DBI::dbConnect(odbc::odbc(), driver = "ODBC Driver 17 for SQL Server", 
                            server = "tcp:kcitazrhpasqlprp16.azds.kingcounty.gov,1433", 
@@ -180,10 +180,10 @@
                          "phousing_id" = "NVARCHAR(64)",
                          "last_run" = "datetime") 
     
-    rads::tsql_convert_types(ph.data = idh, field_types = idh_field_types)
+    apde.etl::tsql_convert_types(ph.data = idh, field_types = idh_field_types)
     
-    rads::tsql_chunk_loader(ph.data = idh,
-                            db_conn = rads::validate_hhsaw_key(),
+    apde.etl::tsql_chunk_loader(ph.data = idh,
+                            db_conn = apde.data::authenticate_hhsaw(),
                             chunk_size = 5000,
                             schema_name = 'claims',
                             table_name = 'stage_xwalk_apde_mcaid_mcare_pha',

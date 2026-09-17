@@ -7,9 +7,7 @@
 #' 
 
 # ---- SETUP: Load packages ----
-pacman::p_load(DBI, dplyr, ggplot2, glue, lubridate, odbc, stringr)
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
-
+pacman::p_load(DBI, dplyr, ggplot2, glue, lubridate, odbc, stringr, apde.etl)
 
 # ---- STEP 1: Create state_mcare_bene_enrollment table from MBSF tables ----
 # Columns selected based on review of Danny's original 2019 scripts used to create elig_timevar and elig_demo tables

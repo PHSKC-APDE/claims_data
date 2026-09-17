@@ -1,0 +1,13 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_long_term_coverage_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/long_term_coverage_code000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 6
+vars:
+    long_term_coverage_code_id: BIGINT
+    extract_id: BIGINT
+    long_term_coverage_code: VARCHAR(4)
+    long_term_coverage_code_desc: VARCHAR(86)
+    begin_dt: DATE
+    end_dt: DATE

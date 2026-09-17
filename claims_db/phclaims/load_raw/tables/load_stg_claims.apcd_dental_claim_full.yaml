@@ -6,43 +6,68 @@ hhsaw:
     ext_data_source: datascr_WS_EDW
     ext_schema: stg_claims
     ext_table: apcd_dental_claim
+    table_distribution: DISTRIBUTION = HASH(internal_member_id)
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/dental_claim_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: '218444685'
-col_count: 31
+row_count: '242954504'
+col_count: 55
 date_min: '2014-01-01'
-date_max: '2025-06-30'
-date_delivery: '2024-12-18'
-note_delivery: apcd_dental_claim, extract 10033
+date_max: '2025-12-31'
+date_delivery: '2026-05-07'
+note_delivery: apcd_dental_claim, extract 10037
 vars:
-    dental_claim_service_line_id: bigint
-    submitter_id: bigint
-    internal_member_id: bigint
-    submitter_clm_control_num: varchar(272)
-    product_code_id: bigint
-    subscriber_relationship_id: bigint
-    line_counter: integer
-    first_service_dt: date
-    last_service_dt: date
-    first_paid_dt: date
-    last_paid_dt: date
-    place_of_service_code: varchar(10)
-    procedure_code: varchar(10)
-    procedure_modifier_code_1: varchar(10)
-    procedure_modifier_code_2: varchar(10)
-    dental_tooth_code: varchar(10)
-    dental_quadrant_id: bigint
-    dental_tooth_surface_code: varchar(10)
-    claim_status_id: bigint
-    quantity: numeric(38,2)
-    charge_amt: numeric(38,2)
-    icd_version_ind: varchar(10)
-    principal_diagnosis_code: varchar(10)
-    rendering_provider_id: bigint
-    rendering_internal_provider_id: bigint
-    billing_provider_id: bigint
-    billing_internal_provider_id: bigint
-    network_indicator_id: bigint
-    out_of_state_flag: varchar(1)
-    orphaned_adjustment_flag: varchar(1)
-    denied_claim_flag: varchar(1)
+    dental_claim_service_line_id: BIGINT
+    extract_id: BIGINT
+    submitter_id: BIGINT
+    internal_member_id: BIGINT
+    submitter_clm_control_num: VARCHAR(98)
+    product_code_id: BIGINT
+    product_code: VARCHAR(4)
+    gender_code: VARCHAR(2)
+    age: INT
+    age_in_months: INT
+    subscriber_relationship_id: BIGINT
+    subscriber_relationship_code: VARCHAR(4)
+    line_counter: INT
+    first_service_dt: DATE
+    last_service_dt: DATE
+    first_paid_dt: DATE
+    last_paid_dt: DATE
+    place_of_service_code: VARCHAR(4)
+    place_of_service_id: BIGINT
+    procedure_code: VARCHAR(10)
+    procedure_code_id: BIGINT
+    procedure_modifier_code_1: VARCHAR(4)
+    procedure_modifier_code_id_1: BIGINT
+    procedure_modifier_code_2: VARCHAR(4)
+    procedure_modifier_code_id_2: BIGINT
+    dental_tooth_system_id: BIGINT
+    dental_tooth_system_code: VARCHAR(4)
+    dental_tooth_code: VARCHAR(6)
+    dental_quadrant_id: BIGINT
+    dental_quadrant_code: VARCHAR(2)
+    dental_tooth_surface_code: VARCHAR(10)
+    claim_status_id: BIGINT
+    claim_status_code: VARCHAR(4)
+    quantity: DECIMAL(38, 2)
+    icd_version_ind: VARCHAR(2)
+    principal_diagnosis_code: VARCHAR(14)
+    principal_diagnosis_id: BIGINT
+    rendering_provider_id: BIGINT
+    rendering_internal_provider_id: BIGINT
+    rendering_provider_npi: BIGINT
+    billing_provider_id: BIGINT
+    billing_internal_provider_id: BIGINT
+    billing_provider_npi: BIGINT
+    network_indicator_id: BIGINT
+    network_indicator_code: VARCHAR(2)
+    city: VARCHAR(77)
+    state: VARCHAR(4)
+    zip: VARCHAR(10)
+    age_65_flag: VARCHAR(2)
+    out_of_state_flag: VARCHAR(2)
+    orphaned_adjustment_flag: VARCHAR(2)
+    denied_claim_flag: VARCHAR(2)
+    entity_type: VARCHAR(2)
+    insured_group_policy_number: VARCHAR(100)
+    naic: VARCHAR(10)

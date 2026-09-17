@@ -89,10 +89,10 @@ for(i in 1:nrow(source_tables)) {
   blank <- "''"
   for(x in 1:batches) {
     if(batches > 1) {
-      sql <- glue::glue("SELECT {glue::glue_collapse(glue::glue('REPLACE([{cols$column_name}], CHAR(9), {blank})'), sep = ', ')} FROM [{source_tables[i,'schema_name']}].[{source_tables[i,'table_name']}] WHERE [rownum] BETWEEN {cur_row} AND {cur_row + batch_size} order by rownum")
+      sql <- glue::glue("SELECT {glue::glue_collapse(glue::glue('REPLACE(REPLACE(REPLACE([{cols$column_name}], CHAR(9), {blank})'), CHAR(10), {blank})'), CHAR(13), {blank})'), sep = ', ')} FROM [{source_tables[i,'schema_name']}].[{source_tables[i,'table_name']}] WHERE [rownum] BETWEEN {cur_row} AND {cur_row + batch_size} order by rownum")
       cur_row <- cur_row + batch_size + 1
     } else {
-      sql <- glue::glue("SELECT {glue::glue_collapse(glue::glue('REPLACE([{cols$column_name}], CHAR(9), {blank})'), sep = ', ')} FROM [{source_tables[i,'schema_name']}].[{source_tables[i,'table_name']}]")
+      sql <- glue::glue("SELECT {glue::glue_collapse(glue::glue('REPLACE(REPLACE(REPLACE([{cols$column_name}], CHAR(9), {blank})'), CHAR(10), {blank})'), CHAR(13), {blank})'), sep = ', ')} FROM [{source_tables[i,'schema_name']}].[{source_tables[i,'table_name']}]")
     }
     filename <- glue::glue("{cols[1, 'schema_name']}.{cols[1, 'table_name']}.{str_pad(x, 3, pad = '0')}_{batch_date}.csv")
     filepath <- paste0(temp_dir, filename)
@@ -115,6 +115,7 @@ for(i in 1:nrow(source_tables)) {
                              '-D '))
     message(glue::glue("...{i} - {x}: Writing {filename} - {Sys.time()}"))
     a = system2(command = "bcp", args = c(bcp_args), stdout = TRUE, stderr = TRUE)
+    message(read.table(text = shell(paste("wc -l", filepath), intern = T))[1,1])
     message(glue::glue("...{i} - {x}: Compressing file - {Sys.time()}"))
     gzip(filepath)
     message(glue::glue("...{i} - {x}: Moving file {filename} - {Sys.time()}"))

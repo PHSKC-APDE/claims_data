@@ -14,7 +14,7 @@
 # Set up ----
   options(error = NULL, scipen = 999)
   Sys.setenv(TZ="UTC") # so time stamps align with those in SQL server
-  db_hhsaw <- rads::validate_hhsaw_key() # connects to Azure 16 HHSAW
+  db_hhsaw <- apde.data::authenticate_hhsaw() # connects to Azure 16 HHSAW
   
   db_idh <- DBI::dbConnect(odbc::odbc(), driver = "ODBC Driver 17 for SQL Server", 
                            server = "tcp:kcitazrhpasqlprp16.azds.kingcounty.gov,1433", 

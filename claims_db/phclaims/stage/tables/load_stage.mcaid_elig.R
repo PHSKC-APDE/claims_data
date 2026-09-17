@@ -309,8 +309,9 @@ load_stage.mcaid_elig <- function(conn_db = NULL,
     } else {
       message(" A new type of duplicate is present. Investigate further")
     }
+    
     rm(var_names)
-    rm(duplicate_check_reason, duplicate_check_hoh, duplicate_check_rac, duplicate_type,
+    rm(duplicate_check_reason, duplicate_check_hoh, duplicate_check_rac, 
        temp_rows_01, temp_rows_02, dedup_sql)
   }
   
@@ -342,7 +343,7 @@ load_stage.mcaid_elig <- function(conn_db = NULL,
   
   if (full_refresh == F) {
     # Select the source, depending on if deduplication has been carried out
-    if (is.na(duplicate_type)) {
+    if (!exists("duplicate_type") || is.na(duplicate_type)) {
       sql_combine <- glue::glue_sql("{DBI::SQL(load_intro)}
                                     SELECT {`vars`*} FROM 
                                     {`archive_schema`}.{`archive_table`}
@@ -379,7 +380,7 @@ load_stage.mcaid_elig <- function(conn_db = NULL,
     }
   } else if (full_refresh == T) {
     # Select the source, depending on if deduplication has been carried out
-    if (is.na(duplicate_type)) {
+    if (!exists("duplicate_type") || is.na(duplicate_type)) {
       sql_combine <- glue::glue_sql("{DBI::SQL(load_intro)} 
                                     SELECT {`vars_prefix`*}, 
                                     CONVERT(char(64),
