@@ -1,4 +1,4 @@
-table_file_path: APCD_Tables_20260318.xlsx
+table_file_path: APCD_Tables_20260901.xlsx
 ftp_url: https://mft.kingcounty.gov/api/v2.0/files/APDEDE-WA-APCD/WA-APCD/
 ftp_keyring: apcd_sftp
 db_name: hhs_analytics_workspace
