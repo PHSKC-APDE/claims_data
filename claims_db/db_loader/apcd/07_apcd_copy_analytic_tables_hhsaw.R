@@ -39,6 +39,7 @@ table_list <- list(
   "final_apcd_claim_provider",
   "final_apcd_claim_header",
   "final_apcd_claim_ccw",
+  "final_apcd_claim_bh",
   "final_apcd_claim_preg_episode",
   "final_apcd_claim_dental",
   "final_apcd_claim_pharmacy",
@@ -52,7 +53,7 @@ table_list <- list(
 #Begin loop
 lapply(table_list, function(table_list) {
 
-  table_name <- glue::glue_sql(table_list)
+  table_name <- glue::glue_sql(table_list, .con = db_claims)
   message(paste0("Working on table: ", table_name, " - ", Sys.time()))
   db_claims <- apde.etl::create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
   DBI::dbExecute(conn = db_claims,

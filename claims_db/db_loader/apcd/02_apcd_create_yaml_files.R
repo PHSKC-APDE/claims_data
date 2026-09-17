@@ -154,7 +154,7 @@ table_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "in
                    "medical_claim_diagnosis", "medical_claim_header", "medical_claim_icd_procedure",
                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
-table_list <- table_list[[1]] #testing code
+#table_list <- table_list[[1]] #testing code
 
 
 #### STEP 2: Loop over APCD data tables, saving YAML file for each table ####
@@ -196,9 +196,9 @@ lapply(table_list, function(table_list) {
   } else if(table_list %in% c("eligibility", "member_month_detail", "dental_claim", "pharmacy_claim")) {
     table_dist <- "DISTRIBUTION = HASH(internal_member_id)"
   } else if(table_list %in% c("medical_claim", "medical_claim_diagnosis", "medical_claim_icd_procedure")) {
-    table_dist <- "DISTRIBUTION = HASH(internal_member_id)"
+    table_dist <- "DISTRIBUTION = HASH(medical_claim_service_line_id)"
   } else if(table_list %in% c("medical_claim_header")) {
-    table_dist <- "DISTRIBUTION = HASH(internal_member_id)"
+    table_dist <- "DISTRIBUTION = HASH(medical_claim_header_id)"
   } else if(table_list %in% c("provider")) {
     table_dist <- "DISTRIBUTION = HASH(internal_provider_id)"
   } else if(table_list %in% c("provider_master")) {

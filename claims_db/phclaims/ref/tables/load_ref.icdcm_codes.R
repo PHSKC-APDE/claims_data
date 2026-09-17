@@ -10,32 +10,33 @@
 #' - Updated each July for October-Sept fiscal year
 #' - ICD 9 codes no longer need updating
 #' - ICD 10 codes:
-#'   - Archive current version of ICD_9_10_CM_Complete in cross sector data
+#'   - Archive current version of ICD_9_10_CM_Complete in Healthcare Data internal ops channel
 #'   references/icd-cm folder with current date
 #'   - download code description in tabular order from
-#'   https://www.cms.gov/medicare/coding-billing/icd-10-codes
-#'   and extract files to healthcare_data/references/icd-cm/icd-10-cm_cms
-#'   - Update and use combine_codes.R file to add new unique values to existing
-#'   ICD_9_10_CM_Complete file
+#'   https://www.cms.gov/medicare/coding-billing/icd-10-codes (with appropriate year)
+#'   and extract files to Healthcare Data internal ops channel/documents/references/icd-cm/icd-10-cm_cms
+#'   - Run step 0 below to add new unique values to existing ICD_9_10_CM_Complete file
 #'   - Replace ICD_9_10_CM_Complete in the reference-data folder on a new branch, push, and PR
 #' Step 2 external cause of injury info:
 #' - Check for updates annually - not updated regularly
 #' - https://www.cdc.gov/nchs/injury/injury_matrices.htm#:~:text=The%20external%20cause-of-injury,What%20are%20the%20matrices%3F
 #' - ICD 10 CM articles (for more information on external cause of injury section)
+#' - Checking to see if there are any new articles since 2020 with updated injury diagnosis matrices
 #' Step 3 CCW:
 #'   - Download updated version of 30 CCW here (updated each July):
 #'   https://www2.ccwdata.org/web/guest/condition-categories-chronic 
-#'   - Archive old version of ccw17_xx in X-sector/CCW
-#'   - Use "Algorithms Change History" at the end to revise ccw17_xx sheet from
+#'   - Archive old version of ccw17_xx table from reference-data repo into Healthcare Data internal ops channel/documents/references/CCW
+#'   - Use "Algorithms Change History" at the end to manually revise the existing ccw17_xx sheet from
 #'   reference-data
 #'   - PR/merge changes to main
 #' Step 4 CCS:
 #'   - ICD 9 section should not need updating
 #'   - ICD 10:
 #'     - Each February, check if there is an equivalent new file to
-#'     reference-data/blob/main/claims_data/DXCCSR_v2023-1 here:
+#'     reference-data/blob/main/claims_data/DXCCSR_v2026-1 here:
 #'     https://hcup-us.ahrq.gov/toolssoftware/ccsr/dxccsr.jsp under the
 #'     "Downloading Information for the Tool and Documentation" header
+#'     - If there is, download it and add it to reference-data on a new branch, push, and PR
 #'     - Check there are no new broad description categories
 #'     - Check there are no new detail codes to add to the catch-all
 #' 	   - Check that all rows have CCS information filled in after 4 passes
@@ -58,6 +59,7 @@
 #' 1/9/2024 update: 1) Improve alignment of ccs between ICD-9/10-CM, 2) create ccs_super_category (5 levels)
 #' 4/23/2024 update: Bring in Step 0 function to add new data
 #' 1/7/2025 update: Add new mh_other category from RDA value sets reference table
+#' 9/14/2026 update: adding additional context to the steps, removing file paths specific to the user (outside of github items), and manually adding 9 ICD-10-CM codes to CCS descriptions
 
 
 # SET OPTIONS AND BRING IN PACKAGES ----
@@ -65,37 +67,54 @@ options(scipen = 6, digits = 4, warning.length = 8170)
 origin <- "1970-01-01"
 
 if (!require("pacman")) {install.packages("pacman")}
-pacman::p_load(data.table, DBI, dplyr, glue, lubridate, odbc, openxlsx, readxl, reshape2, stringr, svDialogs, tidyverse)
+pacman::p_load(data.table, DBI, dplyr, glue, lubridate, odbc, openxlsx, readxl, reshape2, stringr, svDialogs, tidyverse, Microsoft365R)
+
+myteam <- get_team(team_name = "DPH-APDE-Healthcare-Data",
+                   username = keyring::key_list("sharepoint")$username,
+                   password = keyring::key_get("sharepoint", keyring::key_list("sharepoint")$username),
+                   auth_type = "resource_owner",
+                   tenant = "kingcounty.gov")
+channel_internal <- myteam$get_channel("Internal Ops Shared Channel")
+
 
 ## Constants ----
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/mcaid/create_db_connection.R")
 new_year <- F  # Toggle if there's a new year of ICD10CM files
-root_dir <- "C:/Users/kfukutaki.KC/King County/DPH-KCCross-SectorData - Documents/References/ICD-CM/ICD-10-CM_CMS"
-new_directory_file <- "2025 Code Descriptions/icd10cm_codes_2025.txt"
-old_file <- "C:/Users/kfukutaki.kc/OneDrive - King County/Documents/Code/reference-data/claims_data/ICD_9_10_CM_Complete.xlsx"
+#root_dir <- "C:/Users/kfukutaki.KC/King County/DPH-KCCross-SectorData - Documents/References/ICD-CM/ICD-10-CM_CMS"
+new_directory_file <- "References/ICD-CM/ICD-10-CM_CMS/2027 Code Descriptions/icd10cm_codes_2027.txt"
+#old_file <- "C:/Users/jliu.kc/OneDrive - King County/Documents/Code/reference-data/claims_data/ICD_9_10_CM_Complete.xlsx"
 # Where we are uploading it to
 to_schema <- "ref"
 to_table <- "icdcm_codes"
 
 ## Step 0 (optional): Add new year of ICD-CM codes ----
 if (new_year) {
-  new_data <- fread(file = glue::glue("{root_dir}/{new_directory_file}"),
+  
+  temp <- tempfile(fileext = ".txt")
+  channel_internal$download_file({new_directory_file}, dest = temp)
+  
+  new_data <- fread(file = temp, 
                     sep = "",
-                    header = F,
-  )
+                    header = F)
+
   new_data <- colsplit(new_data$V1," ",c("icdcode","dx_description"))
   new_data <- new_data[!duplicated(new_data), ]
   new_data['ver'] <- 10
+  new_data <- new_data %>% 
+    mutate(icdcode = trimws(icdcode),
+           dx_description = trimws(dx_description))
+  
   
   # bring in existing table
-  old_data <- read_excel(old_file)
+  old_data_url <- url <- "https://github.com/PHSKC-APDE/reference-data/blob/main/claims_data/ICD_9_10_CM_Complete.xlsx?raw=true"
+  old_data <- openxlsx::read.xlsx(old_data_url, colNames = T)
   old_data <- as.data.table(old_data)
   
   all_data <- bind_rows(old_data, new_data)
   all_data <- distinct(all_data, icdcode, ver, .keep_all = TRUE)
   
   write.xlsx(all_data,
-             file="C:/Users/kfukutaki.KC/OneDrive - King County/Documents/Code/reference-data/claims_data/ICD_9_10_CM_Complete.xlsx",
+             file="C:/Users/jliu.KC/OneDrive - King County/Documents/Code/reference-data/claims_data/ICD_9_10_CM_Complete.xlsx",
              rowNames = F)
   }
 
@@ -498,6 +517,32 @@ ccs_10_simple <- ccs_10_raw %>%
       ccs_broad_code == "SYM" ~ "Symptoms, signs and abnormal clinical and laboratory findings, not elsewhere classified"
     ))
 
+## Add the 9 ICD-10-CM codes that are not currently in HCUP 
+toadd <- data.frame(
+  icdcode = c("J4B", "K6A01", "K6A09", "K6A8", "QA171", "QA1790", "QA1791", "QA1792",
+              "QA1798"),
+  ccs_broad_code = c("RSP", "DIG", "DIG", "DIG", "MAL", "MAL", "MAL", "MAL", "MAL"),
+  ccs_broad_desc = c("Diseases of the respiratory system", "Diseases of the digestive system",
+                     "Diseases of the digestive system", "Diseases of the digestive system",
+                     "Congenital malformations, deformations and chromosomal abnormalities", 
+                     "Congenital malformations, deformations and chromosomal abnormalities", 
+                     "Congenital malformations, deformations and chromosomal abnormalities",
+                     "Congenital malformations, deformations and chromosomal abnormalities", 
+                     "Congenital malformations, deformations and chromosomal abnormalities"),
+  ccs_detail_code = c("RSP008", "DIG016", "DIG016", "DIG025", "MAL010", "MAL010", 
+                      "MAL010", "MAL010", "MAL010"),
+  ccs_detail_desc = c("Chronic obstructive pulmonary disease and bronchiectasis", 
+                      "Peritonitis and intra-abdominal abscess", "Peritonitis and intra-abdominal abscess",
+                      "Other specified and unspecified gastrointestinal disorders",
+                      "Other specified and unspecified congenital anomalies", 
+                      "Other specified and unspecified congenital anomalies",
+                      "Other specified and unspecified congenital anomalies", 
+                      "Other specified and unspecified congenital anomalies",
+                      "Other specified and unspecified congenital anomalies")
+)
+
+ccs_10_simple <- rbind(ccs_10_simple, toadd)
+  
 ##Add ccs_catch_all variable
 ccs_10_simple <- ccs_10_simple %>%
   mutate(ccs_catch_all = case_when(
@@ -598,58 +643,58 @@ while (icd10cm_na_ccs_count > 0) {
     mutate(
       ccs_broad_desc = case_when(
         !is.na(ccs_broad_desc) ~ ccs_broad_desc,
-        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) & !is.na(lead(ccs_broad_desc, 1, order_by = icdcode)) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) & !is.na(lag(ccs_broad_desc, 1, order_by = icdcode)) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) & !is.na(lead(ccs_broad_desc, 1, order_by = icdcode)) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) & !is.na(lag(ccs_broad_desc, 1, order_by = icdcode)) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) & !is.na(lead(ccs_broad_desc, 1, order_by = icdcode)) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) & !is.na(lag(ccs_broad_desc, 1, order_by = icdcode)) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) & !is.na(lead(ccs_broad_desc, 1, order_by = icdcode)) ~ lead(ccs_broad_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) & !is.na(lag(ccs_broad_desc, 1, order_by = icdcode)) ~ lag(ccs_broad_desc, 1, order_by = icdcode),
         TRUE ~ NA_character_),
       ccs_broad_code = case_when(
         !is.na(ccs_broad_code) ~ ccs_broad_code,
-        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_broad_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_broad_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) & !is.na(lead(ccs_broad_code, 1, order_by = icdcode)) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) & !is.na(lag(ccs_broad_code, 1, order_by = icdcode)) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) & !is.na(lead(ccs_broad_code, 1, order_by = icdcode)) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) & !is.na(lag(ccs_broad_code, 1, order_by = icdcode)) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) & !is.na(lead(ccs_broad_code, 1, order_by = icdcode)) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) & !is.na(lag(ccs_broad_code, 1, order_by = icdcode)) ~ lag(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) & !is.na(lead(ccs_broad_code, 1, order_by = icdcode)) ~ lead(ccs_broad_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) & !is.na(lag(ccs_broad_code, 1, order_by = icdcode)) ~ lag(ccs_broad_code, 1, order_by = icdcode),
         TRUE ~ NA_character_),
       ccs_detail_desc = case_when(
         !is.na(ccs_detail_desc) ~ ccs_detail_desc,
-        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
-        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) & !is.na(lead(ccs_detail_desc, 1, order_by = icdcode)) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) & !is.na(lag(ccs_detail_desc, 1, order_by = icdcode)) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) & !is.na(lead(ccs_detail_desc, 1, order_by = icdcode)) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) & !is.na(lag(ccs_detail_desc, 1, order_by = icdcode)) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) & !is.na(lead(ccs_detail_desc, 1, order_by = icdcode)) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) & !is.na(lag(ccs_detail_desc, 1, order_by = icdcode)) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) & !is.na(lead(ccs_detail_desc, 1, order_by = icdcode)) ~ lead(ccs_detail_desc, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) & !is.na(lag(ccs_detail_desc, 1, order_by = icdcode)) ~ lag(ccs_detail_desc, 1, order_by = icdcode),
         TRUE ~ NA_character_),
       ccs_detail_code = case_when(
         !is.na(ccs_detail_code) ~ ccs_detail_code,
-        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_detail_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_detail_code, 1, order_by = icdcode),
-        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) & !is.na(lead(ccs_detail_code, 1, order_by = icdcode)) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) & !is.na(lag(ccs_detail_code, 1, order_by = icdcode)) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) & !is.na(lead(ccs_detail_code, 1, order_by = icdcode)) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) & !is.na(lag(ccs_detail_code, 1, order_by = icdcode)) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) & !is.na(lead(ccs_detail_code, 1, order_by = icdcode)) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) & !is.na(lag(ccs_detail_code, 1, order_by = icdcode)) ~ lag(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) & !is.na(lead(ccs_detail_code, 1, order_by = icdcode)) ~ lead(ccs_detail_code, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) & !is.na(lag(ccs_detail_code, 1, order_by = icdcode)) ~ lag(ccs_detail_code, 1, order_by = icdcode),
         TRUE ~ NA_character_),
       ccs_catch_all = case_when(
         !is.na(ccs_catch_all) ~ ccs_catch_all,
-        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) ~ lag(ccs_catch_all, 1, order_by = icdcode),
-        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) ~ lead(ccs_catch_all, 1, order_by = icdcode),
-        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lead(icdcode, 1, order_by = icdcode),1,6) & !is.na(lead(ccs_catch_all, 1, order_by = icdcode)) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,6) == str_sub(lag(icdcode, 1, order_by = icdcode),1,6) & !is.na(lag(ccs_catch_all, 1, order_by = icdcode)) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lead(icdcode, 1, order_by = icdcode),1,5) & !is.na(lead(ccs_catch_all, 1, order_by = icdcode)) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,5) == str_sub(lag(icdcode, 1, order_by = icdcode),1,5) & !is.na(lag(ccs_catch_all, 1, order_by = icdcode)) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lead(icdcode, 1, order_by = icdcode),1,4) & !is.na(lead(ccs_catch_all, 1, order_by = icdcode)) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,4) == str_sub(lag(icdcode, 1, order_by = icdcode),1,4) & !is.na(lag(ccs_catch_all, 1, order_by = icdcode)) ~ lag(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lead(icdcode, 1, order_by = icdcode),1,3) & !is.na(lead(ccs_catch_all, 1, order_by = icdcode)) ~ lead(ccs_catch_all, 1, order_by = icdcode),
+        str_sub(icdcode,1,3) == str_sub(lag(icdcode, 1, order_by = icdcode),1,3) & !is.na(lag(ccs_catch_all, 1, order_by = icdcode)) ~ lag(ccs_catch_all, 1, order_by = icdcode),
         TRUE ~ NA_integer_)
     )
   
@@ -782,8 +827,7 @@ icd910cm <- icd910cm %>%
 
 # QA: Compare distinct ICD-9-CM and ICD-10-CM codes from CHARS, Medicaid, APCD
 # to see if there are any that do not join
-devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/apde/main/R/create_db_connection.R")
-db_hhsaw <- create_db_connection("hhsaw", interactive = F, prod = T)
+db_hhsaw <- apde.etl::create_db_connection("hhsaw", interactive = F, prod = T)
 
 mcaid_schema <- "claims"
 mcaid_tbl <- "final_mcaid_claim_icdcm_header"
@@ -820,11 +864,11 @@ icd10_codes <- unique(icd910cm[icd910cm$icdcm_version == 10,]$icdcm)
 
 # differences for each data source
 length(setdiff(mcaid[mcaid$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 0
-length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 214
+length(setdiff(mcaid[mcaid$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 6
 length(setdiff(apcd[apcd$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 0
-length(setdiff(apcd[apcd$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 2372
-length(setdiff(chars[chars$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 7
-length(setdiff(chars[chars$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 215
+length(setdiff(apcd[apcd$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 203
+length(setdiff(chars[chars$icdcm_version == 9,]$icdcm_norm, icd9_codes))  # 119
+length(setdiff(chars[chars$icdcm_version == 10,]$icdcm_norm, icd10_codes))  # 265
 
 
 # Step 7: Upload reference table to SQL Server ----
