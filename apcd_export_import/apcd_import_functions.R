@@ -539,8 +539,9 @@ apcd_data_archive <- function(config,
                                                        ON t.schema_id = s.schema_id) a",      
                                                        .con = conn))
       
-      if (nrow(existing_index) != 0) {
-        message(".........Dropping Index on Old SQL Table...")
+### SKIP     if (nrow(existing_index) != 0) {
+      if(1 == 0) {
+       message(".........Dropping Index on Old SQL Table...")
         lapply(seq_along(existing_index), function(i) {
           DBI::dbExecute(conn,
                          glue::glue_sql("DROP INDEX {`existing_index[['index_name']][[i]]`} 
