@@ -71,7 +71,7 @@ write.xlsx(table_list_out, file.path(here::here(),paste0("apcd_export_import/APC
 rm(table_list_out, etl_log)
 
 ### GET ROW AND BATCH COUNTS
-for(i in 1:nrow(source_tables)) {
+for(i in 83:nrow(source_tables)) {
   message(glue::glue("{i}: Getting info from {source_tables[i,'schema_in']}.{source_tables[i,'table_in']} - {Sys.time()}"))
   if(source_tables[i,"schema_in"] == 'stg_claims') {
     server <- "inthealth"
@@ -106,23 +106,16 @@ GROUP BY sys.schemas.name, sys.objects.name", .con = conn))[1,1]
   conn <- create_db_connection(server, interactive = F, prod = T)
   row_cnt <- DBI::dbGetQuery(conn, glue::glue_sql(
     "SELECT COUNT_BIG(*) FROM {`source_tables[i,'schema_in']`}.{`source_tables[i,'table_in']`}", .con = conn))[1,1]
-  if(batches > 0) {
-    batch_size <- round(row_cnt / batches, 0)
-    while(batch_size * batches < row_cnt) {
-      batch_size <- round(batch_size * 1.001, 0)
-    }
-  } else { 
+  if(batches == 0) {
     batches <- 1 
-    batch_size <- row_cnt  
   }
   source_tables[i,"rows"] <- row_cnt
   source_tables[i,"batches"] <- batches
-  source_tables[i,"batch_size"] <- batch_size
   DBI::dbDisconnect(conn)
 }
 
 ### EXPORT TABLES  
-for(i in 1:nrow(source_tables)) {
+for(i in 83:nrow(source_tables)) {
   if(source_tables[i,'schema_in'] == 'stg_claims') {
     server <- "inthealth"
     db_name <- "inthealth_edw"
@@ -135,23 +128,31 @@ for(i in 1:nrow(source_tables)) {
   message(glue::glue("{i}: Begin table {source_tables[i,'schema_in']}.{source_tables[i,'table_in']} - {Sys.time()}"))
   row_cnt <- source_tables[i,"rows"]
   batches <- source_tables[i,"batches"]
-  batch_size <- source_tables[i,"batch_size"]
   cols <- table_list %>% 
     filter(schema_in == source_tables[i,'schema_in']) %>%
     filter(table_in == source_tables[i,'table_in'])
+  cur_row <- 1
   if(batches > 1) {
     id_col <- cols[1, "column_name"]
-    cur_row <- 1
     message(glue::glue("...{i}: Table will be split into {batches} file(s) - {Sys.time()}"))
     message(glue::glue("...{i}: Adding row number to table - {Sys.time()}"))
     DBI::dbExecute(conn, glue::glue_sql(
       "ALTER TABLE {`source_tables[i,'schema_in']`}.{`source_tables[i,'table_in']`} ADD rownum BIGINT IDENTITY(1,1)", .con = conn))
+    max_row <- DBI::dbGetQuery(conn, glue::glue_sql(
+      "SELECT MAX(rownum) FROM {`source_tables[i,'schema_in']`}.{`source_tables[i,'table_in']`}", .con = conn))[1,1]
+    batch_size <- round(max_row / batches, 0)
+    while(batch_size * batches < max_row) {
+      batch_size <- round(batch_size * 1.001, 0)
+    }
+    source_tables[i,"batch_size"] <- batch_size
+  } else {
+    batch_size <- source_tables[i,"rows"]
+    source_tables[i,"batch_size"] <- batch_size
   }
   blank <- "''"
   for(x in 1:batches) {
     if(batches > 1) {
       sql <- glue::glue("SELECT {glue::glue_collapse(glue::glue('REPLACE([{cols$column_name}], CHAR(9), {blank})'), sep = ', ')} FROM [{source_tables[i,'schema_in']}].[{source_tables[i,'table_in']}] WHERE [rownum] BETWEEN {cur_row} AND {cur_row + batch_size} order by rownum")
-      cur_row <- cur_row + batch_size + 1
     } else {
       sql <- glue::glue("SELECT {glue::glue_collapse(glue::glue('REPLACE([{cols$column_name}], CHAR(9), {blank})'), sep = ', ')} FROM [{source_tables[i,'schema_in']}].[{source_tables[i,'table_in']}]")
     }
@@ -181,6 +182,7 @@ for(i in 1:nrow(source_tables)) {
     message(glue::glue("...{i} - {x}: Moving file {filename} - {Sys.time()}"))
     file.rename(from = paste0(filepath, ".gz"), 
                 to = paste0(export_dir, filename, ".gz"))
+    cur_row <- cur_row + batch_size + 1
   }
   if(batches > 1) {
     conn <- create_db_connection(server, interactive = F, prod = T)
