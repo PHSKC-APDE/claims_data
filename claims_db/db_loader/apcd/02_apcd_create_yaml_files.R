@@ -12,6 +12,7 @@
 #1/16/26 update: Change row count to numeric to handle values in excess of 2.1 billion (leading to QA fail)
 #1/27/26 update: Change row count to character to avoid scientific notation in YAML files (leading to QA fail)
 #7/6/26 update: Adapt to pull info from PARQUET files and add table distribution parameter for inthealth_edw, including reference tables
+#10/5/26 COrrecting Susan's file path and adding date and date time to data functions. 
 
 #### Create YAML files from CSV format files for all non-reference files ####
 
@@ -110,6 +111,8 @@ normalize_sql_type <- function(x) {
   if (grepl("^int", x)) return("int32")
   if (grepl("^decimal", x)) return("decimal")
   if (grepl("^varchar", x)) return("string")
+  if (grepl("^date", x)) return("date")
+  if (grepl("^timestamp", x)) return("datetime2")
   return(NA)
 }
 
@@ -120,6 +123,8 @@ normalize_arrow_type <- function(x) {
   if (x == "int32") return("int32")
   if (grepl("^decimal", x)) return("decimal")
   if (x == "string") return("string")
+  if (grepl("^date", x)) return("date")
+  if (grepl("^timestamp", x)) return("datetime2")
   return(NA)
 }
 
@@ -130,8 +135,8 @@ read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/" #Folder containing fil
 ##Smart selection for write path for YAML files
 if(file.exists("C:/GitHub/claims_data/claims_db/phclaims/load_raw/tables/")){ #Eli on KC laptop
   write_path <- "C:/GitHub/claims_data/claims_db/phclaims/load_raw/tables/"
-} else if(file.exists("C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/")){ #Susan on DPHXPHAAPR5EBYK
-  write_path <- "C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/"
+} else if(file.exists("C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/")){ #Susan on DPHXPHAAPR5EBYK
+  write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_data/claims_db/phclaims/load_raw/tables/"
 }
 
 #Set static parameters for YAML file
@@ -145,9 +150,9 @@ base_url <- "https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/"
 
 #Set extract-specific parameters for YAML file
 date_min <- as.Date("2014-01-01")
-date_max <- as.Date("2025-12-31")
-date_delivery <- as.Date("2026-05-07")
-apcd_extract_number <- "10037"
+date_max <- as.Date("2026-06-30")
+date_delivery <- as.Date("2026-09-24")
+apcd_extract_number <- "10041"
 
 #Establish list of tables for which YAML format files will be created
 table_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "inpatient_stay_summary_ltd", "medical_claim",
@@ -302,8 +307,8 @@ lapply(table_list, function(table_list) {
 read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/reference_tables" #Folder containing ref tables exported from Analytic Enclave
 
 ##Smart selection for write path for YAML files
-if(file.exists("C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/ref/tables/")){ #Susan on DPHXPHAAPR5EBYK
-  write_path <- "C:/Users/SHERNANDEZ.KC/Documents/GitHub/claims_data/claims_db/phclaims/ref/tables/"
+if(file.exists("C:/Users/SHERNANDEZ/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/ref/tables/")){ #Susan on DPHXPHAAPR5EBYK
+  write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/ref/tables/"
 } else if(file.exists("C:/GitHub/claims_data/claims_db/phclaims/ref/tables/")){ #Eli on KC laptop
   write_path <- "C:/GitHub/claims_data/claims_db/phclaims/ref/tables/"
 }
