@@ -20,6 +20,7 @@ s3_folder <- "\"s3://aewa-all-external-buckets/waae-kc-ext/Export/\"" ##Name of 
 #credentials <- read.csv("C:/Users/kerneli.kc/.aws/credentials") #Eli's KC laptop
 credentials <- read.csv("C:/Users/kerneli/.aws/credentials") #Eli on Susan's VM
 #credentials <- read.csv("C:/Users/SHERNANDEZ.KC/.aws/credentials") #Susan's account on KCITENGPRRSTUD00.kc.kingcounty.lcl
+credentials <- read.csv("C:/Users/SHERNANDEZ/.aws/credentials") #Susan's account 
 credentials <- separate(credentials, col = X.default., sep = " = ", into = c("var_name", "value"))
 
 Sys.setenv("AWS_ACCESS_KEY_ID" =  credentials$value[1],
