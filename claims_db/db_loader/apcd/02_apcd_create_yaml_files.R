@@ -12,7 +12,7 @@
 #1/16/26 update: Change row count to numeric to handle values in excess of 2.1 billion (leading to QA fail)
 #1/27/26 update: Change row count to character to avoid scientific notation in YAML files (leading to QA fail)
 #7/6/26 update: Adapt to pull info from PARQUET files and add table distribution parameter for inthealth_edw, including reference tables
-#10/5/26 COrrecting Susan's file path and adding date and date time to data functions. 
+#10/6/26 COrrecting Susan's file path and adding date and date time to data functions. 
 
 #### Create YAML files from CSV format files for all non-reference files ####
 
@@ -307,8 +307,8 @@ lapply(table_list, function(table_list) {
 read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/reference_tables" #Folder containing ref tables exported from Analytic Enclave
 
 ##Smart selection for write path for YAML files
-if(file.exists("C:/Users/SHERNANDEZ/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/ref/tables/")){ #Susan on DPHXPHAAPR5EBYK
-  write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/GitHub/claims_data/claims_db/phclaims/ref/tables/"
+if(file.exists("C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_data/claims_db/phclaims/ref/tables")){ #Susan on DPHXPHAAPR5EBYK
+  write_path <- "C:/Users/SHERNANDEZ/OneDrive - King County/Documents/GitHub/claims_data/claims_db/phclaims/ref/tables"
 } else if(file.exists("C:/GitHub/claims_data/claims_db/phclaims/ref/tables/")){ #Eli on KC laptop
   write_path <- "C:/GitHub/claims_data/claims_db/phclaims/ref/tables/"
 }
