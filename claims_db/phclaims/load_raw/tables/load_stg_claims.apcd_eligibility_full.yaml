@@ -9,12 +9,12 @@ hhsaw:
     table_distribution: DISTRIBUTION = HASH(internal_member_id)
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/eligibility_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: '445898288'
+row_count: '452487388'
 col_count: 85
 date_min: '2014-01-01'
-date_max: '2025-12-31'
-date_delivery: '2026-05-07'
-note_delivery: apcd_eligibility, extract 10037
+date_max: '2026-06-30'
+date_delivery: '2026-09-24'
+note_delivery: apcd_eligibility, extract 10041
 vars:
     eligibility_id: BIGINT
     extract_id: BIGINT

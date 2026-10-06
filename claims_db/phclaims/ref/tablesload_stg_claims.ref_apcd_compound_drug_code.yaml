@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_compound_drug_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/compound_drug_code000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    compound_drug_code_id: BIGINT
+    extract_id: BIGINT
+    compound_drug_code: VARCHAR(4)
+    compound_drug_code_desc: VARCHAR(86)

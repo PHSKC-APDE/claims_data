@@ -1,0 +1,11 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_medicaid_program_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/medicaid_program_code000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 4
+vars:
+    medicaid_program_code_id: BIGINT
+    extract_id: BIGINT
+    medicaid_program_code: VARCHAR(4)
+    medicaid_program_code_desc: VARCHAR(86)

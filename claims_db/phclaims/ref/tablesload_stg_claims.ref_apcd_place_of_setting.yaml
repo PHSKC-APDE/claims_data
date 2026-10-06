@@ -1,0 +1,10 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_place_of_setting
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/place_of_setting000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 3
+vars:
+    place_of_setting_id: BIGINT
+    extract_id: BIGINT
+    place_of_setting_desc: VARCHAR(86)

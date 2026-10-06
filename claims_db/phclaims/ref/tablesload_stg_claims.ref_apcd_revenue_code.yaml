@@ -1,0 +1,17 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_revenue_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/revenue_code000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 10
+vars:
+    revenue_code_id: BIGINT
+    extract_id: BIGINT
+    revenue_code: VARCHAR(8)
+    revenue_code_desc: VARCHAR(150)
+    code_set_type: VARCHAR(16)
+    submitter_id: BIGINT
+    revenue_code_group_code: BIGINT
+    revenue_code_group_desc: VARCHAR(149)
+    begin_dt: DATE
+    end_dt: DATE
