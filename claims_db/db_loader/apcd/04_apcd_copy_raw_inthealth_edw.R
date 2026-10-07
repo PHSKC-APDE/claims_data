@@ -11,12 +11,19 @@
 #1-23-26 Eli updated the  [claims].[metadata_etl_log] column [row_count] to BIGINT;
 #1-27-26 Eli updated the row count formatting
 #7-8-26 Eli updated to use apde.etl package, adapted for PARQUET files, included table distribution parameter, included ref tables
-
+#10-6-26 Susan added APDE packages instructions
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
         scipen = 999)
 
+#these are APDE packages relied upon for the script. You will need to install them following the instructions from their git
+#install.packages("remotes")
+# Store the token locally (paste when prompted)
+#gitcreds::gitcreds_set() #update token if necessary, get email
+
+#remotes::install_github("PHSKC-APDE/rads", auth_token = NULL)
+#remotes::install_github("PHSKC-APDE/apde.etl", auth_token = NULL)
 pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils, apde.etl) # Load list of packages
 
 
