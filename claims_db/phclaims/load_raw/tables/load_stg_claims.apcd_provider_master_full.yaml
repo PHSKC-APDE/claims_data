@@ -32,9 +32,8 @@ vars:
     professional_credential_code: VARCHAR(70)
     npi: BIGINT
     primary_taxonomy: VARCHAR(60)
-    secondary_taxonomy: VARCHAR(60)
     city_physical: VARCHAR(80)
-    state_physical: NVARCHAR(10)
+    state_physical: VARCHAR(10)
     zip_physical: VARCHAR(10)
     county_physical: VARCHAR(71)
     country_physical: VARCHAR(4)
