@@ -9,12 +9,12 @@ hhsaw:
     table_distribution: DISTRIBUTION = HASH(internal_provider_id)
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/provider_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: '36750843'
+row_count: '38209273'
 col_count: 17
 date_min: '2014-01-01'
-date_max: '2025-12-31'
-date_delivery: '2026-05-07'
-note_delivery: apcd_provider, extract 10037
+date_max: '2026-06-30'
+date_delivery: '2026-09-24'
+note_delivery: apcd_provider, extract 10041
 vars:
     provider_id: BIGINT
     extract_id: BIGINT

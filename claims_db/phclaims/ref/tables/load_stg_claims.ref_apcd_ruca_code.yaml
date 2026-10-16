@@ -1,0 +1,18 @@
+hhsaw:
+    to_schema: stg_claims
+    to_table: ref_apcd_ruca_code
+    dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/reference_tables_import/ruca_code000.parquet
+    base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
+col_count: 11
+vars:
+    ruca_code_id: BIGINT
+    year: INT
+    extract_id: BIGINT
+    zip_code: VARCHAR(10)
+    state: VARCHAR(4)
+    zip_type: VARCHAR(86)
+    post_office_name: VARCHAR(79)
+    primary_ruca: BIGINT
+    primary_ruca_desc: VARCHAR(141)
+    secondary_ruca: DECIMAL(38, 2)
+    secondary_ruca_desc: VARCHAR(147)

@@ -6,15 +6,15 @@ hhsaw:
     ext_data_source: datascr_WS_EDW
     ext_schema: stg_claims
     ext_table: apcd_medical_claim_diagnosis
-    table_distribution: DISTRIBUTION = HASH(internal_member_id)
+    table_distribution: DISTRIBUTION = HASH(medical_claim_service_line_id)
     dl_path: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/claims/apcd/medical_claim_diagnosis_import/
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
-row_count: '8530524721'
+row_count: '8888176127'
 col_count: 22
 date_min: '2014-01-01'
-date_max: '2025-12-31'
-date_delivery: '2026-05-07'
-note_delivery: apcd_medical_claim_diagnosis, extract 10037
+date_max: '2026-06-30'
+date_delivery: '2026-09-24'
+note_delivery: apcd_medical_claim_diagnosis, extract 10041
 vars:
     medical_claim_service_line_id: BIGINT
     internal_member_id: BIGINT

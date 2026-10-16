@@ -5,7 +5,7 @@ hhsaw:
     base_url: https://inthealthdtalakegen2.dfs.core.windows.net/inthealth/
 col_count: 4
 vars:
-    submission_clarification_id_long: BIGINT
+    submission_clarification_id: BIGINT
     extract_id: BIGINT
     submission_clarification_code: VARCHAR(4)
     submission_clarification_code_desc: VARCHAR(217)

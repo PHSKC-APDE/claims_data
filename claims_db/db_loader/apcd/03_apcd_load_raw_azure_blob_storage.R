@@ -8,6 +8,7 @@
 # 2024-12 Added code to delete folder contents  (Susan/Jeremy)
 # 2026-01 update from Eli: Add logic to only delete old files if any exist (this caused script to fail when Azure Blob folder was empty)
 # 2026-06 update from Eli: Switched to using PARQUET files
+# 2026-10 added Susan's keyring
 
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170,
@@ -19,7 +20,7 @@ pacman::p_load(tidyverse, odbc, configr, glue, keyring, AzureStor, AzureAuth, sv
 #keyring::key_set('adl_tenant', username = 'dev')
 #keyring::key_set('adl_app', username = 'dev')
 #keyring::key_set('azure_storage_key', username = 'dev')
-#keyring::key_set('azure_blob_sas_token', username = 'dev')
+#keyring::key_set('azure_blob_sas_token', username = 'dev')##can ignore was not adopted
 keyring::key_list()
 
 #### SET UP FUNCTIONS ####
@@ -28,6 +29,9 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 #### STEP 1: CREATE CONNECTIONS ####
 
 ##Establish connection to HHSAW prod
+#key_set("hhsaw", username = "shernandez@kingcounty.gov")
+keyring::key_list()
+
 interactive_auth <- FALSE
 prod <- TRUE
 db_claims <- create_db_connection(server = "hhsaw", interactive = interactive_auth, prod = prod)
