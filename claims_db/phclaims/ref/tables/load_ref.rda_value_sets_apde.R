@@ -24,7 +24,7 @@
 #2026-1-9 updates JL:
 #ICD-CM codes with ccs_detail_code of 'MBD013' changed to be in the 'mh_other' category, except for F63 and F630
 
-#2026-10-16 updates JL:
+#2026-10-19 updates JL:
 #1) updating SharePoint site to APDE Healthcare Data 
 #2) new value set names that correspond to the new RDA format
 #3) allow for duplicated codes, as long as value set names are different 
@@ -1392,12 +1392,16 @@ rda_value_sets_new_rx <- rda_value_sets_new_rx %>%
     data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_buprenorphine_naloxone") ~ "sud_opioid",
     data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_buprenorphine") ~ "sud_opioid",
     data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_naltrexone_rx") &
-      ~ "sud_opioid",
+      str_detect(desc, "VIVITROL") ~ "sud_opioid", #only injectable naltrexone is used for treating OUD
+    data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_naltrexone_rx") & 
+        !str_detect(desc, "VIVITROL") ~ "sud_alcohol",
+    data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_armodafinil", "pharm_antiinflammatory",
+                                                               "pharm_parkinsons") ~ "mh_other",
     TRUE ~ sub_group_condition
   ))
 
 #Verify that all drugs have been assigned to a sub_group_condition, should return 0
-rda_value_sets_new_rx %>% filter(data_source_type == "pharmacy" & is.na(sub_group_condition)) %>% count()
+rda_value_sets_new_rx %>% filter(data_source_type == "pharmacy" & is.na(sub_group_condition) & code_set == "NDC") %>% count()
 
 
 #### Step 5b: Add in 66 ICD-10-CM codes that were identified through NO HARMS ####
@@ -1438,34 +1442,38 @@ extra_idc_final <- dbGetQuery(conn = db_hhsaw,
   select(value_set_group, value_set_name, data_source_type, code_set, code, desc, icdcm_version, 
          sub_group_condition)
 
-#### Step 6: Bind to existing RDA value set and collapse to distinct rows ####
 
-rda_value_sets_updated <- bind_rows(rda_value_sets_existing, rda_value_sets_new_rx, extra_idc_final) %>% 
+#### Step 6: Bind to existing RDA value set and collapse to distinct rows ####
+# Only need to run the below two chunks if value_set_names substantially change between existing RDA and new one
+extracodes <- anti_join(rda_value_sets_existing, rda_value_sets_new, by = "code") %>% 
+  filter_out(value_set_name == "apde-added-diagnosis" | data_source_type == "billing")
+
+# Update the value sets of the old existing codes to match with what's in the new RDA
+# Update the sud_opioid definition for NDC
+extracodes_final <- extracodes %>% 
+  mutate(value_set_name = case_when(code_set == "NDC" & value_set_group == "sud" ~ "ndcelement",
+                                    code_set == "NDC" & value_set_group == "mh" ~ "mh_ndcelement",
+                                    code_set %in% c("ICD10CM", "ICD9CM") & value_set_group == "sud" ~ "sudanyqlfyng_icd_9_10dx",
+                                    code_set %in% c("ICD10CM", "ICD9CM") & value_set_group == "mh" ~ "mhdiag9_10",
+                                    code_set == "ICD9PCS" & value_set_group == "sud" ~ "sud_wthdrwlmngmnt_icdproccodes", 
+                                    TRUE ~ value_set_name),
+         sub_group_condition = case_when(sub_group_pharmacy == "pharm_naltrexone_rx" & 
+                                           !str_detect(desc, "MORPHINE-NALTREXONE") ~ "sud_alcohol",
+                                         sub_group_pharmacy == "pharm_naltrexone_rx" & 
+                                           str_detect(desc, "MORPHINE-NALTREXONE") ~ "sud_other_substance",
+                                         TRUE ~ sub_group_condition))
+
+# Bind all the data tables 
+rda_value_sets_updated <- bind_rows(extracodes_final, rda_value_sets_new_rx, extra_idc_final) %>% 
   distinct(across(-desc), .keep_all = TRUE)
 
-#Confirm that no ICD-CM codes have more than 1 row
-rda_value_sets_updated %>% filter(code_set %in% c("ICD9CM", "ICD10CM")) %>% group_by(code) %>%
+#Confirm that no ICD-CM codes per value_set_name have more than 1 row
+rda_value_sets_updated %>% filter(code_set %in% c("ICD9CM", "ICD10CM")) %>% group_by(value_set_name, code) %>%
   mutate(row_count = n()) %>% ungroup() %>% count(row_count)
 
-#no need to run the below if there are no ICD-CM codes with >1 row (most likely not needed after Jan 2026 updates)
-rda_value_sets_updated <- subset(rda_value_sets_updated, 
-                                 !(code %in% c("F068", "F09", "F488", "F489", "F54", "F59",
-                                               "F938", "F939", "F989", "F99", "O9934", 
-                                               "O99340", "O99341", "O99342", "O99343", 
-                                               "O99344", "O99345") & 
-                                     sub_group_condition == 'mh_disrupt'))
-#these were previously classified as mh_disrupt but are now mh_other
-
-#Confirm that no NDC codes have more than 1 row
-rda_value_sets_updated %>% filter(code_set %in% c("NDC")) %>% group_by(code) %>%
+#Confirm that no NDC codes per value_set_name have more than 1 row
+rda_value_sets_updated %>% filter(code_set %in% c("NDC")) %>% group_by(value_set_name, code) %>%
   mutate(row_count = n()) %>% ungroup() %>% count(row_count)
-
-#Check for duplicate rows (which is okay for procedure codes that exist in more than one value set)
-#Also some taxonomy codes are duplicated even after stripping white space because of slight changes in wording - ignore
-rda_value_sets_updated %>%
-  group_by(code_set, code) %>%
-  summarise(row_count = n()) %>%
-  filter(row_count >1) 
 
 
 #### Step 6b: Add in MOUD procedure codes (these are not from RDA) ####
