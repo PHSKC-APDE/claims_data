@@ -24,6 +24,12 @@
 #2026-1-9 updates JL:
 #ICD-CM codes with ccs_detail_code of 'MBD013' changed to be in the 'mh_other' category, except for F63 and F630
 
+#2026-10-19 updates JL:
+#1) updating SharePoint site to APDE Healthcare Data 
+#2) new value set names that correspond to the new RDA format
+#3) allow for duplicated codes, as long as value set names are different 
+
+
 #### Setup ####
 
 ##Load packages and set defaults
@@ -38,44 +44,38 @@ origin <- "1970-01-01" # Set the origin date, which is needed for many data/time
 #keyring::key_list()
 
 #Connect to HHSAW using ODBC driver
-db_hhsaw <- DBI::dbConnect(odbc::odbc(),
-                           driver = "ODBC Driver 17 for SQL Server",
-                           server = "tcp:kcitazrhpasqlprp16.azds.kingcounty.gov,1433",
-                           database = "hhs_analytics_workspace",
-                           uid = keyring::key_list("hhsaw")[["username"]],
-                           pwd = keyring::key_get("hhsaw", keyring::key_list("hhsaw")[["username"]]),
-                           Encrypt = "yes",
-                           TrustServerCertificate = "yes",
-                           Authentication = "ActiveDirectoryPassword")
+db_hhsaw <- apde.data::authenticate_hhsaw()
+
 
 
 #### Step 1: Load existing reference table and new value sets ####
 
-mh_value_set_new_version <- "2024-07-31" ##UPDATE EACH TIME THIS SCRIPT IS RUN
-sud_value_set_new_version <- "2024-07-31" ##UPDATE EACH TIME THIS SCRIPT IS RUN
+value_set_new_version_mh <- "2026-07-31" ##UPDATE EACH TIME THIS SCRIPT IS RUN
+value_set_new_version_sud <- "2026-07-31" ##UPDATE EACH TIME THIS SCRIPT IS RUN
 
 ##Connect to SharePoint/TEAMS site
-myteam <- get_team(team_name = "DPH-KCCross-SectorData",
+myteam <- get_team(team_name = "DPH-APDE-Healthcare-Data",
                    username = keyring::key_list("sharepoint")$username,
                    password = keyring::key_get("sharepoint", keyring::key_list("sharepoint")$username),
                    auth_type = "resource_owner",
                    tenant = "kingcounty.gov")
 
 ##Connect to drive (i.e., Documents-General document library) and navigate to desired subfolder
-myteam$list_drives() #lists all available document libraries
-myteamdrive = myteam$get_drive("Documents") #connect to document library named "Documents"
-#myteamfolder = myteamdrive$get_item("General")
-myteamfolder = myteamdrive$get_item("References")
-myteamfolder = myteamfolder$get_item("RDA_measures")
+channel_internal <- myteam$get_channel("Internal Ops Shared Channel")
+# channel_internal$list_drives() #lists all available document libraries
+# myteamdrive = myteam$get_drive("Documents") #connect to document library named "Documents"
+# #myteamfolder = myteamdrive$get_item("General")
+myteamfolder = channel_internal$get_folder()
+myteamfolder = myteamfolder$get_item("References/RDA_measures")
 myteamfolder_rda_value_set_existing = myteamfolder$get_item("rda_value_sets_for_sql_load")
 myteamfolder_rda_value_set_existing$list_items()
 
 myteamfolder_rda_mh_value_sets = myteamfolder$get_item("mh_service_penetration_measure")
-myteamfolder_rda_mh_value_sets = myteamfolder_rda_mh_value_sets$get_item(paste0("mh_", mh_value_set_new_version))
+myteamfolder_rda_mh_value_sets = myteamfolder_rda_mh_value_sets$get_item(paste0("mh_", value_set_new_version_mh))
 myteamfolder_rda_mh_value_sets$list_items()
 
 myteamfolder_rda_sud_value_sets = myteamfolder$get_item("sud_tx_penetration_measure")
-myteamfolder_rda_sud_value_sets = myteamfolder_rda_sud_value_sets$get_item(paste0("sud_", sud_value_set_new_version))
+myteamfolder_rda_sud_value_sets = myteamfolder_rda_sud_value_sets$get_item(paste0("sud_", value_set_new_version_sud))
 myteamfolder_rda_sud_value_sets$list_items()
 
 ## Load sub_group_pharmacy reference table from metadata file files to temp location
@@ -87,507 +87,917 @@ sub_group_pharmacy <- read_xlsx(
   colNames = TRUE,
   detectDates = TRUE)
 
-## Load existing RDA value set, dropping last_run variable and MOUD procedure codes (will be added later)
+## Load existing RDA value set, dropping last_run variable, OUD diagnosis flag, and MOUD procedure codes (will be added later)
 myteamfolder_rda_value_set_existing$get_item("rda_value_sets_current.rdata")$load_rdata()
 rda_value_sets_existing <- rda_value_sets_updated_final %>% 
-  filter(value_set_name != "apde-moud-procedure") %>% 
+  filter_out(value_set_name == "apde-moud-procedure") %>% 
   select(-c(last_run, oud_dx1_flag))
 rm(rda_value_sets_updated_final)
 
 ## Load new value sets for MH and SUD measures
 temp_mh_vs_new <- tempfile(fileext = ".xlsx")
 temp_sud_vs_new <- tempfile(fileext = ".xlsx")
-myteamfolder_rda_mh_value_sets$get_item(paste0("mhsr-value-sets_",mh_value_set_new_version,".xlsx"))$download(
+myteamfolder_rda_mh_value_sets$get_item(paste0("mhsr-value-sets_",value_set_new_version_mh,".xlsx"))$download(
   dest = temp_mh_vs_new)
-myteamfolder_rda_sud_value_sets$get_item(paste0("sud-tx-rate-value-sets_",sud_value_set_new_version,".xlsx"))$download(
+myteamfolder_rda_sud_value_sets$get_item(paste0("sud-tx-rate-value-denominator_",value_set_new_version_sud,".xlsx"))$download(
   dest = temp_sud_vs_new)
+#for the SUD measures, the denominator and numerator excels have the same exact values and only the formula part is different
 
-#mh-proc1
-mh_vs_new_proc1 <- read_xlsx(
-  file = temp_mh_vs_new,
-  sheet = "MH-Proc1-MCG261",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "mh",
-    value_set_name = "mh-proc1",
-    data_source_type = "procedure",
-    code_set = "CPT-HCPCS",
-    code = Code,
-    desc = CodeDescription,
-    mcg_code = "261") %>%
-  
-  select(value_set_group:mcg_code)
+#MH value sets
+#FllyQlfngPrcdr
+mh_qual_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "FllyQlfngPrcdr", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "fllyqlfngprcdr",
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#mh-proc2
-mh_vs_new_proc2 <- read_xlsx(
-  file = temp_mh_vs_new,
-  sheet = "MH-Proc2-MCG4947",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "mh",
-    value_set_name = "mh-proc2",
-    data_source_type = "procedure",
-    code_set = "CPT-HCPCS",
-    code = Code,
-    desc = CodeDescription,
-    mcg_code = "4947") %>%
-  
-  select(value_set_group:mcg_code)
+#ProcNotHW
+mh_nothw_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcNotHW", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procnothw",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#mh-proc3
-mh_vs_new_proc3 <- read_xlsx(
-  file = temp_mh_vs_new,
-  sheet = "MH-Proc3-MCG3117",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "mh",
-    value_set_name = "mh-proc3",
-    data_source_type = "procedure",
-    code_set = "CPT-HCPCS",
-    code = Code,
-    desc = CodeDescription,
-    mcg_code = "3117") %>%
-  
-  select(value_set_group:mcg_code)
+#ModHW
+mh_hw_mod <- read_xlsx(file = temp_mh_vs_new, sheet = "ModHW", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "mh",
+         value_set_name = "modhw",
+         data_source_type = "modifier",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
 
-#mh-proc4
-mh_vs_new_proc4 <- read_xlsx(
-  file = temp_mh_vs_new,
-  sheet = "MH-Proc4-MCG4491",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "mh",
-    value_set_name = "mh-proc4",
-    data_source_type = "procedure",
-    code_set = "CPT-HCPCS",
-    code = `CPT or HCPC Procedure Code`,
-    desc = CodeDescription,
-    mcg_code = "4491") %>%
-  
-  select(value_set_group:mcg_code)
+#ProcWithHW
+mh_hw_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcWithHW", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procwithhw",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#mh-proc5
-mh_vs_new_proc5 <- read_xlsx(
-  file = temp_mh_vs_new,
-  sheet = "MH-Proc5-MCG4948",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "mh",
-    value_set_name = "mh-proc5",
-    data_source_type = "procedure",
-    code_set = "CPT",
-    code = `CPT Procedure Code`,
-    desc = CodeDescription,
-    mcg_code = "4948") %>%
-  
-  select(value_set_group:mcg_code)
+#ProcWithHD
+mh_hd_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcWithHD", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procwithhd",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#mh-taxonomy
-mh_vs_new_taxonomy <- read_xlsx(
-  file = temp_mh_vs_new,
-  sheet = "MH-Taxonomy-MCG262",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "mh",
-    value_set_name = "mh-taxonomy",
-    data_source_type = "taxonomy",
-    code_set = "HPT",
-    code = `Taxonomy Code`,
-    desc = CodeDescription,
-    mcg_code = "262") %>%
-  
-  select(value_set_group:mcg_code)
+#ModHD
+mh_hd_mod <- read_xlsx(file = temp_mh_vs_new, sheet = "ModHD", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "mh",
+         value_set_name = "modhd",
+         data_source_type = "modifier",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
 
-#mi-diagnosis
-mh_vs_new_diagnosis <- read_xlsx(
-  file = temp_mh_vs_new,
-  sheet = "MI-Diagnosis",
-  start_row = 1,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "mh",
-    value_set_name = "mi-diagnosis",
-    data_source_type = "diagnosis",
-    code_set = "ICDCM",
-    code = DxCode,
-    desc = CodeDescription,
-    mcg_code = "7MCGs") %>%
-  
-  select(value_set_group:mcg_code) %>% 
-  filter(toupper(desc) != 'DATE RANGE CODE')
+#ProcNotHFDiag
+mh_nothf_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcNotHFDiag", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procnothfdiag",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#psychotropic-ndc
-mh_vs_new_ndc <- read_xlsx(
-  file = temp_mh_vs_new,
-  sheet = "Psychotropic-NDC-5MCGs",
-  start_row = 1,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "mh",
-    value_set_name = "psychotropic-ndc",
-    data_source_type = "pharmacy",
-    code_set = "NDC",
-    code = as.character(NDCExpansion),
-    desc = NDCLabel,
-    mcg_code = "5MCGs") %>%
-  
-  #remove meds with missing NCD
-  filter(code != "NULL") %>%
-  
-  select(value_set_group:mcg_code)
+#ModHF
+mh_hf_mod <- read_xlsx(file = temp_mh_vs_new, sheet = "ModHF", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "mh",
+         value_set_name = "modhf",
+         data_source_type = "modifier",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
 
-#sud-dx-value-set
-sud_vs_new_diagnosis <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "SUD-Dx-Value-Set",
-  start_row = 1,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "sud-dx-value-set",
-    data_source_type = "diagnosis",
-    code_set = "ICDCM",
-    code = `ICD-9 or ICD-10 Diagnosis Code`,
-    desc = CodeDescription,
-    mcg_code = NA_character_) %>%
-  
-  select(value_set_group:mcg_code) %>% 
-  filter(toupper(desc) != 'DATE RANGE CODE')
+#MHDiag9_10
+mh_dx <- read_xlsx(file = temp_mh_vs_new, sheet = "MHDiag9_10", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(code_set = case_when(CodeTypeName == "ICD9_Diag" ~ "ICD9CM",
+                              CodeTypeName == "ICD10_Diag" ~ "ICD10CM",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         value_set_group = "mh",
+         value_set_name = "mhdiag9_10",
+         data_source_type = "diagnosis") %>% 
+  select(-c(CodeDesc, CodeTypeName))
 
-#sbirt-proc
-sud_vs_new_sbirt <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "SBIRT-Proc-Value-Set (3169)",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "sbirt-proc",
-    data_source_type = "procedure",
-    code_set = "CPT-HCPCS",
-    code = `CPT or HCPC Procedure Code`,
-    desc = CodeDescription,
-    mcg_code = "3169") %>%
-  
-  select(value_set_group:mcg_code)
+#MHDateLimDiag9
+mh_datelim_dx <- read_xlsx(file = temp_mh_vs_new, sheet = "MHDateLimDiag9", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(code_set = "ICD9CM",
+         desc = toupper(CodeDesc),
+         value_set_group = "mh",
+         value_set_name = "mhdatelimdiag9",
+         data_source_type = "diagnosis") %>% 
+  select(-c(CodeDesc, CodeTypeName))
 
-#detox
-sud_vs_new_detox <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "Detox-Value-Set",
-  start_row = 1,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "detox",
-    data_source_type = case_when(
-      CodeSet == "HCPC" ~ "procedure",
-      CodeSet == "ICD-9 procedure code" ~ "procedure",
-      CodeSet == "ICD-10 procedure code" ~ "procedure",
-      CodeSet == "revenue code" ~ "billing",
-      TRUE ~ NA_character_),
-    code_set = case_when(
-      CodeSet == "HCPC" ~ "HCPCS",
-      CodeSet == "ICD-9 procedure code" ~ "ICD9PCS",
-      CodeSet == "ICD-10 procedure code" ~ "ICD10PCS",
-      CodeSet == "revenue code" ~ "UBREV",
-      TRUE ~ NA_character_),
-    code = Code,
-    desc = CodeDescription,
-    mcg_code = NA_character_) %>%
-  
-  select(value_set_group:mcg_code)
+#ProcNotUB
+mh_notub_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcNotUB", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procnotub",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#sud-op-tx-proc
-sud_vs_new_sud_op_tx_proc <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "SUD-OP-Tx-Proc-Value-Set (3156)",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "sud-op-tx-proc",
-    data_source_type = "procedure",
-    code_set = "HCPCS",
-    code = `HCPC Procedure Code`,
-    desc = CodeDescription,
-    mcg_code = "3156") %>%
-  
-  select(value_set_group:mcg_code)
+#ModUB
+mh_ub_mod <- read_xlsx(file = temp_mh_vs_new, sheet = "ModUB", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "mh",
+         value_set_name = "modub",
+         data_source_type = "modifier",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
 
-#sud-ost
-sud_vs_new_sud_ost <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "SUD-OST-Value-Set (3148)",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "sud-ost",
-    data_source_type = "procedure",
-    code_set = "HCPCS",
-    code = `HCPC Procedure Code`,
-    desc = CodeDescription,
-    mcg_code = "3148") %>%
-  
-  select(value_set_group:mcg_code)
+#ProcNotHF
+mh_nothf_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcNotHF", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procnothf",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#sud-ip-res
-sud_vs_new_ip_res <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "SUD-IP-RES-Value-Set",
-  start_row = 1,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "sud-ip-res",
-    data_source_type = case_when(
-      CodeSet == "HCPC" ~ "procedure",
-      CodeSet == "DRG" ~ "diagnosis",
-      TRUE ~ NA_character_),
-    code_set = case_when(
-      CodeSet == "HCPC" ~ "HCPCS",
-      CodeSet == "DRG" ~ "DRG",
-      TRUE ~ NA_character_),
-    code = Code,
-    desc = CodeDescription,
-    mcg_code = NA_character_) %>%
-  
-  select(value_set_group:mcg_code)
+#ProcNotHFWithHW
+mh_nothfwithhw_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcNotHFWithHW", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procnothfwithhw",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#sud-asmt
-sud_vs_new_sud_asmt <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "SUD-ASMT-Value-Set (3149)",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "sud-asmt",
-    data_source_type = "procedure",
-    code_set = "HCPCS",
-    code = `HCPC Procedure Code`,
-    desc = CodeDescription,
-    mcg_code = "3149") %>%
-  
-  select(value_set_group:mcg_code)
+#ProcNotHFHW
+mh_nothfhw_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcNotHFHW", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procnothfhw",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#sud-taxonomy
-sud_vs_new_sud_taxonomy <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "SUD-Taxonomy-Value-Set (3170)",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "sud-taxonomy",
-    data_source_type = "taxonomy",
-    code_set = "HPT",
-    code = `Taxonomy Code`,
-    desc = CodeDescription,
-    mcg_code = "3170") %>%
-  
-  select(value_set_group:mcg_code)
+#ProcInpatFullQual
+mh_inpat_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcInpatFullQual", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procinpatfullqual",
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              CodeTypeName == "Mdfr" ~ "Mdfr",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         data_source_type = ifelse(str_detect(CodeTypeName, "Proc"), "procedure", "modifier")) %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#proc-w-prim-sud-dx
-sud_vs_new_proc_prim_sud_dx <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "proc-w-prim-SUD-Dx-vs (3324)",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "proc-w-prim-SUD-Dx",
-    data_source_type = "procedure",
-    code_set = "HCPCS",
-    code = `HCPC Procedure Code`,
-    desc = CodeDescription,
-    mcg_code = "3324") %>%
-  
-  select(value_set_group:mcg_code)
+#ProcInpatWithHH
+mh_inpatwithhh_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcInpatWithHH", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procinpatwithhh",
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#proc-w-any-sud-dx
-sud_vs_new_proc_any_sud_dx <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "proc-w-any-SUD-Dx-vs (4881)",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "proc-w-any-SUD-Dx",
-    data_source_type = "procedure",
-    code_set = "CPT-HCPCS",
-    code = `CPT or HCPC Procedure Code`,
-    desc = CodeDescription,
-    mcg_code = "4881") %>%
-  
-  select(value_set_group:mcg_code)
+#ModHH
+mh_hh_mod <- read_xlsx(file = temp_mh_vs_new, sheet = "ModHH", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "mh",
+         value_set_name = "modhh",
+         data_source_type = "modifier",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
 
-#moud-maud
-sud_vs_new_moud_maud <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "MOUD-MAUD-Value-Set",
-  start_row = 1,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "moud-maud",
-    data_source_type = "pharmacy",
-    code_set = "NDC",
-    code = as.character(NDCExpansion),
-    desc = NDCLabel,
-    mcg_code = NA_character_) %>%
-  
-  select(value_set_group:mcg_code)
+#ProcInpatWIthHHnoHF
+mh_inpatwithhhnohf_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcInpatWIthHHnoHF", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procinpatwithhhnohf",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
 
-#moud-procedure
-sud_vs_new_moud_proc <- read_xlsx(
-  file = temp_sud_vs_new,
-  sheet = "MOUD-Procedure-Value-Set",
-  start_row = 2,
-  colNames = TRUE,
-  detectDates = TRUE,
-  skip_empty_cols = TRUE,
-  skip_empty_rows = TRUE) %>%
-  
-  mutate(
-    value_set_group = "sud",
-    value_set_name = "moud-procedure",
-    data_source_type = "procedure",
-    code_set = "HCPCS",
-    code = `HCPC Procedure Code`,
-    desc = `Short Description`,
-    mcg_code = NA_character_) %>%
-  
-  select(value_set_group:mcg_code)
+#ProcInpatNotHW
+mh_inpatnothw_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcInpatNotHW", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procinpatnothw",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ProcInpatHForHW
+mh_inpathforhw_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcInpatHForHW", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procinpathforhw",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ProcInpatNotHH
+mh_inpatnothh_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcInpatNotHH", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procinpatnothh",
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ProcInpatNotHHHF
+mh_inpatnothhhf_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcInpatNotHHHF", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procinpatnothhhf",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ProcInpatNotHD
+mh_inpatnothd_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcInpatNotHD", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procinpatnothd",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ProcInpatNotUB
+mh_inpatnotub_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcInpatNotUB", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procinpatnotub",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ProcInpatNotHF
+mh_inpatnothf_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcInpatNotHF", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procinpatnothf",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ProcInpatNotHFHW
+mh_inpatnothfhw_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcInpatNotHFHW", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procinpatnothfhw",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ClmTypeInpat
+mh_inpat_claimtype <- read_xlsx(file = temp_mh_vs_new, sheet = "ClmTypeInpat", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "mh",
+         value_set_name = "clmtypeinpat",
+         data_source_type = "claim_type",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
+
+#ClmTypeOutPat
+mh_outpat_claimtype <- read_xlsx(file = temp_mh_vs_new, sheet = "ClmTypeOutPat", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "mh",
+         value_set_name = "clmtypeoutpat",
+         data_source_type = "claim_type",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
+
+#ProcOutPatPrmryDx
+mh_outpat_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcOutPatPrmryDx", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procoutpatprmrydx",
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#MHPrmyDiag9_10
+mh_primary_dx <- read_xlsx(file = temp_mh_vs_new, sheet = "MHPrmyDiag9_10", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(code_set = case_when(CodeTypeName == "ICD9_Diag" ~ "ICD9CM",
+                              CodeTypeName == "ICD10_Diag" ~ "ICD10CM",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         value_set_group = "mh",
+         value_set_name = "mhprmydiag9_10",
+         data_source_type = "diagnosis") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#MHPrmryDateLimDiag9
+mh_primarydatelim_dx <- read_xlsx(file = temp_mh_vs_new, sheet = "MHPrmryDateLimDiag9", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(code_set = "ICD9CM",
+         desc = toupper(CodeDesc),
+         value_set_group = "mh",
+         value_set_name = "mhprmrydatelimdiag9",
+         data_source_type = "diagnosis") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#ProcOutPatFullQual
+mh_outpatfullqual_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcOutPatFullQual", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procoutpatfullqual",
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ProcOutPatNotHW
+mh_outpatnothw_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcOutPatNotHW", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procoutpatnothw",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ProcOutPatWithQ2
+mh_outpatwithq2_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcOutPatWithQ2", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procoutpatwithq2",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ModQ2
+mh_q2_mod <- read_xlsx(file = temp_mh_vs_new, sheet = "ModQ2", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "mh",
+         value_set_name = "modq2",
+         data_source_type = "modifier",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
+
+#ProcOutPatNotUB
+mh_outpatnotub_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcOutPatNotUB", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procoutpatnotub",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#TxnmyOutPat
+mh_outpat_taxonomy <- read_xlsx(file = temp_mh_vs_new, sheet = "TxnmyOutPat", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "txnmyoutpat",
+         data_source_type = "taxonomy", 
+         code_set = "HPT",
+         desc = toupper(CodeDesc)) %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#ProcOutPatTxnmyPrmryDx
+mh_outpattaxonomy_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcOutPatTxnmyPrmryDx", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procoutpattxnmyprmrydx",
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ProcOutPatMHDx
+mh_outpatmhdx_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcOutPatMHDx", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procoutpatmhdx",
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ProcOutPatTxnmyMHDx
+mh_outpattxnmymhdx_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "ProcOutPatTxnmyMHDx", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "procoutpattxnmymhdx",
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#DRGPriorJuly2014
+mh_priorjuly2014_drg <- read_xlsx(file = temp_mh_vs_new, sheet = "DRGPriorJuly2014", colNames = T) %>% 
+  rename(code = Code,
+         desc = CodeDesc) %>% 
+  mutate(code_set = "DRG",
+         value_set_group = "mh",
+         value_set_name = "drgpriorjuly2014",
+         data_source_type = "diagnosis") %>% 
+  select(-CodeTypeName)
+
+#DRGJuly2014Forward
+mh_july2014forward_drg <- read_xlsx(file = temp_mh_vs_new, sheet = "DRGJuly2014Forward", colNames = T) %>% 
+  rename(code = Code,
+         desc = CodeDesc) %>% 
+  mutate(code_set = "DRG",
+         value_set_group = "mh",
+         value_set_name = "drgjuly2014forward",
+         data_source_type = "diagnosis") %>% 
+  select(-CodeTypeName)
+
+#NeedProcIPWithHWNotHF
+mh_needprocipwithhwnothf_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "NeedProcIPWithHWNotHF", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "needprocipwithhwnothf",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#NeedProcWithH9
+mh_needprocwithh9_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "NeedProcWithH9", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "needprocwithh9",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#ModH9
+mh_h9_mod <- read_xlsx(file = temp_mh_vs_new, sheet = "ModH9", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "mh",
+         value_set_name = "modh9",
+         data_source_type = "modifier",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
+
+#NeedProcWithUB
+mh_needprocwithub_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "NeedProcWithUB", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "needprocwithub",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#NeedProcWithHWNotHF
+mh_needprocwithhwnothf_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "NeedProcWithHWNotHF", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "needprocwithhwnothf",
+         code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#NeedProcWithH9NotHF
+mh_needprocwithh9nothf_proc <- read_xlsx(file = temp_mh_vs_new, sheet = "NeedProcWithH9NotHF", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "needprocwithh9nothf",
+         code_set = "CPT-HCPCS",
+         desc = toupper(CodeDesc),
+         data_source_type = "procedure") %>% 
+  select(-c(CodeTypeName, CodeDesc))
+
+#MH_NDCElement
+mh_ndc <- read_xlsx(file = temp_mh_vs_new, sheet = "MH_NDCElement", colNames = T) %>% 
+  rename(code = Code, 
+         desc = CodeDesc, 
+         code_set = CodeTypeName) %>% 
+  mutate(value_set_group = "mh",
+         value_set_name = "mh_ndcelement",
+         data_source_type = "pharmacy")
+
+#sud value sets
+#NDCElement
+sud_ndcelement <- read_xlsx(file = temp_sud_vs_new, sheet = "NDCElement", colNames = T) %>% 
+  rename(code = Code, 
+         desc = CodeDesc, 
+         code_set = CodeTypeName) %>% 
+  mutate(value_set_group = "sud",
+         value_set_name = "ndcelement",
+         data_source_type = "pharmacy")
+
+#InpatientLineFlag
+sud_inpatientline <- read_xlsx(file = temp_sud_vs_new, sheet = "InpatientLineFlag ", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "sud",
+         value_set_name = "inpatientlineflag",
+         data_source_type = "claim_type",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
+
+#SUD_IpSvcsPreJly2014AP_DR
+sud_pre2014_drg <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_IpSvcsPreJly2014AP_DR", colNames = T) %>% 
+  rename(code = Code,
+         desc = CodeDesc) %>% 
+  mutate(code_set = "DRG",
+         value_set_name = "sud_ipsvcsprejly2014ap_dr",
+         value_set_group = "sud",
+         data_source_type = "diagnosis") %>% 
+  select(-CodeTypeName)
+
+#SUD_IpSvcsJly2014FrwrdAPR_DRG
+sud_post2014_drg <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_IpSvcsJly2014FrwrdAPR_DRG", colNames = T) %>% 
+  rename(code = Code,
+         desc = CodeDesc) %>% 
+  mutate(code_set = "DRG",
+         value_set_name = "sud_ipsvcsjly2014frwrdapr_drg",
+         value_set_group = "sud",
+         data_source_type = "diagnosis") %>% 
+  select(-CodeTypeName)
+
+#SUD_WthdrwlMngmnt_RevCodes
+sud_rev <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_WthdrwlMngmnt_RevCodes", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(code_set = "UBREV",
+         value_set_group = "sud",
+         value_set_name = "sud_wthdrwlmngmnt_revcodes",
+         data_source_type = "billing",
+         desc = toupper(CodeDesc)) %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+# SUD_WthdrwlMngmnt_ICDProcCodes
+sud_icdproc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_WthdrwlMngmnt_ICDProcCodes", colNames = T) %>% 
+  rename(code = Code,
+         desc = CodeDesc) %>% 
+  mutate(code_set = case_when(CodeTypeName == "ICD9_Proc" ~ "ICD9PCS",
+                              CodeTypeName == "ICD10_Proc" ~ "ICD10PCS",
+                              TRUE ~ NA),
+         value_set_group = "sud",
+         value_set_name = "sud_wthdrwlmngmnt_icdproccodes",
+         data_source_type = "procedure") %>% 
+  select(-CodeTypeName)
+
+#SUD_WthdrwlMngmnt_PrcdrCodes
+sud_withdrawal_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_WthdrwlMngmnt_PrcdrCodes", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         value_set_group = "sud",
+         value_set_name = "sud_wthdrwlmngmnt_prcdrcodes",
+         code_set = "HCPCS",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUD_InpatResid_PrcdrCodes
+sud_inpat_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_InpatResid_PrcdrCodes", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         value_set_group = "sud",
+         value_set_name = "sud_inpatresid_prcdrcodes",
+         code_set = "HCPCS",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUDAnyQlfyng_ICD_9_10Dx
+sud_dx <- read_xlsx(file = temp_sud_vs_new, sheet = "SUDAnyQlfyng_ICD_9_10Dx", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(code_set = case_when(CodeTypeName == "ICD9_Diag" ~ "ICD9CM",
+                              CodeTypeName == "ICD10_Diag" ~ "ICD10CM",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         value_set_group = "sud",
+         value_set_name = "sudanyqlfyng_icd_9_10dx",
+         data_source_type = "diagnosis") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUDDateLimAnyQlfyng_ICD_9Dx
+sud_datelim_dx <- read_xlsx(file = temp_sud_vs_new, sheet = "SUDDateLimAnyQlfyng_ICD_9Dx", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(code_set = "ICD9CM",
+         desc = toupper(CodeDesc),
+         value_set_group = "sud",
+         value_set_name = "suddatelimanyqlfyng_icd_9dx",
+         data_source_type = "diagnosis") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUD_RecHsResidServicesPrcdrCd 
+sud_res_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_RecHsResidServicesPrcdrCd", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(code_set = "HCPCS",
+         desc = toupper(CodeDesc),
+         value_set_group = "sud",
+         value_set_name = "sud_rechsresidservicesprcdrcd",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#ResidSUDTreatmentFcltyLocCd
+sud_res_location <- read_xlsx(file = temp_sud_vs_new, sheet = "ResidSUDTreatmentFcltyLocCd", colNames = T) %>% 
+  rename(code = Code,
+         desc = CodeDesc) %>% 
+  mutate(code_set = tolower(CodeTypeName),
+         value_set_group = "sud",
+         value_set_name = "residsudtreatmentfcltyloccd",
+         data_source_type = "place_of_service") %>% 
+  select(-CodeTypeName)
+
+#SUD_OpiateSubPrcdrCd
+sud_opiatesub_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_OpiateSubPrcdrCd", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = "HCPCS",
+         value_set_group = "sud",
+         value_set_name = "sud_opiatesubprcdrcd",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#ProfAndOutpatLineFlag
+sud_profoutpat_claimtype <- read_xlsx(file = temp_sud_vs_new, sheet = "ProfAndOutpatLineFlag", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "sud",
+         value_set_name = "profandoutpatlineflag",
+         data_source_type = "claim_type",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
+
+#SUD_OutpatPrcdrCd 
+sud_oupat_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_OutpatPrcdrCd", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "sud",
+         value_set_name = "sud_oupatprcdrcd",
+         data_source_type = "procedure",
+         desc = toupper(CodeDesc),
+         code_set = "HCPCS") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUD_PrvdrTxnmy 
+sud_taxonomy <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_PrvdrTxnmy", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "sud",
+         value_set_name = "sud_prvdrtxnmy",
+         data_source_type = "taxonomy", 
+         code_set = "HPT",
+         desc = toupper(CodeDesc)) %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUD_InpatResidServiceC 
+sud_inpatresid_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_InpatResidServiceC", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(value_set_group = "sud",
+         value_set_name = "sud_inpatresidservicec",
+         data_source_type = "procedure",
+         desc = toupper(CodeDesc),
+         code_set = "HCPCS") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUD_OpiateSubstitutionServices
+sud_opiatesubsvs_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_OpiateSubstitutionServices", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = "HCPCS",
+         value_set_group = "sud",
+         value_set_name = "sud_opiatesubstitutionservices",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUD_WithdrawalManagementC
+sud_withdrawalmanagement_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_WithdrawalManagementC", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = "HCPCS",
+         value_set_group = "sud",
+         value_set_name = "sud_withdrawalmanagementc",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUD_OutpatTxServicesC
+sud_outpatsvs_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_OutpatTxServicesC", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = "HCPCS",
+         value_set_group = "sud",
+         value_set_name = "sud_oupattxservicesc",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#PrimaryQualifying_ICD_9_10Dx
+sud_primary_dx <- read_xlsx(file = temp_sud_vs_new, sheet = "PrimaryQualifying_ICD_9_10Dx", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(code_set = case_when(CodeTypeName == "ICD9_Diag" ~ "ICD9CM",
+                              CodeTypeName == "ICD10_Diag" ~ "ICD10CM",
+                              TRUE ~ NA),
+         desc = toupper(CodeDesc),
+         value_set_group = "sud",
+         value_set_name = "primaryqualifying_icd_9_10dx",
+         data_source_type = "diagnosis") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#PrmryDateLimQlfyng_ICD_9Dx
+sud_primarydatelim_dx <- read_xlsx(file = temp_sud_vs_new, sheet = "PrmryDateLimQlfyng_ICD_9Dx", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(code_set = "ICD9CM",
+         desc = toupper(CodeDesc),
+         value_set_group = "sud",
+         value_set_name = "prmrydatelimqlfyng_icd_9dx",
+         data_source_type = "diagnosis") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUDOutpatientServicesD
+sud_outpatsvsd_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUDOutpatientServicesD", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              TRUE ~ NA),
+         value_set_group = "sud",
+         value_set_name = "sudoutpatientservicesd",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#InpatientLineBroadFlag
+sud_inpatline_claimtype <- read_xlsx(file = temp_sud_vs_new, sheet = "InpatientLineBroadFlag", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "sud",
+         value_set_name = "inpatientlinebroadflag",
+         data_source_type = "claim_type",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
+
+#SUD_IntensiveWithdrawalMngmnt
+sud_withdrawal_rev <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_IntensiveWithdrawalMngmnt", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(code_set = "UBREV",
+         value_set_group = "sud",
+         value_set_name = "sud_intensivewithdrawalmngmnt",
+         data_source_type = "billing",
+         desc = toupper(CodeDesc)) %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUD_Assessment 
+sud_assessment_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_Assessment", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = "HCPCS",
+         value_set_group = "sud",
+         value_set_name = "sud_assessment",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#SUD_SBIRT
+sud_sbirt_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "SUD_SBIRT", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              TRUE ~ NA),
+         value_set_group = "sud",
+         value_set_name = "sud_sbirt",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#CrisisA
+sud_crisisa_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "CrisisA", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = case_when(CodeTypeName == "CPT_Proc" ~ "CPT-HCPCS",
+                              CodeTypeName == "HCPCS_Proc" ~ "HCPCS",
+                              TRUE ~ NA),
+         value_set_group = "sud",
+         value_set_name = "crisisa",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#CrisisB
+sud_crisisb_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "CrisisB", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = "HCPCS",
+         value_set_group = "sud",
+         value_set_name = "crisisb",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#ModifierA
+sud_modifiera_mod <- read_xlsx(file = temp_sud_vs_new, sheet = "ModifierA", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "sud",
+         value_set_name = "modifiera",
+         data_source_type = "modifier",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
+
+#ModifierC
+sud_modifierc_mod <- read_xlsx(file = temp_sud_vs_new, sheet = "ModifierC", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "sud",
+         value_set_name = "modifierc",
+         data_source_type = "modifier",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
+
+#CrisisC
+sud_crisisc_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "CrisisC", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = "HCPCS",
+         value_set_group = "sud",
+         value_set_name = "crisisc",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#CrisisD
+sud_crisisd_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "CrisisD ", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = "HCPCS",
+         value_set_group = "sud",
+         value_set_name = "crisisd",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#CrisisE
+sud_crisise_proc <- read_xlsx(file = temp_sud_vs_new, sheet = "CrisisE", colNames = T) %>% 
+  rename(code = Code) %>% 
+  mutate(desc = toupper(CodeDesc),
+         code_set = "HCPCS",
+         value_set_group = "sud",
+         value_set_name = "crisise",
+         data_source_type = "procedure") %>% 
+  select(-c(CodeDesc, CodeTypeName))
+
+#ModifierB
+sud_modifierb_mod <- read_xlsx(file = temp_sud_vs_new, sheet = "ModifierB", colNames = T) %>% 
+  mutate(code = as.character(Code),
+         value_set_group = "sud",
+         value_set_name = "modifierb",
+         data_source_type = "modifier",
+         desc = toupper(CodeDesc),
+         code_set = tolower(CodeTypeName)) %>% 
+  select(-c(Code, CodeDesc, CodeTypeName))
 
 
 #### Step 2: Bind all new value sets ####
+new_mh <- rbindlist(mget(ls(pattern = "^mh_")), fill = T)
+new_sud <- rbindlist(mget(ls(pattern = "^sud_")), fill = T)
 
-rda_value_sets_new_raw <- bind_rows(
-  mh_vs_new_diagnosis,
-  mh_vs_new_ndc,
-  mh_vs_new_proc1,
-  mh_vs_new_proc2,
-  mh_vs_new_proc3,
-  mh_vs_new_proc4,
-  mh_vs_new_proc5,
-  mh_vs_new_taxonomy,
-  sud_vs_new_detox,
-  sud_vs_new_diagnosis,
-  sud_vs_new_ip_res,
-  sud_vs_new_moud_maud,
-  sud_vs_new_moud_proc,
-  sud_vs_new_proc_any_sud_dx,
-  sud_vs_new_proc_prim_sud_dx,
-  sud_vs_new_sbirt,
-  sud_vs_new_sud_asmt,
-  sud_vs_new_sud_op_tx_proc,
-  sud_vs_new_sud_ost,
-  sud_vs_new_sud_taxonomy)
+rda_value_sets_new_raw <- bind_rows(new_mh, new_sud) %>% 
+  select(value_set_group, value_set_name, data_source_type, code_set, code, desc)
 
-rm(mh_vs_new_diagnosis,
-   mh_vs_new_ndc,
-   mh_vs_new_proc1,
-   mh_vs_new_proc2,
-   mh_vs_new_proc3,
-   mh_vs_new_proc4,
-   mh_vs_new_proc5,
-   mh_vs_new_taxonomy,
-   sud_vs_new_detox,
-   sud_vs_new_diagnosis,
-   sud_vs_new_ip_res,
-   sud_vs_new_moud_maud,
-   sud_vs_new_moud_proc,
-   sud_vs_new_proc_any_sud_dx,
-   sud_vs_new_proc_prim_sud_dx,
-   sud_vs_new_sbirt,
-   sud_vs_new_sud_asmt,
-   sud_vs_new_sud_op_tx_proc,
-   sud_vs_new_sud_ost,
-   sud_vs_new_sud_taxonomy)
+rm(list = ls(pattern = "^mh_"))
+rm(list = ls(pattern = "^sud_"))
 
 
 #### Step 3: Normalize certain code sets and create ICDCM version ####
@@ -638,12 +1048,13 @@ rda_value_sets_new %>%
   count(code_len)
 
 #For ICD-CM codes that have more than 1 row (this really only happens when padding ICD-9-CM codes to 5 digits), select longest
+#Specifically making sure that there are not duplicate diagnosis codes per value_set_name
 rda_value_sets_new <- rda_value_sets_new %>%
   mutate(
     code_raw_len = case_when(
       code_set %in% c("ICD9CM", "ICD10CM") ~ str_length(code_raw),
       TRUE ~ NA_integer_)) %>%
-  group_by(code) %>%
+  group_by(value_set_name, code) %>%
   mutate(
     row_count = n(),
     code_raw_len_rank = rank(-code_raw_len, ties.method = c("first"))) %>%
@@ -651,12 +1062,12 @@ rda_value_sets_new <- rda_value_sets_new %>%
   filter(is.na(code_raw_len) | code_raw_len_rank == 1L) %>%
   select(-code_raw:-code_raw_len_rank)
 
-#Confirm that no ICD-CM codes have more than 1 row
-rda_value_sets_new %>% filter(code_set %in% c("ICD9CM", "ICD10CM")) %>% group_by(code) %>%
+#Confirm that no ICD-CM codes have more than 1 row per value_set_name
+rda_value_sets_new %>% filter(code_set %in% c("ICD9CM", "ICD10CM")) %>% group_by(value_set_name, code) %>%
   mutate(row_count = n()) %>% ungroup() %>% count(row_count)
 
-#Confirm that no NDC codes have more than 1 row
-rda_value_sets_new %>% filter(code_set %in% c("NDC")) %>% group_by(code) %>%
+#Confirm that no NDC codes have more than 1 row per value_set_name
+rda_value_sets_new %>% filter(code_set %in% c("NDC")) %>% group_by(value_set_name, code) %>%
   mutate(row_count = n()) %>% ungroup() %>% count(row_count)
 
 
@@ -681,9 +1092,9 @@ rda_value_sets_new <- left_join(rda_value_sets_new, ref.icdcm_codes, by = c("cod
 #Check to make sure all ICDCM codes in RDA value sets join to ICDCM ref table - should be 0
 count(filter(rda_value_sets_new, code_set %in% c("ICD9CM", "ICD10CM") & is.na(ccs_detail_desc)))
 
-#Check for duplicate rows (which is okay for procedure codes that exist in more than one value set)
+#Check for duplicate rows per code set and value set name
 rda_value_sets_new %>%
-  group_by(code_set, code) %>%
+  group_by(code_set, value_set_name, code) %>%
   summarise(row_count = n()) %>%
   filter(row_count >1)
 
@@ -798,6 +1209,23 @@ rda_value_sets_new <- rda_value_sets_new %>%
     ccs_detail_code == "MBD013" & code %in% c("F63", "F630") ~ "mh_disrupt",
     ccs_detail_code == "MBD013" ~ "mh_other",
     
+    ccs_detail_code %in% c("MBD010", "5.15", "MBD011", "MBD009", "NVS011", "SYM008",
+                           "SYM016", "5.4", "5.5", "15.7", "5.14") ~ "mh_other",
+    ccs_detail_code == "MBD007" & str_detect(code, "^F48|^F44") ~ "mh_other",
+    ccs_detail_code == "MBD014" & code == "F988" ~ "mh_other",
+    ccs_detail_code == "MBD006" & code == "F4522" ~ "mh_other",
+    
+    code %in% c("F50014", "F50024", "F5025", "F5025", "F50814") ~ "mh_other",
+    code %in% c("F1091") ~ "sud_alcohol",
+    code %in% c("F1191") ~ "sud_opioid",
+    code %in% c("F1291") ~ "sud_cannabis", 
+    code %in% c("F1391") ~ "sud_sedative",
+    code %in% c("F1491") ~ "sud_cocaine",
+    code %in% c("F1591") ~ "sud_other_stimulant",
+    code %in% c("F1691") ~ "sud_hallucinogen",
+    code %in% c("F1891") ~ "sud_inhalant",
+    code %in% c("F1991") ~ "sud_other_substance",
+     
     TRUE ~ NA_character_
   ))
   
@@ -806,24 +1234,17 @@ rda_value_sets_new <- rda_value_sets_new %>%
 count(filter(rda_value_sets_new, code_set %in% c("ICD9CM", "ICD10CM") & is.na(sub_group_condition)) %>%
         select(code_set, code, desc, sub_group_condition))
 
+#If there are rows missing, then run the code and manually add them in to the code above that categorizes sub_group_condition: 
 #Identify missing and fill in blanks
 blanks <- rda_value_sets_new %>%
   filter(code_set %in% c("ICD9CM", "ICD10CM") & is.na(sub_group_condition)) %>%
-  distinct(code_set, code, desc, sub_group_condition)
-#there were 105 missing in 1/9/2026 update
+  distinct(code_set, code, desc, sub_group_condition, ccs_detail_code)
+view(blanks)
+#there were 13 missing in 10/16/2026 update
 
-#Manual recoding
+#Remove variables from ref.icdcm_codes table
 rda_value_sets_new <- rda_value_sets_new %>% 
-  mutate(sub_group_condition = case_when(ccs_detail_code %in% c("MBD010", "5.15", 
-                                                                "MBD011", "MBD009", 
-                                                                "NVS011", "SYM008",
-                                                                "SYM016", "5.4",
-                                                                "5.5", "15.7", "5.14") ~ "mh_other",
-                                         ccs_detail_code == "MBD007" & str_detect(code, "^F48|^F44") ~ "mh_other",
-                                         ccs_detail_code == "MBD014" & code == "F988" ~ "mh_other",
-                                         ccs_detail_code == "MBD006" & code == "F4522" ~ "mh_other",
-                                         TRUE ~ sub_group_condition)) %>% 
-  select(-ccs_broad_desc:-ccs_catch_all) #remove variables from ref.icdcm_codes table  
+  select(-ccs_broad_desc:-ccs_catch_all) 
 
 
 
@@ -846,47 +1267,117 @@ disulfiram_rx <- sub_group_pharmacy$desc_1[sub_group_pharmacy$sub_group_pharmacy
 #Then use these vectors in a case_when statement to assign a sub_group_pharmacy to each NDC
 rda_value_sets_new_rx <- rda_value_sets_new %>%
   mutate(sub_group_pharmacy = case_when(
-    data_source_type == "pharmacy" & desc %in% acamprosate_rx ~ "pharm_acamprosate",
-    data_source_type == "pharmacy" & desc %in% disulfiram_rx ~ "pharm_disulfiram",
-    data_source_type == "pharmacy" & desc %in% adhd_rx ~ "pharm_adhd",
-    data_source_type == "pharmacy" & desc %in% antianxiety_rx ~ "pharm_antianxiety",
-    data_source_type == "pharmacy" & desc %in% antidepressant_rx ~ "pharm_antidepressant",
-    data_source_type == "pharmacy" & desc %in% antimania_rx ~ "pharm_antimania",
-    data_source_type == "pharmacy" & desc %in% antipsychotic_rx ~ "pharm_antipsychotic",
-    data_source_type == "pharmacy" & desc %in% buprenorphine_naloxone_rx ~ "pharm_buprenorphine_naloxone",
-    data_source_type == "pharmacy" & desc %in% buprenorphine_rx ~ "pharm_buprenorphine",
-    data_source_type == "pharmacy" & desc %in% naltrexone_rx ~ "pharm_naltrexone_rx",
+    data_source_type == "pharmacy" & code_set == "NDC" & desc %in% acamprosate_rx ~ "pharm_acamprosate",
+    data_source_type == "pharmacy" & code_set == "NDC" & desc %in% disulfiram_rx ~ "pharm_disulfiram",
+    data_source_type == "pharmacy" & code_set == "NDC" & desc %in% adhd_rx ~ "pharm_adhd",
+    data_source_type == "pharmacy" & code_set == "NDC" & desc %in% antianxiety_rx ~ "pharm_antianxiety",
+    data_source_type == "pharmacy" & code_set == "NDC" & desc %in% antidepressant_rx ~ "pharm_antidepressant",
+    data_source_type == "pharmacy" & code_set == "NDC" & desc %in% antimania_rx ~ "pharm_antimania",
+    data_source_type == "pharmacy" & code_set == "NDC" & desc %in% antipsychotic_rx ~ "pharm_antipsychotic",
+    data_source_type == "pharmacy" & code_set == "NDC" & desc %in% buprenorphine_naloxone_rx ~ "pharm_buprenorphine_naloxone",
+    data_source_type == "pharmacy" & code_set == "NDC" & desc %in% buprenorphine_rx ~ "pharm_buprenorphine",
+    data_source_type == "pharmacy" & code_set == "NDC" & desc %in% naltrexone_rx ~ "pharm_naltrexone_rx",
     TRUE ~ NA_character_
   ))
 
 #Manual recoding based on cumulative value sets to date
 rda_value_sets_new_rx <- rda_value_sets_new_rx %>%
   mutate(sub_group_pharmacy = case_when(
-    data_source_type == "pharmacy" & is.na(sub_group_pharmacy) &
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) &
       desc %in% c("METHYLPHENIDATE", "DICLOFENAC SODIUM DR", "LISDEXAMFETAMINE DIMESYLATE", 
                   "GUANFACINE HYDROCHLORIDE ER", "RELEXXII", "AMPHETAMINE/DEXTROAMPHETAMINE ER") ~ "pharm_adhd",
-    data_source_type == "pharmacy" & is.na(sub_group_pharmacy) &
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) &
       desc %in% c("VILAZODONE HYDROCHLORIDE", "VENLAFAXINE BESYLATE ER", "ABILIFY MYCITE STARTER KIT",
                   "ABILIFY MYCITE MAINTENANCE KIT", "AUVELITY", "ZURZUVAE") ~ "pharm_antidepressant",
-    data_source_type == "pharmacy" & is.na(sub_group_pharmacy) & 
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & 
       desc %in% c("INVEGA HAFYERA", "LURASIDONE HYDROCHLORIDE", "RYKINDO", "RISPERIDONE ER", 
                   "UZEDY", "ABILIFY ASIMTUFII") ~ "pharm_antipsychotic",
-    data_source_type == "pharmacy" & is.na(sub_group_pharmacy) & desc %in% c("LOREEV XR") ~ "pharm_antianxiety",
-    data_source_type == "pharmacy" & is.na(sub_group_pharmacy) & str_detect(desc, "NALTREXONE") ~ "pharm_naltrexone_rx",
-    data_source_type == "pharmacy" & is.na(sub_group_pharmacy) & str_detect(desc, "DISULFIRAM") ~ "pharm_disulfiram",
-    data_source_type == "pharmacy" & is.na(sub_group_pharmacy) & desc %in% c("BRIXADI") ~ "pharm_buprenorphine",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & desc %in% c("LOREEV XR") ~ "pharm_antianxiety",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & 
+      (str_detect(desc, "NALTREX") | str_detect(desc, "LOTREXONE")) ~ "pharm_naltrexone_rx",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & str_detect(desc, "DISULFIRAM") ~ "pharm_disulfiram",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & 
+      (str_detect(desc, "BUPRENORPHINE") | str_detect(desc, "VIVITROL") | str_detect(desc, "BRIXADI") | 
+         str_detect(desc, "SUBOXONE") | str_detect(desc, "ZUBSOLV") | str_detect(desc, "SUBLOCADE"))~ "pharm_buprenorphine",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & str_detect(desc, "ACAMPROSATE") ~ "pharm_acamprosate",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & 
+      (str_detect(desc, "CHLORPROMAZINE") | str_detect(desc, "FLUPHENAZINE") | str_detect(desc, "RISPERIDONE") | 
+         str_detect(desc, "PROCHLORPERAZINE") | str_detect(desc, "ARIPIPRAZOLE") | 
+         str_detect(desc, "LURASIDONE") | str_detect(desc, "QUETIAPINE") | str_detect(desc, "LOXAPINE") | 
+         str_detect(desc, "HALOPERIDOL") | str_detect(desc, "ZYPREXA") | str_detect(desc, "PALIPERIDONE") | 
+         str_detect(desc, "CLOZAPINE") | str_detect(desc, "RYKINDO") | str_detect(desc, "ERZOFRI") | 
+         str_detect(desc, "ZIPRASIDONE") | str_detect(desc, "PERPHENAZINE") | str_detect(desc, "TRIFLUOPERAZINE") | 
+         str_detect(desc, "CAPLYTA") | str_detect(desc, "THIOTHIXENE") | str_detect(desc, "ABILIFY") |
+         str_detect(desc, "ADASUVE") | str_detect(desc, "ARISTADA") | str_detect(desc, "ASENAPINE") | 
+         str_detect(desc, "BYSANTI") | str_detect(desc, "CLOZARIL") | str_detect(desc, "COBENFY") |
+         str_detect(desc, "VRAYLAR") | str_detect(desc, "VERSACLOZ") | str_detect(desc, "UZEDY") |
+         str_detect(desc, "THIORIDAZINE") | str_detect(desc, "SEROQUEL") | 
+         str_detect(desc, "GEODON") | str_detect(desc, "COMPAZINE") | str_detect(desc, "COMPRO") | 
+         str_detect(desc, "EQUETRO") | str_detect(desc, "SECUADO") | str_detect(desc, "FANAPT") |
+         str_detect(desc, "HALDOL") | str_detect(desc, "INVEGA") | str_detect(desc, "LATUDA") |
+         str_detect(desc, "LYBALVI") | str_detect(desc, "MOLINDONE") | str_detect(desc, "NUPLAZID") |
+         str_detect(desc, "OPIPZA") | str_detect(desc, "PERPHEN") | str_detect(desc, "PERSERIS") |
+         str_detect(desc, "REXULTI") | str_detect(desc, "RISPERDAL") | str_detect(desc, "SAPHRIS")) ~ "pharm_antipsychotic",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & 
+      (str_detect(desc, "HYDROXYZINE") | str_detect(desc, "BUSPIRONE") | str_detect(desc, "ALPRAZOLAM") | 
+         str_detect(desc, "DIAZEPAM") | str_detect(desc, "LORAZEPAM") | str_detect(desc, "BUCAPSOL") |
+         str_detect(desc, "VALIUM") | str_detect(desc, "CLORAZEPATE") | str_detect(desc, "OXAZEPAM") | 
+         str_detect(desc, "CHLORDIAZEPOXIDE") | str_detect(desc, "ATIVAN") | 
+         str_detect(desc, "CHLORDIAZEPO") | str_detect(desc, "XANAX") | str_detect(desc, "VISTARIL") | 
+         str_detect(desc, "TRANXENE") | str_detect(desc, "DROPERIDOL") | str_detect(desc, "LOREEV") |
+         str_detect(desc, "MEPROBAMATE")) ~ "pharm_antianxiety",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & 
+      (str_detect(desc, "BUPROPION") | str_detect(desc, "FLUOXETINE") | str_detect(desc, "IMIPRAMINE") | 
+         str_detect(desc, "NORTRIPTYLINE") | str_detect(desc, "AMITRIPTYLINE") | 
+         str_detect(desc, "OLANZAPINE") | str_detect(desc, "VILAZODONE") | str_detect(desc, "DULOXETINE") | 
+         str_detect(desc, "DOXEPIN") | str_detect(desc, "DULOXETINE") | str_detect(desc, "CITALOPRAM") | 
+         str_detect(desc, "VENLAFAXINE") | str_detect(desc, "SERTRALINE") | str_detect(desc, "ESCITALOPRAM") | 
+         str_detect(desc, "ZURZUVAE") | str_detect(desc, "AUVELITY") | str_detect(desc, "TRAZODONE") | 
+         str_detect(desc, "REMERON") | str_detect(desc, "FLUVOXAMINE") | str_detect(desc, "PAROXETINE") |
+         str_detect(desc, "CLOMIPRAMINE") | str_detect(desc, "MIRTAZAPINE") | str_detect(desc, "MARPLAN") |
+         str_detect(desc, "DESIPRAMINE") | str_detect(desc, "ZULRESSO") | str_detect(desc, "TRANYLCYPROMINE") |
+         str_detect(desc, "AMOXAPINE") | str_detect(desc, "ANAFRANIL") | str_detect(desc, "APLENZIN") | 
+         str_detect(desc, "CELEXA") | str_detect(desc, "ZOLOFT") | str_detect(desc, "WELLBUTRIN") |
+         str_detect(desc, "VIIBRYD") | str_detect(desc, "TRINTELLIX") | str_detect(desc, "SYMBYAX") | 
+         str_detect(desc, "SPRAVATO") | str_detect(desc, "CYMBALTA") | str_detect(desc, "EFFEXOR") | 
+         str_detect(desc, "PRISTIQ") | str_detect(desc, "PROTRIPTYLINE") | 
+         str_detect(desc, "NARDIL") | str_detect(desc, "DRIZALMA") | str_detect(desc, "EMSAM") | 
+         str_detect(desc, "EXXUA") | str_detect(desc, "FETZIMA") | str_detect(desc, "LEXAPRO") |
+         str_detect(desc, "NEFAZODONE") | str_detect(desc, "NORPRAMIN") | str_detect(desc, "PAMELOR") |
+         str_detect(desc, "PARNATE") | str_detect(desc, "PAXIL") | str_detect(desc, "PEXEVA") |
+         str_detect(desc, "PHENELZINE") | str_detect(desc, "PROZAC") | str_detect(desc, "RALDESY") |
+         str_detect(desc, "FORFIVO")) ~ "pharm_antidepressant",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & 
+      (str_detect(desc, "DEXTROAMPHETAMINE") | str_detect(desc, "METHAMPHETAMINE") |
+         str_detect(desc, "METHYLPHENIDATE") | str_detect(desc, "DEXMETHYLPHENIDATE") |
+         str_detect(desc, "DEXTROAMPHETAMINE") | str_detect(desc, "ADHANSIA") | 
+         str_detect(desc, "ATOMOXETINE") | str_detect(desc, "GUANFACINE") | str_detect(desc, "DEXTROAMP") | 
+         str_detect(desc, "LISDEXAMFETAMINE") | str_detect(desc, "AMPHETAMINE") | 
+         str_detect(desc, "CLONIDINE") | str_detect(desc, "JORNAY") | str_detect(desc, "ADDERALL") |
+         str_detect(desc, "ADZENYS") | str_detect(desc, "APTENSIO") | str_detect(desc, "ARYNTA") |
+         str_detect(desc, "ATONCY") | str_detect(desc, "AZSTARYS") | str_detect(desc, "ZENZEDI") |
+         str_detect(desc, "XELSTRYM") | str_detect(desc, "VYVANSE") | str_detect(desc, "STRATTERA") |
+         str_detect(desc, "RITALIN") | str_detect(desc, "CONCERTA") | str_detect(desc, "COTEMPLA") |
+         str_detect(desc, "DAYTRANA") | str_detect(desc, "DESOXYN") | str_detect(desc, "DEXEDRINE") |
+         str_detect(desc, "DYANAVEL") | str_detect(desc, "EVEKEO") | str_detect(desc, "FOCALIN") |
+         str_detect(desc, "INTUNIV") | str_detect(desc, "KAPVAY") | str_detect(desc, "METADATE") |
+         str_detect(desc, "METHYLIN") | str_detect(desc, "MYDAYIS") | str_detect(desc, "NUVIGIL") |
+         str_detect(desc, "ONYDA") | str_detect(desc, "PROCENTRA") | str_detect(desc, "PROVIGIL") |
+         str_detect(desc, "QELBREE") | str_detect(desc, "QUILLICHEW") | str_detect(desc, "QUILLIVANT") |
+         str_detect(desc, "RELEXXII")) ~ "pharm_adhd",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & 
+      (str_detect(desc, "LITHIUM") | str_detect(desc, "LITHOBID")) ~ "pharm_antimania",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & str_detect(desc, "MODAFINIL") ~ "pharm_armodafinil",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & str_detect(desc, "FLUOCINONIDE") ~ "pharm_antiinflammatory",
+    data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & str_detect(desc, "PRAMIPEXOLE") ~ "pharm_parkinsons",
     
     TRUE ~ sub_group_pharmacy
   ))
 
-#Identify missing and fill in blanks
-rda_value_sets_new_rx %>%
-  filter(data_source_type == "pharmacy" & is.na(sub_group_pharmacy)) %>%
-  distinct(desc)
-
 #Check to make sure all drugs have been assigned a sub_group_pharmacy value - this query should return nothing
-rda_value_sets_new_rx %>%
-  filter(data_source_type == "pharmacy" & is.na(sub_group_pharmacy)) %>%
+#if it returns something, then need to add it to the manual recoding above
+missing_rx <- rda_value_sets_new_rx %>%
+  filter(data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy)) %>%
   distinct(desc)
 
 #Assign a sub_group_condition value based on sub_group_pharmacy table
@@ -900,12 +1391,17 @@ rda_value_sets_new_rx <- rda_value_sets_new_rx %>%
     data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_antipsychotic") ~ "mh_psychotic",
     data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_buprenorphine_naloxone") ~ "sud_opioid",
     data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_buprenorphine") ~ "sud_opioid",
-    data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_naltrexone_rx") ~ "sud_opioid",
+    data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_naltrexone_rx") &
+      str_detect(desc, "VIVITROL") ~ "sud_opioid", #only injectable naltrexone is used for treating OUD
+    data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_naltrexone_rx") & 
+        !str_detect(desc, "VIVITROL") ~ "sud_alcohol",
+    data_source_type == "pharmacy" & sub_group_pharmacy %in% c("pharm_armodafinil", "pharm_antiinflammatory",
+                                                               "pharm_parkinsons") ~ "mh_other",
     TRUE ~ sub_group_condition
   ))
 
 #Verify that all drugs have been assigned to a sub_group_condition, should return 0
-rda_value_sets_new_rx %>% filter(data_source_type == "pharmacy" & is.na(sub_group_condition)) %>% count()
+rda_value_sets_new_rx %>% filter(data_source_type == "pharmacy" & is.na(sub_group_condition) & code_set == "NDC") %>% count()
 
 
 #### Step 5b: Add in 66 ICD-10-CM codes that were identified through NO HARMS ####
@@ -946,34 +1442,38 @@ extra_idc_final <- dbGetQuery(conn = db_hhsaw,
   select(value_set_group, value_set_name, data_source_type, code_set, code, desc, icdcm_version, 
          sub_group_condition)
 
-#### Step 6: Bind to existing RDA value set and collapse to distinct rows ####
 
-rda_value_sets_updated <- bind_rows(rda_value_sets_existing, rda_value_sets_new_rx, extra_idc_final) %>% 
+#### Step 6: Bind to existing RDA value set and collapse to distinct rows ####
+# Only need to run the below two chunks if value_set_names substantially change between existing RDA and new one
+extracodes <- anti_join(rda_value_sets_existing, rda_value_sets_new, by = "code") %>% 
+  filter_out(value_set_name == "apde-added-diagnosis" | data_source_type == "billing")
+
+# Update the value sets of the old existing codes to match with what's in the new RDA
+# Update the sud_opioid definition for NDC
+extracodes_final <- extracodes %>% 
+  mutate(value_set_name = case_when(code_set == "NDC" & value_set_group == "sud" ~ "ndcelement",
+                                    code_set == "NDC" & value_set_group == "mh" ~ "mh_ndcelement",
+                                    code_set %in% c("ICD10CM", "ICD9CM") & value_set_group == "sud" ~ "sudanyqlfyng_icd_9_10dx",
+                                    code_set %in% c("ICD10CM", "ICD9CM") & value_set_group == "mh" ~ "mhdiag9_10",
+                                    code_set == "ICD9PCS" & value_set_group == "sud" ~ "sud_wthdrwlmngmnt_icdproccodes", 
+                                    TRUE ~ value_set_name),
+         sub_group_condition = case_when(sub_group_pharmacy == "pharm_naltrexone_rx" & 
+                                           !str_detect(desc, "MORPHINE-NALTREXONE") ~ "sud_alcohol",
+                                         sub_group_pharmacy == "pharm_naltrexone_rx" & 
+                                           str_detect(desc, "MORPHINE-NALTREXONE") ~ "sud_other_substance",
+                                         TRUE ~ sub_group_condition))
+
+# Bind all the data tables 
+rda_value_sets_updated <- bind_rows(extracodes_final, rda_value_sets_new_rx, extra_idc_final) %>% 
   distinct(across(-desc), .keep_all = TRUE)
 
-#Confirm that no ICD-CM codes have more than 1 row
-rda_value_sets_updated %>% filter(code_set %in% c("ICD9CM", "ICD10CM")) %>% group_by(code) %>%
+#Confirm that no ICD-CM codes per value_set_name have more than 1 row
+rda_value_sets_updated %>% filter(code_set %in% c("ICD9CM", "ICD10CM")) %>% group_by(value_set_name, code) %>%
   mutate(row_count = n()) %>% ungroup() %>% count(row_count)
 
-#no need to run the below if there are no ICD-CM codes with >1 row (most likely not needed after Jan 2026 updates)
-rda_value_sets_updated <- subset(rda_value_sets_updated, 
-                                 !(code %in% c("F068", "F09", "F488", "F489", "F54", "F59",
-                                               "F938", "F939", "F989", "F99", "O9934", 
-                                               "O99340", "O99341", "O99342", "O99343", 
-                                               "O99344", "O99345") & 
-                                     sub_group_condition == 'mh_disrupt'))
-#these were previously classified as mh_disrupt but are now mh_other
-
-#Confirm that no NDC codes have more than 1 row
-rda_value_sets_updated %>% filter(code_set %in% c("NDC")) %>% group_by(code) %>%
+#Confirm that no NDC codes per value_set_name have more than 1 row
+rda_value_sets_updated %>% filter(code_set %in% c("NDC")) %>% group_by(value_set_name, code) %>%
   mutate(row_count = n()) %>% ungroup() %>% count(row_count)
-
-#Check for duplicate rows (which is okay for procedure codes that exist in more than one value set)
-#Also some taxonomy codes are duplicated even after stripping white space because of slight changes in wording - ignore
-rda_value_sets_updated %>%
-  group_by(code_set, code) %>%
-  summarise(row_count = n()) %>%
-  filter(row_count >1) 
 
 
 #### Step 6b: Add in MOUD procedure codes (these are not from RDA) ####
