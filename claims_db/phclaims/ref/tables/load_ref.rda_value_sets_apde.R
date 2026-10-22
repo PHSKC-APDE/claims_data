@@ -1294,10 +1294,10 @@ rda_value_sets_new_rx <- rda_value_sets_new_rx %>%
                   "UZEDY", "ABILIFY ASIMTUFII") ~ "pharm_antipsychotic",
     data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & desc %in% c("LOREEV XR") ~ "pharm_antianxiety",
     data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & 
-      (str_detect(desc, "NALTREX") | str_detect(desc, "LOTREXONE")) ~ "pharm_naltrexone_rx",
+      (str_detect(desc, "NALTREX") | str_detect(desc, "LOTREXONE") | str_detect(desc, "VIVITROL")) ~ "pharm_naltrexone_rx",
     data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & str_detect(desc, "DISULFIRAM") ~ "pharm_disulfiram",
     data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & 
-      (str_detect(desc, "BUPRENORPHINE") | str_detect(desc, "VIVITROL") | str_detect(desc, "BRIXADI") | 
+      (str_detect(desc, "BUPRENORPHINE") | str_detect(desc, "BRIXADI") | 
          str_detect(desc, "SUBOXONE") | str_detect(desc, "ZUBSOLV") | str_detect(desc, "SUBLOCADE"))~ "pharm_buprenorphine",
     data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & str_detect(desc, "ACAMPROSATE") ~ "pharm_acamprosate",
     data_source_type == "pharmacy" & code_set == "NDC" & is.na(sub_group_pharmacy) & 
