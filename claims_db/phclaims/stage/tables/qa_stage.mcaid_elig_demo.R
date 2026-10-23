@@ -262,9 +262,15 @@ qa_mcaid_elig_demo_extra <- function(conn = NULL,
                                  glue::glue_sql("SELECT [noncisgender], COUNT(*) AS cnt FROM {`final_schema`}.{`final_table`} GROUP BY [noncisgender]",       
                                                 .con = conn_qa))
   final_non <- final_cnts[final_cnts$noncisgender == 1, "cnt"]
+  if(is_empty(final_non)) {
+    final_non <- 0
+  }
   final_tot <- sum(final_cnts$cnt)
   final_perc <- round(final_non/final_tot, 6)
   perc_diff <- abs(final_perc - stage_perc)/final_perc
+  if(is.infinite(perc_diff)) {
+    perc_diff <- stage_perc
+  }
   goal_perc_diff <- 0.10
   goal_perc <- round(goal_perc_diff * 100, 0)
   
