@@ -449,3 +449,5 @@ get_max_string_lengths_duckdb <- function(parquet_files) {
 read_path <-"Z:/medical_claim_header/medical_claim_header0000_part_00.parquet"
 max_lengths <- get_max_string_lengths_duckdb(read_path)
 max_lengths[["type_of_bill_desc"]]
+
+
