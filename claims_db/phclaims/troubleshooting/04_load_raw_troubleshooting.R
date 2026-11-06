@@ -42,8 +42,9 @@ db_claims <- create_db_connection(server, interactive = interactive_auth, prod =
 ##2. Double check columns
 
 library(arrow)
-
-read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/medical_claim/medical_claim0000_part_00.parquet"
+                                                        "Z:\medical_claim_header\medical_claim_header0000_part_00.parquet"
+#read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/medical_claim/medical_claim0000_part_00.parquet"
+read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/medical_claim_header/medical_claim_header0000_part_00.parquet"
 
 ds <- arrow::open_dataset(read_path)
 
@@ -51,11 +52,11 @@ ds <- arrow::open_dataset(read_path)
 names(ds$schema)
 
 #to compare the columns in raw file and yaml file
-> library(arrow)
-> parquet_cols <- names(arrow::open_dataset(read_path)$schema)
-> library(yaml)
-yaml_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_stg_claims.apcd_medical_claim_full.yaml"
-
+ library(arrow)
+parquet_cols <- names(arrow::open_dataset(read_path)$schema)
+library(yaml)
+#yaml_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/load_raw/tables/load_stg_claims.apcd_medical_claim_full.yaml"
+yaml_url <- "https://raw.githubusercontent.com/PHSKC-APDE/claims_data/refs/heads/main/claims_db/phclaims/load_raw/tables/load_stg_claims.apcd_medical_claim_header_full.yaml"
 yaml_content <- yaml::read_yaml(yaml_url)
 
 # Extract YAML-defined column names:
@@ -151,13 +152,13 @@ library(dplyr)
 changes
 
 
-6. Quick peek
-If you want a compact printout:
+#6. Quick peek
+#If you want a compact printout:
   lapply(changes, function(x) x[, c("column","parquet_index","yaml_index","parquet_type","yaml_type","status")])
 
 
 #figure out column length
-✔ Full function definition: get_max_string_lengths_duckdb
+#✔ Full function definition: get_max_string_lengths_duckdb
 get_max_string_lengths_duckdb <- function(parquet_files) {
   
   # Connect to DuckDB (in-memory)
@@ -204,8 +205,9 @@ get_max_string_lengths_duckdb <- function(parquet_files) {
   return(max_lengths)
 }
 
-read_path <-"Z:/medical_claim_header/medical_claim_header0000_part_00.parquet"
+#read_path <-"Z:/medical_claim_header/medical_claim_header0000_part_00.parquet"
+read_path <- "//dphcifs/apde-cdip/apcd/apcd_data_import/medical_claim_header/medical_claim_header0000_part_00.parquet"
 max_lengths <- get_max_string_lengths_duckdb(read_path)
-max_lengths[["type_of_bill_desc"]]
+#max_lengths[["type_of_bill_desc"]]
 
 
