@@ -36,6 +36,20 @@ on a.ethnicity_id1 = cast(b.ethnicity_id as bigint)
 where race_desc IS NULL
 order by a.ethnicity_id2;
 
+--Reference tables
+--ethnicity
+SELECT * FROM [stg_claims].[ref_apcd_ethnicity]
+order by ethnicity_id
+
+--race
+SELECT *  FROM [stg_claims].[ref_apcd_race]
+  order by [race_id]
+
+--hispanic, added extract 10037
+SELECT [hispanic_id]
+
+  FROM [stg_claims].[ref_apcd_hispanic]
+  order by [hispanic_id]
 --Add any ethnicities with null race_id/race_desc as new rows to the following file:
 --https://kc1.sharepoint.com/:x:/r/teams/DPH-APDE-Healthcare-Data-InternalOpsSharedChannel/Shared%20Documents/APCD/References/apcd_ethnicity_race_mapping.csv?d=wd2338c94ac3f4b9bb3de9925d15ad24b&csf=1&web=1&e=bbCDhO
 --Use Table E-1 in the following report to determine ethnicity -> race mappings:
