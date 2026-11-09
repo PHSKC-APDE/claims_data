@@ -36,7 +36,7 @@ db_claims <- apde.etl::create_db_connection("hhsaw", interactive = interactive_a
 AzureAuth::clean_token_directory(confirm = FALSE)
 
 #to set SharePoint keyring
-#keyring::key_set("sharepoint", username = "shernandez@kingcounty.gov")
+keyring::key_set("sharepoint", username = "shernandez@kingcounty.gov")
 
 # Connect to a named MS TEAMS site
 team_site <- get_sharepoint_site(
@@ -54,6 +54,9 @@ team_folder <- team_site$
 team_folder$list_items()
 
 apcd_race_map_csv <- team_folder$get_item("apcd_ethnicity_race_mapping.csv")$load_dataframe()
+
+#inspect data
+head(apcd_race_map_csv)
 
 ## Load data to HHSAW
 system.time(dbWriteTable(db_claims, name = DBI::Id(schema = "claims", table = "ref_apcd_ethnicity_race_map"), 

@@ -2,7 +2,7 @@
 if("pacman" %in% rownames(installed.packages()) == F) {
   install.packages("pacman")
 }
-pacman::p_load(odbc, curl, keyring, R.utils, zip, tidyverse, lubridate, glue, configr, dply, svDialogs, remotes, rjson, openxlsx)
+pacman::p_load(odbc, curl, keyring, R.utils, zip, tidyverse, lubridate, glue, configr, dplyr, svDialogs, remotes, rjson, openxlsx)
 if("apde.etl" %in% rownames(installed.packages()) == F) {
   remotes::install_github("PHSKC-APDE/apde.etl", auth_token = NULL)
 }

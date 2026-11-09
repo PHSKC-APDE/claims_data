@@ -32,11 +32,14 @@ vars:
     diagnosis_code: VARCHAR(14)
     icd_version_ind: VARCHAR(2)
     header_status: VARCHAR(4)
-    denied_header_flag: VARCHAR(2)
-    orphaned_header_flag: VARCHAR(2)
+    fully_denied_claim_flag: VARCHAR(2)           
+    partially_denied_claim_flag: VARCHAR(2)            
+    fully_orphaned_claim_flag: VARCHAR(2)            
+    partially_orphaned_claim_flag: VARCHAR(2)      
     claim_type_id: BIGINT
     type_of_setting_id: BIGINT
     place_of_setting_id: BIGINT
     type_of_bill_code: VARCHAR(4)
+    type_of_bill_desc: VARCHAR(272)
     emergency_room_flag: VARCHAR(2)
     operating_room_flag: VARCHAR(2)

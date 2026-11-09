@@ -234,3 +234,4 @@ vars:
     value_code_01: VARCHAR(4)
     medical_claim_header_id: BIGINT
     inpatient_discharge_id: BIGINT
+    procedure_code_id: BIGINT

@@ -100,6 +100,8 @@ folder_list <- list("cmsdrg_output_multi_ver", "dental_claim", "eligibility", "i
                    "medical_claim_diagnosis", "medical_claim_header", "medical_claim_icd_procedure",
                    "member_month_detail", "pharmacy_claim", "provider", "provider_master")
 
+folder_list <- list("medical_claim")
+
 #Begin loop
 lapply(folder_list, function(folder_list) {
 
