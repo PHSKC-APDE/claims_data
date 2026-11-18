@@ -21,10 +21,20 @@ pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils, apde
 
 #### STEP 1: Connect to SQL DATABASES ####
 #key_set("inthealth_edw_prod", username = "shernandez@kingcounty.gov") #Only run this each time password is changed
-interactive_auth <- FALSE
-prod <- TRUE
-db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+# interactive_auth <- FALSE
+# prod <- TRUE
+# db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+# dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+
+# Connect to other databases and servers
+dw_inthealth <- apde.connect::connect(database = 'inthealth_edw')
+db_claims <- apde.connect::connect(database = 'hhsaw', prod = TRUE)
+
+# Validate an existing connection (returns it unchanged if correct)
+db_claims  <- apde.connect::connect(database = 'hhsaw', con = db_claims )
+
+#To force a specific driver,
+options(apde.connect.odbc_driver = 'ODBC Driver 17 for SQL Server')
 keyring::key_list() #Confirm you have a key set for hhsaw and inthealth_edw_prod on this machine
 
 
