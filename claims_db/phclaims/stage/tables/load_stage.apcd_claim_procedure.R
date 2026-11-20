@@ -60,7 +60,8 @@ load_stage.apcd_claim_procedure_f <- function() {
 		) v(modifier_code)
 		where a.procedure_code not in ('-1','-2')
 		--exclude denined/orphaned claims
-		and (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
+		--and (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
+		and (b.fully_denied_claim_flag= 'N' and b.fully_orphaned_claim_flag = 'N')
 		--exclude members with no WA residency OR no elig data
 		and (y.id_apcd is null)
 	),
@@ -83,7 +84,8 @@ load_stage.apcd_claim_procedure_f <- function() {
 		on a.internal_member_id = y.id_apcd
 		where a.icd_procedure_code not in ('-1','-2')
 		--exclude denined/orphaned claims
-		and (c.denied_header_flag = 'N' and c.orphaned_header_flag = 'N')
+		--and (c.denied_header_flag = 'N' and c.orphaned_header_flag = 'N')
+		and (c.fully_denied_claim_flag = 'N' and c.fully_orphaned_claim_flag = 'N')
 		--exclude members with no WA residency OR no elig data
 		and (y.id_apcd is null)
 	)
