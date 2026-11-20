@@ -50,7 +50,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 		where (a.diagnosis_code not in ('-1','-2') and a.diagnosis_type_code not in ('S'))
 		--exclude denied and orphaned headers
 		--and (c.denied_header_flag = 'N' and c.orphaned_header_flag = 'N')
-		and (b.fully_denied_claim_flag='N' and b.fully_orphaned_claim_flag='N')
+		and (c.fully_denied_claim_flag='N' and c.fully_orphaned_claim_flag='N')
 		--exclude members with no WA residency OR no elig data
 		and (y.id_apcd is null)
 	),
@@ -72,7 +72,7 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 		where (a.diagnosis_code not in ('-1','-2'))
 		--exclude denied and orphaned headers
 		--and (a.denied_header_flag = 'N' and a.orphaned_header_flag = 'N')
-		 and (b.fully_denied_claim_flag='N' and b.fully_orphaned_claim_flag='N')
+		 and (a.fully_denied_claim_flag='N' and a.fully_orphaned_claim_flag='N')
 		--exclude members with no WA residency OR no elig data
 		and (y.id_apcd is null)
 	),
