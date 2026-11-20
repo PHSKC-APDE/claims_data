@@ -49,7 +49,8 @@ load_stage.apcd_claim_icdcm_header_f <- function() {
 		--exclude null/invalid ICD-CM codes
 		where (a.diagnosis_code not in ('-1','-2') and a.diagnosis_type_code not in ('S'))
 		--exclude denied and orphaned headers
-		and (c.denied_header_flag = 'N' and c.orphaned_header_flag = 'N')
+		--and (c.denied_header_flag = 'N' and c.orphaned_header_flag = 'N')
+		where (b.fully_denied_claim_flag='N' and b.fully_orphaned_claim_flag='N')
 		--exclude members with no WA residency OR no elig data
 		and (y.id_apcd is null)
 	),
