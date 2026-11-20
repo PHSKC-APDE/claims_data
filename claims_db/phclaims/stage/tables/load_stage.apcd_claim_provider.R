@@ -61,7 +61,8 @@ load_stage.apcd_claim_provider_f <- function() {
 		where a.referring_internal_provider_id not in ('-1','-2')
 	) v
 	--exclude denined/orphaned claims
-	where (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
+	--where (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
+	where (b.fully_denied_claim_flag='N' and b.fully_orphaned_claim_flag='N')
 	--exclude members with no WA residency OR no elig data
 	and (y.id_apcd is null);",
 		.con = dw_inthealth))
@@ -88,7 +89,8 @@ qa_stage.apcd_claim_provider_f <- function() {
     on a.internal_member_id = y.id_apcd
 	where a.referring_internal_provider_id not in ('-1','-2')
 	--exclude denined/orphaned claims
-	and (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
+	--and (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
+	and (b.fully_denied_claim_flag='N' and b.fully_orphaned_claim_flag='N')
 	--exclude members with no WA residency OR no elig data
 	and (y.id_apcd is null);",
     .con = dw_inthealth))
