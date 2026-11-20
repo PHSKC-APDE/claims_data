@@ -97,8 +97,10 @@ load_stage.apcd_claim_header_f <- function() {
 		ON a.internal_member_id = y.id_apcd
 
 	--exclude denined/orphaned claims
-	WHERE a.denied_header_flag = 'N'
-	  AND a.orphaned_header_flag = 'N'
+  --WHERE a.denied_header_flag = 'N'
+	--  AND a.orphaned_header_flag = 'N'
+	  WHERE a.fully_denied_claim_flag='N' 
+	    AND a.fully_orphaned_claim_flag='N'
 	--exclude members with no WA residency OR no elig data
 	  AND y.id_apcd IS NULL
 	OPTION (LABEL = 'apcd_claim_header_temp1');
@@ -179,8 +181,10 @@ load_stage.apcd_claim_header_f <- function() {
 			ON a.internal_member_id = y.id_apcd
 		
 		--exclude denined/orphaned claims
-		WHERE a.denied_header_flag = 'N'
-		  AND a.orphaned_header_flag = 'N'
+		--WHERE a.denied_header_flag = 'N'
+		  --AND a.orphaned_header_flag = 'N'
+		WHERE a.fully_denied_claim_flag='N' 
+		  AND a.fully_orphaned_claim_flag='N'
 		--exclude members with no WA residency OR no elig data
 		  AND y.id_apcd IS NULL
 		
@@ -284,8 +288,10 @@ load_stage.apcd_claim_header_f <- function() {
 			ON a.internal_member_id = y.id_apcd
 
 		--exclude denined/orphaned claims
-		WHERE a.denied_header_flag = 'N'
-		  AND a.orphaned_header_flag = 'N'
+		--WHERE a.denied_header_flag = 'N'
+		  --AND a.orphaned_header_flag = 'N'
+		  WHERE a.fully_denied_claim_flag='N' 
+		    AND a.fully_orphaned_claim_flag='N'
 		--exclude members with no WA residency OR no elig data
 		  AND y.id_apcd IS NULL
 
@@ -1241,7 +1247,8 @@ qa_stage.apcd_claim_header_f <- function() {
 	LEFT JOIN stg_claims.apcd_ref_member_exclude AS y
 	ON a.internal_member_id = y.id_apcd
     --exclude denined/orphaned claims
-    where denied_header_flag = 'N' and orphaned_header_flag = 'N'
+    --where denied_header_flag = 'N' and orphaned_header_flag = 'N'
+    WHERE fully_denied_claim_flag='N' and fully_orphaned_claim_flag='N'
 	--exclude members with no WA residency OR no elig data
 	AND y.id_apcd IS NULL;",
     .con = dw_inthealth))
