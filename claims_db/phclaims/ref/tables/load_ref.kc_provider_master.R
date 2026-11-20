@@ -16,19 +16,18 @@ load_ref.kc_provider_master_f <- function() {
     "
     ------------------
     --STEP 1: Prepare provider data from provider_master table
-    -------------------
-    if object_id('tempdb..#provider_master') is not null drop table #provider_master;
-    select distinct cast(npi as bigint) as npi, entity_type,
-    case when len(zip_physical) = 5 then zip_physical else null end as geo_zip_practice,
-    case when primary_taxonomy in ('-1','-2') or len(primary_taxonomy) != 10 then null else primary_taxonomy end as primary_taxonomy, 
-    --case when secondary_taxonomy in ('-1','-2') or len(secondary_taxonomy) != 10 then null else secondary_taxonomy end as secondary_taxonomy, 
     -- NOTE:
     -- Beginning extract #10041, stg_claims.apcd_provider_master no longer contains a
     -- secondary_taxonomy column. For records originating from
     -- provider_master, secondary_taxonomy is populated as NULL.
     -- Secondary taxonomies are still derived from apcd_provider
     -- in Steps 2-3 below.
-
+    -------------------
+    if object_id('tempdb..#provider_master') is not null drop table #provider_master;
+    select distinct cast(npi as bigint) as npi, entity_type,
+    case when len(zip_physical) = 5 then zip_physical else null end as geo_zip_practice,
+    case when primary_taxonomy in ('-1','-2') or len(primary_taxonomy) != 10 then null else primary_taxonomy end as primary_taxonomy, 
+    --case when secondary_taxonomy in ('-1','-2') or len(secondary_taxonomy) != 10 then null else secondary_taxonomy end as secondary_taxonomy, 
     NULL as secondary_taxonomy,
     1 as apcd_provider_master_flag
     into #provider_master
