@@ -48,7 +48,8 @@ load_stage.apcd_claim_line_f <- function() {
     on a.internal_member_id = y.id_apcd
     
     --exclude denined/orphaned claims
-    where (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
+    --where (b.denied_header_flag = 'N' and b.orphaned_header_flag = 'N')
+    where (b.fully_denied_claim_flag='N' and b.fully_orphaned_claim_flag='N')
     --exclude members with no WA residency OR no elig data
     and (y.id_apcd is null);",
     .con = dw_inthealth))
