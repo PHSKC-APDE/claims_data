@@ -17,12 +17,19 @@
   # iii) added code to create REPLICATE copies of ref tables needed for claim_header_table, iv) added claim_bh table
 #2026-09: Eli combined ref_non_resident_id and ref_claim_no_elig tables into a single table to improve ETL performance
 
+# clean memory ----
+rm(list=ls())
+
+
 #### Set up global parameter and call in libraries ####
 options(max.print = 350, tibble.print_max = 50, warning.length = 8170, scipen = 999)
 
 library(pacman)
-pacman::p_load(tidyverse, lubridate, odbc, glue, keyring, apde.etl)
-library (apde.etl)
+#pacman::p_load(tidyverse, lubridate, odbc, glue, keyring, apde.etl)
+
+pacman::p_load(tidyverse, odbc, configr, glue, keyring, svDialogs, R.utils, apde.etl, apde.data, apde.connect)
+
+#library (apde.etl)
 
 #### SET UP FUNCTIONS ####
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/alter_schema.R")
@@ -33,10 +40,18 @@ devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/m
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/db_loader/scripts_general/claim_bh.R")
 
 ## Connect to Synapse
-interactive_auth <- FALSE
-prod <- TRUE
-dw_inthealth <- apde.etl::create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+# interactive_auth <- FALSE
+# prod <- TRUE
+# dw_inthealth <- apde.etl::create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+# 
 
+# Connect to other databases and servers
+options(apde.connect.odbc_driver = 'ODBC Driver 17 for SQL Server')
+dw_inthealth <- apde.connect::connect(database = 'inthealth_edw')
+db_claims <- apde.connect::connect(database = 'hhsaw', prod = TRUE)
+
+# Validate an existing connection (returns it unchanged if correct)
+db_claims  <- apde.connect::connect(database = 'hhsaw', con = db_claims )
 keyring::key_list() #Confirm you have a key set for hhsaw and inthealth_edw_prod on this machine
 
 #key_set("HHSAW_prod", username = "shernandez@kingcounty.gov") #Only run this each time password is changed
@@ -93,7 +108,7 @@ if((apcd_demo_qa$qa[[1]] == apcd_demo_qa$qa[[2]]) & (apcd_demo_qa$qa[[1]] == apc
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_elig_timevar - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_timevar.R")
@@ -136,7 +151,7 @@ if(
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_elig_month - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_month.R")
@@ -188,7 +203,7 @@ if(
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_elig_plr tables - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_elig_plr.R")
@@ -305,7 +320,7 @@ if(all(elig_plr_qa_composite_result$qa_result) == TRUE) {
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_line - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_line.R")
@@ -335,7 +350,7 @@ if(all(c(apcd_line_qa$qa[[1]] == 0
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_icdcm_header - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_icdcm_header.R")
@@ -370,7 +385,7 @@ if(all(c(apcd_icdcm_qa$qa[apcd_icdcm_qa$qa_type=="# members not in elig_demo, ex
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_procedure - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_procedure.R")
@@ -401,7 +416,7 @@ if(all(c(apcd_procedure_qa$qa[apcd_procedure_qa$qa_type=="# members not in elig_
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_provider - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_provider.R")
@@ -430,7 +445,7 @@ if((apcd_provider_qa$qa[apcd_provider_qa$qa_type=="# referring provider claim he
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for ref.apcd_provider_npi - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.apcd_provider_npi.R")
@@ -455,7 +470,7 @@ if(all(c(apcd_provider_npi_qa$qa[apcd_provider_npi_qa$qa_type=="# of provider ID
 
 ### E) Copy table to HHSAW
 message(paste0("Beginning copying ref.apcd_provider_npi to HHSAW - ", Sys.time()))
-db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+#db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 
 system.time(table_duplicate(
   conn_from = dw_inthealth,
@@ -483,7 +498,7 @@ message(paste0("Completed copying ref.apcd_provider_npi to HHSAW - ", Sys.time()
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for ref.kc_provider_master - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/ref/tables/load_ref.kc_provider_master.R")
@@ -510,7 +525,7 @@ if(all(c(kc_provider_master_qa$qa[kc_provider_master_qa$qa_type=="# of NPIs with
 
 ### E) Copy table to HHSAW
 message(paste0("Beginning copying ref.kc_provider_master to HHSAW - ", Sys.time()))
-db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
+#db_claims <- create_db_connection("hhsaw", interactive = interactive_auth, prod = prod)
 
 system.time(table_duplicate(
   conn_from = dw_inthealth,
@@ -597,7 +612,7 @@ system.time(dbSendQuery(
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_header - ", Sys.time()))
-dw_inthealth <- apde.etl::create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- apde.etl::create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_header.R")
@@ -639,7 +654,7 @@ if(all(c(apcd_claim_header_qa$qa[apcd_claim_header_qa$qa_type=="# of headers"] =
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_ccw - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Create table
 create_table(
@@ -703,7 +718,7 @@ if(all(c(apcd_claim_ccw_qa1$qa==0
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_bh - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Create table
 
@@ -752,7 +767,7 @@ if(all(c(apcd_claim_bh_qa1$qa[apcd_claim_bh_qa1$qa_type=="# members not in elig_
 ## -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- ##
 
 message(paste0("Beginning creation process for apcd_claim_preg_episode - ", Sys.time()))
-dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
+#dw_inthealth <- create_db_connection("inthealth", interactive = interactive_auth, prod = prod)
 
 ### A) Call in functions
 devtools::source_url("https://raw.githubusercontent.com/PHSKC-APDE/claims_data/main/claims_db/phclaims/stage/tables/load_stage.apcd_claim_preg_episode.R")
